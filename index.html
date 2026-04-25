@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClaimDataCare — Medical Billing & EHR Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Lato:ital,wght@0,300;0,400;0,700;1,400&family=Nunito:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Sigao';
+  font-weight: 100 900;
+  font-style: normal;
+  src: local('Segoe UI Variable'), local('Segoe UI'), local('SF Pro Text'),
+       local('SF Pro Display'), local('Helvetica Neue'), local('-apple-system'), local('Arial');
+}
+
+/* ── TOKENS ── */
+:root {
+  --c1: #2D6A4F;        /* Forest green — primary */
+  --c1d: #1B4332;       /* Deep forest dark */
+  --c1l: #D8F3DC;       /* Mint light bg */
+  --c1m: #95D5B2;       /* Sage mid */
+  --c2: #D4913A;        /* Amber — secondary */
+  --c2l: #FBF0DC;       /* Amber light bg */
+  --c3: #2E1F12;        /* Deep brown — dark */
+  --c3m: #5C3D20;       /* Brown mid */
+  --bg: #FAF8F5;        /* Warm cream */
+  --bg2: #F2EFE9;       /* Deeper cream */
+  --surface: #FFFFFF;
+  --border: #E6E1D9;
+  --border2: #D4CDBF;
+  --text: #1A1208;
+  --text2: #4A3820;
+  --text3: #8C7A64;
+  --text4: #B8A898;
+  --font: 'Sigao','Segoe UI Variable','Segoe UI',system-ui,-apple-system,sans-serif;
+  --r: 6px;
+  --r-lg: 12px;
+  --r-xl: 18px;
+  --shadow: 0 1px 3px rgba(46,31,18,.07), 0 2px 8px rgba(46,31,18,.05);
+  --shadow-md: 0 4px 16px rgba(46,31,18,.10);
+  --shadow-lg: 0 12px 48px rgba(46,31,18,.14);
+}
+
+/* ── DARK MODE ── */
+[data-theme="dark"] {
+  --bg: #141210;
+  --bg2: #1C1916;
+  --surface: #211E1A;
+  --border: #302B25;
+  --border2: #3D372F;
+  --text: #F0ECE4;
+  --text2: #C8BAA8;
+  --text3: #7A6E60;
+  --text4: #4E4438;
+  --c1: #52B788;      /* Lighter green — readable on dark bg */
+  --c1d: #2D6A4F;
+  --c1l: rgba(82,183,136,.14);
+  --c1m: rgba(82,183,136,.32);
+  --shadow: 0 1px 3px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.35);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,.45);
+}
+[data-theme="dark"] .nav { background: rgba(20,18,16,.94); }
+[data-theme="dark"] .hero-wrap { background: var(--bg); }
+[data-theme="dark"] .mockup-shell { background: #1C1916; }
+[data-theme="dark"] .mock-sidebar { background: #181512; }
+[data-theme="dark"] .mock-chat { background: #141210; }
+[data-theme="dark"] .mock-input { background: #181512; }
+[data-theme="dark"] .mock-row:hover:not(.active) { background: #1E1B17; }
+[data-theme="dark"] .feat-card { background: var(--surface); }
+[data-theme="dark"] .feat-card:hover { background: #272320; }
+[data-theme="dark"] .plan { background: var(--surface); }
+[data-theme="dark"] .mock-input-bar { background: #272320; border-color: var(--border); }
+[data-theme="dark"] .how-section { background: #191611; }
+[data-theme="dark"] .pricing-section { background: var(--bg); }
+[data-theme="dark"] footer { background: #0E0C0A; }
+
+/* ── FONT OVERRIDE ── */
+.font-inter { --font: 'Inter', system-ui, sans-serif !important; }
+.font-dmsans { --font: 'DM Sans', system-ui, sans-serif !important; }
+.font-lato { --font: 'Lato', system-ui, sans-serif !important; }
+.font-nunito { --font: 'Nunito', system-ui, sans-serif !important; }
+.font-playfair { --font: 'Playfair Display', Georgia, serif !important; }
+.font-segoe { --font: 'Sigao','Segoe UI Variable','Segoe UI',system-ui,sans-serif !important; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body { font-family: var(--font); color: var(--text); background: var(--bg); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--font); cursor: pointer; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 56px;
+  background: rgba(250,248,245,.93);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 5%;
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--c1);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-mark svg { width: 18px; height: 18px; }
+.brand-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.brand-by { font-size: 10px; color: var(--text3); }
+.nav-links { display: flex; gap: 2px; margin-right: 18px; }
+.nav-links a {
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  padding: 5px 12px; border-radius: var(--r);
+  transition: background .15s, color .15s;
+}
+.nav-links a:hover { background: var(--bg2); color: var(--text); }
+.nav-cta { display: flex; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 18px; border-radius: var(--r); font-size: 13px; font-weight: 600;
+  border: 1px solid transparent; transition: all .15s; font-family: var(--font);
+  white-space: nowrap; cursor: pointer;
+}
+.btn-ghost { background: transparent; border-color: var(--border2); color: var(--text2); }
+.btn-ghost:hover { background: var(--bg2); }
+.btn-primary { background: var(--c1); color: #fff; border-color: var(--c1); }
+.btn-primary:hover { background: var(--c1d); border-color: var(--c1d); }
+.btn-lg { padding: 13px 28px; font-size: 15px; border-radius: var(--r-lg); }
+.btn-xl { padding: 15px 34px; font-size: 16px; border-radius: var(--r-lg); }
+.btn-outline { background: transparent; border-color: var(--border2); color: var(--text2); }
+.btn-outline:hover { background: var(--bg2); }
+.btn-outline-dark { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+.btn-outline-dark:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.5); }
+.btn-white { background: #fff; color: var(--c3); }
+.btn-white:hover { background: var(--c1l); }
+
+/* ── HERO ── */
+.hero-wrap {
+  min-height: 100vh;
+  display: flex; align-items: center;
+  padding: 80px 5% 60px;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+}
+.hero-wrap::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 70% 50%, rgba(196,98,45,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 1260px; margin: 0 auto; width: 100%;
+  display: grid; grid-template-columns: 1fr 1.15fr; gap: 80px; align-items: center;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--c1); background: var(--c1l); padding: 5px 13px; border-radius: 20px;
+  margin-bottom: 24px;
+}
+.hero-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c1); }
+.hero-h {
+  font-size: clamp(40px, 5vw, 68px); font-weight: 700; line-height: 1.05;
+  letter-spacing: -.035em; color: var(--text); margin-bottom: 20px;
+}
+.hero-h em { font-style: italic; color: var(--c1); }
+.hero-sub {
+  font-size: 17px; color: var(--text2); line-height: 1.65;
+  max-width: 480px; margin-bottom: 36px; font-weight: 400;
+}
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 48px; }
+.hero-trust { display: flex; flex-wrap: wrap; gap: 24px; }
+.trust-item { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text3); }
+.trust-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c2); }
+
+/* ── APP MOCKUP (WhatsApp-style split) ── */
+.mockup-shell {
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border);
+  background: var(--surface);
+  display: flex;
+  height: 480px;
+  position: relative;
+}
+.mock-sidebar {
+  width: 240px; flex-shrink: 0;
+  background: #FDFAF7;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.mock-sidebar-top {
+  background: var(--c3); padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mock-sidebar-brand { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+.mock-sidebar-icons { display: flex; gap: 8px; }
+.mock-icon { width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.15); }
+.mock-search {
+  margin: 10px; height: 28px; background: var(--bg2); border-radius: 14px;
+  display: flex; align-items: center; padding: 0 10px; gap: 6px;
+}
+.mock-search-dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text4); }
+.mock-search-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+.mock-list { flex: 1; overflow: hidden; }
+.mock-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-bottom: 1px solid #F0EDE7;
+  cursor: pointer; transition: background .1s;
+}
+.mock-row.active { background: var(--c1l); }
+.mock-row:hover:not(.active) { background: #F5F2EE; }
+.mock-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.mock-row-content { flex: 1; min-width: 0; }
+.mock-row-name { font-size: 10px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock-row-preview { font-size: 9px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock-row-meta { text-align: right; flex-shrink: 0; }
+.mock-row-time { font-size: 8px; color: var(--text4); margin-bottom: 3px; }
+.mock-badge { width: 14px; height: 14px; border-radius: 50%; background: var(--c1); font-size: 7px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; margin-left: auto; }
+
+/* Chat panel */
+.mock-chat { flex: 1; display: flex; flex-direction: column; background: #FBF9F6; }
+.mock-chat-top {
+  background: var(--c3); padding: 10px 14px;
+  display: flex; align-items: center; gap: 9px;
+}
+.mock-chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--c1); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+.mock-chat-name { font-size: 10px; font-weight: 700; color: #fff; }
+.mock-chat-status { font-size: 8px; color: rgba(255,255,255,.5); }
+.mock-chat-actions { margin-left: auto; display: flex; gap: 8px; }
+.mock-chat-action { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.1); }
+
+.mock-messages { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.msg { max-width: 78%; padding: 7px 10px; border-radius: 10px; font-size: 9px; line-height: 1.5; color: var(--text); }
+.msg-in { background: #fff; border-radius: 2px 10px 10px 10px; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.msg-out { background: var(--c1l); border-radius: 10px 2px 10px 10px; align-self: flex-end; }
+.msg-out.amber { background: var(--c2l); }
+.msg-time { font-size: 7px; color: var(--text4); text-align: right; margin-top: 2px; }
+.msg-label { font-size: 8px; font-weight: 700; color: var(--c1); margin-bottom: 2px; }
+.msg-kpi { display: flex; gap: 6px; margin-top: 4px; }
+.msg-kpi-cell { background: rgba(196,98,45,.08); border-radius: 4px; padding: 4px 7px; text-align: center; }
+.msg-kpi-val { font-size: 11px; font-weight: 700; color: var(--c1); }
+.msg-kpi-lbl { font-size: 7px; color: var(--text3); margin-top: 1px; }
+
+.mock-input {
+  background: #FDFAF7; border-top: 1px solid var(--border);
+  padding: 8px 12px; display: flex; align-items: center; gap: 7px;
+}
+.mock-input-bar {
+  flex: 1; height: 28px; background: #fff;
+  border: 1px solid var(--border); border-radius: 14px;
+  display: flex; align-items: center; padding: 0 12px;
+  font-size: 9px; color: var(--text4);
+}
+.mock-send {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--c1); display: flex; align-items: center; justify-content: center;
+}
+.mock-send svg { width: 12px; height: 12px; fill: white; }
+
+/* ── FEATURES ── */
+.features-section {
+  padding: 96px 5%;
+  max-width: 1260px; margin: 0 auto;
+}
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--c1); margin-bottom: 12px;
+}
+.section-h {
+  font-size: clamp(28px, 3.5vw, 48px); font-weight: 700;
+  letter-spacing: -.03em; color: var(--text); line-height: 1.1; margin-bottom: 12px;
+}
+.section-sub { font-size: 16px; color: var(--text2); line-height: 1.65; max-width: 540px; }
+
+.feat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: var(--r-xl); overflow: hidden; margin-top: 56px;
+}
+.feat-card {
+  background: var(--surface); padding: 32px 28px;
+  transition: background .2s;
+}
+.feat-card:hover { background: #FFFDF9; }
+.feat-icon {
+  width: 40px; height: 40px; border-radius: var(--r);
+  background: var(--c1l);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.feat-icon svg { width: 18px; height: 18px; }
+.feat-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 7px; letter-spacing: -.01em; }
+.feat-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ── STATS BAND ── */
+.stats-band {
+  background: var(--c3); padding: 60px 5%;
+}
+.stats-inner {
+  max-width: 1260px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px;
+}
+.stat-item { text-align: center; }
+.stat-val { font-size: 42px; font-weight: 700; color: #fff; letter-spacing: -.04em; line-height: 1; margin-bottom: 6px; }
+.stat-val span { color: var(--c2); }
+.stat-label { font-size: 13px; color: rgba(255,255,255,.5); }
+
+/* ── HOW IT WORKS ── */
+.how-section { padding: 96px 5%; background: var(--bg2); }
+.how-inner { max-width: 1260px; margin: 0 auto; }
+.how-steps {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px;
+  margin-top: 56px; position: relative;
+}
+.how-steps::before {
+  content: '';
+  position: absolute; top: 28px; left: calc(16.66% + 20px); right: calc(16.66% + 20px);
+  height: 1px; background: var(--border2);
+}
+.how-step { text-align: center; position: relative; }
+.how-num {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; color: var(--c1);
+  margin: 0 auto 20px; position: relative; z-index: 1;
+}
+.how-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.how-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ── PRICING ── */
+.pricing-section { padding: 96px 5%; }
+.pricing-inner { max-width: 1180px; margin: 0 auto; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 52px; align-items: start; }
+.plan {
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  padding: 32px; background: var(--surface);
+  display: flex; flex-direction: column; position: relative;
+  transition: box-shadow .2s, transform .2s;
+}
+.plan:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+.plan.featured { border-color: var(--c1); border-width: 2px; }
+.plan.premium { border-color: var(--c2); border-width: 2px; }
+.plan-badge {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; padding: 3px 14px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; color: #fff;
+}
+.plan-badge.c1 { background: var(--c1); }
+.plan-badge.c2 { background: var(--c2); }
+.plan-tier { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); margin-bottom: 8px; }
+.plan-price { font-size: 48px; font-weight: 700; color: var(--text); letter-spacing: -.05em; line-height: 1; margin-bottom: 4px; }
+.plan-price sup { font-size: 22px; font-weight: 600; vertical-align: top; margin-top: 8px; margin-right: 1px; }
+.plan-price sub { font-size: 13px; font-weight: 400; color: var(--text3); vertical-align: baseline; }
+.plan-desc { font-size: 13px; color: var(--text2); margin: 10px 0 20px; line-height: 1.55; }
+.plan-divider { height: 1px; background: var(--border); margin-bottom: 20px; }
+.plan-list { list-style: none; margin-bottom: 28px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.plan-list li { font-size: 13px; color: var(--text2); display: flex; align-items: flex-start; gap: 9px; }
+.plan-list li::before {
+  content: '';
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23C4622D'/%3E%3Cpath d='M4 7l2 2 4-4' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-size: cover;
+}
+.plan-cta-btn {
+  display: block; width: 100%; padding: 12px; border-radius: var(--r-lg);
+  font-size: 14px; font-weight: 600; font-family: var(--font);
+  border: 1px solid transparent; cursor: pointer; text-align: center;
+  transition: all .15s;
+}
+.plan-cta-btn.c1 { background: var(--c1); color: #fff; border-color: var(--c1); }
+.plan-cta-btn.c1:hover { background: var(--c1d); }
+.plan-cta-btn.c2 { background: var(--c2); color: #fff; border-color: var(--c2); }
+.plan-cta-btn.c2:hover { background: #B87D2E; }
+.plan-cta-btn.outline { background: transparent; border-color: var(--border2); color: var(--text2); }
+.plan-cta-btn.outline:hover { background: var(--bg2); }
+.plan-note { font-size: 11px; color: var(--text3); text-align: center; margin-top: 8px; }
+
+/* ── CTA STRIP ── */
+.cta-strip {
+  background: var(--c3); padding: 88px 5%; text-align: center;
+  position: relative; overflow: hidden;
+}
+.cta-strip::before {
+  content: '';
+  position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 300px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(196,98,45,.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-strip h2 { font-size: clamp(28px, 4vw, 52px); font-weight: 700; color: #fff; letter-spacing: -.04em; margin-bottom: 14px; }
+.cta-strip p { font-size: 17px; color: rgba(255,255,255,.6); margin-bottom: 36px; max-width: 500px; margin-inline: auto; }
+.cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ── FOOTER ── */
+footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
+.foot-inner { max-width: 1260px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.foot-brand { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.foot-copy { font-size: 12px; color: #5C4832; margin-top: 3px; }
+.foot-links { display: flex; gap: 22px; }
+.foot-links a { font-size: 12px; color: #5C4832; transition: color .15s; }
+.foot-links a:hover { color: #fff; }
+
+/* ── SCROLL ANIMATIONS ── */
+.fade-up { opacity: 0; transform: translateY(22px); transition: opacity .55s, transform .55s; }
+.fade-up.in { opacity: 1; transform: none; }
+.fade-up:nth-child(2) { transition-delay: .08s; }
+.fade-up:nth-child(3) { transition-delay: .16s; }
+.fade-up:nth-child(4) { transition-delay: .24s; }
+
+/* ── EHR MOCKUP always light ── */
+.mockup-shell, .mockup-shell * {
+  --text: #1A1208;
+  --text2: #4A3820;
+  --text3: #8C7A64;
+  --text4: #B8A898;
+  --bg: #FAF8F5;
+  --bg2: #F2EFE9;
+  --border: #E6E1D9;
+  --surface: #FFFFFF;
+}
+.nav-icon-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; font-family: var(--font);
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  transition: background .15s, border-color .15s, color .15s, transform .15s, box-shadow .15s;
+  justify-content: center; flex-shrink: 0;
+}
+#lang-btn { width: auto; padding: 0 10px; gap: 6px; }
+.nav-icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-icon-btn:hover {
+  background: var(--bg2); border-color: var(--border2);
+  color: var(--text); transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(46,31,18,.1);
+}
+.nav-icon-btn:active { transform: translateY(0); box-shadow: none; }
+  .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+  .mockup-shell { height: 360px; }
+  .mock-sidebar { width: 160px; }
+  .feat-grid { grid-template-columns: 1fr; }
+  .stats-inner { grid-template-columns: repeat(2,1fr); gap: 28px; }
+  .how-steps { grid-template-columns: 1fr; }
+  .how-steps::before { display: none; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 3L28 8V18C28 25 22 30 16 32C10 30 4 25 4 18V8Z" fill="rgba(255,255,255,0.2)"/>
+        <rect x="14" y="9" width="4" height="14" rx="1.5" fill="white"/>
+        <rect x="9" y="14" width="14" height="4" rx="1.5" fill="white"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">ClaimDataCare</div>
+      <div class="brand-by">EHR & Billing Platform</div>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+  </nav>
+  <div class="nav-cta">
+    <button id="lang-btn" class="nav-icon-btn" onclick="toggleLang()" title="Switch language">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+      <span id="lang-label">ES</span>
+    </button>
+    <button id="theme-btn" class="nav-icon-btn" onclick="toggleTheme()" title="Toggle dark mode">
+      <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+      <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <button class="nav-icon-btn" onclick="toggleCustomPanel()" title="Customize appearance">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+    <button class="btn btn-ghost" onclick="switchModalTab('staff');document.getElementById('trial-modal').classList.add('open')" data-i18n="nav_signin">Sign In</button>
+    <button class="btn btn-primary" onclick="switchModalTab('trial');document.getElementById('trial-modal').classList.add('open')" data-i18n="nav_demo">Request Demo</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-wrap">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-tag"><span class="hero-tag-dot"></span>HIPAA Compliant · Configurable to Your Practice</div>
+      <h1 class="hero-h">EHR built around<br><em>your workflow.</em></h1>
+      <p class="hero-sub">ClaimDataCare adapts to your specialty, your team, and your pace. A complete clinical workspace — scheduling, notes, labs, prescriptions — with revenue cycle tools that grow with you.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" onclick="document.getElementById('trial-modal').classList.add('open')">Request a Demo</button>
+        <button class="btn btn-outline btn-lg" onclick="switchModalTab('staff');document.getElementById('trial-modal').classList.add('open')">Sign In</button>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item"><span class="trust-dot"></span>Configured to your specialty</div>
+        <div class="trust-item"><span class="trust-dot"></span>Per-provider pricing</div>
+        <div class="trust-item"><span class="trust-dot"></span>No hidden fees</div>
+      </div>
+    </div>
+
+    <!-- EHR APP MOCKUP -->
+    <div class="mockup-shell">
+      <!-- Patient List Sidebar -->
+      <div class="mock-sidebar">
+        <div class="mock-sidebar-top">
+          <div class="mock-sidebar-brand">Patients</div>
+          <div style="display:flex;gap:6px">
+            <div style="width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div style="width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+          </div>
+        </div>
+        <!-- Filter pills -->
+        <div style="display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border)">
+          <div style="padding:2px 8px;background:var(--c1);color:#fff;border-radius:10px;font-size:8px;font-weight:700">All</div>
+          <div style="padding:2px 8px;background:var(--bg2);color:var(--text3);border-radius:10px;font-size:8px;font-weight:600">Today</div>
+          <div style="padding:2px 8px;background:var(--bg2);color:var(--text3);border-radius:10px;font-size:8px;font-weight:600">Active</div>
+        </div>
+        <div class="mock-list">
+          <div class="mock-row active">
+            <div class="mock-avatar" style="background:var(--c1)">JR</div>
+            <div class="mock-row-content">
+              <div class="mock-row-name">Jane Reyes</div>
+              <div class="mock-row-preview">DOB: 03/12/1985 · F</div>
+            </div>
+            <div class="mock-row-meta">
+              <div style="font-size:7px;padding:1px 5px;background:var(--c1l);color:var(--c1);border-radius:6px;font-weight:700;white-space:nowrap">Active</div>
+            </div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar" style="background:var(--c2)">MC</div>
+            <div class="mock-row-content">
+              <div class="mock-row-name">Michael Chen</div>
+              <div class="mock-row-preview">DOB: 07/22/1971 · M</div>
+            </div>
+            <div class="mock-row-meta">
+              <div style="font-size:7px;padding:1px 5px;background:#FBF0DC;color:#9A5F1A;border-radius:6px;font-weight:700">F/Up</div>
+            </div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar" style="background:var(--c3m)">SP</div>
+            <div class="mock-row-content">
+              <div class="mock-row-name">Sarah Park</div>
+              <div class="mock-row-preview">DOB: 11/04/1990 · F</div>
+            </div>
+            <div class="mock-row-meta">
+              <div style="font-size:7px;padding:1px 5px;background:#FDE8E8;color:#9B2335;border-radius:6px;font-weight:700">Auth</div>
+            </div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar" style="background:#8C7A64">DL</div>
+            <div class="mock-row-content">
+              <div class="mock-row-name">David Lim</div>
+              <div class="mock-row-preview">DOB: 09/30/1968 · M</div>
+            </div>
+            <div class="mock-row-meta">
+              <div style="font-size:7px;padding:1px 5px;background:var(--c1l);color:var(--c1);border-radius:6px;font-weight:700">New</div>
+            </div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar" style="background:#5C3D20">AM</div>
+            <div class="mock-row-content">
+              <div class="mock-row-name">Ana Martinez</div>
+              <div class="mock-row-preview">DOB: 05/17/1978 · F</div>
+            </div>
+            <div class="mock-row-meta">
+              <div style="font-size:7px;padding:1px 5px;background:var(--bg2);color:var(--text3);border-radius:6px;font-weight:700">Inact</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient Chart Panel -->
+      <div style="flex:1;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
+        <!-- Chart header -->
+        <div style="background:var(--c3);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">JR</div>
+          <div style="flex:1">
+            <div style="font-size:11px;font-weight:700;color:#fff">Jane Reyes &nbsp;<span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:400">F · 39 yrs · DOB 03/12/1985</span></div>
+            <div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:1px">MRN: 004821 &nbsp;·&nbsp; Aetna PPO &nbsp;·&nbsp; PCP: Dr. Ortega</div>
+          </div>
+          <div style="display:flex;gap:5px">
+            <div style="padding:3px 8px;background:var(--c1);border-radius:4px;font-size:8px;font-weight:700;color:#fff">Active</div>
+            <div style="padding:3px 8px;background:rgba(255,255,255,.1);border-radius:4px;font-size:8px;font-weight:600;color:rgba(255,255,255,.6)">Verified</div>
+          </div>
+        </div>
+
+        <!-- Chart tabs -->
+        <div style="display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0">
+          <div style="padding:6px 12px;font-size:9px;font-weight:700;color:var(--c1);border-bottom:2px solid var(--c1);white-space:nowrap">Chart</div>
+          <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Notes</div>
+          <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Labs</div>
+          <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Rx</div>
+          <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Imaging</div>
+          <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Billing</div>
+        </div>
+
+        <!-- Chart body -->
+        <div style="flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+
+          <!-- Vitals row -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+            <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Vitals · Apr 22, 2026</div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+              <div style="text-align:center">
+                <div style="font-size:13px;font-weight:700;color:var(--text)">118<span style="font-size:7px;font-weight:400;color:var(--text3)">/76</span></div>
+                <div style="font-size:7px;color:var(--text4)">BP mmHg</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:13px;font-weight:700;color:var(--text)">72</div>
+                <div style="font-size:7px;color:var(--text4)">HR bpm</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:13px;font-weight:700;color:var(--text)">98.4</div>
+                <div style="font-size:7px;color:var(--text4)">Temp °F</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:13px;font-weight:700;color:var(--c1)">99<span style="font-size:7px">%</span></div>
+                <div style="font-size:7px;color:var(--text4)">O₂ Sat</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:13px;font-weight:700;color:var(--text)">16</div>
+                <div style="font-size:7px;color:var(--text4)">RR /min</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active problems + Medications side by side -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0">
+            <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;overflow:hidden">
+              <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Active Problems</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:#9B2335;flex-shrink:0"></div>
+                  <div style="font-size:8px;color:var(--text2)">Type 2 Diabetes (E11.9)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:var(--c2);flex-shrink:0"></div>
+                  <div style="font-size:8px;color:var(--text2)">Essential HTN (I10)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:var(--c1);flex-shrink:0"></div>
+                  <div style="font-size:8px;color:var(--text2)">Hyperlipidemia (E78.5)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:var(--text4);flex-shrink:0"></div>
+                  <div style="font-size:8px;color:var(--text2)">Obesity (E66.01)</div>
+                </div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;overflow:hidden">
+              <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Medications</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div>
+                  <div style="font-size:8px;font-weight:600;color:var(--text)">Metformin 1000mg</div>
+                  <div style="font-size:7px;color:var(--text4)">PO BID · Active</div>
+                </div>
+                <div>
+                  <div style="font-size:8px;font-weight:600;color:var(--text)">Lisinopril 10mg</div>
+                  <div style="font-size:7px;color:var(--text4)">PO QD · Active</div>
+                </div>
+                <div>
+                  <div style="font-size:8px;font-weight:600;color:var(--text)">Atorvastatin 40mg</div>
+                  <div style="font-size:7px;color:var(--text4)">PO QHS · Active</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next appointment -->
+          <div style="background:var(--c1l);border:1px solid var(--c1m);border-radius:6px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:7px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <div style="font-size:8px;color:var(--c1d)"><strong>Next:</strong> May 2 · Annual Wellness Visit · Dr. Ortega · 10:30 AM</div>
+            </div>
+            <div style="font-size:7px;font-weight:700;color:var(--c1);padding:2px 7px;background:#fff;border-radius:8px;border:1px solid var(--c1m);white-space:nowrap">Confirmed</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<div class="stats-band">
+  <div class="stats-inner">
+    <div class="stat-item fade-up">
+      <div class="stat-val">9<span>+</span></div>
+      <div class="stat-label">Clinical tabs per patient</div>
+    </div>
+    <div class="stat-item fade-up">
+      <div class="stat-val">70<span>%</span></div>
+      <div class="stat-label">Less documentation time with AI</div>
+    </div>
+    <div class="stat-item fade-up">
+      <div class="stat-val">$<span>0</span></div>
+      <div class="stat-label">Per-claim or hidden fees</div>
+    </div>
+    <div class="stat-item fade-up">
+      <div class="stat-val">24<span>h</span></div>
+      <div class="stat-label">ERA auto-posting turnaround</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="features-section">
+    <div class="section-label">Clinical-first design</div>
+    <h2 class="section-h">Designed for providers.<br>Configured for your specialty.</h2>
+    <p class="section-sub">Every feature is built around the clinical encounter — from intake to discharge — then extended with billing tools that work without a separate system.</p>
+
+    <div class="feat-grid">
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/>
+          </svg>
+        </div>
+        <div class="feat-title">Adaptive Patient Chart</div>
+        <div class="feat-body">9 clinical tabs configured to your specialty — SOAP notes, vitals, prescriptions, labs, imaging, referrals, and problem lists. Show only what your practice needs.</div>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7v10l10 5 10-5V7z"/><path d="M2 7l10 5m0 0l10-5m-10 5v10"/>
+          </svg>
+        </div>
+        <div class="feat-title">Integrated Billing — No Add-ons</div>
+        <div class="feat-body">EDI 837 submission, 835 ERA auto-posting, 270/271 eligibility, denial management, and secondary billing — all included. No separate clearinghouse subscription ever.</div>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+        </div>
+        <div class="feat-title">Practice-Wide Communication</div>
+        <div class="feat-body">Staff messaging, eFax, and SMS appointment reminders built into the clinical workflow. Your front desk, nurses, and providers share one connected stream — no extra apps.</div>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+          </svg>
+        </div>
+        <div class="feat-title">Nothy — AI Clinical Assistant</div>
+        <div class="feat-body">Speak naturally during or after the encounter and Nothy generates a complete SOAP note, including assessment and plan. Trained on clinical language — not generic AI.</div>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          </svg>
+        </div>
+        <div class="feat-title">Telemedicine — Native, Not Bolted On</div>
+        <div class="feat-body">HIPAA-compliant video visits launch directly from the appointment block. Notes auto-attach to the chart. No extra logins, no third-party plugins, no workflow interruption.</div>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3h18v18H3zM3 9h18M9 21V9"/>
+          </svg>
+        </div>
+        <div class="feat-title">Revenue Intelligence Dashboard</div>
+        <div class="feat-body">Real-time A/R aging, collections by provider and payer, denial rate trends, and tax-ready financials. Exportable to CSV. Built for administrators who need clarity, not complexity.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CUSTOM CONFIG BAND -->
+<section style="background:var(--c3);padding:72px 5%">
+  <div style="max-width:1260px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--c2);margin-bottom:14px">Tailored to your specialty</div>
+      <h2 style="font-size:clamp(26px,3.2vw,44px);font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.1;margin-bottom:16px">No two practices<br>work the same way.</h2>
+      <p style="font-size:16px;color:rgba(255,255,255,.6);line-height:1.65;margin-bottom:28px">ClaimDataCare is configured during onboarding to match your specialty, team size, and billing rules. Family medicine, mental health, orthopedics, urgent care — each gets a different chart structure, note templates, and coding defaults.</p>
+      <button class="btn btn-primary btn-lg" onclick="document.getElementById('trial-modal').classList.add('open')">See how it works for your specialty</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--c1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">Specialty-specific chart templates</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45)">Family medicine, mental health, orthopedics, urgent care &amp; more</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--c2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7v10l10 5 10-5V7z"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">Custom billing rules &amp; code sets</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45)">CPT, ICD-10, HCPCS defaults matched to your specialty</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">Role-based access for your whole team</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45)">Providers, MAs, front desk, and billing — each sees what they need</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">Scales with your practice</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45)">Solo to multi-location groups — add providers as you grow</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="how-section">
+  <div class="how-inner">
+    <div style="text-align:center">
+      <div class="section-label" style="display:block">How it works</div>
+      <h2 class="section-h" style="margin:0 auto">Up and running in minutes</h2>
+    </div>
+    <div class="how-steps">
+      <div class="how-step fade-up">
+        <div class="how-num">1</div>
+        <div class="how-title">Configure your practice profile</div>
+        <div class="how-body">Tell us your specialty, team size, and workflow preferences. We tailor your workspace — forms, chart tabs, billing codes, and templates — before you see a single patient.</div>
+      </div>
+      <div class="how-step fade-up">
+        <div class="how-num">2</div>
+        <div class="how-title">Migrate or start fresh</div>
+        <div class="how-body">Import existing patient records in bulk, or onboard patients digitally from day one. Payer connections go live immediately for real-time eligibility and ERA delivery.</div>
+      </div>
+      <div class="how-step fade-up">
+        <div class="how-num">3</div>
+        <div class="how-title">See patients. Get paid automatically.</div>
+        <div class="how-body">Document the visit, confirm the codes, and submit — all in one flow. ERAs post automatically and your A/R dashboard updates in real time with zero manual reconciliation.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="pricing-section">
+  <div class="pricing-inner">
+    <div style="text-align:center">
+      <div class="section-label" style="display:block">Transparent, per-provider pricing</div>
+      <h2 class="section-h">A plan for every practice size.<br>Configurable from day one.</h2>
+      <p class="section-sub" style="margin:0 auto;text-align:center">Every plan is built around the clinical workflow first. No per-claim charges, no clearinghouse surprises, no modules sold separately. What you see is what you pay.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Essential -->
+      <div class="plan fade-up">
+        <div class="plan-tier">Essential</div>
+        <div class="plan-price"><sup>$</sup>99<sub>/provider/mo</sub></div>
+        <div class="plan-desc">A complete clinical workspace for solo providers. Fully configured to your specialty from setup — no generic templates.</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-list">
+          <li>Specialty-configured patient chart</li>
+          <li>9 clinical tabs — show only what you need</li>
+          <li>Appointment scheduling — Day, Week & Month</li>
+          <li>SOAP notes with customizable templates</li>
+          <li>e-Prescriptions with printable Rx PDF</li>
+          <li>Lab results with critical value alerts</li>
+          <li>Imaging & document management</li>
+          <li>Referrals & prior authorizations</li>
+          <li>Real-time eligibility — 270/271</li>
+          <li>Intake forms & digital patient admission</li>
+          <li>HIPAA-compliant cloud — no local server</li>
+          <li>Onboarding & email support</li>
+        </ul>
+        <button class="plan-cta-btn outline" onclick="document.getElementById('trial-modal').classList.add('open')">Request Demo</button>
+        <div class="plan-note">Per provider · No long-term contract</div>
+      </div>
+
+      <!-- Professional -->
+      <div class="plan featured fade-up">
+        <div class="plan-badge c1">Most Popular</div>
+        <div class="plan-tier">Professional</div>
+        <div class="plan-price"><sup>$</sup>199<sub>/provider/mo</sub></div>
+        <div class="plan-desc">The full clinical + billing platform. Built for growing practices that need more automation and less manual work across both care and revenue.</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-list">
+          <li>Everything in Essential</li>
+          <li>Nothy AI — voice-to-SOAP in seconds</li>
+          <li>Clearinghouse included — zero extra cost</li>
+          <li>EDI 837 claim submission — automated</li>
+          <li>835 ERA auto-posting & reconciliation</li>
+          <li>Real-time denial management & appeals</li>
+          <li>Secondary & tertiary billing automation</li>
+          <li>A/R aging dashboard with CSV export</li>
+          <li>Staff messaging & internal task management</li>
+          <li>eFax — send & receive from chart</li>
+          <li>SMS & email appointment reminders</li>
+          <li>Telemedicine — native video visits</li>
+          <li>Multi-provider financial dashboard</li>
+          <li>API access for third-party integrations</li>
+          <li>Priority phone & chat support</li>
+        </ul>
+        <button class="plan-cta-btn c1" onclick="document.getElementById('trial-modal').classList.add('open')">Request Demo</button>
+        <div class="plan-note">Most complete all-in-one plan</div>
+      </div>
+
+      <!-- Premium -->
+      <div class="plan premium fade-up">
+        <div class="plan-badge c2">Premium + RCM</div>
+        <div class="plan-tier" style="color:var(--c2)">Enterprise</div>
+        <div class="plan-price"><sup>$</sup>399<sub>/provider/mo</sub></div>
+        <div class="plan-desc">The Professional platform plus fully managed Revenue Cycle Management — expert billing teams handle your claims end-to-end, so your staff focuses entirely on patients.</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-list">
+          <li>Everything in Professional</li>
+          <li style="font-weight:700;color:var(--c2)">Fully Managed Revenue Cycle</li>
+          <li>Dedicated billing specialist assigned</li>
+          <li>Claim scrubbing, submission & follow-up</li>
+          <li>Denial appeals handled — no extra charge</li>
+          <li>Payment posting & monthly reconciliation</li>
+          <li>Billing fee: 5%–7% of net collections</li>
+          <li>Multi-location & group practice support</li>
+          <li>Custom specialty workflow configuration</li>
+          <li>White-glove onboarding & data migration</li>
+          <li>Dedicated account manager</li>
+          <li>Monthly performance & collections report</li>
+          <li>SLA 99.9% uptime guarantee</li>
+        </ul>
+        <button class="plan-cta-btn c2" onclick="document.getElementById('trial-modal').classList.add('open')">Talk to Sales</button>
+        <div class="plan-note">Custom configuration per practice</div>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-size:13px;color:var(--text3);margin-top:20px">
+      Not sure which plan fits? <a href="mailto:info@claimdatacare.com" style="color:var(--c1);font-weight:600">Talk to our team</a> — we'll configure the right setup for your practice.
+    </p>
+  </div>
+</section>
+
+<!-- PATIENT PORTAL PREVIEW -->
+<section style="padding:96px 5%;background:var(--bg)">
+  <div style="max-width:1260px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:80px;align-items:center">
+      <div>
+        <div class="section-label">Patient Portal — Coming Soon</div>
+        <h2 class="section-h">A home for your patients, outside the office</h2>
+        <p class="section-sub" style="max-width:420px">Patients will be able to view their appointments, download lab results, read clinical notes, pay balances, and message their care team — all in one secure, mobile-friendly portal.</p>
+        <div style="margin-top:32px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--c1l);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">Appointments & scheduling</div><div style="font-size:12px;color:var(--text3);line-height:1.5">View upcoming visits, request new appointments, and receive SMS reminders.</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--c1l);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+            </div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">Lab results & clinical notes</div><div style="font-size:12px;color:var(--text3);line-height:1.5">Read results and provider notes as soon as they're released — securely.</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--c1l);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            </div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">Billing & payments</div><div style="font-size:12px;color:var(--text3);line-height:1.5">View statements, understand insurance adjustments, and pay balances online.</div></div>
+          </div>
+        </div>
+        <div style="margin-top:28px">
+          <button class="btn btn-primary" onclick="switchModalTab('patient');document.getElementById('trial-modal').classList.add('open')">Get notified when ready</button>
+        </div>
+      </div>
+
+      <!-- Patient Portal UI Mockup -->
+      <div style="border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg),0 0 0 1px var(--border);background:#fff">
+        <!-- Portal top bar -->
+        <div style="background:var(--c3);padding:14px 18px;display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">MR</div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#fff">Maria Rodriguez</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.45)">Patient · Riverside Family Medicine</div>
+          </div>
+          <div style="margin-left:auto;font-size:10px;color:rgba(255,255,255,.4)">Last visit: Apr 10, 2026</div>
+        </div>
+
+        <!-- Nav pills -->
+        <div style="display:flex;gap:4px;padding:12px 14px;background:#FDFAF7;border-bottom:1px solid var(--border);overflow-x:auto">
+          <div style="padding:5px 13px;background:var(--c1);color:#fff;border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap">Overview</div>
+          <div style="padding:5px 13px;background:var(--bg2);color:var(--text3);border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap">Appointments</div>
+          <div style="padding:5px 13px;background:var(--bg2);color:var(--text3);border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap">Labs</div>
+          <div style="padding:5px 13px;background:var(--bg2);color:var(--text3);border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap">Messages</div>
+          <div style="padding:5px 13px;background:var(--bg2);color:var(--text3);border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap">Billing</div>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+
+          <!-- Upcoming appointment card -->
+          <div style="background:var(--c1l);border:1px solid var(--c1m);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+            <div style="text-align:center;background:var(--c1);color:#fff;border-radius:8px;padding:8px 14px;flex-shrink:0">
+              <div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase">May</div>
+              <div style="font-size:22px;font-weight:700;line-height:1">02</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">Annual Wellness Visit</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Dr. James Ortega · 10:30 AM</div>
+              <div style="font-size:11px;color:var(--text3)">Riverside Family Medicine</div>
+            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--c1);background:#fff;padding:4px 10px;border-radius:12px;border:1px solid var(--c1m)">Confirmed</div>
+          </div>
+
+          <!-- Lab result -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--text)">Recent Lab Results</div>
+              <div style="font-size:10px;color:var(--c1);font-weight:600;cursor:pointer">View all →</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+                <div style="font-size:11px;color:var(--text2);flex:1">CBC — Complete Blood Count</div>
+                <div style="font-size:10px;color:var(--text4)">Apr 10</div>
+                <div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#D8F3DC;color:var(--c1)">Normal</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+                <div style="font-size:11px;color:var(--text2);flex:1">HbA1c</div>
+                <div style="font-size:10px;color:var(--text4)">Apr 10</div>
+                <div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--c2l);color:#9A5F1A">Monitor</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+                <div style="font-size:11px;color:var(--text2);flex:1">Lipid Panel</div>
+                <div style="font-size:10px;color:var(--text4)">Apr 10</div>
+                <div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#D8F3DC;color:var(--c1)">Normal</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance card -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Outstanding Balance</div>
+              <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.03em">$80<span style="font-size:13px;font-weight:400;color:var(--text3)">.00</span></div>
+              <div style="font-size:10px;color:var(--text4);margin-top:2px">Aetna PPO · Visit Apr 10</div>
+            </div>
+            <button style="padding:9px 18px;background:var(--c1);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">Pay Now</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-strip">
+  <h2>A platform shaped around<br>your practice.</h2>
+  <p>Every specialty is different. ClaimDataCare is configured to match your workflows — from chart structure to billing rules — before your first patient walks in.</p>
+  <div class="cta-buttons">
+    <button class="btn btn-white btn-xl" onclick="document.getElementById('trial-modal').classList.add('open')">Request a Demo</button>
+    <a href="mailto:info@claimdatacare.com" class="btn btn-outline-dark btn-xl">Talk to Sales</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-inner">
+    <div>
+      <div class="foot-brand">ClaimDataCare</div>
+      <div class="foot-copy">© 2026 ClaimDataCare. All rights reserved. HIPAA Compliant.</div>
+    </div>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="mailto:info@imbsinc.com">Contact</a>
+      <a href="mailto:info@claimdatacare.com">Pay Invoice</a>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-ov" id="trial-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.25);animation:modalPop .22s cubic-bezier(.34,1.56,.64,1)">
+
+    <!-- Header -->
+    <div style="background:var(--c3);padding:20px 24px;display:flex;align-items:center;gap:12px">
+      <div style="width:38px;height:38px;background:var(--c1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><path d="M16 3L28 8V18C28 25 22 30 16 32C10 30 4 25 4 18V8Z" fill="rgba(255,255,255,0.2)"/><rect x="14" y="9" width="4" height="14" rx="1.5" fill="white"/><rect x="9" y="14" width="14" height="4" rx="1.5" fill="white"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em">ClaimDataCare</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4)">Medical Billing & EHR Platform</div>
+      </div>
+      <button onclick="document.getElementById('trial-modal').classList.remove('open')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;padding:4px;line-height:1">×</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg)">
+      <button class="modal-tab active" id="tab-staff" onclick="switchModalTab('staff')">Staff Login</button>
+      <button class="modal-tab" id="tab-patient" onclick="switchModalTab('patient')">Patient Portal</button>
+      <button class="modal-tab" id="tab-trial" onclick="switchModalTab('trial')">Request Demo</button>
+    </div>
+
+    <!-- Staff Login -->
+    <div id="panel-staff" style="padding:28px 28px 32px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:22px;line-height:1.5">Sign in to your provider or billing workspace.</p>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Email</label>
+      <input type="email" id="staff-email" placeholder="you@practice.com" class="m-input" style="margin-bottom:14px" onkeydown="if(event.key==='Enter')document.getElementById('staff-pass').focus()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2)">Password</label>
+        <button style="font-size:11px;color:var(--c1);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0" onclick="alert('Password reset link sent to your email.')">Forgot password?</button>
+      </div>
+      <div id="staff-err" style="display:none;background:#fce6e8;color:#c0152a;border:1px solid #f4abaf;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px"></div><input type="password" id="staff-pass" placeholder="••••••••" class="m-input" style="margin-bottom:20px" onkeydown="if(event.key==='Enter')doStaffLogin()">
+      <button class="plan-cta-btn c1" style="font-size:14px;padding:12px" id="staff-login-btn" onclick="doStaffLogin()">Sign In</button>
+      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">New to ClaimDataCare? <a href="#" style="color:var(--c1);font-weight:600" onclick="switchModalTab('trial');return false">Request a demo →</a></p>
+    </div>
+
+    <!-- Patient Portal -->
+    <div id="panel-patient" style="display:none;padding:28px 28px 32px">
+      <div style="background:var(--c1l);border:1px solid var(--c1m);border-radius:8px;padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <div style="font-size:12px;color:var(--c1d);line-height:1.55"><strong>Patient Portal — Coming Soon.</strong> The portal is currently in development. Your provider will notify you when access becomes available. Preview below.</div>
+      </div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.5">Patients will access appointments, lab results, messages, and billing statements in one secure place.</p>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Patient Email</label>
+      <input type="email" placeholder="patient@email.com" class="m-input" style="margin-bottom:14px;opacity:.6" disabled>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Date of Birth</label>
+      <input type="text" placeholder="MM / DD / YYYY" class="m-input" style="margin-bottom:20px;opacity:.6" disabled>
+      <button class="plan-cta-btn" style="font-size:14px;padding:12px;background:var(--border);color:var(--text3);border:none;cursor:not-allowed">Access Not Yet Available</button>
+      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">Notify me when ready → <a href="mailto:info@claimdatacare.com" style="color:var(--c1);font-weight:600">info@claimdatacare.com</a></p>
+    </div>
+
+    <!-- Free Trial -->
+    <div id="panel-trial" style="display:none;padding:28px 28px 32px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:22px;line-height:1.5">Tell us about your practice and a specialist will reach out to schedule a personalized walkthrough.</p>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Full Name</label>
+      <input type="text" placeholder="Dr. Jane Smith" class="m-input" style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Email</label>
+      <input type="email" placeholder="you@practice.com" class="m-input" style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Practice Name</label>
+      <input type="text" placeholder="Riverside Family Medicine" class="m-input" style="margin-bottom:22px">
+      <button class="plan-cta-btn c1" style="font-size:15px;padding:13px" onclick="alert('Thank you! A specialist will reach out within 1 business day.')">Schedule My Demo</button>
+      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">By continuing you agree to our Terms & Privacy Policy</p>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes modalPop { from{opacity:0;transform:scale(.94) translateY(10px)} to{opacity:1;transform:none} }
+.modal-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px) }
+.modal-ov.open { display:flex }
+.modal-tab { flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border:none;background:none;font-family:var(--font);transition:all .15s;border-bottom:2px solid transparent }
+.modal-tab.active { color:var(--c1);background:var(--surface);border-bottom-color:var(--c1) }
+.modal-tab:hover:not(.active) { color:var(--text2);background:var(--bg2) }
+.m-input { width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;font-family:var(--font);color:var(--text);background:#fff;outline:none;transition:border-color .15s;display:block }
+.m-input:focus { border-color:var(--c1);outline:2px solid rgba(45,106,79,.15) }
+</style>
+
+<script>
+function switchModalTab(tab) {
+  ['staff','patient','trial'].forEach(t => {
+    document.getElementById('panel-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+// ══ TRANSLATIONS ══
+const T = {
+  en: {
+    nav_features:'Features', nav_how:'How it works', nav_pricing:'Pricing',
+    nav_signin:'Sign In', nav_demo:'Request Demo',
+    hero_tag:'HIPAA Compliant · Configurable to Your Practice',
+    hero_h:'EHR built around<br><em>your workflow.</em>',
+    hero_sub:'ClaimDataCare adapts to your specialty, your team, and your pace. A complete clinical workspace — scheduling, notes, labs, prescriptions — with revenue cycle tools that grow with you.',
+    hero_cta1:'Request a Demo', hero_cta2:'Sign In',
+    trust1:'Configured to your specialty', trust2:'Per-provider pricing', trust3:'No hidden fees',
+    stat1:'Clinical tabs per patient', stat2:'Less documentation time with AI',
+    stat3:'Per-claim or hidden fees', stat4:'ERA auto-posting turnaround',
+    feat_label:'Clinical-first design',
+    feat_h:'Designed for providers.<br>Configured for your specialty.',
+    feat1_t:'Adaptive Patient Chart', feat2_t:'Integrated Billing — No Add-ons',
+    feat3_t:'Practice-Wide Communication', feat4_t:'Nothy — AI Clinical Assistant',
+    feat5_t:'Telemedicine — Native, Not Bolted On', feat6_t:'Revenue Intelligence Dashboard',
+    config_label:'Tailored to your specialty',
+    config_h:'No two practices<br>work the same way.',
+    config_btn:'See how it works for your specialty',
+    ci1_t:'Specialty-specific chart templates', ci1_s:'Family medicine, mental health, orthopedics, urgent care & more',
+    ci2_t:'Custom billing rules & code sets', ci2_s:'CPT, ICD-10, HCPCS defaults matched to your specialty',
+    ci3_t:'Role-based access for your whole team', ci3_s:'Providers, MAs, front desk, and billing — each sees what they need',
+    ci4_t:'Scales with your practice', ci4_s:'Solo to multi-location groups — add providers as you grow',
+    how_label:'How it works', how_h:'Up and running in minutes',
+    how1_t:'Configure your practice profile', how2_t:'Migrate or start fresh', how3_t:'See patients. Get paid automatically.',
+    price_label:'Transparent, per-provider pricing',
+    price_h:'A plan for every practice size.<br>Configurable from day one.',
+    portal_label:'Patient Portal — Coming Soon',
+    portal_h:'A home for your patients, outside the office',
+    portal_btn:'Get notified when ready',
+    cta_h:'A platform shaped around<br>your practice.',
+    cta_btn1:'Request a Demo', cta_btn2:'Talk to Sales',
+    cp_title:'Customize', cp_color:'Brand Color', cp_font:'Font',
+    cp_theme:'Appearance', cp_light:'☀️ Light', cp_dark:'🌙 Dark',
+    footer_copy:'© 2026 ClaimDataCare. All rights reserved. HIPAA Compliant.'
+  },
+  es: {
+    nav_features:'Funcionalidades', nav_how:'Cómo funciona', nav_pricing:'Precios',
+    nav_signin:'Iniciar sesión', nav_demo:'Solicitar Demo',
+    hero_tag:'Cumple HIPAA · Configurable para su práctica',
+    hero_h:'EHR diseñado para<br><em>su flujo de trabajo.</em>',
+    hero_sub:'ClaimDataCare se adapta a su especialidad, su equipo y su ritmo. Un espacio clínico completo — agenda, notas, laboratorios, recetas — con herramientas de facturación que crecen con usted.',
+    hero_cta1:'Solicitar Demo', hero_cta2:'Iniciar sesión',
+    trust1:'Configurado para su especialidad', trust2:'Precio por proveedor', trust3:'Sin cargos ocultos',
+    stat1:'Pestañas clínicas por paciente', stat2:'Menos tiempo en documentación con IA',
+    stat3:'Cargos por reclamo u ocultos', stat4:'Publicación ERA automática',
+    feat_label:'Diseño clínico primero',
+    feat_h:'Diseñado para proveedores.<br>Configurado para su especialidad.',
+    feat1_t:'Historial clínico adaptable', feat2_t:'Facturación integrada — sin complementos',
+    feat3_t:'Comunicación de toda la práctica', feat4_t:'Nothy — Asistente clínico con IA',
+    feat5_t:'Telemedicina — nativa, no añadida', feat6_t:'Panel de inteligencia de ingresos',
+    config_label:'Adaptado a su especialidad',
+    config_h:'Ninguna práctica<br>funciona igual.',
+    config_btn:'Vea cómo funciona para su especialidad',
+    ci1_t:'Plantillas de historial por especialidad', ci1_s:'Medicina familiar, salud mental, ortopedia, urgencias y más',
+    ci2_t:'Reglas de facturación y códigos personalizados', ci2_s:'CPT, ICD-10, HCPCS predeterminados para su especialidad',
+    ci3_t:'Acceso por roles para todo su equipo', ci3_s:'Proveedores, asistentes, recepción y facturación — cada uno ve lo que necesita',
+    ci4_t:'Crece con su práctica', ci4_s:'Solo a grupos multi-sede — agregue proveedores a medida que crece',
+    how_label:'Cómo funciona', how_h:'En funcionamiento en minutos',
+    how1_t:'Configure su perfil de práctica', how2_t:'Migre o empiece de cero', how3_t:'Atienda pacientes. Cobre automáticamente.',
+    price_label:'Precios transparentes por proveedor',
+    price_h:'Un plan para cada tamaño de práctica.<br>Configurable desde el primer día.',
+    portal_label:'Portal del Paciente — Próximamente',
+    portal_h:'Un espacio para sus pacientes, fuera del consultorio',
+    portal_btn:'Notifíqueme cuando esté listo',
+    cta_h:'Una plataforma diseñada<br>para su práctica.',
+    cta_btn1:'Solicitar Demo', cta_btn2:'Hablar con ventas',
+    cp_title:'Personalizar', cp_color:'Color de marca', cp_font:'Fuente',
+    cp_theme:'Apariencia', cp_light:'☀️ Claro', cp_dark:'🌙 Oscuro',
+    footer_copy:'© 2026 ClaimDataCare. Todos los derechos reservados. Cumple HIPAA.'
+  }
+};
+
+let currentLang = 'en';
+let currentTheme = 'light';
+let currentFont = 'font-segoe';
+let currentColor = '#2D6A4F';
+
+function applyLang(lang) {
+  currentLang = lang;
+  const t = T[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key] === undefined) return;
+    if (el.tagName === 'INPUT') { el.placeholder = t[key]; return; }
+    // Keys that contain HTML markup
+    if (['hero_h','feat_h','config_h','price_h','cta_h'].includes(key)) el.innerHTML = t[key];
+    else el.textContent = t[key];
+  });
+  document.getElementById('lang-btn').textContent = lang === 'en' ? 'ES' : 'EN';
+  document.documentElement.lang = lang;
+}
+function toggleLang() { applyLang(currentLang === 'en' ? 'es' : 'en'); }
+
+function setTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  // Nav icon
+  const moon = document.getElementById('icon-moon');
+  const sun = document.getElementById('icon-sun');
+  if(moon) moon.style.display = theme === 'dark' ? 'none' : 'block';
+  if(sun) sun.style.display = theme === 'dark' ? 'block' : 'none';
+  // Panel buttons
+  const cpL = document.getElementById('cp-light-btn');
+  const cpD = document.getElementById('cp-dark-btn');
+  if(cpL) cpL.classList.toggle('active', theme === 'light');
+  if(cpD) cpD.classList.toggle('active', theme === 'dark');
+}
+function toggleTheme() { setTheme(currentTheme === 'light' ? 'dark' : 'light'); }
+
+function setBrandColor(color) {
+  currentColor = color;
+  const darken = (hex, amt) => {
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.max(0,Math.min(255,(n>>16)+amt));
+    const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
+    const b = Math.max(0,Math.min(255,(n&0xff)+amt));
+    return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+  };
+  const ri=parseInt(color.slice(1,3),16), gi=parseInt(color.slice(3,5),16), bi=parseInt(color.slice(5,7),16);
+  document.documentElement.style.setProperty('--c1', color);
+  document.documentElement.style.setProperty('--c1d', darken(color,-24));
+  document.documentElement.style.setProperty('--c1l', `rgba(${ri},${gi},${bi},0.12)`);
+  document.documentElement.style.setProperty('--c1m', `rgba(${ri},${gi},${bi},0.35)`);
+  document.querySelectorAll('.cp-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === color));
+  window.parent.postMessage({type:'__edit_mode_set_keys', edits:{primaryColor:color}}, '*');
+}
+
+function setFont(fontClass) {
+  const all = ['font-segoe','font-inter','font-dmsans','font-lato','font-nunito','font-playfair'];
+  document.body.classList.remove(...all);
+  document.body.classList.add(fontClass);
+  currentFont = fontClass;
+  document.querySelectorAll('.cp-font-opt').forEach(el => el.classList.toggle('active', el.dataset.font === fontClass));
+  window.parent.postMessage({type:'__edit_mode_set_keys', edits:{fontClass}}, '*');
+}
+
+function toggleCustomPanel() {
+  const p = document.getElementById('custom-panel');
+  if (!p) return;
+  const isOpen = p.style.display !== 'none';
+  p.style.display = isOpen ? 'none' : 'block';
+}
+
+// Wire swatches & font opts after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.cp-swatch').forEach(s => s.addEventListener('click', () => setBrandColor(s.dataset.color)));
+  document.querySelectorAll('.cp-font-opt').forEach(el => el.addEventListener('click', () => setFont(el.dataset.font)));
+  document.querySelector('.cp-swatch[data-color="#2D6A4F"]')?.classList.add('active');
+});
+
+// Tweaks toolbar
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "primaryColor": "#7B3F9E",
+  "accentColor": "#D4913A",
+  "darkColor": "#2E1F12",
+  "theme": "light",
+  "fontClass": "font-lato"
+}/*EDITMODE-END*/;
+
+const tPanel = document.createElement('div');
+tPanel.id = 'tweaks-panel';
+tPanel.innerHTML = `
+  <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase">Tweaks</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">Color</div>
+  <input type="color" value="${TWEAK_DEFAULTS.primaryColor}" style="width:100%;height:28px;border:none;border-radius:4px;cursor:pointer;background:none;margin-bottom:12px" oninput="setBrandColor(this.value)">
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">Theme</div>
+  <div style="display:flex;gap:6px;margin-bottom:12px">
+    <button onclick="setTheme('light')" style="flex:1;padding:5px;border-radius:5px;font-size:10px;font-weight:700;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:4px"><svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'><circle cx='12' cy='12' r='5'/><line x1='12' y1='1' x2='12' y2='3'/><line x1='12' y1='21' x2='12' y2='23'/><line x1='4.22' y1='4.22' x2='5.64' y2='5.64'/><line x1='18.36' y1='18.36' x2='19.78' y2='19.78'/><line x1='1' y1='12' x2='3' y2='12'/><line x1='21' y1='12' x2='23' y2='12'/></svg>Light</button>
+    <button onclick="setTheme('dark')" style="flex:1;padding:5px;border-radius:5px;font-size:10px;font-weight:700;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:4px"><svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'><path d='M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z'/></svg>Dark</button>
+  </div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">Language</div>
+  <button onclick="toggleLang()" style="width:100%;padding:6px;border-radius:5px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:6px"><svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><circle cx='12' cy='12' r='10'/><path d='M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20'/></svg>EN / ES</button>
+`;
+Object.assign(tPanel.style, {
+  position:'fixed',bottom:'24px',right:'24px',zIndex:9999,
+  background:'rgba(20,14,8,.93)',backdropFilter:'blur(12px)',
+  borderRadius:'12px',padding:'18px 16px',width:'175px',
+  display:'none',boxShadow:'0 8px 32px rgba(0,0,0,.35)',
+  border:'1px solid rgba(255,255,255,.08)'
+});
+document.body.appendChild(tPanel);
+
+window.addEventListener('message', e => {
+  if(e.data?.type === '__activate_edit_mode') tPanel.style.display = 'block';
+  if(e.data?.type === '__deactivate_edit_mode') tPanel.style.display = 'none';
+});
+window.parent.postMessage({type:'__edit_mode_available'}, '*');
+
+// Scroll animations
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+
+// Wire up customize panel
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.cp-swatch[data-color]').forEach(s => s.addEventListener('click', () => setBrandColor(s.dataset.color)));
+  document.querySelectorAll('.cp-font-opt[data-font]').forEach(el => el.addEventListener('click', () => setFont(el.dataset.font)));
+  const def = document.querySelector('.cp-swatch[data-color="#2D6A4F"]');
+  if(def) def.classList.add('active');
+  // Apply saved defaults
+  setTheme(TWEAK_DEFAULTS.theme || 'light');
+  setFont(TWEAK_DEFAULTS.fontClass || 'font-segoe');
+  setBrandColor(TWEAK_DEFAULTS.primaryColor || '#2D6A4F');
+});
+</script>
+
+<!-- ══ FLOATING CUSTOMIZE FAB + PANEL ══ -->
+<div id="custom-panel" style="display:none;position:fixed;bottom:82px;right:24px;z-index:9998;
+  background:var(--surface);border:1px solid var(--border2);border-radius:16px;
+  box-shadow:var(--shadow-lg);width:264px;overflow:hidden;font-family:var(--font)">
+  <div style="background:var(--c3);padding:13px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase">Customize</span>
+    </div>
+    <button onclick="toggleCustomPanel()" style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;padding:2px;display:flex;align-items:center;border-radius:4px" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
+    <!-- Brand color -->
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Brand Color</span>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <div class="cp-swatch" data-color="#2D6A4F" style="background:#2D6A4F"></div>
+        <div class="cp-swatch" data-color="#1A6B8A" style="background:#1A6B8A"></div>
+        <div class="cp-swatch" data-color="#7B3F9E" style="background:#7B3F9E"></div>
+        <div class="cp-swatch" data-color="#C4622D" style="background:#C4622D"></div>
+        <div class="cp-swatch" data-color="#B5202E" style="background:#B5202E"></div>
+        <div class="cp-swatch" data-color="#1E6B5C" style="background:#1E6B5C"></div>
+        <label style="cursor:pointer;position:relative">
+          <div class="cp-swatch" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border-style:dashed"></div>
+          <input type="color" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="setBrandColor(this.value)">
+        </label>
+      </div>
+    </div>
+    <!-- Font -->
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Font</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px" id="font-options">
+        <div class="cp-font-opt active" data-font="font-segoe"><span>Segoe UI</span><span class="cp-font-tag">Default</span></div>
+        <div class="cp-font-opt" data-font="font-inter"><span style="font-family:'Inter',sans-serif">Inter</span><span class="cp-font-tag">Modern</span></div>
+        <div class="cp-font-opt" data-font="font-dmsans"><span style="font-family:'DM Sans',sans-serif">DM Sans</span><span class="cp-font-tag">Clean</span></div>
+        <div class="cp-font-opt" data-font="font-nunito"><span style="font-family:'Nunito',sans-serif">Nunito</span><span class="cp-font-tag">Friendly</span></div>
+        <div class="cp-font-opt" data-font="font-lato"><span style="font-family:'Lato',sans-serif">Lato</span><span class="cp-font-tag">Professional</span></div>
+        <div class="cp-font-opt" data-font="font-playfair"><span style="font-family:'Playfair Display',serif">Playfair Display</span><span class="cp-font-tag">Elegant</span></div>
+      </div>
+    </div>
+    <!-- Appearance -->
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/></svg>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Appearance</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="cp-light-btn" class="cp-mode-btn active" onclick="setTheme('light')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>Light
+        </button>
+        <button id="cp-dark-btn" class="cp-mode-btn" onclick="setTheme('dark')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>Dark
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="custom-fab" onclick="toggleCustomPanel()" title="Customize appearance"
+  style="position:fixed;bottom:24px;right:24px;z-index:9997;width:46px;height:46px;border-radius:50%;
+  background:var(--c3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.28);transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .2s">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+</button>
+
+<style>
+#custom-fab:hover { transform:scale(1.12) rotate(35deg);box-shadow:0 6px 28px rgba(0,0,0,.35); }
+#custom-fab:active { transform:scale(.95) rotate(35deg); }
+.cp-swatch { width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s,box-shadow .15s;flex-shrink:0; }
+.cp-swatch:hover { transform:scale(1.2);box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.cp-swatch.active { border-color:var(--text);transform:scale(1.12); }
+.cp-font-opt { display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);border:1px solid transparent;transition:all .15s; }
+.cp-font-opt:hover { background:var(--bg2); }
+.cp-font-opt.active { background:var(--c1l);color:var(--c1);border-color:var(--c1m);font-weight:600; }
+.cp-font-tag { font-size:10px;color:var(--text4); }
+.cp-font-opt.active .cp-font-tag { color:var(--c1); }
+.cp-mode-btn { flex:1;padding:8px 6px;border-radius:7px;font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px; }
+.cp-mode-btn:hover { background:var(--bg); }
+.cp-mode-btn.active { background:var(--c3);color:#fff;border-color:var(--c3); }
+</style>
+
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+const FB_CONFIG = {
+  apiKey:"AIzaSyAz--tpwjOIeyfhzQ93kvQ_5gXUo1XNTeE",
+  authDomain:"claimdatacare.firebaseapp.com",
+  projectId:"claimdatacare",
+  storageBucket:"claimdatacare.firebasestorage.app",
+  messagingSenderId:"786087928118",
+  appId:"1:786087928118:web:573b9081d40a3c213c5397"
+};
+
+let _auth;
+try {
+  const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FB_CONFIG);
+  _auth = firebase.auth();
+} catch(e) { console.warn('FB:', e); }
+
+async function doStaffLogin() {
+  const email = (document.getElementById('staff-email').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('staff-pass').value || '';
+  const btn   = document.getElementById('staff-login-btn');
+  const err   = document.getElementById('staff-err');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Enter your email and password.'; err.style.display = 'block'; return; }
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  try {
+    if (_auth) await _auth.signInWithEmailAndPassword(email, pass);
+    try { localStorage.setItem('cdc_pending_login','1'); } catch(e) {}
+    window.location.href = 'app.html';
+  } catch(e) {
+    btn.textContent = 'Sign In'; btn.disabled = false;
+    const msgs = {'auth/user-not-found':'Incorrect email or password.','auth/wrong-password':'Incorrect email or password.','auth/invalid-credential':'Incorrect email or password.','auth/too-many-requests':'Too many attempts. Please wait.'};
+    err.textContent = msgs[e.code] || 'Login failed. Please try again.';
+    err.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>
