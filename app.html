@@ -17100,14 +17100,23 @@ document.addEventListener("DOMContentLoaded", async function() {
           role:'Super Admin', activeBillingProviderId:null};
         setSession(sess);
         showApp(sess.name);
-        loadFromFirestore().then(function(){
+        // loadFromFirestore may return undefined if offline — wrap in Promise
+        Promise.resolve(loadFromFirestore()).then(function(){
           var db2=getDB(), s=getSession(); if(!s) return;
           if(db2.providers&&db2.providers.length){
             var vp=db2.providers.find(function(p){return p.id===s.activeBillingProviderId;})||db2.providers[0];
             activeProviderId=vp.id; s.activeBillingProviderId=activeProviderId; setSession(s);
           }
           rebuildProvSel(); go('dashboard'); updateBadges(); updateAdminUI();
-        }).catch(function(){ go('dashboard'); });
+          try { renderDashboard(); } catch(e){}
+        }).catch(function(){ 
+          // Even on error, try to show what we have
+          var db2=getDB(), s=getSession(); if(!s) return;
+          if(db2.providers&&db2.providers.length){
+            var vp=db2.providers[0]; activeProviderId=vp.id;
+          }
+          go('dashboard'); 
+        });
       } else if (!getSession()) {
         renderLoginScreen();
       }
