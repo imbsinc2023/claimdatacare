@@ -1736,12 +1736,12 @@ function getApiConfig() {
 // FIREBASE — Cloud Database
 // ═══════════════════════════════════════════════════════
 const FB_CONFIG = {
-  apiKey:            "AIzaSyAz--tpwjOIeyfhzQ93kvQ_5gXUo1XNTeE",
-  authDomain:        "claimdatacare.firebaseapp.com",
-  projectId:         "claimdatacare",
-  storageBucket:     "claimdatacare.firebasestorage.app",
-  messagingSenderId: "786087928118",
-  appId:             "1:786087928118:web:573b9081d40a3c213c5397"
+  apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
+  authDomain:        "claimdatacare-451fe.firebaseapp.com",
+  projectId:         "claimdatacare-451fe",
+  storageBucket:     "claimdatacare-451fe.firebasestorage.app",
+  messagingSenderId: "1005844575427",
+  appId:             "1:1005844575427:web:eb9799d720d50e5f5e1e76"
 };
 
 let _fbApp = null;
@@ -8167,16 +8167,14 @@ async function importBackup(event) {
       }
     }
 
-    // Rebuild UI
-    try { document.getElementById('root').innerHTML = getAppShellHTML(); } catch(_) {}
-    try { initServices();   } catch(_) {}
-    try { rebuildProvSel(); } catch(_) {}
-    try { updateAdminUI();  } catch(_) {}
-    try { applyTheme();     } catch(_) {}
-    try { _initTnHover();   } catch(_) {}
-    try { setTimeout(_initNavIcons, 150); } catch(_) {}
-    try { go('dashboard');  } catch(_) {}
-    try { updateBadges();   } catch(_) {}
+    // Rebuild UI — keep existing DOM, just refresh data
+    try { initServices();          } catch(_) {}
+    try { rebuildProvSel();        } catch(_) {}
+    try { updateAdminUI();         } catch(_) {}
+    try { applyTheme();            } catch(_) {}
+    try { go('dashboard');         } catch(_) {}
+    try { updateBadges();          } catch(_) {}
+    try { _renderLucideIcons();    } catch(_) {}
 
     setTimeout(() => { window._restoreInProgress = false; }, 5000);
     toast(`Restored: ${provCount} providers · ${patCount} patients · ${claimCount} claims`);
