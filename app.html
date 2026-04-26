@@ -76,7 +76,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 .hidden{display:none!important}
 .mono{font-family:var(--mono)}
 .page{display:none}.page.active{display:block}
-.section{display:none}.section.active{display:block}
+.section{display:none}.section.active{display:block!important}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-family:var(--font);white-space:nowrap;transition:all .15s}
@@ -1773,8 +1773,8 @@ function initFirebase() {
       _adminUser = user;
     });
   } catch(e) {
-    console.warn('Firebase init failed, using localStorage:', e);
-    setFbStatus('Offline','amber');
+    console.error('Firebase init failed:', e);
+    setFbStatus('Offline — ' + (e.message||e.code||'error'), 'red');
   }
 }
 
@@ -2427,7 +2427,13 @@ function showApp(username) {
   // Show app sections, hide login
   const appSectionsEl = document.getElementById('app-sections-wrapper');
   if (appSectionsEl) appSectionsEl.style.display = '';
-  document.getElementById('root').innerHTML = getAppShellHTML();
+  try {
+    document.getElementById('root').innerHTML = getAppShellHTML();
+  } catch(shellErr) {
+    console.error('Shell injection failed:', shellErr);
+    document.getElementById('root').innerHTML = '<div style="padding:40px;font-family:sans-serif;color:red">App failed to load: ' + shellErr.message + '</div>';
+    return;
+  }
   updateAdminUI(); // set admin visibility immediately after shell renders
   try { initServices(); } catch(e) {}
   const userEl = document.getElementById('sb-username');
