@@ -8160,14 +8160,25 @@ async function importBackup(event) {
       }
     }
 
-    // Rebuild UI — keep existing DOM, just refresh data
-    try { initServices();          } catch(_) {}
-    try { rebuildProvSel();        } catch(_) {}
-    try { updateAdminUI();         } catch(_) {}
-    try { applyTheme();            } catch(_) {}
-    try { go('dashboard');         } catch(_) {}
-    try { updateBadges();          } catch(_) {}
-    try { _renderLucideIcons();    } catch(_) {}
+    // Rebuild UI — set activeProviderId FIRST then refresh
+    try { initServices(); } catch(_) {}
+    try {
+      var db2 = getDB();
+      var sess = getSession();
+      if (db2.providers && db2.providers.length) {
+        var savedId = sess && sess.activeBillingProviderId;
+        var vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
+        activeProviderId = vp.id;
+        if (sess) { sess.activeBillingProviderId = activeProviderId; setSession(sess); }
+      }
+    } catch(_) {}
+    try { rebuildProvSel();     } catch(_) {}
+    try { updateAdminUI();      } catch(_) {}
+    try { applyTheme();         } catch(_) {}
+    try { go('dashboard');      } catch(_) {}
+    try { renderDashboard();    } catch(_) {}
+    try { updateBadges();       } catch(_) {}
+    try { _renderLucideIcons(); } catch(_) {}
 
     setTimeout(() => { window._restoreInProgress = false; }, 5000);
     toast(`Restored: ${provCount} providers · ${patCount} patients · ${claimCount} claims`);
