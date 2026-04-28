@@ -1189,7 +1189,7 @@ border-radius: 8px;
 body { font-size: var(--fs-base); }
 .card, .section, .tbl-wrap, .modal-body, .page-hdr, .sidebar { font-size: inherit; }
 </style>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.344.0/umd/lucide.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -2580,27 +2580,36 @@ setTimeout(_renderLucideIcons, 20);
 
 
 function showApp(username) {
+  const session = getSession();
+  if(!session) { renderLoginScreen(); return; }
+
+  // Inject shell HTML FIRST, then initialize everything
+  document.getElementById('root').innerHTML = getAppShellHTML();
+
+  // Set username in UI
   try {
-    const _tb = document.getElementById('tb-title');
-    if(_tb && username) _tb.textContent = username;
     const _tn = document.getElementById('tn-user-name');
     if(_tn && username) _tn.textContent = (username.split(' ')[0]) || 'Account';
   } catch(e) {}
-  setTimeout(_initTnHover, 100);
-  setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
-  const session = getSession();
-  if(!session) { renderLoginScreen(); return; }
-  document.getElementById('root').innerHTML = getAppShellHTML();
-  updateAdminUI();
-  try { initServices(); } catch(e) {}
+
   const userEl = document.getElementById('sb-username');
   if(userEl) userEl.textContent = (session.name || session.email || username);
   const btnLang = document.getElementById('btn-lang');
   if(btnLang) btnLang.textContent = LANG === 'en' ? 'ES' : 'EN';
+
+  updateAdminUI();
+  try { initServices(); } catch(e) {}
   applyTheme();
   if(!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
-  setTimeout(() => { setFbStatus('', 'green'); updateAdminUI(); }, 0);
-  // Always go to dashboard — _afterLoad will set providers once Firestore loads
+
+  // Init interactive behaviors AFTER DOM is ready
+  setTimeout(_initTnHover, 50);
+  setTimeout(function() {
+    try { _initNavIcons(); } catch(e) {}
+    _renderLucideIcons(); // Now DOM has all data-lucide elements
+  }, 80);
+  setTimeout(function() { setFbStatus('', 'green'); updateAdminUI(); }, 0);
+
   go('dashboard');
 }
 
@@ -16186,9 +16195,16 @@ if (btnLang) btnLang.textContent = (typeof LANG !== 'undefined' && LANG === 'es'
 _renderLucideIcons();
 }
 function _renderLucideIcons() {
-if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-lucide.createIcons();
-}
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e) { console.warn('lucide:', e); }
+  } else {
+    // Retry once after short delay if lucide not yet loaded
+    setTimeout(function() {
+      if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e) {}
+      }
+    }, 300);
+  }
 }
 
 
@@ -16198,6 +16214,15 @@ const _origToggleLang = typeof toggleLang === 'function' ? toggleLang : null;
 
 
 document.addEventListener("DOMContentLoaded", async function() {
+  // Init lucide with retries — runs before and after Firebase loads
+  (function tryLucide(n) {
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    } else if (n > 0) {
+      setTimeout(function(){ tryLucide(n-1); }, 400);
+    }
+  })(10);
+
   applyTheme();
 
   const waitForFirebase = (retries = 30) => new Promise(resolve => {
