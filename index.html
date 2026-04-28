@@ -465,13 +465,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 3L28 8V18C28 25 22 30 16 32C10 30 4 25 4 18V8Z" fill="rgba(255,255,255,0.2)"/>
-        <rect x="14" y="9" width="4" height="14" rx="1.5" fill="white"/>
-        <rect x="9" y="14" width="14" height="4" rx="1.5" fill="white"/>
-      </svg>
-    </div>
+    <div class="brand-mark"><img src="favicon.svg" id="nav-logo-landing" width="28" height="28" style="display:block" alt="ClaimDataCare"></div>
     <div>
       <div class="brand-name">ClaimDataCare</div>
       <div class="brand-by">EHR & Billing Platform</div>
@@ -1110,7 +1104,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
     <!-- Header -->
     <div style="background:var(--c3);padding:20px 24px;display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--c1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><path d="M16 3L28 8V18C28 25 22 30 16 32C10 30 4 25 4 18V8Z" fill="rgba(255,255,255,0.2)"/><rect x="14" y="9" width="4" height="14" rx="1.5" fill="white"/><rect x="9" y="14" width="14" height="4" rx="1.5" fill="white"/></svg>
+        <img src="favicon.svg" id="modal-logo-landing" width="20" height="20" style="display:block" alt="ClaimDataCare">
       </div>
       <div>
         <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em">ClaimDataCare</div>
@@ -1266,6 +1260,8 @@ let currentColor = '#2D6A4F';
     const url = URL.createObjectURL(blob);
     let lnk = document.querySelector("link[rel='icon']");
     if (lnk) { lnk._prev=url; lnk.href=url; }
+    // Also update nav + modal logos
+    document.querySelectorAll('#nav-logo-landing,#modal-logo-landing').forEach(function(img){ img.src=url; });
   } catch(e) {}
 })();
 
@@ -1322,9 +1318,7 @@ function setBrandColor(color) {
     if (link._prev) URL.revokeObjectURL(link._prev);
     link._prev = url; link.href = url;
     // Update any brand logos on landing page
-    document.querySelectorAll('.brand-shield, .logo-shield').forEach(el => {
-      el.style.fill = color;
-    });
+    document.querySelectorAll('#nav-logo-landing,#modal-logo-landing').forEach(function(img){ img.src=url; });
   } catch(e) {}
   const darken = (hex, amt) => {
     const n = parseInt(hex.slice(1),16);
