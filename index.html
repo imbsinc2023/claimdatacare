@@ -1266,6 +1266,21 @@ let currentLang = 'en';
 let currentTheme = (function(){ try { return localStorage.getItem('rcmpro_theme') || 'light'; } catch(e){ return 'light'; } })();
 let currentFont = 'font-segoe';
 let currentColor = '#2D6A4F';
+// Apply saved color to favicon immediately on load
+(function() {
+  try {
+    const c = localStorage.getItem('rcmpro_color') || '#2D6A4F';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="${c}"/>
+      <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
+      <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
+    </svg>`;
+    const blob = new Blob([svg],{type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    let lnk = document.querySelector("link[rel='icon']");
+    if (lnk) { lnk._prev=url; lnk.href=url; }
+  } catch(e) {}
+})();
 
 function applyLang(lang) {
   currentLang = lang;
@@ -1287,7 +1302,7 @@ function setTheme(theme) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
   // Save to localStorage so app.html picks it up
-  try { localStorage.setItem('rcmpro_theme', theme); } catch(e) {}
+  try { localStorage.setItem('rcmpro_theme', theme); sessionStorage.setItem('cdc_theme', theme); } catch(e) {}
   // Nav icon
   const moon = document.getElementById('icon-moon');
   const sun = document.getElementById('icon-sun');
@@ -1303,7 +1318,27 @@ function toggleTheme() { setTheme(currentTheme === 'light' ? 'dark' : 'light'); 
 
 function setBrandColor(color) {
   currentColor = color;
-  try { localStorage.setItem('rcmpro_color', color); } catch(e) {}
+  try { localStorage.setItem('rcmpro_color', color); sessionStorage.setItem('cdc_color', color); } catch(e) {}
+  // Update browser tab favicon color live
+  try {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="${color}"/>
+      <path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z"
+        fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
+      <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
+    </svg>`;
+    const blob = new Blob([svg], {type:'image/svg+xml'});
+    const url  = URL.createObjectURL(blob);
+    let link = document.querySelector("link[rel='icon']");
+    if (!link) { link = document.createElement('link'); link.rel='icon'; document.head.appendChild(link); }
+    if (link._prev) URL.revokeObjectURL(link._prev);
+    link._prev = url; link.href = url;
+    // Update any brand logos on landing page
+    document.querySelectorAll('.brand-shield, .logo-shield').forEach(el => {
+      el.style.fill = color;
+    });
+  } catch(e) {}
   const darken = (hex, amt) => {
     const n = parseInt(hex.slice(1),16);
     const r = Math.max(0,Math.min(255,(n>>16)+amt));
@@ -1325,7 +1360,7 @@ function setFont(fontClass) {
   document.body.classList.remove(...all);
   document.body.classList.add(fontClass);
   currentFont = fontClass;
-  try { localStorage.setItem('rcmpro_font', fontClass); } catch(e) {}
+  try { localStorage.setItem('rcmpro_font', fontClass); sessionStorage.setItem('cdc_font', fontClass); } catch(e) {}
   document.querySelectorAll('.cp-font-opt').forEach(el => el.classList.toggle('active', el.dataset.font === fontClass));
   window.parent.postMessage({type:'__edit_mode_set_keys', edits:{fontClass}}, '*');
 }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClaimDataCare</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJDbGFpbURhdGFDYXJlIj4KICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwNTk2NjkiLz4KICA8IS0tIFNoaWVsZCBzaGFwZSAtLT4KICA8cGF0aCBkPSJNMzIgMTAgTDUyIDE4IEw1MiAzNCBDNTIgNDUgNDIgNTQgMzIgNTcgQzIyIDU0IDEyIDQ1IDEyIDM0IEwxMiAxOCBaIiBmaWxsPSIjMDY1ZjQ2Ii8+CiAgPCEtLSBDcm9zcy9wbHVzIG1lZGljYWwgc3ltYm9sIC0tPgogIDxyZWN0IHg9IjI4IiB5PSIyMCIgd2lkdGg9IjgiIGhlaWdodD0iMjQiIHJ4PSIyIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjI4IiB3aWR0aD0iMjQiIGhlaWdodD0iOCIgcng9IjIiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFN1YnRsZSBzaGluZSAtLT4KICA8ZWxsaXBzZSBjeD0iMjIiIGN5PSIxOSIgcng9IjciIHJ5PSI0IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMTUpIiB0cmFuc2Zvcm09InJvdGF0ZSgtMjAsMjIsMTkpIi8+Cjwvc3ZnPg==">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 
@@ -266,13 +266,13 @@ TOP NAVIGATION Ñ redesigned with proper button effects
 .topnav {
 display: flex;
 align-items: center;
-height: 54px;
-padding: 0 16px;
+height: 44px;
+padding: 0 10px;
 background: #ffffff;
 border-bottom: 1px solid #e2e5ed;
 flex-shrink: 0;
 z-index: 200;
-gap: 2px;
+gap: 1px;
 }
 [data-theme="dark"] .topnav {
 background: #161b27;
@@ -320,9 +320,9 @@ overflow: visible;
 .tn-item {
 display: inline-flex;
 align-items: center;
-gap: 6px;
-padding: 0 12px;
-height: 36px;
+gap: 4px;
+padding: 0 7px;
+height: 30px;
 border-radius: 8px;
 background: transparent;
 border: none;
@@ -1803,13 +1803,21 @@ db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
 
 // \u2500\u2500 Theme / Lang \u2500\u2500
 function applyTheme() {
-  const theme = localStorage.getItem('rcmpro_theme') || 'light';
+  // Read from Firestore config or sessionStorage (from landing) or default
+  let theme = 'light';
+  try {
+    if (_apiConfigCache && _apiConfigCache.theme) theme = _apiConfigCache.theme;
+    else if (sessionStorage.getItem('cdc_theme')) theme = sessionStorage.getItem('cdc_theme');
+    else if (localStorage.getItem('rcmpro_theme')) theme = localStorage.getItem('rcmpro_theme');
+  } catch(e) {}
+
+  // Color from Firestore or sessionStorage
+  const color = (_apiConfigCache && _apiConfigCache.color) || sessionStorage.getItem('cdc_color') || localStorage.getItem('rcmpro_color') || '';
   document.documentElement.setAttribute('data-theme', theme);
   const btnDark = document.getElementById('btn-dark');
   if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
 
-  // Apply brand color chosen in landing page
-  const color = localStorage.getItem('rcmpro_color');
+  // (color already read above)
   if (color) {
     const darken = (hex, amt) => {
       const n = parseInt(hex.slice(1),16);
@@ -2552,7 +2560,7 @@ return `<div class="app-shell">
 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="40" y1="80" x2="216" y2="80"/><line x1="40" y1="128" x2="216" y2="128"/><line x1="40" y1="176" x2="216" y2="176"/></svg>
 </button>
 <div class="tn-brand">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="26" height="26" style="flex-shrink:0"><rect width="40" height="40" rx="9" fill="#059669"/><rect x="7" y="7" width="26" height="26" rx="5" fill="#d1fae5" stroke="#fff" stroke-width="2"/><path d="M12 16h16M12 21h16M12 26h10" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/></svg>
+<img src="favicon.svg" id="nav-logo-main" width="20" height="20" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">
 <span class="tn-brand-name">ClaimDataCare</span>
 </div>
 <div class="tn-divider"></div>
@@ -2631,7 +2639,7 @@ return `<div class="app-shell">
 <div class="tn-drawer-panel">
 <div class="tn-drawer-header">
 <div style="display:flex;align-items:center;gap:8px">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="22" height="22"><rect width="40" height="40" rx="9" fill="#059669"/><rect x="7" y="7" width="26" height="26" rx="5" fill="#d1fae5" stroke="#fff" stroke-width="2"/><path d="M12 16h16M12 21h16M12 26h10" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/></svg>
+<img src="favicon.svg" id="nav-logo-drawer" width="18" height="18" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">
 <strong>ClaimDataCare</strong>
 </div>
 <button class="btn btn-ghost btn-sm" onclick="closeTnDrawer()" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:8px">
@@ -15387,6 +15395,21 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     updateAdminUI();
     updateBadges();
+
+    // Sync theme prefs from landing page → Firestore (once after login)
+    var ssTheme = sessionStorage.getItem('cdc_theme');
+    var ssColor = sessionStorage.getItem('cdc_color');
+    var ssFont  = sessionStorage.getItem('cdc_font');
+    if ((ssTheme || ssColor || ssFont) && _fbReady && _db) {
+      var prefs = Object.assign(_apiConfigCache || {}, {});
+      if (ssTheme) { prefs.theme = ssTheme; sessionStorage.removeItem('cdc_theme'); }
+      if (ssColor) { prefs.color = ssColor; sessionStorage.removeItem('cdc_color'); }
+      if (ssFont)  { prefs.font  = ssFont;  sessionStorage.removeItem('cdc_font'); }
+      _apiConfigCache = prefs;
+      _db.collection('meta').doc('config').set(prefs, {merge:true}).catch(function(){});
+      applyTheme();
+    }
+
     // Force dashboard render now that providers are loaded
     try {
       document.querySelectorAll('.section').forEach(function(e){ e.classList.remove('active'); });
