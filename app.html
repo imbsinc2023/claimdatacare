@@ -1199,7 +1199,8 @@ body { font-size: var(--fs-base); }
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>function openAppearancePanel() {
+<script>
+function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
   const cfg      = _apiConfigCache || {};
   const palKey   = cfg.palette || 'autumn';
@@ -2108,93 +2109,7 @@ function alpha(hex, a) {
   return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
 }
 
-function applyPalette(pal) {
-  if (!pal) return;
-  const r = document.documentElement;
-  const p1 = pal.p1, p2 = pal.p2, p3 = pal.p3, a1 = pal.a1, a2 = pal.a2;
 
-  // ── Primary brand ──────────────────────────────────────────────
-  r.style.setProperty('--brand',       p1);
-  r.style.setProperty('--brand-d',     p2);
-  r.style.setProperty('--brand-bg',    alpha(p1, 0.1));
-  r.style.setProperty('--brand-bdr',   alpha(p1, 0.35));
-  r.style.setProperty('--brand-l',     p3);
-  r.style.setProperty('--blue',        p1);
-  r.style.setProperty('--blue-bg',     alpha(p1, 0.08));
-  r.style.setProperty('--blue-bdr',    alpha(p1, 0.3));
-  r.style.setProperty('--green',       p3);
-  r.style.setProperty('--green-bg',    alpha(p3, 0.1));
-  r.style.setProperty('--green-bdr',   alpha(p3, 0.3));
-  r.style.setProperty('--teal',        p3);
-  r.style.setProperty('--teal-bg',     alpha(p3, 0.08));
-  // ── Accent ────────────────────────────────────────────────────
-  r.style.setProperty('--amber',       a1);
-  r.style.setProperty('--amber-bg',    alpha(a1, 0.1));
-  r.style.setProperty('--amber-bdr',   alpha(a1, 0.3));
-  r.style.setProperty('--c2',          a1);
-  // ── CSS vars used in topnav, patient chart, etc. ───────────────
-  r.style.setProperty('--c1',          p1);
-  r.style.setProperty('--c1d',         p2);
-  r.style.setProperty('--c1l',         alpha(p1, 0.15));
-  r.style.setProperty('--c1m',         p3);
-
-  // ── Replace hardcoded inline colors via CSS overrides ─────────
-  // Inject a <style> tag that overrides every hardcoded green
-  let styleEl = document.getElementById('palette-overrides');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = 'palette-overrides';
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `
-    /* === TOPNAV === */
-    .topnav { background: ${p2} !important; border-bottom-color: ${darken(p2,15)} !important; }
-    [data-theme="dark"] .topnav { background: ${darken(p2,25)} !important; }
-    .tn-brand-name { color: #fff !important; }
-    .tn-item { color: rgba(255,255,255,.85) !important; }
-    .tn-item:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    .tn-item.active, .tn-group.open > .tn-item { background: rgba(255,255,255,.22) !important; color: #fff !important; box-shadow: none !important; }
-    .tn-divider { background: rgba(255,255,255,.2) !important; }
-    .tn-right { border-left-color: rgba(255,255,255,.2) !important; }
-    .tn-right .btn-ghost { color: rgba(255,255,255,.8) !important; }
-    .tn-right .btn-ghost:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    #tn-user-name { color: rgba(255,255,255,.85) !important; }
-    #btn-lang { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel:hover { border-color: rgba(255,255,255,.5) !important; }
-    /* === DROPDOWNS (light bg) === */
-    .tn-dropdown { background: var(--surface) !important; border-color: var(--border) !important; }
-    .tn-dd-item { color: var(--text) !important; }
-    .tn-dd-item:hover, .tn-dd-item.active { background: ${alpha(p1,.1)} !important; color: ${p1} !important; }
-    .tn-dd-item:hover svg, .tn-dd-item.active svg, .tn-dd-item:hover .lci, .tn-dd-item.active .lci { color: ${p1} !important; opacity:1 !important; }
-    .tn-drawer-item:hover, .tn-drawer-item.active { color: ${p1} !important; background: ${alpha(p1,.08)} !important; }
-    .tn-drawer-sub-item:hover, .tn-drawer-sub-item.active { color: ${p1} !important; }
-    /* === BUTTONS === */
-    .btn-primary { background: ${p1} !important; border-color: ${p1} !important; }
-    .btn-primary:hover { background: ${p2} !important; border-color: ${p2} !important; }
-    #login-btn { background: linear-gradient(145deg,${p1},${p2}) !important; }
-    /* === BADGES === */
-    .b-blue { background: ${alpha(p1,.1)} !important; color: ${p1} !important; border-color: ${alpha(p1,.3)} !important; }
-    .b-green { background: ${alpha(p3,.1)} !important; color: ${darken(p3,10)} !important; border-color: ${alpha(p3,.3)} !important; }
-    /* === TABS / STABS === */
-    .stab.active { color: ${p1} !important; border-bottom-color: ${p1} !important; }
-    .ptc-tab.active { color: ${p2} !important; }
-    /* === LINKS & ACCENTS === */
-    .pt-link-name, .pt-link-acct { color: ${p1} !important; }
-    .slabel { border-left-color: ${p1} !important; color: ${p1} !important; }
-    /* === PATIENT CHART === */
-    .ptc-banner { background: linear-gradient(135deg, ${p2}, ${p1}) !important; }
-    .ptc-panel-hdr { background: linear-gradient(to bottom, var(--bg), var(--bg2)) !important; color: var(--text) !important; }
-    .ptc-panel-hdr h3 { color: var(--text) !important; }
-    .ptc-tab.active { border-top-color: ${p1} !important; }
-    .ptc-aging-table th { background: ${alpha(p2,.08)} !important; color: ${p2} !important; }
-    /* === DARK MODE VARS === */
-    [data-theme="dark"] { --brand: ${p3}; --brand-d: ${p1}; --brand-l: ${lighten(p1,20)}; }
-    /* === ROOT VARS === */
-    :root { --brand: ${p1}; --brand-d: ${p2}; --brand-l: ${p3}; --c1: ${p1}; --c1d: ${p2}; --c1m: ${p3}; }
-  `
-  updateFavicon(p1);
-}
 
 function _saveUserPrefs(updates) {
   Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
