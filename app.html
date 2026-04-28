@@ -266,8 +266,8 @@ TOP NAVIGATION Ñ redesigned with proper button effects
 .topnav {
 display: flex;
 align-items: center;
-height: 44px;
-padding: 0 10px;
+height: 36px;
+padding: 0 8px;
 background: #ffffff;
 border-bottom: 1px solid #e2e5ed;
 flex-shrink: 0;
@@ -283,14 +283,14 @@ border-bottom-color: #2a3347;
 .tn-brand {
 display: flex;
 align-items: center;
-gap: 9px;
+gap: 6px;
 flex-shrink: 0;
-margin-right: 10px;
-padding: 0 4px;
+margin-right: 6px;
+padding: 0 2px;
 text-decoration: none;
 }
 .tn-brand-name {
-font-size: 15px;
+font-size: 13px;
 font-weight: 800;
 color: #111827;
 letter-spacing: -.4px;
@@ -321,8 +321,8 @@ overflow: visible;
 display: inline-flex;
 align-items: center;
 gap: 4px;
-padding: 0 7px;
-height: 30px;
+padding: 0 6px;
+height: 26px;
 border-radius: 8px;
 background: transparent;
 border: none;
@@ -490,18 +490,18 @@ text-align: center;
 .tn-right {
 display: flex;
 align-items: center;
-gap: 4px;
+gap: 2px;
 margin-left: auto;
 flex-shrink: 0;
-padding-left: 12px;
+padding-left: 8px;
 border-left: 1px solid #e2e5ed;
 }
 [data-theme="dark"] .tn-right { border-left-color: #2a3347; }
 
 .tn-prov-sel {
-padding: 5px 10px;
-border: 1.5px solid #e2e5ed;
-border-radius: 8px;
+padding: 3px 6px;
+border: 1px solid #e2e5ed;
+border-radius: 6px;
 background: #f7f8fc;
 color: #374151;
 font-size: 12px;
@@ -532,9 +532,9 @@ padding: 0 4px;
 display: flex;
 align-items: center;
 justify-content: center;
-width: 32px;
-height: 32px;
-border-radius: 8px;
+width: 26px;
+height: 26px;
+border-radius: 6px;
 padding: 0;
 color: #6b7280;
 background: transparent;
@@ -1108,11 +1108,11 @@ outline: none;
 
 /* Nav items Ñ macOS-style */
 .tn-item {
-border-radius: 8px;
+border-radius: 6px;
 font-weight: 600;
 letter-spacing: -0.01em;
-height: 30px;
-padding: 0 7px;
+height: 26px;
+padding: 0 6px;
 }
 .tn-item.active {
 background: var(--brand-bg) !important;
@@ -1179,6 +1179,10 @@ border-radius: 8px;
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 @keyframes voicePulse{0%,100%{box-shadow:0 6px 20px rgba(220,38,38,.5),0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 6px 20px rgba(220,38,38,.5),0 0 0 14px rgba(220,38,38,0)}}
+
+/* Appearance panel */
+.ap-theme-active { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
+.ap-font-btn[data-active="true"] { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
 </style>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
@@ -1191,7 +1195,8 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>function applyTheme() {
+<script>var LANG = "en";
+function applyTheme() {
   var cfg   = _apiConfigCache || {};
   var ssTheme = (function(){ try { return sessionStorage.getItem('cdc_theme'); } catch(e){ return null; }})();
   var ssColor = (function(){ try { return sessionStorage.getItem('cdc_color'); } catch(e){ return null; }})();
@@ -1340,6 +1345,7 @@ const FB_CONFIG = {
 
 let _fbApp = null;
 let claimTabFilter = 'all'; // tracks active tab in claims list
+var activeProviderId = null;  // currently selected billing provider
 let _db = null;
 let _fbReady = false;
 let _localDB = null;
@@ -1900,57 +1906,153 @@ function openAppearancePanel() {
   const color = cfg.color || '#2d6a4f';
   const theme = cfg.theme || document.documentElement.getAttribute('data-theme') || 'light';
   const font  = cfg.font  || 'font-segoe';
-  const COLORS = ['#2d6a4f','#059669','#0369a1','#7c3aed','#db2777','#ea580c','#ca8a04','#374151'];
+
+  const COLORS = [
+    {hex:'#2d6a4f', name:'Forest'},
+    {hex:'#059669', name:'Emerald'},
+    {hex:'#0369a1', name:'Ocean'},
+    {hex:'#7c3aed', name:'Violet'},
+    {hex:'#db2777', name:'Rose'},
+    {hex:'#ea580c', name:'Ember'},
+    {hex:'#ca8a04', name:'Gold'},
+    {hex:'#374151', name:'Slate'},
+  ];
+
+  const FONTS = [
+    {id:'font-segoe', label:'System UI',  sample:'Ag'},
+    {id:'font-inter', label:'Inter',      sample:'Ag'},
+    {id:'font-lato',  label:'Lato',       sample:'Ag'},
+    {id:'font-dmsans',label:'DM Sans',    sample:'Ag'},
+  ];
 
   const panel = document.createElement('div');
   panel.id = 'appearance-panel';
-  panel.style.cssText = 'position:fixed;top:48px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:230px;box-shadow:0 8px 32px rgba(0,0,0,.18)';
+  panel.style.cssText = [
+    'position:fixed','top:48px','right:12px','z-index:9000',
+    'background:var(--surface)','border:1px solid var(--border)',
+    'border-radius:16px','padding:0','width:260px',
+    'box-shadow:0 12px 40px rgba(0,0,0,.18)',
+    'overflow:hidden','font-family:var(--font)',
+  ].join(';');
 
-  const colorDots = COLORS.map(c =>
-    '<div onclick="setBrandColor(\''+c+'\');this.closest(\'#appearance-panel\').querySelectorAll(\'.app-color-dot\').forEach(d=>d.style.outline=\'\');this.style.outline=\'2px solid '+c+'\'"'
-    + ' class="app-color-dot"'
-    + ' style="width:22px;height:22px;border-radius:50%;background:'+c+';cursor:pointer;'
-    + (color===c?'outline:2px solid '+c+';':'')+'">'
-    + '</div>'
-  ).join('');
+  // Build color dots
+  const dots = COLORS.map(function(c) {
+    const active = c.hex === color;
+    return '<div title="'+c.name+'" data-color="'+c.hex+'"'
+      + ' onclick="setBrandColor(\''+c.hex+'\');document.querySelectorAll(\'.ap-dot\').forEach(function(d){d.style.boxShadow=\'\';d.style.transform=\'scale(1)\'});this.style.boxShadow=\'0 0 0 2px var(--surface),0 0 0 4px '+c.hex+'\';this.style.transform=\'scale(1.15)\'"'
+      + ' class="ap-dot"'
+      + ' style="width:24px;height:24px;border-radius:50%;background:'+c.hex+';cursor:pointer;transition:all .15s;flex-shrink:0;'
+      + (active ? 'box-shadow:0 0 0 2px var(--surface),0 0 0 4px '+c.hex+';transform:scale(1.15)' : '')
+      + '"></div>';
+  }).join('');
 
-  const fontOpts = [['font-segoe','System'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(f =>
-    '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\');this.closest(\'#appearance-panel\').querySelectorAll(\'.app-font-opt\').forEach(b=>{b.style.fontWeight=b.dataset.font===\''+f[0]+'\'?\'700\':\'400\';b.style.borderColor=b.dataset.font===\''+f[0]+'\'?\'var(--brand)\':\'var(--border2)\';})"'
-    + ' class="app-font-opt"'
-    + ' style="padding:6px 10px;border-radius:6px;border:1.5px solid '+(font===f[0]?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(font===f[0]?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
-    + f[1]+'</button>'
-  ).join('');
+  // Build font buttons
+  const fontBtns = FONTS.map(function(f) {
+    const active = f.id === font;
+    return '<button data-font="'+f.id+'" class="ap-font-btn"'
+      + ' onclick="setAppFont(\''+f.id+'\');document.querySelectorAll(\'.ap-font-btn\').forEach(function(b){b.setAttribute(\'data-active\',b.dataset.font===\''+f.id+'\')});_apStyleFonts()"'
+      + ' data-active="'+active+'"'
+      + ' style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid '+(active?'var(--brand)':'var(--border)')+';background:'+(active?'var(--brand-bg)':'var(--bg2)')+';color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;width:100%;font-family:var(--font);transition:all .15s">'
+      + '<span style="font-size:16px;font-weight:700;color:'+(active?'var(--brand)':'var(--text3)')+';min-width:24px;font-family:'+f.id.replace('font-','')+'">'+f.sample+'</span>'
+      + '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+f.label+'</div></div>'
+      + (active ? '<i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--brand)"></i>' : '')
+      + '</button>';
+  }).join('');
 
   panel.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    // Header
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border)">'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<i data-lucide="palette" class="lci" style="width:15px;height:15px;color:var(--brand)"></i>'
     + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
-    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
     + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Theme</div>'
-    + '<div style="display:flex;gap:6px;margin-bottom:14px">'
-    + '<button onclick="toggleTheme();document.getElementById(\'app-theme-btn\').textContent=document.documentElement.getAttribute(\'data-theme\')==='+"'"+'dark'+"'"+'\'?\'☀ Light\':\'🌙 Dark\'"'
-    + ' id="app-theme-btn" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">'
-    + (theme==='dark'?'☀️ Light':'🌙 Dark')
-    + '</button></div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Brand Color</div>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">' + colorDots + '</div>'
-    + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">'
-    + '<input type="color" id="app-color-custom" value="'+color+'" oninput="setBrandColor(this.value)"'
-    + ' style="width:30px;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '<label for="app-color-custom" style="font-size:11px;color:var(--text3)">Custom color</label>'
+    + '<button id="ap-close" style="width:26px;height:26px;border-radius:6px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px">'
+    + '<i data-lucide="x" class="lci" style="width:13px;height:13px"></i>'
+    + '</button>'
     + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
-    + '<div style="display:flex;flex-direction:column;gap:4px">' + fontOpts + '</div>';
+
+    // Theme section
+    + '<div style="padding:14px 16px 10px">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">Theme</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    // Light
+    + '<button id="ap-theme-light" onclick="if(document.documentElement.getAttribute(\'data-theme\')===\'dark\')toggleTheme()" class="ap-theme-btn '+(theme==='light'?'ap-theme-active':'')+'"'
+    + ' style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:10px;border:1.5px solid '+(theme==='light'?'var(--brand)':'var(--border)')+';background:'+(theme==='light'?'var(--brand-bg)':'var(--bg3)')+';cursor:pointer;transition:all .15s">'
+    + '<div style="width:36px;height:24px;border-radius:5px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;gap:3px;align-items:center;justify-content:center">'
+    + '<div style="width:8px;height:8px;border-radius:2px;background:#e2e8f0"></div>'
+    + '<div style="width:14px;height:4px;border-radius:2px;background:#cbd5e1"></div>'
+    + '</div>'
+    + '<span style="font-size:11px;font-weight:600;color:'+(theme==='light'?'var(--brand)':'var(--text2)')+'">Light</span>'
+    + '</button>'
+    // Dark
+    + '<button id="ap-theme-dark" onclick="if(document.documentElement.getAttribute(\'data-theme\')===\'light\')toggleTheme()" class="ap-theme-btn '+(theme==='dark'?'ap-theme-active':'')+'"'
+    + ' style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:10px;border:1.5px solid '+(theme==='dark'?'var(--brand)':'var(--border)')+';background:'+(theme==='dark'?'var(--brand-bg)':'var(--bg3)')+';cursor:pointer;transition:all .15s">'
+    + '<div style="width:36px;height:24px;border-radius:5px;background:#1e2433;border:1px solid #2a3347;display:flex;gap:3px;align-items:center;justify-content:center">'
+    + '<div style="width:8px;height:8px;border-radius:2px;background:#2a3347"></div>'
+    + '<div style="width:14px;height:4px;border-radius:2px;background:#374151"></div>'
+    + '</div>'
+    + '<span style="font-size:11px;font-weight:600;color:'+(theme==='dark'?'var(--brand)':'var(--text2)')+'">Dark</span>'
+    + '</button>'
+    + '</div>'
+    + '</div>'
+
+    // Divider
+    + '<div style="height:1px;background:var(--border)"></div>'
+
+    // Color section
+    + '<div style="padding:14px 16px 10px">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">Brand Color</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">' + dots + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">'
+    + '<input type="color" id="ap-color-custom" value="'+color+'" oninput="setBrandColor(this.value)"'
+    + ' style="width:22px;height:22px;border:none;border-radius:4px;cursor:pointer;padding:0;background:none">'
+    + '<span style="font-size:12px;color:var(--text2);flex:1">Custom color</span>'
+    + '<span id="ap-color-hex" style="font-size:11px;font-family:var(--mono);color:var(--text3)">'+color+'</span>'
+    + '</div>'
+    + '</div>'
+
+    // Divider
+    + '<div style="height:1px;background:var(--border)"></div>'
+
+    // Font section
+    + '<div style="padding:14px 16px 16px">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">Font</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px" id="ap-font-list">' + fontBtns + '</div>'
+    + '</div>';
 
   document.body.appendChild(panel);
-  panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
+
+  // Update hex display on color change
+  const customInput = panel.querySelector('#ap-color-custom');
+  if (customInput) {
+    customInput.oninput = function() {
+      setBrandColor(this.value);
+      const hexEl = document.getElementById('ap-color-hex');
+      if (hexEl) hexEl.textContent = this.value;
+    };
+  }
+
+  panel.querySelector('#ap-close').onclick = function() { panel.remove(); };
+  setTimeout(_renderLucideIcons, 20);
+
+  // Close on outside click
   setTimeout(function() {
-    document.addEventListener('click', function h(e) {
-      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance') {
-        panel.remove(); document.removeEventListener('click', h);
+    document.addEventListener('click', function _h(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance' && !e.target.closest('#btn-appearance')) {
+        panel.remove();
+        document.removeEventListener('click', _h);
       }
     });
-  }, 100);
+  }, 150);
+}
+
+function _apStyleFonts() {
+  document.querySelectorAll('.ap-font-btn').forEach(function(b) {
+    const active = b.getAttribute('data-active') === 'true';
+    b.style.borderColor = active ? 'var(--brand)' : 'var(--border)';
+    b.style.background  = active ? 'var(--brand-bg)' : 'var(--bg2)';
+    b.style.fontWeight  = active ? '700' : '400';
+  });
 }
 function applyTheme() {
   // Read from Firestore config or sessionStorage (from landing) or default
@@ -2048,13 +2150,24 @@ return `<a href="#" onclick="openPatientChart('${patId}');return false;" class="
 
 // Theme toggle
 function toggleTheme() {
-const root = document.documentElement;
-const isDark = root.getAttribute('data-theme') === 'dark';
-root.setAttribute('data-theme', isDark ? 'light' : 'dark');
-try { localStorage.setItem('rcmpro_theme', isDark ? 'light' : 'dark'); } catch(e) {}
-const btnDark = document.getElementById('btn-dark');
-if (btnDark) btnDark.innerHTML = isDark ? _iconSun() : _iconMoon();
-_renderLucideIcons();
+  const root   = document.documentElement;
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  const next   = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  // Save to Firestore
+  if (!_apiConfigCache) _apiConfigCache = {};
+  _apiConfigCache.theme = next;
+  if (_fbReady && _db) {
+    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true}).catch(function(){});
+  }
+  const btnDark = document.getElementById('btn-dark');
+  if (btnDark) btnDark.innerHTML = next === 'dark' ? _iconSun() : _iconMoon();
+  // Update appearance panel if open
+  const apBtn = document.getElementById('ap-theme-light');
+  const apBtnD = document.getElementById('ap-theme-dark');
+  if (apBtn)  apBtn.classList.toggle('ap-theme-active', next === 'light');
+  if (apBtnD) apBtnD.classList.toggle('ap-theme-active', next === 'dark');
+  _renderLucideIcons();
 }
 
 // PAGE_TITLES for go()
