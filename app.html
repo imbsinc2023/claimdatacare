@@ -15,6 +15,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 /* ??? TOKENS ??? */
 :root{
 /* ?? Palette: Enterprise Medical / Emerald ?? */
+--fs-base:14px;--fs-sm:12px;--fs-xs:11px;--fs-lg:15px;--fs-xl:16px;
 --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--surface:#ffffff;
 --border:#e2e8f0;--border2:#cbd5e1;
 --text:#1e293b;--text2:#475569;--text3:#94a3b8;
@@ -1183,6 +1184,9 @@ border-radius: 8px;
 /* Appearance panel */
 .ap-theme-active { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
 .ap-font-btn[data-active="true"] { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
+/* Font size scaling */
+body { font-size: var(--fs-base); }
+.card, .section, .tbl-wrap, .modal-body, .page-hdr, .sidebar { font-size: inherit; }
 </style>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
@@ -2250,9 +2254,25 @@ function setBrandColor(color) {
 }
 
 function setAppFontSize(size) {
-  document.documentElement.style.setProperty('font-size', size + 'px');
-  // Also set base size on body
-  document.body.style.fontSize = size + 'px';
+  size = String(size);
+  const base = parseInt(size) || 14;
+  // Set CSS variable used across the app
+  document.documentElement.style.setProperty('--fs-base', base + 'px');
+  document.documentElement.style.setProperty('--fs-sm',   (base - 2) + 'px');
+  document.documentElement.style.setProperty('--fs-xs',   (base - 3) + 'px');
+  document.documentElement.style.setProperty('--fs-lg',   (base + 1) + 'px');
+  document.documentElement.style.setProperty('--fs-xl',   (base + 2) + 'px');
+  // Also set body directly so rem/em cascade works
+  document.documentElement.style.fontSize = base + 'px';
+  document.body.style.fontSize = base + 'px';
+  // Refresh panel buttons
+  document.querySelectorAll('.app-size-opt').forEach(function(b) {
+    const active = b.dataset.sz === size;
+    b.style.fontWeight   = active ? '700' : '500';
+    b.style.borderColor  = active ? 'var(--brand)' : 'var(--border2)';
+    b.style.background   = active ? 'var(--brand-bg)' : 'var(--bg2)';
+    b.style.color        = active ? 'var(--brand)' : 'var(--text)';
+  });
   _saveUserPrefs({fontSize: size});
 }
 
