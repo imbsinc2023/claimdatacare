@@ -1263,7 +1263,7 @@ const T = {
 };
 
 let currentLang = 'en';
-let currentTheme = 'light';
+let currentTheme = (function(){ try { return localStorage.getItem('rcmpro_theme') || 'light'; } catch(e){ return 'light'; } })();
 let currentFont = 'font-segoe';
 let currentColor = '#2D6A4F';
 
@@ -1286,6 +1286,8 @@ function toggleLang() { applyLang(currentLang === 'en' ? 'es' : 'en'); }
 function setTheme(theme) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
+  // Save to localStorage so app.html picks it up
+  try { localStorage.setItem('rcmpro_theme', theme); } catch(e) {}
   // Nav icon
   const moon = document.getElementById('icon-moon');
   const sun = document.getElementById('icon-sun');
@@ -1301,6 +1303,7 @@ function toggleTheme() { setTheme(currentTheme === 'light' ? 'dark' : 'light'); 
 
 function setBrandColor(color) {
   currentColor = color;
+  try { localStorage.setItem('rcmpro_color', color); } catch(e) {}
   const darken = (hex, amt) => {
     const n = parseInt(hex.slice(1),16);
     const r = Math.max(0,Math.min(255,(n>>16)+amt));
@@ -1322,6 +1325,7 @@ function setFont(fontClass) {
   document.body.classList.remove(...all);
   document.body.classList.add(fontClass);
   currentFont = fontClass;
+  try { localStorage.setItem('rcmpro_font', fontClass); } catch(e) {}
   document.querySelectorAll('.cp-font-opt').forEach(el => el.classList.toggle('active', el.dataset.font === fontClass));
   window.parent.postMessage({type:'__edit_mode_set_keys', edits:{fontClass}}, '*');
 }
