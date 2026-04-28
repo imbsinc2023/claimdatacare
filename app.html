@@ -15340,15 +15340,67 @@ const _origToggleLang = typeof toggleLang === 'function' ? toggleLang : null;
 
 
 document.addEventListener("DOMContentLoaded", async function() {
-applyTheme();
-const waitForFirebase = (retries = 20) => new Promise(resolve => {
-if (typeof firebase !== 'undefined') { resolve(); return; }
-if (retries <= 0) { resolve(); return; }
-setTimeout(() => waitForFirebase(retries - 1).then(resolve), 100);
-});
-await waitForFirebase();
-initFirebase();
-renderLoginScreen();
+  applyTheme();
+
+  const waitForFirebase = (retries = 30) => new Promise(resolve => {
+    if (typeof firebase !== 'undefined') { resolve(); return; }
+    if (retries <= 0) { resolve(); return; }
+    setTimeout(() => waitForFirebase(retries - 1).then(resolve), 150);
+  });
+
+  await waitForFirebase();
+  initFirebase();
+
+  function _afterLoad() {
+    var db2 = getDB(); var s = getSession(); if (!s) return;
+    if (db2.providers && db2.providers.length) {
+      var savedId = s.activeBillingProviderId;
+      var vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
+      activeProviderId = vp.id;
+      s.activeBillingProviderId = activeProviderId;
+      setSession(s);
+    }
+    rebuildProvSel(); go('dashboard'); updateBadges(); updateAdminUI();
+    try { renderDashboard(); } catch(e) {}
+  }
+
+  // ── Check landing page pending login ──────────────────────────
+  var pendingLogin = localStorage.getItem('cdc_pending_login');
+  if (pendingLogin === '1') {
+    localStorage.removeItem('cdc_pending_login');
+
+    var fbUser = await new Promise(function(resolve) {
+      var unsub = _auth.onAuthStateChanged(function(user) { unsub(); resolve(user); });
+      setTimeout(function() { resolve(null); }, 3000);
+    });
+
+    if (fbUser) {
+      if (!getSession()) {
+        setSession({
+          id: fbUser.uid,
+          email: fbUser.email,
+          name: fbUser.displayName || fbUser.email.split('@')[0] || 'Admin',
+          role: 'Super Admin',
+          activeBillingProviderId: null
+        });
+      }
+      var sess = getSession();
+      showApp(sess.name || sess.email);
+      Promise.resolve(loadFromFirestore()).then(_afterLoad).catch(function(){ go('dashboard'); });
+      return;
+    }
+  }
+
+  // ── Check existing internal session ───────────────────────────
+  var existSess = getSession();
+  if (existSess) {
+    showApp(existSess.name || existSess.email);
+    Promise.resolve(loadFromFirestore()).then(_afterLoad).catch(function(){ go('dashboard'); });
+    return;
+  }
+
+  // ── No session — show login ────────────────────────────────────
+  renderLoginScreen();
 });
 
 </script>
