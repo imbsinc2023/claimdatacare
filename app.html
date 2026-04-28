@@ -18,9 +18,9 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--surface:#ffffff;
 --border:#e2e8f0;--border2:#cbd5e1;
 --text:#1e293b;--text2:#475569;--text3:#94a3b8;
---brand:#059669;--brand-d:#047857;--brand-bg:#ecfdf5;--brand-bdr:#a7f3d0;
---blue:#059669;--blue-bg:#eff6ff;--blue-bdr:#a7f3d0;
---green:#059669;--green-bg:#ecfdf5;--green-bdr:#a7f3d0;
+--brand:var(--brand);--brand-d:var(--brand-d);--brand-bg:var(--brand-bg);--brand-bdr:var(--brand-bg);
+--blue:var(--brand);--blue-bg:#eff6ff;--blue-bdr:var(--brand-bg);
+--green:var(--brand);--green-bg:var(--brand-bg);--green-bdr:var(--brand-bg);
 --red:#dc2626;--red-bg:#fef2f2;--red-bdr:#fecaca;
 --amber:#d97706;--amber-bg:#fffbeb;--amber-bdr:#fde68a;
 --purple:#7c3aed;--purple-bg:#f5f3ff;--purple-bdr:#ddd6fe;
@@ -36,9 +36,9 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 --bg:#061510;--bg2:#111827;--bg3:#0a1f14;--surface:#111827;
 --border:#1e2d3d;--border2:#2d3f55;
 --text:#f1f5f9;--text2:#94a3b8;--text3:#475569;
---brand:#10b981;--brand-d:#059669;--brand-bg:#052e1a;--brand-bdr:#065f46;
---blue:#10b981;--blue-bg:#052e1a;--blue-bdr:#065f46;
---green:#10b981;--green-bg:#052e1a;--green-bdr:#065f46;
+--brand:#10b981;--brand-d:var(--brand);--brand-bg:#052e1a;--brand-bdr:var(--brand-d);
+--blue:#10b981;--blue-bg:#052e1a;--blue-bdr:var(--brand-d);
+--green:#10b981;--green-bg:#052e1a;--green-bdr:var(--brand-d);
 --red:#f87171;--red-bg:#2d1515;--red-bdr:#7f1d1d;
 --amber:#fbbf24;--amber-bg:#2d2008;--amber-bdr:#78350f;
 --purple:#a78bfa;--purple-bg:#1e1533;--purple-bdr:#4c1d95;
@@ -355,14 +355,14 @@ transform: scale(0.97);
 [data-theme="dark"] .tn-item:active { background: #2a3347; }
 
 .tn-item.active {
-background: #ecfdf5;
-color: #059669;
-box-shadow: inset 0 0 0 1.5px #a7f3d0;
+background: var(--brand-bg);
+color: var(--brand);
+box-shadow: inset 0 0 0 1.5px var(--brand-bg);
 }
 [data-theme="dark"] .tn-item.active {
 background: #052e1a;
 color: #10b981;
-box-shadow: inset 0 0 0 1.5px #047857;
+box-shadow: inset 0 0 0 1.5px var(--brand-d);
 }
 
 /* ?? Caret ?? */
@@ -387,8 +387,8 @@ align-items: center;
 flex-shrink: 0;
 }
 .tn-group.open > .tn-item {
-background: #ecfdf5;
-color: #059669;
+background: var(--brand-bg);
+color: var(--brand);
 }
 [data-theme="dark"] .tn-group.open > .tn-item {
 background: #052e1a;
@@ -451,16 +451,16 @@ color: #6b7280;
 
 .tn-dd-item:hover {
 background: #f3f4f6;
-color: #059669;
+color: var(--brand);
 }
-.tn-dd-item:hover svg { opacity: 1; color: #059669; }
+.tn-dd-item:hover svg { opacity: 1; color: var(--brand); }
 [data-theme="dark"] .tn-dd-item:hover {
 background: #161b27;
 color: #10b981;
 }
 .tn-dd-item.active {
-background: #ecfdf5;
-color: #059669;
+background: var(--brand-bg);
+color: var(--brand);
 font-weight: 600;
 }
 [data-theme="dark"] .tn-dd-item.active {
@@ -516,7 +516,7 @@ background: #161b27;
 border-color: #2a3347;
 color: #94a3b8;
 }
-.tn-prov-sel:hover { border-color: #059669; }
+.tn-prov-sel:hover { border-color: var(--brand); }
 
 #tn-user-name {
 font-size: 12px;
@@ -619,7 +619,7 @@ color:#374151;cursor:pointer;
 border-bottom:1px solid #f3f4f6;transition:background .12s,color .12s;
 }
 [data-theme="dark"] .tn-drawer-item { color:#94a3b8;border-bottom-color:#1e2433; }
-.tn-drawer-item:hover,.tn-drawer-item.active { color:#059669;background:#ecfdf5; }
+.tn-drawer-item:hover,.tn-drawer-item.active { color:var(--brand);background:var(--brand-bg); }
 [data-theme="dark"] .tn-drawer-item:hover { color:#10b981;background:#052e1a; }
 
 .tn-drawer-group-hdr {
@@ -642,7 +642,7 @@ color:#6b7280;cursor:pointer;border-bottom:1px solid #f3f4f6;
 transition:background .12s,color .12s;
 }
 [data-theme="dark"] .tn-drawer-sub-item { color:#475569;border-bottom-color:#1e2433; }
-.tn-drawer-sub-item:hover,.tn-drawer-sub-item.active { color:#059669;background:#ecfdf5; }
+.tn-drawer-sub-item:hover,.tn-drawer-sub-item.active { color:var(--brand);background:var(--brand-bg); }
 [data-theme="dark"] .tn-drawer-sub-item:hover { color:#10b981;background:#052e1a; }
 
 /* ?? App layout ?? */
@@ -703,8 +703,8 @@ flex-shrink: 0;
 .tn-item .lci { opacity: .65; transition: opacity .15s; }
 .tn-item:hover .lci, .tn-item.active .lci { opacity: 1; }
 .tn-dd-item .lci { opacity: .5; color: #6b7280; transition: opacity .12s, color .12s; }
-.tn-dd-item:hover .lci { opacity: 1; color: #059669; }
-.tn-dd-item.active .lci { opacity: 1; color: #059669; }
+.tn-dd-item:hover .lci { opacity: 1; color: var(--brand); }
+.tn-dd-item.active .lci { opacity: 1; color: var(--brand); }
 [data-theme="dark"] .tn-dd-item .lci { color: #475569; }
 [data-theme="dark"] .tn-dd-item:hover .lci { color: #10b981; }
 
@@ -717,7 +717,7 @@ display: flex; flex-direction: column; overflow: hidden; font-family: var(--font
 }
 /* ?? top banner ???????????????????????????????????????????????? */
 .ptc-banner {
-background: #065f46; color: #fff;
+background: var(--brand-d); color: #fff;
 padding: 6px 14px; font-size: 13px; font-weight: 600;
 display: flex; align-items: center; justify-content: space-between;
 flex-shrink: 0;
@@ -743,7 +743,7 @@ background: #d6dae6; color: #333; margin: 4px 2px 0;
 border-radius: 4px 4px 0 0; user-select: none; white-space: nowrap;
 }
 .ptc-tab:hover { background: #c8cfe0; }
-.ptc-tab.active { background: #fff; color: #064e3b; border-color: #8090b0 #8090b0 #fff; }
+.ptc-tab.active { background: #fff; color: var(--brand-d); border-color: #8090b0 #8090b0 #fff; }
 .ptc-tab.danger { color: #c0392b; }
 /* ?? body ?????????????????????????????????????????????????????? */
 .ptc-body { display:none } /* unused - replaced by full-width pt-main */
@@ -757,7 +757,7 @@ border-radius: 4px; overflow: hidden;
 .ptc-panel-hdr {
 background: linear-gradient(to bottom, #d6dce8, #c8d0e0);
 padding: 5px 10px; font-size: 12px; font-weight: 700;
-color: #064e3b; border-bottom: 1px solid #b0b8cc;
+color: var(--brand-d); border-bottom: 1px solid #b0b8cc;
 display: flex; align-items: center; justify-content: space-between;
 }
 .ptc-panel-body { padding: 8px 10px; font-size: 12px; }
@@ -772,7 +772,7 @@ padding: 3px 0; border-bottom: 1px solid #eef0f4; font-size: 12px;
 /* ?? billing table ????????????????????????????????????????????? */
 .ptc-aging-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptc-aging-table th {
-background: #e8eaf0; color: #064e3b; font-weight: 700;
+background: #e8eaf0; color: var(--brand-d); font-weight: 700;
 padding: 5px 8px; border: 1px solid #c0c8d8; text-align: center;
 }
 .ptc-aging-table td {
@@ -794,17 +794,17 @@ font-size: 12px;
 .ptc-photo-box {
 width: 60px; height: 60px; border: 2px solid #8090b0; border-radius: 4px;
 background: #e8eaf0; display: flex; align-items: center; justify-content: center;
-font-size: 22px; font-weight: 700; color: #065f46; flex-shrink: 0;
+font-size: 22px; font-weight: 700; color: var(--brand-d); flex-shrink: 0;
 }
 /* ?? action link ??????????????????????????????????????????????? */
 .ptc-link {
-color: #059669; text-decoration: none; font-size: 12px;
+color: var(--brand); text-decoration: none; font-size: 12px;
 cursor: pointer; font-weight: 600;
 }
 .ptc-link:hover { text-decoration: underline; }
 /* ?? go to chart btn ??????????????????????????????????????????? */
 .ptc-chart-btn {
-background: #065f46; color: #fff; border: none; padding: 5px 12px;
+background: var(--brand-d); color: #fff; border: none; padding: 5px 12px;
 font-size: 11px; font-weight: 700; border-radius: 3px; cursor: pointer;
 }
 .ptc-chart-btn:hover { background: #1a2f5a; }
@@ -861,8 +861,8 @@ tbody tr:last-child td{border-bottom:none}
 
 /* Badges */
 .badge{border-radius:6px;font-size:11px;font-weight:600;padding:3px 9px;letter-spacing:.02em}
-.b-green{background:var(--green-bg);color:#047857;border:1px solid var(--green-bdr)}
-.b-blue{background:var(--blue-bg);color:#047857;border:1px solid var(--blue-bdr)}
+.b-green{background:var(--green-bg);color:var(--brand-d);border:1px solid var(--green-bdr)}
+.b-blue{background:var(--blue-bg);color:var(--brand-d);border:1px solid var(--blue-bdr)}
 .b-red{background:var(--red-bg);color:#b91c1c;border:1px solid var(--red-bdr)}
 .b-amber{background:var(--amber-bg);color:#b45309;border:1px solid var(--amber-bdr)}
 .b-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
@@ -940,13 +940,13 @@ border-left:3px solid var(--brand)}
 .dchip.off{background:var(--bg3);color:var(--text3);border-color:var(--border)}
 
 /* Patient chart */
-.ptc-banner{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff}
+.ptc-banner{background:linear-gradient(135deg,var(--brand-d) 0%,var(--brand-d) 100%);color:#fff}
 .ptc-tab{transition:all .2s;font-size:12px;font-weight:600}
 .ptc-tab:hover{background:var(--brand-bg);color:var(--brand)}
 .ptc-tab.active{background:#fff;color:var(--brand);border-bottom-color:#fff}
 .ptc-panel{border-radius:var(--r-md);border:1px solid var(--border);overflow:hidden}
 .ptc-panel-hdr{background:linear-gradient(to bottom,#f8fafc,#f1f5f9);
-border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:#065f46}
+border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--brand-d)}
 .ptc-aging-table th{background:var(--bg3);color:var(--text2);font-size:11px}
 .ptc-aging-table td{font-size:12px}
 .ptc-aging-table tbody tr:hover td{background:var(--brand-bg)}
@@ -1195,21 +1195,127 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>var LANG = "en";
+<script>function openAppearancePanel() {
+  document.getElementById('appearance-panel')?.remove();
+  var cfg      = _apiConfigCache || {};
+  var palKey   = cfg.palette || 'forest';
+  var palCust  = cfg.palCustom || PALETTES.custom;
+  var font     = cfg.font || 'font-segoe';
+  var fontSize = cfg.fontSize || '14';
+
+  var panel = document.createElement('div');
+  panel.id = 'appearance-panel';
+  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:270px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:85vh;overflow-y:auto';
+
+  // Palette cards
+  var palCards = Object.entries(PALETTES).map(function(entry) {
+    var k = entry[0], p = entry[1];
+    var active = palKey === k;
+    return '<div onclick="selectPalette(\''+k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid '+(active?'var(--brand)':'var(--border)')+';cursor:pointer;margin-bottom:5px;background:'+(active?'var(--brand-bg)':'var(--bg2)')+';">'
+      + '<div style="display:flex;gap:3px">'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p1+'"></div>'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p3+'"></div>'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.a1+'"></div>'
+      + '</div>'
+      + '<span style="font-size:12px;font-weight:'+(active?'700':'400')+';color:var(--text)">'+(k==='custom'?'Custom':p.name)+'</span>'
+      + (active?'<span style="margin-left:auto;font-size:10px;color:var(--brand)">✓</span>':'')
+      + '</div>';
+  }).join('');
+
+  // Custom 3-color picker (shown always, applies when Custom selected)
+  var custPickers = '<div style="display:flex;gap:8px;margin-top:8px">'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Primary</div>'
+    + '<input type="color" id="cust-p1" value="'+(palCust.p1||'#2d6a4f')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Light</div>'
+    + '<input type="color" id="cust-p3" value="'+(palCust.p3||'#40916c')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accent</div>'
+    + '<input type="color" id="cust-a1" value="'+(palCust.a1||'#d4a017')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '</div>';
+
+  // Font options
+  var fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
+    var active = font===f[0];
+    return '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\')" class="app-font-opt"'
+      + ' style="padding:5px 10px;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
+      + f[1]+'</button>';
+  }).join('');
+
+  // Size options
+  var sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
+    var active = fontSize===s[0];
+    return '<button data-sz="'+s[0]+'" onclick="setAppFontSize(\''+s[0]+'\')" class="app-size-opt"'
+      + ' style="flex:1;padding:5px 0;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:'+s[0]+'px;font-weight:'+(active?'700':'500')+';cursor:pointer;font-family:var(--font);text-align:center">'
+      + s[1]+'</button>';
+  }).join('');
+
+  panel.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
+    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
+    + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Color Palette</div>'
+    + palCards
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:4px">Custom Colors</div>'
+    + custPickers
+    + '<div style="height:1px;background:var(--border);margin:14px 0"></div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
+    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>';
+
+  document.body.appendChild(panel);
+  panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
+  setTimeout(function() {
+    document.addEventListener('click', function h(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance') {
+        panel.remove(); document.removeEventListener('click', h);
+      }
+    });
+  }, 100);
+}
+
+function selectPalette(key) {
+  var pal = PALETTES[key] || PALETTES.forest;
+  applyPalette(pal);
+  _saveUserPrefs({palette: key, palCustom: PALETTES[key]});
+  // Refresh panel
+  openAppearancePanel();
+}
+
+function updateCustomPalette() {
+  var p1 = document.getElementById('cust-p1')?.value || '#2d6a4f';
+  var p3 = document.getElementById('cust-p3')?.value || '#40916c';
+  var a1 = document.getElementById('cust-a1')?.value || '#d4a017';
+  PALETTES.custom = { name:'Custom', p1:p1, p2:darken(p1,20), p3:p3, a1:a1, a2:PALETTES.custom.a2||'#b5451b' };
+  applyPalette(PALETTES.custom);
+  _saveUserPrefs({palette:'custom', palCustom: PALETTES.custom});
+}
+var LANG = "en";
 function applyTheme() {
-  var cfg   = _apiConfigCache || {};
-  var ssTheme = (function(){ try { return sessionStorage.getItem('cdc_theme'); } catch(e){ return null; }})();
-  var ssColor = (function(){ try { return sessionStorage.getItem('cdc_color'); } catch(e){ return null; }})();
-  var ssFont  = (function(){ try { return sessionStorage.getItem('cdc_font');  } catch(e){ return null; }})();
+  var cfg = _apiConfigCache || {};
+  var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
+  var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
   var theme = cfg.theme || ssTheme || 'light';
-  var color = cfg.color || ssColor || '#2d6a4f';
   var font  = cfg.font  || ssFont  || 'font-segoe';
   document.documentElement.setAttribute('data-theme', theme);
-  const btnDark = document.getElementById('btn-dark');
+  var btnDark = document.getElementById('btn-dark');
   if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
-  setBrandColor(color);
+  // Apply palette
+  var palKey = cfg.palette || 'forest';
+  var pal = PALETTES[palKey] || PALETTES.forest;
+  if (palKey === 'custom' && cfg.palCustom) {
+    Object.assign(PALETTES.custom, cfg.palCustom);
+    pal = PALETTES.custom;
+  }
+  applyPalette(pal);
   setAppFont(font);
-  updateFavicon(color);
+  if (cfg.fontSize) { try { setAppFontSize(cfg.fontSize); } catch(e) {} }
   try { _renderLucideIcons(); } catch(e) {}
 }var LANG = "en";
 // updateBulkBar removed (dup)
@@ -1555,11 +1661,11 @@ _usersCache = usersDoc.data().list || [];
 try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
 }
 
-// Load API config
+// Load full config (theme, color, font, acctKey)
 if (configDoc.exists) {
 const cfg = configDoc.data();
-if (cfg.acctKey) {
 _apiConfigCache = cfg;
+if (cfg.acctKey) {
 try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {}
 }
 }
@@ -1824,6 +1930,181 @@ db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
 
 // \u2500\u2500 Theme / Lang \u2500\u2500
 
+
+// ── Full Palette System ────────────────────────────────────────────
+// 3 pre-built palettes + custom
+const PALETTES = {
+  forest: {
+    name: 'Forest',
+    p1: '#2d6a4f',   // primary
+    p2: '#1b4332',   // dark
+    p3: '#40916c',   // light
+    a1: '#d4a017',   // accent (amber)
+    a2: '#b5451b',   // accent2 (rust)
+  },
+  ocean: {
+    name: 'Ocean',
+    p1: '#0369a1',
+    p2: '#075985',
+    p3: '#0ea5e9',
+    a1: '#f59e0b',
+    a2: '#ef4444',
+  },
+  plum: {
+    name: 'Plum',
+    p1: '#7c3aed',
+    p2: '#5b21b6',
+    p3: '#a78bfa',
+    a1: '#ec4899',
+    a2: '#f97316',
+  },
+  slate: {
+    name: 'Slate',
+    p1: '#334155',
+    p2: '#1e293b',
+    p3: '#64748b',
+    a1: '#06b6d4',
+    a2: '#10b981',
+  },
+  rose: {
+    name: 'Rose',
+    p1: '#be123c',
+    p2: '#881337',
+    p3: '#fb7185',
+    a1: '#f59e0b',
+    a2: '#7c3aed',
+  },
+  custom: {
+    name: 'Custom',
+    p1: '#2d6a4f',
+    p2: '#1b4332',
+    p3: '#40916c',
+    a1: '#d4a017',
+    a2: '#b5451b',
+  }
+};
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace('#',''),16);
+  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+}
+function lighten(hex, pct) {
+  const c = hexToRgb(hex);
+  const f = pct/100;
+  return 'rgb('
+    + Math.round(c.r + (255-c.r)*f) + ','
+    + Math.round(c.g + (255-c.g)*f) + ','
+    + Math.round(c.b + (255-c.b)*f) + ')';
+}
+function darken(hex, pct) {
+  const c = hexToRgb(hex);
+  const f = 1 - pct/100;
+  return 'rgb('
+    + Math.round(c.r*f) + ','
+    + Math.round(c.g*f) + ','
+    + Math.round(c.b*f) + ')';
+}
+function alpha(hex, a) {
+  const c = hexToRgb(hex);
+  return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
+}
+
+function applyPalette(pal) {
+  if (!pal) return;
+  const r = document.documentElement;
+  const p1 = pal.p1, p2 = pal.p2, p3 = pal.p3, a1 = pal.a1, a2 = pal.a2;
+
+  // ── Primary brand ──────────────────────────────────────────────
+  r.style.setProperty('--brand',       p1);
+  r.style.setProperty('--brand-d',     p2);
+  r.style.setProperty('--brand-bg',    alpha(p1, 0.1));
+  r.style.setProperty('--brand-bdr',   alpha(p1, 0.35));
+  r.style.setProperty('--brand-l',     p3);
+  r.style.setProperty('--blue',        p1);
+  r.style.setProperty('--blue-bg',     alpha(p1, 0.08));
+  r.style.setProperty('--blue-bdr',    alpha(p1, 0.3));
+  r.style.setProperty('--green',       p3);
+  r.style.setProperty('--green-bg',    alpha(p3, 0.1));
+  r.style.setProperty('--green-bdr',   alpha(p3, 0.3));
+  r.style.setProperty('--teal',        p3);
+  r.style.setProperty('--teal-bg',     alpha(p3, 0.08));
+  // ── Accent ────────────────────────────────────────────────────
+  r.style.setProperty('--amber',       a1);
+  r.style.setProperty('--amber-bg',    alpha(a1, 0.1));
+  r.style.setProperty('--amber-bdr',   alpha(a1, 0.3));
+  r.style.setProperty('--c2',          a1);
+  // ── CSS vars used in topnav, patient chart, etc. ───────────────
+  r.style.setProperty('--c1',          p1);
+  r.style.setProperty('--c1d',         p2);
+  r.style.setProperty('--c1l',         alpha(p1, 0.15));
+  r.style.setProperty('--c1m',         p3);
+
+  // ── Replace hardcoded inline colors via CSS overrides ─────────
+  // Inject a <style> tag that overrides every hardcoded green
+  let styleEl = document.getElementById('palette-overrides');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'palette-overrides';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
+    /* === TOPNAV === */
+    .topnav { background: ${p2} !important; border-bottom-color: ${darken(p2,15)} !important; }
+    [data-theme="dark"] .topnav { background: ${darken(p2,25)} !important; }
+    .tn-brand-name { color: #fff !important; }
+    .tn-item { color: rgba(255,255,255,.85) !important; }
+    .tn-item:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
+    .tn-item.active, .tn-group.open > .tn-item { background: rgba(255,255,255,.22) !important; color: #fff !important; box-shadow: none !important; }
+    .tn-divider { background: rgba(255,255,255,.2) !important; }
+    .tn-right { border-left-color: rgba(255,255,255,.2) !important; }
+    .tn-right .btn-ghost { color: rgba(255,255,255,.8) !important; }
+    .tn-right .btn-ghost:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
+    #tn-user-name { color: rgba(255,255,255,.85) !important; }
+    #btn-lang { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
+    .tn-prov-sel { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
+    .tn-prov-sel:hover { border-color: rgba(255,255,255,.5) !important; }
+    /* === DROPDOWNS (light bg) === */
+    .tn-dropdown { background: var(--surface) !important; border-color: var(--border) !important; }
+    .tn-dd-item { color: var(--text) !important; }
+    .tn-dd-item:hover, .tn-dd-item.active { background: ${alpha(p1,.1)} !important; color: ${p1} !important; }
+    .tn-dd-item:hover svg, .tn-dd-item.active svg, .tn-dd-item:hover .lci, .tn-dd-item.active .lci { color: ${p1} !important; opacity:1 !important; }
+    .tn-drawer-item:hover, .tn-drawer-item.active { color: ${p1} !important; background: ${alpha(p1,.08)} !important; }
+    .tn-drawer-sub-item:hover, .tn-drawer-sub-item.active { color: ${p1} !important; }
+    /* === BUTTONS === */
+    .btn-primary { background: ${p1} !important; border-color: ${p1} !important; }
+    .btn-primary:hover { background: ${p2} !important; border-color: ${p2} !important; }
+    #login-btn { background: linear-gradient(145deg,${p1},${p2}) !important; }
+    /* === BADGES === */
+    .b-blue { background: ${alpha(p1,.1)} !important; color: ${p1} !important; border-color: ${alpha(p1,.3)} !important; }
+    .b-green { background: ${alpha(p3,.1)} !important; color: ${darken(p3,10)} !important; border-color: ${alpha(p3,.3)} !important; }
+    /* === TABS / STABS === */
+    .stab.active { color: ${p1} !important; border-bottom-color: ${p1} !important; }
+    .ptc-tab.active { color: ${p2} !important; }
+    /* === LINKS & ACCENTS === */
+    .pt-link-name, .pt-link-acct { color: ${p1} !important; }
+    .slabel { border-left-color: ${p1} !important; color: ${p1} !important; }
+    /* === PATIENT CHART === */
+    .ptc-banner { background: linear-gradient(135deg, ${p2}, ${p1}) !important; }
+    .ptc-panel-hdr { background: linear-gradient(to bottom, var(--bg), var(--bg2)) !important; color: var(--text) !important; }
+    .ptc-panel-hdr h3 { color: var(--text) !important; }
+    .ptc-tab.active { border-top-color: ${p1} !important; }
+    .ptc-aging-table th { background: ${alpha(p2,.08)} !important; color: ${p2} !important; }
+    /* === DARK MODE VARS === */
+    [data-theme="dark"] { --brand: ${p3}; --brand-d: ${p1}; --brand-l: ${lighten(p1,20)}; }
+    /* === ROOT VARS === */
+    :root { --brand: ${p1}; --brand-d: ${p2}; --brand-l: ${p3}; --c1: ${p1}; --c1d: ${p2}; --c1m: ${p3}; }
+  `
+  updateFavicon(p1);
+}
+
+function _saveUserPrefs(updates) {
+  Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
+  if (_fbReady && _db) {
+    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true})
+      .catch(function(e){ console.warn('prefs save failed:', e.message); });
+  }
+}
+
 // ── Dynamic favicon & brand color ─────────────────────────────────
 function updateFavicon(color) {
   try {
@@ -1845,6 +2126,7 @@ function updateFavicon(color) {
     document.querySelectorAll('.nav-favicon').forEach(function(img){ img.src = url; });
   } catch(e) {}
 }
+
 
 function setBrandColor(color) {
   if (!color) return;
@@ -1868,13 +2150,15 @@ function setBrandColor(color) {
   root.style.setProperty('--c1',       color);
   root.style.setProperty('--c1d',      darken(color,-20));
   // Save to Firestore
-  if (_fbReady && _db) {
-    _db.collection('meta').doc('config').set(
-      Object.assign(_apiConfigCache||{}, {color: color}), {merge:true}
-    ).catch(function(){});
-  }
-  if (_apiConfigCache) _apiConfigCache.color = color;
+  _saveUserPrefs({color: color});
   updateFavicon(color);
+}
+
+function setAppFontSize(size) {
+  document.documentElement.style.setProperty('font-size', size + 'px');
+  // Also set base size on body
+  document.body.style.fontSize = size + 'px';
+  _saveUserPrefs({fontSize: size});
 }
 
 function setAppFont(fontClass) {
@@ -1887,12 +2171,7 @@ function setAppFont(fontClass) {
   };
   const fv = fontMap[fontClass];
   if (fv) document.documentElement.style.setProperty('--font', fv);
-  if (_fbReady && _db) {
-    _db.collection('meta').doc('config').set(
-      Object.assign(_apiConfigCache||{}, {font: fontClass}), {merge:true}
-    ).catch(function(){});
-  }
-  if (_apiConfigCache) _apiConfigCache.font = fontClass;
+  _saveUserPrefs({font: fontClass});
   // Update panel buttons
   document.querySelectorAll('.app-font-opt').forEach(function(b){
     b.style.fontWeight = b.dataset.font===fontClass ? '700' : '400';
@@ -2054,60 +2333,7 @@ function _apStyleFonts() {
     b.style.fontWeight  = active ? '700' : '400';
   });
 }
-function applyTheme() {
-  // Read from Firestore config or sessionStorage (from landing) or default
-  let theme = 'light';
-  try {
-    if (_apiConfigCache && _apiConfigCache.theme) theme = _apiConfigCache.theme;
-    else if (sessionStorage.getItem('cdc_theme')) theme = sessionStorage.getItem('cdc_theme');
-    else if (localStorage.getItem('rcmpro_theme')) theme = localStorage.getItem('rcmpro_theme');
-  } catch(e) {}
 
-  // Color from Firestore or sessionStorage
-  const color = (_apiConfigCache && _apiConfigCache.color) || sessionStorage.getItem('cdc_color') || localStorage.getItem('rcmpro_color') || '';
-  document.documentElement.setAttribute('data-theme', theme);
-  const btnDark = document.getElementById('btn-dark');
-  if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
-
-  // (color already read above)
-  if (color) {
-    const darken = (hex, amt) => {
-      const n = parseInt(hex.slice(1),16);
-      const r = Math.max(0,Math.min(255,(n>>16)+amt));
-      const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
-      const b = Math.max(0,Math.min(255,(n&0xff)+amt));
-      return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
-    };
-    const ri=parseInt(color.slice(1,3),16), gi=parseInt(color.slice(3,5),16), bi=parseInt(color.slice(5,7),16);
-    const light = 'rgba('+ri+','+gi+','+bi+',.12)';
-    const mid   = 'rgba('+ri+','+gi+','+bi+',.35)';
-    const r = document.documentElement;
-    r.style.setProperty('--brand',    color);
-    r.style.setProperty('--brand-d',  darken(color,-20));
-    r.style.setProperty('--brand-bg', light);
-    r.style.setProperty('--brand-bdr',mid);
-    r.style.setProperty('--blue',     color);
-    r.style.setProperty('--green',    color);
-    // Also set landing vars so toggle stays in sync
-    r.style.setProperty('--c1',  color);
-    r.style.setProperty('--c1d', darken(color,-20));
-  }
-
-  // Apply font chosen in landing page
-  const font = localStorage.getItem('rcmpro_font');
-  if (font) {
-    // font is a class like 'font-segoe', 'font-inter', 'font-mono'
-    const fontMap = {
-      'font-segoe': "'Segoe UI Variable',system-ui,-apple-system,sans-serif",
-      'font-inter':  "'Inter',system-ui,-apple-system,sans-serif",
-      'font-mono':   "'JetBrains Mono','SF Mono',monospace",
-    };
-    const fv = fontMap[font];
-    if (fv) document.documentElement.style.setProperty('--font', fv);
-  }
-
-  try { _renderLucideIcons(); } catch(e) {}
-}
 function toggleDark(){
 const root=document.documentElement;
 const isDark=root.getAttribute('data-theme')==='dark';
@@ -2285,65 +2511,160 @@ function showApp(username) {
 
 
 function renderDashboard(){
-if(!activeProviderId) return;
-const db=getDB();
-const prov=db.providers.find(p=>p.id===activeProviderId)||{};
-const claims=db.claims.filter(c=>c.providerId===activeProviderId);
-const total=claims.reduce((s,c)=>s+claimTotal(c),0);
-const pending=claims.filter(c=>c.status==='pending').length;
-const accepted=claims.filter(c=>c.status==='accepted').length;
-const sub=document.getElementById('dash-sub'); if(sub) sub.textContent=prov.name||'';
-document.getElementById('dash-stats').innerHTML=`
-<div class="stat" onclick="go('claims')" style="cursor:pointer">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="file-text" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
-</div>
-<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
-</div>
-<div class="stat-v" style="color:var(--brand)">${claims.length}</div>
-<div class="stat-l">Total Claims</div>
-</div>
-<div class="stat" style="cursor:default">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="dollar-sign" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
-</div>
-</div>
-<div class="stat-v" style="color:var(--green)">$${fmtMoney(total)}</div>
-<div class="stat-l">Total Charges</div>
-</div>
-<div class="stat" onclick="go('claims')" style="cursor:pointer">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="clock" class="lci" style="width:18px;height:18px;color:var(--amber)"></i>
-</div>
-<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
-</div>
-<div class="stat-v" style="color:var(--amber)">${pending}</div>
-<div class="stat-l">Pending</div>
-</div>
-<div class="stat" style="cursor:default">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="check-circle" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
-</div>
-</div>
-<div class="stat-v" style="color:var(--green)">${accepted}</div>
-<div class="stat-l">Accepted CH</div>
-</div>`;
-setTimeout(_renderLucideIcons, 20);
-const re=document.getElementById('dash-recent');
-if(!claims.length){ re.innerHTML=`<div class="empty"><div class="empty-ico">\ud83d\udcc4</div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`; }
-else { re.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>PCN</th><th>Patient</th><th>DOS</th><th>Total</th><th>Status</th></tr></thead><tbody>`+claims.slice(-8).reverse().map(c=>{const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'};return`<tr><td class="mono" style="font-size:11px">${c.pcn}</td><td style="font-weight:500">${ptLinkName(p.id,p.last,p.first)}</td><td style="font-size:12px">${c.dos}</td><td class="mono" style="font-weight:700">$${fmtMoney(claimTotal(c))}</td><td>${statusBadge(c.status)}</td></tr>`;}).join('')+`</tbody></table></div>`; }
-const ps={};
-claims.forEach(c=>{const p=db.patients.find(x=>x.id===c.patId);if(p){const k=p.payerName||p.payerid;ps[k]=(ps[k]||0)+claimTotal(c);}});
-document.getElementById('dash-payers').innerHTML=Object.entries(ps).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${k}</span><span class="mono" style="font-weight:700">$${fmtMoney(v)}</span></div>`).join('')||'<p style="font-size:13px;color:var(--text3)">No data</p>';
-const ss={draft:0,pending:0,submitted:0,accepted:0,rejected:0};
-claims.forEach(c=>{ss[c.status]=(ss[c.status]||0)+1;});
-document.getElementById('dash-status').innerHTML=Object.entries(ss).map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center">${statusBadge(s)}<span class="mono" style="font-weight:700">${n}</span></div>`).join('');
-const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
-document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn">\u26a0\ufe0f ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View \u2192</a></div>`:claims.length?`<div class="alert al-success">\u2705 All claims are valid and ready to export.</div>`:'';
+  if(!activeProviderId) return;
+  const db  = getDB();
+  const prov= db.providers.find(p=>p.id===activeProviderId)||{};
+  const claims = db.claims.filter(c=>c.providerId===activeProviderId);
+  const patients= db.patients.filter(p=>p.providerId===activeProviderId||!p.providerId);
+  const appts  = (db.appointments||[]).filter(a=>a.providerId===activeProviderId||!a.providerId);
+
+  // Sub-header
+  const sub=document.getElementById('dash-sub');
+  if(sub) sub.textContent = prov.name||'';
+
+  // Date
+  const dd=document.getElementById('dash-date');
+  if(dd) dd.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // ── Financials ─────────────────────────────────────────────
+  const total    = claims.reduce((s,c)=>s+claimTotal(c),0);
+  const pending  = claims.filter(c=>c.status==='pending');
+  const accepted = claims.filter(c=>c.status==='accepted');
+  const rejected = claims.filter(c=>c.status==='rejected');
+  const submitted= claims.filter(c=>c.status==='submitted');
+  const draft    = claims.filter(c=>c.status==='draft');
+  const pendAmt  = pending.reduce((s,c)=>s+claimTotal(c),0);
+  const accAmt   = accepted.reduce((s,c)=>s+claimTotal(c),0);
+  const rejAmt   = rejected.reduce((s,c)=>s+claimTotal(c),0);
+  const errs     = claims.reduce((s,c)=>s+validateClaim(c).length,0);
+
+  // ── KPI Cards ──────────────────────────────────────────────
+  const kpis=[
+    {icon:'file-text',  label:'Total Claims', val:claims.length,         color:'var(--brand)',  bg:'var(--brand-bg)', click:"go('claims')"},
+    {icon:'users',      label:'Patients',     val:patients.length,        color:'var(--green)',  bg:'var(--green-bg)', click:"go('patients')"},
+    {icon:'dollar-sign',label:'Total Charges',val:'$'+fmtMoney(total),   color:'var(--green)',  bg:'var(--green-bg)', click:''},
+    {icon:'clock',      label:'Pending',      val:pending.length,         color:'var(--amber)',  bg:'var(--amber-bg)', click:"go('claims')"},
+    {icon:'check-circle',label:'Accepted',    val:accepted.length,        color:'#10b981',       bg:'rgba(16,185,129,.1)', click:''},
+    {icon:'x-circle',   label:'Rejected',     val:rejected.length,        color:'#ef4444',       bg:'rgba(239,68,68,.1)', click:''},
+  ];
+  const statsEl=document.getElementById('dash-stats');
+  if(statsEl) statsEl.innerHTML=kpis.map(k=>`
+    <div class="card" style="padding:14px;cursor:${k.click?'pointer':'default'};transition:box-shadow .15s"
+      ${k.click?`onclick="${k.click}"`:''}
+      onmouseenter="if(this.onclick)this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'"
+      onmouseleave="this.style.boxShadow=''">
+      <div style="width:34px;height:34px;border-radius:10px;background:${k.bg};display:flex;align-items:center;justify-content:center;margin-bottom:10px">
+        <i data-lucide="${k.icon}" class="lci" style="width:16px;height:16px;color:${k.color}"></i>
+      </div>
+      <div style="font-size:22px;font-weight:800;color:${k.color};line-height:1">${k.val}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;font-weight:500">${k.label}</div>
+    </div>`).join('');
+
+  // ── Alerts bar ─────────────────────────────────────────────
+  const alertEl=document.getElementById('dash-alerts');
+  if(alertEl){
+    if(errs>0)
+      alertEl.innerHTML=`<div class="alert al-warn" style="display:flex;align-items:center;gap:8px"><i data-lucide="alert-triangle" class="lci" style="width:14px;height:14px"></i><span><strong>${errs} validation error(s)</strong> found in claims. <a href="#" onclick="go('validate');return false" style="font-weight:700;color:inherit">Review →</a></span></div>`;
+    else if(claims.length)
+      alertEl.innerHTML=`<div class="alert al-success" style="display:flex;align-items:center;gap:8px"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i><span>All claims valid and ready to export.</span></div>`;
+    else alertEl.innerHTML='';
+  }
+
+  // ── Recent Claims table ─────────────────────────────────────
+  const recentEl=document.getElementById('dash-recent');
+  if(recentEl){
+    if(!claims.length){
+      recentEl.innerHTML=`<div class="empty" style="padding:30px"><div class="empty-ico">📄</div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`;
+    } else {
+      const rows=claims.slice().reverse().slice(0,8).map(c=>{
+        const pt=db.patients.find(x=>x.id===c.patId)||{last:'?',first:''};
+        const age= c.dos ? Math.round((Date.now()-new Date(c.dos))/(86400000)) : '';
+        return `<tr>
+          <td class="mono" style="font-size:11px;color:var(--text3)">${c.pcn||'—'}</td>
+          <td style="font-weight:600;font-size:12px">${ptLinkName(pt.id,pt.last,pt.first)}</td>
+          <td style="font-size:11px;color:var(--text2)">${c.dos||'—'}</td>
+          <td class="mono" style="font-weight:700;font-size:12px;color:var(--text)">$${fmtMoney(claimTotal(c))}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td style="font-size:11px;color:var(--text3)">${age?age+'d':''}</td>
+        </tr>`;
+      }).join('');
+      recentEl.innerHTML=`<div class="tbl-wrap">
+        <table>
+          <thead><tr><th>PCN</th><th>Patient</th><th>DOS</th><th>Amount</th><th>Status</th><th>Age</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`;
+    }
+  }
+
+  // ── Financial breakdown ─────────────────────────────────────
+  const finEl=document.getElementById('dash-financial');
+  if(finEl){
+    const rows=[
+      {label:'Total Charges',  val:total,    color:'var(--text)',   bold:true},
+      {label:'Pending',        val:pendAmt,  color:'var(--amber)',  bold:false},
+      {label:'Accepted',       val:accAmt,   color:'var(--green)',  bold:false},
+      {label:'Rejected',       val:rejAmt,   color:'#ef4444',      bold:false},
+    ];
+    finEl.innerHTML=rows.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text2)">${r.label}</span>
+        <span class="mono" style="font-weight:${r.bold?800:700};font-size:13px;color:${r.color}">$${fmtMoney(r.val)}</span>
+      </div>`).join('')
+    + `<div style="margin-top:8px">
+        <div style="display:flex;gap:2px;height:6px;border-radius:4px;overflow:hidden;background:var(--border)">
+          ${total>0?`<div style="width:${(accAmt/total*100).toFixed(1)}%;background:var(--green);transition:width .4s"></div>
+          <div style="width:${(pendAmt/total*100).toFixed(1)}%;background:var(--amber);transition:width .4s"></div>
+          <div style="width:${(rejAmt/total*100).toFixed(1)}%;background:#ef4444;transition:width .4s"></div>`:''}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;font-size:10px;color:var(--text3)">
+          <span><span style="color:var(--green)">●</span> Accepted</span>
+          <span><span style="color:var(--amber)">●</span> Pending</span>
+          <span><span style="color:#ef4444">●</span> Rejected</span>
+        </div>
+      </div>`;
+  }
+
+  // ── By Status ──────────────────────────────────────────────
+  const statusEl=document.getElementById('dash-status');
+  if(statusEl){
+    const ss={draft:0,pending:0,submitted:0,accepted:0,rejected:0};
+    claims.forEach(c=>{ss[c.status]=(ss[c.status]||0)+1;});
+    const maxV=Math.max(...Object.values(ss),1);
+    statusEl.innerHTML=Object.entries(ss).map(([s,n])=>`
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          ${statusBadge(s)}<span class="mono" style="font-size:12px;font-weight:700">${n}</span>
+        </div>
+        <div style="height:4px;border-radius:3px;background:var(--border)">
+          <div style="height:4px;border-radius:3px;background:var(--brand);width:${(n/maxV*100).toFixed(1)}%;transition:width .4s"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Top Payers ─────────────────────────────────────────────
+  const payersEl=document.getElementById('dash-payers');
+  if(payersEl){
+    const ps={};
+    claims.forEach(c=>{
+      const pt=db.patients.find(x=>x.id===c.patId);
+      const k=(pt&&(pt.payerName||pt.payerid))||'Unknown';
+      ps[k]=(ps[k]||0)+claimTotal(c);
+    });
+    const sorted=Object.entries(ps).sort((a,b)=>b[1]-a[1]).slice(0,7);
+    const maxV=sorted[0]?sorted[0][1]:1;
+    payersEl.innerHTML=sorted.map(([k,v])=>`
+      <div style="margin-bottom:7px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <span style="font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${k}">${k}</span>
+          <span class="mono" style="font-size:11px;font-weight:700">$${fmtMoney(v)}</span>
+        </div>
+        <div style="height:3px;border-radius:3px;background:var(--border)">
+          <div style="height:3px;border-radius:3px;background:var(--brand);width:${(v/maxV*100).toFixed(1)}%;transition:width .4s"></div>
+        </div>
+      </div>`).join('')||'<p style="font-size:12px;color:var(--text3)">No data</p>';
+  }
+
+  setTimeout(_renderLucideIcons,20);
 }
 
 
@@ -2803,15 +3124,15 @@ function renderValidation(){
 const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId); const el=document.getElementById('val-content');
 if(!claims.length){ el.innerHTML='<div class="alert al-warn">No claims to validate.</div>'; return; }
 const all=claims.map(c=>({c,errs:validateClaim(c)})); const totalErrs=all.reduce((s,x)=>s+x.errs.length,0); const total=claims.reduce((s,c)=>s+claimTotal(c),0);
-el.innerHTML=(totalErrs===0?`<div class="alert al-success">\u2705 <strong>${claims.length} claim(s) valid.</strong> Total: $${fmtMoney(total)}</div>`:`<div class="alert al-error">\u274c <strong>${totalErrs} error(s)</strong> in ${all.filter(x=>x.errs.length).length} claim(s).</div>`)+`<div class="card"><div class="card-title" style="margin-bottom:12px">Detail</div>`+all.map(({c,errs})=>{ const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'}; return`<div style="padding:9px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${errs.length?'var(--red)':'var(--green)'};flex-shrink:0"></div><span style="font-weight:600">${c.pcn}</span><span style="color:var(--text3);font-size:12px">\u2014 ${ptLinkName(p.id,p.last,p.first)} \u2014 ${c.dos}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12px;font-weight:700">$${fmtMoney(claimTotal(c))}</span>${errs.length?`<span class="badge b-red">${errs.length} err</span>`:'<span class="badge b-green">\u2713 OK</span>'}</div></div>${errs.length?`<ul style="padding:4px 0 4px 20px;font-size:12px;color:var(--red);margin-top:4px">${errs.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}</div>`;}).join('')+`</div>`;
+el.innerHTML=(totalErrs===0?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> <strong>${claims.length} claim(s) valid.</strong> Total: $${fmtMoney(total)}</div>`:`<div class="alert al-error"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> <strong>${totalErrs} error(s)</strong> in ${all.filter(x=>x.errs.length).length} claim(s).</div>`)+`<div class="card"><div class="card-title" style="margin-bottom:12px">Detail</div>`+all.map(({c,errs})=>{ const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'}; return`<div style="padding:9px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${errs.length?'var(--red)':'var(--green)'};flex-shrink:0"></div><span style="font-weight:600">${c.pcn}</span><span style="color:var(--text3);font-size:12px">\u2014 ${ptLinkName(p.id,p.last,p.first)} \u2014 ${c.dos}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12px;font-weight:700">$${fmtMoney(claimTotal(c))}</span>${errs.length?`<span class="badge b-red">${errs.length} err</span>`:'<span class="badge b-green"><i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i> OK</span>'}</div></div>${errs.length?`<ul style="padding:4px 0 4px 20px;font-size:12px;color:var(--red);margin-top:4px">${errs.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}</div>`;}).join('')+`</div>`;
 }
 
 
 function renderExportSummary(){
 const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId);
 const total=claims.reduce((s,c)=>s+claimTotal(c),0); const pending=claims.filter(c=>c.status==='pending').length; const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
-const sumEl=document.getElementById('exp-summary'); if(sumEl) sumEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--brand)">${claims.length}</div><div style="font-size:11px;color:var(--text3)">Total claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">$${fmtMoney(total)}</div><div style="font-size:11px;color:var(--text3)">Total charges</div></div><div style="background:var(--amber-bg);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">${pending}</div><div style="font-size:11px;color:var(--text3)">Pending</div></div><div style="background:${errs?'var(--red-bg)':'var(--green-bg)'};border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:${errs?'var(--red)':'var(--green)'}">${errs||'\u2713'}</div><div style="font-size:11px;color:var(--text3)">${errs?'Errors':'No errors'}</div></div></div>`;
-const ea=document.getElementById('exp-alert-top'); if(ea) ea.innerHTML=errs?`<div class="alert al-warn">\u26a0\ufe0f ${errs} error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review \u2192</a></div>`:pending?`<div class="alert al-success">\u2705 ${pending} claim(s) ready to export.</div>`:`<div class="alert al-info">\u2139\ufe0f No pending claims.</div>`;
+const sumEl=document.getElementById('exp-summary'); if(sumEl) sumEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--brand)">${claims.length}</div><div style="font-size:11px;color:var(--text3)">Total claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">$${fmtMoney(total)}</div><div style="font-size:11px;color:var(--text3)">Total charges</div></div><div style="background:var(--amber-bg);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">${pending}</div><div style="font-size:11px;color:var(--text3)">Pending</div></div><div style="background:${errs?'var(--red-bg)':'var(--green-bg)'};border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:${errs?'var(--red)':'var(--green)'}">${errs||'<i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'}</div><div style="font-size:11px;color:var(--text3)">${errs?'Errors':'No errors'}</div></div></div>`;
+const ea=document.getElementById('exp-alert-top'); if(ea) ea.innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review \u2192</a></div>`:pending?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> ${pending} claim(s) ready to export.</div>`:`<div class="alert al-info"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> No pending claims.</div>`;
 }
 
 
@@ -2962,18 +3283,108 @@ return `<div class="app-shell">
 <div class="main">
 <div class="content">
 <div class="section active" id="sec-dashboard">
-<div class="page-hdr"><div><h1>Dashboard</h1><p id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
-<div class="stats" id="dash-stats"></div>
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
-<div class="card"><div class="card-hdr"><div class="card-title">Recent Claims</div><button class="btn btn-ghost btn-sm" onclick="go('claims')">View all \u2192</button></div><div id="dash-recent"></div></div>
-<div><div class="card" style="margin-bottom:14px"><div class="card-hdr"><div class="card-title">By Payer</div></div><div id="dash-payers"></div></div><div class="card"><div class="card-hdr"><div class="card-title">By Status</div></div><div id="dash-status"></div></div></div>
+<!-- Dashboard Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+  <div>
+    <h1 style="margin:0;font-size:20px;font-weight:800;color:var(--text)">Dashboard</h1>
+    <p id="dash-sub" style="font-size:12px;color:var(--text3);margin:2px 0 0"></p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="dash-date" style="font-size:12px;color:var(--text3)"></span>
+    <button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci" style="width:13px;height:13px"></i> Quick Batch</button>
+    <button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button>
+  </div>
 </div>
-<div id="dash-alerts" style="margin-top:14px"></div>
+
+<!-- Alert bar -->
+<div id="dash-alerts" style="margin-bottom:12px"></div>
+
+<!-- KPI Row -->
+<div id="dash-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px"></div>
+
+<!-- Main 3-column grid -->
+<div style="display:grid;grid-template-columns:1.6fr 1fr 0.9fr;gap:12px;align-items:start">
+
+  <!-- COL 1: Recent Claims -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="file-text" class="lci" style="width:14px;height:14px;color:var(--brand)"></i>
+        </div>
+        <span style="font-weight:700;font-size:13px;color:var(--text)">Recent Claims</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="go('claims')">View all →</button>
+    </div>
+    <div id="dash-recent" style="padding:0"></div>
+  </div>
+
+  <!-- COL 2: Financial + By Payer -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <!-- Financial Summary card -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="trending-up" class="lci" style="width:14px;height:14px;color:var(--green)"></i>
+        </div>
+        <span style="font-weight:700;font-size:13px;color:var(--text)">Financial</span>
+      </div>
+      <div id="dash-financial" style="padding:10px 14px"></div>
+    </div>
+
+    <!-- By Status -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="bar-chart-2" class="lci" style="width:14px;height:14px;color:var(--amber)"></i>
+        </div>
+        <span style="font-weight:700;font-size:13px;color:var(--text)">Claims by Status</span>
+      </div>
+      <div id="dash-status" style="padding:8px 14px"></div>
+    </div>
+
+  </div>
+
+  <!-- COL 3: By Payer + Quick Actions -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <!-- By Payer -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="building-2" class="lci" style="width:14px;height:14px;color:#6366f1"></i>
+        </div>
+        <span style="font-weight:700;font-size:13px;color:var(--text)">Top Payers</span>
+      </div>
+      <div id="dash-payers" style="padding:8px 14px"></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(236,72,153,.1);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="zap" class="lci" style="width:14px;height:14px;color:#ec4899"></i>
+        </div>
+        <span style="font-weight:700;font-size:13px;color:var(--text)">Quick Actions</span>
+      </div>
+      <div style="padding:10px;display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;width:100%;font-size:12px" onclick="openClaimModal(-1)"><i data-lucide="plus-circle" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> New Claim</button>
+        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;width:100%;font-size:12px" onclick="go('patients')"><i data-lucide="user-plus" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Add Patient</button>
+        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;width:100%;font-size:12px" onclick="go('appointments')"><i data-lucide="calendar-plus" class="lci" style="width:13px;height:13px;color:var(--amber)"></i> Schedule Appt</button>
+        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;width:100%;font-size:12px" onclick="go('export')"><i data-lucide="send" class="lci" style="width:13px;height:13px;color:#6366f1"></i> Export Claims</button>
+        <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;gap:8px;width:100%;font-size:12px" onclick="go('validate')"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px;color:#ec4899"></i> Validate Claims</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 </div>
 
 <div class="section" id="sec-claims">
 <div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-sm" onclick="go('export')"><i data-lucide="send" class="lci"></i> Export</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
-<div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)">\u2705 Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)">\u274c Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
+<div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
 <div class="search-row"><input id="clm-q" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()"><select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select><select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select></div>
 <div id="claims-tbl"></div>
 </div>
@@ -3596,7 +4007,7 @@ Show Paid
 </div>
 <div class="sep"></div>
 <span class="slabel">\ud83e\udeaa Subscriber / Insured</span>
-<div id="self-notice" class="alert al-info" style="display:none">\u2139\ufe0f Self selected \u2014 subscriber fields auto-filled from patient data above.</div>
+<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \u2014 subscriber fields auto-filled from patient data above.</div>
 <div class="fg g2">
 <div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>
 <div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>
@@ -3822,12 +4233,12 @@ Account Key (ClaimMD)
 <div class="modal-body">
 <input type="hidden" id="mst-id">
 <div class="fg g1">
-<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to ClaimMD</option><option value="accepted">\u2705 Accepted by Clearinghouse</option><option value="rejected">\u274c Rejected</option></select></div>
+<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to ClaimMD</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>
 <div class="field" id="mst-claimmd-wrap" style="display:none"><label>ClaimMD Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by ClaimMD"></div>
 <div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-status')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()">\u2705 Save Status</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-status')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>
 </div></div>
 
 <!-- BATCH MODAL -->
@@ -4172,7 +4583,7 @@ lines:tmpLines.map(l=>({cpt:fixCpt(l.cpt),mod1:l.mod1||'',mod2:l.mod2||'',mod3:l
 createdAt:Date.now(), updatedAt:Date.now()
 };
 setDB(db=>{ const idx=db.claims.findIndex(x=>x.id===existId); if(idx>=0){c.createdAt=db.claims[idx].createdAt;db.claims[idx]=c;}else db.claims.push(c); });
-closeModal('modal-claim'); renderClaims(); updateBadges(); toast('Claim saved \u2713');
+closeModal('modal-claim'); renderClaims(); updateBadges(); toast('Claim saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
 }
 
 
@@ -4184,7 +4595,7 @@ const isNew=idx<0||isNaN(idx);
 if(isNew){ const acct=v('mp-acct'); if(db.patients.find(p=>p.acct===acct&&p.providerId===activeProviderId)){ toast('Account # '+acct+' already exists','err'); return; } }
 const p={id:!isNew?db.patients[idx].id:uid(),providerId:activeProviderId,acct:!isNew?db.patients[idx].acct:v('mp-acct'),last:v('mp-last'),first:v('mp-first'),mid:v('mp-mid'),dob:v('mp-dob'),sex:document.getElementById('mp-sex').value,addr1:v('mp-addr1'),addr2:v('mp-addr2'),city:v('mp-city'),state:v('mp-state'),zip:v('mp-zip'),phone:v('mp-phone'),rel:document.getElementById('mp-rel').value,subLast:v('mp-insl'),subFirst:v('mp-insf'),subNum:v('mp-insnum'),subDob:v('mp-insdob'),subSex:document.getElementById('mp-inssex').value,group:v('mp-group'),plan:v('mp-plan'),payerid:v('mp-payerid'),payerName:v('mp-payername'),payerCity:v('mp-payercity'),payerState:v('mp-payerstate'),createdAt:!isNew?db.patients[idx].createdAt:Date.now()};
 setDB(db=>{ if(!isNew) db.patients[idx]=p; else db.patients.push(p); });
-closeModal('modal-patient'); renderPatients(); toast('Patient saved \u2713');
+closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
 }
 
 
@@ -4233,10 +4644,10 @@ openModal('modal-facility');
 function openReferringModal(idx){ const db=getDB(); document.getElementById('mref-title').textContent=idx>=0?'Edit Referring':'New Referring Provider'; sv('mref-id',idx); const r=idx>=0?db.referring[idx]:{}; sv('mref-npi',r.npi); sv('mref-last',r.last); sv('mref-first',r.first); sv('mref-mid',r.mid||''); document.getElementById('mref-res').innerHTML=''; openModal('modal-referring'); }
 
 
-function saveRendering(){ if(!v('mrend-npi')||!v('mrend-last')){ toast('NPI and Last Name required','err'); return; } const db=getDB(); const idx=parseInt(v('mrend-id')); const isNew=idx<0||isNaN(idx); const r={id:!isNew?db.rendering[idx].id:uid(),providerId:activeProviderId,npi:v('mrend-npi'),last:v('mrend-last'),first:v('mrend-first'),taxonomy:v('mrend-taxonomy'),taxid:v('mrend-taxid')}; setDB(db=>{ if(!isNew) db.rendering[idx]=r; else db.rendering.push(r); }); closeModal('modal-rendering'); renderRendering(); toast('Rendering provider saved \u2713'); }
+function saveRendering(){ if(!v('mrend-npi')||!v('mrend-last')){ toast('NPI and Last Name required','err'); return; } const db=getDB(); const idx=parseInt(v('mrend-id')); const isNew=idx<0||isNaN(idx); const r={id:!isNew?db.rendering[idx].id:uid(),providerId:activeProviderId,npi:v('mrend-npi'),last:v('mrend-last'),first:v('mrend-first'),taxonomy:v('mrend-taxonomy'),taxid:v('mrend-taxid')}; setDB(db=>{ if(!isNew) db.rendering[idx]=r; else db.rendering.push(r); }); closeModal('modal-rendering'); renderRendering(); toast('Rendering provider saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'); }
 
 
-function saveReferring(){ if(!v('mref-npi')||!v('mref-last')){ toast('NPI and Last Name required','err'); return; } const db=getDB(); const idx=parseInt(v('mref-id')); const isNew=idx<0||isNaN(idx); const r={id:!isNew?db.referring[idx].id:uid(),providerId:activeProviderId,npi:v('mref-npi'),last:v('mref-last'),first:v('mref-first'),mid:v('mref-mid')}; setDB(db=>{ if(!isNew) db.referring[idx]=r; else db.referring.push(r); }); closeModal('modal-referring'); renderReferring(); toast('Referring provider saved \u2713'); }
+function saveReferring(){ if(!v('mref-npi')||!v('mref-last')){ toast('NPI and Last Name required','err'); return; } const db=getDB(); const idx=parseInt(v('mref-id')); const isNew=idx<0||isNaN(idx); const r={id:!isNew?db.referring[idx].id:uid(),providerId:activeProviderId,npi:v('mref-npi'),last:v('mref-last'),first:v('mref-first'),mid:v('mref-mid')}; setDB(db=>{ if(!isNew) db.referring[idx]=r; else db.referring.push(r); }); closeModal('modal-referring'); renderReferring(); toast('Referring provider saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'); }
 
 
 
@@ -4291,15 +4702,15 @@ const text = await res.text();
 if (text.includes('<error>') && !text.includes('ErrorNo>0<')) {
 const errMsg = (text.match(/<message>(.*?)<\/message>/) || [])[1] || 'Connection failed';
 setApiStatus('Error: ' + errMsg, 'err');
-logTransmit('\u274c ' + errMsg, 'err');
+logTransmit('<i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> ' + errMsg, 'err');
 } else {
-setApiStatus('\u2705 Connected', 'ok');
-logTransmit('\u2705 Connection to ClaimMD successful', 'ok');
-toast('ClaimMD connected \u2713');
+setApiStatus('<i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Connected', 'ok');
+logTransmit('<i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Connection to ClaimMD successful', 'ok');
+toast('ClaimMD connected <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
 }
 } catch(e) {
-setApiStatus('\u274c Failed', 'err');
-logTransmit('\u274c Connection error: ' + e.message, 'err');
+setApiStatus('<i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Failed', 'err');
+logTransmit('<i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Connection error: ' + e.message, 'err');
 toast('Connection failed: ' + e.message, 'err');
 }
 }
