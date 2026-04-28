@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="favicon.svg"><meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com;">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClaimDataCare — Medical Billing & EHR Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -494,7 +495,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
     <button class="btn btn-ghost" onclick="switchModalTab('staff');document.getElementById('trial-modal').classList.add('open')" data-i18n="nav_signin">Sign In</button>
-    <button class="btn btn-primary" onclick="switchModalTab('trial');document.getElementById('trial-modal').classList.add('open')" data-i18n="nav_demo">Request Demo</button>
+    
   </div>
 </nav>
 
@@ -506,7 +507,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
       <h1 class="hero-h">EHR built around<br><em>your workflow.</em></h1>
       <p class="hero-sub">ClaimDataCare adapts to your specialty, your team, and your pace. A complete clinical workspace — scheduling, notes, labs, prescriptions — with revenue cycle tools that grow with you.</p>
       <div class="hero-actions">
-        <button class="btn btn-primary btn-lg" onclick="document.getElementById('trial-modal').classList.add('open')">Request a Demo</button>
+        
         <button class="btn btn-outline btn-lg" onclick="switchModalTab('staff');document.getElementById('trial-modal').classList.add('open')">Sign In</button>
       </div>
       <div class="hero-trust">
@@ -798,7 +799,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--c2);margin-bottom:14px">Tailored to your specialty</div>
       <h2 style="font-size:clamp(26px,3.2vw,44px);font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.1;margin-bottom:16px">No two practices<br>work the same way.</h2>
       <p style="font-size:16px;color:rgba(255,255,255,.6);line-height:1.65;margin-bottom:28px">ClaimDataCare is configured during onboarding to match your specialty, team size, and billing rules. Family medicine, mental health, orthopedics, urgent care — each gets a different chart structure, note templates, and coding defaults.</p>
-      <button class="btn btn-primary btn-lg" onclick="document.getElementById('trial-modal').classList.add('open')">See how it works for your specialty</button>
+      <button class="btn btn-primary btn-lg" style="display:none">See how it works for your specialty</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
@@ -898,7 +899,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
           <li>HIPAA-compliant cloud — no local server</li>
           <li>Onboarding & email support</li>
         </ul>
-        <button class="plan-cta-btn outline" onclick="document.getElementById('trial-modal').classList.add('open')">Request Demo</button>
+        
         <div class="plan-note">Per provider · No long-term contract</div>
       </div>
 
@@ -926,7 +927,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
           <li>API access for third-party integrations</li>
           <li>Priority phone & chat support</li>
         </ul>
-        <button class="plan-cta-btn c1" onclick="document.getElementById('trial-modal').classList.add('open')">Request Demo</button>
+        
         <div class="plan-note">Most complete all-in-one plan</div>
       </div>
 
@@ -952,7 +953,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
           <li>Monthly performance & collections report</li>
           <li>SLA 99.9% uptime guarantee</li>
         </ul>
-        <button class="plan-cta-btn c2" onclick="document.getElementById('trial-modal').classList.add('open')">Talk to Sales</button>
+        <button class="plan-cta-btn c2" style="display:none">Talk to Sales</button>
         <div class="plan-note">Custom configuration per practice</div>
       </div>
     </div>
@@ -1080,7 +1081,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
   <h2>A platform shaped around<br>your practice.</h2>
   <p>Every specialty is different. ClaimDataCare is configured to match your workflows — from chart structure to billing rules — before your first patient walks in.</p>
   <div class="cta-buttons">
-    <button class="btn btn-white btn-xl" onclick="document.getElementById('trial-modal').classList.add('open')">Request a Demo</button>
+    
     <a href="mailto:info@claimdatacare.com" class="btn btn-outline-dark btn-xl">Talk to Sales</a>
   </div>
 </div>
@@ -1115,14 +1116,14 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
         <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em">ClaimDataCare</div>
         <div style="font-size:11px;color:rgba(255,255,255,.4)">Medical Billing & EHR Platform</div>
       </div>
-      <button onclick="document.getElementById('trial-modal').classList.remove('open')" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;padding:4px;line-height:1">×</button>
+      <button style="display:none" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;padding:4px;line-height:1">×</button>
     </div>
 
     <!-- Tabs -->
     <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg)">
       <button class="modal-tab active" id="tab-staff" onclick="switchModalTab('staff')">Staff Login</button>
       <button class="modal-tab" id="tab-patient" onclick="switchModalTab('patient')">Patient Portal</button>
-      <button class="modal-tab" id="tab-trial" onclick="switchModalTab('trial')">Request Demo</button>
+      
     </div>
 
     <!-- Staff Login -->
@@ -1136,7 +1137,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
       </div>
       <div id="staff-err" style="display:none;background:#fce6e8;color:#c0152a;border:1px solid #f4abaf;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px"></div><input type="password" id="staff-pass" placeholder="••••••••" class="m-input" style="margin-bottom:20px" onkeydown="if(event.key==='Enter')doStaffLogin()">
       <button class="plan-cta-btn c1" style="font-size:14px;padding:12px" id="staff-login-btn" onclick="doStaffLogin()">Sign In</button>
-      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">New to ClaimDataCare? <a href="#" style="color:var(--c1);font-weight:600" onclick="switchModalTab('trial');return false">Request a demo →</a></p>
+      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">New to ClaimDataCare? </p>
     </div>
 
     <!-- Patient Portal -->
@@ -1155,17 +1156,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
     </div>
 
     <!-- Free Trial -->
-    <div id="panel-trial" style="display:none;padding:28px 28px 32px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:22px;line-height:1.5">Tell us about your practice and a specialist will reach out to schedule a personalized walkthrough.</p>
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Full Name</label>
-      <input type="text" placeholder="Dr. Jane Smith" class="m-input" style="margin-bottom:14px">
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Email</label>
-      <input type="email" placeholder="you@practice.com" class="m-input" style="margin-bottom:14px">
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px">Practice Name</label>
-      <input type="text" placeholder="Riverside Family Medicine" class="m-input" style="margin-bottom:22px">
-      <button class="plan-cta-btn c1" style="font-size:15px;padding:13px" onclick="alert('Thank you! A specialist will reach out within 1 business day.')">Schedule My Demo</button>
-      <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">By continuing you agree to our Terms & Privacy Policy</p>
-    </div>
+    
   </div>
 </div>
 
@@ -1182,7 +1173,7 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
 
 <script>
 function switchModalTab(tab) {
-  ['staff','patient','trial'].forEach(t => {
+  ['staff','patient'].forEach(t => {
     document.getElementById('panel-'+t).style.display = t===tab ? 'block' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
@@ -1192,11 +1183,10 @@ function switchModalTab(tab) {
 const T = {
   en: {
     nav_features:'Features', nav_how:'How it works', nav_pricing:'Pricing',
-    nav_signin:'Sign In', nav_demo:'Request Demo',
+    nav_signin:'Sign In',
     hero_tag:'HIPAA Compliant · Configurable to Your Practice',
     hero_h:'EHR built around<br><em>your workflow.</em>',
-    hero_sub:'ClaimDataCare adapts to your specialty, your team, and your pace. A complete clinical workspace — scheduling, notes, labs, prescriptions — with revenue cycle tools that grow with you.',
-    hero_cta1:'Request a Demo', hero_cta2:'Sign In',
+    hero_sub:'ClaimDataCare adapts to your specialty, your team, and your pace. A complete clinical workspace — scheduling, notes, labs, prescriptions — with revenue cycle tools that grow with you.', hero_cta2:'Sign In',
     trust1:'Configured to your specialty', trust2:'Per-provider pricing', trust3:'No hidden fees',
     stat1:'Clinical tabs per patient', stat2:'Less documentation time with AI',
     stat3:'Per-claim or hidden fees', stat4:'ERA auto-posting turnaround',
@@ -1219,19 +1209,17 @@ const T = {
     portal_label:'Patient Portal — Coming Soon',
     portal_h:'A home for your patients, outside the office',
     portal_btn:'Get notified when ready',
-    cta_h:'A platform shaped around<br>your practice.',
-    cta_btn1:'Request a Demo', cta_btn2:'Talk to Sales',
+    cta_h:'A platform shaped around<br>your practice.', cta_btn2:'Talk to Sales',
     cp_title:'Customize', cp_color:'Brand Color', cp_font:'Font',
     cp_theme:'Appearance', cp_light:'☀️ Light', cp_dark:'🌙 Dark',
     footer_copy:'© 2026 ClaimDataCare. All rights reserved. HIPAA Compliant.'
   },
   es: {
     nav_features:'Funcionalidades', nav_how:'Cómo funciona', nav_pricing:'Precios',
-    nav_signin:'Iniciar sesión', nav_demo:'Solicitar Demo',
+    nav_signin:'Iniciar sesión',
     hero_tag:'Cumple HIPAA · Configurable para su práctica',
     hero_h:'EHR diseñado para<br><em>su flujo de trabajo.</em>',
-    hero_sub:'ClaimDataCare se adapta a su especialidad, su equipo y su ritmo. Un espacio clínico completo — agenda, notas, laboratorios, recetas — con herramientas de facturación que crecen con usted.',
-    hero_cta1:'Solicitar Demo', hero_cta2:'Iniciar sesión',
+    hero_sub:'ClaimDataCare se adapta a su especialidad, su equipo y su ritmo. Un espacio clínico completo — agenda, notas, laboratorios, recetas — con herramientas de facturación que crecen con usted.', hero_cta2:'Iniciar sesión',
     trust1:'Configurado para su especialidad', trust2:'Precio por proveedor', trust3:'Sin cargos ocultos',
     stat1:'Pestañas clínicas por paciente', stat2:'Menos tiempo en documentación con IA',
     stat3:'Cargos por reclamo u ocultos', stat4:'Publicación ERA automática',
@@ -1254,8 +1242,7 @@ const T = {
     portal_label:'Portal del Paciente — Próximamente',
     portal_h:'Un espacio para sus pacientes, fuera del consultorio',
     portal_btn:'Notifíqueme cuando esté listo',
-    cta_h:'Una plataforma diseñada<br>para su práctica.',
-    cta_btn1:'Solicitar Demo', cta_btn2:'Hablar con ventas',
+    cta_h:'Una plataforma diseñada<br>para su práctica.', cta_btn2:'Hablar con ventas',
     cp_title:'Personalizar', cp_color:'Color de marca', cp_font:'Fuente',
     cp_theme:'Apariencia', cp_light:'☀️ Claro', cp_dark:'🌙 Oscuro',
     footer_copy:'© 2026 ClaimDataCare. Todos los derechos reservados. Cumple HIPAA.'
@@ -1554,7 +1541,25 @@ async function doStaffLogin() {
   if (!email || !pass) { err.textContent = 'Enter your email and password.'; err.style.display = 'block'; return; }
   btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
-    if (_auth) await _auth.signInWithEmailAndPassword(email, pass);
+    // Rate limit check
+    const _now = Date.now();
+    const _att = JSON.parse(sessionStorage.getItem('_latt')||'{"c":0,"u":0}');
+    if (_att.u > _now) {
+      const s = Math.ceil((_att.u - _now)/1000);
+      err.textContent = 'Too many attempts. Wait ' + s + ' seconds.';
+      err.style.display = 'block';
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      return;
+    }
+    _att.c = (_att.c||0) + 1;
+    if (_att.c >= 5) { _att.u = _now + 60000; _att.c = 0; }
+    sessionStorage.setItem('_latt', JSON.stringify(_att));
+
+    if (_auth) await _auth.signInWithEmailAndPassword(
+      email.trim().slice(0,150),
+      pass.slice(0,200)
+    );
+    sessionStorage.removeItem('_latt'); // reset on success
     try { localStorage.setItem('cdc_pending_login','1'); } catch(e) {}
     window.location.href = 'app.html';
   } catch(e) {

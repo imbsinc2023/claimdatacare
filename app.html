@@ -2,6 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com;">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClaimDataCare</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -1564,6 +1565,62 @@ const FB_CONFIG = {
 let _fbApp = null;
 let claimTabFilter = 'all'; // tracks active tab in claims list
 var activeProviderId = null;  // currently selected billing provider
+
+// ── Security: HTML escaping & input sanitization ──────────────────
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/`/g, '&#96;');
+}
+
+function sanitizeInput(str, maxLen) {
+  if (!str) return '';
+  maxLen = maxLen || 500;
+  return String(str).trim().slice(0, maxLen).replace(/<[^>]*>/g, '');
+}
+
+// ── Rate limiter for login attempts ──────────────────────────────
+const _loginAttempts = { count: 0, lockedUntil: 0 };
+function checkLoginRateLimit() {
+  const now = Date.now();
+  if (_loginAttempts.lockedUntil > now) {
+    const secs = Math.ceil((_loginAttempts.lockedUntil - now) / 1000);
+    throw new Error('Too many attempts. Wait ' + secs + ' seconds.');
+  }
+  _loginAttempts.count++;
+  if (_loginAttempts.count >= 5) {
+    _loginAttempts.lockedUntil = now + 60000; // 1 minute lockout
+    _loginAttempts.count = 0;
+    throw new Error('Too many attempts. Wait 60 seconds.');
+  }
+}
+function resetLoginRateLimit() {
+  _loginAttempts.count = 0;
+  _loginAttempts.lockedUntil = 0;
+}
+
+// ── Input length limits ───────────────────────────────────────────
+const INPUT_LIMITS = {
+  name:    100,
+  email:   150,
+  phone:    20,
+  address: 200,
+  npi:      15,
+  ein:      15,
+  zip:      10,
+  notes:  2000,
+  default: 500,
+};
+function validateInputLength(val, field) {
+  const max = INPUT_LIMITS[field] || INPUT_LIMITS.default;
+  if (String(val||'').length > max) throw new Error(field + ' exceeds maximum length of ' + max);
+  return true;
+}
 let _db = null;
 let _fbReady = false;
 let _localDB = null;
@@ -2111,6 +2168,15 @@ function alpha(hex, a) {
 
 
 
+
+// ── Firestore write guard — prevents oversized payloads ──────────
+function _firestoreGuard(data, collName) {
+  const json = JSON.stringify(data || {});
+  if (json.length > 500000) { // 500KB max per document
+    throw new Error('Document too large to save (' + collName + ')');
+  }
+  return data;
+}
 function _saveUserPrefs(updates) {
   Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
   if (_fbReady && _db) {
@@ -5170,7 +5236,12 @@ try {
 // Try Firebase Auth first if available
 if (_auth && _fbReady) {
 try {
-await _auth.signInWithEmailAndPassword(email, pass);
+checkLoginRateLimit();
+    await _auth.signInWithEmailAndPassword(
+      sanitizeInput(email, 150),
+      pass  // password not sanitized — Firebase handles it
+    );
+    resetLoginRateLimit();
 _adminUser = _auth.currentUser;
 closeAdminLogin();
 updateAdminUI();
@@ -5616,12 +5687,10 @@ const USERS_KEY = 'rcmpro_users_v2'; // v2 forces fresh cache
 
 // Default super admin Ñ stored in localStorage on first boot
 const DEFAULT_ADMIN = {
-id: 'usr-superadmin',
-email: 'imbsinc2023@gmail.com',
-passHash: 'c99d3e710307356f0c6602290a6eb187cfed5beb575268c6fae95f7101b2d589',
-role: 'Super Admin',
-name: 'IMBS Inc Admin',
-createdAt: Date.now()
+  id: 'usr-superadmin',
+  email: '',          // Loaded from Firestore meta/config.adminEmail
+  role: 'Super Admin',
+  name: 'Administrator'
 };
 
 function sha256(str) {
@@ -7787,7 +7856,12 @@ updateAdminUI();
 // Try Firebase auth first
 if (_auth && _fbReady) {
 try {
-const cred = await _auth.signInWithEmailAndPassword(email, pass);
+const cred = checkLoginRateLimit();
+    await _auth.signInWithEmailAndPassword(
+      sanitizeInput(email, 150),
+      pass  // password not sanitized — Firebase handles it
+    );
+    resetLoginRateLimit();
 const fbUser = cred.user;
 const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||'Admin',
 role:'Super Admin', activeBillingProviderId:null };
@@ -8168,7 +8242,7 @@ return;
 }
 el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th></th></tr></thead><tbody>' +
 users.map(u => {
-const isAdmin = u.email === 'imbsinc2023@gmail.com';
+const isAdmin = u.role === 'Super Admin';
 return '<tr>' +
 '<td style="font-weight:600">' + (u.name||'Ñ') + '</td>' +
 '<td style="font-size:12px">' + (u.email||'Ñ') + '</td>' +
@@ -8183,7 +8257,7 @@ return '<tr>' +
 function deleteUser(id) {
 const users = getUsers ? getUsers() : (_usersCache || []);
 const u = users.find(x => x.id === id);
-if (!u || !confirm('Delete user ' + u.email + '?')) return;
+if (!u || !confirm('Delete user ' + escapeHtml(u.email) + '?')) return;
 const updated = users.filter(x => x.id !== id);
 if (saveUsers) saveUsers(updated);
 else _usersCache = updated;
@@ -12955,7 +13029,7 @@ const el = document.getElementById('appt-pat-list');
 if (!el) return;
 
 let pats = db.patients.filter(p => p.providerId === activeProviderId);
-if (q) pats = pats.filter(p => (p.last + ' ' + p.first + ' ' + (p.acct||'')).toLowerCase().includes(q));
+if (q) pats = pats.filter(p => (p.last + ' ' + escapeHtml(p.first) + ' ' + (p.acct||'')).toLowerCase().includes(q));
 
 el.innerHTML = pats.slice(0, 60).map(p => {
 const sel = _apptSelPats.has(p.id);
