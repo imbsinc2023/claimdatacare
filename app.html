@@ -1197,77 +1197,116 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
 <script>function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
-  var cfg      = _apiConfigCache || {};
-  var palKey   = cfg.palette || 'forest';
-  var palCust  = cfg.palCustom || PALETTES.custom;
-  var font     = cfg.font || 'font-segoe';
-  var fontSize = cfg.fontSize || '14';
+  const cfg      = _apiConfigCache || {};
+  const palKey   = cfg.palette || 'autumn';
+  const palCust  = cfg.palCustom || PALETTES.custom;
+  const font     = cfg.font     || 'font-segoe';
+  const fontSize = cfg.fontSize || '14';
 
-  var panel = document.createElement('div');
+  const panel = document.createElement('div');
   panel.id = 'appearance-panel';
-  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:270px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:85vh;overflow-y:auto';
+  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;'
+    + 'background:var(--surface);border:1.5px solid var(--border);border-radius:16px;'
+    + 'padding:0;width:300px;box-shadow:0 12px 40px rgba(0,0,0,.20);overflow:hidden;'
+    + 'max-height:90vh;overflow-y:auto;';
 
-  // Palette cards
-  var palCards = Object.entries(PALETTES).map(function(entry) {
-    var k = entry[0], p = entry[1];
-    var active = palKey === k;
-    return '<div onclick="selectPalette(\''+k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid '+(active?'var(--brand)':'var(--border)')+';cursor:pointer;margin-bottom:5px;background:'+(active?'var(--brand-bg)':'var(--bg2)')+';">'
-      + '<div style="display:flex;gap:3px">'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p1+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p3+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.a1+'"></div>'
+  // ── Palette cards ─────────────────────────────────────────
+  const palCards = Object.entries(PALETTES).filter(function(e){ return e[0] !== 'custom'; }).map(function(entry) {
+    const k = entry[0], p = entry[1];
+    const active = palKey === k;
+    return '<div onclick="selectPalette(\'' + k + '\')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;'
+      + 'border-radius:10px;border:2px solid ' + (active ? 'var(--brand)' : 'transparent') + ';'
+      + 'cursor:pointer;background:' + (active ? 'var(--brand-bg)' : 'var(--bg2)') + ';margin-bottom:4px;transition:all .15s">'
+      + '<div style="display:flex;gap:4px;flex-shrink:0">'
+      + '<div style="width:18px;height:18px;border-radius:50%;background:' + p.c1 + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
+      + '<div style="width:18px;height:18px;border-radius:50%;background:' + p.c2 + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
+      + '<div style="width:18px;height:18px;border-radius:50%;background:' + p.c3 + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
       + '</div>'
-      + '<span style="font-size:12px;font-weight:'+(active?'700':'400')+';color:var(--text)">'+(k==='custom'?'Custom':p.name)+'</span>'
-      + (active?'<span style="margin-left:auto;font-size:10px;color:var(--brand)">✓</span>':'')
+      + '<div style="flex:1">'
+      + '<div style="font-size:12px;font-weight:' + (active ? '700' : '500') + ';color:var(--text)">' + p.name + '</div>'
+      + '</div>'
+      + (active ? '<span style="font-size:11px;color:var(--brand);font-weight:700">✓</span>' : '')
       + '</div>';
   }).join('');
 
-  // Custom 3-color picker (shown always, applies when Custom selected)
-  var custPickers = '<div style="display:flex;gap:8px;margin-top:8px">'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Primary</div>'
-    + '<input type="color" id="cust-p1" value="'+(palCust.p1||'#2d6a4f')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+  // ── Custom palette row ─────────────────────────────────────
+  const custActive = palKey === 'custom';
+  const custRow = '<div style="margin-bottom:4px">'
+    + '<div onclick="selectPalette(\'custom\')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;'
+    + 'border-radius:10px;border:2px solid ' + (custActive ? 'var(--brand)' : 'transparent') + ';'
+    + 'cursor:pointer;background:' + (custActive ? 'var(--brand-bg)' : 'var(--bg2)') + ';transition:all .15s;margin-bottom:6px">'
+    + '<div style="display:flex;gap:4px;flex-shrink:0">'
+    + '<div style="width:18px;height:18px;border-radius:50%;background:' + (palCust.c1||'#2d6a4f') + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
+    + '<div style="width:18px;height:18px;border-radius:50%;background:' + (palCust.c2||'#c77c3e') + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
+    + '<div style="width:18px;height:18px;border-radius:50%;background:' + (palCust.c3||'#e8d5b7') + ';box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
     + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Light</div>'
-    + '<input type="color" id="cust-p3" value="'+(palCust.p3||'#40916c')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '<div style="flex:1"><div style="font-size:12px;font-weight:' + (custActive ? '700' : '500') + ';color:var(--text)">Custom</div></div>'
+    + (custActive ? '<span style="font-size:11px;color:var(--brand);font-weight:700">✓</span>' : '')
     + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accent</div>'
-    + '<input type="color" id="cust-a1" value="'+(palCust.a1||'#d4a017')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    // 3 color pickers side by side
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 2px">'
+    + '<div style="text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600">Primary</div>'
+    + '<input type="color" id="cust-c1" value="' + (palCust.c1||'#2d6a4f') + '" oninput="updateCustomPalette()" '
+    + 'style="width:100%;height:34px;border:2px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;background:var(--bg2)">'
+    + '</div>'
+    + '<div style="text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600">Accent</div>'
+    + '<input type="color" id="cust-c2" value="' + (palCust.c2||'#c77c3e') + '" oninput="updateCustomPalette()" '
+    + 'style="width:100%;height:34px;border:2px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;background:var(--bg2)">'
+    + '</div>'
+    + '<div style="text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600">Light</div>'
+    + '<input type="color" id="cust-c3" value="' + (palCust.c3||'#e8d5b7') + '" oninput="updateCustomPalette()" '
+    + 'style="width:100%;height:34px;border:2px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;background:var(--bg2)">'
+    + '</div>'
     + '</div>'
     + '</div>';
 
-  // Font options
-  var fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
-    var active = font===f[0];
-    return '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\')" class="app-font-opt"'
-      + ' style="padding:5px 10px;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
-      + f[1]+'</button>';
+  // ── Font options ───────────────────────────────────────────
+  const fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
+    const active = font === f[0];
+    return '<button data-font="' + f[0] + '" onclick="setAppFont(\'' + f[0] + '\')" class="app-font-opt"'
+      + ' style="padding:6px 10px;border-radius:8px;border:1.5px solid ' + (active ? 'var(--brand)' : 'var(--border2)') + ';'
+      + 'background:' + (active ? 'var(--brand-bg)' : 'var(--bg2)') + ';color:var(--text);font-size:12px;'
+      + 'font-weight:' + (active ? '700' : '400') + ';cursor:pointer;text-align:left;font-family:' + f[0].replace('font-','') + ',var(--font);width:100%">'
+      + f[1] + '</button>';
   }).join('');
 
-  // Size options
-  var sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
-    var active = fontSize===s[0];
-    return '<button data-sz="'+s[0]+'" onclick="setAppFontSize(\''+s[0]+'\')" class="app-size-opt"'
-      + ' style="flex:1;padding:5px 0;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:'+s[0]+'px;font-weight:'+(active?'700':'500')+';cursor:pointer;font-family:var(--font);text-align:center">'
-      + s[1]+'</button>';
+  // ── Size options ───────────────────────────────────────────
+  const sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
+    const active = fontSize === s[0];
+    return '<button data-sz="' + s[0] + '" onclick="setAppFontSize(\'' + s[0] + '\')" class="app-size-opt"'
+      + ' style="flex:1;padding:6px 0;border-radius:8px;border:1.5px solid ' + (active ? 'var(--brand)' : 'var(--border2)') + ';'
+      + 'background:' + (active ? 'var(--brand-bg)' : 'var(--bg2)') + ';color:' + (active ? 'var(--brand)' : 'var(--text)') + ';'
+      + 'font-size:' + s[0] + 'px;font-weight:' + (active ? '700' : '500') + ';cursor:pointer;font-family:var(--font);text-align:center">'
+      + s[1] + '</button>';
   }).join('');
 
+  // ── Assemble panel ─────────────────────────────────────────
   panel.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
-    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
+    // Header
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border)">'
+    + '<span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.01em">Appearance</span>'
+    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px;line-height:1">&times;</button>'
     + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Color Palette</div>'
+    // Body
+    + '<div style="padding:14px 16px">'
+    // Palettes
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Color Palette</div>'
     + palCards
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:4px">Custom Colors</div>'
-    + custPickers
+    // Custom
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:10px 0 8px">Custom Colors <span style="font-size:9px;font-weight:400;color:var(--text3)">(used in reports)</span></div>'
+    + custRow
+    // Divider
     + '<div style="height:1px;background:var(--border);margin:14px 0"></div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
+    // Font
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Font</div>'
     + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
-    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>';
+    // Size
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Text Size</div>'
+    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>'
+    + '</div>';
 
   document.body.appendChild(panel);
   panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
@@ -1277,7 +1316,72 @@ border-radius: 8px;
         panel.remove(); document.removeEventListener('click', h);
       }
     });
-  }, 100);
+  }, 150);
+}
+
+function applyPalette(pal) {
+  if (!pal) return;
+  const root = document.documentElement;
+  const c1 = pal.c1 || '#2d6a4f';
+  const c2 = pal.c2 || '#c77c3e';
+  const c3 = pal.c3 || '#e8d5b7';
+
+  // Darken helper
+  const dk = function(hex, amt) {
+    const n = parseInt(hex.replace('#',''),16);
+    const r = Math.max(0, Math.min(255, (n>>16) + amt));
+    const g = Math.max(0, Math.min(255, ((n>>8)&0xff) + amt));
+    const b = Math.max(0, Math.min(255, (n&0xff) + amt));
+    return '#' + ((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+  };
+  const hex2rgba = function(hex, alpha) {
+    const n = parseInt(hex.replace('#',''),16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+alpha+')';
+  };
+
+  // C1 → primary / nav background
+  root.style.setProperty('--brand',    c1);
+  root.style.setProperty('--brand-d',  dk(c1, -25));
+  root.style.setProperty('--brand-bg', hex2rgba(c1, 0.10));
+  root.style.setProperty('--brand-bdr',hex2rgba(c1, 0.30));
+  root.style.setProperty('--blue',     c1);
+  root.style.setProperty('--green',    c1);
+  root.style.setProperty('--c1',       c1);
+  root.style.setProperty('--c1d',      dk(c1, -25));
+  root.style.setProperty('--c1l',      c3);
+
+  // C2 → accent / amber
+  root.style.setProperty('--amber',    c2);
+  root.style.setProperty('--amber-bg', hex2rgba(c2, 0.12));
+  root.style.setProperty('--c2',       c2);
+
+  // C3 → light backgrounds / highlights
+  root.style.setProperty('--brand-light', c3);
+  root.style.setProperty('--c3',          c3);
+
+  // Nav bar uses c1 (dark)
+  const styleId = 'palette-overrides';
+  let sEl = document.getElementById(styleId);
+  if (!sEl) { sEl = document.createElement('style'); sEl.id = styleId; document.head.appendChild(sEl); }
+  sEl.textContent =
+    '.topnav { background: ' + c1 + ' !important; border-bottom-color: ' + dk(c1,-15) + ' !important; }'
+    + '.tn-item { color: rgba(255,255,255,0.85) !important; }'
+    + '.tn-item:hover, .tn-item.active { background: rgba(255,255,255,0.12) !important; color: #fff !important; }'
+    + '.tn-brand-name { color: #fff !important; }'
+    + '.tn-right { border-left-color: rgba(255,255,255,0.2) !important; }'
+    + '.tn-right .btn-ghost { color: rgba(255,255,255,0.85) !important; }'
+    + '.tn-right .btn-ghost:hover { background: rgba(255,255,255,0.12) !important; color:#fff !important; }'
+    + '#tn-user-name { color: rgba(255,255,255,0.7) !important; }'
+    + '.tn-prov-sel { background: rgba(255,255,255,0.12) !important; color:#fff !important; border-color: rgba(255,255,255,0.2) !important; }'
+    + '.btn-primary { background: ' + c2 + ' !important; border-color: ' + dk(c2,-15) + ' !important; }'
+    + 'a { color: ' + c1 + ' !important; }'
+    + '.badge-accepted, .badge-active { background: ' + hex2rgba(c1,0.12) + ' !important; color: ' + c1 + ' !important; }'
+    + '.stab.active, .nav-stab.active { background: ' + c1 + ' !important; color: #fff !important; }';
+
+  // Store for PDF/Excel exports
+  window._brandPalette = { c1, c2, c3 };
+
+  updateFavicon(c1);
 }
 
 function selectPalette(key) {
@@ -1289,33 +1393,36 @@ function selectPalette(key) {
 }
 
 function updateCustomPalette() {
-  var p1 = document.getElementById('cust-p1')?.value || '#2d6a4f';
-  var p3 = document.getElementById('cust-p3')?.value || '#40916c';
-  var a1 = document.getElementById('cust-a1')?.value || '#d4a017';
-  PALETTES.custom = { name:'Custom', p1:p1, p2:darken(p1,20), p3:p3, a1:a1, a2:PALETTES.custom.a2||'#b5451b' };
+  const c1 = document.getElementById('cust-c1')?.value || '#2d6a4f';
+  const c2 = document.getElementById('cust-c2')?.value || '#c77c3e';
+  const c3 = document.getElementById('cust-c3')?.value || '#e8d5b7';
+  PALETTES.custom.c1 = c1; PALETTES.custom.c2 = c2; PALETTES.custom.c3 = c3;
   applyPalette(PALETTES.custom);
-  _saveUserPrefs({palette:'custom', palCustom: PALETTES.custom});
+  _saveUserPrefs({palette: 'custom', palCustom: {c1, c2, c3}});
 }
 var LANG = "en";
 function applyTheme() {
-  var cfg = _apiConfigCache || {};
-  var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
-  var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
-  var theme = cfg.theme || ssTheme || 'light';
-  var font  = cfg.font  || ssFont  || 'font-segoe';
+  const cfg      = _apiConfigCache || {};
+  const ssTheme  = (function(){ try { return sessionStorage.getItem('cdc_theme'); } catch(e){ return null; }})();
+  const theme    = cfg.theme || ssTheme || 'light';
   document.documentElement.setAttribute('data-theme', theme);
-  var btnDark = document.getElementById('btn-dark');
+  const btnDark  = document.getElementById('btn-dark');
   if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
+
   // Apply palette
-  var palKey = cfg.palette || 'forest';
-  var pal = PALETTES[palKey] || PALETTES.forest;
-  if (palKey === 'custom' && cfg.palCustom) {
-    Object.assign(PALETTES.custom, cfg.palCustom);
-    pal = PALETTES.custom;
-  }
+  const palKey   = cfg.palette || 'autumn';
+  const palCust  = cfg.palCustom;
+  let pal = PALETTES[palKey] || PALETTES.autumn;
+  if (palKey === 'custom' && palCust) pal = Object.assign({}, PALETTES.custom, palCust);
   applyPalette(pal);
+
+  // Font
+  const font = cfg.font || 'font-segoe';
   setAppFont(font);
-  if (cfg.fontSize) { try { setAppFontSize(cfg.fontSize); } catch(e) {} }
+
+  // Font size
+  if (cfg.fontSize) setAppFontSize(cfg.fontSize);
+
   try { _renderLucideIcons(); } catch(e) {}
 }var LANG = "en";
 // updateBulkBar removed (dup)
@@ -1934,53 +2041,41 @@ db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
 // ── Full Palette System ────────────────────────────────────────────
 // 3 pre-built palettes + custom
 const PALETTES = {
-  forest: {
-    name: 'Forest',
-    p1: '#2d6a4f',   // primary
-    p2: '#1b4332',   // dark
-    p3: '#40916c',   // light
-    a1: '#d4a017',   // accent (amber)
-    a2: '#b5451b',   // accent2 (rust)
+  autumn: {
+    name: 'Autumn',        // Otoño
+    c1: '#2d6a4f',         // Verde bosque (primary / nav)
+    c2: '#c77c3e',         // Otoño ocre (accent)
+    c3: '#e8d5b7',         // Terracota claro (light bg / highlight)
   },
   ocean: {
-    name: 'Ocean',
-    p1: '#0369a1',
-    p2: '#075985',
-    p3: '#0ea5e9',
-    a1: '#f59e0b',
-    a2: '#ef4444',
+    name: 'Ocean',         // Océano
+    c1: '#0c4a6e',         // Azul profundo (primary)
+    c2: '#7ec8e3',         // Azul claro (accent)
+    c3: '#f0f7ff',         // Gris azulado claro (light bg)
   },
   plum: {
-    name: 'Plum',
-    p1: '#7c3aed',
-    p2: '#5b21b6',
-    p3: '#a78bfa',
-    a1: '#ec4899',
-    a2: '#f97316',
+    name: 'Plum',          // Ciruela
+    c1: '#581c87',         // Morado profundo (primary)
+    c2: '#c084fc',         // Lavanda (accent)
+    c3: '#fdf4ff',         // Rosa lavanda claro (light bg)
   },
   slate: {
-    name: 'Slate',
-    p1: '#334155',
-    p2: '#1e293b',
-    p3: '#64748b',
-    a1: '#06b6d4',
-    a2: '#10b981',
+    name: 'Slate',         // Pizarra
+    c1: '#1e293b',         // Pizarra profunda (primary)
+    c2: '#06b6d4',         // Cyan (accent)
+    c3: '#f1f5f9',         // Gris plata claro (light bg)
   },
   rose: {
-    name: 'Rose',
-    p1: '#be123c',
-    p2: '#881337',
-    p3: '#fb7185',
-    a1: '#f59e0b',
-    a2: '#7c3aed',
+    name: 'Rose',          // Rosa
+    c1: '#9f1239',         // Rojo profundo (primary)
+    c2: '#f97316',         // Naranja cálido (accent)
+    c3: '#fff7ed',         // Melocotón claro (light bg)
   },
   custom: {
     name: 'Custom',
-    p1: '#2d6a4f',
-    p2: '#1b4332',
-    p3: '#40916c',
-    a1: '#d4a017',
-    a2: '#b5451b',
+    c1: '#2d6a4f',
+    c2: '#c77c3e',
+    c3: '#e8d5b7',
   }
 };
 
@@ -3820,7 +3915,6 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div id="sg-list"></div>
 </div>
 
-<
 <div class="section" id="sec-account">
 <div class="page-hdr">
 <div><h1>Account</h1></div>
