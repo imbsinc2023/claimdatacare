@@ -20,11 +20,11 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--surface:#ffffff;
 --border:#e2e8f0;--border2:#cbd5e1;
 --text:#1e293b;--text2:#475569;--text3:#94a3b8;
---brand:var(--brand);--brand-d:var(--brand-d);--brand-bg:var(--brand-bg);--brand-bdr:var(--brand-bg);
---blue:var(--brand);--blue-bg:#eff6ff;--blue-bdr:var(--brand-bg);
---green:var(--brand);--green-bg:var(--brand-bg);--green-bdr:var(--brand-bg);
+--brand:#2d6a4f;--brand-d:#1b4332;--brand-bg:rgba(45,106,79,.10);--brand-bdr:rgba(45,106,79,.30);
+--blue:#2d6a4f;--blue-bg:rgba(45,106,79,.08);--blue-bdr:rgba(45,106,79,.25);
+--green:#2d6a4f;--green-bg:rgba(45,106,79,.08);--green-bdr:rgba(45,106,79,.25);
 --red:#dc2626;--red-bg:#fef2f2;--red-bdr:#fecaca;
---amber:#d97706;--amber-bg:#fffbeb;--amber-bdr:#fde68a;
+--amber:#c77c3e;--amber-bg:rgba(199,124,62,.10);--amber-bdr:#fde68a;
 --purple:#7c3aed;--purple-bg:#f5f3ff;--purple-bdr:#ddd6fe;
 --teal:#0d9488;--teal-bg:#f0fdfa;
 --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
@@ -1391,7 +1391,7 @@ function applyPalette(pal) {
 }
 
 function selectPalette(key) {
-  var pal = PALETTES[key] || PALETTES.forest;
+  var pal = PALETTES[key] || PALETTES.autumn;
   applyPalette(pal);
   _saveUserPrefs({palette: key, palCustom: PALETTES[key]});
   // Refresh panel
@@ -1408,26 +1408,26 @@ function updateCustomPalette() {
 }
 var LANG = "en";
 function applyTheme() {
-  const cfg      = _apiConfigCache || {};
-  const ssTheme  = (function(){ try { return sessionStorage.getItem('cdc_theme'); } catch(e){ return null; }})();
-  const theme    = cfg.theme || ssTheme || 'light';
+  var cfg     = _apiConfigCache || {};
+  var ssTheme = (function(){ try { return sessionStorage.getItem('cdc_theme'); } catch(e){ return null; }})();
+  var theme   = cfg.theme || ssTheme || 'light';
   document.documentElement.setAttribute('data-theme', theme);
-  const btnDark  = document.getElementById('btn-dark');
+  var btnDark = document.getElementById('btn-dark');
   if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
 
-  // Apply palette
-  const palKey   = cfg.palette || 'autumn';
-  const palCust  = cfg.palCustom;
-  let pal = PALETTES[palKey] || PALETTES.autumn;
-  if (palKey === 'custom' && palCust) pal = Object.assign({}, PALETTES.custom, palCust);
+  // Apply palette — default always autumn (green)
+  var palKey  = cfg.palette || 'autumn';
+  var palCust = cfg.palCustom;
+  var pal = (typeof PALETTES !== 'undefined' ? PALETTES[palKey] : null) || { name:'Autumn', c1:'#2d6a4f', c2:'#c77c3e', c3:'#e8d5b7' };
+  if (palKey === 'custom' && palCust) pal = Object.assign({}, pal, palCust);
   applyPalette(pal);
 
   // Font
-  const font = cfg.font || 'font-segoe';
-  setAppFont(font);
+  var font = cfg.font || 'font-segoe';
+  if (typeof setAppFont === 'function') setAppFont(font);
 
   // Font size
-  if (cfg.fontSize) setAppFontSize(cfg.fontSize);
+  if (cfg.fontSize && typeof setAppFontSize === 'function') setAppFontSize(cfg.fontSize);
 
   try { _renderLucideIcons(); } catch(e) {}
 }var LANG = "en";
@@ -7822,88 +7822,137 @@ svg.innerHTML = showing
 }
 
 async function doLogin() {
-const email = (document.getElementById('li-email')?.value || '').trim().toLowerCase();
-const pass = document.getElementById('li-pass')?.value || '';
-const alertEl = document.getElementById('login-alert');
-const btn = document.getElementById('login-btn');
-if (!email || !pass) {
-alertEl.innerHTML = '<div class="alert al-error">Email and password are required.</div>';
-return;
-}
-btn.textContent = 'Signing inÉ'; btn.disabled = true; alertEl.innerHTML = '';
+  const emailEl = document.getElementById('li-email');
+  const passEl  = document.getElementById('li-pass');
+  const alertEl = document.getElementById('login-alert');
+  const btn     = document.getElementById('login-btn');
 
-// Helper: after data loads, set up the UI correctly
-function _afterLoad() {
-const db2 = getDB();
-const sess = getSession();
-if (!sess) return;
-if (db2.providers.length) {
-const savedId = sess.activeBillingProviderId;
-const validProv = (savedId && db2.providers.find(p => p.id === savedId)) || db2.providers[0];
-activeProviderId = validProv.id;
-sess.activeBillingProviderId = activeProviderId;
-setSession(sess);
-} else if (db2.patients.length) {
-const pIds = [...new Set(db2.patients.map(p => p.providerId).filter(Boolean))];
-if (pIds.length) activeProviderId = pIds[0];
-}
-rebuildProvSel();
-go('dashboard');
-updateBadges();
-updateAdminUI();
-}
+  const email = (emailEl?.value || '').trim().toLowerCase().slice(0, 150);
+  const pass  = (passEl?.value  || '').slice(0, 200);
 
-// Try Firebase auth first
-if (_auth && _fbReady) {
-try {
-const cred = checkLoginRateLimit();
-    await _auth.signInWithEmailAndPassword(
-      sanitizeInput(email, 150),
-      pass  // password not sanitized — Firebase handles it
-    );
+  // ── Basic validation ──────────────────────────────────────
+  if (!email || !pass) {
+    alertEl.innerHTML = '<div class="alert al-error">Email and password are required.</div>';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alertEl.innerHTML = '<div class="alert al-error">Enter a valid email address.</div>';
+    return;
+  }
+
+  // ── Rate limit check ─────────────────────────────────────
+  try { checkLoginRateLimit(); } catch(e) {
+    alertEl.innerHTML = '<div class="alert al-error">' + escapeHtml(e.message) + '</div>';
+    _startLockoutCountdown(alertEl, btn);
+    return;
+  }
+
+  btn.textContent = 'Signing in…'; btn.disabled = true; alertEl.innerHTML = '';
+
+  // ── After Firestore loads ─────────────────────────────────
+  function _afterLoad() {
+    const db2 = getDB(), sess = getSession();
+    if (!sess) return;
+    if (db2.providers && db2.providers.length) {
+      const savedId = sess.activeBillingProviderId;
+      const vp = (savedId && db2.providers.find(function(pr){ return pr.id===savedId; })) || db2.providers[0];
+      activeProviderId = vp.id;
+      sess.activeBillingProviderId = activeProviderId;
+      setSession(sess);
+    }
+    rebuildProvSel(); go('dashboard'); updateBadges(); updateAdminUI();
+    try { applyTheme(); renderDashboard(); } catch(e) {}
+  }
+
+  // ── Firebase Auth ─────────────────────────────────────────
+  if (_auth && _fbReady) {
+    _auth.signInWithEmailAndPassword(email, pass)
+      .then(function(cred) {
+        resetLoginRateLimit();
+        const fbUser = cred.user;
+        setSession({ id:fbUser.uid, email:fbUser.email,
+          name: fbUser.displayName || email.split('@')[0] || 'Admin',
+          role:'Super Admin', activeBillingProviderId:null });
+        showApp(getSession().name);
+        loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+      })
+      .catch(function(e) {
+        _loginAttempts.count++;
+        const msgs = {
+          'auth/user-not-found':     'Incorrect email or password.',
+          'auth/wrong-password':     'Incorrect email or password.',
+          'auth/invalid-credential': 'Incorrect email or password.',
+          'auth/invalid-email':      'Invalid email address.',
+          'auth/user-disabled':      'This account has been disabled.',
+          'auth/too-many-requests':  'Too many attempts. Please wait before trying again.',
+          'auth/network-request-failed': 'Network error. Check your connection.',
+        };
+        const msg = msgs[e.code] || 'Login failed. Please try again.';
+        const remaining = Math.max(0, 5 - _loginAttempts.count);
+        const suffix = remaining > 0 && remaining < 5
+          ? ' (' + remaining + ' attempt' + (remaining===1?'':'s') + ' left)'
+          : '';
+        alertEl.innerHTML = '<div class="alert al-error">' + escapeHtml(msg) + suffix + '</div>';
+        btn.textContent = 'Sign In'; btn.disabled = false;
+        if (_loginAttempts.count >= 5) {
+          _loginAttempts.lockedUntil = Date.now() + 60000;
+          _loginAttempts.count = 0;
+          _startLockoutCountdown(alertEl, btn);
+        }
+        // Clear password field on failure
+        if (passEl) passEl.value = '';
+      });
+    return;
+  }
+
+  // ── Local hash fallback (offline) ────────────────────────
+  sha256(pass).then(function(hash) {
+    const allUsers = [DEFAULT_ADMIN, ...(_usersCache||[]).filter(function(u){ return u.id!==DEFAULT_ADMIN.id; })];
+    const user = allUsers.find(function(u){ return u.email.toLowerCase()===email && u.passHash===hash; });
+    if (!user) {
+      _loginAttempts.count++;
+      const remaining = Math.max(0, 5 - _loginAttempts.count);
+      alertEl.innerHTML = '<div class="alert al-error">Incorrect email or password.'
+        + (remaining>0&&remaining<5?' ('+remaining+' attempt'+(remaining===1?'':'s')+' left)':'') + '</div>';
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      if (passEl) passEl.value = '';
+      if (_loginAttempts.count >= 5) {
+        _loginAttempts.lockedUntil = Date.now() + 60000;
+        _loginAttempts.count = 0;
+        _startLockoutCountdown(alertEl, btn);
+      }
+      return;
+    }
     resetLoginRateLimit();
-const fbUser = cred.user;
-const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||'Admin',
-role:'Super Admin', activeBillingProviderId:null };
-setSession(session);
-showApp(session.name);
-loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-return;
-} catch(e) {
-if (!['auth/configuration-not-found','auth/operation-not-allowed',
-'auth/network-request-failed'].includes(e.code)) {
-const msgs = {
-'auth/user-not-found': 'Incorrect email or password.',
-'auth/wrong-password': 'Incorrect email or password.',
-'auth/invalid-credential': 'Incorrect email or password.',
-'auth/invalid-email': 'Invalid email.',
-'auth/too-many-requests': 'Too many attempts. Try again later.'
-};
-alertEl.innerHTML = `<div class="alert al-error">${msgs[e.code] || e.message}</div>`;
-btn.textContent = 'Sign In'; btn.disabled = false; return;
-}
-// Fall through to local auth
-}
+    setSession({ id:user.id, email:user.email, name:user.name||'Admin',
+      role:user.role||'Super Admin', activeBillingProviderId:null });
+    showApp(getSession().name);
+    loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+  }).catch(function(e) {
+    alertEl.innerHTML = '<div class="alert al-error">Login error: ' + escapeHtml(e.message) + '</div>';
+    btn.textContent = 'Sign In'; btn.disabled = false;
+  });
 }
 
-// Local hash auth
-try {
-const hash = await sha256(pass);
-const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
-const user = allUsers.find(u => u.email.toLowerCase() === email && u.passHash === hash);
-if (!user) {
-alertEl.innerHTML = '<div class="alert al-error">Incorrect email or password.</div>';
-btn.textContent = 'Sign In'; btn.disabled = false; return;
-}
-const session = { id:user.id, email:user.email, name:user.name||'Admin',
-role:user.role||'Super Admin', activeBillingProviderId:null };
-setSession(session);
-showApp(session.name);
-loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-} catch(e) {
-alertEl.innerHTML = `<div class="alert al-error">Login error: ${e.message}</div>`;
-btn.textContent = 'Sign In'; btn.disabled = false;
-}
+// ── Lockout countdown UI ──────────────────────────────────────────
+function _startLockoutCountdown(alertEl, btn) {
+  if (!alertEl || !btn) return;
+  btn.disabled = true;
+  const tick = function() {
+    const remaining = Math.ceil((_loginAttempts.lockedUntil - Date.now()) / 1000);
+    if (remaining <= 0) {
+      alertEl.innerHTML = '<div class="alert al-warn">You can try again now.</div>';
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      return;
+    }
+    alertEl.innerHTML = '<div class="alert al-error" style="display:flex;align-items:center;gap:8px">'
+      + '<span style="font-size:18px">🔒</span>'
+      + '<span>Too many attempts. Wait <strong>' + remaining + 's</strong> before trying again.</span>'
+      + '</div>';
+    btn.textContent = 'Locked (' + remaining + 's)';
+    setTimeout(tick, 1000);
+  };
+  tick();
 }
 
 
@@ -16234,6 +16283,15 @@ document.addEventListener("DOMContentLoaded", async function() {
   // ── No session — show login ────────────────────────────────────
   renderLoginScreen();
 });
+
+// ── Security: clear sensitive fields when tab is hidden ──────────
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    const passEl = document.getElementById('li-pass');
+    if (passEl) passEl.value = '';
+  }
+});
+
 
 </script>
 
