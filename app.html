@@ -1,4 +1,49 @@
-id="modal-appt">
+<div style="position:relative">
+      <button id="btn-user" onclick="toggleUserMenu()" title="Account" style="display:flex;align-items:center;gap:6px;padding:4px 10px;height:26px;border:none;background:rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-family:var(--font)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="user-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:220px;z-index:9999;overflow:hidden">
+        <div id="user-menu-info" style="padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div style="min-width:0">
+            <div id="user-menu-name" style="font-size:13px;font-weight:700;color:var(--text)"></div>
+            <div id="user-menu-email" style="font-size:11px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+            <div id="user-menu-role" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brand);margin-top:3px;background:var(--brand-bg);display:inline-block;padding:2px 8px;border-radius:20px"></div>
+          </div>
+        </div>
+        <div style="padding:6px">
+          <button id="user-menu-theme-btn" onclick="toggleTheme();updateUserMenuThemeBtn()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:space-between" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+              <span id="user-menu-theme-label">Light Mode</span>
+            </div>
+            <div id="user-menu-theme-toggle" style="width:32px;height:18px;border-radius:9px;background:var(--border2);position:relative;flex-shrink:0">
+              <div id="user-menu-theme-knob" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+            </div>
+          </button>
+          <button onclick="toggleLang();updateUserMenuThemeBtn();closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <span id="user-menu-lang-label">Switch to Spanish</span>
+          </button>
+          <button onclick="closeUserMenu();setTimeout(openAppearancePanel,50)" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+            Appearance
+          </button>
+          <div style="height:1px;background:var(--border);margin:4px 6px"></div>
+          <button onclick="go('settings');closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+            Settings
+          </button>
+          <button onclick="doLogout();closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:#ef4444;font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(239,68,68,.08)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>id="modal-appt">
 <div class="modal modal-lg" style="max-width:680px">
   <div class="modal-hdr">
     <div>
@@ -2353,6 +2398,42 @@ function initServices(){
 }
 
 // \u2500\u2500 Theme / Lang \u2500\u2500
+function updateUserMenuThemeBtn() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var lbl   = document.getElementById('user-menu-theme-label');
+  var tog   = document.getElementById('user-menu-theme-toggle');
+  var knob  = document.getElementById('user-menu-theme-knob');
+  if (lbl)  lbl.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+  if (tog)  tog.style.background = isDark ? 'var(--brand)' : 'var(--border2)';
+  if (knob) knob.style.left = isDark ? '16px' : '2px';
+  var langLbl = document.getElementById('user-menu-lang-label');
+  if (langLbl) langLbl.textContent = (typeof LANG!=='undefined'&&LANG==='es') ? 'Switch to English' : 'Switch to Spanish';
+}
+function toggleUserMenu() {
+  var menu = document.getElementById('user-menu');
+  if (!menu) return;
+  if (menu.style.display !== 'none') { closeUserMenu(); return; }
+  var sess = getSession();
+  if (sess) {
+    var n=document.getElementById('user-menu-name'), e=document.getElementById('user-menu-email'), r=document.getElementById('user-menu-role');
+    if(n) n.textContent=sess.name||'User';
+    if(e) e.textContent=sess.email||'';
+    if(r) r.textContent=sess.role||'User';
+  }
+  updateUserMenuThemeBtn();
+  menu.style.display='block';
+  setTimeout(function(){ document.addEventListener('click',_userMenuOutside); },50);
+}
+function closeUserMenu() {
+  var menu=document.getElementById('user-menu');
+  if(menu) menu.style.display='none';
+  document.removeEventListener('click',_userMenuOutside);
+}
+function _userMenuOutside(e) {
+  var btn=document.getElementById('btn-user');
+  if(btn&&!btn.parentElement.contains(e.target)) closeUserMenu();
+}
+
 function applyTheme() {
   const theme = localStorage.getItem('rcmpro_theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
@@ -2519,46 +2600,19 @@ function _initTnHover() {
 }
 
 function showApp(username) {
-  try {
-    const _tb = document.getElementById('tb-title');
-    if(_tb && username) _tb.textContent = username;
-    const _tn = document.getElementById('tn-user-name');
-    if(_tn && username) _tn.textContent = (username.split(' ')[0]) || 'Account';
-  } catch(e) {}
-  setTimeout(_initTnHover, 100);
-  setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
   const session = getSession();
-  if(!session) { renderLoginScreen(); return; }
-  // Show app sections, hide login
-  const appSectionsEl = document.getElementById('app-sections-wrapper');
-  if (appSectionsEl) appSectionsEl.style.display = '';
+  if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
-  updateAdminUI(); // set admin visibility immediately after shell renders
-  try { initServices(); } catch(e) {}
   const userEl = document.getElementById('sb-username');
-  if(userEl) userEl.textContent = (session.name || session.email || username);
-  const btnLang = document.getElementById('btn-lang');
-  if(btnLang) btnLang.textContent = LANG === 'en' ? 'ES' : 'EN';
+  if (userEl) userEl.textContent = session.name || session.email || username;
+  updateAdminUI();
+  try { initServices(); } catch(e) {}
   applyTheme();
-  if(!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
-  setTimeout(() => { setFbStatus('', 'green'); updateAdminUI(); }, 0);
-  const db = getDB();
-  if(!db.providers.length) {
-    activeProviderId = null;
-    document.querySelectorAll('.section').forEach(e=>e.classList.remove('active'));
-    const dash = document.getElementById('sec-dashboard');
-    if(dash) dash.classList.add('active');
-    const stats = document.getElementById('dash-stats');
-    if(stats) stats.innerHTML = '<div class="alert al-info" style="margin-top:8px">Welcome! Add your first <strong>Billing Provider</strong> under <strong>Admin → Billing Providers</strong>.</div>';
-    if(session.role === 'Super Admin') setTimeout(()=>go('admin-providers'), 200);
-  } else {
-    const savedId = session.activeBillingProviderId;
-    const validProv = (savedId && db.providers.find(p=>p.id===savedId)) || db.providers[0];
-    activeProviderId = validProv.id;
-    rebuildProvSel();
-    go('dashboard');
-    updateBadges();
-  }
+  if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
+  setTimeout(function() { setFbStatus('', 'green'); updateAdminUI(); }, 0);
+  setTimeout(function() { _renderLucideIcons(); }, 80);
+  // Always go to dashboard — _afterLoad will set providers once Firestore loads
+  go('dashboard');
 }
 
 
@@ -4086,10 +4140,52 @@ function getAppShellHTML(){
     <div id="prov-sel-wrap">
       <select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)"></select>
     </div>
-    <span id="tn-user-name" style="font-size:12px;font-weight:600;color:var(--text2);padding:0 4px"></span>
-    <button id="btn-lang" class="btn btn-ghost btn-sm" onclick="toggleLang()" style="font-size:11px;font-weight:700;letter-spacing:.06em"></button>
-    <button id="btn-dark" class="btn btn-ghost btn-sm" onclick="toggleTheme()" title="Toggle theme" style="padding:5px 8px"></button>
-    <button class="btn btn-ghost btn-sm" onclick="doLogout()" title="Sign out" style="padding:5px 8px"><i data-lucide="log-out" class="lci" style="width:17px;height:17px"></i></button>
+    <div style="position:relative">
+      <button id="btn-user" onclick="toggleUserMenu()" title="Account" style="display:flex;align-items:center;gap:6px;padding:4px 10px;height:26px;border:none;background:rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-family:var(--font)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="user-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:220px;z-index:9999;overflow:hidden">
+        <div id="user-menu-info" style="padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div style="min-width:0">
+            <div id="user-menu-name" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="user-menu-email" style="font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="user-menu-role" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brand);margin-top:3px;background:var(--brand-bg);display:inline-block;padding:2px 8px;border-radius:20px"></div>
+          </div>
+        </div>
+        <div style="padding:6px">
+          <button id="user-menu-theme-btn" onclick="toggleTheme();updateUserMenuThemeBtn()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:space-between" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <span id="user-menu-theme-label">Light Mode</span>
+            </div>
+            <div id="user-menu-theme-toggle" style="width:32px;height:18px;border-radius:9px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0">
+              <div id="user-menu-theme-knob" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+            </div>
+          </button>
+          <button onclick="toggleLang();updateUserMenuThemeBtn();closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <span id="user-menu-lang-label">Switch to Spanish</span>
+          </button>
+          <button onclick="closeUserMenu();setTimeout(openAppearancePanel,50)" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+            Appearance
+          </button>
+          <div style="height:1px;background:var(--border);margin:4px 6px"></div>
+          <button onclick="go('settings');closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:var(--text);font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+            Settings
+          </button>
+          <button onclick="doLogout();closeUserMenu()" style="width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;font-size:12px;font-weight:500;color:#ef4444;font-family:var(--font);display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(239,68,68,.08)'" onmouseleave="this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -17472,15 +17568,67 @@ const _origToggleLang = typeof toggleLang === 'function' ? toggleLang : null;
 
 document.addEventListener("DOMContentLoaded", async function() {
   applyTheme();
-  const waitForFirebase = (retries = 20) => new Promise(resolve => {
+
+  const waitForFirebase = (retries = 30) => new Promise(resolve => {
     if (typeof firebase !== 'undefined') { resolve(); return; }
     if (retries <= 0) { resolve(); return; }
-    setTimeout(() => waitForFirebase(retries - 1).then(resolve), 100);
+    setTimeout(() => waitForFirebase(retries - 1).then(resolve), 150);
   });
   await waitForFirebase();
   initFirebase();
-  // CSS already hides .section on load via stylesheet
-  // Just render the login screen
+
+  function _afterLoad() {
+    var db2 = getDB(); var s = getSession(); if (!s) return;
+    if (db2.providers && db2.providers.length) {
+      var savedId = s.activeBillingProviderId;
+      var vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
+      activeProviderId = vp.id;
+      s.activeBillingProviderId = activeProviderId;
+      setSession(s);
+    }
+    try { applyTheme(); } catch(e) {}
+    rebuildProvSel(); go('dashboard'); updateBadges(); updateAdminUI();
+    try { renderDashboard(); } catch(e) {}
+  }
+
+  // ── Landing page pending login ─────────────────────────────────
+  var pendingLogin = localStorage.getItem('cdc_pending_login');
+  if (pendingLogin === '1') {
+    localStorage.removeItem('cdc_pending_login');
+    var fbUser = await new Promise(function(resolve) {
+      var unsub = _auth.onAuthStateChanged(function(user) { unsub(); resolve(user); });
+      setTimeout(function() { resolve(null); }, 4000);
+    });
+    if (fbUser) {
+      if (!getSession()) {
+        setSession({ id:fbUser.uid, email:fbUser.email,
+          name:fbUser.displayName||fbUser.email.split('@')[0]||'Admin',
+          role:'Super Admin', activeBillingProviderId:null });
+      }
+      var sess = getSession();
+      showApp(sess.name || sess.email);
+      (function waitForAuth(ms) {
+        if ((_auth && _auth.currentUser) || ms <= 0) {
+          loadFromFirestore().then(_afterLoad).catch(function(){ _afterLoad(); });
+        } else { setTimeout(function(){ waitForAuth(ms-200); }, 200); }
+      })(3000);
+      return;
+    }
+  }
+
+  // ── Existing internal session (F5 reload) ──────────────────────
+  var existSess = getSession();
+  if (existSess) {
+    showApp(existSess.name || existSess.email);
+    (function waitForAuth2(ms) {
+      if ((_auth && _auth.currentUser) || ms <= 0) {
+        loadFromFirestore().then(_afterLoad).catch(function(){ _afterLoad(); });
+      } else { setTimeout(function(){ waitForAuth2(ms-200); }, 200); }
+    })(3000);
+    return;
+  }
+
+  // ── No session — show login ────────────────────────────────────
   renderLoginScreen();
 });
 
