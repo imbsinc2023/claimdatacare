@@ -1594,6 +1594,15 @@ return raw ? JSON.parse(raw) : null;
 }
 
 // ?? Load all collections from Firestore ?????????????????????????????????????
+async function loadFromFirestoreWhenReady() {
+  // Wait up to 5s for Firebase Auth to restore session
+  for (let i = 0; i < 50; i++) {
+    if (_auth && _auth.currentUser) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return loadFromFirestore();
+}
+
 async function loadFromFirestore() {
 if (!_fbReady || !_db) {
 // Offline: use cache
@@ -1606,7 +1615,7 @@ return;
 }
 if (window._restoreInProgress) return;
 
-setFbStatus('SyncingÉ', 'amber');
+setFbStatus('Syncing...', 'amber');
 
 try {
 // Load all collections in parallel with timeout
@@ -1675,8 +1684,14 @@ setFbStatus('', 'green');
 console.log(`Loaded from Firestore: ${patients.length} patients, ${claims.length} claims`);
 
 } catch(err) {
-console.warn('Firestore load failed:', err.message);
-setFbStatus('Offline', 'amber');
+console.warn('Firestore load failed:', err.message, err.code);
+if (err.code === 'permission-denied') {
+  setFbStatus('Auth error', 'red');
+  console.error('PERMISSION DENIED — Check Firestore rules or Firebase Auth state');
+  console.error('Current user:', _auth?.currentUser?.email || 'NOT LOGGED IN');
+} else {
+  setFbStatus('Offline', 'amber');
+}
 // Fall back to cache
 const cached = _loadCache();
 if (cached) {
@@ -16030,7 +16045,7 @@ document.addEventListener("DOMContentLoaded", async function() {
       }
       var sess = getSession();
       showApp(sess.name || sess.email);
-      Promise.resolve(loadFromFirestore()).then(_afterLoad).catch(function(){ go('dashboard'); });
+      Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
       return;
     }
   }
@@ -16039,7 +16054,7 @@ document.addEventListener("DOMContentLoaded", async function() {
   var existSess = getSession();
   if (existSess) {
     showApp(existSess.name || existSess.email);
-    Promise.resolve(loadFromFirestore()).then(_afterLoad).catch(function(){ go('dashboard'); });
+    Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
     return;
   }
 
