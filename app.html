@@ -1190,7 +1190,8 @@ border-radius: 8px;
 <div id="root"></div>
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
 <div id="toasts"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
@@ -1627,105 +1628,124 @@ async function loadFromFirestoreWhenReady() {
 }
 
 async function loadFromFirestore() {
-if (!_fbReady || !_db) {
-// Offline: use cache
-const cached = _loadCache();
-if (cached) {
-_localDB = _mergeEmpty(cached);
-console.log('Loaded from cache (offline)');
-}
-return;
-}
-if (window._restoreInProgress) return;
-
-setFbStatus('Syncing...', 'amber');
-
-try {
-// Load all collections in parallel with timeout
-const timeout = new Promise((_, reject) =>
-setTimeout(() => reject(new Error('timeout')), 15000));
-
-const [
-providers, patients, claims, facilities, rendering, referring,
-services, serviceGroups, appointments, notes,
-invoicingIssuers, invoicingClients, invoices,
-claimLogsSnap, claimEOBSnap,
-usersDoc, configDoc
-] = await Promise.race([
-Promise.all([
-_fsReadCollection('providers'),
-_fsReadCollection('patients'),
-_fsReadCollection('claims'),
-_fsReadCollection('facilities'),
-_fsReadCollection('rendering'),
-_fsReadCollection('referring'),
-_fsReadCollection('services'),
-_fsReadCollection('serviceGroups'),
-_fsReadCollection('appointments'),
-_fsReadCollection('notes'),
-_fsReadCollection('invoicingIssuers'),
-_fsReadCollection('invoicingClients'),
-_fsReadCollection('invoices'),
-_db.collection('claimLogs').get(),
-_db.collection('claimEOB').get(),
-_db.collection('meta').doc('users').get(),
-_db.collection('meta').doc('config').get(),
-]),
-timeout
-]);
-
-// Convert claimLogs and claimEOB from docs to objects
-const claimLogs = {};
-claimLogsSnap.docs.forEach(d => { claimLogs[d.id] = d.data().entries || []; });
-const claimEOB = {};
-claimEOBSnap.docs.forEach(d => { claimEOB[d.id] = d.data().entries || []; });
-
-_localDB = {
-providers, patients, claims, facilities, rendering, referring,
-services, serviceGroups, appointments, notes,
-claimLogs, claimEOB,
-invoicingIssuers, invoicingClients, invoices,
-};
-
-// Load users
-if (usersDoc.exists) {
-_usersCache = usersDoc.data().list || [];
-try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
-}
-
-// Load full config (theme, color, font, acctKey)
-if (configDoc.exists) {
-  const cfg = configDoc.data();
-  _apiConfigCache = cfg;
-  // Restore custom palette colors from Firestore
-  if (cfg.palCustom && typeof PALETTES !== 'undefined') {
-    PALETTES.custom = Object.assign(PALETTES.custom || {}, cfg.palCustom);
+  if (!_fbReady || !_db) {
+    const cached = _loadCache();
+    if (cached) { _localDB = _mergeEmpty(cached); console.log('Loaded from cache (offline)'); }
+    return;
   }
-  if (cfg.acctKey) {
-    try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {}
+  if (window._restoreInProgress) return;
+
+  // ── Load config first (palette/theme) so UI looks right immediately ──
+  try {
+    const configDoc = await _db.collection('meta').doc('config').get();
+    if (configDoc.exists) {
+      const cfg = configDoc.data();
+      _apiConfigCache = cfg;
+      if (cfg.palCustom && typeof PALETTES !== 'undefined') {
+        PALETTES.custom = Object.assign(PALETTES.custom || {}, cfg.palCustom);
+      }
+      if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
+      try { applyTheme(); } catch(e) {}
+    }
+  } catch(e) {}
+
+  setFbStatus('Syncing...', 'amber');
+
+  // ── Load critical collections first (providers, patients, claims) ──
+  try {
+    const [providers, patients, claims, configDoc2, usersDoc] = await Promise.all([
+      _fsReadCollection('providers'),
+      _fsReadCollection('patients'),
+      _fsReadCollection('claims'),
+      _db.collection('meta').doc('config').get(),
+      _db.collection('meta').doc('users').get(),
+    ]);
+
+    // Show data immediately — don't wait for the rest
+    if (!_localDB) _localDB = _mergeEmpty({});
+    _localDB.providers = providers;
+    _localDB.patients  = patients;
+    _localDB.claims    = claims;
+
+    if (usersDoc.exists) {
+      _usersCache = usersDoc.data().list || [];
+      try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
+    }
+
+    setFbStatus('', 'green');
+    console.log('Core loaded: ' + patients.length + ' patients, ' + claims.length + ' claims');
+
+    // Trigger _afterLoad-style update with core data
+    try {
+      const s = getSession();
+      if (s && providers.length) {
+        const savedId = s.activeBillingProviderId;
+        const vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
+        activeProviderId = vp.id;
+        s.activeBillingProviderId = activeProviderId;
+        setSession(s);
+        rebuildProvSel();
+      } else if (!activeProviderId && patients.length) {
+        const pIds = [...new Set(patients.map(function(p){ return p.providerId; }).filter(Boolean))];
+        if (pIds.length) activeProviderId = pIds[0];
+      }
+      try { renderDashboard(); } catch(e) {}
+      updateBadges();
+    } catch(e) {}
+
+  } catch(err) {
+    console.warn('Firestore core load failed:', err.message, err.code);
+    if (err.code === 'permission-denied') {
+      setFbStatus('Auth error', 'red');
+      console.error('PERMISSION DENIED — Check Firestore rules');
+    } else {
+      setFbStatus('Offline', 'amber');
+    }
+    const cached = _loadCache();
+    if (cached) { _localDB = _mergeEmpty(cached); }
+    return;
   }
-}
 
-_saveCache(_localDB);
-setFbStatus('', 'green');
-console.log(`Loaded from Firestore: ${patients.length} patients, ${claims.length} claims`);
+  // ── Load secondary collections in background ──────────────────
+  try {
+    const [
+      facilities, rendering, referring, services, serviceGroups,
+      appointments, notes, invoicingIssuers, invoicingClients, invoices,
+      claimLogsSnap, claimEOBSnap
+    ] = await Promise.all([
+      _fsReadCollection('facilities'),
+      _fsReadCollection('rendering'),
+      _fsReadCollection('referring'),
+      _fsReadCollection('services'),
+      _fsReadCollection('serviceGroups'),
+      _fsReadCollection('appointments'),
+      _fsReadCollection('notes'),
+      _fsReadCollection('invoicingIssuers'),
+      _fsReadCollection('invoicingClients'),
+      _fsReadCollection('invoices'),
+      _db.collection('claimLogs').get(),
+      _db.collection('claimEOB').get(),
+    ]);
 
-} catch(err) {
-console.warn('Firestore load failed:', err.message, err.code);
-if (err.code === 'permission-denied') {
-  setFbStatus('Auth error', 'red');
-  console.error('PERMISSION DENIED — Check Firestore rules or Firebase Auth state');
-  console.error('Current user:', _auth?.currentUser?.email || 'NOT LOGGED IN');
-} else {
-  setFbStatus('Offline', 'amber');
-}
-// Fall back to cache
-const cached = _loadCache();
-if (cached) {
-_localDB = _mergeEmpty(cached);
-console.log('Loaded from cache (Firestore unavailable)');
-}
-}
+    const claimLogs = {};
+    claimLogsSnap.docs.forEach(function(d){ claimLogs[d.id] = d.data().entries||[]; });
+    const claimEOB = {};
+    claimEOBSnap.docs.forEach(function(d){ claimEOB[d.id] = d.data().entries||[]; });
+
+    Object.assign(_localDB, {
+      facilities, rendering, referring, services, serviceGroups,
+      appointments, notes, claimLogs, claimEOB,
+      invoicingIssuers, invoicingClients, invoices,
+    });
+
+    _saveCache(_localDB);
+    console.log('All data loaded from Firestore');
+    // Refresh dashboard with complete data
+    try { renderDashboard(); updateBadges(); } catch(e) {}
+
+  } catch(err) {
+    console.warn('Secondary Firestore load failed:', err.message);
+  }
 }
 
 // Ensure all keys exist in a db object
@@ -9127,20 +9147,51 @@ function _hexToRgb(hex) {
 }
 
 function getBrandColors() {
-  // Read from active palette in _apiConfigCache
+  // Read from _apiConfigCache — set by Firestore config load
   const cfg = _apiConfigCache || {};
-  const palKey = cfg.palette || 'forest';
-  let pal = (typeof PALETTES !== 'undefined' ? PALETTES[palKey] : null);
-  if (palKey === 'custom' && cfg.palCustom) pal = Object.assign({}, pal||{}, cfg.palCustom);
-  if (!pal) pal = { p1:'#2d6a4f', p2:'#1b4332', p3:'#40916c', a1:'#d4a017', a2:'#b5451b' };
+
+  // Get primary color — check all possible sources in priority order
+  // 1. Named palette (plum, ocean, etc)
+  // 2. Custom palette with p1/c1 keys
+  // 3. Standalone color saved by old setBrandColor
+  // 4. CSS variable currently applied
+  // 5. Default green
+  let primary = '#2d6a4f';
+
+  const palKey = cfg.palette;
+  if (palKey && palKey !== 'custom' && typeof PALETTES !== 'undefined' && PALETTES[palKey]) {
+    const pal = PALETTES[palKey];
+    primary = pal.p1 || pal.c1 || primary;
+  } else if (palKey === 'custom' && cfg.palCustom) {
+    primary = cfg.palCustom.p1 || cfg.palCustom.c1 || primary;
+  } else if (cfg.color) {
+    primary = cfg.color; // legacy single-color save
+  } else {
+    // Read from live CSS var as last resort
+    try {
+      const cv = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+      if (cv && cv.startsWith('#')) primary = cv;
+    } catch(e) {}
+  }
+
+  // Get active palette for accent
+  let accent = '#d4a017';
+  if (palKey && palKey !== 'custom' && typeof PALETTES !== 'undefined' && PALETTES[palKey]) {
+    accent = PALETTES[palKey].a1 || accent;
+  } else if (palKey === 'custom' && cfg.palCustom) {
+    accent = cfg.palCustom.a1 || cfg.palCustom.c2 || accent;
+  }
+
+  const mk = function(h) { return _hexToRgb(h); };
+  const lt = function(h) { return _hexToRgb(h).map(function(v){ return Math.round(v*0.10+255*0.90); }); };
+
   return {
-    primary:     _hexToRgb(pal.p1 || pal.c1 || '#2d6a4f'),
-    primaryDark: _hexToRgb(pal.p2 || pal.c1 || '#1b4332'),
-    primaryLight: _hexToRgb(pal.p3 || pal.c3 || '#40916c'),
-    accent:      _hexToRgb(pal.a1 || pal.c2 || '#d4a017'),
-    // Light background version (mix with white)
-    primaryBg:   _hexToRgb(pal.p1||pal.c1||'#2d6a4f').map(function(v){ return Math.round(v*0.08+255*0.92); }),
-    hex: { primary: pal.p1||pal.c1||'#2d6a4f', accent: pal.a1||pal.c2||'#d4a017' }
+    primary:     mk(primary),
+    primaryDark: mk(primary),
+    primaryLight: lt(primary),
+    accent:      mk(accent),
+    primaryBg:   lt(primary),
+    hex: { primary: primary, accent: accent }
   };
 }
 
@@ -9290,19 +9341,18 @@ claims.forEach((claim, ci) => {
   // Provider info
   t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:12, c:DARK});
   const npiTax = [prov.npi?'NPI: '+prov.npi:null, prov.taxid?'EIN: '+prov.taxid:null].filter(Boolean).join('  ·  ');
-  if (npiTax) t(npiTax, provX, y+13, {sz:7.5, c:GRAY1});
+  if (npiTax) t(npiTax, provX, y+13, {sz:7.5, c:DARK});
   const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
-  if (addr) t(UC(addr), provX, y+19, {sz:7.5, c:GRAY1});
-  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:GRAY1});
+  if (addr) t(UC(addr), provX, y+19, {sz:7.5, c:DARK});
+  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:DARK});
 
   // SUPERBILL title + PCN (right side)
   t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BRAND, a:'right'});
-  fill(RX-52, y+13, 52, 0.6, BRAND);
   t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:DARK, a:'right'});
   const dosStr = safe(claim.dos);
   const posStr = safe(claim.pos);
   const dosPos = [dosStr?'DOS: '+dosStr:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
-  if (dosPos) t(dosPos, RX, y+25, {sz:8, c:GRAY1, a:'right'});
+  if (dosPos) t(dosPos, RX, y+25, {sz:8, c:DARK, a:'right'});
 
   y = 42;
   hline(M, y, RX, BORDER_LT, 0.4);
@@ -9329,10 +9379,10 @@ claims.forEach((claim, ci) => {
     pat.sex ? 'Sex: '+pat.sex : null,
     pat.acct ? 'Acct: '+UC(pat.acct) : null,
   ].filter(Boolean);
-  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:8, c:GRAY1}); y += 5; }
+  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:8, c:DARK}); y += 5; }
 
   const patAddr = [safe(pat.addr1), safe(pat.city), safe(pat.state)].filter(Boolean).join(', ');
-  if (patAddr) { t(UC(patAddr), M, y, {sz:7.5, c:GRAY2}); y += 4; }
+  if (patAddr) { t(UC(patAddr), M, y, {sz:7.5, c:DARK}); y += 4; }
 
   y += 4;
   hline(M, y, RX, BORDER_LT, 0.25);
@@ -9354,10 +9404,10 @@ claims.forEach((claim, ci) => {
     const subParts = [
       'Subscriber: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
       (ins1.dob||pat.dob) ? 'DOB: '+_fmtDob(ins1.dob||pat.dob) : null,
-      ins1.relation ? 'Relation: '+ins1.relation : null,
+      ins1.relation ? 'Relation: '+({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
       ins1.plan ? 'Plan: '+UC(ins1.plan) : null,
     ].filter(Boolean).join('  ·  ');
-    if (subParts) { t(subParts, M, y, {sz:7.5, c:GRAY1}); y += 4; }
+    if (subParts) { t(subParts, M, y, {sz:7.5, c:DARK}); y += 4; }
 
     y += 4;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -9371,14 +9421,14 @@ claims.forEach((claim, ci) => {
       lbl('Rendering Provider', M, y);
       t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
       const rendInfo = [rend.npi?'NPI: '+rend.npi:null, rend.taxonomy?'Taxonomy: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
-      if (rendInfo) t(rendInfo, M, y+10, {sz:7.5, c:GRAY1});
+      if (rendInfo) t(rendInfo, M, y+10, {sz:7.5, c:DARK});
       const facInfo = fac.name ? 'Facility: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:'') : null;
-      if (facInfo) t(facInfo, M, y+15, {sz:7.5, c:GRAY1});
+      if (facInfo) t(facInfo, M, y+15, {sz:7.5, c:DARK});
     }
     if (ref.last) {
       lbl('Referring Provider', M+halfW+2, y);
       t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
-      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:7.5, c:GRAY1});
+      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:7.5, c:DARK});
     }
     y += (rend.last&&fac.name) ? 22 : 18;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -9400,113 +9450,128 @@ claims.forEach((claim, ci) => {
     y += 5;
   }
 
-  // ══ SERVICE LINES TABLE ══════════════════════════════════════════
+  // ══ SERVICE LINES — minimal text style ══════════════════════════
   lbl('Service Lines', M, y);
+  y += 4;
+  hline(M, y, RX, BRAND, 0.6);
   y += 5;
 
-  const COL = {
-    cpt:  { x:M,      w:18, label:'CPT',         a:'left'   },
-    desc: { x:M+18,   w:70, label:'Description',  a:'left'   },
-    unit: { x:M+88,   w:14, label:'Units',        a:'center' },
-    mods: { x:M+102,  w:22, label:'Mods',         a:'center' },
-    dx:   { x:M+124,  w:14, label:'Dx Ptr',       a:'center' },
-    chg:  { x:RX,     w:0,  label:'Charge',       a:'right'  },
-  };
+  // Column header line
+  const SL = { cptW:18, descW:68, unitW:14, uprcW:20, modsW:18, dxW:14 };
+  t('CPT', M, y, {sz:7, b:true, c:DARK});
+  t('Description', M+SL.cptW, y, {sz:7, b:true, c:DARK});
+  t('Units', M+SL.cptW+SL.descW, y, {sz:7, b:true, c:DARK, a:'center'});
+  t('Unit Price', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
+  t('Mods', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+2, y, {sz:7, b:true, c:DARK});
+  t('Dx', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+2, y, {sz:7, b:true, c:DARK, a:'center'});
+  t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
+  y += 2;
+  hline(M, y, RX, DARK, 0.15);
+  y += 5;
 
-  // Header
-  const HDR_H = 8;
-  fill(M, y, CW, HDR_H, BRAND);
-  Object.values(COL).forEach(c => {
-    const xPos = c.a==='right'?RX-2 : c.a==='center'?c.x+c.w/2 : c.x+2;
-    t(c.label, xPos, y+5.5, {sz:7, b:true, c:WHITE, a:c.a});
-  });
-  // Column dividers in header
-  [COL.desc.x, COL.unit.x, COL.mods.x, COL.dx.x].forEach(cx => {
-    doc.setDrawColor(255,255,255); doc.setLineWidth(0.2);
-    doc.line(cx, y, cx, y+HDR_H);
-  });
-  y += HDR_H;
-
-  // Outer border start
-  const tableStartY = y;
-
-  // Data rows
-  lines.forEach((l, li) => {
-    const dbSvc   = (db.services||[]).find(s=>s.code===l.cpt||s.cpt===l.cpt);
-    const descFull= UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
-    const mods    = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
-    const chg     = parseFloat(l.charge)||0;
-    const dxPtr   = (l.dxPtr||'A').toUpperCase();
-    const units   = String(l.units||1);
+  lines.forEach(function(l, li) {
+    const dbSvc    = (db.services||[]).find(function(s){ return s.code===l.cpt||s.cpt===l.cpt; });
+    const descFull = UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
+    const mods     = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
+    const chg      = parseFloat(l.charge)||0;
+    const units    = parseInt(l.units||1)||1;
+    const unitPrc  = units > 1 ? chg/units : chg;
+    const dxPtr    = (l.dxPtr||'A').toUpperCase();
 
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    const descWrapped = doc.splitTextToSize(descFull||'', COL.desc.w-3);
-    const rowH = Math.max(9, descWrapped.length*4.2+4);
-    const bg   = li%2===0 ? ROW_ALT : WHITE;
+    const descW = 66;
+    const descLines = doc.splitTextToSize(descFull||'', descW);
+    const rowH = Math.max(7, descLines.length * 4.5);
 
-    fill(M, y, CW, rowH, bg);
+    // CPT bold brand color
+    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:BRAND});
 
-    // Left color stripe
-    fill(M, y, 2.5, rowH, li%2===0 ? BRAND.map(v=>Math.round(v*0.2+255*0.8)) : BRAND.map(v=>Math.round(v*0.1+255*0.9)));
+    // Description wrapped
+    descLines.forEach(function(dl, dli){ t(dl, M+SL.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
 
-    const cy = y + rowH/2 + 1.5;
+    // Units
+    t(String(units), M+SL.cptW+SL.descW+SL.unitW/2, y+4, {sz:8, c:DARK, a:'center'});
 
-    // CPT — bold, brand color
-    t(UC(l.cpt||''), COL.cpt.x+3.5, cy, {sz:9, b:true, c:BRAND});
+    // Unit price (only if >1 unit)
+    if (units > 1) t('$'+unitPrc.toFixed(2), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y+4, {sz:8, c:DARK, a:'right'});
 
-    // Description
-    descWrapped.forEach((dl,dli) => t(dl, COL.desc.x+2, y+4+dli*4.2, {sz:7.5, c:DARK}));
+    // Mods
+    if (mods) t(UC(mods), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+3, y+4, {sz:7.5, c:DARK});
 
-    // Units, Mods, DxPtr
-    t(units, COL.unit.x+COL.unit.w/2, cy, {sz:8, c:DARK, a:'center'});
-    if (mods) t(UC(mods), COL.mods.x+COL.mods.w/2, cy, {sz:7.5, c:DARK, a:'center'});
-    t(dxPtr, COL.dx.x+COL.dx.w/2, cy, {sz:8, c:DARK, a:'center'});
+    // Dx pointer
+    t(dxPtr, M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+SL.dxW/2+2, y+4, {sz:8, c:DARK, a:'center'});
 
-    // Charge — right, bold
-    t($v(chg), RX-2, cy, {sz:9, b:true, c:DARK, a:'right'});
-
-    // Row border
-    doc.setDrawColor(...BORDER_LT); doc.setLineWidth(0.2);
-    doc.line(M, y+rowH, RX, y+rowH);
-
-    // Column dividers
-    doc.setDrawColor(...BORDER_LT); doc.setLineWidth(0.15);
-    [COL.desc.x, COL.unit.x, COL.mods.x, COL.dx.x].forEach(cx => doc.line(cx, y, cx, y+rowH));
+    // Total right aligned
+    t($v(chg), RX, y+4, {sz:9, b:true, c:DARK, a:'right'});
 
     y += rowH;
+    // Light separator between lines
+    if (li < lines.length - 1) { hline(M, y, RX, BORDER_LT, 0.15); y += 3; }
   });
 
-  // Outer border
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
-  doc.rect(M, tableStartY, CW, y-tableStartY, 'S');
-
-  // Total row
+  y += 4;
+  hline(M, y, RX, DARK, 0.4);
   y += 2;
-  const TOT_H = 11;
-  fill(M, y, CW, TOT_H, BRAND.map(v=>Math.round(v*0.08+255*0.92)));
-  doc.setDrawColor(...BRAND); doc.setLineWidth(0.5); doc.rect(M, y, CW, TOT_H, 'S');
-  t('TOTAL CHARGES', M+4, y+7.5, {b:true, sz:9.5, c:DARK});
-  t($v(total), RX-2, y+7.5, {b:true, sz:11, c:BRAND, a:'right'});
-  y += TOT_H + 8;
+
+  // Total row — clean, minimal
+  t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:DARK});
+  t($v(total), RX, y+6, {b:true, sz:11, c:BRAND, a:'right'});
+  y += 14;
 
   // ══ FOOTER ══════════════════════════════════════════════════════
-  const fY = 252;
+  const fY = 248;
   hline(M, fY, RX, BORDER_LT, 0.3);
-  fill(M, fY+1.5, 3, 16, BRAND);
+  fill(M, fY+1.5, 3, 20, BRAND);
+
+  // QR code — links to NPI registry for the rendering provider or billing provider
+  const qrNpi  = rend.npi || prov.npi || '';
+  const qrUrl  = qrNpi ? 'https://npiregistry.cms.hhs.gov/provider-view/'+qrNpi : 'https://npiregistry.cms.hhs.gov';
+  const QR_SZ  = 20; // 20mm square
+  const QR_X   = RX - QR_SZ;
+  const QR_Y   = fY + 1;
+  try {
+    // Generate QR using qrcode library if loaded, else draw URL as text
+    if (typeof QRCode !== 'undefined') {
+      const qrCanvas = document.createElement('canvas');
+      QRCode.toCanvas(qrCanvas, qrUrl, {width:80, margin:0}, function(err){
+        if (!err) {
+          try { doc.addImage(qrCanvas.toDataURL('image/png'),'PNG',QR_X,QR_Y,QR_SZ,QR_SZ); } catch(e) {}
+        }
+      });
+    } else {
+      // Fallback: draw QR as styled box with URL
+      fill(QR_X, QR_Y, QR_SZ, QR_SZ, [245,245,245]);
+      stroke(QR_X, QR_Y, QR_SZ, QR_SZ, BRAND, 0.5);
+      // Corner marks (simulate QR finder pattern)
+      fill(QR_X+1, QR_Y+1, 5, 5, BRAND);
+      fill(QR_X+14, QR_Y+1, 5, 5, BRAND);
+      fill(QR_X+1, QR_Y+14, 5, 5, BRAND);
+      fill(QR_X+2.5, QR_Y+2.5, 2, 2, [255,255,255]);
+      fill(QR_X+15.5, QR_Y+2.5, 2, 2, [255,255,255]);
+      fill(QR_X+2.5, QR_Y+15.5, 2, 2, [255,255,255]);
+      // Dots (simulate data modules)
+      [[3,7],[5,7],[7,7],[9,7],[11,7],[3,9],[7,9],[11,9],[3,11],[5,11],[7,11],[9,11],[11,11],
+       [5,9],[9,9],[7,13],[3,13],[11,13],[5,13],[13,9],[13,7],[13,11]].forEach(function(dot){
+        fill(QR_X+dot[0], QR_Y+dot[1], 1.5, 1.5, DARK);
+      });
+      t(qrNpi?'NPI':'Scan', QR_X+QR_SZ/2, QR_Y+QR_SZ+3.5, {sz:5.5, c:GRAY2, a:'center'});
+    }
+  } catch(e) {}
+  t('NPI Registry', QR_X+QR_SZ/2, QR_Y+QR_SZ+3, {sz:5.5, c:GRAY2, a:'center'});
 
   const rendName = rend.last
     ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
     : UC(prov.name||'Provider');
   t('Electronically signed by:', M+6, fY+6, {sz:7, c:GRAY2});
-  t(rendName, M+6, fY+12, {b:true, sz:8.5, c:DARK});
-  if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, M+6, fY+17, {sz:7, c:GRAY1});
+  t(rendName, M+6, fY+13, {b:true, sz:8.5, c:DARK});
+  if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, M+6, fY+19, {sz:7, c:DARK});
 
   const now=new Date();
   const hr12=now.getHours()%12||12;
   const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
   const dosParts2=_parseDateParts(claim.dos);
   const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-  t('Generated: '+dosDateStr+', '+expTime, RX, fY+12, {sz:7.5, c:GRAY2, a:'right'});
+  t('Generated: '+dosDateStr+', '+expTime, QR_X-4, fY+13, {sz:7, c:DARK, a:'right'});
 });
 
 // Filename
