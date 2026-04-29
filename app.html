@@ -9212,328 +9212,312 @@ const {jsPDF} = window.jspdf;
 const db = getDB();
 const prov = db.providers.find(p => p.id === activeProviderId) || {};
 
-// Page: letter portrait
-const W=216, M=16, RX=W-M, CW=RX-M;
+const W=216, M=14, RX=W-M, CW=RX-M;
 
-// ?? Palette (matches reference image exactly) ?????????????????
-const BLACK = [0,0,0];
-const DARK = [20,20,20];
-const GRAY1 = [60,60,60];
-const GRAY2 = [100,100,100];
-const GRAY3 = [150,150,150];
-const BORDER = [210,210,210];
-const LIGHT = [248,248,248];
-const WHITE = [255,255,255];
-
-// User brand colors from palette
-const _BC = getBrandColors();
-const GREEN  = _BC.primary;       // nav/header color
-const LGREEN = _BC.primaryBg;     // light background tint
-const ACCENT = _BC.accent;        // accent color
+// ── Brand colors from user palette ───────────────────────────────
+const _BC  = getBrandColors();
+const BRAND     = _BC.primary;
+const BRAND_DK  = _BC.primaryDark;
+const BRAND_LT  = _BC.primaryBg;
+const ACC       = _BC.accent;
+const BLACK     = [0,0,0];
+const DARK      = [30,30,30];
+const GRAY1     = [80,80,80];
+const GRAY2     = [120,120,120];
+const BORDER    = [200,200,200];
+const BORDER_LT = [225,228,232];
+const WHITE     = [255,255,255];
+const ROW_ALT   = [248,249,251];
 
 const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
 
-// ?? Helpers ??????????????????????????????????????????????????
-const fill = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
-const hline= (x1,y,x2,c=BORDER,lw=0.3) => { doc.setDrawColor(...c); doc.setLineWidth(lw); doc.line(x1,y,x2,y); };
+// ── Helpers ───────────────────────────────────────────────────────
+const fill  = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
+const stroke= (x,y,w,h,c,lw) => { doc.setDrawColor(...c); doc.setLineWidth(lw||0.3); doc.rect(x,y,w,h,'S'); };
+const hline = (x1,y,x2,c,lw) => { doc.setDrawColor(...(c||BORDER)); doc.setLineWidth(lw||0.25); doc.line(x1,y,x2,y); };
 const t = (s,x,y,o={}) => {
-doc.setFont('helvetica', o.b?'bold':'normal');
-doc.setFontSize(o.sz||9);
-doc.setTextColor(...(o.c||DARK));
-doc.text(String(s||''), x, y, {align:o.a||'left', maxWidth:o.mw});
+  if (s===null||s===undefined||s==='') return;
+  doc.setFont('helvetica', o.b?'bold':'normal');
+  doc.setFontSize(o.sz||9);
+  doc.setTextColor(...(o.c||BLACK));
+  doc.text(String(s), x, y, {align:o.a||'left', maxWidth:o.mw});
 };
-const label= (s,x,y) => t(s.toUpperCase(), x, y, {sz:7, c:GRAY3, b:true});
-const UC = s => String(s||'').toUpperCase();
-const $v = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const lbl  = (s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
+const UC   = s => String(s||'').toUpperCase();
+const $v   = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const safe = v => (v&&String(v).trim()) ? String(v).trim() : null;
 
-// ?? Date helpers (hoisted — used in forEach) ??????????????
+// Date helpers
 const _parseDateParts = ds => {
-if (!ds) return {mm:'00',dd:'00',yyyy:'0000'};
-ds = String(ds).trim();
-if (ds.includes('/')) {
-const pt = ds.split('/');
-return {mm:pt[0].padStart(2,'0'), dd:(pt[1]||'00').padStart(2,'0'), yyyy:(pt[2]||'0000')};
-}
-if (ds.includes('-')) {
-const pt = ds.split('-');
-if (pt[0].length===4) return {mm:pt[1].padStart(2,'0'), dd:pt[2].padStart(2,'0'), yyyy:pt[0]};
-return {mm:pt[0].padStart(2,'0'), dd:(pt[1]||'00').padStart(2,'0'), yyyy:(pt[2]||'0000')};
-}
-return {mm:'00',dd:'00',yyyy:'0000'};
+  if (!ds) return {mm:'00',dd:'00',yyyy:'0000'};
+  ds = String(ds).trim();
+  if (ds.includes('/')) { const pt=ds.split('/'); return {mm:pt[0].padStart(2,'0'),dd:(pt[1]||'').padStart(2,'0'),yyyy:pt[2]||''}; }
+  if (ds.includes('-')) { const pt=ds.split('-'); if(pt[0].length===4) return {mm:pt[1].padStart(2,'0'),dd:pt[2].padStart(2,'0'),yyyy:pt[0]}; return {mm:pt[0].padStart(2,'0'),dd:(pt[1]||'').padStart(2,'0'),yyyy:pt[2]||''}; }
+  return {mm:'00',dd:'00',yyyy:'0000'};
 };
-const _fmtDob = dob => {
-if (!dob) return '';
-const p = _parseDateParts(dob);
-return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`;
-};
+const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
 
 claims.forEach((claim, ci) => {
-if (ci > 0) doc.addPage();
+  if (ci > 0) doc.addPage();
+  const pat  = db.patients.find(p=>p.id===claim.patId)||{};
+  const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
+  const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
+  const fac  = db.facilities.find(f=>f.id===claim.facilityId)||{};
+  const ins1 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('primary'))
+    ||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,
+       lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
+  const lines = Array.isArray(claim.lines)?claim.lines:[];
+  const dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
+  const total = claimTotal(claim);
+  let y = 0;
 
-const pat = db.patients.find(p => p.id === claim.patId) || {};
-const rend = db.rendering.find(r => r.id === claim.renderingId) || {};
-const ref = db.referring.find(r => r.id === claim.referringId) || {};
-const fac = db.facilities.find(f => f.id === claim.facilityId) || {};
-const ins1 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('primary'))
-||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.groupNum,
-subscriberName:(pat.last||'')+(pat.first?', '+pat.first:''),dob:pat.dob,relation:pat.relation||'18'}:null);
+  // ══ HEADER ══════════════════════════════════════════════════════
+  // Top accent bar
+  fill(0,0,W,3,BRAND);
 
-const lines = Array.isArray(claim.lines) ? claim.lines : [];
-const dxArr = Array.isArray(claim.dx) ? claim.dx : [];
-const total = claimTotal(claim);  // l.charge already includes units
+  y = 7;
+  // Provider logo
+  const LOGO_W=30, LOGO_H=30;
+  let provX = M;
+  if (prov.logo && prov.logo.length > 200) {
+    try {
+      const fmt = prov.logo.startsWith('data:image/png')?'PNG':'JPEG';
+      doc.addImage(prov.logo, fmt, M, y, LOGO_W, LOGO_H, undefined, 'FAST');
+      provX = M + LOGO_W + 5;
+    } catch(e) {}
+  }
 
-let y = 0;
+  // Provider info
+  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:12, c:DARK});
+  const npiTax = [prov.npi?'NPI: '+prov.npi:null, prov.taxid?'EIN: '+prov.taxid:null].filter(Boolean).join('  ·  ');
+  if (npiTax) t(npiTax, provX, y+13, {sz:7.5, c:GRAY1});
+  const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
+  if (addr) t(UC(addr), provX, y+19, {sz:7.5, c:GRAY1});
+  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:GRAY1});
 
-// ?? HEADER ????????????????????????????????????????????????
-// Top blue accent bar (like reference)
-fill(0,0,W,2.5,GREEN);
-y = 8;
+  // SUPERBILL title + PCN (right side)
+  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BRAND, a:'right'});
+  fill(RX-52, y+13, 52, 0.6, BRAND);
+  t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:DARK, a:'right'});
+  const dosStr = safe(claim.dos);
+  const posStr = safe(claim.pos);
+  const dosPos = [dosStr?'DOS: '+dosStr:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
+  if (dosPos) t(dosPos, RX, y+25, {sz:8, c:GRAY1, a:'right'});
 
-// Provider logo if exists
-const logoX = M;
-const logoW = 28, logoH = 28;
-if (prov.logo && prov.logo.length > 200) {
-try { doc.addImage(prov.logo,'JPEG',logoX,y,logoW,logoH,undefined,'FAST'); }
-catch(e) {}
-}
-const provX = prov.logo && prov.logo.length > 200 ? logoX+logoW+4 : M;
+  y = 42;
+  hline(M, y, RX, BORDER_LT, 0.4);
+  y += 6;
 
-// Provider info
-t(UC(prov.name||'Medical Provider'), provX, y+6, {b:true, sz:12, c:DARK});
-const npiTax = ['NPI: '+(prov.npi||''), prov.taxid?'EIN: '+prov.taxid:''].filter(Boolean).join(' · ');
-t(npiTax, provX, y+11, {sz:7.5, c:GRAY2});
-const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
-if (addr) t(UC(addr), provX, y+16, {sz:7.5, c:GRAY2});
-if (prov.phone) {
-const ph=prov.phone, fph=ph.length===10?`Tel: ${ph.slice(0,3)}${ph.slice(3,6)}${ph.slice(6)}`:ph;
-t(fph, provX, y+21, {sz:7.5, c:GRAY2});
-}
+  // ══ PATIENT ═════════════════════════════════════════════════════
+  lbl('Patient', M, y);
+  y += 5;
 
-// Right: SUPERBILL title + PCN
-t('SUPERBILL', RX, y+8, {b:true, sz:20, c:DARK, a:'right'});
-t('PCN: '+UC(claim.pcn||''), RX, y+16, {b:true, sz:9, c:DARK, a:'right'});
-t('DOS: '+UC(claim.dos||'')+' · POS: '+(claim.pos||'11'), RX, y+21, {sz:8, c:GRAY2, a:'right'});
+  // Photo (right side)
+  if (pat.photo && pat.photo.length > 100) {
+    try {
+      const fmt = pat.photo.startsWith('data:image/png')?'PNG':'JPEG';
+      doc.addImage(pat.photo, fmt, RX-20, y-4, 20, 24, undefined, 'FAST');
+    } catch(e) {}
+  }
 
-y += logoH + 6;
-hline(M, y, RX, BORDER, 0.4);
-y += 6;
+  const patName = [safe(pat.last), safe(pat.first), safe(pat.mid)].filter(Boolean).join(', ');
+  t(UC(patName||'Unknown'), M, y, {b:true, sz:11, c:DARK});
+  y += 5;
 
-// ?? PATIENT ???????????????????????????????????????????????
-label('Patient', M, y);
-y += 4;
+  const patInfoParts = [
+    pat.dob ? 'DOB: '+_fmtDob(pat.dob) : null,
+    pat.sex ? 'Sex: '+pat.sex : null,
+    pat.acct ? 'Acct: '+UC(pat.acct) : null,
+  ].filter(Boolean);
+  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:8, c:GRAY1}); y += 5; }
 
-// Patient photo — if available, show to the right of the name
-const PHOTO_W = 20, PHOTO_H = 24;
-const PHOTO_X = RX - PHOTO_W;
-const nameX = M;
-if (pat.photo && pat.photo.length > 100) {
-  try {
-    const fmt = pat.photo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-    doc.addImage(pat.photo, fmt, PHOTO_X, y - 2, PHOTO_W, PHOTO_H, undefined, 'FAST');
-  } catch(e) {}
-}
-t(UC(`${pat.last||'?'}, ${pat.first||''}${pat.mid?' '+pat.mid:''}`), nameX, y, {b:true, sz:11, c:DARK});
-y += 5;
-const patInfo = [
-pat.dob?'DOB: '+UC(_fmtDob(pat.dob)):'',
-pat.sex?'Sex: '+(pat.sex==='M'?'M':pat.sex==='F'?'F':'U'):'',
-pat.acct?'Acct: '+UC(pat.acct):'',
-].filter(Boolean).join(' · ');
-t(patInfo, M, y, {sz:8, c:GRAY1});
-y += 4;
-const patAddr = [pat.addr1, pat.city, pat.state].filter(Boolean).join(', ');
-if (patAddr) t(UC(patAddr), M, y, {sz:8, c:GRAY2});
-y += 7;
-hline(M, y, RX, BORDER, 0.25);
-y += 5;
+  const patAddr = [safe(pat.addr1), safe(pat.city), safe(pat.state)].filter(Boolean).join(', ');
+  if (patAddr) { t(UC(patAddr), M, y, {sz:7.5, c:GRAY2}); y += 4; }
 
-// ?? INSURANCE ?????????????????????????????????????????????
-if (ins1) {
-label('Insurance', M, y);
-y += 4;
-const insLine1 = [
-UC(ins1.name||ins1.insuranceName||''),
-ins1.payerId||pat.payerid ? '(ID: '+(ins1.payerId||pat.payerid)+')' : '',
-ins1.policy||ins1.memberId ? '· Member: '+(ins1.policy||ins1.memberId) : '',
-ins1.group ? '· Group: '+ins1.group : '· Group: —',
-].filter(Boolean).join(' ');
-t(insLine1, M, y, {sz:8.5, c:DARK});
-y += 5;
-const subName = UC(ins1.subscriberName||`${pat.last||''}, ${pat.first||''}`);
-const subDob = ins1.dob||pat.dob ? ' · DOB: '+UC(_fmtDob(ins1.dob||pat.dob)) : '';
-const subRel = ' · Relation: '+(ins1.relation||'18');
-const subPlan = ins1.plan ? ' · Plan: '+UC(ins1.plan) : ' · Plan: —';
-t('Subscriber: '+subName+subDob+subRel+subPlan, M, y, {sz:7.5, c:GRAY2});
-y += 7;
-hline(M, y, RX, BORDER, 0.25);
-y += 5;
-}
+  y += 4;
+  hline(M, y, RX, BORDER_LT, 0.25);
+  y += 5;
 
-// ?? PROVIDERS ?????????????????????????????????????????????
-if (rend.last || ref.last) {
-const halfW = CW/2;
-if (rend.last) {
-label('Rendering Provider', M, y);
-t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+4, {b:true, sz:9, c:DARK});
-if (rend.npi) t('NPI: '+rend.npi+(rend.taxonomy?' · Taxonomy: '+rend.taxonomy:''), M, y+9, {sz:7.5, c:GRAY2});
-if (fac.name) t('Facility: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:''), M, y+14, {sz:7.5, c:GRAY2});
-}
-if (ref.last) {
-label('Referring Provider', M+halfW+2, y);
-t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+4, {b:false, sz:9, c:DARK});
-if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+9, {sz:7.5, c:GRAY2});
-}
-y += rend.last&&fac.name ? 22 : 18;
-hline(M, y, RX, BORDER, 0.25);
-y += 5;
-}
+  // ══ INSURANCE ═══════════════════════════════════════════════════
+  if (ins1) {
+    lbl('Insurance', M, y);
+    y += 5;
 
-// ?? DIAGNOSES ?????????????????????????????????????????????
-if (dxArr.length) {
-label('Diagnoses (ICD-10)', M, y);
-y += 4;
-const dxCols = 4;
-const dxW = CW / dxCols;
-dxArr.forEach((dx,di) => {
-const col = di % dxCols;
-const row = Math.floor(di / dxCols);
-const ltr = String.fromCharCode(65+di);
-t(`${ltr}. ${UC(dx)}`, M + col*dxW, y + row*6, {sz:8.5, c:DARK});
-});
-y += (Math.ceil(dxArr.length/dxCols))*6 + 4;
-hline(M, y, RX, BORDER, 0.25);
-y += 5;
-}
+    const ins1Parts = [
+      safe(ins1.name||ins1.insuranceName) ? UC(ins1.name||ins1.insuranceName) : null,
+      (ins1.payerId||pat.payerid) ? '(ID: '+(ins1.payerId||pat.payerid)+')' : null,
+      (ins1.policy||ins1.memberId) ? 'Member: '+(ins1.policy||ins1.memberId) : null,
+      ins1.group ? 'Group: '+ins1.group : null,
+    ].filter(Boolean).join('  ·  ');
+    if (ins1Parts) { t(ins1Parts, M, y, {sz:8.5, c:DARK}); y += 5; }
 
-// ?? SERVICE LINES ?????????????????????????????????????????
-label('Service Lines', M, y);
-y += 6;
+    const subParts = [
+      'Subscriber: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
+      (ins1.dob||pat.dob) ? 'DOB: '+_fmtDob(ins1.dob||pat.dob) : null,
+      ins1.relation ? 'Relation: '+ins1.relation : null,
+      ins1.plan ? 'Plan: '+UC(ins1.plan) : null,
+    ].filter(Boolean).join('  ·  ');
+    if (subParts) { t(subParts, M, y, {sz:7.5, c:GRAY1}); y += 4; }
 
-// ── Table header ─────────────────────────────────────────────────
-const COL = {
-  cpt:  { x: M,      w: 20,  label: 'CPT',         align: 'left'  },
-  desc: { x: M+20,   w: 72,  label: 'Description',  align: 'left'  },
-  unit: { x: M+92,   w: 14,  label: 'Units',        align: 'center'},
-  mods: { x: M+106,  w: 22,  label: 'Modifiers',    align: 'left'  },
-  dx:   { x: M+128,  w: 12,  label: 'Dx',           align: 'center'},
-  chg:  { x: RX,     w: 0,   label: 'Charge',       align: 'right' },
-};
+    y += 4;
+    hline(M, y, RX, BORDER_LT, 0.25);
+    y += 5;
+  }
 
-// Header row
-const HDR_H = 8;
-fill(M, y, CW, HDR_H, GREEN);  // solid brand color header
-doc.setDrawColor(...GREEN); doc.setLineWidth(0.4); doc.rect(M, y, CW, HDR_H, 'S');
-Object.values(COL).forEach(c => {
-  const xPos = c.align === 'right' ? RX - 1 : c.align === 'center' ? c.x + c.w/2 : c.x + 2;
-  t(c.label, xPos, y + 5.5, {sz: 7, b: true, c: WHITE, a: c.align});
-});
-y += HDR_H;
+  // ══ PROVIDERS ═══════════════════════════════════════════════════
+  if (rend.last || ref.last) {
+    const halfW = CW/2;
+    if (rend.last) {
+      lbl('Rendering Provider', M, y);
+      t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
+      const rendInfo = [rend.npi?'NPI: '+rend.npi:null, rend.taxonomy?'Taxonomy: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
+      if (rendInfo) t(rendInfo, M, y+10, {sz:7.5, c:GRAY1});
+      const facInfo = fac.name ? 'Facility: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:'') : null;
+      if (facInfo) t(facInfo, M, y+15, {sz:7.5, c:GRAY1});
+    }
+    if (ref.last) {
+      lbl('Referring Provider', M+halfW+2, y);
+      t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
+      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:7.5, c:GRAY1});
+    }
+    y += (rend.last&&fac.name) ? 22 : 18;
+    hline(M, y, RX, BORDER_LT, 0.25);
+    y += 5;
+  }
 
-// ── Data rows ─────────────────────────────────────────────────────
-lines.forEach((l, li) => {
-  const dbSvc   = db.services?.find(s => s.code === l.cpt || s.cpt === l.cpt);
-  const descFull = UC(l.desc || dbSvc?.description || dbSvc?.desc || '');
-  const mods    = [l.mod1, l.mod2, l.mod3, l.mod4].filter(Boolean).join(' ');
-  const chg     = parseFloat(l.charge) || 0;  // l.charge already includes units
-  const dxPtr   = (l.dxPtr || 'A').toUpperCase();
+  // ══ DIAGNOSES ═══════════════════════════════════════════════════
+  if (dxArr.length) {
+    lbl('Diagnoses (ICD-10)', M, y);
+    y += 5;
+    const dxCols=4, dxW=CW/dxCols;
+    dxArr.forEach((dx,di) => {
+      const col=di%dxCols, row=Math.floor(di/dxCols);
+      const ltr=String.fromCharCode(65+di);
+      t(`${ltr}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:8.5, c:DARK});
+    });
+    y += Math.ceil(dxArr.length/dxCols)*6+4;
+    hline(M, y, RX, BORDER_LT, 0.25);
+    y += 5;
+  }
 
-  // Wrap description to fit column
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  const descWrapped = doc.splitTextToSize(descFull, COL.desc.w - 2);
-  const rowH = Math.max(10, descWrapped.length * 4.2 + 5);
+  // ══ SERVICE LINES TABLE ══════════════════════════════════════════
+  lbl('Service Lines', M, y);
+  y += 5;
 
-  // Alternating row background
-  const bg = li % 2 === 0 ? [248, 250, 252] : WHITE;
-  fill(M, y, CW, rowH, bg);
+  const COL = {
+    cpt:  { x:M,      w:18, label:'CPT',         a:'left'   },
+    desc: { x:M+18,   w:70, label:'Description',  a:'left'   },
+    unit: { x:M+88,   w:14, label:'Units',        a:'center' },
+    mods: { x:M+102,  w:22, label:'Mods',         a:'center' },
+    dx:   { x:M+124,  w:14, label:'Dx Ptr',       a:'center' },
+    chg:  { x:RX,     w:0,  label:'Charge',       a:'right'  },
+  };
 
-  // Bottom border
-  doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
-  doc.line(M, y + rowH, RX, y + rowH);
+  // Header
+  const HDR_H = 8;
+  fill(M, y, CW, HDR_H, BRAND);
+  Object.values(COL).forEach(c => {
+    const xPos = c.a==='right'?RX-2 : c.a==='center'?c.x+c.w/2 : c.x+2;
+    t(c.label, xPos, y+5.5, {sz:7, b:true, c:WHITE, a:c.a});
+  });
+  // Column dividers in header
+  [COL.desc.x, COL.unit.x, COL.mods.x, COL.dx.x].forEach(cx => {
+    doc.setDrawColor(255,255,255); doc.setLineWidth(0.2);
+    doc.line(cx, y, cx, y+HDR_H);
+  });
+  y += HDR_H;
 
-  // Left accent bar on first col
-  fill(M, y, 2, rowH, li % 2 === 0 ? LIGHT : [230, 234, 240]);
+  // Outer border start
+  const tableStartY = y;
 
-  const midY = y + rowH / 2 + 1.5;
+  // Data rows
+  lines.forEach((l, li) => {
+    const dbSvc   = (db.services||[]).find(s=>s.code===l.cpt||s.cpt===l.cpt);
+    const descFull= UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
+    const mods    = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
+    const chg     = parseFloat(l.charge)||0;
+    const dxPtr   = (l.dxPtr||'A').toUpperCase();
+    const units   = String(l.units||1);
 
-  // CPT — bold, brand color
-  t(UC(l.cpt || ''), COL.cpt.x + 3, midY, {sz: 9, b: true, c: ACCENT});
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    const descWrapped = doc.splitTextToSize(descFull||'', COL.desc.w-3);
+    const rowH = Math.max(9, descWrapped.length*4.2+4);
+    const bg   = li%2===0 ? ROW_ALT : WHITE;
 
-  // Description — all wrapped lines
-  descWrapped.forEach((dl, dli) => {
-    t(dl, COL.desc.x + 1, y + 4 + dli * 4.2, {sz: 8, c: DARK});
+    fill(M, y, CW, rowH, bg);
+
+    // Left color stripe
+    fill(M, y, 2.5, rowH, li%2===0 ? BRAND.map(v=>Math.round(v*0.2+255*0.8)) : BRAND.map(v=>Math.round(v*0.1+255*0.9)));
+
+    const cy = y + rowH/2 + 1.5;
+
+    // CPT — bold, brand color
+    t(UC(l.cpt||''), COL.cpt.x+3.5, cy, {sz:9, b:true, c:BRAND});
+
+    // Description
+    descWrapped.forEach((dl,dli) => t(dl, COL.desc.x+2, y+4+dli*4.2, {sz:7.5, c:DARK}));
+
+    // Units, Mods, DxPtr
+    t(units, COL.unit.x+COL.unit.w/2, cy, {sz:8, c:DARK, a:'center'});
+    if (mods) t(UC(mods), COL.mods.x+COL.mods.w/2, cy, {sz:7.5, c:DARK, a:'center'});
+    t(dxPtr, COL.dx.x+COL.dx.w/2, cy, {sz:8, c:DARK, a:'center'});
+
+    // Charge — right, bold
+    t($v(chg), RX-2, cy, {sz:9, b:true, c:DARK, a:'right'});
+
+    // Row border
+    doc.setDrawColor(...BORDER_LT); doc.setLineWidth(0.2);
+    doc.line(M, y+rowH, RX, y+rowH);
+
+    // Column dividers
+    doc.setDrawColor(...BORDER_LT); doc.setLineWidth(0.15);
+    [COL.desc.x, COL.unit.x, COL.mods.x, COL.dx.x].forEach(cx => doc.line(cx, y, cx, y+rowH));
+
+    y += rowH;
   });
 
-  // Units
-  t(String(l.units || 1), COL.unit.x + COL.unit.w / 2, midY, {sz: 8, c: DARK, a: 'center'});
+  // Outer border
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
+  doc.rect(M, tableStartY, CW, y-tableStartY, 'S');
 
-  // Modifiers
-  t(UC(mods || '—'), COL.mods.x + 1, midY, {sz: 8, c: DARK});
+  // Total row
+  y += 2;
+  const TOT_H = 11;
+  fill(M, y, CW, TOT_H, BRAND.map(v=>Math.round(v*0.08+255*0.92)));
+  doc.setDrawColor(...BRAND); doc.setLineWidth(0.5); doc.rect(M, y, CW, TOT_H, 'S');
+  t('TOTAL CHARGES', M+4, y+7.5, {b:true, sz:9.5, c:DARK});
+  t($v(total), RX-2, y+7.5, {b:true, sz:11, c:BRAND, a:'right'});
+  y += TOT_H + 8;
 
-  // Dx Ptr
-  t(dxPtr, COL.dx.x + COL.dx.w / 2, midY, {sz: 8, c: DARK, a: 'center'});
+  // ══ FOOTER ══════════════════════════════════════════════════════
+  const fY = 252;
+  hline(M, fY, RX, BORDER_LT, 0.3);
+  fill(M, fY+1.5, 3, 16, BRAND);
 
-  // Charge — right aligned, bold
-  t($v(chg), RX - 1, midY, {sz: 9, b: true, c: DARK, a: 'right'});
+  const rendName = rend.last
+    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
+    : UC(prov.name||'Provider');
+  t('Electronically signed by:', M+6, fY+6, {sz:7, c:GRAY2});
+  t(rendName, M+6, fY+12, {b:true, sz:8.5, c:DARK});
+  if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, M+6, fY+17, {sz:7, c:GRAY1});
 
-  y += rowH;
+  const now=new Date();
+  const hr12=now.getHours()%12||12;
+  const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
+  const dosParts2=_parseDateParts(claim.dos);
+  const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
+  t('Generated: '+dosDateStr+', '+expTime, RX, fY+12, {sz:7.5, c:GRAY2, a:'right'});
 });
 
-// ── Total row ─────────────────────────────────────────────────────
-y += 2;
-const TOT_H = 11;
-fill(M, y, CW, TOT_H, [240, 253, 244]);  // very light green
-doc.setDrawColor(...GREEN); doc.setLineWidth(0.6); doc.rect(M, y, CW, TOT_H, 'S');
-t('TOTAL CHARGES', M + 4, y + 7.5, {b: true, sz: 9.5, c: DARK});
-t($v(total), RX - 2, y + 7.5, {b: true, sz: 11, c: GREEN, a: 'right'});
-y += TOT_H + 8;
-
-// ?? SIGNATURE FOOTER ??????????????????????????????????????
-const fY = 252;
-hline(M, fY, RX, BORDER, 0.3);
-fill(M, fY+1.5, 2, 16, GREEN);
-
-// Left: rendering provider name + credentials
-const rendName = rend.last
-? UC(`${rend.last}, ${rend.first||''}`) + (rend.npi ? ' — NPI: '+rend.npi : '')
-: UC(prov.name||'Provider');
-
-t('Electronically signed by:', M+5, fY+6, {sz:7.5, c:GRAY3});
-t(rendName, M+5, fY+11.5,{b:true, sz:8.5, c:DARK});
-
-// Right: DOS (date of service) + export time with seconds
-const now = new Date();
-const hr12 = now.getHours()%12||12;
-const mm_t = String(now.getMinutes()).padStart(2,'0');
-const ss_t = String(now.getSeconds()).padStart(2,'0');
-const ampm = now.getHours()>=12?'PM':'AM';
-const expTime = `${String(hr12).padStart(2,'0')}:${mm_t}:${ss_t} ${ampm}`;
-const expDate = now.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
-
-// Use DOS date + export time — "Signed: MM/DD/YYYY, HH:MM:SS AM"
-const dosParts2 = _parseDateParts(claim.dos);
-const dosDateStr = `${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-t('Signed: '+dosDateStr+', '+expTime, RX, fY+11.5,{sz:7.5, c:GRAY2, a:'right'});
-if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, RX, fY+16, {sz:7, c:GRAY3, a:'right'});
-});
-
-// ?? Build filename: 2 letters last + 2 first + MMDDYYYY(dob) + MMDDYYYY(dos) ??
-// Example: CUJO1121198804172026
-const firstClaim = claims[0];
-const firstPat = db.patients.find(p=>p.id===firstClaim?.patId)||{};
-
-
-
-const last2 = (firstPat.last||'XX').slice(0,2).toUpperCase();
-const first2 = (firstPat.first||'XX').slice(0,2).toUpperCase();
-const dobP = _parseDateParts(firstPat.dob);
-const dosP = _parseDateParts(firstClaim?.dos);
-const dobFmt = dobP.mm + dobP.dd + dobP.yyyy;
-const dosFmt = dosP.mm + dosP.dd + dosP.yyyy;
-const fname = `${last2}${first2}${dobFmt}${dosFmt}`;
-
-doc.save(fname + '.pdf');
+// Filename
+const fp=claims[0], fpt=db.patients.find(p=>p.id===fp?.patId)||{};
+const l2=(fpt.last||'XX').slice(0,2).toUpperCase();
+const f2=(fpt.first||'XX').slice(0,2).toUpperCase();
+const dp=_parseDateParts(fpt.dob), sp=_parseDateParts(fp?.dos);
+doc.save(`${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`);
 toast(`Superbill${claims.length>1?'s':''} exported — ${claims.length} claim${claims.length>1?'s':''}`);
 }
+
 
 
 // ?? Bulk Patients Actions ????????????????????????????????
