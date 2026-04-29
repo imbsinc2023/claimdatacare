@@ -1190,8 +1190,7 @@ border-radius: 8px;
 <div id="root"></div>
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
 <div id="toasts"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
@@ -9339,7 +9338,7 @@ claims.forEach((claim, ci) => {
   }
 
   // Provider info
-  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:12, c:DARK});
+  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:12, c:BLACK});
   const npiTax = [prov.npi?'NPI: '+prov.npi:null, prov.taxid?'EIN: '+prov.taxid:null].filter(Boolean).join('  ·  ');
   if (npiTax) t(npiTax, provX, y+13, {sz:7.5, c:DARK});
   const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
@@ -9347,7 +9346,7 @@ claims.forEach((claim, ci) => {
   if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:DARK});
 
   // SUPERBILL title + PCN (right side)
-  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BRAND, a:'right'});
+  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:DARK, a:'right'});
   t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:DARK, a:'right'});
   const dosStr = safe(claim.dos);
   const posStr = safe(claim.pos);
@@ -9453,7 +9452,7 @@ claims.forEach((claim, ci) => {
   // ══ SERVICE LINES — minimal text style ══════════════════════════
   lbl('Service Lines', M, y);
   y += 4;
-  hline(M, y, RX, BRAND, 0.6);
+  hline(M, y, RX, DARK, 0.3);
   y += 5;
 
   // Column header line
@@ -9484,7 +9483,7 @@ claims.forEach((claim, ci) => {
     const rowH = Math.max(7, descLines.length * 4.5);
 
     // CPT bold brand color
-    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:BRAND});
+    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:DARK});
 
     // Description wrapped
     descLines.forEach(function(dl, dli){ t(dl, M+SL.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
@@ -9514,50 +9513,15 @@ claims.forEach((claim, ci) => {
   y += 2;
 
   // Total row — clean, minimal
-  t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:DARK});
-  t($v(total), RX, y+6, {b:true, sz:11, c:BRAND, a:'right'});
+  t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:BLACK});
+  t($v(total), RX, y+6, {b:true, sz:11, c:BLACK, a:'right'});
   y += 14;
 
   // ══ FOOTER ══════════════════════════════════════════════════════
   const fY = 248;
   hline(M, fY, RX, BORDER_LT, 0.3);
-  fill(M, fY+1.5, 3, 20, BRAND);
+  fill(M, fY+1.5, 3, 20, DARK);
 
-  // QR code — links to NPI registry for the rendering provider or billing provider
-  const qrNpi  = rend.npi || prov.npi || '';
-  const qrUrl  = qrNpi ? 'https://npiregistry.cms.hhs.gov/provider-view/'+qrNpi : 'https://npiregistry.cms.hhs.gov';
-  const QR_SZ  = 20; // 20mm square
-  const QR_X   = RX - QR_SZ;
-  const QR_Y   = fY + 1;
-  try {
-    // Generate QR using qrcode library if loaded, else draw URL as text
-    if (typeof QRCode !== 'undefined') {
-      const qrCanvas = document.createElement('canvas');
-      QRCode.toCanvas(qrCanvas, qrUrl, {width:80, margin:0}, function(err){
-        if (!err) {
-          try { doc.addImage(qrCanvas.toDataURL('image/png'),'PNG',QR_X,QR_Y,QR_SZ,QR_SZ); } catch(e) {}
-        }
-      });
-    } else {
-      // Fallback: draw QR as styled box with URL
-      fill(QR_X, QR_Y, QR_SZ, QR_SZ, [245,245,245]);
-      stroke(QR_X, QR_Y, QR_SZ, QR_SZ, BRAND, 0.5);
-      // Corner marks (simulate QR finder pattern)
-      fill(QR_X+1, QR_Y+1, 5, 5, BRAND);
-      fill(QR_X+14, QR_Y+1, 5, 5, BRAND);
-      fill(QR_X+1, QR_Y+14, 5, 5, BRAND);
-      fill(QR_X+2.5, QR_Y+2.5, 2, 2, [255,255,255]);
-      fill(QR_X+15.5, QR_Y+2.5, 2, 2, [255,255,255]);
-      fill(QR_X+2.5, QR_Y+15.5, 2, 2, [255,255,255]);
-      // Dots (simulate data modules)
-      [[3,7],[5,7],[7,7],[9,7],[11,7],[3,9],[7,9],[11,9],[3,11],[5,11],[7,11],[9,11],[11,11],
-       [5,9],[9,9],[7,13],[3,13],[11,13],[5,13],[13,9],[13,7],[13,11]].forEach(function(dot){
-        fill(QR_X+dot[0], QR_Y+dot[1], 1.5, 1.5, DARK);
-      });
-      t(qrNpi?'NPI':'Scan', QR_X+QR_SZ/2, QR_Y+QR_SZ+3.5, {sz:5.5, c:GRAY2, a:'center'});
-    }
-  } catch(e) {}
-  t('NPI Registry', QR_X+QR_SZ/2, QR_Y+QR_SZ+3, {sz:5.5, c:GRAY2, a:'center'});
 
   const rendName = rend.last
     ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
@@ -9571,7 +9535,7 @@ claims.forEach((claim, ci) => {
   const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
   const dosParts2=_parseDateParts(claim.dos);
   const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-  t('Generated: '+dosDateStr+', '+expTime, QR_X-4, fY+13, {sz:7, c:DARK, a:'right'});
+  t('Generated: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
 });
 
 // Filename
