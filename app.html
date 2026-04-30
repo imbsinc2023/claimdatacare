@@ -2663,6 +2663,46 @@ if (btn) btn.classList.add('active');
 renderClaims();
 }
 
+// ── Date range helper for multi-date claims ───────────────────────
+function claimDosRange(c) {
+  if (!c) return '';
+  // Collect all dates: header dos + per-line dos
+  var dates = [];
+  if (c.dos) dates.push(c.dos);
+  if (Array.isArray(c.lines)) {
+    c.lines.forEach(function(l) { if (l.dos) dates.push(l.dos); });
+  }
+  // Parse and sort
+  var parsed = dates.map(function(d) {
+    // Handle M/D/YYYY, YYYY-MM-DD, MM/DD/YYYY
+    var s = String(d).trim();
+    if (!s) return null;
+    var dt;
+    if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      dt = new Date(s + 'T00:00:00');
+    } else if (s.includes('/')) {
+      var parts = s.split('/');
+      if (parts[0].length === 4) {
+        dt = new Date(s + 'T00:00:00');
+      } else {
+        dt = new Date(parseInt(parts[2]||new Date().getFullYear()), parseInt(parts[0])-1, parseInt(parts[1]));
+      }
+    } else {
+      dt = new Date(s);
+    }
+    return isNaN(dt) ? null : dt;
+  }).filter(Boolean).sort(function(a,b){return a-b;});
+
+  if (!parsed.length) return c.dos || '';
+  var fmt = function(dt) {
+    return (dt.getMonth()+1) + '/' + dt.getDate() + '/' + dt.getFullYear();
+  };
+  if (parsed.length === 1) return fmt(parsed[0]);
+  var first = parsed[0], last = parsed[parsed.length-1];
+  if (fmt(first) === fmt(last)) return fmt(first);
+  return fmt(first) + ' – ' + fmt(last);
+}
+
 function renderClaims() {
   // If no activeProviderId try to detect from claims
   if (!activeProviderId) {
@@ -2833,7 +2873,7 @@ style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)">
 <td class="mono" style="font-size:11px">${c.pcn||''}</td>
 <td><span class="acct">${pat.acct||c.acct||''}</span></td>
 <td style="font-weight:600">${ptLinkName(pat.id,pat.last||'?',pat.first||'')}</td>
-<td style="font-size:12px">${c.dos||''}</td>
+<td style="font-size:12px;white-space:nowrap">${claimDosRange(c)}</td>
 <td>${cpts||''}</td>
 <td style="text-align:center">${lines.length}</td>
 <td class="mono" style="font-weight:700">$${fmtMoney(claimTotal(c))}</td>
@@ -4424,15 +4464,16 @@ Select a service group and dates to preview
 </div><!-- /modal-body -->
 
 <!-- Footer -->
-<div class="modal-ftr" style="flex-shrink:0">
-<button class="btn btn-ghost" onclick="closeModal('modal-batch')">Cancel</button>
-<label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);padding:0 4px">
-  <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand)" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById('mb-sg-sel')?.value);if(sg)renderSGBatchPatients(sg);})()">
-  <span>1 claim per patient <span style="font-weight:400;color:var(--text3);font-size:11px">(all dates as lines)</span></span>
-</label>
-<button class="btn btn-primary" onclick="runBatch()">
-<i data-lucide="zap" class="lci"></i> Generate Claims
-</button>
+<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <button class="btn btn-ghost" onclick="closeModal('modal-batch')">Cancel</button>
+  <label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);flex:1;margin:0 8px;background:var(--bg3);border-radius:8px;padding:7px 12px;border:1.5px solid var(--border)">
+    <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById('mb-sg-sel')?.value);if(sg)renderSGBatchPatients(sg);})()">
+    <span>1 claim per patient</span>
+    <span style="font-weight:400;color:var(--text3);font-size:11px">— all selected dates become service lines</span>
+  </label>
+  <button class="btn btn-primary" onclick="runBatch()" style="flex-shrink:0">
+    <i data-lucide="zap" class="lci"></i> Generate Claims
+  </button>
 </div>
 
 </div>
@@ -4851,33 +4892,55 @@ const groupMode = document.getElementById('mb-group-dates')?.checked;
 
 if (groupMode) {
   // ── 1 CLAIM PER PATIENT — all dates become separate lines ─────
-  // CPTs come from the service group (can differ per line)
-  // Units are defined per-date by the user in the batch UI
+  // Each date × each SG CPT = one service line
+  // Units come from the SG line (NOT from the date)
+  // dxPtr rotates A/B/C/D across lines so all 4 dx are referenced
   const groupedLines = [];
+  const dxLetters = ['A','B','C','D','E','F','G','H'];
+  let lineIdx = 0;
+
   for (const d of activeDatesForPat) {
-    const dateStr = d.date || d.label || d;
-    const dateUnits = parseInt(d.units) || 1;
-    for (const l of (sg.lines||lines_tmpl)) {
-      const pricePerUnit = parseFloat(l.pricePerUnit || l.rate || l.charge || 0);
-      const lineUnits = dateUnits;
+    // Get the actual date string — d is {iso, label, date} from getSGBatchDates
+    // or a toggled object from st.dates
+    const dateStr = d.date || (d.iso ? (function(){
+      var p = d.iso.split('-');
+      return parseInt(p[1])+'/'+parseInt(p[2])+'/'+p[0];
+    })() : String(d));
+
+    for (const l of (sg.lines || lines_tmpl)) {
+      // Units from SG line definition (e.g. 16 units of H2017)
+      const lineUnits = parseInt(l.units) || 1;
+      const pricePerUnit = parseFloat(l.pricePerUnit || l.rate || 0);
+      const lineCharge = (pricePerUnit * lineUnits).toFixed(2);
+
+      // dxPtr: ALL diagnoses on every line (e.g. "ABCD" if 4 dx)
+      const dxPtr = dxLetters.slice(0, dx.length).join('');
+
       groupedLines.push({
         id: uid(),
-        cpt:   l.cpt || '',
-        desc:  l.desc || '',
-        units: String(lineUnits),
-        charge: (pricePerUnit * lineUnits).toFixed(2),
+        cpt:          l.cpt || '',
+        desc:         l.desc || '',
+        units:        String(lineUnits),
+        charge:       lineCharge,
         pricePerUnit: pricePerUnit.toFixed(2),
-        mod1: l.mod1||''  , mod2: l.mod2||'', mod3: l.mod3||'', mod4: l.mod4||'',
-        dxPtr: l.dxPtr || 'A',
-        dos: dateStr,
+        mod1: l.mod1||'', mod2: l.mod2||'', mod3: l.mod3||'', mod4: l.mod4||'',
+        dxPtr,
+        dos: dateStr,   // ← each line gets its own date
       });
+      lineIdx++;
     }
   }
+
   const firstDate = activeDatesForPat[0];
+  const firstDateStr = firstDate.date || (firstDate.iso ? (function(){
+    var p = firstDate.iso.split('-');
+    return parseInt(p[1])+'/'+parseInt(p[2])+'/'+p[0];
+  })() : String(firstDate));
+
   pending.push({
     id: uid(), providerId: activeProviderId, patId,
     pcn: buildNextPCN(patId, activeProviderId, pending),
-    dos: firstDate.date || firstDate.label || firstDate,
+    dos: firstDateStr,
     pos, dx, lines: groupedLines,
     renderingId: rendId, facilityId: facId, referringId: refId,
     status: 'pending', multiDate: true,
@@ -4892,7 +4955,18 @@ if (groupMode) {
       pcn: buildNextPCN(patId, activeProviderId, pending),
       dos: d.date || d.label || d,
       pos, dx,
-      lines: lines_tmpl.map(l => ({ ...l, id: uid() })),
+      lines: (sg.lines||lines_tmpl).map(function(l) {
+      const lu = parseInt(l.units)||1;
+      const ppu = parseFloat(l.pricePerUnit||l.rate||0);
+      const allDxPtr = ['A','B','C','D','E','F','G','H'].slice(0, dx.length).join('') || 'A';
+      return {
+        id: uid(), cpt: l.cpt||'', desc: l.desc||'',
+        units: String(lu), charge: (ppu*lu).toFixed(2),
+        pricePerUnit: ppu.toFixed(2),
+        mod1:l.mod1||'',mod2:l.mod2||'',mod3:l.mod3||'',mod4:l.mod4||'',
+        dxPtr: allDxPtr,
+      };
+    }),
       renderingId: rendId, facilityId: facId, referringId: refId,
       status: 'pending',
       createdAt: Date.now(), updatedAt: Date.now(),
@@ -9578,7 +9652,14 @@ claims.forEach((claim, ci) => {
   t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:BLACK, a:'right'});
   const dosStr = safe(claim.dos);
   const posStr = safe(claim.pos);
-  const dosPos = [dosStr?'DOS: '+dosStr:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
+  // Build date range from header + per-line dates
+  const allDates = [dosStr].concat((claim.lines||[]).map(function(l){return l.dos||'';}).filter(Boolean));
+  const uniqueDates = [...new Set(allDates.filter(Boolean))].sort();
+  let dosDisplay = dosStr || '';
+  if (uniqueDates.length > 1) {
+    dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
+  }
+  const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
   if (dosPos) t(dosPos, RX, y+25, {sz:8, c:DARK, a:'right'});
 
   y = 42;
@@ -9685,12 +9766,26 @@ claims.forEach((claim, ci) => {
 
   // Column header line
   const SL = { cptW:18, descW:68, unitW:14, uprcW:20, modsW:18, dxW:14 };
-  t('CPT', M, y, {sz:7, b:true, c:BLACK});
-  t('Description', M+SL.cptW, y, {sz:7, b:true, c:BLACK});
-  t('Units', M+SL.cptW+SL.descW, y, {sz:7, b:true, c:DARK, a:'center'});
-  t('Unit Price', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-  t('Mods', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+2, y, {sz:7, b:true, c:BLACK});
-  t('Dx', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+2, y, {sz:7, b:true, c:DARK, a:'center'});
+  // Detect multi-date claim (per-line DOS)
+  const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
+  const DOS_W = 20; // width for date column
+  const CPT_X = M + (hasDosPerLine ? DOS_W + 2 : 0);
+  const SL2 = {
+    cptW:  SL.cptW,
+    descW: hasDosPerLine ? SL.descW - (DOS_W+2) : SL.descW,
+    unitW: SL.unitW,
+    uprcW: SL.uprcW,
+    modsW: SL.modsW,
+    dxW:   SL.dxW,
+  };
+
+  if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
+  t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
+  t('Description', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
+  t('Units', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
+  t('Unit Price', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
+  t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+2, y, {sz:7, b:true, c:BLACK});
+  t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+2, y, {sz:7, b:true, c:DARK, a:'center'});
   t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
   y += 2;
   hline(M, y, RX, DARK, 0.15);
@@ -9710,23 +9805,38 @@ claims.forEach((claim, ci) => {
     const descLines = doc.splitTextToSize(descFull||'', descW);
     const rowH = Math.max(7, descLines.length * 4.5);
 
-    // CPT bold brand color
-    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:BLACK});
+    // Per-line date (multi-date claims)
+    if (hasDosPerLine) {
+      var lineDosRaw = l.dos || claim.dos || '';
+      var lineDosShort = lineDosRaw;
+      try {
+        var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
+        if (lineDosRaw.indexOf('-')>3) {
+          lineDosShort = parseInt(dp2[1])+'/'+parseInt(dp2[2]);
+        } else {
+          lineDosShort = parseInt(dp2[0])+'/'+parseInt(dp2[1]);
+        }
+      } catch(e2){}
+      if (lineDosShort) t(lineDosShort, M+1, y+4, {sz:7.5, c:DARK});
+    }
+
+    // CPT bold
+    t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
 
     // Description wrapped
-    descLines.forEach(function(dl, dli){ t(dl, M+SL.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
+    descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
 
     // Units
-    t(String(units), M+SL.cptW+SL.descW+SL.unitW/2, y+4, {sz:8, c:DARK, a:'center'});
+    t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:8, c:DARK, a:'center'});
 
-    // Unit price — always show for every line
-    t('$'+unitPrc.toFixed(2), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y+4, {sz:8, c:DARK, a:'right'});
+    // Unit price — always show
+    t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:8, c:DARK, a:'right'});
 
     // Mods
-    if (mods) t(UC(mods), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+3, y+4, {sz:7.5, c:DARK});
+    if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:7.5, c:DARK});
 
     // Dx pointer
-    t(dxPtr, M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+SL.dxW/2+2, y+4, {sz:8, c:DARK, a:'center'});
+    t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:8, c:DARK, a:'center'});
 
     // Total right aligned
     t($v(chg), RX, y+4, {sz:9, b:true, c:DARK, a:'right'});
