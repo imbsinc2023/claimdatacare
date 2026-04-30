@@ -6523,104 +6523,112 @@ renderInvSvcLines();
 
 function recalcInvoice() {
   const el = id => document.getElementById(id);
-  const feePct  = parseFloat(el('inv-fee')?.value) || 0;
-  const minRev  = parseFloat(el('inv-min-base')?.value) || 0; // Minimum fee amount (e.g. $1,200)
-  const excBase = parseFloat(el('inv-exc-base')?.value) || 0; // Exception base (optional)
-  const excMths = parseFloat(el('inv-exc-months')?.value) || 0;
-  const excUsed = parseFloat(el('inv-exc-used')?.value) || 0;
 
-  // ── Revenue = AUTO SUM of all payments (inv-lines) ───────────────
-  const autoRevenue = (_invLines||[]).reduce(function(s,l){ return s + (parseFloat(l.amount)||0); }, 0);
-  // Also allow manual override if user typed a value
+  // ── Inputs ──────────────────────────────────────────────────────
+  const feePct   = parseFloat(el('inv-fee')?.value) || 0;
+  const minRevenue = parseFloat(el('inv-min-base')?.value) || 0; // MINIMUM REVENUE threshold
+  const excBase  = parseFloat(el('inv-exc-base')?.value) || 0;   // Exception/concession (optional)
+  const excMths  = parseFloat(el('inv-exc-months')?.value) || 0;
+  const excUsed  = parseFloat(el('inv-exc-used')?.value) || 0;
+
+  // ── Revenue = auto-sum of all payment lines ────────────────────
+  const autoRevenue = (_invLines||[]).reduce(function(s,l){ return s+(parseFloat(l.amount)||0); }, 0);
   const manualRevenue = parseFloat(el('inv-revenue')?.value) || 0;
-  // Use auto if no manual override, or if auto > 0 and field is empty/matches auto
   const revenue = autoRevenue > 0 ? autoRevenue : manualRevenue;
 
-  // Update revenue display field (read-only auto)
+  // Update revenue field to show auto-calculated value
   const revEl = el('inv-revenue');
   if (revEl && autoRevenue > 0) {
     revEl.value = autoRevenue.toFixed(2);
+    revEl.readOnly = true;
     revEl.style.background = 'var(--bg3)';
-    revEl.title = 'Auto-calculated from payments';
+    revEl.title = 'Auto-calculated from Payment Details';
   }
 
-  const svcTotal = (_invSvcLines||[]).reduce(function(s,l){ return s + (parseFloat(l.amount)||0); }, 0);
+  const svcTotal = (_invSvcLines||[]).reduce(function(s,l){ return s+(parseFloat(l.amount)||0); }, 0);
 
-  // ── Exception logic ───────────────────────────────────────────────
+  // ── Exception / Concession (optional) ─────────────────────────
   const excRemaining = excMths - excUsed;
   const excActive = excBase > 0 && excMths > 0 && excRemaining > 0;
 
-  // ── Fee calculation ───────────────────────────────────────────────
-  // Step 1: What does fee% of actual revenue produce?
-  const calcFromRevenue = revenue * feePct / 100;
+  // ── Core fee logic ─────────────────────────────────────────────
+  // RULE: Compare actual revenue to minimum revenue threshold
+  //   • If actual revenue < minimum revenue → apply fee% to minimum revenue
+  //   • If actual revenue >= minimum revenue → apply fee% to actual revenue
+  //   • Exception/concession overrides both (optional)
+  //
+  // Example: fee=6%, minRevenue=$20,000, actualRevenue=$3,500
+  //   → $3,500 < $20,000 → fee = $20,000 × 6% = $1,200
+  //
+  // Example: fee=6%, minRevenue=$20,000, actualRevenue=$30,000
+  //   → $30,000 >= $20,000 → fee = $30,000 × 6% = $1,800
 
-  // Step 2: Determine final fee
-  // Rule: if revenue * fee% < minimum → use minimum fee
-  // Rule: if exception active → use exception base * fee%
-  let finalFee, feeLabel, calcMethod;
+  let feeBase, finalFee, feeLabel, calcMethod;
 
   if (excActive) {
-    // Exception override (concession)
-    finalFee = excBase * feePct / 100;
+    // Concession override — use exception base
+    feeBase   = excBase;
+    finalFee  = excBase * feePct / 100;
     calcMethod = 'exception';
-    feeLabel = feePct + '% of Exception Base $' + fmtMoney(excBase);
-  } else if (minRev > 0 && calcFromRevenue < minRev) {
-    // Minimum fee applies — revenue too low
-    // Example: revenue=$3,500, fee%=6%, minFee=$1,200 → use $1,200
-    finalFee = minRev;
+    feeLabel  = feePct + '% of concession base $' + fmtMoney(excBase);
+  } else if (minRevenue > 0 && revenue < minRevenue) {
+    // Revenue below minimum → apply % to minimum revenue
+    feeBase   = minRevenue;
+    finalFee  = minRevenue * feePct / 100;
     calcMethod = 'minimum';
-    feeLabel = 'Minimum Fee (revenue below threshold)';
+    feeLabel  = feePct + '% of minimum revenue $' + fmtMoney(minRevenue);
   } else {
-    // Standard: fee% of actual revenue
-    finalFee = calcFromRevenue;
+    // Revenue at or above minimum → apply % to actual revenue
+    feeBase   = revenue;
+    finalFee  = revenue * feePct / 100;
     calcMethod = 'standard';
-    feeLabel = feePct + '% of Revenue';
+    feeLabel  = feePct + '% of revenue $' + fmtMoney(revenue);
   }
 
-  // ── Update display ────────────────────────────────────────────────
+  // ── Update UI ─────────────────────────────────────────────────
   const set = function(id, val) { const e = el(id); if (e) e.textContent = val; };
   set('inv-disp-revenue', '$' + fmtMoney(revenue));
   set('inv-disp-feepct',  feePct + '%');
-  set('inv-disp-calc',    '$' + fmtMoney(calcFromRevenue));
-  set('inv-disp-min',     '$' + fmtMoney(minRev));
-  set('inv-disp-base',    '$' + fmtMoney(revenue));
+  set('inv-disp-calc',    '$' + fmtMoney(feeBase * feePct / 100));
+  set('inv-disp-min',     minRevenue > 0 ? '$' + fmtMoney(minRevenue) : 'None');
+  set('inv-disp-base',    '$' + fmtMoney(feeBase));
 
   // Exception note
   const excNoteEl = el('inv-exc-note');
   if (excNoteEl) {
     if (excActive) {
       excNoteEl.style.display = '';
-      excNoteEl.style.color = 'var(--amber)';
-      excNoteEl.textContent = 'Exception active: base $' + fmtMoney(excBase) + ' · ' + (excUsed+1) + ' of ' + excMths + ' months';
-    } else if (excBase > 0 && excMths > 0 && excRemaining <= 0) {
+      excNoteEl.style.color   = 'var(--amber)';
+      excNoteEl.textContent   = 'Concession active: $' + fmtMoney(excBase) + ' base · month ' + (excUsed+1) + ' of ' + excMths;
+    } else if (excBase > 0 && excRemaining <= 0) {
       excNoteEl.style.display = '';
-      excNoteEl.style.color = 'var(--text3)';
-      excNoteEl.textContent = 'Exception completed (' + excUsed + ' of ' + excMths + ' months used)';
+      excNoteEl.style.color   = 'var(--text3)';
+      excNoteEl.textContent   = 'Concession completed (' + excUsed + '/' + excMths + ' months)';
     } else {
       excNoteEl.style.display = 'none';
     }
   }
 
-  // Update totals
-  if (el('inv-subtotal'))    el('inv-subtotal').textContent  = '$' + fmtMoney(svcTotal);
+  // Totals
+  if (el('inv-subtotal'))    el('inv-subtotal').textContent    = '$' + fmtMoney(svcTotal);
   if (el('inv-fee-pct-lbl')) el('inv-fee-pct-lbl').textContent = feeLabel;
-  if (el('inv-fee-amt'))     el('inv-fee-amt').textContent   = '$' + fmtMoney(finalFee);
-  if (el('inv-total'))       el('inv-total').textContent     = '$' + fmtMoney(finalFee);
+  if (el('inv-fee-amt'))     el('inv-fee-amt').textContent     = '$' + fmtMoney(finalFee);
+  if (el('inv-total'))       el('inv-total').textContent       = '$' + fmtMoney(finalFee);
 
   const feeEl = el('inv-fee-amt');
   if (feeEl) feeEl.style.color = calcMethod === 'standard' ? 'var(--text)' : 'var(--amber)';
 
-  // Show calc breakdown for transparency
+  // Breakdown line — shows exact calculation
   const breakdownEl = el('inv-calc-breakdown');
   if (breakdownEl) {
     if (calcMethod === 'minimum') {
-      breakdownEl.textContent = 'Revenue $' + fmtMoney(revenue) + ' × ' + feePct + '% = $' + fmtMoney(calcFromRevenue) + ' < Minimum $' + fmtMoney(minRev) + ' → Invoice: $' + fmtMoney(finalFee);
+      breakdownEl.innerHTML = 'Actual revenue <span style="color:var(--amber);font-weight:700">$' + fmtMoney(revenue) + '</span> &lt; Minimum revenue $' + fmtMoney(minRevenue) + ' &rarr; <strong>$' + fmtMoney(minRevenue) + ' &times; ' + feePct + '% = $' + fmtMoney(finalFee) + '</strong>';
       breakdownEl.style.color = 'var(--amber)';
     } else if (calcMethod === 'exception') {
-      breakdownEl.textContent = 'Exception: $' + fmtMoney(excBase) + ' × ' + feePct + '% = $' + fmtMoney(finalFee);
+      breakdownEl.innerHTML = 'Concession: $' + fmtMoney(excBase) + ' &times; ' + feePct + '% = <strong>$' + fmtMoney(finalFee) + '</strong>';
       breakdownEl.style.color = 'var(--amber)';
     } else {
-      breakdownEl.textContent = '$' + fmtMoney(revenue) + ' × ' + feePct + '% = $' + fmtMoney(finalFee);
+      breakdownEl.innerHTML = '$' + fmtMoney(revenue) + ' &times; ' + feePct + '% = <strong>$' + fmtMoney(finalFee) + '</strong>';
       breakdownEl.style.color = 'var(--text3)';
     }
   }
