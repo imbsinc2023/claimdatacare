@@ -4718,14 +4718,14 @@ const cfg = getApiConfig();
 const ak = document.getElementById('cfg-acctkey');
 const px = document.getElementById('cfg-proxy');
 if (ak) ak.value = cfg.acctKey || '';
-if (px) px.value = cfg.proxy || '';
+
 }
 
 
 async function testConnection() {
 const cfg = getApiConfig();
 if (!cfg.acctKey) { toast('Enter your Account Key first', 'warn'); return; }
-if (!cfg.proxy) { toast('Enter your Proxy URL first', 'warn'); return; }
+
 
 setApiStatus('Testing\u2026', 'info');
 logTransmit('Testing connection to ClaimMD\u2026', 'info');
@@ -4735,7 +4735,7 @@ const fd = new FormData();
 fd.append('action', 'ping');
 fd.append('AccountKey', cfg.acctKey);
 
-const res = await fetch(cfg.proxy, { method:'POST', body: fd });
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim', { method:'POST', body: fd, mode:'cors' });
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const text = await res.text();
 
@@ -5143,7 +5143,7 @@ fd.append('action', 'sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID', '0');
 
-const res = await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev', {method:'POST',body:fd});
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 
@@ -8840,7 +8840,7 @@ const fname = 'Claims_Selected_'+dateStr()+'.csv';
 try {
 const fd=new FormData(); fd.append('action','upload'); fd.append('AccountKey',cfg.acctKey);
 fd.append('File',new Blob([csv],{type:'text/csv'}),fname);
-const res=await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev',{method:'POST',body:fd});
+const res=await fetch('https://intakeapi.claimmd.com/intake/claim',{method:'POST',body:fd});
 const xml=await res.text();
 const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
@@ -8987,7 +8987,7 @@ ${entry.status!=='success'?`<div style="color:var(--red);font-size:11px">${entry
 async function transmitDirect(filter) {
 const cfg = getApiConfig();
 if (!cfg.acctKey) {
-toast('Configure your ClaimMD API Key in Settings ? Billing Providers first', 'warn');
+toast('Configure your ClaimMD API Key in Settings → Billing Providers first', 'warn');
 return;
 }
 
@@ -9025,11 +9025,20 @@ fd.append('action', 'upload');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
 
-const res = await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev', {
-method: 'POST', body: fd
+console.log('[ClaimMD] Transmitting', claims.length, 'claims via proxy');
+console.log('[ClaimMD] AccountKey present:', !!cfg.acctKey, '| File:', fname);
+
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {
+  method: 'POST',
+  body: fd,
+  mode: 'cors',
 });
+
+console.log('[ClaimMD] HTTP status:', res.status, res.statusText);
 const xml = await res.text();
-console.log('[ClaimMD transmit] response:', xml.slice(0,300));
+console.log('[ClaimMD transmit] response:', xml.slice(0,500));
+
+if (!res.ok) throw new Error(`HTTP ${res.status}: ${xml.slice(0,200)}`);
 
 const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/i)||[])[1] || '';
 const errMsg = (xml.match(/<[Mm]essage>(.*?)<\/[Mm]essage>/i)||[])[1] || xml.slice(0,200);
@@ -9067,18 +9076,18 @@ _renderTransmitLog();
 if (alertEl) {
 alertEl.innerHTML = `<div class="alert al-success" style="font-size:13px;display:flex;align-items:center;gap:8px">
 <i data-lucide="check-circle" class="lci" style="width:16px;height:16px"></i>
-<span>? <strong>${claims.length}</strong> claim(s) transmitted. Status ? <strong>Submitted</strong>. ${new Date().toLocaleTimeString()}</span>
+<span><strong>${claims.length}</strong> claim(s) transmitted — Status: <strong>Submitted</strong>. ${new Date().toLocaleTimeString()}</span>
 </div>`;
 setTimeout(_renderLucideIcons, 20);
 }
-toast(`? ${claims.length} claim(s) submitted to ClaimMD`);
+toast(`${claims.length} claim(s) submitted to ClaimMD`);
 
 } catch(e) {
 console.error('[ClaimMD transmit] error:', e);
 if (alertEl) {
 alertEl.innerHTML = `<div class="alert al-error" style="font-size:13px">
 <i data-lucide="alert-circle" class="lci" style="width:16px;height:16px"></i>
-? Transmission failed: ${e.message}
+Transmission failed: ${e.message}
 </div>`;
 setTimeout(_renderLucideIcons, 20);
 }
@@ -12605,7 +12614,7 @@ const fd = new FormData();
 fd.append('action','sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID','0');
-const res = await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev',{method:'POST',body:fd});
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim',{method:'POST',body:fd});
 const xml = await res.text();
 const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
 if (!blocks.length) {
@@ -14170,7 +14179,7 @@ try {
 const fd = new FormData();
 fd.append('action','upload'); fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv],{type:'text/csv'}), `${claim.pcn}.csv`);
-const res = await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev', {method:'POST',body:fd});
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
@@ -14203,7 +14212,7 @@ message:`Status sync requested for PCN ${claim.pcn}` });
 try {
 const fd = new FormData();
 fd.append('action','sync'); fd.append('AccountKey', cfg.acctKey); fd.append('ResponseID','0');
-const res = await fetch('https://winter-mouse-e7a5.imbsinc2023.workers.dev', {method:'POST',body:fd});
+const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
