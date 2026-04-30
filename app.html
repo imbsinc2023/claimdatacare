@@ -1195,7 +1195,16 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>function openAppearancePanel() {
+<script>function fmtPhone(phone) {
+  if (!phone) return '';
+  var digits = String(phone).replace(/\D/g, '');
+  if (digits.length === 10) {
+    return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+  } else if (digits.length === 11 && digits[0] === '1') {
+    return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
+  }
+  return phone;
+}function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
   var cfg      = _apiConfigCache || {};
   var palKey   = cfg.palette || 'forest';
@@ -3917,6 +3926,13 @@ Show Paid
 <div class="sep"></div><span class="slabel">\ud83d\udcc5 Service</span>
 <div class="fg g3">
 <div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>
+<div class="field" style="grid-column:1/-1;padding:6px 0">
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">
+    <span>Multiple dates of service (weekly/range)</span>
+    <span style="font-size:11px;color:var(--text3);font-weight:400">— assign a different date to each service line</span>
+  </label>
+</div>
 <div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>
 <div class="field"><label>Facility</label><select id="mc-fac"></select></div>
 </div>
@@ -4552,7 +4568,7 @@ const existId=v('mc-id');
 const c={
 id:existId||uid(), providerId:activeProviderId, patId, acct:pat?.acct||'',
 pcn:v('mc-pcn')||('CLM-'+Date.now()),
-dos:v('mc-dos'), pos:v('mc-pos'),
+dos:v('mc-dos'), multiDate:_multiDateMode, pos:v('mc-pos'),
 facilityId:v('mc-fac'), renderingId:v('mc-rend'), referringId:v('mc-ref'),
 auth:v('mc-auth'), emp:v('mc-emp')||'N', auto:v('mc-auto')||'N',
 status:v('mc-status')||'pending',
@@ -5990,29 +6006,37 @@ const zelleMode = iss.zelleMode || 'phone';
 const showZellePhone = (zelleMode==='phone'||zelleMode==='both') && iss.phone;
 const showZelleEmail = (zelleMode==='email'||zelleMode==='both') && iss.email;
 if (showZellePhone || showZelleEmail) {
-  y += 18;
+  y += 6;
   if (showZellePhone && showZelleEmail) {
-    // Both — split 50/50
-    fill(M+2, y, CW/2, 9, BGBLUE);
-    fill(M+2, y, 3, 9, PURPLE);
-    txt('Z Zelle:', M+8, y+6, { size:8, bold:true, color:PURPLE });
-    txt(fmtPhone(iss.phone), M+26, y+6, { size:8.5, color:DARK });
-    fill(M+2+CW/2+2, y, CW/2-2, 9, BGBLUE);
-    fill(M+2+CW/2+2, y, 3, 9, PURPLE);
-    txt('Z Email:', M+2+CW/2+8, y+6, { size:8, bold:true, color:PURPLE });
-    txt(iss.email, M+2+CW/2+24, y+6, { size:8.5, color:DARK });
+    // BOTH phone and email — two rows
+    // Phone row
+    fill(M+2, y, CW, 10, BGBLUE);
+    fill(M+2, y, 3, 10, PURPLE);
+    txt('Z  Zelle (Phone):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
+    txt(fmtPhone(iss.phone), M+60, y+6.5, { size:9, color:DARK });
+    y += 12;
+    // Email row
+    fill(M+2, y, CW, 10, BGBLUE);
+    fill(M+2, y, 3, 10, PURPLE);
+    txt('Z  Zelle (Email):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
+    txt(iss.email, M+60, y+6.5, { size:9, color:DARK });
+    y += 12;
   } else if (showZellePhone) {
-    fill(M+2, y, CW, 9, BGBLUE);
-    fill(M+2, y, 3, 9, PURPLE);
-    txt('Z Zelle:', M+8, y+6, { size:8.5, bold:true, color:PURPLE });
-    txt(fmtPhone(iss.phone), M+30, y+6, { size:8.5, color:DARK });
+    // Phone only
+    fill(M+2, y, CW, 10, BGBLUE);
+    fill(M+2, y, 3, 10, PURPLE);
+    txt('Z  Zelle (Phone):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
+    txt(fmtPhone(iss.phone), M+60, y+6.5, { size:9, color:DARK });
+    y += 12;
   } else {
-    fill(M+2, y, CW, 9, BGBLUE);
-    fill(M+2, y, 3, 9, PURPLE);
-    txt('Z Zelle:', M+8, y+6, { size:8.5, bold:true, color:PURPLE });
-    txt(iss.email, M+30, y+6, { size:8.5, color:DARK });
+    // Email only
+    fill(M+2, y, CW, 10, BGBLUE);
+    fill(M+2, y, 3, 10, PURPLE);
+    txt('Z  Zelle (Email):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
+    txt(iss.email, M+60, y+6.5, { size:9, color:DARK });
+    y += 12;
   }
-  y += 12;
+  y += 4;
 } else {
   y += 22;
 }
@@ -7263,9 +7287,26 @@ function openPartialPaymentModal(invId) {
 const db = getInvDB();
 const inv = db.invoices.find(x=>x.id===invId);
 if (!inv) return;
-// Recalculate fee from stored data to handle old invoices with wrong billingFee
-// Use saved billingFee — the correct pre-calculated fee
-const billed = parseFloat(inv.billingFee||inv.total||0);
+// Always recalculate fee correctly from stored parameters
+// Rule: if revenue < minBase → fee = minBase * fee%
+//       if revenue >= minBase → fee = revenue * fee%
+const _fee   = parseFloat(inv.fee) || 0;
+const _minB  = parseFloat(inv.minBase) || 0;
+const _rev   = parseFloat(inv.revenue) || 0;
+const _excB  = parseFloat(inv.excBase) || 0;
+const _excM  = parseFloat(inv.excMonths) || 0;
+const _excU  = parseFloat(inv.excUsed) || 0;
+const _excOn = _excB > 0 && _excM > 0 && (_excM - _excU) > 0;
+let billed;
+if (_excOn) {
+  billed = _excB * _fee / 100;
+} else if (_minB > 0 && _rev < _minB) {
+  billed = _minB * _fee / 100;   // revenue below minimum → apply % to minimum revenue
+} else if (_rev > 0 && _fee > 0) {
+  billed = _rev * _fee / 100;    // standard: % of actual revenue
+} else {
+  billed = parseFloat(inv.billingFee||inv.total||0); // fallback
+}
 const already = parseFloat(inv.amtPaid||0);
 const balance = billed - already;
 
