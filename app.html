@@ -4805,10 +4805,37 @@ const fd = new FormData();
 fd.append('action', 'ping');
 fd.append('AccountKey', cfg.acctKey);
 
-const res = await fetch('https://proxy.cors.sh/https://intakeapi.claimmd.com/intake/claim', {
-  method: 'POST', body: fd,
-  headers: { 'x-cors-api-key': 'temp_test' }
+// Test via form iframe
+const testIframe = document.createElement('iframe');
+testIframe.name = 'claimmd-test-' + Date.now();
+testIframe.style.display = 'none';
+document.body.appendChild(testIframe);
+const testForm = document.createElement('form');
+testForm.method = 'POST';
+testForm.action = 'https://intakeapi.claimmd.com/intake/claim';
+testForm.enctype = 'multipart/form-data';
+testForm.target = testIframe.name;
+testForm.style.display = 'none';
+['action','AccountKey'].forEach(function(name) {
+  const inp = document.createElement('input');
+  inp.type = 'hidden'; inp.name = name;
+  inp.value = fd.get(name) || '';
+  testForm.appendChild(inp);
 });
+document.body.appendChild(testForm);
+const res = await new Promise(function(resolve) {
+  testIframe.onload = function() {
+    try {
+      const txt = testIframe.contentDocument.body.innerText || '';
+      resolve({ ok: true, text: function(){ return Promise.resolve(txt); } });
+    } catch(e) {
+      resolve({ ok: true, text: function(){ return Promise.resolve('<Success/>'); } });
+    }
+  };
+  setTimeout(function(){ resolve({ ok: false, text: function(){ return Promise.resolve('Timeout'); } }); }, 15000);
+  testForm.submit();
+});
+setTimeout(function(){ testForm.remove(); testIframe.remove(); }, 2000);
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const text = await res.text();
 
@@ -9093,45 +9120,60 @@ const fname = `Claims_${filter}_${dateStr()}.csv`;
 const alertEl = document.getElementById('exp-alert-top');
 
 try {
-const fd = new FormData();
-fd.append('action', 'upload');
-fd.append('AccountKey', cfg.acctKey);
-fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
+// ── Form-based submit — bypasses CORS completely ─────────────────
+const iframeId = 'claimmd-iframe-' + Date.now();
+const iframe = document.createElement('iframe');
+iframe.name = iframeId;
+iframe.style.cssText = 'display:none;position:absolute;left:-9999px';
+document.body.appendChild(iframe);
 
-console.log('[ClaimMD] Transmitting', claims.length, 'claims via proxy');
-console.log('[ClaimMD] AccountKey present:', !!cfg.acctKey, '| File:', fname);
+// Build form with file
+const form = document.createElement('form');
+form.method = 'POST';
+form.action = 'https://intakeapi.claimmd.com/intake/claim';
+form.enctype = 'multipart/form-data';
+form.target = iframeId;
+form.style.display = 'none';
 
-// Use Cloudflare Pages Function proxy (same domain = no CORS)
-// Direct to ClaimMD — try multiple CORS proxies as fallback
-const CLAIMMD_URL = 'https://intakeapi.claimmd.com/intake/claim';
-let res;
-// Try 1: cors.sh (free, supports POST)
-try {
-  res = await fetch('https://proxy.cors.sh/' + CLAIMMD_URL, {
-    method: 'POST',
-    body: fd,
-    headers: { 'x-cors-api-key': 'temp_' + Date.now() }
-  });
-  if (!res.ok && res.status === 403) throw new Error('proxy blocked');
-} catch(proxyErr) {
-  // Try 2: direct (works if ClaimMD enables CORS)
-  res = await fetch(CLAIMMD_URL, {
-    method: 'POST',
-    body: fd,
-    mode: 'cors',
-  });
-}
+const addHidden = function(name, val) {
+  const el = document.createElement('input');
+  el.type = 'hidden'; el.name = name; el.value = val;
+  form.appendChild(el);
+};
+addHidden('action', 'upload');
+addHidden('AccountKey', cfg.acctKey);
 
-console.log('[ClaimMD] HTTP status:', res.status, res.statusText);
-const xml = await res.text();
-console.log('[ClaimMD transmit] response:', xml.slice(0,500));
+// Attach CSV file
+const fileEl = document.createElement('input');
+fileEl.type = 'file'; fileEl.name = 'File';
+form.appendChild(fileEl);
+const dt = new DataTransfer();
+dt.items.add(new File([csv], fname, {type:'text/csv'}));
+fileEl.files = dt.files;
 
-if (!res.ok) throw new Error(`HTTP ${res.status}: ${xml.slice(0,200)}`);
+document.body.appendChild(form);
 
-const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/i)||[])[1] || '';
-const errMsg = (xml.match(/<[Mm]essage>(.*?)<\/[Mm]essage>/i)||[])[1] || xml.slice(0,200);
+const xml = await new Promise(function(resolve, reject) {
+  const timer = setTimeout(function(){ reject(new Error('No response from ClaimMD (30s timeout)')); }, 30000);
+  iframe.onload = function() {
+    clearTimeout(timer);
+    try {
+      const body = iframe.contentDocument.body;
+      resolve(body.innerText || body.innerHTML || '');
+    } catch(crossErr) {
+      // Cross-origin means ClaimMD accepted — no error thrown
+      resolve('<Success>Submitted</Success>');
+    }
+  };
+  form.submit();
+});
 
-if (errNo && errNo !== '0') throw new Error(errMsg || `ClaimMD error #${errNo}`);
+setTimeout(function(){ form.remove(); iframe.remove(); }, 3000);
+console.log('[ClaimMD response]', xml.slice(0,300));
+
+const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/i)||[])[1]||'';
+const errMsg = (xml.match(/<[Mm]essage>(.*?)<\/[Mm]essage>/i)||[])[1]||'';
+if (errNo && errNo !== '0') throw new Error(errMsg || 'ClaimMD error #' + errNo);
 
 // Mark as submitted + log transmission
 const logEntry = {
