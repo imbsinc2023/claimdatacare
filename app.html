@@ -5362,6 +5362,10 @@ document.getElementById('sg-title').textContent = sg ? 'Edit Service Group' : 'N
 renderSGLines();
 renderSGPatients();
 openModal('modal-sg');
+
+  // Restore multidate checkbox
+  var cbMD = document.getElementById('sg-multidate');
+  if (cbMD) cbMD.checked = !!(_sgForm.multiDate);
 }
 
 function renderSGLines() {
@@ -5381,6 +5385,10 @@ return `
 <div class="line-item">
 <div class="line-hdr"><span class="line-num">Line ${i+1}</span><button class="btn btn-danger btn-xs" onclick="_sgForm.lines.splice(${i},1);renderSGLines()">Remove</button></div>
 <div class="fg g4">
+${_sgForm.multiDate ? `<div class="field" style="grid-column:1/-1">
+<label style="color:var(--brand);font-weight:600;font-size:11px">Date of Service <span style="font-weight:400;color:var(--text3)">(this line)</span></label>
+<input type="date" class="mono" value="${l.dos||''}" oninput="_sgForm.lines[${i}].dos=this.value" style="border-color:var(--brand)">
+</div>` : ''}
 <div class="field"><label>CPT *</label>
 <input class="mono" value="${l.cpt||''}" oninput="_sgForm.lines[${i}].cpt=this.value" placeholder="97110"></div>
 <div class="field">
@@ -16572,7 +16580,14 @@ document.addEventListener("DOMContentLoaded", async function() {
 </div>
 
 <div class="sep"></div>
-<span class="slabel">?? CPT Lines</span>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+  <span class="slabel">CPT Lines</span>
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text)">
+    <input type="checkbox" id="sg-multidate" onchange="_sgForm.multiDate=this.checked;renderSGLines()" style="width:14px;height:14px;accent-color:var(--brand)">
+    Multiple dates of service
+    <span style="font-size:10px;color:var(--text3);font-weight:400">(per line)</span>
+  </label>
+</div>
 <div id="sg-lines" style="margin-bottom:8px"></div>
 <div class="btn-group" style="margin-bottom:14px">
 <button class="btn btn-sm" onclick="addSGLine()">+ Add CPT Line</button>
