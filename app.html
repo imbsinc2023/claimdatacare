@@ -9674,8 +9674,21 @@ const BRAND_LT  = [230,230,230];
 const ACC       = [0,0,0];
 const ROW_ALT   = [255,255,255];
 
-const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
 
+// ── Group claims by patient — one PDF per patient ─────────────
+const byPatient = new Map();
+claims.forEach(function(c) {
+  const pid = c.patId || 'unknown';
+  if (!byPatient.has(pid)) byPatient.set(pid, []);
+  byPatient.get(pid).push(c);
+});
+
+let fileCount = 0;
+byPatient.forEach(function(patClaims, patId) {
+  // Create a fresh PDF for this patient with all helpers using this doc
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
+
+  // ── Helpers (use this doc instance) ──────────────────────────────
 // ── Helpers ───────────────────────────────────────────────────────
 const fill  = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
 const stroke= (x,y,w,h,c,lw) => { doc.setDrawColor(...c); doc.setLineWidth(lw||0.3); doc.rect(x,y,w,h,'S'); };
@@ -9702,21 +9715,9 @@ const _parseDateParts = ds => {
 };
 const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
 
-// ── Group claims by patient — one PDF per patient ─────────────
-const byPatient = new Map();
-claims.forEach(function(c) {
-  const pid = c.patId || 'unknown';
-  if (!byPatient.has(pid)) byPatient.set(pid, []);
-  byPatient.get(pid).push(c);
-});
-
-let fileCount = 0;
-byPatient.forEach(function(patClaims, patId) {
-  // Create a fresh PDF for this patient
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
-
   patClaims.forEach(function(claim, ci) {
     if (ci > 0) doc.addPage();
+    try {
   const pat  = db.patients.find(p=>p.id===claim.patId)||{};
   const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
   const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
@@ -9984,6 +9985,10 @@ byPatient.forEach(function(patClaims, patId) {
   const dosParts2=_parseDateParts(claim.dos);
   const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
   t('Generated: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
+    } catch(pdfErr) {
+      console.error('[PDF] Error rendering claim:', claim?.pcn, pdfErr);
+      toast('PDF error: ' + pdfErr.message, 'err');
+    }
   }); // end patClaims.forEach
 
   // Filename: LLFFMMDDYYYYMMDDYYYY.pdf
