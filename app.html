@@ -9085,144 +9085,106 @@ ${entry.status!=='success'?`<div style="color:var(--red);font-size:11px">${entry
 }).join('');
 }
 async function transmitDirect(filter) {
-const cfg = getApiConfig();
-if (!cfg.acctKey) {
-toast('Configure your ClaimMD API Key in Settings → Billing Providers first', 'warn');
-return;
-}
+  const cfg = getApiConfig();
+  if (!cfg.acctKey) {
+    toast('Configure your ClaimMD API Key in Settings → Billing Providers first', 'warn');
+    return;
+  }
 
-const db = getDB();
-let claims = db.claims.filter(c => c.providerId === activeProviderId);
-if (filter === 'pending') claims = claims.filter(c => c.status === 'pending');
-if (filter === 'selected') claims = claims.filter(c => _selectedClaims.has(c.id));
-if (!claims.length) { toast(`No ${filter} claims to transmit`, 'warn'); return; }
+  const db = getDB();
+  let claims = db.claims.filter(function(c){ return c.providerId === activeProviderId; });
+  if (filter === 'pending')  claims = claims.filter(function(c){ return c.status === 'pending'; });
+  if (filter === 'selected') claims = claims.filter(function(c){ return _selectedClaims.has(c.id); });
+  if (!claims.length) { toast('No ' + filter + ' claims to transmit', 'warn'); return; }
 
-// Validate first
-const errors = claims.flatMap(c => validateClaim(c));
-if (errors.length) {
-toast(`${errors.length} validation error(s) — fix before transmitting`, 'err');
-return;
-}
+  // Build CSV
+  const rows = claims.map(function(c) {
+    return buildCSVRow(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
+  }).filter(Boolean);
+  if (!rows.length) { toast('Could not build CSV — check claim data', 'err'); return; }
 
-toast(`Transmitting ${claims.length} claim(s) to ClaimMD...`);
+  const csv = CSV_COLS.join(',') + '\n' + rows.map(function(r) {
+    return CSV_COLS.map(function(k) {
+      const val = String(r[k]||'');
+      return (val.includes(',') || val.includes('"')) ? '"' + val.replace(/"/g,'""') + '"' : val;
+    }).join(',');
+  }).join('\n');
 
-const rows = claims.map(c => buildCSVRow(c, db.providers.find(p=>p.id===c.providerId)||{}, db));
-const validRows = rows.filter(Boolean);
-if (!validRows.length) { toast('Could not build CSV rows — check claim data', 'err'); return; }
+  const fname = 'Claims_' + filter + '_' + dateStr() + '.csv';
 
-const csv = CSV_COLS.join(',') + '\n' +
-validRows.map(r => CSV_COLS.map(k => {
-const val = String(r[k]||'');
-return (val.includes(',')||val.includes('"')) ? `"${val.replace(/"/g,'""')}"` : val;
-}).join(',')).join('\n');
+  // ── Step 1: Auto-download the CSV ────────────────────────────────
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = fname; a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ a.remove(); URL.revokeObjectURL(url); }, 1000);
 
-const fname = `Claims_${filter}_${dateStr()}.csv`;
-const alertEl = document.getElementById('exp-alert-top');
+  // ── Step 2: Show modal with direct upload link to ClaimMD ────────
+  // ClaimMD upload URL (direct intake page)
+  const uploadUrl = 'https://www.claimmd.com/IntakeUpload.aspx';
 
-try {
-// ── Form-based submit — bypasses CORS completely ─────────────────
-const iframeId = 'claimmd-iframe-' + Date.now();
-const iframe = document.createElement('iframe');
-iframe.name = iframeId;
-iframe.style.cssText = 'display:none;position:absolute;left:-9999px';
-document.body.appendChild(iframe);
+  // Mark claims as submitted locally
+  setDB(function(db2) {
+    db2.claims.forEach(function(c) {
+      if (claims.find(function(x){ return x.id===c.id; })) {
+        c.status = 'submitted';
+        c.submittedAt = Date.now();
+        c.updatedAt = Date.now();
+      }
+    });
+    if (!db2.transmitLog) db2.transmitLog = [];
+    db2.transmitLog.unshift({
+      id: 'log_' + Date.now(),
+      ts: new Date().toISOString(),
+      action: 'export',
+      filter, count: claims.length,
+      claimIds: claims.map(function(c){ return c.id; }),
+      pcns: claims.map(function(c){ return c.pcn; }),
+      status: 'exported',
+      fname,
+    });
+  });
 
-// Build form with file
-const form = document.createElement('form');
-form.method = 'POST';
-form.action = 'https://intakeapi.claimmd.com/intake/claim';
-form.enctype = 'multipart/form-data';
-form.target = iframeId;
-form.style.display = 'none';
+  _selectedClaims.clear();
 
-const addHidden = function(name, val) {
-  const el = document.createElement('input');
-  el.type = 'hidden'; el.name = name; el.value = val;
-  form.appendChild(el);
-};
-addHidden('action', 'upload');
-addHidden('AccountKey', cfg.acctKey);
-
-// Attach CSV file
-const fileEl = document.createElement('input');
-fileEl.type = 'file'; fileEl.name = 'File';
-form.appendChild(fileEl);
-const dt = new DataTransfer();
-dt.items.add(new File([csv], fname, {type:'text/csv'}));
-fileEl.files = dt.files;
-
-document.body.appendChild(form);
-
-const xml = await new Promise(function(resolve, reject) {
-  const timer = setTimeout(function(){ reject(new Error('No response from ClaimMD (30s timeout)')); }, 30000);
-  iframe.onload = function() {
-    clearTimeout(timer);
-    try {
-      const body = iframe.contentDocument.body;
-      resolve(body.innerText || body.innerHTML || '');
-    } catch(crossErr) {
-      // Cross-origin means ClaimMD accepted — no error thrown
-      resolve('<Success>Submitted</Success>');
-    }
-  };
-  form.submit();
-});
-
-setTimeout(function(){ form.remove(); iframe.remove(); }, 3000);
-console.log('[ClaimMD response]', xml.slice(0,300));
-
-const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/i)||[])[1]||'';
-const errMsg = (xml.match(/<[Mm]essage>(.*?)<\/[Mm]essage>/i)||[])[1]||'';
-if (errNo && errNo !== '0') throw new Error(errMsg || 'ClaimMD error #' + errNo);
-
-// Mark as submitted + log transmission
-const logEntry = {
-id: 'log_' + Date.now(),
-ts: new Date().toISOString(),
-action: 'transmit',
-filter,
-count: claims.length,
-claimIds: claims.map(c=>c.id),
-pcns: claims.map(c=>c.pcn),
-status: 'success',
-response: xml.slice(0,500),
-};
-setDB(db2 => {
-db2.claims.forEach(c => {
-if (claims.find(x=>x.id===c.id)) {
-c.status = 'submitted';
-c.updatedAt = Date.now();
-c.submittedAt = Date.now();
-}
-});
-if (!db2.transmitLog) db2.transmitLog = [];
-db2.transmitLog.unshift(logEntry);
-if (db2.transmitLog.length > 200) db2.transmitLog = db2.transmitLog.slice(0,200);
-});
-_selectedClaims.clear();
-renderClaims(); updateBadges();
-_renderTransmitLog();
-
-if (alertEl) {
-alertEl.innerHTML = `<div class="alert al-success" style="font-size:13px;display:flex;align-items:center;gap:8px">
-<i data-lucide="check-circle" class="lci" style="width:16px;height:16px"></i>
-<span><strong>${claims.length}</strong> claim(s) transmitted — Status: <strong>Submitted</strong>. ${new Date().toLocaleTimeString()}</span>
-</div>`;
-setTimeout(_renderLucideIcons, 20);
-}
-toast(`${claims.length} claim(s) submitted to ClaimMD`);
-
-} catch(e) {
-console.error('[ClaimMD transmit] error:', e);
-if (alertEl) {
-alertEl.innerHTML = `<div class="alert al-error" style="font-size:13px">
-<i data-lucide="alert-circle" class="lci" style="width:16px;height:16px"></i>
-Transmission failed: ${e.message}
-</div>`;
-setTimeout(_renderLucideIcons, 20);
-}
-toast('Transmission failed: ' + e.message, 'err');
-}
+  // Show upload modal
+  const closeModal2 = function(){ const m=document.getElementById('modal-claimmd-upload'); if(m) m.remove(); };
+  const div = document.createElement('div');
+  div.className = 'modal-ov open';
+  div.id = 'modal-claimmd-upload';
+  div.onclick = function(e){ if(e.target===div) closeModal2(); };
+  div.innerHTML = [
+    '<div class="modal" style="max-width:480px">',
+    '<div class="modal-hdr"><span>Upload to ClaimMD</span>',
+    '<button class="btn btn-ghost btn-sm" id="claimmd-close-btn">×</button></div>',
+    '<div class="modal-body">',
+    '<div style="background:var(--bg3);border-radius:10px;padding:16px;margin-bottom:16px">',
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">✓ CSV descargado: <code style="color:var(--brand)">'+fname+'</code></div>',
+    '<div style="font-size:12px;color:var(--text3)">'+claims.length+' claim(s) — en tu carpeta Downloads</div>',
+    '</div>',
+    '<div style="font-size:13px;color:var(--text);margin-bottom:12px">Ahora súbelo a ClaimMD:</div>',
+    '<ol style="font-size:13px;color:var(--text3);line-height:2.2;margin:0 0 16px 18px">',
+    '<li>Click <strong style="color:var(--text)">Abrir ClaimMD</strong> abajo</li>',
+    '<li>Inicia sesión si es necesario</li>',
+    '<li>Selecciona el archivo CSV descargado</li>',
+    '<li>Submit — listo</li>',
+    '</ol>',
+    '</div>',
+    '<div class="modal-ftr">',
+    '<button class="btn btn-ghost" id="claimmd-cancel-btn">Cerrar</button>',
+    '<a href="'+uploadUrl+'" target="_blank" class="btn btn-primary" id="claimmd-open-btn">',
+    '<i data-lucide="external-link" class="lci"></i> Abrir ClaimMD Upload</a>',
+    '</div></div>',
+  ].join('');
+  document.body.appendChild(div);
+  document.getElementById('claimmd-close-btn').onclick = closeModal2;
+  document.getElementById('claimmd-cancel-btn').onclick = closeModal2;
+  document.getElementById('claimmd-open-btn').onclick = function(){ setTimeout(closeModal2, 500); };
+  setTimeout(_renderLucideIcons, 50);
+  renderClaims();
+  updateBadges();
 }
 
 // ?? ClaimMD Official CSV Format ??????????????????????????????????
