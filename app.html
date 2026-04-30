@@ -9288,7 +9288,10 @@ async function transmitDirect(filter) {
   }).filter(Boolean);
   if (!claimObjs.length) { toast('No se pudo generar el JSON', 'err'); return; }
 
-  const payload = JSON.stringify({ claim: claimObjs });
+  const payload = JSON.stringify({
+    fileid: String(Date.now()).slice(-6),
+    claim: claimObjs,
+  });
   const alertEl = document.getElementById('exp-alert-top');
 
   try {
