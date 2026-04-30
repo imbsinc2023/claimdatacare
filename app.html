@@ -4805,8 +4805,10 @@ const fd = new FormData();
 fd.append('action', 'ping');
 fd.append('AccountKey', cfg.acctKey);
 
-const CORS_PROXY_T = 'https://corsproxy.io/?' + encodeURIComponent('https://intakeapi.claimmd.com/intake/claim');
-const res = await fetch(CORS_PROXY_T, { method:'POST', body: fd });
+const res = await fetch('https://proxy.cors.sh/https://intakeapi.claimmd.com/intake/claim', {
+  method: 'POST', body: fd,
+  headers: { 'x-cors-api-key': 'temp_test' }
+});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const text = await res.text();
 
@@ -9100,13 +9102,25 @@ console.log('[ClaimMD] Transmitting', claims.length, 'claims via proxy');
 console.log('[ClaimMD] AccountKey present:', !!cfg.acctKey, '| File:', fname);
 
 // Use Cloudflare Pages Function proxy (same domain = no CORS)
-// Use corsproxy.io as a CORS proxy — free, no server needed
-const CLAIMMD_DIRECT = 'https://intakeapi.claimmd.com/intake/claim';
-const CORS_PROXY = 'https://corsproxy.io/?' + encodeURIComponent(CLAIMMD_DIRECT);
-const res = await fetch(CORS_PROXY, {
-  method: 'POST',
-  body: fd,
-});
+// Direct to ClaimMD — try multiple CORS proxies as fallback
+const CLAIMMD_URL = 'https://intakeapi.claimmd.com/intake/claim';
+let res;
+// Try 1: cors.sh (free, supports POST)
+try {
+  res = await fetch('https://proxy.cors.sh/' + CLAIMMD_URL, {
+    method: 'POST',
+    body: fd,
+    headers: { 'x-cors-api-key': 'temp_' + Date.now() }
+  });
+  if (!res.ok && res.status === 403) throw new Error('proxy blocked');
+} catch(proxyErr) {
+  // Try 2: direct (works if ClaimMD enables CORS)
+  res = await fetch(CLAIMMD_URL, {
+    method: 'POST',
+    body: fd,
+    mode: 'cors',
+  });
+}
 
 console.log('[ClaimMD] HTTP status:', res.status, res.statusText);
 const xml = await res.text();
