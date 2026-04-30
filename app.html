@@ -9090,6 +9090,176 @@ ${entry.status!=='success'?`<div style="color:var(--red);font-size:11px">${entry
 </div>`;
 }).join('');
 }
+// ── Build ClaimMD JSON format for a single claim ─────────────────
+function buildClaimJSON(claim, prov, db) {
+  if (!claim) return null;
+  const d = db || getDB();
+  const p = prov || d.providers.find(function(x){ return x.id===(claim.providerId||activeProviderId); }) || {};
+  const pat = d.patients.find(function(x){ return x.id===claim.patId; }) || {};
+  const rend = d.rendering.find(function(x){ return x.id===claim.renderingId; }) || {};
+  const fac = d.facilities.find(function(x){ return x.id===claim.facilityId; }) || {};
+  const ref = d.referring.find(function(x){ return x.id===claim.referringId; }) || {};
+
+  const allIns = pat.insurances || [];
+  const ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
+    || (pat.payerName||pat.payerid ? {
+        name:pat.payerName||'', payerId:pat.payerid||'',
+        memberId:pat.subNum||'', group:pat.groupNum||'',
+        lname:pat.last||'', fname:pat.first||'', dob:pat.dob||'',
+        sex:pat.sex||'', addr1:pat.addr1||'', city:pat.city||'',
+        state:pat.state||'', zip:pat.zip||'', relation:pat.relation||'18'
+    } : {});
+  const ins2 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('secondary'); });
+
+  const dx = (claim.dx||[]).filter(Boolean);
+  const lines = Array.isArray(claim.lines) ? claim.lines : [];
+
+  // Date formatters
+  const fmtDate = function(ds) {
+    if (!ds) return '';
+    ds = String(ds).trim();
+    if (ds.includes('-') && ds.split('-')[0].length===4) return ds; // already YYYY-MM-DD
+    if (ds.includes('/')) {
+      var p2 = ds.split('/');
+      if (p2[2] && p2[2].length===4) return p2[2]+'-'+p2[0].padStart(2,'0')+'-'+p2[1].padStart(2,'0');
+    }
+    return ds;
+  };
+  const fmtDob = fmtDate;
+  const clean10 = function(s){ return String(s||'').replace(/\D/g,'').slice(0,10); };
+  const clean9  = function(s){ return String(s||'').replace(/\D/g,'').slice(0,9); };
+  const UC = function(s){ return String(s||'').toUpperCase(); };
+  const fmtZip = function(z){ return String(z||'').replace(/[^0-9]/g,'').slice(0,9); };
+  const relCode = function(r){
+    var rl=(r||'').toLowerCase();
+    if(rl==='18'||rl.includes('self')) return '18';
+    if(rl==='01'||rl.includes('spouse')) return '01';
+    if(rl==='19'||rl.includes('child')) return '19';
+    return '18';
+  };
+
+  const pos = String(claim.pos||'11').padStart(2,'0');
+  const totalCharge = lines.reduce(function(s,l){ return s+parseFloat(l.charge||0); }, 0).toFixed(2);
+
+  // Build charge array — one per service line
+  const charges = lines.filter(function(l){ return l.cpt; }).map(function(l) {
+    const lineDos = l.dos ? fmtDate(l.dos) : fmtDate(claim.dos);
+    return {
+      charge:            parseFloat(l.charge||0).toFixed(2),
+      charge_record_type:'UN',
+      diag_ref:          String(l.dxPtr||'A').toUpperCase().replace(/[^A-H]/g,'') || 'A',
+      from_date:         lineDos,
+      thru_date:         lineDos,
+      mod1:              l.mod1||undefined,
+      mod2:              l.mod2||undefined,
+      mod3:              l.mod3||undefined,
+      mod4:              l.mod4||undefined,
+      place_of_service:  pos,
+      proc_code:         String(l.cpt||'').trim(),
+      remote_chgid:      l.id||'',
+      units:             String(Math.max(parseInt(l.units||1),1)),
+    };
+  });
+
+  var obj = {
+    accept_assign:     'Y',
+    auto_accident:     'N',
+    employment_related:'N',
+    claim_form:        '1500',
+    // Billing Provider
+    bill_addr_1:  UC(p.addr1||''),
+    bill_addr_2:  UC(p.addr2||''),
+    bill_city:    UC(p.city||''),
+    bill_name:    UC(p.name||''),
+    bill_npi:     clean10(p.npi),
+    bill_phone:   clean10(p.phone),
+    bill_state:   UC(p.state||'').slice(0,2),
+    bill_taxid:   clean9(p.taxid),
+    bill_taxid_type: p.taxType||'E',
+    bill_taxonomy:p.taxonomy||'',
+    bill_zip:     fmtZip(p.zip),
+    // Diagnoses
+    diag_1: dx[0]||'', diag_2: dx[1]||'',
+    diag_3: dx[2]||'', diag_4: dx[3]||'',
+    diag_5: dx[4]||'', diag_6: dx[5]||'',
+    diag_7: dx[6]||'', diag_8: dx[7]||'',
+    // Facility
+    facility_addr_1: UC(fac.addr1||p.addr1||''),
+    facility_city:   UC(fac.city||p.city||''),
+    facility_name:   UC(fac.name||p.name||''),
+    facility_npi:    clean10(fac.npi||p.npi||''),
+    facility_state:  UC(fac.state||p.state||'').slice(0,2),
+    facility_zip:    fmtZip(fac.zip||p.zip||''),
+    // Insured
+    ins_addr_1: UC(ins1.addr1||pat.addr1||''),
+    ins_city:   UC(ins1.city||pat.city||''),
+    ins_dob:    fmtDob(ins1.dob||pat.dob||''),
+    ins_group:  ins1.group||ins1.groupNum||'',
+    ins_name_f: UC(ins1.fname||ins1.first||pat.first||''),
+    ins_name_l: UC(ins1.lname||ins1.last||pat.last||''),
+    ins_name_m: UC(ins1.mname||''),
+    ins_number: ins1.memberId||ins1.policy||ins1.subNum||pat.subNum||'',
+    ins_sex:    (ins1.sex||pat.sex||'F').charAt(0).toUpperCase(),
+    ins_state:  UC(ins1.state||pat.state||'').slice(0,2),
+    ins_zip:    fmtZip(ins1.zip||pat.zip||''),
+    // Patient
+    pat_addr_1: UC(pat.addr1||''),
+    pat_city:   UC(pat.city||''),
+    pat_dob:    fmtDob(pat.dob||''),
+    pat_name_f: UC(pat.first||''),
+    pat_name_l: UC(pat.last||''),
+    pat_name_m: UC(pat.mid||''),
+    pat_rel:    relCode(ins1.relation||pat.relation||'18'),
+    pat_sex:    (pat.sex||'F').charAt(0).toUpperCase(),
+    pat_state:  UC(pat.state||'').slice(0,2),
+    pat_zip:    fmtZip(pat.zip||''),
+    // Payer
+    payer_name:  UC(ins1.name||ins1.insuranceName||pat.payerName||''),
+    payer_order: 'Primary',
+    payerid:     ins1.payerId||pat.payerid||'',
+    // Claim ID
+    pcn:           claim.pcn||'',
+    remote_claimid:claim.pcn||'',
+    remote_batchid:'',
+    prior_auth:    claim.auth||'',
+    // Rendering Provider
+    prov_name_f:  UC(rend.first||''),
+    prov_name_l:  UC(rend.last||''),
+    prov_name_m:  '',
+    prov_npi:     clean10(rend.npi||p.npi||''),
+    prov_taxid:   clean9(p.taxid),
+    prov_taxid_type: p.taxType||'E',
+    prov_taxonomy:rend.taxonomy||p.taxonomy||'',
+    // Referring
+    ref_name_f: UC(ref.first||''),
+    ref_name_l: UC(ref.last||''),
+    ref_name_m: '',
+    ref_npi:    clean10(ref.npi||''),
+    // Totals
+    total_charge: totalCharge,
+    charge: charges,
+  };
+
+  // Secondary insurance
+  if (ins2) {
+    obj.other_ins_dob    = fmtDob(ins2.dob||'');
+    obj.other_ins_group  = ins2.group||'';
+    obj.other_ins_name_f = UC(ins2.fname||ins2.first||'');
+    obj.other_ins_name_l = UC(ins2.lname||ins2.last||'');
+    obj.other_ins_number = ins2.memberId||ins2.policy||'';
+    obj.other_ins_sex    = (ins2.sex||'F').charAt(0).toUpperCase();
+    obj.other_payer_name = UC(ins2.name||'');
+    obj.other_payerid    = ins2.payerId||'';
+  }
+
+  // Remove undefined/empty fields
+  Object.keys(obj).forEach(function(k){
+    if (obj[k]===undefined || obj[k]==='') delete obj[k];
+  });
+
+  return obj;
+}
+
 async function transmitDirect(filter) {
   const cfg = getApiConfig();
   if (!cfg.acctKey) {
@@ -9113,37 +9283,33 @@ async function transmitDirect(filter) {
 
   toast('Transmitiendo ' + claims.length + ' claim(s) a ClaimMD...', 'info');
 
-  const rows = claims.map(function(c) {
-    return buildCSVRow(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
+  const claimObjs = claims.map(function(c) {
+    return buildClaimJSON(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
   }).filter(Boolean);
-  if (!rows.length) { toast('No se pudo generar el CSV', 'err'); return; }
+  if (!claimObjs.length) { toast('No se pudo generar el JSON', 'err'); return; }
 
-  const csv = CSV_COLS.join(',') + '\n' + rows.map(function(r) {
-    return CSV_COLS.map(function(k) {
-      const val = String(r[k]||'');
-      return (val.includes(',') || val.includes('"')) ? '"' + val.replace(/"/g,'""') + '"' : val;
-    }).join(',');
-  }).join('\n');
-
-  const fname = 'Claims_' + filter + '_' + dateStr() + '.csv';
+  const payload = JSON.stringify({ claim: claimObjs });
   const alertEl = document.getElementById('exp-alert-top');
 
   try {
-    const fd = new FormData();
-    fd.append('action', 'upload');
-    fd.append('AccountKey', cfg.acctKey);
-    fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
+    console.log('[ClaimMD] Transmitting', claims.length, 'claims as JSON...');
 
-    console.log('[ClaimMD] Transmitting', claims.length, 'claims...');
-    const res = await fetch(proxyUrl, { method: 'POST', body: fd });
-    const xml = await res.text();
-    console.log('[ClaimMD response]', xml.slice(0,300));
+    const res = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+    });
+    const json = await res.text();
+    console.log('[ClaimMD response]', json.slice(0,300));
 
-    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + xml.slice(0,200));
+    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + json.slice(0,200));
 
-    const errNo  = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/i)||[])[1]||'';
-    const errMsg = (xml.match(/<[Mm]essage>(.*?)<\/[Mm]essage>/i)||[])[1]||'';
-    if (errNo && errNo !== '0') throw new Error(errMsg || 'ClaimMD error #' + errNo);
+    var resp = {};
+    try { resp = JSON.parse(json); } catch(e) {}
+
+    const errNo  = resp.errorcode || resp.error_code || '';
+    const errMsg = resp.message   || resp.error      || json.slice(0,200);
+    if (errNo && errNo !== '0' && errNo !== 0) throw new Error(errMsg);
 
     setDB(function(db2) {
       db2.claims.forEach(function(c) {
