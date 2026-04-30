@@ -1426,6 +1426,8 @@ return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.
 
 
 function getApiConfig() {
+  // Default worker URL if not set per provider
+  const DEFAULT_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
 // Also reads OPENAI_KEY from localStorage if stored
 const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
 if (stored.openaiKey) return stored;
