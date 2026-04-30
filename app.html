@@ -6141,7 +6141,7 @@ txt(entity.phone, x, ly, { size:8.5, color:MID });
 }
 ly += 4;
 }
-if (entity.taxid) { txt('?EIN: ' + entity.taxid, x, ly, { size:8, color:MID }); ly += 4; }
+if (entity.taxid) { txt('EIN: ' + entity.taxid, x, ly, { size:8, color:MID }); ly += 4; }
 return ly;
 };
 
@@ -6180,11 +6180,16 @@ txt('AMOUNT', RX-2, y+2, { size:7.5, bold:true, color:WHITE, align:'right' });
 y += 9;
 
 const svcLines = inv.svcLines || [];
-svcLines.forEach((s, i) => {
-if (i % 2 === 1) fill(M+2, y-3, CW, 7.5, LIGHT);
-txt(s.desc||'', M+5, y+1, { size:9, color:DARK });
-txt(money(s.amount), RX-2, y+1, { size:9, bold:true, color:DARK, align:'right' });
-y += 7.5;
+svcLines.forEach(function(s, i) {
+  // Skip empty lines — no desc and no amount
+  if (!s.desc && (!s.amount || parseFloat(s.amount) === 0)) return;
+  if (i % 2 === 1) fill(M+2, y-3, CW, 7.5, LIGHT);
+  txt(s.desc||'', M+5, y+1, { size:9, color:DARK });
+  // Only show amount if it exists and is non-zero
+  if (s.amount && parseFloat(s.amount) !== 0) {
+    txt(money(s.amount), RX-2, y+1, { size:9, bold:true, color:DARK, align:'right' });
+  }
+  y += 7.5;
 });
 
 // Fee calculation (not shown as line — included in service lines by user)
@@ -6415,7 +6420,7 @@ txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7.5, color:[180,185,195], al
 }
 
 doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
-toast('Invoice PDF exported ?');
+toast('Invoice PDF exported');
 }
 
 
@@ -7497,7 +7502,7 @@ return `<tr>
 <button class="btn btn-xs btn-primary" onclick="openPartialPaymentModal('${inv.id}')" title="Record Payment">
 <i data-lucide="dollar-sign" class="lci" style="width:11px;height:11px"></i> Pay
 </button>
-<button class="btn btn-xs" onclick="exportInvoicePDF('${inv.id}')">PDF</button>
+<button class="btn btn-xs" onclick="exportInvoicePDF('${inv.id}')">PDF</button><button class="btn btn-xs btn-ghost" onclick="sendInvoiceEmail(inv)" title="Email" style="color:var(--brand)"><i data-lucide="mail" class="lci" style="width:11px;height:11px"></i></button>
 </div>
 </td>
 </tr>`;
@@ -7522,9 +7527,9 @@ function openPartialPaymentModal(invId) {
 const db = getInvDB();
 const inv = db.invoices.find(x=>x.id===invId);
 if (!inv) return;
-// Always recalculate fee correctly from stored parameters
-// Rule: if revenue < minBase → fee = minBase * fee%
-//       if revenue >= minBase → fee = revenue * fee%
+// Recalculate billing fee correctly
+// Rule: if revenue >= minBase → fee = revenue * fee%
+//       if revenue < minBase  → fee = minBase * fee%
 const _fee   = parseFloat(inv.fee) || 0;
 const _minB  = parseFloat(inv.minBase) || 0;
 const _rev   = parseFloat(inv.revenue) || 0;
@@ -7535,12 +7540,13 @@ const _excOn = _excB > 0 && _excM > 0 && (_excM - _excU) > 0;
 let billed;
 if (_excOn) {
   billed = _excB * _fee / 100;
-} else if (_minB > 0 && _rev < _minB) {
-  billed = _minB * _fee / 100;   // revenue below minimum → apply % to minimum revenue
-} else if (_rev > 0 && _fee > 0) {
-  billed = _rev * _fee / 100;    // standard: % of actual revenue
+} else if (_fee > 0 && _rev > 0) {
+  // Use actual revenue × fee% — if below minimum, minimum applies
+  const calcFee = _rev * _fee / 100;
+  const minFee  = _minB * _fee / 100;
+  billed = (_minB > 0 && _rev < _minB) ? minFee : calcFee;
 } else {
-  billed = parseFloat(inv.billingFee||inv.total||0); // fallback
+  billed = parseFloat(inv.billingFee || inv.total || 0);
 }
 const already = parseFloat(inv.amtPaid||0);
 const balance = billed - already;
@@ -7759,6 +7765,9 @@ ${statusOptions.map(s=>`<option value="${s}" ${s===inv.status?'selected':''}>${s
 </button>
 <button class="btn-icon sm" onclick="exportInvoicePDF('${inv.id}')" title="PDF">
 <i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i>
+</button>
+<button class="btn-icon sm" onclick="sendInvoiceEmail(inv)" title="Enviar por Email" style="color:var(--brand)">
+<i data-lucide="mail" class="lci" style="width:13px;height:13px"></i>
 </button>
 <button class="btn-icon sm" onclick="openInvoiceModal('${inv.id}')" title="Edit">
 <i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i>
@@ -17005,6 +17014,42 @@ document.addEventListener("DOMContentLoaded", async function() {
   // ── No session — show login ────────────────────────────────────
   renderLoginScreen();
 });
+
+// ── Send Invoice by Email ─────────────────────────────────────────
+function sendInvoiceEmail(inv) {
+  const db = getDB();
+  const iss = (db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
+  const cli = (db.clients||[]).find(function(x){ return x.id===inv.clientId; }) || {};
+
+  const toEmail = cli.email || cli.billingEmail || '';
+  const fromName = iss.name || 'Billing';
+  const subject = 'Invoice ' + (inv.number||'') + ' — ' + (inv.month||'') + ' — $' + fmtMoney(parseFloat(inv.billingFee||inv.total||0));
+  const body = [
+    'Dear ' + (cli.name||'Client') + ',',
+    '',
+    'Please find your invoice details below:',
+    '',
+    'Invoice #: ' + (inv.number||''),
+    'Period: ' + (inv.month||''),
+    'Amount Due: $' + fmtMoney(parseFloat(inv.billingFee||inv.total||0)),
+    'Due Date: ' + (inv.due||''),
+    '',
+    'Please remit payment at your earliest convenience.',
+    '',
+    'Thank you,',
+    fromName,
+  ].join('\n');
+
+  if (!toEmail) {
+    // No email on file — ask user
+    const email = prompt('Email address for ' + (cli.name||'client') + ':', '');
+    if (!email) return;
+    window.open('mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+  } else {
+    window.open('mailto:' + toEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+    toast('Email abierto para ' + toEmail, 'ok');
+  }
+}
 
 </script>
 
