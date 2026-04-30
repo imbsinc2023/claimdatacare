@@ -14,7 +14,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 
 /* ??? TOKENS ??? */
 :root{
-/* ?? Palette: Enterprise Medical / Emerald ?? */
+/* Palette: Enterprise Medical / Emerald */
 --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--surface:#ffffff;
 --border:#e2e8f0;--border2:#cbd5e1;
 --text:#1e293b;--text2:#475569;--text3:#94a3b8;
@@ -245,7 +245,7 @@ tbody tr:hover td{background:var(--bg3)}
 
 
 
-/* ?? Super Admin ?? */
+/* Super Admin */
 .admin-lock{display:flex;align-items:center;gap:6px;padding:7px 16px;cursor:pointer;font-size:12px;font-weight:700;color:var(--amber);border-top:1px solid var(--border);transition:all .15s}
 .admin-lock:hover{background:var(--amber-bg)}
 .admin-lock.unlocked{color:var(--green)}
@@ -279,7 +279,7 @@ background: #161b27;
 border-bottom-color: #2a3347;
 }
 
-/* ?? Brand ?? */
+/* Brand */
 .tn-brand {
 display: flex;
 align-items: center;
@@ -307,7 +307,7 @@ margin: 0 8px;
 }
 [data-theme="dark"] .tn-divider { background: #2a3347; }
 
-/* ?? Nav container ?? */
+/* Nav container */
 .tn-nav {
 display: flex;
 align-items: center;
@@ -316,7 +316,7 @@ gap: 2px;
 overflow: visible;
 }
 
-/* ?? Nav button items ?? */
+/* Nav button items */
 .tn-item {
 display: inline-flex;
 align-items: center;
@@ -365,7 +365,7 @@ color: #10b981;
 box-shadow: inset 0 0 0 1.5px var(--brand-d);
 }
 
-/* ?? Caret ?? */
+/* Caret */
 .tn-caret {
 width: 14px;
 height: 14px;
@@ -375,11 +375,11 @@ transition: transform .2s ease;
 }
 .tn-group.open .tn-caret { transform: rotate(180deg); opacity: .8; }
 
-/* ?? Icon inside nav button (Lucide) ?? */
+/* Icon inside nav button (Lucide) */
 .tn-item { gap: 6px; }
 .tn-dd-item { gap: 10px; }
 
-/* ?? Dropdown group ?? */
+/* Dropdown group */
 .tn-group {
 position: relative;
 display: flex;
@@ -395,7 +395,7 @@ background: #052e1a;
 color: #10b981;
 }
 
-/* ?? Dropdown panel ?? */
+/* Dropdown panel */
 .tn-dropdown {
 display: none;
 position: absolute;
@@ -423,7 +423,7 @@ from { opacity: 0; transform: translateY(-6px) scale(.97); }
 to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ?? Dropdown items ?? */
+/* Dropdown items */
 .tn-dd-item {
 display: flex;
 align-items: center;
@@ -486,7 +486,7 @@ min-width: 18px;
 text-align: center;
 }
 
-/* ?? Right section ?? */
+/* Right section */
 .tn-right {
 display: flex;
 align-items: center;
@@ -574,7 +574,7 @@ border-color: #2a3347;
 color: #475569;
 }
 
-/* ?? Hamburger ?? */
+/* Hamburger */
 .tn-hamburger {
 display: none;
 align-items: center;
@@ -594,7 +594,7 @@ transition: background .15s;
 [data-theme="dark"] .tn-hamburger { color: #94a3b8; }
 [data-theme="dark"] .tn-hamburger:hover { background: #1e2433; }
 
-/* ?? Mobile drawer ?? */
+/* Mobile drawer */
 .tn-drawer { display:none;position:fixed;inset:0;z-index:500 }
 .tn-drawer.open { display:block }
 .tn-drawer-backdrop { position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px) }
@@ -645,11 +645,11 @@ transition:background .12s,color .12s;
 .tn-drawer-sub-item:hover,.tn-drawer-sub-item.active { color:var(--brand);background:var(--brand-bg); }
 [data-theme="dark"] .tn-drawer-sub-item:hover { color:#10b981;background:#052e1a; }
 
-/* ?? App layout ?? */
+/* App layout */
 
 
 
-/* ?? Mobile breakpoint ?? */
+/* Mobile breakpoint */
 @media(max-width:768px) {
 .tn-nav { display:none }
 .tn-right { border-left:none;padding-left:4px }
@@ -1502,7 +1502,7 @@ el.textContent = label;
 el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 }
 
-// ?? Synchronous local cache (for all sync callers) ??
+// Synchronous local cache (for all sync callers)
 function getDB() {
 if (_localDB) return JSON.parse(JSON.stringify(_localDB));
 // No local cache yet — return empty structure, Firestore will populate on load
@@ -2816,16 +2816,16 @@ border-radius:var(--r-md);margin-bottom:10px;flex-wrap:wrap">
 <span style="font-size:13px;font-weight:700;color:var(--brand)" id="clm-bulk-count">${_selectedClaims.size} selected</span>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:4px">
 <button class="btn btn-sm btn-primary" onclick="bulkClaimAction('pending')">
-<i data-lucide="clock" class="lci"></i> ? Pending
+<i data-lucide="clock" class="lci"></i> Pending
 </button>
 <button class="btn btn-sm btn-primary" onclick="bulkClaimAction('submitted')">
-<i data-lucide="send" class="lci"></i> ? Submit
+<i data-lucide="send" class="lci"></i> Submit
 </button>
 <button class="btn btn-sm" onclick="bulkClaimAction('accepted')">
-<i data-lucide="check-circle" class="lci"></i> ? Accept
+<i data-lucide="check-circle" class="lci"></i> Accept
 </button>
 <button class="btn btn-sm" onclick="bulkClaimAction('rejected')">
-<i data-lucide="x-circle" class="lci"></i> ? Reject
+<i data-lucide="x-circle" class="lci"></i> Reject
 </button>
 <button class="btn btn-sm" onclick="bulkClaimAction('export')">
 <i data-lucide="download" class="lci"></i> Export 837P
@@ -2862,7 +2862,7 @@ const pat = db.patients.find(x=>x.id===c.patId)||{};
 const lines = Array.isArray(c.lines)?c.lines:[];
 const cpts = lines.map(l=>`<span class="mono" style="font-size:11px">${l.cpt||''}</span>`).join(' ');
 const errs = validateClaim(c);
-const errBadge = errs.length?`<span class="badge b-red" style="font-size:10px">${errs.length}!</span>`:'';
+const errBadge = errs.length?`<span class="badge b-red" style="font-size:10px;cursor:pointer" title="${errs.join('\n')}">${errs.length} issue${errs.length>1?'s':''}</span>`:'';
 const isSel = _selectedClaims.has(c.id);
 return `<tr style="background:${isSel?'var(--brand-bg)':''}">
 <td style="padding:8px 10px">
@@ -3557,7 +3557,7 @@ Ready for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="backgrou
 <div class="modal-t">Post EOB Payment</div>
 <div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>
 </div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-eob-post')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-eob-post')">×</button>
 </div>
 <div class="modal-body" style="max-height:80vh;overflow-y:auto">
 <!-- Check Header -->
@@ -3609,7 +3609,7 @@ Click "Find &amp; Add Claim" to search and add claims to this payment
 <div class="modal modal-sm">
 <div class="modal-hdr">
 <div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-eob-search')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-eob-search')">×</button>
 </div>
 <div class="modal-body">
 <div class="fg g2" style="margin-bottom:10px">
@@ -3701,7 +3701,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="modal modal-sm">
 <div class="modal-hdr">
 <div><div class="modal-t" id="mins-title">Add Payer</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-insurance')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-insurance')">×</button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="mins-id">
@@ -3764,7 +3764,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="modal" style="max-width:700px;width:98%">
 <div class="modal-hdr">
 <div><div class="modal-t">ClaimMD Payer Directory</div><div class="modal-sub">Search and import payers from ClaimMD</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-claimmd-payers')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-claimmd-payers')">×</button>
 </div>
 <div class="modal-body">
 <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -4843,18 +4843,20 @@ const activeDates = getSGBatchDates();
 if (!activeDates.length) { toast('Select a date range', 'warn'); return; }
 
 // Lines template from the SG
-const lines_tmpl = (sg.lines||[]).map(l => ({
-id: uid(),
-cpt: l.cpt,
-desc: l.desc||'',
-units: String(parseInt(l.units)||1),
-charge: parseFloat(l.rate||l.charge||0).toFixed(2),
-mod1: l.mod1||'',
-mod2: l.mod2||'',
-mod3: l.mod3||'',
-mod4: l.mod4||'',
-dxPtr: l.dxPtr||'A',
-}));
+const lines_tmpl = (sg.lines||[]).map(l => {
+  const lu2 = parseInt(l.units)||1;
+  const sPPU2 = parseFloat(l.pricePerUnit||l.rate||0);
+  const sCHG2 = parseFloat(l.charge||0);
+  const ppu2 = sPPU2 > 0 ? sPPU2 : (sCHG2 > 0 && lu2 > 0 ? sCHG2/lu2 : 0);
+  return {
+    id: uid(), cpt: l.cpt, desc: l.desc||'',
+    units: String(lu2),
+    charge: (ppu2*lu2).toFixed(2),
+    pricePerUnit: ppu2.toFixed(2),
+    mod1:l.mod1||'', mod2:l.mod2||'', mod3:l.mod3||'', mod4:l.mod4||'',
+    dxPtr: l.dxPtr||'A',
+  };
+});
 if (!lines_tmpl.length) { toast('Service group has no CPT lines', 'warn'); return; }
 
 // Only iterate patients that belong to THIS service group
@@ -4910,7 +4912,12 @@ if (groupMode) {
     for (const l of (sg.lines || lines_tmpl)) {
       // Units from SG line definition (e.g. 16 units of H2017)
       const lineUnits = parseInt(l.units) || 1;
-      const pricePerUnit = parseFloat(l.pricePerUnit || l.rate || 0);
+      // SG stores pricePerUnit directly, or compute from charge/units
+      const storedPPU = parseFloat(l.pricePerUnit || l.rate || 0);
+      const storedCharge = parseFloat(l.charge || 0);
+      // If pricePerUnit is 0 but charge exists, derive it
+      const pricePerUnit = storedPPU > 0 ? storedPPU
+        : (storedCharge > 0 && lineUnits > 0 ? storedCharge / lineUnits : 0);
       const lineCharge = (pricePerUnit * lineUnits).toFixed(2);
 
       // dxPtr: ALL diagnoses on every line (e.g. "ABCD" if 4 dx)
@@ -4956,8 +4963,10 @@ if (groupMode) {
       dos: d.date || d.label || d,
       pos, dx,
       lines: (sg.lines||lines_tmpl).map(function(l) {
-      const lu = parseInt(l.units)||1;
-      const ppu = parseFloat(l.pricePerUnit||l.rate||0);
+      const lu  = parseInt(l.units)||1;
+      const sPPU = parseFloat(l.pricePerUnit||l.rate||0);
+      const sCHG = parseFloat(l.charge||0);
+      const ppu = sPPU > 0 ? sPPU : (sCHG > 0 && lu > 0 ? sCHG / lu : 0);
       const allDxPtr = ['A','B','C','D','E','F','G','H'].slice(0, dx.length).join('') || 'A';
       return {
         id: uid(), cpt: l.cpt||'', desc: l.desc||'',
@@ -5120,13 +5129,13 @@ c.pcn
 );
 
 if (!ourClaims.length) {
-logTransmit('?? No submitted claims to sync','info');
+logTransmit('No submitted claims to sync','info');
 toast('No submitted claims to sync'); return;
 }
 
 // Build PCN lookup set for fast matching
 const ourPCNs = new Set(ourClaims.map(c => c.pcn.toUpperCase()));
-logTransmit(`?? Syncing ${ourClaims.length} submitted claim(s) from Clearinghouse...`, 'info');
+logTransmit(`Syncing ${ourClaims.length} submitted claim(s) from Clearinghouse...`, 'info');
 
 try {
 const fd = new FormData();
@@ -5140,7 +5149,7 @@ const xml = await res.text();
 
 const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m => m[1]);
 if (!blocks.length) {
-logTransmit('?? No new responses from Clearinghouse', 'info');
+logTransmit('No new responses from Clearinghouse', 'info');
 toast('No new updates'); return;
 }
 
@@ -5174,12 +5183,12 @@ if (!claim) { ignored++; return; }
 if (status === 'A') {
 claim.status = 'accepted';
 accepted++;
-logTransmit(` ? ${claim.pcn} ? Accepted`, 'ok');
+logTransmit(` ✓ ${claim.pcn} — Accepted`, 'ok');
 } else if (status === 'R') {
 claim.status = 'rejected';
 claim.rejectReason = rejectMsg;
 rejected++;
-logTransmit(` ? ${claim.pcn} ? Rejected: ${rejectMsg}`, 'err');
+logTransmit(` ✗ ${claim.pcn} — Rejected: ${rejectMsg}`, 'err');
 }
 
 if (claimMdId) claim.claimmdId = claimMdId;
@@ -5187,14 +5196,14 @@ claim.updatedAt = Date.now();
 });
 });
 
-const msg = `? Sync complete — ${accepted} accepted, ${rejected} rejected${ignored ? ` (${ignored} from other sources ignored)` : ''}`;
+const msg = `Sync complete — ${accepted} accepted, ${rejected} rejected${ignored ? ` (${ignored} from other sources ignored)` : ''}`;
 logTransmit(msg, accepted > 0 ? 'ok' : 'warn');
-if (rejected) logTransmit(`?? ${rejected} claim(s) rejected — check Claims ? Rejected tab`, 'warn');
+if (rejected) logTransmit(`?? ${rejected} claim(s) rejected — check Claims → Rejected tab`, 'warn');
 toast(`Synced: ${accepted} accepted, ${rejected} rejected`);
 updateBadges(); renderExportSummary();
 
 } catch(e) {
-logTransmit('? Sync failed: ' + e.message, 'err');
+logTransmit('Sync failed: ' + e.message, 'err');
 toast('Sync failed: ' + e.message, 'err');
 }
 }
@@ -5903,7 +5912,7 @@ Send Reset Email
 </button>
 <button onclick="renderLoginScreen()"
 style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);font-family:var(--font);padding:6px;text-align:center">
-? Back to Sign In
+← Back to Sign In
 </button>
 </div>
 </div>
@@ -6026,7 +6035,7 @@ txt(entity.phone, x, ly, { size:8.5, color:MID });
 }
 ly += 4;
 }
-if (entity.taxid) { txt('EIN: ' + entity.taxid, x, ly, { size:8, color:MID }); ly += 4; }
+if (entity.taxid) { txt('?EIN: ' + entity.taxid, x, ly, { size:8, color:MID }); ly += 4; }
 return ly;
 };
 
@@ -6428,11 +6437,11 @@ ${d.label}
 </span>`).join('');
 
 const sgRendId = sg.renderingProviderId || '';
-const rendOpts = `<option value="">? Group default${sgRendId ? ' ('+( rends.find(r=>r.id===sgRendId)?.last||'?')+')' : ''}</option>` +
+const rendOpts = `<option value="">— Group default${sgRendId ? ' ('+( rends.find(r=>r.id===sgRendId)?.last||'?')+')' : ''}</option>` +
 rends.map(r => `<option value="${r.id}" ${r.id===stRef.rendId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
 const refOpts = `<option value="">— None —</option>` +
 refs.map(r => `<option value="${r.id}" ${r.id===(stRef.refId||asgn.referringId||'')?'selected':''}>${r.last}, ${r.first}</option>`).join('');
-const facOpts = `<option value="">? Group default</option>` +
+const facOpts = `<option value="">— Group default</option>` +
 facs.map(f => `<option value="${f.id}" ${f.id===(stRef.facId||asgn.facilityId||'')?'selected':''}>${f.name}</option>`).join('');
 
 return `<div style="border-bottom:1px solid var(--border);background:${stRef.included?'':'var(--bg3)'};transition:background .15s">
@@ -6448,7 +6457,7 @@ ${ptLinkName(pat.id, pat.last, pat.first)}
 <span style="font-size:11px;color:var(--text3);margin-left:8px">${pat.payerName||pat.payerid||''}</span>
 ${dxArr.length ? `<span style="font-size:10px;color:var(--brand);margin-left:8px">Dx: ${dxArr.slice(0,2).join(', ')}${dxArr.length>2?'...':''}</span>` : '<span style="font-size:10px;color:var(--amber);margin-left:8px"><i data-lucide="alert-triangle" class="lci" style="width:11px;height:11px;color:var(--amber)"></i> No Dx</span>'}
 </div>
-<span class="badge ${stRef.included?'b-green':'b-gray'}" style="font-size:10px;flex-shrink:0">${stRef.included?'? Include':'? Skip'}</span>
+<span class="badge ${stRef.included?'b-green':'b-gray'}" style="font-size:10px;flex-shrink:0">${stRef.included?'Include':'Skip'}</span>
 </div>
 
 <!-- Patient detail — shown when included -->
@@ -6851,7 +6860,7 @@ fill('mprov-zip', (addr.postal_code||'').slice(0,10));
 fill('mprov-phone', (addr.telephone_number||'').replace(/\D/g,'').slice(0,10));
 const typeEl = document.getElementById('mprov-type');
 if (typeEl) typeEl.value = isOrg ? 'Organization' : 'Individual';
-resultEl.innerHTML = `<div style="padding:10px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand);line-height:1.7"><strong>${orgName}</strong><br>${taxo.desc||''}<br>${addr.city?addr.address_1+', '+addr.city+', '+addr.state:''}<div style="color:var(--green);font-weight:600;margin-top:4px">? Fields auto-filled</div></div>`;
+resultEl.innerHTML = `<div style="padding:10px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand);line-height:1.7"><strong>${orgName}</strong><br>${taxo.desc||''}<br>${addr.city?addr.address_1+', '+addr.city+', '+addr.state:''}<div style="color:var(--green);font-weight:600;margin-top:4px">Fields auto-filled</div></div>`;
 }
 
 
@@ -7439,7 +7448,7 @@ d.className = 'overlay';
 d.innerHTML = `<div class="modal modal-sm">
 <div class="modal-hdr">
 <div><div class="modal-t">Record Payment</div><div class="modal-sub" id="ppm-sub"></div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-partial-pay')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-partial-pay')">×</button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="ppm-inv-id">
@@ -8194,7 +8203,7 @@ ${iconEl}
 <div><div style="font-size:15px;font-weight:800">${p.name}</div>
 <div class="mono" style="font-size:11px;color:var(--text3)">NPI: ${p.npi || ''} · EIN: ${p.taxid || ''}</div></div>
 </div>
-<div style="display:flex;gap:6px"><span class="badge ${sc}">${status}</span>${isActive ? '<span class="badge b-blue">? Active</span>' : ''}</div>
+<div style="display:flex;gap:6px"><span class="badge ${sc}">${status}</span>${isActive ? '<span class="badge b-blue">Active</span>' : ''}</div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
 ${[['Patients',patCnt,'brand'],['Claims',claimCnt,'green'],['Rendering',rendCnt,'purple'],['Facilities',facCnt,'teal']].map(([l,n,c]) =>
@@ -8417,7 +8426,7 @@ if(users.find(u=>u.email.toLowerCase()===email)){alertEl.innerHTML='<div class="
 const newUser={id:uid(),email,name,role:'Manager',createdAt:Date.now()};
 users.push(newUser); saveUsers(users);
 document.getElementById('nu-email').value=''; document.getElementById('nu-pass').value=''; document.getElementById('nu-name').value='';
-alertEl.innerHTML='<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> User saved. Add password in Firebase Console ? Authentication ? Add user.</div>';
+alertEl.innerHTML='<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> User saved. Add password in Firebase Console → Authentication → Add user.</div>';
 renderUserManagement(); toast('User '+email+' added ?');
 }
 
@@ -8927,7 +8936,7 @@ if (errs.length) {
 const alertEl = document.getElementById('exp-alert-top');
 if (alertEl) {
 alertEl.innerHTML = `<div class="alert al-error" style="font-size:12px;line-height:1.8">
-<strong>?? Fix these issues before exporting:</strong><br>
+<strong>Fix these issues before exporting:</strong><br>
 ${errs.slice(0,10).map(e=>`¥ ${e}`).join('<br>')}
 ${errs.length>10?`<br>...and ${errs.length-10} more`:''}
 </div>`;
@@ -9640,12 +9649,12 @@ claims.forEach((claim, ci) => {
   }
 
   // Provider info
-  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:12, c:BLACK});
+  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:11, c:BLACK});
   const npiTax = [prov.npi?'NPI: '+prov.npi:null, prov.taxid?'EIN: '+prov.taxid:null].filter(Boolean).join('  ·  ');
-  if (npiTax) t(npiTax, provX, y+13, {sz:7.5, c:DARK});
+  if (npiTax) t(npiTax, provX, y+13, {sz:9, c:DARK});
   const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
-  if (addr) t(UC(addr), provX, y+19, {sz:7.5, c:DARK});
-  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:DARK});
+  if (addr) t(UC(addr), provX, y+19, {sz:9, c:DARK});
+  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:9, c:DARK});
 
   // SUPERBILL title + PCN (right side)
   t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BLACK, a:'right'});
@@ -9660,7 +9669,7 @@ claims.forEach((claim, ci) => {
     dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
   }
   const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
-  if (dosPos) t(dosPos, RX, y+25, {sz:8, c:DARK, a:'right'});
+  if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
 
   y = 42;
   hline(M, y, RX, BORDER_LT, 0.4);
@@ -9679,7 +9688,7 @@ claims.forEach((claim, ci) => {
   }
 
   const patName = [safe(pat.last), safe(pat.first), safe(pat.mid)].filter(Boolean).join(', ');
-  t(UC(patName||'Unknown'), M, y, {b:true, sz:11, c:DARK});
+  t(UC(patName||'Unknown'), M, y, {b:true, sz:10, c:DARK});
   y += 5;
 
   const patInfoParts = [
@@ -9687,10 +9696,10 @@ claims.forEach((claim, ci) => {
     pat.sex ? 'Sex: '+pat.sex : null,
     pat.acct ? 'Acct: '+UC(pat.acct) : null,
   ].filter(Boolean);
-  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:8, c:DARK}); y += 5; }
+  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:9, c:DARK}); y += 5; }
 
   const patAddr = [safe(pat.addr1), safe(pat.city), safe(pat.state)].filter(Boolean).join(', ');
-  if (patAddr) { t(UC(patAddr), M, y, {sz:7.5, c:DARK}); y += 4; }
+  if (patAddr) { t(UC(patAddr), M, y, {sz:9, c:DARK}); y += 4; }
 
   y += 4;
   hline(M, y, RX, BORDER_LT, 0.25);
@@ -9707,7 +9716,7 @@ claims.forEach((claim, ci) => {
       (ins1.policy||ins1.memberId) ? 'Member: '+(ins1.policy||ins1.memberId) : null,
       ins1.group ? 'Group: '+ins1.group : null,
     ].filter(Boolean).join('  ·  ');
-    if (ins1Parts) { t(ins1Parts, M, y, {sz:8.5, c:DARK}); y += 5; }
+    if (ins1Parts) { t(ins1Parts, M, y, {sz:9, c:DARK}); y += 5; }
 
     const subParts = [
       'Subscriber: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
@@ -9715,7 +9724,7 @@ claims.forEach((claim, ci) => {
       ins1.relation ? 'Relation: '+({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
       ins1.plan ? 'Plan: '+UC(ins1.plan) : null,
     ].filter(Boolean).join('  ·  ');
-    if (subParts) { t(subParts, M, y, {sz:7.5, c:DARK}); y += 4; }
+    if (subParts) { t(subParts, M, y, {sz:9, c:DARK}); y += 4; }
 
     y += 4;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -9729,14 +9738,14 @@ claims.forEach((claim, ci) => {
       lbl('Rendering Provider', M, y);
       t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
       const rendInfo = [rend.npi?'NPI: '+rend.npi:null, rend.taxonomy?'Taxonomy: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
-      if (rendInfo) t(rendInfo, M, y+10, {sz:7.5, c:DARK});
+      if (rendInfo) t(rendInfo, M, y+10, {sz:9, c:DARK});
       const facInfo = fac.name ? 'Facility: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:'') : null;
-      if (facInfo) t(facInfo, M, y+15, {sz:7.5, c:DARK});
+      if (facInfo) t(facInfo, M, y+15, {sz:9, c:DARK});
     }
     if (ref.last) {
       lbl('Referring Provider', M+halfW+2, y);
       t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
-      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:7.5, c:DARK});
+      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:9, c:DARK});
     }
     y += (rend.last&&fac.name) ? 22 : 18;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -9751,7 +9760,7 @@ claims.forEach((claim, ci) => {
     dxArr.forEach((dx,di) => {
       const col=di%dxCols, row=Math.floor(di/dxCols);
       const ltr=String.fromCharCode(65+di);
-      t(`${ltr}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:8.5, c:DARK});
+      t(`${ltr}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:9, c:DARK});
     });
     y += Math.ceil(dxArr.length/dxCols)*6+4;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -9765,19 +9774,22 @@ claims.forEach((claim, ci) => {
   y += 5;
 
   // Column header line
-  const SL = { cptW:18, descW:68, unitW:14, uprcW:20, modsW:18, dxW:14 };
+  const SL = { cptW:16, descW:82, unitW:12, uprcW:22, modsW:16, dxW:13 };
+  // CW=188: 16+82+12+22+16+13=161 + Total(right-aligned) fits fine
   // Detect multi-date claim (per-line DOS)
   const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
-  const DOS_W = 20; // width for date column
-  const CPT_X = M + (hasDosPerLine ? DOS_W + 2 : 0);
+  // Date column: 24mm when present
+  const DOS_W = 24;
+  const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
   const SL2 = {
-    cptW:  SL.cptW,
-    descW: hasDosPerLine ? SL.descW - (DOS_W+2) : SL.descW,
+    cptW:  14,  // slightly narrower CPT when date shown
+    descW: hasDosPerLine ? 52 : SL.descW,  // tighter desc to leave room
     unitW: SL.unitW,
     uprcW: SL.uprcW,
     modsW: SL.modsW,
     dxW:   SL.dxW,
   };
+  // Multi: 24+14+52+12+22+16+13=153 + margin = fits in CW=188
 
   if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
   t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
@@ -9801,8 +9813,7 @@ claims.forEach((claim, ci) => {
     const dxPtr    = (l.dxPtr||'A').toUpperCase();
 
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    const descW = 66;
-    const descLines = doc.splitTextToSize(descFull||'', descW);
+    const descLines = doc.splitTextToSize(descFull||'', SL2.descW - 2);
     const rowH = Math.max(7, descLines.length * 4.5);
 
     // Per-line date (multi-date claims)
@@ -9812,34 +9823,36 @@ claims.forEach((claim, ci) => {
       try {
         var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
         if (lineDosRaw.indexOf('-')>3) {
-          lineDosShort = parseInt(dp2[1])+'/'+parseInt(dp2[2]);
+          // YYYY-MM-DD → MM/DD/YYYY
+          lineDosShort = dp2[1]+'/'+dp2[2]+'/'+dp2[0];
         } else {
-          lineDosShort = parseInt(dp2[0])+'/'+parseInt(dp2[1]);
+          // M/D/YYYY → MM/DD/YYYY
+          lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
         }
       } catch(e2){}
-      if (lineDosShort) t(lineDosShort, M+1, y+4, {sz:7.5, c:DARK});
+      if (lineDosShort) t(lineDosShort, M+1, y+4, {sz:9, c:DARK});
     }
 
     // CPT bold
     t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
 
     // Description wrapped
-    descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
+    descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
 
     // Units
-    t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:8, c:DARK, a:'center'});
+    t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
 
     // Unit price — always show
-    t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:8, c:DARK, a:'right'});
+    t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:9, c:DARK, a:'right'});
 
     // Mods
-    if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:7.5, c:DARK});
+    if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:9, c:DARK});
 
     // Dx pointer
-    t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:8, c:DARK, a:'center'});
+    t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
 
     // Total right aligned
-    t($v(chg), RX, y+4, {sz:9, b:true, c:DARK, a:'right'});
+    t($v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
 
     y += rowH;
     // Light separator between lines
@@ -10136,7 +10149,7 @@ return `<div style="padding:8px 10px;border-bottom:1px solid var(--border);${i%2
 <span style="font-size:11px">${ptLinkAcct(p.id,p.acct)}</span>
 <select style="flex:1;padding:3px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-size:11px"
 onchange="_batchPatSel.get('${patId}').rendId=this.value">
-<option value="">? Use group rendering</option>
+<option value="">— Group rendering</option>
 ${rends.map(r=>`<option value="${r.id}" ${r.id===(data.rendId||globalRendId)?'selected':''}>${r.last}, ${r.first}</option>`).join('')}
 </select>
 <button class="btn btn-xs btn-danger" onclick="_batchPatSel.delete('${patId}');renderBatchPatients()" title="Remove"><i data-lucide="x" class="lci"></i></button>
@@ -10759,7 +10772,7 @@ btn.style.background = 'linear-gradient(145deg,#dc2626,#b91c1c)';
 btn.style.boxShadow = '0 6px 20px rgba(220,38,38,.5), 0 0 0 8px rgba(220,38,38,.15)';
 btn.style.animation = 'voicePulse 1.5s ease-in-out infinite';
 btn.innerHTML = '<i data-lucide="mic-off" class="lci" style="width:32px;height:32px;color:#fff"></i>';
-if (status) status.textContent = '?? Recording — tap to stop';
+if (status) status.textContent = 'Recording — tap to stop';
 if (live) live.textContent = 'Listening...';
 } else {
 btn.style.background = 'linear-gradient(145deg,#059669,#047857)';
@@ -10767,7 +10780,7 @@ btn.style.boxShadow = '0 6px 20px rgba(5,150,105,.4)';
 btn.style.animation = 'none';
 btn.innerHTML = '<i data-lucide="mic" class="lci" style="width:32px;height:32px;color:#fff"></i>';
 if (status) status.textContent = _vBuf ? 'Tap to continue dictating' : 'Tap the mic and dictate your note';
-if (live) live.textContent = _vBuf ? '? Transcript captured — tap Auto-Structure' : 'Transcript will appear here...';
+if (live) live.textContent = _vBuf ? 'Transcript captured — tap Auto-Structure' : 'Transcript will appear here...';
 }
 setTimeout(_renderLucideIcons, 10);
 }
@@ -10911,9 +10924,9 @@ ${notes.length?noteCards:`<div style="text-align:center;padding:40px;background:
 
 
 // ????????????????????????????????????????????????????????????????
-// ? CLAIMDATACARE EMBEDDED VOICE AI ENGINE ?
+// CLAIMDATACARE EMBEDDED VOICE AI ENGINE
 // ? 100% Local · No API Key · No Internet Required ?
-// ? Engine: Web Speech API + Medical NLP Processor v2 ?
+// Engine: Web Speech API + Medical NLP Processor v2
 // ????????????????????????????????????????????????????????????????
 
 // ?? Medical NLP Knowledge Base ????????????????????????????????
@@ -11429,7 +11442,7 @@ btn.style.background='linear-gradient(145deg,#dc2626,#b91c1c)';
 btn.style.boxShadow='0 8px 24px rgba(220,38,38,.5),inset 0 1px 0 rgba(255,255,255,.2)';
 btn.innerHTML='<i data-lucide="mic-off" class="lci" style="width:34px;height:34px;color:#fff"></i>';
 if(ring){ ring.style.border='2px solid rgba(220,38,38,.3)'; ring.style.animation='voicePulse 1.4s ease-in-out infinite'; }
-if(status) status.innerHTML='<span style="color:var(--red);font-weight:700">? REC</span> &nbsp;Tap to stop · Speak your note...';
+if(status) status.innerHTML='<span style="color:var(--red);font-weight:700">REC</span> &nbsp;Tap to stop · Speak your note...';
 if(live){ live.style.borderColor='var(--red-bdr)'; live.style.background='var(--red-bg)'; live.textContent='Listening...'; }
 } else {
 btn.style.background='linear-gradient(145deg,#059669,#047857)';
@@ -11437,7 +11450,7 @@ btn.style.boxShadow='0 8px 24px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,2
 btn.innerHTML='<i data-lucide="mic" class="lci" style="width:34px;height:34px;color:#fff"></i>';
 if(ring){ ring.style.border='2px solid transparent'; ring.style.animation='none'; }
 if(status) status.textContent=_vBuf?'Tap to continue · Or click Structure Note':'Tap the mic · Dictate your note · Tap again to stop';
-if(live){ live.style.borderColor='var(--border)'; live.style.background='var(--bg3)'; live.textContent=_vBuf?'? Transcript captured':'Transcript appears here while you speak...'; }
+if(live){ live.style.borderColor='var(--border)'; live.style.background='var(--bg3)'; live.textContent=_vBuf?'Transcript captured':'Transcript appears here while you speak...'; }
 }
 setTimeout(_renderLucideIcons,10);
 }
@@ -11498,7 +11511,7 @@ try{ if(document.getElementById('ptc-tab-encounters')?.classList.contains('activ
 
 
 // ????????????????????????????????????????????????????????????????
-// ? ERA / EOB PAYMENT POSTING MODULE ?
+// ERA / EOB PAYMENT POSTING MODULE
 // ????????????????????????????????????????????????????????????????
 
 let _eobBatchLines = []; // claim lines in current batch being posted
@@ -11511,7 +11524,7 @@ function setEOBBatches(fn) { setDB(db2=>{ if(!db2.eobBatches) db2.eobBatches=[];
 // ?? Main page render ?????????????????????????????????????????????
 
 // ????????????????????????????????????????????????????????????????
-// ? INSURANCE / PAYER MANAGEMENT ?
+// INSURANCE / PAYER MANAGEMENT
 // ????????????????????????????????????????????????????????????????
 
 // Full ClaimMD Electronic Payer List (top 200 major payers)
@@ -12029,7 +12042,7 @@ Payment: <strong style="color:var(--brand)">$${fmtMoney(u.amt)}</strong>
 </div>
 </div>
 <button onclick="document.getElementById('modal-recreate-claim').remove()"
-style="width:32px;height:32px;border-radius:8px;border:none;background:var(--bg3);cursor:pointer;font-size:16px;color:var(--text2)">?</button>
+style="width:32px;height:32px;border-radius:8px;border:none;background:var(--bg3);cursor:pointer;font-size:16px;color:var(--text2)">×</button>
 </div>
 </div>
 
@@ -12215,7 +12228,7 @@ toast(`Claim ${pcn} created and payment posted ?`);
 function renderEOBUnmatched() {
 const db = getDB();
 const unmatched = (db.eobUnmatched||[]).filter(u=>u.providerId===activeProviderId);
-if (!unmatched.length) return `<div class="empty"><h3 style="color:var(--brand)">? No unmatched payments</h3></div>`;
+if (!unmatched.length) return `<div class="empty"><h3 style="color:var(--brand)">No unmatched payments</h3></div>`;
 
 return `<div style="margin-bottom:10px;padding:10px 14px;background:var(--amber-bg);border:1px solid var(--amber-bdr);border-radius:var(--r);font-size:12px;color:var(--amber)">
 <strong>${unmatched.length} unmatched payment(s)</strong> — Match to an existing claim, recreate the claim from payment data, or dismiss.
@@ -12842,7 +12855,7 @@ ${stBadge}
 ${n.status!=='finalized'
 ?`<button class="btn btn-sm" style="color:var(--green)" onclick="finalizeNote('${n.id}')"><i data-lucide="check-circle" class="lci"></i> Finalize</button>
 <button class="btn btn-sm" onclick="regenerateNote('${n.id}')"><i data-lucide="refresh-cw" class="lci"></i> Regenerate</button>`
-:`<button class="btn btn-xs" onclick="unfinalizeNote('${n.id}')">? Reopen</button>`}
+:`<button class="btn btn-xs" onclick="unfinalizeNote('${n.id}')">Reopen</button>`}
 <button class="btn btn-xs btn-danger" onclick="deleteNote('${n.id}')"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>`;
@@ -12931,7 +12944,7 @@ ${n.finalizedAt?' · Finalized: '+new Date(n.finalizedAt).toLocaleString():''}
 ${!ro?`<button class="btn btn-sm" onclick="saveNoteEdits()"><i data-lucide="save" class="lci"></i> Save</button>
 <button class="btn btn-sm" onclick="regenerateNote('${n.id}')"><i data-lucide="refresh-cw" class="lci"></i> Regenerate</button>
 <button class="btn btn-primary" onclick="saveNoteEdits(true)"><i data-lucide="check-circle" class="lci"></i> Save & Finalize</button>`
-:`<button class="btn btn-sm" onclick="unfinalizeNote('${n.id}')">? Reopen</button>`}
+:`<button class="btn btn-sm" onclick="unfinalizeNote('${n.id}')">Reopen</button>`}
 <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',false)"><i data-lucide="file-text" class="lci"></i> PDF</button>
 <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',true)"><i data-lucide="clipboard-list" class="lci"></i> + Superbill</button>
 </div>
@@ -13007,7 +13020,7 @@ const idx=db.claims.findIndex(c=>c.id===claimId);
 if(idx>=0) openClaim(idx);
 }
 
-// ?? PDF Export — Professional, Audit-Ready ?????????????????????????????
+// PDF Export — Professional, Audit-Ready ?????????????????????????????
 async function exportNotePDF(noteId, withSuperbill) {
 const notes=getNotes();
 const n=notes.find(x=>x.id===noteId);
@@ -13055,7 +13068,7 @@ t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,c
 t('MEDICAL NOTE',RX,M+9,{bold:true,size:14,color:DARK,align:'right'});
 const cptLabel=(CPT_ENGINE[n.cpt]||CPT_ENGINE['DEFAULT']).label;
 t(cptLabel,RX,M+15,{size:8,color:BLUE,align:'right'});
-t(n.status==='finalized'?'? FINALIZED':'DRAFT — Not for Billing',RX,M+21,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
+t(n.status==='finalized'?'FINALIZED':'DRAFT — Not for Billing',RX,M+21,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
 let y=M+LOGO_SZ+8;
 hln(y,BORDER,0.5); y+=5;
 
@@ -14065,7 +14078,7 @@ ${logs.length ? [...logs].reverse().map(e=>`
 <div style="display:flex;gap:10px;align-items:center;margin-bottom:3px">
 <span style="font-weight:700;color:${colorMap[e.status]||'var(--text)'}">${e.message}</span>
 <span class="badge b-gray" style="font-size:9px">${e.type||'info'}</span>
-<span class="badge b-gray" style="font-size:9px">${e.direction==='out'?'? OUT':'? IN'}</span>
+<span class="badge b-gray" style="font-size:9px">${e.direction==='out'?'OUT':'IN'}</span>
 </div>
 ${e.detail?`<div style="font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5">${e.detail}</div>`:''}
 <div style="font-size:10px;color:var(--text3);margin-top:4px">${new Date(e.ts).toLocaleString()} · ${e.source||'System'}</div>
@@ -14147,12 +14160,12 @@ if (errNo && errNo !== '0') throw new Error((xml.match(/<message>(.*?)<\/message
 
 setDB(db2 => { const c=db2.claims.find(x=>x.id===claimId); if(c){c.status='submitted';c.updatedAt=Date.now();} });
 addClaimLog(claimId, { type:'submission', direction:'in', status:'ok',
-message:'? Submission accepted by Clearinghouse', detail: xml.slice(0,300) });
+message:'Submission accepted by Clearinghouse', detail: xml.slice(0,300) });
 toast('Claim submitted ?');
 _activateClaimTab('transmission', claimId);
 } catch(e) {
 addClaimLog(claimId, { type:'submission', direction:'in', status:'error',
-message:`? Submission failed: ${e.message}`, detail: e.message });
+message:`Submission failed: ${e.message}`, detail: e.message });
 toast('Submission failed: '+e.message, 'err');
 _activateClaimTab('transmission', claimId);
 }
@@ -14206,7 +14219,7 @@ _activateClaimTab('transmission', claimId);
 toast(updated?'Status updated ?':'No new update available');
 } catch(e) {
 addClaimLog(claimId, { type:'status_check', direction:'in', status:'error',
-message:`? Status sync failed: ${e.message}` });
+message:`Status sync failed: ${e.message}` });
 toast('Sync failed: '+e.message, 'err');
 _activateClaimTab('transmission', claimId);
 }
@@ -14702,7 +14715,7 @@ const div = document.createElement('div');
 div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5500;display:flex;align-items:center;justify-content:center';
 div.innerHTML = `
 <div style="background:#fff;border-radius:10px;padding:24px;max-width:340px;width:90%;text-align:center">
-<div style="font-size:32px;margin-bottom:12px">??</div>
+<div style="font-size:32px;margin-bottom:12px"></div>
 <div style="font-size:14px;font-weight:700;color:#c0392b;margin-bottom:8px">Camera Not Available</div>
 <div style="font-size:12px;color:#555;margin-bottom:16px;line-height:1.6">
 The camera requires a secure connection (HTTPS).<br>
@@ -15292,7 +15305,7 @@ ${isImage
 : isPDF
 ? `<iframe src="${doc.data}" style="width:100%;height:75vh;border:none"></iframe>`
 : `<div style="padding:40px;text-align:center;color:#555">
-<div style="font-size:40px;margin-bottom:12px">??</div>
+<div style="font-size:40px;margin-bottom:12px"></div>
 <div style="font-size:14px;font-weight:600">${doc.name}</div>
 <a href="${doc.data}" download="${doc.name}"
 style="display:inline-block;margin-top:12px;padding:10px 20px;background:#065f46;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">
@@ -16717,7 +16730,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 <div class="overlay" id="modal-sg"><div class="modal modal-lg" style="max-height:90vh;overflow-y:auto">
 <div class="modal-hdr" style="position:sticky;top:0;background:var(--surface);z-index:1">
 <div><div class="modal-t" id="sg-title">New Service Group</div><div class="modal-sub">Define CPT bundle + assign patients</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sg')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sg')">×</button>
 </div>
 <div class="modal-body">
 <div class="fg g2" style="margin-bottom:14px">
@@ -16739,11 +16752,11 @@ document.addEventListener("DOMContentLoaded", async function() {
 <div id="sg-lines" style="margin-bottom:8px"></div>
 <div class="btn-group" style="margin-bottom:14px">
 <button class="btn btn-sm" onclick="addSGLine()">+ Add CPT Line</button>
-<button class="btn btn-sm" onclick="openSGCatalog()">?? Pick from Catalog</button>
+<button class="btn btn-sm" onclick="openSGCatalog()">Pick from Catalog</button>
 </div>
 
 <div class="sep"></div>
-<span class="slabel">?? Assigned Patients</span>
+<span class="slabel">Assigned Patients</span>
 <div id="sg-patients" style="margin-bottom:10px"></div>
 <div style="margin-bottom:6px;font-size:12px;color:var(--text3)">Search and add patients:</div>
 <input id="sg-pat-search" placeholder="Type patient name or account #É"
@@ -16753,7 +16766,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 </div>
 <div class="modal-ftr">
 <button class="btn" onclick="closeModal('modal-sg')">Cancel</button>
-<button class="btn btn-primary" onclick="saveSG()">?? Save Group</button>
+<button class="btn btn-primary" onclick="saveSG()">Save Group</button>
 </div>
 </div>
 </div>
@@ -16766,7 +16779,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="overlay" id="modal-issuer"><div class="modal modal-lg">
 <div class="modal-hdr">
 <div><div class="modal-t" id="iss-title">New Billing Entity</div><div class="modal-sub">Entity that appears as sender on invoices</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-issuer')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-issuer')">×</button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="iss-id">
@@ -16776,8 +16789,8 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div style="display:flex;align-items:center;gap:12px">
 <div id="iss-logo-preview" style="width:120px;height:120px;border:2px dashed var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);overflow:hidden;background:var(--bg3)">No logo</div>
 <div>
-<label class="btn btn-sm" style="cursor:pointer">?? Upload Logo<input type="file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none"></label>
-<button class="btn btn-xs btn-danger" style="margin-left:6px" onclick="clearIssuerLogo()">? Remove</button>
+<label class="btn btn-sm" style="cursor:pointer">Upload Logo<input type="file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none"></label>
+<button class="btn btn-xs btn-danger" style="margin-left:6px" onclick="clearIssuerLogo()">Remove</button>
 <div class="hint" style="margin-top:4px">PNG, JPG. Recommended: 300?100px</div>
 </div>
 </div>
@@ -16815,7 +16828,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 </div>
 <div class="modal-ftr">
 <button class="btn" onclick="closeModal('modal-issuer')">Cancel</button>
-<button class="btn btn-primary" onclick="saveIssuer()">?? Save</button>
+<button class="btn btn-primary" onclick="saveIssuer()">Save</button>
 </div>
 </div></div>
 
@@ -16823,7 +16836,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="overlay" id="modal-client"><div class="modal modal-lg">
 <div class="modal-hdr">
 <div><div class="modal-t" id="cli-title">New Client</div><div class="modal-sub">Medical practice or entity receiving the invoice</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-client')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-client')">×</button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="cli-id">
@@ -16844,7 +16857,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 </div>
 <div class="modal-ftr">
 <button class="btn" onclick="closeModal('modal-client')">Cancel</button>
-<button class="btn btn-primary" onclick="saveClient()">?? Save</button>
+<button class="btn btn-primary" onclick="saveClient()">Save</button>
 </div>
 </div></div>
 
@@ -16852,7 +16865,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="overlay" id="modal-invoice"><div class="modal modal-lg">
 <div class="modal-hdr">
 <div><div class="modal-t" id="inv-modal-title">New Invoice</div><div class="modal-sub" id="inv-modal-sub"></div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invoice')">?</button>
+<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invoice')">×</button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="inv-id">
@@ -16890,7 +16903,7 @@ style="width:72px;padding:7px 8px;border:1.5px solid var(--border2);border-radiu
 </div>
 
 <div class="sep"></div>
-<span class="slabel">?? Services Billed</span>
+<span class="slabel">Services Billed</span>
 <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Up to 4 service lines (e.g. Medical Billing, Credentialing)</div>
 <div id="inv-svc-lines" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
 <button class="btn btn-sm" onclick="addInvSvcLine()" id="inv-svc-add">+ Add Service Line</button>
@@ -16898,15 +16911,15 @@ style="width:72px;padding:7px 8px;border:1.5px solid var(--border2);border-radiu
 <div class="sep"></div>
 <!-- Payment lines -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-<span class="slabel" style="margin:0">?? Payment Lines</span>
+<span class="slabel" style="margin:0">Payment Lines</span>
 <div class="btn-group">
 <button class="btn btn-sm" onclick="addInvLine()">+ Add Line</button>
-<button class="btn btn-sm" onclick="togglePasteArea()" id="inv-paste-btn">?? Paste from Excel</button>
+<button class="btn btn-sm" onclick="togglePasteArea()" id="inv-paste-btn">Paste from Excel</button>
 </div>
 </div>
 <!-- Import area — hidden by default -->
 <div id="inv-paste-area" style="display:none;margin-bottom:12px;border:2px dashed var(--brand);border-radius:var(--r);padding:12px;background:var(--brand-bg)">
-<div style="font-size:12px;font-weight:600;color:var(--brand);margin-bottom:8px">?? Import Payment Report</div>
+<div style="font-size:12px;font-weight:600;color:var(--brand);margin-bottom:8px">Import Payment Report</div>
 <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
 Upload an Excel or CSV file from your EHR/clearinghouse. All columns will be detected and displayed automatically — no fixed format required.
 </div>
@@ -16926,7 +16939,7 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 </div>
 <div id="inv-paste-preview" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
 <div class="btn-group" style="margin-top:8px">
-<button class="btn btn-primary btn-sm" onclick="importPastedLines()">? Import Pasted Lines</button>
+<button class="btn btn-primary btn-sm" onclick="importPastedLines()">Import Pasted Lines</button>
 <button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button>
 </div>
 </div>
@@ -16998,9 +17011,9 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 </div>
 <div class="modal-ftr">
 <button class="btn" onclick="closeModal('modal-invoice')">Cancel</button>
-<button class="btn btn-sm" onclick="exportInvoiceExcel(_currentInvId||document.getElementById('inv-id').value)">?? Excel</button>
-<button class="btn btn-sm" onclick="exportInvoicePDF(_currentInvId||document.getElementById('inv-id').value)">?? PDF</button>
-<button class="btn btn-primary" onclick="saveInvoice()">?? Save Invoice</button>
+<button class="btn btn-sm" onclick="exportInvoiceExcel(_currentInvId||document.getElementById('inv-id').value)">Excel</button>
+<button class="btn btn-sm" onclick="exportInvoicePDF(_currentInvId||document.getElementById('inv-id').value)">PDF</button>
+<button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
 </div>
 </div></div>
 
