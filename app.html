@@ -6473,25 +6473,34 @@ toast('Excel exported ?');
 let _invSvcLines = []; // service lines on current invoice (up to 4)
 
 function renderInvSvcLines() {
-const el = document.getElementById('inv-svc-lines');
-if (!el) return;
-el.innerHTML = _invSvcLines.map((s, i) => `
-<div class="inv-svc-row" draggable="true" data-idx="${i}"
-style="display:flex;gap:8px;align-items:center;cursor:grab;padding:2px 0"
-ondragstart="invSvcDragStart(event,${i})"
-ondragover="invSvcDragOver(event)"
-ondrop="invSvcDrop(event,${i})"
-ondragend="invSvcDragEnd()">
-<span style="color:var(--text3);font-size:16px;cursor:grab;padding:0 4px;user-select:none">?</span>
-<input style="flex:2;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px"
-value="${s.desc}" placeholder="e.g. Medical Billing Services" oninput="_invSvcLines[${i}].desc=this.value">
-<input style="flex:1;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:13px"
-type="number" value="${s.amount||''}" placeholder="1200.00" oninput="_invSvcLines[${i}].amount=this.value;recalcInvoice()">
-<button class="btn btn-xs btn-danger" onclick="_invSvcLines.splice(${i},1);renderInvSvcLines()"><i data-lucide="x" class="lci"></i></button>
-</div>`).join('');
-const addBtn = document.getElementById('inv-svc-add');
-if (addBtn) addBtn.style.display = _invSvcLines.length >= 4 ? 'none' : '';
-recalcInvoice();
+  const el = document.getElementById('inv-svc-lines');
+  if (!el) return;
+  el.innerHTML = _invSvcLines.map(function(s, i) {
+    const isFirst = i === 0;
+    const amtStyle = isFirst
+      ? 'flex:1;padding:7px 10px;border:1.5px solid var(--brand);border-radius:var(--r);background:var(--brand-bg);color:var(--text);font-family:var(--mono);font-size:13px;font-weight:600'
+      : 'flex:1;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:13px';
+    return '<div class="inv-svc-row" draggable="true" data-idx="'+i+'"'
+      + ' style="display:flex;gap:8px;align-items:center;cursor:grab;padding:2px 0"'
+      + ' ondragstart="invSvcDragStart(event,'+i+')"'
+      + ' ondragover="invSvcDragOver(event)"'
+      + ' ondrop="invSvcDrop(event,'+i+')"'
+      + ' ondragend="invSvcDragEnd()">'
+      + '<span style="color:var(--text3);font-size:16px;cursor:grab;padding:0 4px;user-select:none">⋮</span>'
+      + '<input style="flex:2;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px"'
+      + ' value="'+s.desc+'" placeholder="e.g. Medical Billing Services" oninput="_invSvcLines['+i+'].desc=this.value">'
+      + '<div style="position:relative;flex:1">'
+      + '<input id="inv-svc-amt-'+i+'" style="'+amtStyle+';width:100%;box-sizing:border-box"'
+      + ' type="number" value="'+(s.amount||'')+'" placeholder="0.00"'
+      + ' oninput="_invSvcLines['+i+'].amount=this.value;if('+i+'===0)_invSvcLines[0]._manualOverride=true;recalcInvoice()">'
+      + (isFirst ? '<span title="Auto-calculated — editable" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--brand);pointer-events:none;font-weight:700">AUTO</span>' : '')
+      + '</div>'
+      + '<button class="btn btn-xs btn-danger" onclick="_invSvcLines.splice('+i+',1);renderInvSvcLines()"><i data-lucide="x" class="lci"></i></button>'
+      + '</div>';
+  }).join('');
+  const addBtn = document.getElementById('inv-svc-add');
+  if (addBtn) addBtn.style.display = _invSvcLines.length >= 4 ? 'none' : '';
+  recalcInvoice();
 }
 
 let _invDragIdx = -1;
@@ -6617,6 +6626,25 @@ function recalcInvoice() {
 
   const feeEl = el('inv-fee-amt');
   if (feeEl) feeEl.style.color = calcMethod === 'standard' ? 'var(--text)' : 'var(--amber)';
+
+  // ── Auto-fill first service line amount with calculated fee ────
+  // Only auto-fill if user hasn't manually overridden it
+  if (_invSvcLines && _invSvcLines.length > 0) {
+    const firstLine = _invSvcLines[0];
+    const currentVal = parseFloat(firstLine.amount) || 0;
+    const feeDiff = Math.abs(currentVal - finalFee);
+    // Auto-fill if: empty, or matches a previously auto-set value (within $0.01)
+    // Don't override if user manually typed a very different value
+    if (!firstLine._manualOverride || feeDiff < 0.02) {
+      firstLine.amount = finalFee > 0 ? finalFee.toFixed(2) : '';
+      firstLine._autoSet = true;
+      // Update the input field directly without re-rendering
+      const amtInput = document.getElementById('inv-svc-amt-0');
+      if (amtInput && document.activeElement !== amtInput) {
+        amtInput.value = firstLine.amount;
+      }
+    }
+  }
 
   // Breakdown line — shows exact calculation
   const breakdownEl = el('inv-calc-breakdown');
@@ -7190,6 +7218,9 @@ return `<div class="tbl-wrap"><table>
 <thead><tr><th>Invoice #</th><th>Client</th><th>Month</th><th>Billed</th><th>Paid</th><th>Balance</th><th>Status</th><th>Due</th><th>Actions</th></tr></thead><tbody>` +
 list.map(inv => {
 const cli = _resolveInvClientName(inv.clientId, db);
+// Recalculate fee from stored data to handle old invoices with wrong billingFee
+// Use saved billingFee (the already-calculated correct fee)
+// billingFee = the final fee after applying minimum revenue rule
 const billed = parseFloat(inv.billingFee||inv.total||0);
 const paid = parseFloat(inv.amtPaid||0);
 const bal = billed - paid;
@@ -7232,6 +7263,8 @@ function openPartialPaymentModal(invId) {
 const db = getInvDB();
 const inv = db.invoices.find(x=>x.id===invId);
 if (!inv) return;
+// Recalculate fee from stored data to handle old invoices with wrong billingFee
+// Use saved billingFee — the correct pre-calculated fee
 const billed = parseFloat(inv.billingFee||inv.total||0);
 const already = parseFloat(inv.amtPaid||0);
 const balance = billed - already;
@@ -7326,6 +7359,8 @@ document.getElementById('ppm-inv-id')?.value;
 const db = getInvDB();
 const inv = db.invoices.find(x=>x.id===invId);
 if (!inv) return;
+// Recalculate fee from stored data to handle old invoices with wrong billingFee
+// Use saved billingFee — the correct pre-calculated fee
 const billed = parseFloat(inv.billingFee||inv.total||0);
 const already = parseFloat(inv.amtPaid||0);
 const thisAmt = parseFloat(document.getElementById('ppm-amount')?.value||0);
@@ -7351,6 +7386,8 @@ if (!amount || amount <= 0) { toast('Enter a payment amount','warn'); return; }
 setDB(db2 => {
 const inv = db2.invoices.find(x=>x.id===invId);
 if (!inv) return;
+// Recalculate fee from stored data to handle old invoices with wrong billingFee
+// Use saved billingFee — the correct pre-calculated fee
 const billed = parseFloat(inv.billingFee||inv.total||0);
 if (!inv.payments) inv.payments = [];
 inv.payments.push({ id:uid(), amount, date, method, ref, notes, createdAt:Date.now() });
@@ -7417,6 +7454,8 @@ el.innerHTML = `<div class="tbl-wrap"><table>
 list.map(inv => {
 const iss = (db.invoicingIssuers||[]).find(x=>x.id===inv.issuerId);
 const cli = _resolveInvClientName(inv.clientId, db);
+// Recalculate fee from stored data to handle old invoices with wrong billingFee
+// Use saved billingFee — the correct pre-calculated fee
 const billed = parseFloat(inv.billingFee||inv.total||0);
 const paid = parseFloat(inv.amtPaid||0);
 const bal = billed - paid;
@@ -7622,9 +7661,10 @@ let finalFee;
 if (excActive) {
 finalFee = excBase * feePct / 100;
 } else if (minRev > 0 && calcFromRev < minRev) {
-finalFee = minRev;
+  // Revenue below minimum → fee = minimum revenue × fee%
+  finalFee = minRev * feePct / 100;
 } else {
-finalFee = Math.max(calcFromRev, minRev > 0 ? minRev : 0);
+  finalFee = calcFromRev;
 }
 
 const svcTotal = _invSvcLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
