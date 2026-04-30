@@ -3183,8 +3183,6 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown" id="tn-dd-billing">
 <div class="tn-dd-item" id="tnd-claims" onclick="go('claims');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>
-<div class="tn-dd-item" id="tnd-servicegroups" onclick="go('servicegroups');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>
-<div class="tn-dd-item" id="tnd-export" onclick="go('export');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-eob" onclick="go('eob');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>
@@ -3219,6 +3217,8 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown tn-dd-right" id="tn-dd-admin">
 <div class="tn-dd-item" id="tnd-admin-providers" onclick="go('admin-providers');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>
+<div class="tn-dd-item" id="tnd-servicegroups" onclick="go('servicegroups');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>
+<div class="tn-dd-item" id="tnd-export" onclick="go('export');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>
 <div class="tn-dd-item" onclick="go('account');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>
 <div class="tn-dd-item" onclick="go('reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
 <div class="tn-dd-sep"></div>
@@ -3266,8 +3266,6 @@ return `<div class="app-shell">
 <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-billing')"><i data-lucide="receipt" class="lci"></i>Billing <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
 <div class="tn-drawer-sub">
 <div class="tn-drawer-sub-item" onclick="go('claims');closeTnDrawer()">Claims</div>
-<div class="tn-drawer-sub-item" onclick="go('servicegroups');closeTnDrawer()">Service Groups</div>
-<div class="tn-drawer-sub-item" onclick="go('export');closeTnDrawer()">Export / Submit</div>
 <div class="tn-drawer-sub-item" onclick="go('validate');closeTnDrawer()">Validate Claims</div>
 </div>
 </div>
@@ -3291,6 +3289,8 @@ return `<div class="app-shell">
 <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-admin')"><i data-lucide="shield-check" class="lci"></i>Admin <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
 <div class="tn-drawer-sub">
 <div class="tn-drawer-sub-item" onclick="go('admin-providers');closeTnDrawer()">Billing Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('servicegroups');closeTnDrawer()">Service Groups</div>
+<div class="tn-drawer-sub-item" onclick="go('export');closeTnDrawer()">Export / Submit</div>
 <div class="tn-drawer-sub-item" onclick="go('account');closeTnDrawer()">Users &amp; Account</div>
 <div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
 <div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
@@ -3408,7 +3408,7 @@ return `<div class="app-shell">
 </div>
 
 <div class="section" id="sec-claims">
-<div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-sm" onclick="go('export')"><i data-lucide="send" class="lci"></i> Export</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
+<div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
 <div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
 <div class="search-row"><input id="clm-q" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()"><select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select><select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select></div>
 <div id="claims-tbl"></div>
@@ -9618,8 +9618,21 @@ const _parseDateParts = ds => {
 };
 const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
 
-claims.forEach((claim, ci) => {
-  if (ci > 0) doc.addPage();
+// ── Group claims by patient — one PDF per patient ─────────────
+const byPatient = new Map();
+claims.forEach(function(c) {
+  const pid = c.patId || 'unknown';
+  if (!byPatient.has(pid)) byPatient.set(pid, []);
+  byPatient.get(pid).push(c);
+});
+
+let fileCount = 0;
+byPatient.forEach(function(patClaims, patId) {
+  // Create a fresh PDF for this patient
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
+
+  patClaims.forEach(function(claim, ci) {
+    if (ci > 0) doc.addPage();
   const pat  = db.patients.find(p=>p.id===claim.patId)||{};
   const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
   const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
@@ -9887,15 +9900,20 @@ claims.forEach((claim, ci) => {
   const dosParts2=_parseDateParts(claim.dos);
   const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
   t('Generated: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
-});
+  }); // end patClaims.forEach
 
-// Filename
-const fp=claims[0], fpt=db.patients.find(p=>p.id===fp?.patId)||{};
-const l2=(fpt.last||'XX').slice(0,2).toUpperCase();
-const f2=(fpt.first||'XX').slice(0,2).toUpperCase();
-const dp=_parseDateParts(fpt.dob), sp=_parseDateParts(fp?.dos);
-doc.save(`${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`);
-toast(`Superbill${claims.length>1?'s':''} exported — ${claims.length} claim${claims.length>1?'s':''}`);
+  // Filename: LLFFMMDDYYYYMMDDYYYY.pdf
+  const fp  = patClaims[0];
+  const fpt = db.patients.find(function(p){return p.id===fp?.patId;})||{};
+  const l2  = (fpt.last||'XX').slice(0,2).toUpperCase();
+  const f2  = (fpt.first||'XX').slice(0,2).toUpperCase();
+  const dp  = _parseDateParts(fpt.dob);
+  const sp  = _parseDateParts(fp?.dos);
+  doc.save(`${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`);
+  fileCount++;
+}); // end byPatient.forEach
+
+toast(`${fileCount} superbill PDF${fileCount>1?'s':''} exported — one per patient`);
 }
 
 
