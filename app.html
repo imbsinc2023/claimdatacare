@@ -3183,8 +3183,7 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown" id="tn-dd-billing">
 <div class="tn-dd-item" id="tnd-claims" onclick="go('claims');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>
-<div class="tn-dd-sep"></div>
-<div class="tn-dd-sep"></div>
+
 <div class="tn-dd-item" id="tnd-eob" onclick="go('eob');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>
 <div class="tn-dd-item" id="tnd-validate" onclick="go('validate');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>
 </div>
@@ -4559,6 +4558,77 @@ document.getElementById('reports-content').innerHTML=`<div class="stats"><div cl
 }
 
 
+// ── Services / CPT Catalog — Add & Edit ──────────────────────────
+function openServiceModal(idx) {
+  const db = getDB();
+  const svc = idx >= 0 ? db.services[idx] : null;
+  const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  document.getElementById('msvc-title').textContent = svc ? 'Edit Service' : 'Add Service';
+  sv('msvc-id',   svc ? String(idx) : '');
+  sv('msvc-code', svc?.code || svc?.cpt || '');
+  sv('msvc-desc', svc?.desc || svc?.description || '');
+  sv('msvc-cat',  svc?.cat || '');
+  sv('msvc-rate', svc?.rate || svc?.charge || '');
+  sv('msvc-units',svc?.units || '1');
+  sv('msvc-mod1', svc?.mod1 || '');
+  sv('msvc-mod2', svc?.mod2 || '');
+  sv('msvc-mod3', svc?.mod3 || '');
+  sv('msvc-mod4', svc?.mod4 || '');
+  openModal('modal-service');
+  setTimeout(function(){ document.getElementById('msvc-code')?.focus(); }, 100);
+}
+
+function saveService() {
+  const g = function(id){ return (document.getElementById(id)?.value || '').trim(); };
+  const code = g('msvc-code').toUpperCase();
+  const desc = g('msvc-desc');
+  if (!code) { toast('CPT Code is required', 'err'); return; }
+  if (!desc)  { toast('Description is required', 'err'); return; }
+
+  const db  = getDB();
+  const idx = g('msvc-id') !== '' ? parseInt(g('msvc-id')) : -1;
+
+  // ── Duplicate check — same CPT code for same provider ────────────
+  const duplicate = (db.services || []).findIndex(function(s, i) {
+    const sCode = (s.code || s.cpt || '').toUpperCase();
+    return sCode === code && s.providerId === activeProviderId && i !== idx;
+  });
+  if (duplicate >= 0) {
+    toast('CPT code ' + code + ' already exists in your catalog', 'err');
+    return;
+  }
+
+  const entry = {
+    id:          idx >= 0 ? db.services[idx].id : uid(),
+    providerId:  activeProviderId,
+    code:        code,
+    cpt:         code,
+    desc:        desc,
+    description: desc,
+    cat:         g('msvc-cat') || 'General',
+    rate:        g('msvc-rate') || '0',
+    charge:      g('msvc-rate') || '0',
+    units:       g('msvc-units') || '1',
+    mod1:        g('msvc-mod1'),
+    mod2:        g('msvc-mod2'),
+    mod3:        g('msvc-mod3'),
+    mod4:        g('msvc-mod4'),
+  };
+
+  setDB(function(db2) {
+    if (!Array.isArray(db2.services)) db2.services = [];
+    if (idx >= 0) {
+      db2.services[idx] = Object.assign(db2.services[idx], entry);
+    } else {
+      db2.services.push(entry);
+    }
+  });
+
+  closeModal('modal-service');
+  toast(idx >= 0 ? 'Service updated' : 'Service added', 'ok');
+  renderServices();
+}
+
 function renderServices(){
 const db=getDB(); const q=(v('svc-q')||'').toLowerCase(); const catF=v('svc-cat')||'';
 let list=db.services||[];
@@ -4735,7 +4805,8 @@ const fd = new FormData();
 fd.append('action', 'ping');
 fd.append('AccountKey', cfg.acctKey);
 
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', { method:'POST', body: fd, mode:'cors' });
+const CORS_PROXY_T = 'https://corsproxy.io/?' + encodeURIComponent('https://intakeapi.claimmd.com/intake/claim');
+const res = await fetch(CORS_PROXY_T, { method:'POST', body: fd });
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const text = await res.text();
 
@@ -5101,7 +5172,7 @@ const fd = new FormData();
 fd.append('upload', 'claim');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv], { type:'text/csv' }), fname);
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', { method:'POST', body:fd });
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', { method:'POST', body:fd });
 const txt = await res.text();
 if (res.ok) {
 setDB(db2 => { const c = db2.claims.find(x => x.id === claim.id); if(c) c.status = 'submitted'; });
@@ -5143,7 +5214,7 @@ fd.append('action', 'sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID', '0');
 
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 
@@ -8840,7 +8911,7 @@ const fname = 'Claims_Selected_'+dateStr()+'.csv';
 try {
 const fd=new FormData(); fd.append('action','upload'); fd.append('AccountKey',cfg.acctKey);
 fd.append('File',new Blob([csv],{type:'text/csv'}),fname);
-const res=await fetch('https://intakeapi.claimmd.com/intake/claim',{method:'POST',body:fd});
+const res=await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
 const xml=await res.text();
 const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
@@ -9028,10 +9099,13 @@ fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
 console.log('[ClaimMD] Transmitting', claims.length, 'claims via proxy');
 console.log('[ClaimMD] AccountKey present:', !!cfg.acctKey, '| File:', fname);
 
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {
+// Use Cloudflare Pages Function proxy (same domain = no CORS)
+// Use corsproxy.io as a CORS proxy — free, no server needed
+const CLAIMMD_DIRECT = 'https://intakeapi.claimmd.com/intake/claim';
+const CORS_PROXY = 'https://corsproxy.io/?' + encodeURIComponent(CLAIMMD_DIRECT);
+const res = await fetch(CORS_PROXY, {
   method: 'POST',
   body: fd,
-  mode: 'cors',
 });
 
 console.log('[ClaimMD] HTTP status:', res.status, res.statusText);
@@ -9360,31 +9434,32 @@ row.remote_fileid = '';
 row.total_charge = totalCharge;
 row.claimid = '';
 
-// ?? Service Lines (up to 6) ???????????????????????????????????
+// Service Lines (up to 6)
 for (let li=0; li<6; li++) {
-const n = li+1;
-const l = lines[li];
-if (l && l.cpt) {
-// Box 24F: l.charge is already the line total — use as-is
-row[`charge_${n}`] = parseFloat(l.charge||0).toFixed(2);
-row[`diag_ref_${n}`] = String(l.dxPtr||'A').toUpperCase().replace(/[^A-Ha-h]/g,'A').toUpperCase();
-row[`from_date_${n}`] = dos;
-row[`mod1_${n}`] = String(l.mod1||'').trim();
-row[`mod2_${n}`] = String(l.mod2||'').trim();
-row[`mod3_${n}`] = String(l.mod3||'').trim();
-row[`mod4_${n}`] = String(l.mod4||'').trim();
-row[`narrative_${n}`] = '';
-row[`place_of_service_${n}`]= pos;
-row[`proc_code_${n}`] = String(l.cpt||'').trim();
-row[`remote_chgid_${n}`] = '';
-row[`thru_date_${n}`] = dos;
-row[`units_${n}`] = String(Math.max(parseInt(l.units||1),1));
-} else {
-row[`charge_${n}`]=''; row[`diag_ref_${n}`]=''; row[`from_date_${n}`]='';
-row[`mod1_${n}`]=''; row[`mod2_${n}`]=''; row[`mod3_${n}`]=''; row[`mod4_${n}`]='';
-row[`narrative_${n}`]=''; row[`place_of_service_${n}`]=''; row[`proc_code_${n}`]='';
-row[`remote_chgid_${n}`]=''; row[`thru_date_${n}`]=''; row[`units_${n}`]='';
-}
+  const n = li+1;
+  const l = lines[li];
+  if (l && l.cpt) {
+    // Use per-line DOS if set (multi-date claims), else fall back to claim header DOS
+    const lineDos = l.dos ? fmtDate(l.dos) : dos;
+    row[`charge_${n}`]          = parseFloat(l.charge||0).toFixed(2);
+    row[`diag_ref_${n}`]        = String(l.dxPtr||'A').toUpperCase().replace(/[^A-H]/gi,'').toUpperCase() || 'A';
+    row[`from_date_${n}`]       = lineDos;
+    row[`mod1_${n}`]            = String(l.mod1||'').trim();
+    row[`mod2_${n}`]            = String(l.mod2||'').trim();
+    row[`mod3_${n}`]            = String(l.mod3||'').trim();
+    row[`mod4_${n}`]            = String(l.mod4||'').trim();
+    row[`narrative_${n}`]       = '';
+    row[`place_of_service_${n}`]= pos;
+    row[`proc_code_${n}`]       = String(l.cpt||'').trim();
+    row[`remote_chgid_${n}`]    = '';
+    row[`thru_date_${n}`]       = lineDos;
+    row[`units_${n}`]           = String(Math.max(parseInt(l.units||1),1));
+  } else {
+    row[`charge_${n}`]=''; row[`diag_ref_${n}`]=''; row[`from_date_${n}`]='';
+    row[`mod1_${n}`]=''; row[`mod2_${n}`]=''; row[`mod3_${n}`]=''; row[`mod4_${n}`]='';
+    row[`narrative_${n}`]=''; row[`place_of_service_${n}`]=''; row[`proc_code_${n}`]='';
+    row[`remote_chgid_${n}`]=''; row[`thru_date_${n}`]=''; row[`units_${n}`]='';
+  }
 }
 
 return row;
@@ -12614,7 +12689,7 @@ const fd = new FormData();
 fd.append('action','sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID','0');
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim',{method:'POST',body:fd});
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
 const xml = await res.text();
 const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
 if (!blocks.length) {
@@ -14179,7 +14254,7 @@ try {
 const fd = new FormData();
 fd.append('action','upload'); fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv],{type:'text/csv'}), `${claim.pcn}.csv`);
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 const errNo = (xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
@@ -14212,7 +14287,7 @@ message:`Status sync requested for PCN ${claim.pcn}` });
 try {
 const fd = new FormData();
 fd.append('action','sync'); fd.append('AccountKey', cfg.acctKey); fd.append('ResponseID','0');
-const res = await fetch('https://intakeapi.claimmd.com/intake/claim', {method:'POST',body:fd});
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
