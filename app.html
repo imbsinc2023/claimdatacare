@@ -4426,6 +4426,10 @@ Select a service group and dates to preview
 <!-- Footer -->
 <div class="modal-ftr" style="flex-shrink:0">
 <button class="btn btn-ghost" onclick="closeModal('modal-batch')">Cancel</button>
+<label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);padding:0 4px">
+  <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand)" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById('mb-sg-sel')?.value);if(sg)renderSGBatchPatients(sg);})()">
+  <span>1 claim per patient <span style="font-weight:400;color:var(--text3);font-size:11px">(all dates as lines)</span></span>
+</label>
 <button class="btn btn-primary" onclick="runBatch()">
 <i data-lucide="zap" class="lci"></i> Generate Claims
 </button>
@@ -4841,26 +4845,60 @@ if (!activeDatesForPat.length) continue;
 const rendId = st.rendId || asgn.renderingId || sg.renderingProviderId || globalRend;
 const facId = st.facId || asgn.facilityId || sg.facilityId || globalFac;
 const refId = st.refId || asgn.referringId || globalRef;
+const pos = facId ? (getDB().facilities.find(f=>f.id===facId)?.pos||'11') : '11';
 
-for (const d of activeDatesForPat) {
-pending.push({
-id: uid(),
-providerId: activeProviderId,
-patId,
-pcn: buildNextPCN(patId, activeProviderId, pending),
-dos: d.date || d.label || d,
-pos: facId ? (getDB().facilities.find(f=>f.id===facId)?.pos||'11') : '11',
-dx,
-lines: lines_tmpl.map(l => ({ ...l, id: uid() })),
-renderingId: rendId,
-facilityId: facId,
-referringId: refId,
-status: 'pending',
-createdAt: Date.now(),
-updatedAt: Date.now(),
-apptId: '',
-auth: st.auth || asgn.auth || '',
-});
+const groupMode = document.getElementById('mb-group-dates')?.checked;
+
+if (groupMode) {
+  // ── 1 CLAIM PER PATIENT — all dates become separate lines ─────
+  // CPTs come from the service group (can differ per line)
+  // Units are defined per-date by the user in the batch UI
+  const groupedLines = [];
+  for (const d of activeDatesForPat) {
+    const dateStr = d.date || d.label || d;
+    const dateUnits = parseInt(d.units) || 1;
+    for (const l of (sg.lines||lines_tmpl)) {
+      const pricePerUnit = parseFloat(l.pricePerUnit || l.rate || l.charge || 0);
+      const lineUnits = dateUnits;
+      groupedLines.push({
+        id: uid(),
+        cpt:   l.cpt || '',
+        desc:  l.desc || '',
+        units: String(lineUnits),
+        charge: (pricePerUnit * lineUnits).toFixed(2),
+        pricePerUnit: pricePerUnit.toFixed(2),
+        mod1: l.mod1||''  , mod2: l.mod2||'', mod3: l.mod3||'', mod4: l.mod4||'',
+        dxPtr: l.dxPtr || 'A',
+        dos: dateStr,
+      });
+    }
+  }
+  const firstDate = activeDatesForPat[0];
+  pending.push({
+    id: uid(), providerId: activeProviderId, patId,
+    pcn: buildNextPCN(patId, activeProviderId, pending),
+    dos: firstDate.date || firstDate.label || firstDate,
+    pos, dx, lines: groupedLines,
+    renderingId: rendId, facilityId: facId, referringId: refId,
+    status: 'pending', multiDate: true,
+    createdAt: Date.now(), updatedAt: Date.now(),
+    apptId: '', auth: st.auth || asgn.auth || '',
+  });
+} else {
+  // ── STANDARD — 1 claim per patient per date ───────────────────
+  for (const d of activeDatesForPat) {
+    pending.push({
+      id: uid(), providerId: activeProviderId, patId,
+      pcn: buildNextPCN(patId, activeProviderId, pending),
+      dos: d.date || d.label || d,
+      pos, dx,
+      lines: lines_tmpl.map(l => ({ ...l, id: uid() })),
+      renderingId: rendId, facilityId: facId, referringId: refId,
+      status: 'pending',
+      createdAt: Date.now(), updatedAt: Date.now(),
+      apptId: '', auth: st.auth || asgn.auth || '',
+    });
+  }
 }
 }
 
