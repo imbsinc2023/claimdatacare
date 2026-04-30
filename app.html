@@ -4116,6 +4116,10 @@ Account Key (ClaimMD)
 <label>Phone</label>
 <input id="mprov-phone" maxlength="10" placeholder="3051234567">
 </div>
+<div class="field">
+<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>
+<input id="mprov-email" type="email" placeholder="billing@practice.com">
+</div>
 </div>
 
 <!-- Logo -->
@@ -5850,7 +5854,7 @@ doc.addImage(iss.logo, 'PNG', LOGO_X, LOGO_Y, LOGO_SZ, LOGO_SZ, undefined, 'FAST
 // ?? INVOICE label — top right ?????????????????????????????????????
 txt('INVOICE', RX, M + 10, { bold:true, size:26, color:DARK, align:'right' });
 txt(inv.number||'', RX, M + 18, { size:9, color:MID, align:'right' });
-txt(inv.month||'', RX, M + 24, { size:9, color:MID, align:'right' });
+txt(fmtInvDate(inv.month)||inv.month||'', RX, M + 24, { size:9, color:MID, align:'right' });
 
 y = M + LOGO_SZ + 10;
 line(M + 2, y, RX, y, BORDER, 0.4);
@@ -5948,12 +5952,21 @@ txt('Subtotal', M+5, y+4, { size:9, color:MID });
 txt(money(svcTotal), RX-2, y+4, { size:9, color:DARK, align:'right' });
 y += 10;
 
-// ?? Billing Fee row ??????????????????????????????????????????????
-if (inv.billingFee && inv.fee) {
-fill(M+2, y-2, CW, 9, BGBLUE);
-txt('Billing Fee (' + (inv.fee||0) + '%):', M+5, y+4, { size:9, color:BLUE });
-txt(money(inv.billingFee), RX-2, y+4, { size:9, bold:true, color:BLUE, align:'right' });
-y += 11;
+
+// Auto page break if Total Due won't fit
+if (y + 70 > 265) {
+  fill(0, 282, W, 15, DARK);
+  fill(0, 282, 5, 15, GREEN);
+  txt(iss.name||'', M+2, 292, { size:7.5, color:[200,205,210] });
+  txt('Continued...', W/2, 292, { size:7.5, color:[200,205,210], align:'center' });
+  doc.addPage();
+  fill(0, 0, 5, 297, GREEN);
+  y = M + 4;
+  fill(M+2, y, CW, 10, DARK);
+  fill(M+2, y, 3, 10, BLUE);
+  txt('Invoice '+(inv.number||'')+' — Summary (continued)', M+8, y+6.5, { size:9, bold:true, color:WHITE });
+  txt(cli.name||'', RX, y+6.5, { size:8.5, color:[180,200,255], align:'right' });
+  y += 16;
 }
 // ?? TOTAL DUE ?????????????????????????????????????????????????????
 fill(M+2, y-2, CW, 12, BGBLUE);
@@ -5973,20 +5986,35 @@ txt('PAYMENT INSTRUCTIONS', M+8, y+3, { size:7.5, bold:true, color:GREEN });
 txt('Preferred: Zelle or Paper Check — no processing fees.', M+8, y+8.5, { size:8.5, color:DARK });
 txt('Virtual card & direct deposit: 4.5% bank processing fee applies.', M+8, y+13.5, { size:8, color:MID });
 
-if (iss.phone) {
-y += 18;
-fill(M+2, y, CW/2, 9, BGBLUE);
-fill(M+2, y, 3, 9, BLUE);
-txt('Zelle:', M+8, y+6, { size:8.5, bold:true, color:PURPLE });
-txt(iss.phone, M+22, y+6, { size:8.5, color:DARK });
-if (iss.email) {
-fill(M+2+CW/2+2, y, CW/2-2, 9, LIGHT);
-txt('Email:', M+2+CW/2+6, y+6, { size:8.5, bold:true, color:MID });
-txt(iss.email, M+2+CW/2+18, y+6, { size:8.5, color:DARK });
-}
-y += 12;
+const zelleMode = iss.zelleMode || 'phone';
+const showZellePhone = (zelleMode==='phone'||zelleMode==='both') && iss.phone;
+const showZelleEmail = (zelleMode==='email'||zelleMode==='both') && iss.email;
+if (showZellePhone || showZelleEmail) {
+  y += 18;
+  if (showZellePhone && showZelleEmail) {
+    // Both — split 50/50
+    fill(M+2, y, CW/2, 9, BGBLUE);
+    fill(M+2, y, 3, 9, PURPLE);
+    txt('Z Zelle:', M+8, y+6, { size:8, bold:true, color:PURPLE });
+    txt(fmtPhone(iss.phone), M+26, y+6, { size:8.5, color:DARK });
+    fill(M+2+CW/2+2, y, CW/2-2, 9, BGBLUE);
+    fill(M+2+CW/2+2, y, 3, 9, PURPLE);
+    txt('Z Email:', M+2+CW/2+8, y+6, { size:8, bold:true, color:PURPLE });
+    txt(iss.email, M+2+CW/2+24, y+6, { size:8.5, color:DARK });
+  } else if (showZellePhone) {
+    fill(M+2, y, CW, 9, BGBLUE);
+    fill(M+2, y, 3, 9, PURPLE);
+    txt('Z Zelle:', M+8, y+6, { size:8.5, bold:true, color:PURPLE });
+    txt(fmtPhone(iss.phone), M+30, y+6, { size:8.5, color:DARK });
+  } else {
+    fill(M+2, y, CW, 9, BGBLUE);
+    fill(M+2, y, 3, 9, PURPLE);
+    txt('Z Zelle:', M+8, y+6, { size:8.5, bold:true, color:PURPLE });
+    txt(iss.email, M+30, y+6, { size:8.5, color:DARK });
+  }
+  y += 12;
 } else {
-y += 22;
+  y += 22;
 }
 
 // Exception note in PDF
@@ -6494,80 +6522,108 @@ renderInvSvcLines();
 
 
 function recalcInvoice() {
-const el = id => document.getElementById(id);
-const feePct = parseFloat(el('inv-fee')?.value) || 0;
-const minRev = parseFloat(el('inv-min-base')?.value) || 0; // Minimum Revenue threshold
-const excBase = parseFloat(el('inv-exc-base')?.value) || 0; // Exception Base amount
-const excMths = parseFloat(el('inv-exc-months')?.value)|| 0; // Total exception months
-const excUsed = parseFloat(el('inv-exc-used')?.value) || 0; // Months already used
-const revenue = parseFloat(el('inv-revenue')?.value) || 0; // Actual monthly revenue
-const svcTotal = _invSvcLines.reduce((s,l) => s + (parseFloat(l.amount)||0), 0);
+  const el = id => document.getElementById(id);
+  const feePct  = parseFloat(el('inv-fee')?.value) || 0;
+  const minRev  = parseFloat(el('inv-min-base')?.value) || 0; // Minimum fee amount (e.g. $1,200)
+  const excBase = parseFloat(el('inv-exc-base')?.value) || 0; // Exception base (optional)
+  const excMths = parseFloat(el('inv-exc-months')?.value) || 0;
+  const excUsed = parseFloat(el('inv-exc-used')?.value) || 0;
 
-// ?? Exception Base logic ?????????????????????????????????????????????
-// Exception is active if exc base defined AND months remaining > 0
-const excRemaining = excMths - excUsed;
-const excActive = excBase > 0 && excMths > 0 && excRemaining > 0;
+  // ── Revenue = AUTO SUM of all payments (inv-lines) ───────────────
+  const autoRevenue = (_invLines||[]).reduce(function(s,l){ return s + (parseFloat(l.amount)||0); }, 0);
+  // Also allow manual override if user typed a value
+  const manualRevenue = parseFloat(el('inv-revenue')?.value) || 0;
+  // Use auto if no manual override, or if auto > 0 and field is empty/matches auto
+  const revenue = autoRevenue > 0 ? autoRevenue : manualRevenue;
 
-// ?? Step 1: Calculate Revenue ? Fee % ???????????????????????????????
-const calcFromRevenue = revenue * feePct / 100;
+  // Update revenue display field (read-only auto)
+  const revEl = el('inv-revenue');
+  if (revEl && autoRevenue > 0) {
+    revEl.value = autoRevenue.toFixed(2);
+    revEl.style.background = 'var(--bg3)';
+    revEl.title = 'Auto-calculated from payments';
+  }
 
-// ?? Step 2: Determine effective base ????????????????????????????????
-let effectiveBase, feeLabel, calcMethod;
-if (excActive) {
-// Exception Override: always use exception base regardless of actual revenue
-effectiveBase = excBase;
-calcMethod = 'exception';
-feeLabel = 'Minimum Fee ' + feePct + '% (Exception Base $' + fmtMoney(excBase) + ')';
-} else if (calcFromRevenue >= minRev && minRev > 0) {
-// Case A: calculated amount >= minimum ? use calculated
-effectiveBase = revenue;
-calcMethod = 'standard';
-feeLabel = 'Billing Fee ' + feePct + '%';
-} else if (minRev > 0 && calcFromRevenue < minRev) {
-// Case B: calculated < minimum ? use minimum
-effectiveBase = minRev / feePct * 100; // reverse-calc: what revenue produces minRev fee
-calcMethod = 'minimum';
-feeLabel = 'Minimum Fee ' + feePct + '% (Min. Revenue $' + fmtMoney(minRev) + ')';
-} else {
-effectiveBase = revenue || svcTotal;
-calcMethod = 'standard';
-feeLabel = 'Billing Fee ' + feePct + '%';
-}
+  const svcTotal = (_invSvcLines||[]).reduce(function(s,l){ return s + (parseFloat(l.amount)||0); }, 0);
 
-const fee = effectiveBase * feePct / 100;
-// Enforce minimum floor
-const finalFee = (minRev > 0 && fee < minRev && !excActive) ? minRev : fee;
+  // ── Exception logic ───────────────────────────────────────────────
+  const excRemaining = excMths - excUsed;
+  const excActive = excBase > 0 && excMths > 0 && excRemaining > 0;
 
-// ?? Update info panel ????????????????????????????????????????????????
-const set = (id, val) => { const e = el(id); if (e) e.textContent = val; };
-set('inv-disp-revenue', '$' + fmtMoney(revenue));
-set('inv-disp-feepct', feePct + '%');
-set('inv-disp-calc', '$' + fmtMoney(calcFromRevenue));
-set('inv-disp-min', '$' + fmtMoney(minRev));
-set('inv-disp-base', '$' + fmtMoney(effectiveBase));
+  // ── Fee calculation ───────────────────────────────────────────────
+  // Step 1: What does fee% of actual revenue produce?
+  const calcFromRevenue = revenue * feePct / 100;
 
-// Exception note
-const excNoteEl = el('inv-exc-note');
-if (excNoteEl) {
-if (excActive) {
-excNoteEl.style.display = '';
-excNoteEl.textContent = `NOTE: Minimum Fee Ð Exception base $${fmtMoney(excBase)}, ${excUsed + 1} of ${excMths}`;
-} else if (excBase > 0 && excMths > 0 && excRemaining <= 0) {
-excNoteEl.style.display = '';
-excNoteEl.textContent = `Exception completed (${excUsed} of ${excMths} months used)`;
-excNoteEl.style.color = 'var(--text3)';
-} else {
-excNoteEl.style.display = 'none';
-}
-}
+  // Step 2: Determine final fee
+  // Rule: if revenue * fee% < minimum → use minimum fee
+  // Rule: if exception active → use exception base * fee%
+  let finalFee, feeLabel, calcMethod;
 
-// ?? Update main totals ???????????????????????????????????????????????
-if (el('inv-subtotal')) el('inv-subtotal').textContent = '$' + fmtMoney(svcTotal);
-if (el('inv-fee-pct-lbl')) el('inv-fee-pct-lbl').textContent = feeLabel;
-if (el('inv-fee-amt')) el('inv-fee-amt').textContent = '$' + fmtMoney(finalFee);
-if (el('inv-total')) el('inv-total').textContent = '$' + fmtMoney(svcTotal);
-const feeEl = el('inv-fee-amt');
-if (feeEl) feeEl.style.color = calcMethod !== 'standard' ? 'var(--amber)' : 'var(--text)';
+  if (excActive) {
+    // Exception override (concession)
+    finalFee = excBase * feePct / 100;
+    calcMethod = 'exception';
+    feeLabel = feePct + '% of Exception Base $' + fmtMoney(excBase);
+  } else if (minRev > 0 && calcFromRevenue < minRev) {
+    // Minimum fee applies — revenue too low
+    // Example: revenue=$3,500, fee%=6%, minFee=$1,200 → use $1,200
+    finalFee = minRev;
+    calcMethod = 'minimum';
+    feeLabel = 'Minimum Fee (revenue below threshold)';
+  } else {
+    // Standard: fee% of actual revenue
+    finalFee = calcFromRevenue;
+    calcMethod = 'standard';
+    feeLabel = feePct + '% of Revenue';
+  }
+
+  // ── Update display ────────────────────────────────────────────────
+  const set = function(id, val) { const e = el(id); if (e) e.textContent = val; };
+  set('inv-disp-revenue', '$' + fmtMoney(revenue));
+  set('inv-disp-feepct',  feePct + '%');
+  set('inv-disp-calc',    '$' + fmtMoney(calcFromRevenue));
+  set('inv-disp-min',     '$' + fmtMoney(minRev));
+  set('inv-disp-base',    '$' + fmtMoney(revenue));
+
+  // Exception note
+  const excNoteEl = el('inv-exc-note');
+  if (excNoteEl) {
+    if (excActive) {
+      excNoteEl.style.display = '';
+      excNoteEl.style.color = 'var(--amber)';
+      excNoteEl.textContent = 'Exception active: base $' + fmtMoney(excBase) + ' · ' + (excUsed+1) + ' of ' + excMths + ' months';
+    } else if (excBase > 0 && excMths > 0 && excRemaining <= 0) {
+      excNoteEl.style.display = '';
+      excNoteEl.style.color = 'var(--text3)';
+      excNoteEl.textContent = 'Exception completed (' + excUsed + ' of ' + excMths + ' months used)';
+    } else {
+      excNoteEl.style.display = 'none';
+    }
+  }
+
+  // Update totals
+  if (el('inv-subtotal'))    el('inv-subtotal').textContent  = '$' + fmtMoney(svcTotal);
+  if (el('inv-fee-pct-lbl')) el('inv-fee-pct-lbl').textContent = feeLabel;
+  if (el('inv-fee-amt'))     el('inv-fee-amt').textContent   = '$' + fmtMoney(finalFee);
+  if (el('inv-total'))       el('inv-total').textContent     = '$' + fmtMoney(finalFee);
+
+  const feeEl = el('inv-fee-amt');
+  if (feeEl) feeEl.style.color = calcMethod === 'standard' ? 'var(--text)' : 'var(--amber)';
+
+  // Show calc breakdown for transparency
+  const breakdownEl = el('inv-calc-breakdown');
+  if (breakdownEl) {
+    if (calcMethod === 'minimum') {
+      breakdownEl.textContent = 'Revenue $' + fmtMoney(revenue) + ' × ' + feePct + '% = $' + fmtMoney(calcFromRevenue) + ' < Minimum $' + fmtMoney(minRev) + ' → Invoice: $' + fmtMoney(finalFee);
+      breakdownEl.style.color = 'var(--amber)';
+    } else if (calcMethod === 'exception') {
+      breakdownEl.textContent = 'Exception: $' + fmtMoney(excBase) + ' × ' + feePct + '% = $' + fmtMoney(finalFee);
+      breakdownEl.style.color = 'var(--amber)';
+    } else {
+      breakdownEl.textContent = '$' + fmtMoney(revenue) + ' × ' + feePct + '% = $' + fmtMoney(finalFee);
+      breakdownEl.style.color = 'var(--text3)';
+    }
+  }
 }
 
 
@@ -6837,6 +6893,38 @@ ${iss.logo ? `<img src="${iss.logo}" style="width:56px;height:20px;object-fit:co
 </div>`).join('') + '</div>';
 }
 
+function fmtPhone(p) {
+  if (!p) return '';
+  const digits = p.replace(/\D/g,'');
+  if (digits.length === 10) return '('+digits.slice(0,3)+') '+digits.slice(3,6)+'-'+digits.slice(6);
+  if (digits.length === 11 && digits[0]==='1') return '('+digits.slice(1,4)+') '+digits.slice(4,7)+'-'+digits.slice(7);
+  return p;
+}
+function fmtInvDate(d) {
+  if (!d) return '';
+  // Handle YYYY-MM-DD → MM/DD/YYYY
+  if (d.includes('-') && d.split('-')[0].length===4) {
+    const parts = d.split('-');
+    return parts[1]+'/'+parts[2]+'/'+parts[0];
+  }
+  return d;
+}
+
+function setZelleMode(mode) {
+  document.getElementById('iss-zelle-mode').value = mode;
+  ['phone','email','both'].forEach(function(m) {
+    const btn = document.getElementById('zelle-btn-'+m);
+    if (!btn) return;
+    if (m === mode) {
+      btn.style.background = '#6f3eff';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'var(--bg3)';
+      btn.style.color = 'var(--text2)';
+    }
+  });
+}
+
 function openIssuerModal(id) {
 const db = getInvDB();
 const iss = id ? db.invoicingIssuers.find(x => x.id === id) : null;
@@ -6847,6 +6935,8 @@ set('iss-name', iss?.name);
 set('iss-taxid', iss?.taxid);
 set('iss-npi', iss?.npi);
 set('iss-phone', iss?.phone);
+  // Set zelleMode toggle
+  setTimeout(function(){ setZelleMode(iss?.zelleMode || 'phone'); }, 50);
 set('iss-email', iss?.email);
 set('iss-addr1', iss?.addr1);
 set('iss-city', iss?.city);
@@ -7570,6 +7660,8 @@ toast('Invoice saved ?');
 function addInvLine() {
 _invLines.push({ date:'', desc:'', paymentId:'', insurance:'', month:'', amount:'' });
 renderInvLines();
+
+  try { recalcInvoice(); } catch(e) {}
 }
 
 function renderInvLines() {
@@ -7921,7 +8013,7 @@ const db=getDB(); const p=idx>=0?db.providers[idx]:null;
 const titleEl=document.getElementById('mprov-title'); if(titleEl) titleEl.textContent=p?'Edit Billing Provider':'New Billing Provider';
 sv('mprov-id',p?p.id:''); sv('mprov-name',p?.name||''); sv('mprov-npi',p?.npi||''); sv('mprov-taxid',p?.taxid||'');
 sv('mprov-taxonomy',p?.taxonomy||''); sv('mprov-addr1',p?.addr1||''); sv('mprov-addr2',p?.addr2||'');
-sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||'');
+sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');; sv('mprov-email',p?.email||'');
 const taxEl=document.getElementById('mprov-taxtype'); if(taxEl) taxEl.value=p?.taxType||'E';
 const typeEl=document.getElementById('mprov-type'); if(typeEl) typeEl.value=p?.providerType||'Organization';
 const statusEl=document.getElementById('mprov-status'); if(statusEl) statusEl.value=p?.status||'Active';
@@ -7966,7 +8058,7 @@ id:existingId||uid(), name, npi, taxid,
 taxType:document.getElementById('mprov-taxtype')?.value||'E',
 providerType:document.getElementById('mprov-type')?.value||'Organization',
 taxonomy:v('mprov-taxonomy'), status:document.getElementById('mprov-status')?.value||'Active',
-addr1:v('mprov-addr1'), addr2:v('mprov-addr2'), city:v('mprov-city'), state:v('mprov-state'), zip:v('mprov-zip'), phone:v('mprov-phone'),
+addr1:v('mprov-addr1'), addr2:v('mprov-addr2'), city:v('mprov-city'), state:v('mprov-state'), zip:v('mprov-zip'), phone:v('mprov-phone'), email:v('mprov-email')||'',
 acctKey: newAcctKey || (db.providers.find(x=>x.id===existingId)?.acctKey||''),
 logo: _provLogoB64 || (db.providers.find(x=>x.id===existingId)?.logo||''),
 createdAt:isNew?Date.now():(db.providers.find(x=>x.id===existingId)?.createdAt||Date.now())
@@ -9264,20 +9356,21 @@ const prov = db.providers.find(p => p.id === activeProviderId) || {};
 
 const W=216, M=14, RX=W-M, CW=RX-M;
 
-// ── Brand colors from user palette ───────────────────────────────
-const _BC  = getBrandColors();
-const BRAND     = _BC.primary;
-const BRAND_DK  = _BC.primaryDark;
-const BRAND_LT  = _BC.primaryBg;
-const ACC       = _BC.accent;
+// ── Colors — brand ONLY for top bar, everything else black ──────
+const _BC       = getBrandColors();
+const BRAND     = _BC.primary;       // ONLY used for top bar 3px strip
 const BLACK     = [0,0,0];
-const DARK      = [30,30,30];
+const DARK      = [0,0,0];           // same as black — all text pure black
 const GRAY1     = [80,80,80];
-const GRAY2     = [120,120,120];
-const BORDER    = [200,200,200];
-const BORDER_LT = [225,228,232];
+const GRAY2     = [100,100,100];
+const BORDER    = [180,180,180];
+const BORDER_LT = [210,210,210];
 const WHITE     = [255,255,255];
-const ROW_ALT   = [248,249,251];
+// Remove unused vars to avoid accidental use
+const BRAND_DK  = [0,0,0];
+const BRAND_LT  = [230,230,230];
+const ACC       = [0,0,0];
+const ROW_ALT   = [255,255,255];
 
 const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
 
@@ -9346,8 +9439,8 @@ claims.forEach((claim, ci) => {
   if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:7.5, c:DARK});
 
   // SUPERBILL title + PCN (right side)
-  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:DARK, a:'right'});
-  t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:DARK, a:'right'});
+  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BLACK, a:'right'});
+  t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:BLACK, a:'right'});
   const dosStr = safe(claim.dos);
   const posStr = safe(claim.pos);
   const dosPos = [dosStr?'DOS: '+dosStr:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
@@ -9457,11 +9550,11 @@ claims.forEach((claim, ci) => {
 
   // Column header line
   const SL = { cptW:18, descW:68, unitW:14, uprcW:20, modsW:18, dxW:14 };
-  t('CPT', M, y, {sz:7, b:true, c:DARK});
-  t('Description', M+SL.cptW, y, {sz:7, b:true, c:DARK});
+  t('CPT', M, y, {sz:7, b:true, c:BLACK});
+  t('Description', M+SL.cptW, y, {sz:7, b:true, c:BLACK});
   t('Units', M+SL.cptW+SL.descW, y, {sz:7, b:true, c:DARK, a:'center'});
   t('Unit Price', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-  t('Mods', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+2, y, {sz:7, b:true, c:DARK});
+  t('Mods', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+2, y, {sz:7, b:true, c:BLACK});
   t('Dx', M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+2, y, {sz:7, b:true, c:DARK, a:'center'});
   t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
   y += 2;
@@ -9483,7 +9576,7 @@ claims.forEach((claim, ci) => {
     const rowH = Math.max(7, descLines.length * 4.5);
 
     // CPT bold brand color
-    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:DARK});
+    t(UC(l.cpt||''), M, y+4, {sz:9, b:true, c:BLACK});
 
     // Description wrapped
     descLines.forEach(function(dl, dli){ t(dl, M+SL.cptW, y+4+dli*4.5, {sz:8, c:DARK}); });
@@ -9491,8 +9584,8 @@ claims.forEach((claim, ci) => {
     // Units
     t(String(units), M+SL.cptW+SL.descW+SL.unitW/2, y+4, {sz:8, c:DARK, a:'center'});
 
-    // Unit price (only if >1 unit)
-    if (units > 1) t('$'+unitPrc.toFixed(2), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y+4, {sz:8, c:DARK, a:'right'});
+    // Unit price — always show for every line
+    t('$'+unitPrc.toFixed(2), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y+4, {sz:8, c:DARK, a:'right'});
 
     // Mods
     if (mods) t(UC(mods), M+SL.cptW+SL.descW+SL.unitW+SL.uprcW+3, y+4, {sz:7.5, c:DARK});
@@ -9527,7 +9620,7 @@ claims.forEach((claim, ci) => {
     ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
     : UC(prov.name||'Provider');
   t('Electronically signed by:', M+6, fY+6, {sz:7, c:GRAY2});
-  t(rendName, M+6, fY+13, {b:true, sz:8.5, c:DARK});
+  t(rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
   if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, M+6, fY+19, {sz:7, c:DARK});
 
   const now=new Date();
@@ -15489,6 +15582,18 @@ ${ins.inactive?'<span style="background:#fef2f2;color:#dc2626;font-size:10px;fon
 </div>`).join('');
 }
 
+function _onInsPayerSelect(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt ? (opt.dataset.name||'') : '';
+  const pid  = opt ? (opt.dataset.payerid||'') : '';
+  const hidN = document.getElementById('pif-insname');
+  const hidP = document.getElementById('pif-payerid');
+  const disp = document.getElementById('pif-payerid-display');
+  if (hidN) hidN.value = name;
+  if (hidP) hidP.value = pid;
+  if (disp) disp.textContent = pid || '—';
+}
+
 function _addInsurance(patId) {
 const db = getDB();
 const pat = db.patients.find(p=>p.id===patId);
@@ -15501,6 +15606,18 @@ const db = getDB();
 const pat = db.patients.find(p=>p.id===patId);
 if (!pat) return;
 _showInsuranceForm(patId, idx);
+}
+
+function _onInsPayerSelect(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  var name  = opt ? (opt.dataset.name||'')    : '';
+  var payId = opt ? (opt.dataset.payerid||'') : '';
+  var hidC = document.getElementById('pif-ins-company');
+  var hidP = document.getElementById('pif-payerid-val');
+  var disp = document.getElementById('pif-payerid-disp');
+  if (hidC) hidC.value = name;
+  if (hidP) hidP.value = payId;
+  if (disp) disp.textContent = payId || '—';
 }
 
 function _showInsuranceForm(patId, idx) {
@@ -15532,7 +15649,11 @@ if (el('pif-mobile')) el('pif-mobile').value = pat.phone2||'';
 if (el('pif-email')) el('pif-email').value = pat.email ||'';
 }
 
-const curType = iv.insType||iv.type||'Primary';
+// Auto-default: Secondary if patient already has an active Primary
+const hasActivePrimary = (pat.insurances||[]).some(function(x){
+  return (x.insType||x.type||'').toLowerCase().includes('primary') && (x.status||'active')!=='inactive';
+});
+const curType = iv.insType || iv.type || (idx===null && hasActivePrimary ? 'Secondary' : 'Primary');
 const types = ['Primary','Secondary','Tertiary','Self Pay','InActive','Case Insurance'];
 const typeRadios = types.map(t =>
 `<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;margin-right:10px;cursor:pointer">
@@ -15601,7 +15722,25 @@ ${['Male','Female','Unknown'].map(s=>
 </div>
 ${fld('pif-dob','Date Of Birth *',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
 ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
-${fld('pif-ins-company','Insurance Company *',iv.name||iv.insuranceName||'','text','',true)}
+<div style="display:flex;align-items:flex-start;gap:0;padding:4px 0">
+<label style="width:140px;font-size:12px;color:#333;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#c0392b">*</span></label>
+<span style="color:#555;margin-right:6px;font-size:12px;padding-top:4px">:</span>
+<div style="flex:1">
+  <select id="pif-payer-sel" onchange="_onInsPayerSelect(this)" style="width:100%;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff;color:#333;margin-bottom:4px">
+    <option value="">— Select Insurance / Payer —</option>
+    \${(getInsurances()||[]).map(function(ins){
+      var sel = (iv.name===ins.name||(iv.payerId&&iv.payerId===ins.payerId)) ? 'selected' : '';
+      return '<option value="'+ins.id+'" data-name="'+escapeHtml(ins.name||'')+'" data-payerid="'+(ins.payerId||'')+'" '+sel+'>'+escapeHtml(ins.name||'')+' &nbsp;·&nbsp; ID: '+(ins.payerId||'—')+'</option>';
+    }).join('')}
+  </select>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:11px;color:#666">Payer ID:</span>
+    <code id="pif-payerid-disp" style="font-size:12px;font-weight:700;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:4px">\${iv.payerId||'—'}</code>
+  </div>
+  <input type="hidden" id="pif-ins-company" value="\${iv.name||iv.insuranceName||''}">
+  <input type="hidden" id="pif-payerid-val" value="\${iv.payerId||''}">
+</div>
+</div>
 ${fld('pif-policy','Policy No * (No \'-\' Please)',iv.policy||iv.memberId||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Plan</label>
@@ -15700,6 +15839,9 @@ const sex = sexR ? sexR.value : 'Unknown';
 // Read insurance type radio
 const typeR = document.querySelector('input[name="pif-ins-type"]:checked');
 const insType = typeR ? typeR.value : 'Primary';
+    // Save payerId from hidden field
+    const newPayerId = g('pif-payerid-val');
+    const newInsName = g('pif-ins-company');
 const now = new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
 const session = getSession();
 const createdBy = session ? (session.name||session.email) : '';
@@ -15731,6 +15873,15 @@ setDB(db => {
 const p = db.patients.find(x=>x.id===patId);
 if (!p) return;
 if (!p.insurances) p.insurances=[];
+// If adding new Primary, deactivate existing active primary
+if (insType === 'Primary' && (idx === null || idx < 0)) {
+  p.insurances.forEach(function(x) {
+    if ((x.insType||x.type||'Primary').toLowerCase().includes('primary') && (x.status||'active') !== 'inactive') {
+      x.status = 'inactive';
+      x.inactivatedAt = new Date().toISOString();
+    }
+  });
+}
 if (idx !== null && idx >= 0) p.insurances[idx]={...p.insurances[idx],...entry};
 else p.insurances.push(entry);
 });
@@ -16383,8 +16534,17 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="field" style="grid-column:1/-1"><label>Company / Entity Name <span class="req">*</span></label><input id="iss-name" placeholder="IMBS Inc"></div>
 <div class="field"><label>Tax ID / EIN</label><input id="iss-taxid" placeholder="XX-XXXXXXX"></div>
 <div class="field"><label>NPI</label><input id="iss-npi" maxlength="10" class="mono"></div>
-<div class="field"><label>Phone / <span style="color:#6f3eff;font-weight:700">Z</span> Zelle</label><input id="iss-phone" placeholder="(305) 000-0000"></div>
+<div class="field"><label>Phone / <span style="color:#6f3eff;font-weight:700">Z</span> Zelle</label><input id="iss-phone" placeholder="(786) 614-5085"></div>
 <div class="field"><label>Email</label><input id="iss-email" type="email" placeholder="billing@company.com"></div>
+<div class="field" style="grid-column:1/-1">
+  <label><span style="color:#6f3eff;font-weight:700">Z</span> Zelle — Show as</label>
+  <div style="display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;margin-top:4px">
+    <button type="button" id="zelle-btn-phone" onclick="setZelleMode('phone')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">📱 Phone</button>
+    <button type="button" id="zelle-btn-email" onclick="setZelleMode('email')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);border-left:1px solid var(--border);border-right:1px solid var(--border);transition:all .15s">✉️ Email</button>
+    <button type="button" id="zelle-btn-both" onclick="setZelleMode('both')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">Both</button>
+  </div>
+  <input type="hidden" id="iss-zelle-mode" value="phone">
+</div>
 <div class="field" style="grid-column:1/-1"><label>Address</label><input id="iss-addr1" placeholder="Street address"></div>
 <div class="field"><label>City</label><input id="iss-city"></div>
 <div class="field"><label>State</label><input id="iss-state" maxlength="2"></div>
