@@ -9263,7 +9263,7 @@ function buildClaimJSON(claim, prov, db) {
 async function transmitDirect(filter) {
   const cfg = getApiConfig();
   if (!cfg.acctKey) {
-    toast('Configure tu ClaimMD API Key en Settings → Billing Providers', 'warn');
+    toast('Configura tu ClaimMD API Key en Settings → Billing Providers', 'warn');
     return;
   }
 
@@ -9275,45 +9275,43 @@ async function transmitDirect(filter) {
   if (filter === 'selected') claims = claims.filter(function(c){ return _selectedClaims.has(c.id); });
   if (!claims.length) { toast('No hay claims ' + filter + ' para transmitir', 'warn'); return; }
 
-  const errors = claims.flatMap(function(c){ return validateClaim(c); });
-  if (errors.length) {
-    toast(errors.length + ' error(s) de validación — corrígelos primero', 'err');
-    return;
-  }
-
-  toast('Transmitiendo ' + claims.length + ' claim(s) a ClaimMD...', 'info');
-
-  const claimObjs = claims.map(function(c) {
-    return buildClaimJSON(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
+  // Build CSV — this is what ClaimMD accepts via file upload
+  const rows = claims.map(function(c) {
+    return buildCSVRow(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
   }).filter(Boolean);
-  if (!claimObjs.length) { toast('No se pudo generar el JSON', 'err'); return; }
+  if (!rows.length) { toast('No se pudo generar el CSV', 'err'); return; }
 
-  const payload = JSON.stringify({
-    fileid: String(Date.now()).slice(-6),
-    claim: claimObjs,
-  });
+  const csv = CSV_COLS.join(',') + '\n' + rows.map(function(r) {
+    return CSV_COLS.map(function(k) {
+      const val = String(r[k]||'');
+      return (val.includes(',') || val.includes('"')) ? '"' + val.replace(/"/g,'""') + '"' : val;
+    }).join(',');
+  }).join('\n');
+
+  const fname = 'Claims_' + filter + '_' + dateStr() + '.csv';
   const alertEl = document.getElementById('exp-alert-top');
 
+  toast('Transmitiendo ' + claims.length + ' claim(s) a ClaimMD...');
+
   try {
-    console.log('[ClaimMD] Transmitting', claims.length, 'claims as JSON...');
+    // ClaimMD upload endpoint: multipart/form-data with AccountKey + File
+    const fd = new FormData();
+    fd.append('AccountKey', cfg.acctKey);
+    fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
 
-    const res = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-    const json = await res.text();
-    console.log('[ClaimMD response]', json.slice(0,300));
+    console.log('[ClaimMD] Uploading CSV to svc.claim.md via proxy...');
 
-    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + json.slice(0,200));
+    const res = await fetch(proxyUrl, { method: 'POST', body: fd });
+    const text = await res.text();
+    console.log('[ClaimMD response]', res.status, text.slice(0,500));
 
-    var resp = {};
-    try { resp = JSON.parse(json); } catch(e) {}
+    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.slice(0,300));
 
-    const errNo  = resp.errorcode || resp.error_code || '';
-    const errMsg = resp.message   || resp.error      || json.slice(0,200);
-    if (errNo && errNo !== '0' && errNo !== 0) throw new Error(errMsg);
+    // ClaimMD returns XML — check for error
+    const errMatch = text.match(/<error[^>]*>([\s\S]*?)<\/error>/i);
+    if (errMatch) throw new Error(errMatch[1] || 'ClaimMD error');
 
+    // Success
     setDB(function(db2) {
       db2.claims.forEach(function(c) {
         if (claims.find(function(x){ return x.id===c.id; })) {
@@ -9326,7 +9324,7 @@ async function transmitDirect(filter) {
       db2.transmitLog.unshift({
         id: 'log_'+Date.now(), ts: new Date().toISOString(),
         action:'transmit', filter, count:claims.length,
-        status:'success',
+        status:'success', response: text.slice(0,500),
       });
     });
 
