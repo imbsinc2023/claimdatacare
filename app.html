@@ -3102,7 +3102,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 
 <!-- Account info -->
-<div id="account-info" style="margin-top:20px;font-size:13px;color:var(--text3)"></div>
+
 
 
 </div>
@@ -7792,16 +7792,7 @@ renderUserManagement(); toast('User '+email+' added ?');
 
 
 function renderAccountPage() {
-const session = getSession();
-const infoEl = document.getElementById('account-info');
-if (infoEl && session) {
-infoEl.innerHTML =
-'<div><strong>Name:</strong> ' + (session.name||'') + '</div>' +
-'<div><strong>Email:</strong> ' + (session.email||'') + '</div>' +
-'<div><strong>Role:</strong> ' + (session.role||'') + '</div>' +
-'<div><strong>Provider:</strong> ' + (getDB().providers.find(p=>p.id===activeProviderId)?.name||'') + '</div>';
-}
-renderUserManagement();
+  renderUserManagement();
 }
 
 function renderUserManagement() {
