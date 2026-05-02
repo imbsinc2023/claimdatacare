@@ -1319,7 +1319,7 @@ border-radius: 8px;
           '<label style="' + lblStyle + '">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
             '<input id="nu-email" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px" autocomplete="off">' +
-            (isEdit ? '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send via Firebase Console → Authentication\',\'info\')">Reset Email</button>' : '') +
+            (isEdit ? '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send via Firebase Console → Authentication\',\'info\')">Reset Password</button>' : '') +
           '</div>' +
           '<div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>' +
         '</div>' +
@@ -1335,9 +1335,14 @@ border-radius: 8px;
 
         // Options checkboxes
         '<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">' +
-          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-track-time"' + (u.trackTime?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Track Time-In &amp; Time-Out</label>' +
-          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-pass-expire"' + (u.passExpire?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Password will Expire in 90 Days</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-track-time" checked style="accent-color:var(--brand);width:14px;height:14px"> Track Time-In &amp; Time-Out</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-pass-expire" checked disabled style="accent-color:var(--brand);width:14px;height:14px;opacity:.7"> Password will Expire in 90 Days <span style=\"font-size:10px;background:var(--bg3);padding:1px 7px;border-radius:4px;color:var(--text3)\">Required</span></label>' +
           '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive"' + (u.autoInactive?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> User Auto InActive</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">' +
+            '<input type="checkbox" id="nu-twofa"' + (u.twoFA?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> ' +
+            'Enable Two-Factor Authentication (2FA) ' +
+            '<span style="font-size:10px;background:#e8f5e9;color:#2d6a4f;padding:1px 7px;border-radius:4px;margin-left:4px;font-weight:600">Recommended</span>' +
+          '</label>' +
         '</div>' +
       '</div>' +
 
@@ -7566,8 +7571,32 @@ btn.textContent = 'Sign In'; btn.disabled = false; return;
 const session = { id:user.id, email:user.email, name:user.name||'Admin',
 role:user.role||'Super Admin', activeBillingProviderId:null };
 setSession(session);
-showApp(session.name);
-loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+
+// 2FA check
+if (user.twoFA) {
+  if (isDeviceRemembered(user.email)) {
+    // Device remembered — skip 2FA
+    showApp(session.name);
+    loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+  } else {
+    // Send code and show 2FA screen
+    btn.textContent = 'Sending code...';
+    send2FACode(user).then(function(sent) {
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      if (!sent) {
+        alertEl.innerHTML = '<div class="alert al-error">Could not send verification code. Check email configuration.</div>';
+        return;
+      }
+      show2FAScreen(user, function() {
+        showApp(session.name);
+        loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+      });
+    });
+  }
+} else {
+  showApp(session.name);
+  loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+}
 } catch(e) {
 alertEl.innerHTML = `<div class="alert al-error">Login error: ${e.message}</div>`;
 btn.textContent = 'Sign In'; btn.disabled = false;
@@ -7893,6 +7922,166 @@ alertEl.innerHTML='<div class="alert al-success"><i data-lucide="check-circle" c
 renderUserManagement(); toast('User '+email+' added ?');
 }
 
+
+// ── Email Service ─────────────────────────────────────────────────
+var EMAIL_WORKER_URL = 'https://email-service.imbsinc2023.workers.dev';
+
+async function sendEmail(to, subject, html) {
+  try {
+    var res = await fetch(EMAIL_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: to, subject: subject, html: html }),
+    });
+    var data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Send failed');
+    return true;
+  } catch(e) {
+    console.error('Email error:', e);
+    return false;
+  }
+}
+
+function generate2FACode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function get2FADeviceKey(email) {
+  return 'cdc_2fa_device_' + btoa(email).replace(/=/g,'');
+}
+
+function isDeviceRemembered(email) {
+  try {
+    var key = get2FADeviceKey(email);
+    var stored = localStorage.getItem(key);
+    if (!stored) return false;
+    var data = JSON.parse(stored);
+    if (Date.now() > data.expires) { localStorage.removeItem(key); return false; }
+    return true;
+  } catch(e) { return false; }
+}
+
+function rememberDevice(email) {
+  try {
+    var key = get2FADeviceKey(email);
+    localStorage.setItem(key, JSON.stringify({
+      email: email,
+      expires: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
+      ts: Date.now(),
+    }));
+  } catch(e) {}
+}
+
+var _pending2FA = null; // { code, email, user, expires }
+
+async function send2FACode(user) {
+  var code = generate2FACode();
+  _pending2FA = { code: code, email: user.email, user: user, expires: Date.now() + 10 * 60 * 1000 };
+
+  var html = [
+    '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">',
+    '<div style="background:#1b4332;padding:16px 24px;border-radius:8px 8px 0 0">',
+    '<h2 style="color:white;margin:0;font-size:18px">ClaimDataCare — Verification Code</h2>',
+    '</div>',
+    '<div style="background:#f8f6f0;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e0ddd8">',
+    '<p style="color:#333;font-size:15px">Hello ' + (user.first || user.name || '') + ',</p>',
+    '<p style="color:#333;font-size:14px">Your verification code is:</p>',
+    '<div style="background:#2d6a4f;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
+    '<p style="color:#666;font-size:13px">This code expires in <strong>10 minutes</strong>.</p>',
+    '<p style="color:#666;font-size:13px">If you did not request this, please ignore this email or contact your administrator.</p>',
+    '</div>',
+    '<p style="color:#999;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare · Secure Medical Billing</p>',
+    '</div>',
+  ].join('');
+
+  var sent = await sendEmail(user.email, 'ClaimDataCare — Your verification code: ' + code, html);
+  return sent;
+}
+
+function show2FAScreen(user, onSuccess) {
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-2fa';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  overlay.innerHTML =
+    '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
+    '<div style="background:#1b4332;padding:20px 24px">' +
+      '<div style="color:white;font-weight:700;font-size:17px">Two-Factor Authentication</div>' +
+      '<div style="color:#a7d3b8;font-size:13px;margin-top:4px">A 6-digit code was sent to ' + user.email + '</div>' +
+    '</div>' +
+    '<div style="padding:24px">' +
+      '<div id="tfa-alert" style="margin-bottom:12px"></div>' +
+      '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:8px">Enter verification code</label>' +
+      '<input id="tfa-code" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"' +
+        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e0ddd8;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#1b4332;font-weight:700"' +
+        ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);if(this.value.length===6)verify2FACode()">' +
+      '<div style="margin-top:16px">' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;cursor:pointer">' +
+          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#2d6a4f"> ' +
+          'Remember this device for 30 days' +
+        '</label>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;margin-top:20px">' +
+        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid #2d6a4f;background:white;color:#2d6a4f;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
+        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:#2d6a4f;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
+      '</div>' +
+      '<div style="text-align:center;margin-top:14px">' +
+        '<button onclick="cancelLogin()" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer">Cancel — Back to Login</button>' +
+      '</div>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  setTimeout(function(){ document.getElementById('tfa-code')?.focus(); }, 100);
+
+  window._2fa_onSuccess = onSuccess;
+}
+
+function verify2FACode() {
+  var code = (document.getElementById('tfa-code')?.value||'').trim();
+  var alertEl = document.getElementById('tfa-alert');
+
+  if (!_pending2FA) { if(alertEl) alertEl.innerHTML='<div class="alert al-error">Session expired. Please log in again.</div>'; return; }
+  if (Date.now() > _pending2FA.expires) {
+    if(alertEl) alertEl.innerHTML='<div class="alert al-error">Code expired. Click Resend to get a new one.</div>';
+    return;
+  }
+  if (code !== _pending2FA.code) {
+    if(alertEl) alertEl.innerHTML='<div class="alert al-error">Incorrect code. Please try again.</div>';
+    document.getElementById('tfa-code').value = '';
+    document.getElementById('tfa-code').focus();
+    return;
+  }
+
+  // Success
+  if (document.getElementById('tfa-remember')?.checked) {
+    rememberDevice(_pending2FA.email);
+  }
+
+  var overlay = document.getElementById('modal-2fa');
+  if (overlay) overlay.remove();
+  _pending2FA = null;
+
+  if (window._2fa_onSuccess) window._2fa_onSuccess();
+}
+
+async function resend2FACode() {
+  var alertEl = document.getElementById('tfa-alert');
+  if (!_pending2FA) return;
+  if(alertEl) alertEl.innerHTML='<div class="alert al-info">Sending new code...</div>';
+  var sent = await send2FACode(_pending2FA.user);
+  if(alertEl) alertEl.innerHTML = sent
+    ? '<div class="alert al-success">New code sent to ' + _pending2FA.email + '</div>'
+    : '<div class="alert al-error">Failed to send. Check email configuration.</div>';
+  document.getElementById('tfa-code').value = '';
+}
+
+function cancelLogin() {
+  _pending2FA = null;
+  var overlay = document.getElementById('modal-2fa');
+  if (overlay) overlay.remove();
+  doLogout();
+}
 
 function renderAccountPage() {
   renderUserManagement();
@@ -16570,7 +16759,7 @@ function openAddUserModal(existingUser) {
           '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
             '<input id="nu-email" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
-            '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send reset email via Firebase Auth\',\'info\')">Reset Email</button>' +
+            '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send reset email via Firebase Auth\',\'info\')">Reset Password</button>' +
           '</div>' +
           '<div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>' +
         '</div>' +
@@ -16639,6 +16828,7 @@ function saveNewUser() {
   var trackTime    = !!document.getElementById('nu-track-time')?.checked;
   var passExpire   = !!document.getElementById('nu-pass-expire')?.checked;
   var autoInactive = !!document.getElementById('nu-auto-inactive')?.checked;
+  var twoFA        = !!document.getElementById('nu-twofa')?.checked;
   var specialties = Array.from(document.querySelectorAll('.nu-spec-cb:checked')).map(function(cb){ return cb.value; });
   var roles       = Array.from(document.querySelectorAll('.nu-role-cb:checked')).map(function(cb){ return cb.value; });
   var perms       = Array.from(document.querySelectorAll('.nu-perm-cb:checked')).map(function(cb){ return cb.value; });
@@ -16696,7 +16886,7 @@ function saveNewUser() {
     users.push({
       id: uid(), name, first, last, email, phone, phone2,
       role: primaryRole, roles, permissions: perms, specialties,
-      inactive, trackTime, passExpire, autoInactive,
+      inactive, trackTime, passExpire, autoInactive, twoFA,
       providerId: activeProviderId, createdAt: Date.now()
     });
     if (saveUsers) saveUsers(users);
