@@ -1197,7 +1197,215 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>
+<script>function openAddUserModal(existingUser) {
+  // Remove any existing modal
+  var prev = document.getElementById('modal-add-user');
+  if (prev) prev.remove();
+
+  var u = existingUser || {};
+  var isEdit = !!u.id;
+
+  // Get specialties from current active provider
+  var db = getDB();
+  var prov = db.providers.find(function(p2){ return p2.id === activeProviderId; }) || {};
+  // Provider specialties — use taxonomy or a specialties array if defined
+  var provSpecialties = prov.specialties || [];
+  if (!provSpecialties.length && prov.taxonomy) {
+    provSpecialties = [prov.taxonomy];
+  }
+  // Fallback common specialties if provider has none defined
+  if (!provSpecialties.length) {
+    provSpecialties = ['Psychiatry','Psychology','Social Work','Counseling','Behavioral Health',
+      'Internal Medicine','Family Medicine','Pediatrics','Neurology','Rehabilitation'];
+  }
+  var userSpecs = Array.isArray(u.specialties) ? u.specialties : (u.specialty ? [u.specialty] : []);
+
+  var specsHtml = provSpecialties.map(function(s) {
+    var chk = userSpecs.indexOf(s) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
+      '<input type="checkbox" class="nu-spec-cb" value="' + s + '" ' + chk +
+      ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + s + '</label>';
+  }).join('');
+
+  // Only Super Admin user can assign Super Admin role
+  var session = getSession ? getSession() : {};
+  var isSuperAdmin = session && session.email === 'imbsinc2023@gmail.com';
+  var availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(function(r){ return r !== 'Super Admin'; });
+
+  var rolesHtml = availableRoles.map(function(r) {
+    var userRoles = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : []);
+    var chk = userRoles.indexOf(r) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
+      '<input type="checkbox" class="nu-role-cb" value="' + r + '" ' + chk +
+      ' style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0"> ' + r + '</label>';
+  }).join('');
+
+  var permsHtml = USER_PERMISSIONS.map(function(p3) {
+    var userPerms = u.permissions || [];
+    var chk = userPerms.indexOf(p3) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
+      '<input type="checkbox" class="nu-perm-cb" value="' + p3 + '" ' + chk +
+      ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + p3 + '</label>';
+  }).join('');
+
+  var inpStyle = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px';
+  var lblStyle = 'font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px';
+  var secStyle = 'font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)';
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-add-user';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
+
+    // ── Header ──
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">' +
+      '<div>' +
+        '<div style="font-weight:700;font-size:16px;color:var(--text)">' + (isEdit ? 'Edit User' : 'Add New User') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:3px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'modal-add-user\').remove()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);line-height:1;padding:0 4px">&times;</button>' +
+    '</div>' +
+
+    // ── Body ──
+    '<div style="overflow-y:auto;flex:1;padding:20px 22px">' +
+      '<div id="nu-alert" style="margin-bottom:12px"></div>' +
+      '<input type="hidden" id="nu-id" value="' + (u.id||'') + '">' +
+
+      // Section header
+      '<div style="' + secStyle + '">User Registration</div>' +
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">' +
+
+        // Row 1: First + Last name
+        '<div>' +
+          '<label style="' + lblStyle + '">First Name <span style="color:var(--red)">*</span></label>' +
+          '<input id="nu-first" value="' + (u.first||'') + '" placeholder="First name" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
+        '</div>' +
+        '<div>' +
+          '<label style="' + lblStyle + '">Last Name <span style="color:var(--red)">*</span></label>' +
+          '<input id="nu-last" value="' + (u.last||'') + '" placeholder="Last name" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
+        '</div>' +
+
+        // Row 2: Username preview
+        '<div style="grid-column:1/-1">' +
+          '<label style="' + lblStyle + '">Username <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">8–16 characters, must contain a period (.)</span></label>' +
+          '<input id="nu-name" value="' + (u.name||'') + '" placeholder="firstname.lastname" maxlength="16" style="' + inpStyle + '" oninput="validateUsername(this)">' +
+          '<div id="nu-name-preview" style="font-size:11px;color:var(--brand);margin-top:4px;display:none">Suggested: <span id="nu-name-suggest" style="font-weight:600"></span></div>' +
+          '<div id="nu-name-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px"></div>' +
+        '</div>' +
+
+        // Row 3: Password
+        '<div style="grid-column:1/-1">' +
+          '<label style="' + lblStyle + '">Password ' + (isEdit ? '' : '<span style="color:var(--red)">*</span>') + ' <span style="font-size:10px;color:var(--text3);font-weight:400">' + (isEdit ? 'leave blank to keep current' : 'min 6 characters') + '</span></label>' +
+          '<input id="nu-pass" type="password" placeholder="••••••••" style="' + inpStyle + '" autocomplete="new-password">' +
+          '<div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>' +
+        '</div>' +
+
+        // Row 4: Phone + Alt Phone
+        '<div>' +
+          '<label style="' + lblStyle + '">Phone <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
+          '<input id="nu-phone" value="' + (u.phone||'') + '" placeholder="(786) 000-0000" style="' + inpStyle + '">' +
+          '<div id="nu-phone-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Phone is required for password recovery</div>' +
+        '</div>' +
+        '<div>' +
+          '<label style="' + lblStyle + '">Alternate Phone</label>' +
+          '<input id="nu-phone2" value="' + (u.phone2||'') + '" placeholder="(786) 000-0000" style="' + inpStyle + '">' +
+        '</div>' +
+
+        // Row 5: Email
+        '<div style="grid-column:1/-1">' +
+          '<label style="' + lblStyle + '">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
+          '<div style="display:flex;gap:8px;align-items:center">' +
+            '<input id="nu-email" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px" autocomplete="off">' +
+            (isEdit ? '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send via Firebase Console → Authentication\',\'info\')">Reset Email</button>' : '') +
+          '</div>' +
+          '<div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>' +
+        '</div>' +
+
+        // Row 6: Status + Specialty
+        '<div>' +
+          '<label style="' + lblStyle + '">Status</label>' +
+          '<select id="nu-inactive" style="' + inpStyle + '">' +
+            '<option value="0"' + (!u.inactive?' selected':'') + '>Active</option>' +
+            '<option value="1"' + (u.inactive?' selected':'') + '>Inactive</option>' +
+          '</select>' +
+        '</div>' +
+
+        // Options checkboxes
+        '<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-track-time"' + (u.trackTime?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Track Time-In &amp; Time-Out</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-pass-expire"' + (u.passExpire?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Password will Expire in 90 Days</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive"' + (u.autoInactive?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> User Auto InActive</label>' +
+        '</div>' +
+      '</div>' +
+
+      // Specialties
+      '<div style="' + secStyle + '">Specialties <span style="font-size:10px;font-weight:400;text-transform:none">— from provider profile (read-only, select applicable)</span></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;margin-bottom:20px">' + specsHtml + '</div>' +
+
+      // Roles
+      '<div style="' + secStyle + '">Roles <span style="font-size:10px;font-weight:400;text-transform:none">— select all that apply</span></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;margin-bottom:20px">' + rolesHtml + '</div>' +
+
+      // Permissions
+      '<div style="' + secStyle + '">Permissions</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px 16px;margin-bottom:8px">' + permsHtml + '</div>' +
+    '</div>' +
+
+    // ── Footer ──
+    '<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2)">' +
+      '<button class="btn btn-ghost" style="height:34px" onclick="document.getElementById(\'modal-add-user\').remove()">Cancel</button>' +
+      '<button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">' +
+        '<i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save' +
+      '</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+  setTimeout(function(){
+    _renderLucideIcons();
+    document.getElementById('nu-first')?.focus();
+    // Show username preview if first+last already filled
+    updateUsernamePreview();
+  }, 50);
+}
+
+function updateUsernamePreview() {
+  var first = (document.getElementById('nu-first')?.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  var last  = (document.getElementById('nu-last')?.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  var preview = document.getElementById('nu-name-preview');
+  var suggest = document.getElementById('nu-name-suggest');
+  var nameInput = document.getElementById('nu-name');
+  if (!preview || !suggest) return;
+  if (first && last) {
+    var proposed = first + '.' + last;
+    if (proposed.length > 16) proposed = proposed.slice(0,16);
+    suggest.textContent = proposed;
+    preview.style.display = '';
+    // Auto-fill if name field is empty
+    if (nameInput && !nameInput.value) nameInput.value = proposed;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function validateUsername(input) {
+  var val = input.value;
+  var errEl = document.getElementById('nu-name-err');
+  if (!errEl) return;
+  if (val.length < 8) {
+    errEl.textContent = 'Minimum 8 characters required'; errEl.style.display = '';
+  } else if (val.length > 16) {
+    errEl.textContent = 'Maximum 16 characters allowed'; errEl.style.display = '';
+  } else if (!val.includes('.')) {
+    errEl.textContent = 'Must contain at least one period (.)'; errEl.style.display = '';
+  } else {
+    errEl.style.display = 'none';
+  }
+}
 function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
   const cfg   = _apiConfigCache || {};
@@ -2420,9 +2628,6 @@ return `<div class="app-shell">
 <div style="font-size:11px;color:var(--text3)">ClaimMD Official Format</div>
 </div>
 </div>
-<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">
-Dates M/D/YYYY · CPT as text · Dx no commas · POS on every line
-</p>
 <div style="display:flex;flex-direction:column;gap:8px">
 <button class="btn btn-primary btn-sm" onclick="exportCSV('pending')">
 <i data-lucide="download" class="lci"></i> Export Pending Claims
@@ -2499,7 +2704,6 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 <div class="page-hdr">
 <div>
 <h1>ERA / EOB Payments</h1>
-<p style="font-size:13px;color:var(--text3);margin-top:2px">Post insurance payments · ERA import · EDI 835 upload</p>
 </div>
 <div class="btn-group">
 <button class="btn btn-sm" onclick="openEOBPostingModal()">
@@ -2634,7 +2838,6 @@ Click "Find &amp; Add Claim" to search and add claims to this payment
 <div class="page-hdr">
 <div>
 <h1>Billing Providers</h1>
-<p style="font-size:13px;color:var(--text3);margin-top:2px">View and manage billing provider accounts</p>
 </div>
 <button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">
 <i data-lucide="plus" class="lci"></i> Add Provider
@@ -2647,7 +2850,6 @@ Click "Find &amp; Add Claim" to search and add claims to this payment
 <div class="page-hdr">
 <div>
 <h1>Insurances / Payers</h1>
-<p style="font-size:13px;color:var(--text3);margin-top:2px">ClaimMD payer list · Electronic &amp; Manual payers</p>
 </div>
 <div class="btn-group">
 <button class="btn btn-sm" onclick="searchClaimMDPayers()">
@@ -2834,7 +3036,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="page-hdr">
   <div>
     <h1>Users &amp; Account</h1>
-    <p style="font-size:13px;color:var(--text3);margin-top:2px">Manage users, roles and account settings</p>
+    
   </div>
   <div style="display:flex;gap:8px;align-items:center">
     <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">
@@ -2913,7 +3115,6 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <i data-lucide="receipt" class="lci" style="width:24px;height:24px;color:var(--brand)"></i>
 Invoicing
 </h1>
-<p style="font-size:13px;color:var(--text3);margin-top:2px">Billing entities · Clients · Invoices</p>
 </div>
 <div class="btn-group" id="inv-hdr-btns">
 <button class="btn btn-primary btn-sm" onclick="openInvoiceModal()" id="inv-btn-new" style="display:none">
@@ -11046,7 +11247,6 @@ if (!list.length) {
 el.innerHTML = `<div class="empty">
 <div class="empty-ico"><i data-lucide="shield" class="lci" style="width:40px;height:40px;color:var(--text3)"></i></div>
 <h3>No payers configured</h3>
-<p style="font-size:13px;color:var(--text3)">Add payers manually or search the ClaimMD directory</p>
 <div class="btn-group" style="justify-content:center;margin-top:10px">
 <button class="btn btn-primary btn-sm" onclick="openInsuranceModal('')"><i data-lucide="plus" class="lci"></i> Add Payer</button>
 <button class="btn btn-sm" onclick="searchClaimMDPayers()"><i data-lucide="search" class="lci"></i> ClaimMD Directory</button>
@@ -11339,7 +11539,6 @@ const batches = getEOBBatches()
 if (!batches.length) return `<div class="empty">
 <div class="empty-ico"><i data-lucide="dollar-sign" class="lci" style="width:40px;height:40px;color:var(--text3)"></i></div>
 <h3>No payment batches yet</h3>
-<p style="font-size:13px;color:var(--text3)">Post a manual EOB, fetch ERA from ClaimMD, or upload an EDI 835</p>
 <div class="btn-group" style="justify-content:center;margin-top:10px">
 <button class="btn btn-primary btn-sm" onclick="openEOBPostingModal()"><i data-lucide="pen-line" class="lci"></i> Manual EOB</button>
 <button class="btn btn-sm" onclick="fetchERAFromClaimMD()"><i data-lucide="download-cloud" class="lci"></i> Fetch ERA</button>
@@ -16332,57 +16531,89 @@ function changeUserEmail()     { toast('Change email feature requires Firebase A
 function saveNewUser() {
   var alertEl = document.getElementById('nu-alert');
   var id        = document.getElementById('nu-id')?.value||'';
-  var name      = (document.getElementById('nu-name')?.value||'').trim();
   var first     = (document.getElementById('nu-first')?.value||'').trim();
   var last      = (document.getElementById('nu-last')?.value||'').trim();
+  var name      = (document.getElementById('nu-name')?.value||'').trim();
   var email     = (document.getElementById('nu-email')?.value||'').trim().toLowerCase();
   var pass      = document.getElementById('nu-pass')?.value||'';
   var phone     = (document.getElementById('nu-phone')?.value||'').trim();
   var phone2    = (document.getElementById('nu-phone2')?.value||'').trim();
-  var specialty = (document.getElementById('nu-specialty')?.value||'').trim();
   var inactive  = document.getElementById('nu-inactive')?.value === '1';
-  var trackTime   = document.getElementById('nu-track-time')?.checked||false;
-  var passExpire  = document.getElementById('nu-pass-expire')?.checked||false;
-  var autoInactive= document.getElementById('nu-auto-inactive')?.checked||false;
-  var roles = Array.from(document.querySelectorAll('.nu-role-cb:checked')).map(function(cb){ return cb.value; });
-  var perms = Array.from(document.querySelectorAll('.nu-perm-cb:checked')).map(function(cb){ return cb.value; });
+  var trackTime    = !!document.getElementById('nu-track-time')?.checked;
+  var passExpire   = !!document.getElementById('nu-pass-expire')?.checked;
+  var autoInactive = !!document.getElementById('nu-auto-inactive')?.checked;
+  var specialties = Array.from(document.querySelectorAll('.nu-spec-cb:checked')).map(function(cb){ return cb.value; });
+  var roles       = Array.from(document.querySelectorAll('.nu-role-cb:checked')).map(function(cb){ return cb.value; });
+  var perms       = Array.from(document.querySelectorAll('.nu-perm-cb:checked')).map(function(cb){ return cb.value; });
 
-  // Validations
+  // Validate
   var hasErr = false;
   alertEl.innerHTML = '';
-  ['nu-email-err','nu-pass-err','nu-phone-err'].forEach(function(id2){
-    var el = document.getElementById(id2); if (el) el.style.display = 'none';
+  ['nu-name-err','nu-email-err','nu-pass-err','nu-phone-err'].forEach(function(eid){
+    var el = document.getElementById(eid); if (el) el.style.display = 'none';
   });
 
-  if (!name && !first) { alertEl.innerHTML = '<div class="alert al-error">Username / Full Name is required.</div>'; hasErr = true; }
-  if (!phone) { document.getElementById('nu-phone-err').style.display = ''; hasErr = true; }
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { document.getElementById('nu-email-err').style.display = ''; hasErr = true; }
-  if (!id && (!pass || pass.length < 6)) { document.getElementById('nu-pass-err').style.display = ''; hasErr = true; }
+  if (!first) { alertEl.innerHTML = '<div class="alert al-error">First name is required.</div>'; return; }
+  if (!last)  { alertEl.innerHTML = '<div class="alert al-error">Last name is required.</div>'; return; }
+
+  // Username validation
+  var nameErr = document.getElementById('nu-name-err');
+  if (!name || name.length < 8) {
+    if (nameErr) { nameErr.textContent = 'Minimum 8 characters required'; nameErr.style.display = ''; }
+    hasErr = true;
+  } else if (name.length > 16) {
+    if (nameErr) { nameErr.textContent = 'Maximum 16 characters'; nameErr.style.display = ''; }
+    hasErr = true;
+  } else if (!name.includes('.')) {
+    if (nameErr) { nameErr.textContent = 'Must contain at least one period (.)'; nameErr.style.display = ''; }
+    hasErr = true;
+  }
+
+  if (!phone) { var pe = document.getElementById('nu-phone-err'); if(pe) pe.style.display=''; hasErr = true; }
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { var ee = document.getElementById('nu-email-err'); if(ee) ee.style.display=''; hasErr = true; }
+  if (!id && (!pass || pass.length < 6)) { var pse = document.getElementById('nu-pass-err'); if(pse) pse.style.display=''; hasErr = true; }
   if (hasErr) return;
 
-  var fullName = name || ((first + ' ' + last).trim());
   var users = getUsers ? getUsers() : [];
+
+  // Check username duplicity
+  var dupName = users.find(function(u){ return (u.name||'').toLowerCase() === name.toLowerCase() && u.id !== id; });
+  if (dupName) {
+    var ne = document.getElementById('nu-name-err');
+    if (ne) { ne.textContent = 'Username "' + name + '" already exists. Choose a different one.'; ne.style.display = ''; }
+    alertEl.innerHTML = '<div class="alert al-error">Username already exists.</div>';
+    return;
+  }
+
+  // Check email duplicity
+  if (users.find(function(u){ return (u.email||'').toLowerCase() === email && u.id !== id; })) {
+    var ee2 = document.getElementById('nu-email-err');
+    if (ee2) { ee2.textContent = 'This email is already registered.'; ee2.style.display = ''; }
+    alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>';
+    return;
+  }
+
   var primaryRole = roles[0] || 'User';
 
   if (!id) {
-    if (users.find(function(u){ return (u.email||'').toLowerCase() === email; })) {
-      alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>'; return;
-    }
     users.push({
-      id: uid(), email, name: fullName, first, last, phone, phone2, specialty,
-      role: primaryRole, roles, permissions: perms, inactive,
-      trackTime, passExpire, autoInactive, createdAt: Date.now()
+      id: uid(), name, first, last, email, phone, phone2,
+      role: primaryRole, roles, permissions: perms, specialties,
+      inactive, trackTime, passExpire, autoInactive,
+      providerId: activeProviderId, createdAt: Date.now()
     });
-    alertEl.innerHTML = '<div class="alert al-success">User saved. Add password in Firebase Console → Authentication → Add user.</div>';
-    setTimeout(function(){ renderUserManagement(); }, 500);
+    if (saveUsers) saveUsers(users);
+    alertEl.innerHTML = '<div class="alert al-success">User "<strong>' + name + '</strong>" created. Add password in Firebase Console → Authentication → Add user with this email.</div>';
+    renderUserManagement();
   } else {
     var u2 = users.find(function(x){ return x.id === id; });
-    if (u2) Object.assign(u2, { email, name: fullName, first, last, phone, phone2, specialty, role: primaryRole, roles, permissions: perms, inactive, trackTime, passExpire, autoInactive });
-    closeModal('modal-add-user');
-    toast('User updated', 'ok');
+    if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
+    if (saveUsers) saveUsers(users);
+    var m = document.getElementById('modal-add-user');
+    if (m) m.remove();
+    toast('User "' + name + '" updated', 'ok');
     renderUserManagement();
   }
-  if (saveUsers) saveUsers(users);
 }function fmtPhone(phone) {
   if (!phone) return '';
   var digits = String(phone).replace(/\D/g, '');
