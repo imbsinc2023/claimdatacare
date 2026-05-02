@@ -1195,7 +1195,46 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>function fmtPhone(phone) {
+<script>function openAddUserModal(existingUser) {
+  var modal = document.getElementById('modal-add-user');
+  if (!modal) return;
+  document.getElementById('nu-alert').innerHTML = '';
+  document.getElementById('nu-id').value    = existingUser ? (existingUser.id||'') : '';
+  document.getElementById('nu-name').value  = existingUser ? (existingUser.name||'') : '';
+  document.getElementById('nu-email').value = existingUser ? (existingUser.email||'') : '';
+  document.getElementById('nu-phone').value = existingUser ? (existingUser.phone||'') : '';
+  document.getElementById('nu-pass').value  = '';
+  document.getElementById('nu-role').value  = existingUser ? (existingUser.role||'Manager') : 'Manager';
+  document.getElementById('modal-user-title').textContent = existingUser ? 'Edit User' : 'Add New User';
+  modal.style.display = 'flex';
+  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 100);
+}
+
+function saveNewUser() {
+  var id    = document.getElementById('nu-id')?.value||'';
+  var email = (document.getElementById('nu-email')?.value||'').trim().toLowerCase();
+  var pass  = document.getElementById('nu-pass')?.value||'';
+  var name  = (document.getElementById('nu-name')?.value||'').trim();
+  var phone = (document.getElementById('nu-phone')?.value||'').trim();
+  var role  = document.getElementById('nu-role')?.value||'Manager';
+  var alertEl = document.getElementById('nu-alert');
+  if (!email || !name) { alertEl.innerHTML = '<div class="alert al-error">Name and email are required.</div>'; return; }
+  var users = getUsers ? getUsers() : [];
+  if (!id) {
+    if (!pass || pass.length < 6) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 6 characters.</div>'; return; }
+    if (users.find(function(u){ return (u.email||'').toLowerCase() === email; })) {
+      alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>'; return;
+    }
+    users.push({ id: uid(), email, name, phone, role, createdAt: Date.now() });
+  } else {
+    var u = users.find(function(x){ return x.id === id; });
+    if (u) { u.name = name; u.email = email; u.phone = phone; u.role = role; }
+  }
+  if (saveUsers) saveUsers(users);
+  closeModal('modal-add-user');
+  toast(!id ? 'User added' : 'User updated', 'ok');
+  renderUserManagement();
+}function fmtPhone(phone) {
   if (!phone) return '';
   var digits = String(phone).replace(/\D/g, '');
   if (digits.length === 10) {
@@ -3884,7 +3923,6 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <
 <div class="section" id="sec-account">
 
-<!-- Page header -->
 <div class="page-hdr">
   <div>
     <h1>Users &amp; Account</h1>
@@ -3900,16 +3938,16 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
   </div>
 </div>
 
-<!-- Search bar (hidden by default) -->
+<!-- Search panel -->
 <div id="user-search-bar" style="display:none;margin-bottom:16px">
-  <div class="card" style="padding:14px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--brand)">Search Users</div>
-    <div class="fg g3" style="margin-bottom:10px">
-      <div class="field"><label>Username / Email</label><input id="us-email" placeholder="email@domain.com" oninput="filterUserList()"></div>
-      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="filterUserList()"></div>
-      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="filterUserList()"></div>
+  <div class="card" style="padding:16px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>
+    <div class="fg g3" style="margin-bottom:12px">
+      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>
+      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>
+      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>
       <div class="field"><label>Role</label>
-        <select id="us-role" onchange="filterUserList()">
+        <select id="us-role" onchange="renderUserManagement()">
           <option value="">All Roles</option>
           <option>Super Admin</option>
           <option>Admin</option>
@@ -3918,55 +3956,93 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
           <option>User</option>
         </select>
       </div>
-      <div class="field"><label>Status</label>
-        <select id="us-status" onchange="filterUserList()">
-          <option value="">All</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-primary btn-sm" onclick="filterUserList()"><i data-lucide="search" class="lci"></i> Search</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearUserSearch()">Clear</button>
-    </div>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('us-email').value='';document.getElementById('us-first').value='';document.getElementById('us-last').value='';document.getElementById('us-role').value='';renderUserManagement()">Clear</button>
   </div>
 </div>
 
-<!-- Tabs: Active / Inactive -->
-<div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--border)">
+<!-- Active / Inactive tabs -->
+<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0">
   <button id="utab-active" onclick="setUserTab('active')"
-    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--brand);color:var(--brand);margin-bottom:-2px">
+    style="padding:9px 22px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px">
     Active Users
   </button>
   <button id="utab-inactive" onclick="setUserTab('inactive')"
-    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);margin-bottom:-2px">
+    style="padding:9px 22px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px">
     Inactive Users
   </button>
 </div>
 
 <!-- Users table -->
-<div class="tbl-wrap" style="margin-top:0">
-<table id="users-table">
-<thead><tr>
-  <th>Username / Email</th>
-  <th>First Name</th>
-  <th>Last Name</th>
-  <th>Phone</th>
-  <th>Role</th>
-  <th>Status</th>
-  <th>2FA</th>
-  <th>Created</th>
-  <th style="width:80px">Actions</th>
-</tr></thead>
-<tbody id="users-list"></tbody>
-</table>
+<div class="tbl-wrap" style="margin-top:0;border-top:none">
+  <table>
+    <thead><tr>
+      <th>Username / Email</th>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Phone</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th style="text-align:center">2FA</th>
+      <th>Created</th>
+      <th style="width:90px;text-align:center">Actions</th>
+    </tr></thead>
+    <tbody id="users-list"></tbody>
+  </table>
 </div>
 
-<!-- Account info strip -->
-<div id="account-info" style="margin-top:20px"></div>
+<!-- Account info -->
+<div id="account-info" style="margin-top:20px;font-size:13px;color:var(--text3)"></div>
 
+<!-- Add User Modal -->
+<div class="modal-ov" id="modal-add-user" style="display:none" onclick="if(event.target===this)closeModal('modal-add-user')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <span id="modal-user-title">Add New User</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-user')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="nu-alert" style="margin-bottom:8px"></div>
+      <input type="hidden" id="nu-id">
+      <div class="fg g2">
+        <div class="field" style="grid-column:1/-1">
+          <label>Full Name *</label>
+          <input id="nu-name" placeholder="John Smith">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Email *</label>
+          <input id="nu-email" type="email" placeholder="user@email.com">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Password * <span style="font-size:10px;color:var(--text3);font-weight:400">(min 6 characters)</span></label>
+          <input id="nu-pass" type="password" placeholder="••••••••">
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input id="nu-phone" placeholder="(786) 000-0000">
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="nu-role">
+            <option value="Manager">Manager</option>
+            <option value="Admin">Admin</option>
+            <option value="Billing">Billing</option>
+            <option value="User">User</option>
+            <option value="Super Admin">Super Admin</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewUser()">
+        <i data-lucide="save" class="lci"></i> Save User
+      </button>
+    </div>
+  </div>
 </div>
+
+</div></div>
 
 <div class="section" id="sec-invoices">
 <!-- HEADER -->
