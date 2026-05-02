@@ -1195,1101 +1195,7 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>function openAddUserModal(existingUser) {
-  var modal = document.getElementById('modal-add-user');
-  if (!modal) return;
-  document.getElementById('nu-alert').innerHTML = '';
-  document.getElementById('nu-id').value    = existingUser ? (existingUser.id||'') : '';
-  document.getElementById('nu-name').value  = existingUser ? (existingUser.name||'') : '';
-  document.getElementById('nu-email').value = existingUser ? (existingUser.email||'') : '';
-  document.getElementById('nu-phone').value = existingUser ? (existingUser.phone||'') : '';
-  document.getElementById('nu-pass').value  = '';
-  document.getElementById('nu-role').value  = existingUser ? (existingUser.role||'Manager') : 'Manager';
-  document.getElementById('modal-user-title').textContent = existingUser ? 'Edit User' : 'Add New User';
-  modal.style.display = 'flex';
-  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 100);
-}
-
-function saveNewUser() {
-  var id    = document.getElementById('nu-id')?.value||'';
-  var email = (document.getElementById('nu-email')?.value||'').trim().toLowerCase();
-  var pass  = document.getElementById('nu-pass')?.value||'';
-  var name  = (document.getElementById('nu-name')?.value||'').trim();
-  var phone = (document.getElementById('nu-phone')?.value||'').trim();
-  var role  = document.getElementById('nu-role')?.value||'Manager';
-  var alertEl = document.getElementById('nu-alert');
-  if (!email || !name) { alertEl.innerHTML = '<div class="alert al-error">Name and email are required.</div>'; return; }
-  var users = getUsers ? getUsers() : [];
-  if (!id) {
-    if (!pass || pass.length < 6) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 6 characters.</div>'; return; }
-    if (users.find(function(u){ return (u.email||'').toLowerCase() === email; })) {
-      alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>'; return;
-    }
-    users.push({ id: uid(), email, name, phone, role, createdAt: Date.now() });
-  } else {
-    var u = users.find(function(x){ return x.id === id; });
-    if (u) { u.name = name; u.email = email; u.phone = phone; u.role = role; }
-  }
-  if (saveUsers) saveUsers(users);
-  closeModal('modal-add-user');
-  toast(!id ? 'User added' : 'User updated', 'ok');
-  renderUserManagement();
-}function fmtPhone(phone) {
-  if (!phone) return '';
-  var digits = String(phone).replace(/\D/g, '');
-  if (digits.length === 10) {
-    return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
-  } else if (digits.length === 11 && digits[0] === '1') {
-    return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
-  }
-  return phone;
-}function openAppearancePanel() {
-  document.getElementById('appearance-panel')?.remove();
-  var cfg      = _apiConfigCache || {};
-  var palKey   = cfg.palette || 'forest';
-  var palCust  = cfg.palCustom || PALETTES.custom;
-  var font     = cfg.font || 'font-segoe';
-  var fontSize = cfg.fontSize || '14';
-
-  var panel = document.createElement('div');
-  panel.id = 'appearance-panel';
-  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:270px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:85vh;overflow-y:auto';
-
-  // Palette cards
-  var palCards = Object.entries(PALETTES).map(function(entry) {
-    var k = entry[0], p = entry[1];
-    var active = palKey === k;
-    return '<div onclick="selectPalette(\''+k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid '+(active?'var(--brand)':'var(--border)')+';cursor:pointer;margin-bottom:5px;background:'+(active?'var(--brand-bg)':'var(--bg2)')+';">'
-      + '<div style="display:flex;gap:3px">'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p1+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p3+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.a1+'"></div>'
-      + '</div>'
-      + '<span style="font-size:12px;font-weight:'+(active?'700':'400')+';color:var(--text)">'+(k==='custom'?'Custom':p.name)+'</span>'
-      + (active?'<span style="margin-left:auto;font-size:10px;color:var(--brand)">✓</span>':'')
-      + '</div>';
-  }).join('');
-
-  // Custom 3-color picker (shown always, applies when Custom selected)
-  var custPickers = '<div style="display:flex;gap:8px;margin-top:8px">'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Primary</div>'
-    + '<input type="color" id="cust-p1" value="'+(palCust.p1||'#2d6a4f')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Light</div>'
-    + '<input type="color" id="cust-p3" value="'+(palCust.p3||'#40916c')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accent</div>'
-    + '<input type="color" id="cust-a1" value="'+(palCust.a1||'#d4a017')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '</div>';
-
-  // Font options
-  var fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
-    var active = font===f[0];
-    return '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\')" class="app-font-opt"'
-      + ' style="padding:5px 10px;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
-      + f[1]+'</button>';
-  }).join('');
-
-  // Size options
-  var sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
-    var active = fontSize===s[0];
-    return '<button data-sz="'+s[0]+'" onclick="setAppFontSize(\''+s[0]+'\')" class="app-size-opt"'
-      + ' style="flex:1;padding:5px 0;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:'+s[0]+'px;font-weight:'+(active?'700':'500')+';cursor:pointer;font-family:var(--font);text-align:center">'
-      + s[1]+'</button>';
-  }).join('');
-
-  panel.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
-    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
-    + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Color Palette</div>'
-    + palCards
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:4px">Custom Colors</div>'
-    + custPickers
-    + '<div style="height:1px;background:var(--border);margin:14px 0"></div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
-    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
-    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>';
-
-  document.body.appendChild(panel);
-  panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
-  setTimeout(function() {
-    document.addEventListener('click', function h(e) {
-      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance') {
-        panel.remove(); document.removeEventListener('click', h);
-      }
-    });
-  }, 100);
-}
-
-function selectPalette(key) {
-  var pal = PALETTES[key] || PALETTES.forest;
-  applyPalette(pal);
-  _saveUserPrefs({palette: key, palCustom: PALETTES[key]});
-  // Refresh panel
-  openAppearancePanel();
-}
-
-function updateCustomPalette() {
-  var p1 = document.getElementById('cust-p1')?.value || '#2d6a4f';
-  var p3 = document.getElementById('cust-p3')?.value || '#40916c';
-  var a1 = document.getElementById('cust-a1')?.value || '#d4a017';
-  PALETTES.custom = { name:'Custom', p1:p1, p2:darken(p1,20), p3:p3, a1:a1, a2:PALETTES.custom.a2||'#b5451b' };
-  applyPalette(PALETTES.custom);
-  _saveUserPrefs({palette:'custom', palCustom: PALETTES.custom});
-}
-var LANG = "en";
-function applyTheme() {
-  var cfg = _apiConfigCache || {};
-  var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
-  var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
-  var theme = cfg.theme || ssTheme || 'light';
-  var font  = cfg.font  || ssFont  || 'font-segoe';
-  document.documentElement.setAttribute('data-theme', theme);
-  var btnDark = document.getElementById('btn-dark');
-  if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
-  // Apply palette
-  var palKey = cfg.palette || 'forest';
-  var pal = PALETTES[palKey] || PALETTES.forest;
-  if (palKey === 'custom' && cfg.palCustom) {
-    Object.assign(PALETTES.custom, cfg.palCustom);
-    pal = PALETTES.custom;
-  }
-  applyPalette(pal);
-  setAppFont(font);
-  if (cfg.fontSize) { try { setAppFontSize(cfg.fontSize); } catch(e) {} }
-  try { _renderLucideIcons(); } catch(e) {}
-}var LANG = "en";
-// updateBulkBar removed (dup)
-
-
-
-const DB_KEY = 'rcmpro_v3';
-const API_CFG_KEY = 'rcmpro_api_cfg';
-
-function _patientAvatar(pat, size=70) {
-const sex = (pat.sex||'').toUpperCase();
-const s = size;
-
-// Colors — system emerald palette
-// Skin tones: light face + slightly darker shadow side
-const SKIN = '#FBBF8A';
-const SKIN_SHD = '#F0A870';
-const NECK = '#FBBF8A';
-
-if (sex === 'F') {
-// Female — teal bg, dark hair (shoulder length), emerald shirt
-const BG = '#0d9488';
-const HAIR = '#1e293b';
-const SHRT = '#059669';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#fc${s})">
-<!-- Shirt / bust -->
-<path d="M10 110 Q10 72 30 66 Q40 62 50 62 Q60 62 70 66 Q90 72 90 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="52" width="14" height="14" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair back layer -->
-<ellipse cx="50" cy="28" rx="19" ry="13" fill="${HAIR}"/>
-<!-- Hair left side — shoulder length -->
-<path d="M31 28 Q28 45 30 62 Q35 68 38 65 Q36 50 34 35 Z" fill="${HAIR}"/>
-<!-- Hair right side -->
-<path d="M69 28 Q72 45 70 62 Q65 68 62 65 Q64 50 66 35 Z" fill="${HAIR}"/>
-<!-- Hair top parting -->
-<path d="M31 25 Q50 18 69 25 Q65 20 50 18 Q35 18 31 25 Z" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-if (sex === 'M') {
-// Male — emerald bg, dark short hair, dark green shirt
-const BG = '#059669';
-const HAIR = '#1e293b';
-const SHRT = '#065f46';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="mc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#mc${s})">
-<!-- Shirt / bust — wider masculine shoulders -->
-<path d="M4 110 Q4 70 26 63 Q37 58 50 58 Q63 58 74 63 Q96 70 96 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="12" rx="3" fill="${NECK}"/>
-<!-- Face — slightly squarer jaw -->
-<path d="M33 38 Q33 24 50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Q33 60 33 52 Z" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Z" fill="${SKIN_SHD}"/>
-<!-- Short hair — flat top, tight sides -->
-<path d="M33 38 Q33 22 50 20 Q67 22 67 38 Q67 26 50 24 Q33 26 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair left -->
-<path d="M33 38 Q30 35 31 28 Q35 22 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair right -->
-<path d="M67 38 Q70 35 69 28 Q65 22 67 38 Z" fill="${HAIR}"/>
-<!-- Hair top -->
-<path d="M33 32 Q50 20 67 32 Q60 22 50 21 Q40 22 33 32 Z" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-// Unknown / Other — slate bg, neutral
-const BG = '#475569';
-const HAIR = '#1e293b';
-const SHRT = '#334155';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="uc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#uc${s})">
-<!-- Shirt -->
-<path d="M8 110 Q8 71 28 64 Q38 59 50 59 Q62 59 72 64 Q92 71 92 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="13" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair -->
-<ellipse cx="50" cy="27" rx="19" ry="11" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-
-
-function getApiConfig() {
-  // Default worker URL if not set per provider
-  const DEFAULT_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
-// Also reads OPENAI_KEY from localStorage if stored
-const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
-if (stored.openaiKey) return stored;
-// Return API config for the active provider
-// Primary: active provider's stored acctKey
-if (activeProviderId) {
-const db = getDB();
-const prov = db.providers.find(p => p.id === activeProviderId);
-if (prov?.acctKey) return { acctKey: prov.acctKey };
-}
-// Fallback: in-memory cache from loadFromFirestore
-if (_apiConfigCache?.acctKey) return _apiConfigCache;
-// Last resort: localStorage cache
-try {
-const cfg = JSON.parse(localStorage.getItem(API_CFG_KEY) || '{}');
-if (cfg.acctKey) return cfg;
-} catch(e) {}
-return {};
-}
-
-// ???????????????????????????????????????????????????????
-// FIREBASE — Cloud Database
-// ???????????????????????????????????????????????????????
-const FB_CONFIG = {
-  apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
-  authDomain:        "claimdatacare-451fe.firebaseapp.com",
-  projectId:         "claimdatacare-451fe",
-  storageBucket:     "claimdatacare-451fe.firebasestorage.app",
-  messagingSenderId: "1005844575427",
-  appId:             "1:1005844575427:web:eb9799d720d50e5f5e1e76"
-};
-
-let _fbApp = null;
-let claimTabFilter = 'all'; // tracks active tab in claims list
-var activeProviderId = null;  // currently selected billing provider
-let _db = null;
-let _fbReady = false;
-let _localDB = null;
-let _auth = null;
-let _adminUser = null;
-let _usersCache = null;
-let _apiConfigCache = null; // in-memory cache
-
-function initFirebase() {
-try {
-if (!firebase?.apps?.length) {
-_fbApp = firebase.initializeApp(FB_CONFIG);
-} else {
-_fbApp = firebase.app();
-}
-_db = firebase.firestore();
-_auth = firebase.auth();
-_fbReady = true;
-console.log('Firebase connected ?');
-setFbStatus('','green');
-_auth.onAuthStateChanged(user => {
-// Firebase auth state — only used for Firestore access, not UI roles
-// Admin UI is controlled exclusively by the internal session role
-_adminUser = user;
-});
-} catch(e) {
-console.warn('Firebase init failed, using localStorage:', e);
-setFbStatus('Offline','amber');
-}
-}
-
-function setFbStatus(label, color) {
-// Only show amber/red errors — hide all success/cloud states
-const el = document.getElementById('fb-status');
-if (!el) return;
-if (!label || color === 'green' || color === 'ok') { el.style.display = 'none'; return; }
-el.style.display = '';
-el.textContent = label;
-el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
-}
-
-// Synchronous local cache (for all sync callers)
-function getDB() {
-if (_localDB) return JSON.parse(JSON.stringify(_localDB));
-// No local cache yet — return empty structure, Firestore will populate on load
-_localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[] };
-return JSON.parse(JSON.stringify(_localDB));
-}
-
-// ????????????????????????????????????????????????????????????????????????????
-// FIRESTORE PERSISTENCE LAYER v2
-// Architecture: individual documents in typed collections (not one monolithic doc)
-//
-// Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — medical notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
-//
-// All writes go to Firestore first. localStorage is a read-time cache only.
-// ????????????????????????????????????????????????????????????????????????????
-
-// ?? Constants ???????????????????????????????????????????????????????????????
-const BATCH_SIZE = 400; // Firestore batch limit is 500 writes
-const CACHE_KEY = 'cdc_cache_v2';
-// ?? Helpers ??????????????????????????????????????????????????????????????????
-
-// Write an array of objects to a Firestore collection using batched writes
-async function _fsWriteCollection(collName, items) {
-  if (!_fbReady || !_db || !items?.length) return;
-  for (let i = 0; i < items.length; i += BATCH_SIZE) {
-    const chunk = items.slice(i, i + BATCH_SIZE);
-    const batch = _db.batch();
-    chunk.forEach(item => {
-      if (!item.id) return;
-      // Safety: auto-compress any base64 image field > 700KB before writing
-      const safe = {};
-      for (const [k, v] of Object.entries(item)) {
-        if (typeof v === 'string' && v.startsWith('data:image') && v.length > 933333) {
-          // Compress via canvas
-          try {
-            const canvas = document.createElement('canvas');
-            const img = new Image();
-            img.src = v;
-            if (img.width > 0) {
-              const ratio = Math.min(500/img.width, 500/img.height, 1);
-              canvas.width  = Math.round(img.width  * ratio);
-              canvas.height = Math.round(img.height * ratio);
-              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-              safe[k] = canvas.toDataURL('image/jpeg', 0.7);
-            } else {
-              safe[k] = ''; // can't compress synchronously, skip
-            }
-          } catch(e) { safe[k] = ''; }
-        } else {
-          safe[k] = v;
-        }
-      }
-      batch.set(_db.collection(collName).doc(String(item.id)), safe);
-    });
-    await batch.commit();
-  }
-}
-
-// Read all docs from a collection
-async function _fsReadCollection(collName) {
-if (!_fbReady || !_db) return [];
-const snap = await _db.collection(collName).get();
-return snap.docs.map(d => d.data());
-}
-
-// Delete docs from a collection that are not in the current list
-async function _fsSyncCollection(collName, items) {
-if (!_fbReady || !_db) return;
-const existing = await _db.collection(collName).get();
-const currentIds = new Set(items.map(i => String(i.id)));
-const batch = _db.batch();
-let deleteCount = 0;
-existing.docs.forEach(doc => {
-if (!currentIds.has(doc.id)) {
-batch.delete(doc.ref);
-deleteCount++;
-}
-});
-if (deleteCount > 0) await batch.commit();
-await _fsWriteCollection(collName, items);
-}
-
-// Write/delete a single document
-async function _fsSetDoc(collName, id, data) {
-if (!_fbReady || !_db) return;
-await _db.collection(collName).doc(String(id)).set(data);
-}
-
-async function _fsDeleteDoc(collName, id) {
-if (!_fbReady || !_db) return;
-await _db.collection(collName).doc(String(id)).delete();
-}
-
-// ?? Cache ????????????????????????????????????????????????????????????????????
-function _saveCache(db) {
-try { localStorage.setItem(CACHE_KEY, JSON.stringify(db)); } catch(e) {}
-}
-
-function _loadCache() {
-try {
-const raw = localStorage.getItem(CACHE_KEY) || '';
-return raw ? JSON.parse(raw) : null;
-} catch(e) { return null; }
-}
-
-// ?? Load all collections from Firestore ?????????????????????????????????????
-async function loadFromFirestoreWhenReady() {
-  // Wait up to 5s for Firebase Auth to restore session
-  for (let i = 0; i < 50; i++) {
-    if (_auth && _auth.currentUser) break;
-    await new Promise(r => setTimeout(r, 100));
-  }
-  return loadFromFirestore();
-}
-
-async function loadFromFirestore() {
-  if (!_fbReady || !_db) {
-    const cached = _loadCache();
-    if (cached) { _localDB = _mergeEmpty(cached); console.log('Loaded from cache (offline)'); }
-    return;
-  }
-  if (window._restoreInProgress) return;
-
-  // ── Load config first (palette/theme) so UI looks right immediately ──
-  try {
-    const configDoc = await _db.collection('meta').doc('config').get();
-    if (configDoc.exists) {
-      const cfg = configDoc.data();
-      _apiConfigCache = cfg;
-      if (cfg.palCustom && typeof PALETTES !== 'undefined') {
-        PALETTES.custom = Object.assign(PALETTES.custom || {}, cfg.palCustom);
-      }
-      if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
-      try { applyTheme(); } catch(e) {}
-    }
-  } catch(e) {}
-
-  setFbStatus('Syncing...', 'amber');
-
-  // ── Load critical collections first (providers, patients, claims) ──
-  try {
-    const [providers, patients, claims, configDoc2, usersDoc] = await Promise.all([
-      _fsReadCollection('providers'),
-      _fsReadCollection('patients'),
-      _fsReadCollection('claims'),
-      _db.collection('meta').doc('config').get(),
-      _db.collection('meta').doc('users').get(),
-    ]);
-
-    // Show data immediately — don't wait for the rest
-    if (!_localDB) _localDB = _mergeEmpty({});
-    _localDB.providers = providers;
-    _localDB.patients  = patients;
-    _localDB.claims    = claims;
-
-    if (usersDoc.exists) {
-      _usersCache = usersDoc.data().list || [];
-      try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
-    }
-
-    setFbStatus('', 'green');
-    console.log('Core loaded: ' + patients.length + ' patients, ' + claims.length + ' claims');
-
-    // Trigger _afterLoad-style update with core data
-    try {
-      const s = getSession();
-      if (s && providers.length) {
-        const savedId = s.activeBillingProviderId;
-        const vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
-        activeProviderId = vp.id;
-        s.activeBillingProviderId = activeProviderId;
-        setSession(s);
-        rebuildProvSel();
-      } else if (!activeProviderId && patients.length) {
-        const pIds = [...new Set(patients.map(function(p){ return p.providerId; }).filter(Boolean))];
-        if (pIds.length) activeProviderId = pIds[0];
-      }
-      try { renderDashboard(); } catch(e) {}
-      updateBadges();
-    } catch(e) {}
-
-  } catch(err) {
-    console.warn('Firestore core load failed:', err.message, err.code);
-    if (err.code === 'permission-denied') {
-      setFbStatus('Auth error', 'red');
-      console.error('PERMISSION DENIED — Check Firestore rules');
-    } else {
-      setFbStatus('Offline', 'amber');
-    }
-    const cached = _loadCache();
-    if (cached) { _localDB = _mergeEmpty(cached); }
-    return;
-  }
-
-  // ── Load secondary collections in background ──────────────────
-  try {
-    const [
-      facilities, rendering, referring, services, serviceGroups,
-      appointments, notes, invoicingIssuers, invoicingClients, invoices,
-      claimLogsSnap, claimEOBSnap
-    ] = await Promise.all([
-      _fsReadCollection('facilities'),
-      _fsReadCollection('rendering'),
-      _fsReadCollection('referring'),
-      _fsReadCollection('services'),
-      _fsReadCollection('serviceGroups'),
-      _fsReadCollection('appointments'),
-      _fsReadCollection('notes'),
-      _fsReadCollection('invoicingIssuers'),
-      _fsReadCollection('invoicingClients'),
-      _fsReadCollection('invoices'),
-      _db.collection('claimLogs').get(),
-      _db.collection('claimEOB').get(),
-    ]);
-
-    const claimLogs = {};
-    claimLogsSnap.docs.forEach(function(d){ claimLogs[d.id] = d.data().entries||[]; });
-    const claimEOB = {};
-    claimEOBSnap.docs.forEach(function(d){ claimEOB[d.id] = d.data().entries||[]; });
-
-    Object.assign(_localDB, {
-      facilities, rendering, referring, services, serviceGroups,
-      appointments, notes, claimLogs, claimEOB,
-      invoicingIssuers, invoicingClients, invoices,
-    });
-
-    _saveCache(_localDB);
-    console.log('All data loaded from Firestore');
-    // Refresh dashboard with complete data
-    try { renderDashboard(); updateBadges(); } catch(e) {}
-
-  } catch(err) {
-    console.warn('Secondary Firestore load failed:', err.message);
-  }
-}
-
-// Ensure all keys exist in a db object
-function _mergeEmpty(db) {
-const empty = {
-providers:[], facilities:[], rendering:[], referring:[],
-patients:[], claims:[], services:[], serviceGroups:[],
-appointments:[], notes:[], claimLogs:{}, claimEOB:{},
-invoicingIssuers:[], invoicingClients:[], invoices:[]
-};
-return Object.assign(empty, db || {});
-}
-
-// ?? setDB: mutate state and sync changed collection to Firestore ?????????????
-// Instead of writing everything, detect which collection changed and write only that
-// ????????????????????????????????????????????????????????????????????????????
-// FIRESTORE PERSISTENCE LAYER v2
-// Architecture: individual documents in typed collections (not one monolithic doc)
-//
-// Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — medical notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
-//
-// All writes go to Firestore first. localStorage is a read-time cache only.
-// ????????????????????????????????????????????????????????????????????????????
-
-// ?? Constants ???????????????????????????????????????????????????????????????
-// USERS_KEY already defined in auth section
-
-// ?? Helpers ??????????????????????????????????????????????????????????????????
-
-// Write an array of objects to a Firestore collection using batched writes
-function setDB(fn) {
-const before = getDB();
-const db = getDB();
-fn(db);
-_localDB = db;
-_saveCache(_localDB);
-
-if (!_fbReady || !_db) return;
-
-// Detect which collections changed and sync only those
-const colls = [
-'providers','facilities','rendering','referring',
-'patients','claims','services','serviceGroups',
-'appointments','notes','invoicingIssuers','invoicingClients','invoices'
-];
-
-for (const coll of colls) {
-const prev = before[coll] || [];
-const next = db[coll] || [];
-if (JSON.stringify(prev) !== JSON.stringify(next)) {
-_fsSyncCollection(coll, next).catch(e =>
-console.warn(`Firestore ${coll} sync failed:`, e.message));
-}
-}
-
-// Sync claimLogs and claimEOB
-const objColls = [['claimLogs','claimLogs'],['claimEOB','claimEOB']];
-for (const [key, coll] of objColls) {
-if (JSON.stringify(before[key]) !== JSON.stringify(db[key])) {
-const obj = db[key] || {};
-const batch = _db.batch();
-Object.entries(obj).forEach(([id, entries]) => {
-batch.set(_db.collection(coll).doc(String(id)), { entries: entries || [] });
-});
-batch.commit().catch(e => console.warn(`${coll} sync failed:`, e.message));
-}
-}
-}
-
-// ?? Per-document write helpers (called by save functions) ???????????????????
-
-async function _savePatient(patient) {
-if (!_fbReady || !_db) return;
-await _fsSetDoc('patients', patient.id, patient);
-}
-
-async function _deletePatientDoc(id) {
-if (!_fbReady || !_db) return;
-await _fsDeleteDoc('patients', id);
-}
-
-async function _saveClaim(claim) {
-if (!_fbReady || !_db) return;
-await _fsSetDoc('claims', claim.id, claim);
-}
-
-async function _deleteClaimDoc(id) {
-if (!_fbReady || !_db) return;
-await _fsDeleteDoc('claims', id);
-}
-
-// ?? Import: write directly to Firestore in batches ??????????????????????????
-async function _importCollectionToFirestore(collName, items) {
-if (!items?.length) return 0;
-let written = 0;
-for (let i = 0; i < items.length; i += BATCH_SIZE) {
-const chunk = items.slice(i, i + BATCH_SIZE);
-if (_fbReady && _db) {
-const batch = _db.batch();
-chunk.forEach(item => {
-if (!item.id) return;
-batch.set(_db.collection(collName).doc(String(item.id)), item);
-written++;
-});
-await batch.commit();
-}
-// Update in-memory immediately
-const arr = _localDB[collName] || [];
-chunk.forEach(item => {
-const idx = arr.findIndex(x => x.id === item.id);
-if (idx >= 0) arr[idx] = item; else arr.push(item);
-});
-_localDB[collName] = arr;
-}
-_saveCache(_localDB);
-return written;
-}
-
-
-
-// ???????????????????????????????????????????????????????????????
-// RECOVERED APP LAYER — utilities, routing, render functions
-// ???????????????????????????????????????????????????????????????
-
-const fmtMoney = n => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const claimTotal = c => (Array.isArray(c.lines)?c.lines:[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
-const fixCpt = s => String(s||'').trim();
-const fixUnits = s => { const u=parseInt(s||'1'); return String(u>0?u:1); };
-const fixCharge = s => parseFloat(s||'0').toFixed(2);
-const fixDxPtr = s => (s||'A').toUpperCase().replace(/[^A-H]/g,'')||'A';
-
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-
-function toast(msg, type='ok'){
-const c=document.getElementById('toasts');
-const el=document.createElement('div');
-el.className=`toast t-${type}`;
-el.textContent=msg;
-c.appendChild(el);
-requestAnimationFrame(()=>el.classList.add('show'));
-setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
-}
-
-function statusBadge(s){
-const m={
-draft: '<span class="badge b-gray">Draft</span>',
-pending: '<span class="badge b-amber"><i data-lucide="clock" class="lci" style="width:11px;height:11px"></i> Pending</span>',
-submitted: '<span class="badge b-blue"><i data-lucide="send" class="lci" style="width:11px;height:11px"></i> Submitted</span>',
-accepted: '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH</span>',
-rejected: '<span class="badge b-red"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected</span>',
-on_hold: '<span class="badge b-amber"><i data-lucide="lock" class="lci" style="width:11px;height:11px"></i> On Hold</span>',
-denied: '<span class="badge b-red"><i data-lucide="ban" class="lci" style="width:11px;height:11px"></i> Denied</span>',
-partially_paid: '<span class="badge b-amber"><i data-lucide="dollar-sign" class="lci" style="width:11px;height:11px"></i> Partial</span>',
-paid: '<span class="badge b-green"><i data-lucide="circle-check" class="lci" style="width:11px;height:11px"></i> Paid</span>',
-settled: '<span class="badge b-green"><i data-lucide="check-check" class="lci" style="width:11px;height:11px"></i> Settled</span>',
-patient_balance: '<span class="badge b-amber"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i> Patient Balance</span>',
-voided: '<span class="badge b-gray"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i> Voided</span>',
-};
-return m[s]||`<span class="badge b-gray">${s}</span>`;
-}
-
-const POS_CODES = [
-['02','Telehealth - Pt Home'],['03','School'],['04','Homeless Shelter'],
-['05','Indian Health Service Freestanding Facility'],['06','Indian Health Service Provider-Based Facility'],
-['07','Tribal 638 Freestanding Facility'],['08','Tribal 638 Provider-Based Facility'],
-['09','Prison/Correctional Facility'],['10','Telehealth - Pt Non-Home'],
-['11','Office'],['12','Home'],['13','Assisted Living Facility'],
-['14','Group Home'],['15','Mobile Unit'],['16','Temporary Lodging'],
-['17','Walk-in Retail Health Clinic'],['18','Place of Employment/Worksite'],
-['19','Off Campus-Outpatient Hospital'],['20','Urgent Care Facility'],
-['21','Inpatient Hospital'],['22','On Campus-Outpatient Hospital'],
-['23','Emergency Room - Hospital'],['24','Ambulatory Surgical Center'],
-['25','Birthing Center'],['26','Military Treatment Facility'],
-['31','Skilled Nursing Facility'],['32','Nursing Facility'],
-['33','Custodial Care Facility'],['34','Hospice'],
-['41','Ambulance - Land'],['42','Ambulance - Air or Water'],
-['49','Independent Clinic'],['50','Federally Qualified Health Center'],
-['51','Inpatient Psychiatric Facility'],['52','Psychiatric Facility Partial Hospitalization'],
-['53','Community Mental Health Center'],['54','Intermediate Care Facility'],
-['55','Residential Substance Abuse Treatment Facility'],['56','Psychiatric Residential Treatment Center'],
-['57','Non-residential Substance Abuse Treatment Facility'],['58','Non-residential Opioid Treatment Facility'],
-['60','Mass Immunization Center'],['61','Comprehensive Inpatient Rehabilitation Facility'],
-['62','Comprehensive Outpatient Rehabilitation Facility'],['65','End-Stage Renal Disease Treatment Facility'],
-['71','Public Health Clinic'],['72','Rural Health Clinic'],
-['81','Independent Laboratory'],['99','Other Place of Service'],
-];
-
-function buildPOSSelect(elId, selected){
-const el=document.getElementById(elId); if(!el) return;
-el.innerHTML=POS_CODES.map(([c,d])=>`<option value="${c}" ${c===(selected||'11')?'selected':''}>${c} \u2014 ${d}</option>`).join('');
-}
-
-// \u2500\u2500 Auto Dx Pointer \u2500\u2500
-function buildAutoDxPtr(){
-const letters='ABCDEFGH'; let ptr='';
-for(let i=0;i<8;i++){
-const el=document.getElementById('mc-dx'+(i+1));
-if(el&&el.value.trim()) ptr+=letters[i];
-}
-return ptr||'A';
-}
-function syncAllDxPtrs(){
-const ptr=buildAutoDxPtr();
-tmpLines.forEach((l,i)=>{
-l.dxPtr=ptr;
-const el=document.getElementById('mc-dxptr-'+i);
-if(el) el.value=ptr;
-});
-const prev=document.getElementById('dx-ptr-preview');
-if(prev){
-const letters='ABCDEFGH'; const used=[];
-for(let i=0;i<8;i++){const el=document.getElementById('mc-dx'+(i+1));if(el&&el.value.trim()) used.push(`${letters[i]}=${el.value.trim()}`);}
-prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in diagnoses above \u2014 pointers auto-assign';
-}
-}
-
-// \u2500\u2500 DB \u2500\u2500
-
-function initServices(){
-setDB(db=>{
-if(!db.services||!db.services.length){
-db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
-}
-});
-}
-
-// \u2500\u2500 Theme / Lang \u2500\u2500
-
-
-// ── Full Palette System ────────────────────────────────────────────
-// 3 pre-built palettes + custom
-const PALETTES = {
-  forest: {
-    name: 'Forest',
-    p1: '#2d6a4f',   // primary
-    p2: '#1b4332',   // dark
-    p3: '#40916c',   // light
-    a1: '#d4a017',   // accent (amber)
-    a2: '#b5451b',   // accent2 (rust)
-  },
-  ocean: {
-    name: 'Ocean',
-    p1: '#0369a1',
-    p2: '#075985',
-    p3: '#0ea5e9',
-    a1: '#f59e0b',
-    a2: '#ef4444',
-  },
-  plum: {
-    name: 'Plum',
-    p1: '#7c3aed',
-    p2: '#5b21b6',
-    p3: '#a78bfa',
-    a1: '#ec4899',
-    a2: '#f97316',
-  },
-  slate: {
-    name: 'Slate',
-    p1: '#334155',
-    p2: '#1e293b',
-    p3: '#64748b',
-    a1: '#06b6d4',
-    a2: '#10b981',
-  },
-  rose: {
-    name: 'Rose',
-    p1: '#be123c',
-    p2: '#881337',
-    p3: '#fb7185',
-    a1: '#f59e0b',
-    a2: '#7c3aed',
-  },
-  custom: {
-    name: 'Custom',
-    p1: '#2d6a4f',
-    p2: '#1b4332',
-    p3: '#40916c',
-    a1: '#d4a017',
-    a2: '#b5451b',
-  }
-};
-
-function hexToRgb(hex) {
-  const n = parseInt(hex.replace('#',''),16);
-  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
-}
-function lighten(hex, pct) {
-  const c = hexToRgb(hex);
-  const f = pct/100;
-  return 'rgb('
-    + Math.round(c.r + (255-c.r)*f) + ','
-    + Math.round(c.g + (255-c.g)*f) + ','
-    + Math.round(c.b + (255-c.b)*f) + ')';
-}
-function darken(hex, pct) {
-  const c = hexToRgb(hex);
-  const f = 1 - pct/100;
-  return 'rgb('
-    + Math.round(c.r*f) + ','
-    + Math.round(c.g*f) + ','
-    + Math.round(c.b*f) + ')';
-}
-function alpha(hex, a) {
-  const c = hexToRgb(hex);
-  return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
-}
-
-function applyPalette(pal) {
-  if (!pal) return;
-  const r = document.documentElement;
-  const p1 = pal.p1, p2 = pal.p2, p3 = pal.p3, a1 = pal.a1, a2 = pal.a2;
-
-  // ── Primary brand ──────────────────────────────────────────────
-  r.style.setProperty('--brand',       p1);
-  r.style.setProperty('--brand-d',     p2);
-  r.style.setProperty('--brand-bg',    alpha(p1, 0.1));
-  r.style.setProperty('--brand-bdr',   alpha(p1, 0.35));
-  r.style.setProperty('--brand-l',     p3);
-  r.style.setProperty('--blue',        p1);
-  r.style.setProperty('--blue-bg',     alpha(p1, 0.08));
-  r.style.setProperty('--blue-bdr',    alpha(p1, 0.3));
-  r.style.setProperty('--green',       p3);
-  r.style.setProperty('--green-bg',    alpha(p3, 0.1));
-  r.style.setProperty('--green-bdr',   alpha(p3, 0.3));
-  r.style.setProperty('--teal',        p3);
-  r.style.setProperty('--teal-bg',     alpha(p3, 0.08));
-  // ── Accent ────────────────────────────────────────────────────
-  r.style.setProperty('--amber',       a1);
-  r.style.setProperty('--amber-bg',    alpha(a1, 0.1));
-  r.style.setProperty('--amber-bdr',   alpha(a1, 0.3));
-  r.style.setProperty('--c2',          a1);
-  // ── CSS vars used in topnav, patient chart, etc. ───────────────
-  r.style.setProperty('--c1',          p1);
-  r.style.setProperty('--c1d',         p2);
-  r.style.setProperty('--c1l',         alpha(p1, 0.15));
-  r.style.setProperty('--c1m',         p3);
-
-  // ── Replace hardcoded inline colors via CSS overrides ─────────
-  // Inject a <style> tag that overrides every hardcoded green
-  let styleEl = document.getElementById('palette-overrides');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = 'palette-overrides';
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `
-    /* === TOPNAV === */
-    .topnav { background: ${p2} !important; border-bottom-color: ${darken(p2,15)} !important; }
-    [data-theme="dark"] .topnav { background: ${darken(p2,25)} !important; }
-    .tn-brand-name { color: #fff !important; }
-    .tn-item { color: rgba(255,255,255,.85) !important; }
-    .tn-item:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    .tn-item.active, .tn-group.open > .tn-item { background: rgba(255,255,255,.22) !important; color: #fff !important; box-shadow: none !important; }
-    .tn-divider { background: rgba(255,255,255,.2) !important; }
-    .tn-right { border-left-color: rgba(255,255,255,.2) !important; }
-    .tn-right .btn-ghost { color: rgba(255,255,255,.8) !important; }
-    .tn-right .btn-ghost:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    #tn-user-name { color: rgba(255,255,255,.85) !important; }
-    #btn-lang { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel:hover { border-color: rgba(255,255,255,.5) !important; }
-    /* === DROPDOWNS (light bg) === */
-    .tn-dropdown { background: var(--surface) !important; border-color: var(--border) !important; }
-    .tn-dd-item { color: var(--text) !important; }
-    .tn-dd-item:hover, .tn-dd-item.active { background: ${alpha(p1,.1)} !important; color: ${p1} !important; }
-    .tn-dd-item:hover svg, .tn-dd-item.active svg, .tn-dd-item:hover .lci, .tn-dd-item.active .lci { color: ${p1} !important; opacity:1 !important; }
-    .tn-drawer-item:hover, .tn-drawer-item.active { color: ${p1} !important; background: ${alpha(p1,.08)} !important; }
-    .tn-drawer-sub-item:hover, .tn-drawer-sub-item.active { color: ${p1} !important; }
-    /* === BUTTONS === */
-    .btn-primary { background: ${p1} !important; border-color: ${p1} !important; }
-    .btn-primary:hover { background: ${p2} !important; border-color: ${p2} !important; }
-    #login-btn { background: linear-gradient(145deg,${p1},${p2}) !important; }
-    /* === BADGES === */
-    .b-blue { background: ${alpha(p1,.1)} !important; color: ${p1} !important; border-color: ${alpha(p1,.3)} !important; }
-    .b-green { background: ${alpha(p3,.1)} !important; color: ${darken(p3,10)} !important; border-color: ${alpha(p3,.3)} !important; }
-    /* === TABS / STABS === */
-    .stab.active { color: ${p1} !important; border-bottom-color: ${p1} !important; }
-    .ptc-tab.active { color: ${p2} !important; }
-    /* === LINKS & ACCENTS === */
-    .pt-link-name, .pt-link-acct { color: ${p1} !important; }
-    .slabel { border-left-color: ${p1} !important; color: ${p1} !important; }
-    /* === PATIENT CHART === */
-    .ptc-banner { background: linear-gradient(135deg, ${p2}, ${p1}) !important; }
-    .ptc-panel-hdr { background: linear-gradient(to bottom, var(--bg), var(--bg2)) !important; color: var(--text) !important; }
-    .ptc-panel-hdr h3 { color: var(--text) !important; }
-    .ptc-tab.active { border-top-color: ${p1} !important; }
-    .ptc-aging-table th { background: ${alpha(p2,.08)} !important; color: ${p2} !important; }
-    /* === DARK MODE VARS === */
-    [data-theme="dark"] { --brand: ${p3}; --brand-d: ${p1}; --brand-l: ${lighten(p1,20)}; }
-    /* === ROOT VARS === */
-    :root { --brand: ${p1}; --brand-d: ${p2}; --brand-l: ${p3}; --c1: ${p1}; --c1d: ${p2}; --c1m: ${p3}; }
-  `
-  updateFavicon(p1);
-}
-
-function _saveUserPrefs(updates) {
-  Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
-  if (_fbReady && _db) {
-    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true})
-      .catch(function(e){ console.warn('prefs save failed:', e.message); });
-  }
-}
-
-// ── Dynamic favicon & brand color ─────────────────────────────────
-function updateFavicon(color) {
-  try {
-    color = color || '#2d6a4f';
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
-      + '<path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="' + color + '"/>'
-      + '<path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>'
-      + '<rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>'
-      + '<rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>'
-      + '</svg>';
-    const blob = new Blob([svg], {type:'image/svg+xml'});
-    const url  = URL.createObjectURL(blob);
-    let lnk = document.querySelector("link[rel='icon']");
-    if (!lnk) { lnk = document.createElement('link'); lnk.rel='icon'; lnk.type='image/svg+xml'; document.head.appendChild(lnk); }
-    if (lnk._prev) URL.revokeObjectURL(lnk._prev);
-    lnk._prev = url;
-    lnk.href  = url;
-    // Update nav logos
-    document.querySelectorAll('.nav-favicon').forEach(function(img){ img.src = url; });
-  } catch(e) {}
-}
-
-
-function setBrandColor(color) {
-  if (!color) return;
-  const darken = function(hex, amt) {
-    const n = parseInt(hex.slice(1),16);
-    const r = Math.max(0,Math.min(255,(n>>16)+amt));
-    const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
-    const b = Math.max(0,Math.min(255,(n&0xff)+amt));
-    return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
-  };
-  const ri=parseInt(color.slice(1,3),16), gi=parseInt(color.slice(3,5),16), bi=parseInt(color.slice(5,7),16);
-  const light = 'rgba('+ri+','+gi+','+bi+',.12)';
-  const mid   = 'rgba('+ri+','+gi+','+bi+',.35)';
-  const root  = document.documentElement;
-  root.style.setProperty('--brand',    color);
-  root.style.setProperty('--brand-d',  darken(color,-20));
-  root.style.setProperty('--brand-bg', light);
-  root.style.setProperty('--brand-bdr',mid);
-  root.style.setProperty('--blue',     color);
-  root.style.setProperty('--green',    color);
-  root.style.setProperty('--c1',       color);
-  root.style.setProperty('--c1d',      darken(color,-20));
-  // Save to Firestore
-  _saveUserPrefs({color: color});
-  updateFavicon(color);
-}
-
-function setAppFontSize(size) {
-  document.documentElement.style.setProperty('font-size', size + 'px');
-  // Also set base size on body
-  document.body.style.fontSize = size + 'px';
-  _saveUserPrefs({fontSize: size});
-}
-
-function setAppFont(fontClass) {
-  const fontMap = {
-    'font-segoe': "'Segoe UI Variable',system-ui,-apple-system,sans-serif",
-    'font-inter':  "'Inter',system-ui,-apple-system,sans-serif",
-    'font-mono':   "'JetBrains Mono','SF Mono',monospace",
-    'font-dmsans': "'DM Sans',system-ui,sans-serif",
-    'font-lato':   "'Lato',system-ui,sans-serif",
-  };
-  const fv = fontMap[fontClass];
-  if (fv) document.documentElement.style.setProperty('--font', fv);
-  _saveUserPrefs({font: fontClass});
-  // Update panel buttons
-  document.querySelectorAll('.app-font-opt').forEach(function(b){
-    b.style.fontWeight = b.dataset.font===fontClass ? '700' : '400';
-    b.style.borderColor = b.dataset.font===fontClass ? 'var(--brand)' : 'var(--border2)';
-  });
-}
-
+<script>
 function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
   const cfg   = _apiConfigCache || {};
@@ -17295,6 +16201,1154 @@ function sendInvoiceEmail(inv) {
   }
 }
 
+
+// ── User tab state ────────────────────────────────────────────────
+var _userTab = 'active';
+var _userSearchActive = false;
+
+function setUserTab(tab) {
+  _userTab = tab;
+  ['active','inactive'].forEach(function(t) {
+    var btn = document.getElementById('utab-' + t);
+    if (!btn) return;
+    var on = t === tab;
+    btn.style.borderBottomColor = on ? 'var(--brand)' : 'transparent';
+    btn.style.color = on ? 'var(--brand)' : 'var(--text3)';
+    btn.style.background = on ? 'var(--bg3)' : 'none';
+  });
+  renderUserManagement();
+}
+
+function openUserSearch() {
+  var bar = document.getElementById('user-search-bar');
+  if (!bar) return;
+  _userSearchActive = !_userSearchActive;
+  bar.style.display = _userSearchActive ? '' : 'none';
+  if (_userSearchActive) setTimeout(function(){ document.getElementById('us-email')?.focus(); }, 100);
+}
+
+// Roles and Permissions
+var USER_ROLES = [
+  'Super Admin','Admin','Office Manager','Billing Manager',
+  'Billing Staff','Clinical Staff','Front Desk','Reporting','Read Only'
+];
+var USER_PERMISSIONS = [
+  'View Claims','Submit Claims','Edit Claims','Delete Claims',
+  'View Patients','Edit Patients','View Invoices','Edit Invoices',
+  'View Reports','Export Data','Manage Users','Manage Settings',
+  'View ERA/EOB','Process Payments','View Service Groups','Manage Providers'
+];
+
+function toggleUserStatus(userId) {
+  var users = getUsers ? getUsers() : [];
+  var u = users.find(function(x){ return x.id === userId; });
+  if (!u) return;
+  u.inactive = !u.inactive;
+  if (saveUsers) saveUsers(users);
+  renderUserManagement();
+  toast(u.inactive ? 'User deactivated' : 'User activated', 'ok');
+}
+
+function editUser(userId) {
+  var users = getUsers ? getUsers() : [];
+  var u = users.find(function(x){ return x.id === userId; });
+  if (u) openAddUserModal(u);
+}
+
+function openAddUserModal(existingUser) {
+  var modal = document.getElementById('modal-add-user');
+  if (!modal) return;
+  document.getElementById('nu-alert').innerHTML = '';
+  document.getElementById('nu-id').value    = existingUser ? (existingUser.id||'') : '';
+  document.getElementById('nu-name').value  = existingUser ? (existingUser.name||'') : '';
+  document.getElementById('nu-email').value = existingUser ? (existingUser.email||'') : '';
+  document.getElementById('nu-phone').value = existingUser ? (existingUser.phone||'') : '';
+  document.getElementById('nu-pass').value  = '';
+  document.getElementById('nu-role').value  = existingUser ? (existingUser.role||'Manager') : 'Manager';
+  document.getElementById('modal-user-title').textContent = existingUser ? 'Edit User' : 'Add New User';
+  modal.style.display = 'flex';
+  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 100);
+}
+
+function saveNewUser() {
+  var id    = document.getElementById('nu-id')?.value||'';
+  var email = (document.getElementById('nu-email')?.value||'').trim().toLowerCase();
+  var pass  = document.getElementById('nu-pass')?.value||'';
+  var name  = (document.getElementById('nu-name')?.value||'').trim();
+  var phone = (document.getElementById('nu-phone')?.value||'').trim();
+  var role  = document.getElementById('nu-role')?.value||'Manager';
+  var alertEl = document.getElementById('nu-alert');
+  if (!email || !name) { alertEl.innerHTML = '<div class="alert al-error">Name and email are required.</div>'; return; }
+  var users = getUsers ? getUsers() : [];
+  if (!id) {
+    if (!pass || pass.length < 6) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 6 characters.</div>'; return; }
+    if (users.find(function(u){ return (u.email||'').toLowerCase() === email; })) {
+      alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>'; return;
+    }
+    users.push({ id: uid(), email, name, phone, role, createdAt: Date.now() });
+  } else {
+    var u = users.find(function(x){ return x.id === id; });
+    if (u) { u.name = name; u.email = email; u.phone = phone; u.role = role; }
+  }
+  if (saveUsers) saveUsers(users);
+  closeModal('modal-add-user');
+  toast(!id ? 'User added' : 'User updated', 'ok');
+  renderUserManagement();
+}function fmtPhone(phone) {
+  if (!phone) return '';
+  var digits = String(phone).replace(/\D/g, '');
+  if (digits.length === 10) {
+    return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+  } else if (digits.length === 11 && digits[0] === '1') {
+    return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
+  }
+  return phone;
+}function openAppearancePanel() {
+  document.getElementById('appearance-panel')?.remove();
+  var cfg      = _apiConfigCache || {};
+  var palKey   = cfg.palette || 'forest';
+  var palCust  = cfg.palCustom || PALETTES.custom;
+  var font     = cfg.font || 'font-segoe';
+  var fontSize = cfg.fontSize || '14';
+
+  var panel = document.createElement('div');
+  panel.id = 'appearance-panel';
+  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:270px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:85vh;overflow-y:auto';
+
+  // Palette cards
+  var palCards = Object.entries(PALETTES).map(function(entry) {
+    var k = entry[0], p = entry[1];
+    var active = palKey === k;
+    return '<div onclick="selectPalette(\''+k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid '+(active?'var(--brand)':'var(--border)')+';cursor:pointer;margin-bottom:5px;background:'+(active?'var(--brand-bg)':'var(--bg2)')+';">'
+      + '<div style="display:flex;gap:3px">'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p1+'"></div>'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p3+'"></div>'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.a1+'"></div>'
+      + '</div>'
+      + '<span style="font-size:12px;font-weight:'+(active?'700':'400')+';color:var(--text)">'+(k==='custom'?'Custom':p.name)+'</span>'
+      + (active?'<span style="margin-left:auto;font-size:10px;color:var(--brand)">✓</span>':'')
+      + '</div>';
+  }).join('');
+
+  // Custom 3-color picker (shown always, applies when Custom selected)
+  var custPickers = '<div style="display:flex;gap:8px;margin-top:8px">'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Primary</div>'
+    + '<input type="color" id="cust-p1" value="'+(palCust.p1||'#2d6a4f')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Light</div>'
+    + '<input type="color" id="cust-p3" value="'+(palCust.p3||'#40916c')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '<div style="flex:1;text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accent</div>'
+    + '<input type="color" id="cust-a1" value="'+(palCust.a1||'#d4a017')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
+    + '</div>'
+    + '</div>';
+
+  // Font options
+  var fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
+    var active = font===f[0];
+    return '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\')" class="app-font-opt"'
+      + ' style="padding:5px 10px;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
+      + f[1]+'</button>';
+  }).join('');
+
+  // Size options
+  var sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
+    var active = fontSize===s[0];
+    return '<button data-sz="'+s[0]+'" onclick="setAppFontSize(\''+s[0]+'\')" class="app-size-opt"'
+      + ' style="flex:1;padding:5px 0;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:'+s[0]+'px;font-weight:'+(active?'700':'500')+';cursor:pointer;font-family:var(--font);text-align:center">'
+      + s[1]+'</button>';
+  }).join('');
+
+  panel.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
+    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
+    + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Color Palette</div>'
+    + palCards
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:4px">Custom Colors</div>'
+    + custPickers
+    + '<div style="height:1px;background:var(--border);margin:14px 0"></div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
+    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>';
+
+  document.body.appendChild(panel);
+  panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
+  setTimeout(function() {
+    document.addEventListener('click', function h(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance') {
+        panel.remove(); document.removeEventListener('click', h);
+      }
+    });
+  }, 100);
+}
+
+function selectPalette(key) {
+  var pal = PALETTES[key] || PALETTES.forest;
+  applyPalette(pal);
+  _saveUserPrefs({palette: key, palCustom: PALETTES[key]});
+  // Refresh panel
+  openAppearancePanel();
+}
+
+function updateCustomPalette() {
+  var p1 = document.getElementById('cust-p1')?.value || '#2d6a4f';
+  var p3 = document.getElementById('cust-p3')?.value || '#40916c';
+  var a1 = document.getElementById('cust-a1')?.value || '#d4a017';
+  PALETTES.custom = { name:'Custom', p1:p1, p2:darken(p1,20), p3:p3, a1:a1, a2:PALETTES.custom.a2||'#b5451b' };
+  applyPalette(PALETTES.custom);
+  _saveUserPrefs({palette:'custom', palCustom: PALETTES.custom});
+}
+var LANG = "en";
+function applyTheme() {
+  var cfg = _apiConfigCache || {};
+  var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
+  var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
+  var theme = cfg.theme || ssTheme || 'light';
+  var font  = cfg.font  || ssFont  || 'font-segoe';
+  document.documentElement.setAttribute('data-theme', theme);
+  var btnDark = document.getElementById('btn-dark');
+  if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
+  // Apply palette
+  var palKey = cfg.palette || 'forest';
+  var pal = PALETTES[palKey] || PALETTES.forest;
+  if (palKey === 'custom' && cfg.palCustom) {
+    Object.assign(PALETTES.custom, cfg.palCustom);
+    pal = PALETTES.custom;
+  }
+  applyPalette(pal);
+  setAppFont(font);
+  if (cfg.fontSize) { try { setAppFontSize(cfg.fontSize); } catch(e) {} }
+  try { _renderLucideIcons(); } catch(e) {}
+}var LANG = "en";
+// updateBulkBar removed (dup)
+
+
+
+const DB_KEY = 'rcmpro_v3';
+const API_CFG_KEY = 'rcmpro_api_cfg';
+
+function _patientAvatar(pat, size=70) {
+const sex = (pat.sex||'').toUpperCase();
+const s = size;
+
+// Colors — system emerald palette
+// Skin tones: light face + slightly darker shadow side
+const SKIN = '#FBBF8A';
+const SKIN_SHD = '#F0A870';
+const NECK = '#FBBF8A';
+
+if (sex === 'F') {
+// Female — teal bg, dark hair (shoulder length), emerald shirt
+const BG = '#0d9488';
+const HAIR = '#1e293b';
+const SHRT = '#059669';
+return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" rx="50" fill="${BG}"/>
+<clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
+<g clip-path="url(#fc${s})">
+<!-- Shirt / bust -->
+<path d="M10 110 Q10 72 30 66 Q40 62 50 62 Q60 62 70 66 Q90 72 90 110 Z" fill="${SHRT}"/>
+<!-- Neck -->
+<rect x="43" y="52" width="14" height="14" rx="3" fill="${NECK}"/>
+<!-- Face -->
+<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
+<!-- Face shadow right half -->
+<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
+<!-- Hair back layer -->
+<ellipse cx="50" cy="28" rx="19" ry="13" fill="${HAIR}"/>
+<!-- Hair left side — shoulder length -->
+<path d="M31 28 Q28 45 30 62 Q35 68 38 65 Q36 50 34 35 Z" fill="${HAIR}"/>
+<!-- Hair right side -->
+<path d="M69 28 Q72 45 70 62 Q65 68 62 65 Q64 50 66 35 Z" fill="${HAIR}"/>
+<!-- Hair top parting -->
+<path d="M31 25 Q50 18 69 25 Q65 20 50 18 Q35 18 31 25 Z" fill="${HAIR}"/>
+</g>
+</svg>`;
+}
+
+if (sex === 'M') {
+// Male — emerald bg, dark short hair, dark green shirt
+const BG = '#059669';
+const HAIR = '#1e293b';
+const SHRT = '#065f46';
+return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" rx="50" fill="${BG}"/>
+<clipPath id="mc${s}"><rect width="100" height="100" rx="50"/></clipPath>
+<g clip-path="url(#mc${s})">
+<!-- Shirt / bust — wider masculine shoulders -->
+<path d="M4 110 Q4 70 26 63 Q37 58 50 58 Q63 58 74 63 Q96 70 96 110 Z" fill="${SHRT}"/>
+<!-- Neck -->
+<rect x="43" y="51" width="14" height="12" rx="3" fill="${NECK}"/>
+<!-- Face — slightly squarer jaw -->
+<path d="M33 38 Q33 24 50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Q33 60 33 52 Z" fill="${SKIN}"/>
+<!-- Face shadow right half -->
+<path d="M50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Z" fill="${SKIN_SHD}"/>
+<!-- Short hair — flat top, tight sides -->
+<path d="M33 38 Q33 22 50 20 Q67 22 67 38 Q67 26 50 24 Q33 26 33 38 Z" fill="${HAIR}"/>
+<!-- Side hair left -->
+<path d="M33 38 Q30 35 31 28 Q35 22 33 38 Z" fill="${HAIR}"/>
+<!-- Side hair right -->
+<path d="M67 38 Q70 35 69 28 Q65 22 67 38 Z" fill="${HAIR}"/>
+<!-- Hair top -->
+<path d="M33 32 Q50 20 67 32 Q60 22 50 21 Q40 22 33 32 Z" fill="${HAIR}"/>
+</g>
+</svg>`;
+}
+
+// Unknown / Other — slate bg, neutral
+const BG = '#475569';
+const HAIR = '#1e293b';
+const SHRT = '#334155';
+return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" rx="50" fill="${BG}"/>
+<clipPath id="uc${s}"><rect width="100" height="100" rx="50"/></clipPath>
+<g clip-path="url(#uc${s})">
+<!-- Shirt -->
+<path d="M8 110 Q8 71 28 64 Q38 59 50 59 Q62 59 72 64 Q92 71 92 110 Z" fill="${SHRT}"/>
+<!-- Neck -->
+<rect x="43" y="51" width="14" height="13" rx="3" fill="${NECK}"/>
+<!-- Face -->
+<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
+<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
+<!-- Hair -->
+<ellipse cx="50" cy="27" rx="19" ry="11" fill="${HAIR}"/>
+</g>
+</svg>`;
+}
+
+
+
+function getApiConfig() {
+  // Default worker URL if not set per provider
+  const DEFAULT_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
+// Also reads OPENAI_KEY from localStorage if stored
+const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
+if (stored.openaiKey) return stored;
+// Return API config for the active provider
+// Primary: active provider's stored acctKey
+if (activeProviderId) {
+const db = getDB();
+const prov = db.providers.find(p => p.id === activeProviderId);
+if (prov?.acctKey) return { acctKey: prov.acctKey };
+}
+// Fallback: in-memory cache from loadFromFirestore
+if (_apiConfigCache?.acctKey) return _apiConfigCache;
+// Last resort: localStorage cache
+try {
+const cfg = JSON.parse(localStorage.getItem(API_CFG_KEY) || '{}');
+if (cfg.acctKey) return cfg;
+} catch(e) {}
+return {};
+}
+
+// ???????????????????????????????????????????????????????
+// FIREBASE — Cloud Database
+// ???????????????????????????????????????????????????????
+const FB_CONFIG = {
+  apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
+  authDomain:        "claimdatacare-451fe.firebaseapp.com",
+  projectId:         "claimdatacare-451fe",
+  storageBucket:     "claimdatacare-451fe.firebasestorage.app",
+  messagingSenderId: "1005844575427",
+  appId:             "1:1005844575427:web:eb9799d720d50e5f5e1e76"
+};
+
+let _fbApp = null;
+let claimTabFilter = 'all'; // tracks active tab in claims list
+var activeProviderId = null;  // currently selected billing provider
+let _db = null;
+let _fbReady = false;
+let _localDB = null;
+let _auth = null;
+let _adminUser = null;
+let _usersCache = null;
+let _apiConfigCache = null; // in-memory cache
+
+function initFirebase() {
+try {
+if (!firebase?.apps?.length) {
+_fbApp = firebase.initializeApp(FB_CONFIG);
+} else {
+_fbApp = firebase.app();
+}
+_db = firebase.firestore();
+_auth = firebase.auth();
+_fbReady = true;
+console.log('Firebase connected ?');
+setFbStatus('','green');
+_auth.onAuthStateChanged(user => {
+// Firebase auth state — only used for Firestore access, not UI roles
+// Admin UI is controlled exclusively by the internal session role
+_adminUser = user;
+});
+} catch(e) {
+console.warn('Firebase init failed, using localStorage:', e);
+setFbStatus('Offline','amber');
+}
+}
+
+function setFbStatus(label, color) {
+// Only show amber/red errors — hide all success/cloud states
+const el = document.getElementById('fb-status');
+if (!el) return;
+if (!label || color === 'green' || color === 'ok') { el.style.display = 'none'; return; }
+el.style.display = '';
+el.textContent = label;
+el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
+}
+
+// Synchronous local cache (for all sync callers)
+function getDB() {
+if (_localDB) return JSON.parse(JSON.stringify(_localDB));
+// No local cache yet — return empty structure, Firestore will populate on load
+_localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[] };
+return JSON.parse(JSON.stringify(_localDB));
+}
+
+// ????????????????????????????????????????????????????????????????????????????
+// FIRESTORE PERSISTENCE LAYER v2
+// Architecture: individual documents in typed collections (not one monolithic doc)
+//
+// Collections:
+// providers/{id} — billing providers
+// patients/{id} — patients (each own doc)
+// claims/{id} — claims (each own doc)
+// facilities/{id} — facilities
+// rendering/{id} — rendering providers
+// referring/{id} — referring providers
+// services/{id} — CPT services
+// serviceGroups/{id} — service groups
+// appointments/{id} — appointments
+// notes/{id} — medical notes
+// claimLogs/{claimId} — claim log entries
+// claimEOB/{claimId} — EOB records
+// invoicingIssuers/{id} — billing entities
+// invoicingClients/{id} — clients
+// invoices/{id} — invoices
+// meta/config — app config (apiKey, etc.)
+// meta/users — users list
+//
+// All writes go to Firestore first. localStorage is a read-time cache only.
+// ????????????????????????????????????????????????????????????????????????????
+
+// ?? Constants ???????????????????????????????????????????????????????????????
+const BATCH_SIZE = 400; // Firestore batch limit is 500 writes
+const CACHE_KEY = 'cdc_cache_v2';
+// ?? Helpers ??????????????????????????????????????????????????????????????????
+
+// Write an array of objects to a Firestore collection using batched writes
+async function _fsWriteCollection(collName, items) {
+  if (!_fbReady || !_db || !items?.length) return;
+  for (let i = 0; i < items.length; i += BATCH_SIZE) {
+    const chunk = items.slice(i, i + BATCH_SIZE);
+    const batch = _db.batch();
+    chunk.forEach(item => {
+      if (!item.id) return;
+      // Safety: auto-compress any base64 image field > 700KB before writing
+      const safe = {};
+      for (const [k, v] of Object.entries(item)) {
+        if (typeof v === 'string' && v.startsWith('data:image') && v.length > 933333) {
+          // Compress via canvas
+          try {
+            const canvas = document.createElement('canvas');
+            const img = new Image();
+            img.src = v;
+            if (img.width > 0) {
+              const ratio = Math.min(500/img.width, 500/img.height, 1);
+              canvas.width  = Math.round(img.width  * ratio);
+              canvas.height = Math.round(img.height * ratio);
+              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+              safe[k] = canvas.toDataURL('image/jpeg', 0.7);
+            } else {
+              safe[k] = ''; // can't compress synchronously, skip
+            }
+          } catch(e) { safe[k] = ''; }
+        } else {
+          safe[k] = v;
+        }
+      }
+      batch.set(_db.collection(collName).doc(String(item.id)), safe);
+    });
+    await batch.commit();
+  }
+}
+
+// Read all docs from a collection
+async function _fsReadCollection(collName) {
+if (!_fbReady || !_db) return [];
+const snap = await _db.collection(collName).get();
+return snap.docs.map(d => d.data());
+}
+
+// Delete docs from a collection that are not in the current list
+async function _fsSyncCollection(collName, items) {
+if (!_fbReady || !_db) return;
+const existing = await _db.collection(collName).get();
+const currentIds = new Set(items.map(i => String(i.id)));
+const batch = _db.batch();
+let deleteCount = 0;
+existing.docs.forEach(doc => {
+if (!currentIds.has(doc.id)) {
+batch.delete(doc.ref);
+deleteCount++;
+}
+});
+if (deleteCount > 0) await batch.commit();
+await _fsWriteCollection(collName, items);
+}
+
+// Write/delete a single document
+async function _fsSetDoc(collName, id, data) {
+if (!_fbReady || !_db) return;
+await _db.collection(collName).doc(String(id)).set(data);
+}
+
+async function _fsDeleteDoc(collName, id) {
+if (!_fbReady || !_db) return;
+await _db.collection(collName).doc(String(id)).delete();
+}
+
+// ?? Cache ????????????????????????????????????????????????????????????????????
+function _saveCache(db) {
+try { localStorage.setItem(CACHE_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+function _loadCache() {
+try {
+const raw = localStorage.getItem(CACHE_KEY) || '';
+return raw ? JSON.parse(raw) : null;
+} catch(e) { return null; }
+}
+
+// ?? Load all collections from Firestore ?????????????????????????????????????
+async function loadFromFirestoreWhenReady() {
+  // Wait up to 5s for Firebase Auth to restore session
+  for (let i = 0; i < 50; i++) {
+    if (_auth && _auth.currentUser) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return loadFromFirestore();
+}
+
+async function loadFromFirestore() {
+  if (!_fbReady || !_db) {
+    const cached = _loadCache();
+    if (cached) { _localDB = _mergeEmpty(cached); console.log('Loaded from cache (offline)'); }
+    return;
+  }
+  if (window._restoreInProgress) return;
+
+  // ── Load config first (palette/theme) so UI looks right immediately ──
+  try {
+    const configDoc = await _db.collection('meta').doc('config').get();
+    if (configDoc.exists) {
+      const cfg = configDoc.data();
+      _apiConfigCache = cfg;
+      if (cfg.palCustom && typeof PALETTES !== 'undefined') {
+        PALETTES.custom = Object.assign(PALETTES.custom || {}, cfg.palCustom);
+      }
+      if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
+      try { applyTheme(); } catch(e) {}
+    }
+  } catch(e) {}
+
+  setFbStatus('Syncing...', 'amber');
+
+  // ── Load critical collections first (providers, patients, claims) ──
+  try {
+    const [providers, patients, claims, configDoc2, usersDoc] = await Promise.all([
+      _fsReadCollection('providers'),
+      _fsReadCollection('patients'),
+      _fsReadCollection('claims'),
+      _db.collection('meta').doc('config').get(),
+      _db.collection('meta').doc('users').get(),
+    ]);
+
+    // Show data immediately — don't wait for the rest
+    if (!_localDB) _localDB = _mergeEmpty({});
+    _localDB.providers = providers;
+    _localDB.patients  = patients;
+    _localDB.claims    = claims;
+
+    if (usersDoc.exists) {
+      _usersCache = usersDoc.data().list || [];
+      try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
+    }
+
+    setFbStatus('', 'green');
+    console.log('Core loaded: ' + patients.length + ' patients, ' + claims.length + ' claims');
+
+    // Trigger _afterLoad-style update with core data
+    try {
+      const s = getSession();
+      if (s && providers.length) {
+        const savedId = s.activeBillingProviderId;
+        const vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
+        activeProviderId = vp.id;
+        s.activeBillingProviderId = activeProviderId;
+        setSession(s);
+        rebuildProvSel();
+      } else if (!activeProviderId && patients.length) {
+        const pIds = [...new Set(patients.map(function(p){ return p.providerId; }).filter(Boolean))];
+        if (pIds.length) activeProviderId = pIds[0];
+      }
+      try { renderDashboard(); } catch(e) {}
+      updateBadges();
+    } catch(e) {}
+
+  } catch(err) {
+    console.warn('Firestore core load failed:', err.message, err.code);
+    if (err.code === 'permission-denied') {
+      setFbStatus('Auth error', 'red');
+      console.error('PERMISSION DENIED — Check Firestore rules');
+    } else {
+      setFbStatus('Offline', 'amber');
+    }
+    const cached = _loadCache();
+    if (cached) { _localDB = _mergeEmpty(cached); }
+    return;
+  }
+
+  // ── Load secondary collections in background ──────────────────
+  try {
+    const [
+      facilities, rendering, referring, services, serviceGroups,
+      appointments, notes, invoicingIssuers, invoicingClients, invoices,
+      claimLogsSnap, claimEOBSnap
+    ] = await Promise.all([
+      _fsReadCollection('facilities'),
+      _fsReadCollection('rendering'),
+      _fsReadCollection('referring'),
+      _fsReadCollection('services'),
+      _fsReadCollection('serviceGroups'),
+      _fsReadCollection('appointments'),
+      _fsReadCollection('notes'),
+      _fsReadCollection('invoicingIssuers'),
+      _fsReadCollection('invoicingClients'),
+      _fsReadCollection('invoices'),
+      _db.collection('claimLogs').get(),
+      _db.collection('claimEOB').get(),
+    ]);
+
+    const claimLogs = {};
+    claimLogsSnap.docs.forEach(function(d){ claimLogs[d.id] = d.data().entries||[]; });
+    const claimEOB = {};
+    claimEOBSnap.docs.forEach(function(d){ claimEOB[d.id] = d.data().entries||[]; });
+
+    Object.assign(_localDB, {
+      facilities, rendering, referring, services, serviceGroups,
+      appointments, notes, claimLogs, claimEOB,
+      invoicingIssuers, invoicingClients, invoices,
+    });
+
+    _saveCache(_localDB);
+    console.log('All data loaded from Firestore');
+    // Refresh dashboard with complete data
+    try { renderDashboard(); updateBadges(); } catch(e) {}
+
+  } catch(err) {
+    console.warn('Secondary Firestore load failed:', err.message);
+  }
+}
+
+// Ensure all keys exist in a db object
+function _mergeEmpty(db) {
+const empty = {
+providers:[], facilities:[], rendering:[], referring:[],
+patients:[], claims:[], services:[], serviceGroups:[],
+appointments:[], notes:[], claimLogs:{}, claimEOB:{},
+invoicingIssuers:[], invoicingClients:[], invoices:[]
+};
+return Object.assign(empty, db || {});
+}
+
+// ?? setDB: mutate state and sync changed collection to Firestore ?????????????
+// Instead of writing everything, detect which collection changed and write only that
+// ????????????????????????????????????????????????????????????????????????????
+// FIRESTORE PERSISTENCE LAYER v2
+// Architecture: individual documents in typed collections (not one monolithic doc)
+//
+// Collections:
+// providers/{id} — billing providers
+// patients/{id} — patients (each own doc)
+// claims/{id} — claims (each own doc)
+// facilities/{id} — facilities
+// rendering/{id} — rendering providers
+// referring/{id} — referring providers
+// services/{id} — CPT services
+// serviceGroups/{id} — service groups
+// appointments/{id} — appointments
+// notes/{id} — medical notes
+// claimLogs/{claimId} — claim log entries
+// claimEOB/{claimId} — EOB records
+// invoicingIssuers/{id} — billing entities
+// invoicingClients/{id} — clients
+// invoices/{id} — invoices
+// meta/config — app config (apiKey, etc.)
+// meta/users — users list
+//
+// All writes go to Firestore first. localStorage is a read-time cache only.
+// ????????????????????????????????????????????????????????????????????????????
+
+// ?? Constants ???????????????????????????????????????????????????????????????
+// USERS_KEY already defined in auth section
+
+// ?? Helpers ??????????????????????????????????????????????????????????????????
+
+// Write an array of objects to a Firestore collection using batched writes
+function setDB(fn) {
+const before = getDB();
+const db = getDB();
+fn(db);
+_localDB = db;
+_saveCache(_localDB);
+
+if (!_fbReady || !_db) return;
+
+// Detect which collections changed and sync only those
+const colls = [
+'providers','facilities','rendering','referring',
+'patients','claims','services','serviceGroups',
+'appointments','notes','invoicingIssuers','invoicingClients','invoices'
+];
+
+for (const coll of colls) {
+const prev = before[coll] || [];
+const next = db[coll] || [];
+if (JSON.stringify(prev) !== JSON.stringify(next)) {
+_fsSyncCollection(coll, next).catch(e =>
+console.warn(`Firestore ${coll} sync failed:`, e.message));
+}
+}
+
+// Sync claimLogs and claimEOB
+const objColls = [['claimLogs','claimLogs'],['claimEOB','claimEOB']];
+for (const [key, coll] of objColls) {
+if (JSON.stringify(before[key]) !== JSON.stringify(db[key])) {
+const obj = db[key] || {};
+const batch = _db.batch();
+Object.entries(obj).forEach(([id, entries]) => {
+batch.set(_db.collection(coll).doc(String(id)), { entries: entries || [] });
+});
+batch.commit().catch(e => console.warn(`${coll} sync failed:`, e.message));
+}
+}
+}
+
+// ?? Per-document write helpers (called by save functions) ???????????????????
+
+async function _savePatient(patient) {
+if (!_fbReady || !_db) return;
+await _fsSetDoc('patients', patient.id, patient);
+}
+
+async function _deletePatientDoc(id) {
+if (!_fbReady || !_db) return;
+await _fsDeleteDoc('patients', id);
+}
+
+async function _saveClaim(claim) {
+if (!_fbReady || !_db) return;
+await _fsSetDoc('claims', claim.id, claim);
+}
+
+async function _deleteClaimDoc(id) {
+if (!_fbReady || !_db) return;
+await _fsDeleteDoc('claims', id);
+}
+
+// ?? Import: write directly to Firestore in batches ??????????????????????????
+async function _importCollectionToFirestore(collName, items) {
+if (!items?.length) return 0;
+let written = 0;
+for (let i = 0; i < items.length; i += BATCH_SIZE) {
+const chunk = items.slice(i, i + BATCH_SIZE);
+if (_fbReady && _db) {
+const batch = _db.batch();
+chunk.forEach(item => {
+if (!item.id) return;
+batch.set(_db.collection(collName).doc(String(item.id)), item);
+written++;
+});
+await batch.commit();
+}
+// Update in-memory immediately
+const arr = _localDB[collName] || [];
+chunk.forEach(item => {
+const idx = arr.findIndex(x => x.id === item.id);
+if (idx >= 0) arr[idx] = item; else arr.push(item);
+});
+_localDB[collName] = arr;
+}
+_saveCache(_localDB);
+return written;
+}
+
+
+
+// ???????????????????????????????????????????????????????????????
+// RECOVERED APP LAYER — utilities, routing, render functions
+// ???????????????????????????????????????????????????????????????
+
+const fmtMoney = n => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const claimTotal = c => (Array.isArray(c.lines)?c.lines:[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
+const fixCpt = s => String(s||'').trim();
+const fixUnits = s => { const u=parseInt(s||'1'); return String(u>0?u:1); };
+const fixCharge = s => parseFloat(s||'0').toFixed(2);
+const fixDxPtr = s => (s||'A').toUpperCase().replace(/[^A-H]/g,'')||'A';
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+function toast(msg, type='ok'){
+const c=document.getElementById('toasts');
+const el=document.createElement('div');
+el.className=`toast t-${type}`;
+el.textContent=msg;
+c.appendChild(el);
+requestAnimationFrame(()=>el.classList.add('show'));
+setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
+}
+
+function statusBadge(s){
+const m={
+draft: '<span class="badge b-gray">Draft</span>',
+pending: '<span class="badge b-amber"><i data-lucide="clock" class="lci" style="width:11px;height:11px"></i> Pending</span>',
+submitted: '<span class="badge b-blue"><i data-lucide="send" class="lci" style="width:11px;height:11px"></i> Submitted</span>',
+accepted: '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH</span>',
+rejected: '<span class="badge b-red"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected</span>',
+on_hold: '<span class="badge b-amber"><i data-lucide="lock" class="lci" style="width:11px;height:11px"></i> On Hold</span>',
+denied: '<span class="badge b-red"><i data-lucide="ban" class="lci" style="width:11px;height:11px"></i> Denied</span>',
+partially_paid: '<span class="badge b-amber"><i data-lucide="dollar-sign" class="lci" style="width:11px;height:11px"></i> Partial</span>',
+paid: '<span class="badge b-green"><i data-lucide="circle-check" class="lci" style="width:11px;height:11px"></i> Paid</span>',
+settled: '<span class="badge b-green"><i data-lucide="check-check" class="lci" style="width:11px;height:11px"></i> Settled</span>',
+patient_balance: '<span class="badge b-amber"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i> Patient Balance</span>',
+voided: '<span class="badge b-gray"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i> Voided</span>',
+};
+return m[s]||`<span class="badge b-gray">${s}</span>`;
+}
+
+const POS_CODES = [
+['02','Telehealth - Pt Home'],['03','School'],['04','Homeless Shelter'],
+['05','Indian Health Service Freestanding Facility'],['06','Indian Health Service Provider-Based Facility'],
+['07','Tribal 638 Freestanding Facility'],['08','Tribal 638 Provider-Based Facility'],
+['09','Prison/Correctional Facility'],['10','Telehealth - Pt Non-Home'],
+['11','Office'],['12','Home'],['13','Assisted Living Facility'],
+['14','Group Home'],['15','Mobile Unit'],['16','Temporary Lodging'],
+['17','Walk-in Retail Health Clinic'],['18','Place of Employment/Worksite'],
+['19','Off Campus-Outpatient Hospital'],['20','Urgent Care Facility'],
+['21','Inpatient Hospital'],['22','On Campus-Outpatient Hospital'],
+['23','Emergency Room - Hospital'],['24','Ambulatory Surgical Center'],
+['25','Birthing Center'],['26','Military Treatment Facility'],
+['31','Skilled Nursing Facility'],['32','Nursing Facility'],
+['33','Custodial Care Facility'],['34','Hospice'],
+['41','Ambulance - Land'],['42','Ambulance - Air or Water'],
+['49','Independent Clinic'],['50','Federally Qualified Health Center'],
+['51','Inpatient Psychiatric Facility'],['52','Psychiatric Facility Partial Hospitalization'],
+['53','Community Mental Health Center'],['54','Intermediate Care Facility'],
+['55','Residential Substance Abuse Treatment Facility'],['56','Psychiatric Residential Treatment Center'],
+['57','Non-residential Substance Abuse Treatment Facility'],['58','Non-residential Opioid Treatment Facility'],
+['60','Mass Immunization Center'],['61','Comprehensive Inpatient Rehabilitation Facility'],
+['62','Comprehensive Outpatient Rehabilitation Facility'],['65','End-Stage Renal Disease Treatment Facility'],
+['71','Public Health Clinic'],['72','Rural Health Clinic'],
+['81','Independent Laboratory'],['99','Other Place of Service'],
+];
+
+function buildPOSSelect(elId, selected){
+const el=document.getElementById(elId); if(!el) return;
+el.innerHTML=POS_CODES.map(([c,d])=>`<option value="${c}" ${c===(selected||'11')?'selected':''}>${c} \u2014 ${d}</option>`).join('');
+}
+
+// \u2500\u2500 Auto Dx Pointer \u2500\u2500
+function buildAutoDxPtr(){
+const letters='ABCDEFGH'; let ptr='';
+for(let i=0;i<8;i++){
+const el=document.getElementById('mc-dx'+(i+1));
+if(el&&el.value.trim()) ptr+=letters[i];
+}
+return ptr||'A';
+}
+function syncAllDxPtrs(){
+const ptr=buildAutoDxPtr();
+tmpLines.forEach((l,i)=>{
+l.dxPtr=ptr;
+const el=document.getElementById('mc-dxptr-'+i);
+if(el) el.value=ptr;
+});
+const prev=document.getElementById('dx-ptr-preview');
+if(prev){
+const letters='ABCDEFGH'; const used=[];
+for(let i=0;i<8;i++){const el=document.getElementById('mc-dx'+(i+1));if(el&&el.value.trim()) used.push(`${letters[i]}=${el.value.trim()}`);}
+prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in diagnoses above \u2014 pointers auto-assign';
+}
+}
+
+// \u2500\u2500 DB \u2500\u2500
+
+function initServices(){
+setDB(db=>{
+if(!db.services||!db.services.length){
+db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
+}
+});
+}
+
+// \u2500\u2500 Theme / Lang \u2500\u2500
+
+
+// ── Full Palette System ────────────────────────────────────────────
+// 3 pre-built palettes + custom
+const PALETTES = {
+  forest: {
+    name: 'Forest',
+    p1: '#2d6a4f',   // primary
+    p2: '#1b4332',   // dark
+    p3: '#40916c',   // light
+    a1: '#d4a017',   // accent (amber)
+    a2: '#b5451b',   // accent2 (rust)
+  },
+  ocean: {
+    name: 'Ocean',
+    p1: '#0369a1',
+    p2: '#075985',
+    p3: '#0ea5e9',
+    a1: '#f59e0b',
+    a2: '#ef4444',
+  },
+  plum: {
+    name: 'Plum',
+    p1: '#7c3aed',
+    p2: '#5b21b6',
+    p3: '#a78bfa',
+    a1: '#ec4899',
+    a2: '#f97316',
+  },
+  slate: {
+    name: 'Slate',
+    p1: '#334155',
+    p2: '#1e293b',
+    p3: '#64748b',
+    a1: '#06b6d4',
+    a2: '#10b981',
+  },
+  rose: {
+    name: 'Rose',
+    p1: '#be123c',
+    p2: '#881337',
+    p3: '#fb7185',
+    a1: '#f59e0b',
+    a2: '#7c3aed',
+  },
+  custom: {
+    name: 'Custom',
+    p1: '#2d6a4f',
+    p2: '#1b4332',
+    p3: '#40916c',
+    a1: '#d4a017',
+    a2: '#b5451b',
+  }
+};
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace('#',''),16);
+  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+}
+function lighten(hex, pct) {
+  const c = hexToRgb(hex);
+  const f = pct/100;
+  return 'rgb('
+    + Math.round(c.r + (255-c.r)*f) + ','
+    + Math.round(c.g + (255-c.g)*f) + ','
+    + Math.round(c.b + (255-c.b)*f) + ')';
+}
+function darken(hex, pct) {
+  const c = hexToRgb(hex);
+  const f = 1 - pct/100;
+  return 'rgb('
+    + Math.round(c.r*f) + ','
+    + Math.round(c.g*f) + ','
+    + Math.round(c.b*f) + ')';
+}
+function alpha(hex, a) {
+  const c = hexToRgb(hex);
+  return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
+}
+
+function applyPalette(pal) {
+  if (!pal) return;
+  const r = document.documentElement;
+  const p1 = pal.p1, p2 = pal.p2, p3 = pal.p3, a1 = pal.a1, a2 = pal.a2;
+
+  // ── Primary brand ──────────────────────────────────────────────
+  r.style.setProperty('--brand',       p1);
+  r.style.setProperty('--brand-d',     p2);
+  r.style.setProperty('--brand-bg',    alpha(p1, 0.1));
+  r.style.setProperty('--brand-bdr',   alpha(p1, 0.35));
+  r.style.setProperty('--brand-l',     p3);
+  r.style.setProperty('--blue',        p1);
+  r.style.setProperty('--blue-bg',     alpha(p1, 0.08));
+  r.style.setProperty('--blue-bdr',    alpha(p1, 0.3));
+  r.style.setProperty('--green',       p3);
+  r.style.setProperty('--green-bg',    alpha(p3, 0.1));
+  r.style.setProperty('--green-bdr',   alpha(p3, 0.3));
+  r.style.setProperty('--teal',        p3);
+  r.style.setProperty('--teal-bg',     alpha(p3, 0.08));
+  // ── Accent ────────────────────────────────────────────────────
+  r.style.setProperty('--amber',       a1);
+  r.style.setProperty('--amber-bg',    alpha(a1, 0.1));
+  r.style.setProperty('--amber-bdr',   alpha(a1, 0.3));
+  r.style.setProperty('--c2',          a1);
+  // ── CSS vars used in topnav, patient chart, etc. ───────────────
+  r.style.setProperty('--c1',          p1);
+  r.style.setProperty('--c1d',         p2);
+  r.style.setProperty('--c1l',         alpha(p1, 0.15));
+  r.style.setProperty('--c1m',         p3);
+
+  // ── Replace hardcoded inline colors via CSS overrides ─────────
+  // Inject a <style> tag that overrides every hardcoded green
+  let styleEl = document.getElementById('palette-overrides');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'palette-overrides';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
+    /* === TOPNAV === */
+    .topnav { background: ${p2} !important; border-bottom-color: ${darken(p2,15)} !important; }
+    [data-theme="dark"] .topnav { background: ${darken(p2,25)} !important; }
+    .tn-brand-name { color: #fff !important; }
+    .tn-item { color: rgba(255,255,255,.85) !important; }
+    .tn-item:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
+    .tn-item.active, .tn-group.open > .tn-item { background: rgba(255,255,255,.22) !important; color: #fff !important; box-shadow: none !important; }
+    .tn-divider { background: rgba(255,255,255,.2) !important; }
+    .tn-right { border-left-color: rgba(255,255,255,.2) !important; }
+    .tn-right .btn-ghost { color: rgba(255,255,255,.8) !important; }
+    .tn-right .btn-ghost:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
+    #tn-user-name { color: rgba(255,255,255,.85) !important; }
+    #btn-lang { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
+    .tn-prov-sel { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
+    .tn-prov-sel:hover { border-color: rgba(255,255,255,.5) !important; }
+    /* === DROPDOWNS (light bg) === */
+    .tn-dropdown { background: var(--surface) !important; border-color: var(--border) !important; }
+    .tn-dd-item { color: var(--text) !important; }
+    .tn-dd-item:hover, .tn-dd-item.active { background: ${alpha(p1,.1)} !important; color: ${p1} !important; }
+    .tn-dd-item:hover svg, .tn-dd-item.active svg, .tn-dd-item:hover .lci, .tn-dd-item.active .lci { color: ${p1} !important; opacity:1 !important; }
+    .tn-drawer-item:hover, .tn-drawer-item.active { color: ${p1} !important; background: ${alpha(p1,.08)} !important; }
+    .tn-drawer-sub-item:hover, .tn-drawer-sub-item.active { color: ${p1} !important; }
+    /* === BUTTONS === */
+    .btn-primary { background: ${p1} !important; border-color: ${p1} !important; }
+    .btn-primary:hover { background: ${p2} !important; border-color: ${p2} !important; }
+    #login-btn { background: linear-gradient(145deg,${p1},${p2}) !important; }
+    /* === BADGES === */
+    .b-blue { background: ${alpha(p1,.1)} !important; color: ${p1} !important; border-color: ${alpha(p1,.3)} !important; }
+    .b-green { background: ${alpha(p3,.1)} !important; color: ${darken(p3,10)} !important; border-color: ${alpha(p3,.3)} !important; }
+    /* === TABS / STABS === */
+    .stab.active { color: ${p1} !important; border-bottom-color: ${p1} !important; }
+    .ptc-tab.active { color: ${p2} !important; }
+    /* === LINKS & ACCENTS === */
+    .pt-link-name, .pt-link-acct { color: ${p1} !important; }
+    .slabel { border-left-color: ${p1} !important; color: ${p1} !important; }
+    /* === PATIENT CHART === */
+    .ptc-banner { background: linear-gradient(135deg, ${p2}, ${p1}) !important; }
+    .ptc-panel-hdr { background: linear-gradient(to bottom, var(--bg), var(--bg2)) !important; color: var(--text) !important; }
+    .ptc-panel-hdr h3 { color: var(--text) !important; }
+    .ptc-tab.active { border-top-color: ${p1} !important; }
+    .ptc-aging-table th { background: ${alpha(p2,.08)} !important; color: ${p2} !important; }
+    /* === DARK MODE VARS === */
+    [data-theme="dark"] { --brand: ${p3}; --brand-d: ${p1}; --brand-l: ${lighten(p1,20)}; }
+    /* === ROOT VARS === */
+    :root { --brand: ${p1}; --brand-d: ${p2}; --brand-l: ${p3}; --c1: ${p1}; --c1d: ${p2}; --c1m: ${p3}; }
+  `
+  updateFavicon(p1);
+}
+
+function _saveUserPrefs(updates) {
+  Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
+  if (_fbReady && _db) {
+    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true})
+      .catch(function(e){ console.warn('prefs save failed:', e.message); });
+  }
+}
+
+// ── Dynamic favicon & brand color ─────────────────────────────────
+function updateFavicon(color) {
+  try {
+    color = color || '#2d6a4f';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+      + '<path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="' + color + '"/>'
+      + '<path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>'
+      + '<rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>'
+      + '<rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>'
+      + '</svg>';
+    const blob = new Blob([svg], {type:'image/svg+xml'});
+    const url  = URL.createObjectURL(blob);
+    let lnk = document.querySelector("link[rel='icon']");
+    if (!lnk) { lnk = document.createElement('link'); lnk.rel='icon'; lnk.type='image/svg+xml'; document.head.appendChild(lnk); }
+    if (lnk._prev) URL.revokeObjectURL(lnk._prev);
+    lnk._prev = url;
+    lnk.href  = url;
+    // Update nav logos
+    document.querySelectorAll('.nav-favicon').forEach(function(img){ img.src = url; });
+  } catch(e) {}
+}
+
+
+function setBrandColor(color) {
+  if (!color) return;
+  const darken = function(hex, amt) {
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.max(0,Math.min(255,(n>>16)+amt));
+    const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
+    const b = Math.max(0,Math.min(255,(n&0xff)+amt));
+    return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+  };
+  const ri=parseInt(color.slice(1,3),16), gi=parseInt(color.slice(3,5),16), bi=parseInt(color.slice(5,7),16);
+  const light = 'rgba('+ri+','+gi+','+bi+',.12)';
+  const mid   = 'rgba('+ri+','+gi+','+bi+',.35)';
+  const root  = document.documentElement;
+  root.style.setProperty('--brand',    color);
+  root.style.setProperty('--brand-d',  darken(color,-20));
+  root.style.setProperty('--brand-bg', light);
+  root.style.setProperty('--brand-bdr',mid);
+  root.style.setProperty('--blue',     color);
+  root.style.setProperty('--green',    color);
+  root.style.setProperty('--c1',       color);
+  root.style.setProperty('--c1d',      darken(color,-20));
+  // Save to Firestore
+  _saveUserPrefs({color: color});
+  updateFavicon(color);
+}
+
+function setAppFontSize(size) {
+  document.documentElement.style.setProperty('font-size', size + 'px');
+  // Also set base size on body
+  document.body.style.fontSize = size + 'px';
+  _saveUserPrefs({fontSize: size});
+}
+
+function setAppFont(fontClass) {
+  const fontMap = {
+    'font-segoe': "'Segoe UI Variable',system-ui,-apple-system,sans-serif",
+    'font-inter':  "'Inter',system-ui,-apple-system,sans-serif",
+    'font-mono':   "'JetBrains Mono','SF Mono',monospace",
+    'font-dmsans': "'DM Sans',system-ui,sans-serif",
+    'font-lato':   "'Lato',system-ui,sans-serif",
+  };
+  const fv = fontMap[fontClass];
+  if (fv) document.documentElement.style.setProperty('--font', fv);
+  _saveUserPrefs({font: fontClass});
+  // Update panel buttons
+  document.querySelectorAll('.app-font-opt').forEach(function(b){
+    b.style.fontWeight = b.dataset.font===fontClass ? '700' : '400';
+    b.style.borderColor = b.dataset.font===fontClass ? 'var(--brand)' : 'var(--border2)';
+  });
+}
 </script>
 
 <!-- SERVICE GROUP MODAL -->
