@@ -1282,18 +1282,18 @@ border-radius: 8px;
         // Row 1: First + Last name
         '<div>' +
           '<label style="' + lblStyle + '">First Name <span style="color:var(--red)">*</span></label>' +
-          '<input id="nu-first" value="' + (u.first||'') + '" placeholder="First name" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
+          '<input id="nu-first" value="' + (u.first||'') + '" placeholder="John" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
         '</div>' +
         '<div>' +
           '<label style="' + lblStyle + '">Last Name <span style="color:var(--red)">*</span></label>' +
-          '<input id="nu-last" value="' + (u.last||'') + '" placeholder="Last name" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
+          '<input id="nu-last" value="' + (u.last||'') + '" placeholder="Smith" style="' + inpStyle + '" oninput="updateUsernamePreview()">' +
         '</div>' +
 
-        // Row 2: Username preview
+        // Row 2: Username — auto-suggested from first.last
         '<div style="grid-column:1/-1">' +
-          '<label style="' + lblStyle + '">Username <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">8–16 characters, must contain a period (.)</span></label>' +
-          '<input id="nu-name" value="' + (u.name||'') + '" placeholder="firstname.lastname" maxlength="16" style="' + inpStyle + '" oninput="validateUsername(this)">' +
-          '<div id="nu-name-preview" style="font-size:11px;color:var(--brand);margin-top:4px;display:none">Suggested: <span id="nu-name-suggest" style="font-weight:600"></span></div>' +
+          '<label style="' + lblStyle + '">Username <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">8–16 chars · must contain a period (.) · suggested from name above</span></label>' +
+          '<input id="nu-name" value="' + (u.name||'') + '" placeholder="john.smith" maxlength="16" style="' + inpStyle + '" oninput="validateUsername(this)">' +
+          '<div id="nu-name-preview" style="font-size:11px;color:var(--brand);margin-top:4px;display:none">Suggestion: <span id="nu-name-suggest" style="font-weight:600;cursor:pointer;text-decoration:underline"></span> <span style="color:var(--text3)">(click to use)</span></div>' +
           '<div id="nu-name-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px"></div>' +
         '</div>' +
 
@@ -1376,17 +1376,41 @@ border-radius: 8px;
 function updateUsernamePreview() {
   var first = (document.getElementById('nu-first')?.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   var last  = (document.getElementById('nu-last')?.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  var preview = document.getElementById('nu-name-preview');
-  var suggest = document.getElementById('nu-name-suggest');
+  var preview  = document.getElementById('nu-name-preview');
+  var suggest  = document.getElementById('nu-name-suggest');
   var nameInput = document.getElementById('nu-name');
+  var errEl    = document.getElementById('nu-name-err');
   if (!preview || !suggest) return;
+
   if (first && last) {
     var proposed = first + '.' + last;
     if (proposed.length > 16) proposed = proposed.slice(0,16);
+
+    // Check if username already exists
+    var currentId = document.getElementById('nu-id')?.value||'';
+    var users = getUsers ? getUsers() : [];
+    var taken = users.find(function(u){ return (u.name||'').toLowerCase() === proposed && u.id !== currentId; });
+
     suggest.textContent = proposed;
     preview.style.display = '';
-    // Auto-fill if name field is empty
-    if (nameInput && !nameInput.value) nameInput.value = proposed;
+    suggest.onclick = function() {
+      var ni = document.getElementById('nu-name');
+      if (ni && !taken) { ni.value = proposed; validateUsername(ni); }
+    };
+
+    if (taken) {
+      preview.style.color = 'var(--red)';
+      suggest.title = 'This username already exists';
+      suggest.style.textDecoration = 'line-through';
+      if (errEl) { errEl.textContent = 'Username "' + proposed + '" already exists — modify it before saving'; errEl.style.display = ''; }
+    } else {
+      preview.style.color = 'var(--brand)';
+      suggest.style.textDecoration = 'underline';
+      suggest.title = 'Click to use this username';
+      if (errEl) errEl.style.display = 'none';
+      // Auto-fill if name field is empty
+      if (nameInput && !nameInput.value) nameInput.value = proposed;
+    }
   } else {
     preview.style.display = 'none';
   }
@@ -3380,14 +3404,14 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 
 <!-- API Key (Super Admin only, toggled by JS) -->
 <div id="mprov-acctkey-row" style="margin-bottom:18px">
-<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">ClaimMD Integration</div>
+<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Clearinghouse Integration</div>
 <div class="field">
 <label style="display:flex;align-items:center;gap:6px">
 <i data-lucide="key" class="lci" style="width:13px;height:13px;color:var(--brand)"></i>
-Account Key (ClaimMD)
+Account Key
 </label>
-<input id="mprov-acctkey" type="password" placeholder="Paste ClaimMD Account Key">
-<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for EDI submission via ClaimMD.</div>
+<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">
+<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission. Leave blank to keep existing key. Used for EDI submission via ClaimMD.</div>
 </div>
 </div>
 
@@ -3422,9 +3446,44 @@ Account Key (ClaimMD)
 <label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>
 <input id="mprov-email" type="email" placeholder="billing@practice.com">
 </div>
+
+</div>
+
+<!-- Specialties -->
+<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Specialties</div>
 <div class="field" style="grid-column:1/-1">
-<label>Proxy URL <span style="font-size:10px;color:var(--text3);font-weight:400">(ClaimMD Worker URL)</span></label>
-<input id="mprov-proxy" type="url" placeholder="https://claimmd-proxy.workers.dev">
+<label>Provider Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">(select all that apply — used for user assignment)</span></label>
+<div id="mprov-specialties-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;padding:10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg)">
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Behavioral Health" style="accent-color:var(--brand);width:13px;height:13px"> Behavioral Health</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Clinical Social Work" style="accent-color:var(--brand);width:13px;height:13px"> Clinical Social Work</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Counseling" style="accent-color:var(--brand);width:13px;height:13px"> Counseling</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Family Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Family Medicine</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Geriatrics" style="accent-color:var(--brand);width:13px;height:13px"> Geriatrics</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Internal Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Internal Medicine</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Neurology" style="accent-color:var(--brand);width:13px;height:13px"> Neurology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Obstetrics & Gynecology" style="accent-color:var(--brand);width:13px;height:13px"> Obstetrics & Gynecology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Occupational Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Occupational Therapy</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Oncology" style="accent-color:var(--brand);width:13px;height:13px"> Oncology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Orthopedics" style="accent-color:var(--brand);width:13px;height:13px"> Orthopedics</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pediatrics" style="accent-color:var(--brand);width:13px;height:13px"> Pediatrics</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Physical Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Physical Therapy</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Psychiatry" style="accent-color:var(--brand);width:13px;height:13px"> Psychiatry</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Psychology" style="accent-color:var(--brand);width:13px;height:13px"> Psychology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pulmonology" style="accent-color:var(--brand);width:13px;height:13px"> Pulmonology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Rehabilitation" style="accent-color:var(--brand);width:13px;height:13px"> Rehabilitation</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Speech Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Speech Therapy</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Substance Abuse" style="accent-color:var(--brand);width:13px;height:13px"> Substance Abuse</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Surgery" style="accent-color:var(--brand);width:13px;height:13px"> Surgery</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Urology" style="accent-color:var(--brand);width:13px;height:13px"> Urology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Cardiology" style="accent-color:var(--brand);width:13px;height:13px"> Cardiology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Dermatology" style="accent-color:var(--brand);width:13px;height:13px"> Dermatology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Endocrinology" style="accent-color:var(--brand);width:13px;height:13px"> Endocrinology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Gastroenterology" style="accent-color:var(--brand);width:13px;height:13px"> Gastroenterology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Hematology" style="accent-color:var(--brand);width:13px;height:13px"> Hematology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Infectious Disease" style="accent-color:var(--brand);width:13px;height:13px"> Infectious Disease</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Nephrology" style="accent-color:var(--brand);width:13px;height:13px"> Nephrology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Ophthalmology" style="accent-color:var(--brand);width:13px;height:13px"> Ophthalmology</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Rheumatology" style="accent-color:var(--brand);width:13px;height:13px"> Rheumatology</label>
 </div>
 </div>
 
@@ -7591,7 +7650,14 @@ const db=getDB(); const p=idx>=0?db.providers[idx]:null;
 const titleEl=document.getElementById('mprov-title'); if(titleEl) titleEl.textContent=p?'Edit Billing Provider':'New Billing Provider';
 sv('mprov-id',p?p.id:''); sv('mprov-name',p?.name||''); sv('mprov-npi',p?.npi||''); sv('mprov-taxid',p?.taxid||'');
 sv('mprov-taxonomy',p?.taxonomy||''); sv('mprov-addr1',p?.addr1||''); sv('mprov-addr2',p?.addr2||'');
-sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');; sv('mprov-email',p?.email||'');
+sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');
+  // Restore specialty checkboxes
+  setTimeout(function(){
+    var provSpecs = (p && p.specialties) ? p.specialties : [];
+    document.querySelectorAll('.mprov-spec-cb').forEach(function(cb){
+      cb.checked = provSpecs.indexOf(cb.value) >= 0;
+    });
+  }, 50);
 const taxEl=document.getElementById('mprov-taxtype'); if(taxEl) taxEl.value=p?.taxType||'E';
 const typeEl=document.getElementById('mprov-type'); if(typeEl) typeEl.value=p?.providerType||'Organization';
 const statusEl=document.getElementById('mprov-status'); if(statusEl) statusEl.value=p?.status||'Active';
@@ -7839,11 +7905,14 @@ function renderUserManagement() {
       ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
       : '<span class="badge b-green" style="font-size:10px">Active</span>';
     var parts = (u.name||'').trim().split(' ');
-    var first = parts[0]||'';
-    var last  = parts.slice(1).join(' ')||'';
+    var nameParts2 = (u.name||'').includes('.') ? (u.name||'').split('.') : (u.name||'').split(' ');
+    var first = u.first || (nameParts2[0]||'');
+    first = first ? first.charAt(0).toUpperCase() + first.slice(1) : '';
+    var last = u.last || nameParts2.slice(1).join(' ');
+    last = last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
 
     return '<tr>' +
-      '<td><div style="font-weight:600;font-size:12px">' + (u.name||'') + '</div><div style="font-size:11px;color:var(--text3)">' + (u.email||'') + '</div></td>' +
+      '<td style="font-weight:600;font-size:12px">' + (u.name||'') + '</td>' +
       '<td style="font-size:12px">' + first + '</td>' +
       '<td style="font-size:12px">' + last + '</td>' +
       '<td style="font-size:12px">' + phone + '</td>' +
@@ -16419,7 +16488,7 @@ function openAddUserModal(existingUser) {
     // Header
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">' +
       '<div>' +
-        '<div style="font-weight:700;font-size:16px;color:var(--text)">' + (isEdit ? 'Edit User — ' + (u.name||'') : 'Add New User') + '</div>' +
+        '<div style="font-weight:700;font-size:16px;color:var(--text)">' + (isEdit ? 'Edit User' : 'Add New User') + '</div>' +
         '<div style="font-size:11px;color:var(--text3);margin-top:3px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>' +
       '</div>' +
       '<button onclick="document.getElementById(\'modal-add-user\').remove()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);line-height:1;padding:0 2px;margin-top:-2px">&times;</button>' +
