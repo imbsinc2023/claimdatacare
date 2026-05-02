@@ -2900,72 +2900,8 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <!-- Account info -->
 <div id="account-info" style="margin-top:20px;font-size:13px;color:var(--text3)"></div>
 
-<!-- Add / Edit User Modal -->
-<div class="modal-ov" id="modal-add-user" class="modal-ov" onclick="if(event.target===this)closeModal('modal-add-user')">
-  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto">
-    <div class="modal-hdr" style="position:sticky;top:0;background:var(--bg2);z-index:1;display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div id="modal-user-title" style="font-weight:700;font-size:15px">Add New User</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="height:30px;width:30px;display:flex;align-items:center;justify-content:center;padding:0" onclick="closeModal('modal-add-user')">&#x2715;</button>
-    </div>
-    <div class="modal-body">
-      <div id="nu-alert" style="margin-bottom:10px"></div>
-      <input type="hidden" id="nu-id">
 
-      <!-- Basic Info -->
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">User Information</div>
-      <div class="fg g2" style="margin-bottom:16px">
-        <div class="field" style="grid-column:1/-1">
-          <label>Full Name <span style="color:var(--red)">*</span></label>
-          <input id="nu-name" placeholder="John Smith" autocomplete="off">
-        </div>
-        <div class="field" style="grid-column:1/-1">
-          <label>Email <span style="color:var(--red)">*</span></label>
-          <input id="nu-email" type="email" placeholder="user@email.com" autocomplete="off">
-          <div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>
-        </div>
-        <div class="field" style="grid-column:1/-1" id="nu-pass-wrap">
-          <label>Password <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">min 6 characters</span></label>
-          <input id="nu-pass" type="password" placeholder="••••••••" autocomplete="new-password">
-          <div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>
-        </div>
-        <div class="field">
-          <label>Phone</label>
-          <input id="nu-phone" placeholder="(786) 000-0000">
-        </div>
-        <div class="field">
-          <label>Status</label>
-          <select id="nu-inactive">
-            <option value="0">Active</option>
-            <option value="1">Inactive</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Roles -->
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Roles <span style="font-weight:400;font-size:10px">(select all that apply)</span></div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;margin-bottom:16px" id="nu-roles-grid">
-        <!-- Populated by JS -->
-      </div>
-
-      <!-- Permissions -->
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Permissions</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px" id="nu-perms-grid">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-    <div class="modal-ftr" style="position:sticky;bottom:0;background:var(--bg2);display:flex;align-items:center;justify-content:flex-end;gap:8px">
-      <button class="btn btn-ghost" style="height:34px;display:flex;align-items:center" onclick="closeModal('modal-add-user')">Cancel</button>
-      <button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">
-        <i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save
-      </button>
-    </div>
-  </div>
 </div>
-
-</div></div>
 
 <div class="section" id="sec-invoices">
 <!-- HEADER -->
@@ -16258,16 +16194,49 @@ function editUser(userId) {
 function openAddUserModal(existingUser) {
   var modal = document.getElementById('modal-add-user');
   if (!modal) return;
+
+  // Reset fields
   document.getElementById('nu-alert').innerHTML = '';
-  document.getElementById('nu-id').value    = existingUser ? (existingUser.id||'') : '';
-  document.getElementById('nu-name').value  = existingUser ? (existingUser.name||'') : '';
-  document.getElementById('nu-email').value = existingUser ? (existingUser.email||'') : '';
-  document.getElementById('nu-phone').value = existingUser ? (existingUser.phone||'') : '';
-  document.getElementById('nu-pass').value  = '';
-  document.getElementById('nu-role').value  = existingUser ? (existingUser.role||'Manager') : 'Manager';
-  document.getElementById('modal-user-title').textContent = existingUser ? 'Edit User' : 'Add New User';
-  modal.style.display = 'flex';
-  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 100);
+  document.getElementById('nu-email-err') && (document.getElementById('nu-email-err').style.display = 'none');
+  document.getElementById('nu-pass-err')  && (document.getElementById('nu-pass-err').style.display  = 'none');
+  document.getElementById('nu-id').value       = existingUser ? (existingUser.id||'') : '';
+  document.getElementById('nu-name').value     = existingUser ? (existingUser.name||'') : '';
+  document.getElementById('nu-email').value    = existingUser ? (existingUser.email||'') : '';
+  document.getElementById('nu-phone').value    = existingUser ? (existingUser.phone||'') : '';
+  document.getElementById('nu-pass').value     = '';
+  document.getElementById('nu-inactive').value = (existingUser && existingUser.inactive) ? '1' : '0';
+  document.getElementById('modal-user-title').textContent = existingUser ? 'Edit User — ' + (existingUser.name||'') : 'Add New User';
+
+  // Password field — hide when editing
+  var pw = document.getElementById('nu-pass-wrap');
+  if (pw) pw.style.display = existingUser ? 'none' : '';
+
+  // Populate ROLES checkboxes
+  var userRoles = existingUser ? (Array.isArray(existingUser.roles) ? existingUser.roles : (existingUser.role ? [existingUser.role] : [])) : [];
+  var rolesGrid = document.getElementById('nu-roles-grid');
+  if (rolesGrid) {
+    rolesGrid.innerHTML = USER_ROLES.map(function(r) {
+      var checked = userRoles.indexOf(r) >= 0 ? 'checked' : '';
+      return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:5px 0;color:var(--text)">' +
+        '<input type="checkbox" class="nu-role-cb" value="' + r + '" ' + checked + ' style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0"> ' + r +
+        '</label>';
+    }).join('');
+  }
+
+  // Populate PERMISSIONS checkboxes  
+  var userPerms = existingUser ? (existingUser.permissions || []) : [];
+  var permsGrid = document.getElementById('nu-perms-grid');
+  if (permsGrid) {
+    permsGrid.innerHTML = USER_PERMISSIONS.map(function(p2) {
+      var checked = userPerms.indexOf(p2) >= 0 ? 'checked' : '';
+      return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0;color:var(--text)">' +
+        '<input type="checkbox" class="nu-perm-cb" value="' + p2 + '" ' + checked + ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + p2 +
+        '</label>';
+    }).join('');
+  }
+
+  modal.classList.add('open');
+  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 150);
 }
 
 function saveNewUser() {
@@ -17642,6 +17611,72 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 </div>
 </div></div>
 
+<!-- Add / Edit User Modal -->
+<div class="modal-ov" id="modal-add-user" class="modal-ov" onclick="if(event.target===this)closeModal('modal-add-user')">
+  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto">
+    <div class="modal-hdr" style="position:sticky;top:0;background:var(--bg2);z-index:1;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div id="modal-user-title" style="font-weight:700;font-size:15px">Add New User</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="height:30px;width:30px;display:flex;align-items:center;justify-content:center;padding:0" onclick="closeModal('modal-add-user')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="nu-alert" style="margin-bottom:10px"></div>
+      <input type="hidden" id="nu-id">
+
+      <!-- Basic Info -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">User Information</div>
+      <div class="fg g2" style="margin-bottom:16px">
+        <div class="field" style="grid-column:1/-1">
+          <label>Full Name <span style="color:var(--red)">*</span></label>
+          <input id="nu-name" placeholder="John Smith" autocomplete="off">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Email <span style="color:var(--red)">*</span></label>
+          <input id="nu-email" type="email" placeholder="user@email.com" autocomplete="off">
+          <div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>
+        </div>
+        <div class="field" style="grid-column:1/-1" id="nu-pass-wrap">
+          <label>Password <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">min 6 characters</span></label>
+          <input id="nu-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+          <div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input id="nu-phone" placeholder="(786) 000-0000">
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="nu-inactive">
+            <option value="0">Active</option>
+            <option value="1">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Roles -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Roles <span style="font-weight:400;font-size:10px">(select all that apply)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;margin-bottom:16px" id="nu-roles-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Permissions -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Permissions</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px" id="nu-perms-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+    <div class="modal-ftr" style="position:sticky;bottom:0;background:var(--bg2);display:flex;align-items:center;justify-content:flex-end;gap:8px">
+      <button class="btn btn-ghost" style="height:34px;display:flex;align-items:center" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">
+        <i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+</div></div>
 </body>
 </html>
 
