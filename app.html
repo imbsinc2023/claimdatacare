@@ -16194,64 +16194,137 @@ function editUser(userId) {
 }
 
 function openAddUserModal(existingUser) {
-  var modal = document.getElementById('modal-add-user');
-  if (!modal) return;
-
-  // Reset errors
-  ['nu-email-err','nu-pass-err','nu-phone-err'].forEach(function(id){
-    var el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
-  document.getElementById('nu-alert').innerHTML = '';
+  // Remove any existing modal
+  var existing = document.getElementById('modal-add-user');
+  if (existing) existing.remove();
 
   var u = existingUser || {};
   var isEdit = !!u.id;
   var nameParts = (u.name||'').split(' ');
-
-  document.getElementById('nu-id').value        = u.id||'';
-  document.getElementById('nu-name').value      = u.name||'';
-  document.getElementById('nu-first').value     = u.first || nameParts[0] || '';
-  document.getElementById('nu-last').value      = u.last  || nameParts.slice(1).join(' ') || '';
-  document.getElementById('nu-email').value     = u.email||'';
-  document.getElementById('nu-phone').value     = u.phone||'';
-  document.getElementById('nu-phone2').value    = u.phone2||'';
-  document.getElementById('nu-specialty').value = u.specialty||'';
-  document.getElementById('nu-pass').value      = '';
-  document.getElementById('nu-inactive').value  = u.inactive ? '1' : '0';
-  document.getElementById('nu-track-time').checked   = !!u.trackTime;
-  document.getElementById('nu-pass-expire').checked  = !!u.passExpire;
-  document.getElementById('nu-auto-inactive').checked= !!u.autoInactive;
-
-  // Password hint
-  var passHint = document.getElementById('nu-pass-hint');
-  if (passHint) passHint.textContent = isEdit ? '(leave blank to keep current)' : 'min 6 characters';
-  var changeBtn = document.getElementById('nu-change-pass-btn');
-  if (changeBtn) changeBtn.style.display = isEdit ? '' : 'none';
-
-  document.getElementById('modal-user-title').textContent = isEdit ? 'Edit User — ' + (u.name||'') : 'Add New User';
-
-  // Roles checkboxes
   var userRoles = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : []);
-  var rolesGrid = document.getElementById('nu-roles-grid');
-  if (rolesGrid) rolesGrid.innerHTML = USER_ROLES.map(function(r) {
+  var userPerms = u.permissions || [];
+
+  var rolesHtml = USER_ROLES.map(function(r) {
     var chk = userRoles.indexOf(r) >= 0 ? 'checked' : '';
     return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
       '<input type="checkbox" class="nu-role-cb" value="' + r + '" ' + chk +
       ' style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0"> ' + r + '</label>';
   }).join('');
 
-  // Permissions checkboxes
-  var userPerms = u.permissions || [];
-  var permsGrid = document.getElementById('nu-perms-grid');
-  if (permsGrid) permsGrid.innerHTML = USER_PERMISSIONS.map(function(p2) {
+  var permsHtml = USER_PERMISSIONS.map(function(p2) {
     var chk = userPerms.indexOf(p2) >= 0 ? 'checked' : '';
     return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
       '<input type="checkbox" class="nu-perm-cb" value="' + p2 + '" ' + chk +
       ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + p2 + '</label>';
   }).join('');
 
-  modal.classList.add('open');
-  setTimeout(function(){ document.getElementById('nu-name')?.focus(); }, 150);
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-add-user';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
+
+    // Header
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">' +
+      '<div>' +
+        '<div style="font-weight:700;font-size:16px;color:var(--text)">' + (isEdit ? 'Edit User — ' + (u.name||'') : 'Add New User') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:3px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'modal-add-user\').remove()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);line-height:1;padding:0 2px;margin-top:-2px">&times;</button>' +
+    '</div>' +
+
+    // Body
+    '<div style="overflow-y:auto;flex:1;padding:20px 22px">' +
+      '<div id="nu-alert" style="margin-bottom:12px"></div>' +
+      '<input type="hidden" id="nu-id" value="' + (u.id||'') + '">' +
+
+      // Section: User Registration
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;padding-bottom:5px;border-bottom:1px solid var(--border)">User Registration</div>' +
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
+        '<div style="grid-column:1/-1">' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Username / Full Name <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">(min 8 characters)</span></label>' +
+          '<input id="nu-name" value="' + (u.name||'') + '" placeholder="Frank.Cue1" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">First Name <span style="color:var(--red)">*</span></label>' +
+          '<input id="nu-first" value="' + (u.first||nameParts[0]||'') + '" placeholder="Frank" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Last Name <span style="color:var(--red)">*</span></label>' +
+          '<input id="nu-last" value="' + (u.last||nameParts.slice(1).join(' ')||'') + '" placeholder="Smith" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+        '</div>' +
+        '<div style="grid-column:1/-1">' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Password ' + (isEdit ? '' : '<span style="color:var(--red)">*</span>') + ' <span style="font-size:10px;color:var(--text3);font-weight:400">' + (isEdit ? 'leave blank to keep current' : 'min 6 characters') + '</span></label>' +
+          '<input id="nu-pass" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+          '<div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Phone <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
+          '<input id="nu-phone" value="' + (u.phone||'') + '" placeholder="(786) 943-9166" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+          '<div id="nu-phone-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Phone is required</div>' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Alternate Phone</label>' +
+          '<input id="nu-phone2" value="' + (u.phone2||'') + '" placeholder="(786) 000-0000" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+        '</div>' +
+        '<div style="grid-column:1/-1">' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
+          '<div style="display:flex;gap:8px;align-items:center">' +
+            '<input id="nu-email" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+            '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send reset email via Firebase Auth\',\'info\')">Reset Email</button>' +
+          '</div>' +
+          '<div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Specialty</label>' +
+          '<input id="nu-specialty" value="' + (u.specialty||'') + '" placeholder="e.g. Psychiatry" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+        '</div>' +
+        '<div>' +
+          '<label style="font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">Status</label>' +
+          '<select id="nu-inactive" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+            '<option value="0"' + (!u.inactive?' selected':'') + '>Active</option>' +
+            '<option value="1"' + (u.inactive?' selected':'') + '>Inactive</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+
+      // Checkboxes
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-track-time"' + (u.trackTime?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Track Time-In &amp; Time-Out</label>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-pass-expire"' + (u.passExpire?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> Password will Expire in 90 Days</label>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive"' + (u.autoInactive?' checked':'') + ' style="accent-color:var(--brand);width:14px;height:14px"> User Auto InActive</label>' +
+      '</div>' +
+
+      // Roles
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)">Roles <span style="font-weight:400;text-transform:none;font-size:10px">— select all that apply</span></div>' +
+      '<div id="nu-roles-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;margin-bottom:20px">' + rolesHtml + '</div>' +
+
+      // Permissions
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)">Permissions</div>' +
+      '<div id="nu-perms-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px 16px">' + permsHtml + '</div>' +
+    '</div>' +
+
+    // Footer
+    '<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2)">' +
+      '<button class="btn btn-ghost" style="height:34px" onclick="document.getElementById(\'modal-add-user\').remove()">Cancel</button>' +
+      '<button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">' +
+        '<i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save' +
+      '</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+  setTimeout(function(){
+    _renderLucideIcons();
+    document.getElementById('nu-name')?.focus();
+  }, 50);
 }
+
+function sendUserVerifyEmail() { toast('Send via Firebase Console → Authentication', 'info'); }
+function changeUserEmail()     { toast('Change email via Firebase Console → Authentication', 'info'); }
 
 function sendUserVerifyEmail() { toast('Password reset email feature requires Firebase Auth setup', 'info'); }
 function changeUserEmail()     { toast('Change email feature requires Firebase Auth setup', 'info'); }
@@ -17657,119 +17730,5 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 <button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
 </div>
 </div></div>
-
-<!-- Add / Edit User Modal -->
-<div class="modal-ov" id="modal-add-user" onclick="if(event.target===this)closeModal('modal-add-user')">
-<div class="modal" style="max-width:700px;width:100%;max-height:90vh;display:flex;flex-direction:column;border-radius:12px;overflow:hidden">
-
-  <!-- Modal Header -->
-  <div class="modal-hdr" style="display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0">
-    <div>
-      <div id="modal-user-title" style="font-weight:700;font-size:16px;color:var(--text)">Add New User</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>
-    </div>
-    <button onclick="closeModal('modal-add-user')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1;padding:0 4px">&times;</button>
-  </div>
-
-  <!-- Modal Body -->
-  <div style="overflow-y:auto;flex:1;padding:20px">
-    <div id="nu-alert" style="margin-bottom:12px"></div>
-    <input type="hidden" id="nu-id">
-
-    <!-- USER REGISTRATION -->
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">User Registration</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div class="field" style="grid-column:1/-1">
-        <label style="font-size:12px;font-weight:600">Username / Full Name <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">(min 8 characters)</span></label>
-        <input id="nu-name" placeholder="Frank.Cue1" autocomplete="off" style="width:100%;box-sizing:border-box">
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label style="font-size:12px;font-weight:600">Password <span style="color:var(--red)">*</span> <span id="nu-pass-hint" style="font-size:10px;color:var(--text3);font-weight:400">min 6 characters</span></label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="nu-pass" type="password" placeholder="••••••••" style="flex:1;box-sizing:border-box" autocomplete="new-password">
-          <button id="nu-change-pass-btn" style="display:none;white-space:nowrap" class="btn btn-ghost btn-sm" onclick="document.getElementById('nu-pass-wrap2').style.display=''">Change Password</button>
-        </div>
-        <div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">First Name <span style="color:var(--red)">*</span></label>
-        <input id="nu-first" placeholder="Frank" style="width:100%;box-sizing:border-box">
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">Last Name <span style="color:var(--red)">*</span></label>
-        <input id="nu-last" placeholder="Smith" style="width:100%;box-sizing:border-box">
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">Phone <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">Used for password recovery</span></label>
-        <input id="nu-phone" placeholder="(786) 943-9166" style="width:100%;box-sizing:border-box">
-        <div id="nu-phone-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Phone is required for password recovery</div>
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">Alternate Phone</label>
-        <input id="nu-phone2" placeholder="(786) 000-0000" style="width:100%;box-sizing:border-box">
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label style="font-size:12px;font-weight:600">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">Used for password recovery</span></label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="nu-email" type="email" placeholder="user@email.com" style="flex:1;box-sizing:border-box" autocomplete="off">
-          <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="sendUserVerifyEmail()">Send Password Reset Email</button>
-          <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="changeUserEmail()">Change Email</button>
-        </div>
-        <div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">Status</label>
-        <select id="nu-inactive" style="width:100%">
-          <option value="0">Active</option>
-          <option value="1">Inactive</option>
-        </select>
-      </div>
-      <div class="field">
-        <label style="font-size:12px;font-weight:600">Specialty Type</label>
-        <input id="nu-specialty" placeholder="e.g. Psychiatry" style="width:100%;box-sizing:border-box">
-      </div>
-    </div>
-
-    <!-- Options -->
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" id="nu-track-time" style="accent-color:var(--brand);width:14px;height:14px"> Track Time-In &amp; Time-Out
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" id="nu-pass-expire" style="accent-color:var(--brand);width:14px;height:14px"> Password will Expire in 90 Days
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" id="nu-auto-inactive" style="accent-color:var(--brand);width:14px;height:14px"> User Auto InActive
-      </label>
-    </div>
-
-    <!-- ROLES -->
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">
-      Roles <span style="font-size:10px;font-weight:400;text-transform:none">— select all that apply</span>
-    </div>
-    <div id="nu-roles-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px;margin-bottom:20px">
-      <!-- populated by JS -->
-    </div>
-
-    <!-- PERMISSIONS -->
-    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">
-      Permissions
-    </div>
-    <div id="nu-perms-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px 16px;margin-bottom:8px">
-      <!-- populated by JS -->
-    </div>
-  </div>
-
-  <!-- Modal Footer -->
-  <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0">
-    <button class="btn btn-ghost" style="height:34px" onclick="closeModal('modal-add-user')">Cancel</button>
-    <button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">
-      <i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save
-    </button>
-  </div>
-
-</div>
-</div>
 
 </body>
