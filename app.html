@@ -3928,12 +3928,12 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
     <h1>Users &amp; Account</h1>
     <p style="font-size:13px;color:var(--text3);margin-top:2px">Manage users, roles and account settings</p>
   </div>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">
-      <i data-lucide="user-plus" class="lci"></i> Add New User
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">
+      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search
     </button>
-    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()">
-      <i data-lucide="search" class="lci"></i> Search Users
+    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">
+      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add
     </button>
   </div>
 </div>
@@ -3994,49 +3994,66 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <!-- Account info -->
 <div id="account-info" style="margin-top:20px;font-size:13px;color:var(--text3)"></div>
 
-<!-- Add User Modal -->
+<!-- Add / Edit User Modal -->
 <div class="modal-ov" id="modal-add-user" style="display:none" onclick="if(event.target===this)closeModal('modal-add-user')">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-hdr">
-      <span id="modal-user-title">Add New User</span>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-user')">&#x2715;</button>
+  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto">
+    <div class="modal-hdr" style="position:sticky;top:0;background:var(--bg2);z-index:1;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div id="modal-user-title" style="font-weight:700;font-size:15px">Add New User</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Fields marked <span style="color:var(--red);font-weight:700">*</span> are required</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="height:30px;width:30px;display:flex;align-items:center;justify-content:center;padding:0" onclick="closeModal('modal-add-user')">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <div id="nu-alert" style="margin-bottom:8px"></div>
+      <div id="nu-alert" style="margin-bottom:10px"></div>
       <input type="hidden" id="nu-id">
-      <div class="fg g2">
+
+      <!-- Basic Info -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">User Information</div>
+      <div class="fg g2" style="margin-bottom:16px">
         <div class="field" style="grid-column:1/-1">
-          <label>Full Name *</label>
-          <input id="nu-name" placeholder="John Smith">
+          <label>Full Name <span style="color:var(--red)">*</span></label>
+          <input id="nu-name" placeholder="John Smith" autocomplete="off">
         </div>
         <div class="field" style="grid-column:1/-1">
-          <label>Email *</label>
-          <input id="nu-email" type="email" placeholder="user@email.com">
+          <label>Email <span style="color:var(--red)">*</span></label>
+          <input id="nu-email" type="email" placeholder="user@email.com" autocomplete="off">
+          <div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>
         </div>
-        <div class="field" style="grid-column:1/-1">
-          <label>Password * <span style="font-size:10px;color:var(--text3);font-weight:400">(min 6 characters)</span></label>
-          <input id="nu-pass" type="password" placeholder="••••••••">
+        <div class="field" style="grid-column:1/-1" id="nu-pass-wrap">
+          <label>Password <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">min 6 characters</span></label>
+          <input id="nu-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+          <div id="nu-pass-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Minimum 6 characters required</div>
         </div>
         <div class="field">
           <label>Phone</label>
           <input id="nu-phone" placeholder="(786) 000-0000">
         </div>
         <div class="field">
-          <label>Role</label>
-          <select id="nu-role">
-            <option value="Manager">Manager</option>
-            <option value="Admin">Admin</option>
-            <option value="Billing">Billing</option>
-            <option value="User">User</option>
-            <option value="Super Admin">Super Admin</option>
+          <label>Status</label>
+          <select id="nu-inactive">
+            <option value="0">Active</option>
+            <option value="1">Inactive</option>
           </select>
         </div>
       </div>
+
+      <!-- Roles -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Roles <span style="font-weight:400;font-size:10px">(select all that apply)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;margin-bottom:16px" id="nu-roles-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Permissions -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Permissions</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px" id="nu-perms-grid">
+        <!-- Populated by JS -->
+      </div>
     </div>
-    <div class="modal-ftr">
-      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveNewUser()">
-        <i data-lucide="save" class="lci"></i> Save User
+    <div class="modal-ftr" style="position:sticky;bottom:0;background:var(--bg2);display:flex;align-items:center;justify-content:flex-end;gap:8px">
+      <button class="btn btn-ghost" style="height:34px;display:flex;align-items:center" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn btn-primary" style="height:34px;display:flex;align-items:center;gap:6px" onclick="saveNewUser()">
+        <i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save
       </button>
     </div>
   </div>
@@ -8743,25 +8760,69 @@ renderUserManagement();
 }
 
 function renderUserManagement() {
-const el = document.getElementById('users-list');
-if (!el) return;
-const users = getUsers ? getUsers() : (_usersCache || []);
-if (!users.length) {
-el.innerHTML = '<div style="font-size:12px;color:var(--text3)">No additional users.</div>';
-return;
-}
-el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th></th></tr></thead><tbody>' +
-users.map(u => {
-const isAdmin = u.email === 'imbsinc2023@gmail.com';
-return '<tr>' +
-'<td style="font-weight:600">' + (u.name||'') + '</td>' +
-'<td style="font-size:12px">' + (u.email||'') + '</td>' +
-'<td><span class="badge ' + (u.role==='Super Admin'?'b-amber':'b-blue') + '">' + (u.role||'User') + '</span></td>' +
-'<td style="font-size:11px;color:var(--text3)">' + (u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '') + '</td>' +
-'<td>' + (!isAdmin ? '<button class="btn btn-xs btn-danger" onclick="deleteUser(\'' + u.id + '\')"><i data-lucide="x" class="lci"></i></button>' : '') + '</td>' +
-'</tr>';
-}).join('') +
-'</tbody></table></div>';
+  var el = document.getElementById('users-list');
+  if (!el) return;
+  var allUsers = getUsers ? getUsers() : (_usersCache || []);
+
+  var users = allUsers.filter(function(u) {
+    var inactive = u.inactive || u.status === 'inactive';
+    return _userTab === 'inactive' ? inactive : !inactive;
+  });
+
+  var qEmail = (document.getElementById('us-email')?.value||'').toLowerCase().trim();
+  var qFirst = (document.getElementById('us-first')?.value||'').toLowerCase().trim();
+  var qLast  = (document.getElementById('us-last')?.value||'').toLowerCase().trim();
+  var qRole  = (document.getElementById('us-role')?.value||'').toLowerCase();
+
+  if (qEmail) users = users.filter(function(u){ return (u.email||u.name||'').toLowerCase().includes(qEmail); });
+  if (qFirst) users = users.filter(function(u){ return (u.name||'').toLowerCase().includes(qFirst); });
+  if (qLast)  users = users.filter(function(u){ return (u.name||'').toLowerCase().includes(qLast); });
+  if (qRole)  users = users.filter(function(u){ return (u.roles||[u.role||'']).join(' ').toLowerCase().includes(qRole); });
+
+  if (!users.length) {
+    el.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">No users found.</td></tr>';
+    return;
+  }
+
+  var roleColors = {
+    'Super Admin':'b-amber','Admin':'b-red','Office Manager':'b-blue',
+    'Billing Manager':'b-green','Billing Staff':'b-green','Clinical Staff':'b-blue',
+    'Front Desk':'b-gray','Reporting':'b-gray','Read Only':'b-gray','User':'b-gray','Manager':'b-blue'
+  };
+
+  el.innerHTML = users.map(function(u) {
+    var isAdmin = (u.email||'') === 'imbsinc2023@gmail.com';
+    var roles   = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : ['User']);
+    var roleTag = roles.slice(0,2).map(function(r){
+      return '<span class="badge ' + (roleColors[r]||'b-gray') + '" style="font-size:10px;margin-right:2px">' + r + '</span>';
+    }).join('') + (roles.length>2 ? '<span style="font-size:10px;color:var(--text3)">+' + (roles.length-2) + '</span>' : '');
+    var created = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
+    var phone   = u.phone || '—';
+    var twoFA   = u.twoFA ? '<span style="color:var(--brand);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>';
+    var status  = u.inactive
+      ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
+      : '<span class="badge b-green" style="font-size:10px">Active</span>';
+    var parts = (u.name||'').trim().split(' ');
+    var first = parts[0]||'';
+    var last  = parts.slice(1).join(' ')||'';
+
+    return '<tr>' +
+      '<td><div style="font-weight:600;font-size:12px">' + (u.name||'') + '</div><div style="font-size:11px;color:var(--text3)">' + (u.email||'') + '</div></td>' +
+      '<td style="font-size:12px">' + first + '</td>' +
+      '<td style="font-size:12px">' + last + '</td>' +
+      '<td style="font-size:12px">' + phone + '</td>' +
+      '<td>' + roleTag + '</td>' +
+      '<td>' + status + '</td>' +
+      '<td style="text-align:center">' + twoFA + '</td>' +
+      '<td style="font-size:11px;color:var(--text3)">' + created + '</td>' +
+      '<td style="white-space:nowrap"><div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center">' +
+        '<button class="btn btn-xs" onclick="editUser(\'' + u.id + '\')" title="Edit" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>' +
+        '<button class="btn btn-xs btn-ghost" onclick="toggleUserStatus(\'' + u.id + '\')" title="' + (u.inactive?'Activate':'Deactivate') + '" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="' + (u.inactive?'user-check':'user-x') + '" class="lci" style="width:12px;height:12px"></i></button>' +
+        (!isAdmin ? '<button class="btn btn-xs btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Delete" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' : '') +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+  setTimeout(_renderLucideIcons, 30);
 }
 
 function deleteUser(id) {
