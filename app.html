@@ -2863,7 +2863,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-reports">
 <div class="page-hdr">
-<div><h1>Reports</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Billing analytics</p></div>
+<div><h1>Reports</h1></div>
 </div>
 <div id="reports-content"></div>
 </div>
@@ -8056,6 +8056,13 @@ openModal('modal-ref');
 
 // ?? PATIENT DELETE ????????????????????????????????????????????????????????????
 function deletePatient(patientId) {
+  // Only Super Admin or Manager can delete patients
+  var sess = getSession ? getSession() : {};
+  var allowed = ['Super Admin','Admin','Manager'];
+  if (!sess || !allowed.includes(sess.role)) {
+    toast('Only Super Admin or Manager can delete patients', 'err');
+    return;
+  }
 const db=getDB(); const pat=db.patients.find(p=>p.id===patientId); if(!pat) return;
 const cc=db.claims.filter(c=>c.patId===patientId).length;
 if(cc>0){toast(`Cannot delete ${pat.last}, ${pat.first} — used in ${cc} claim(s)`,'err');return;}
