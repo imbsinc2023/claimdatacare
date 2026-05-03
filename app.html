@@ -2883,6 +2883,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
       <th>First Name</th>
       <th>Last Name</th>
       <th>Phone</th>
+      <th>Provider</th>
       <th>Role</th>
       <th>Status</th>
       <th style="text-align:center">2FA</th>
@@ -7848,6 +7849,135 @@ function cancelLogin() {
   doLogout();
 }
 
+// ── Email Verification & Password Setup System ───────────────────
+var VERIFY_BASE_URL = 'https://claimdatacare.com/app.html';
+
+function generateTempPassword() {
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+  var pass = '';
+  for (var i = 0; i < 10; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
+function generateVerifyToken(userId, email) {
+  // Simple token: base64 of userId+email+timestamp
+  var raw = userId + '|' + email + '|' + Date.now();
+  return btoa(raw).replace(/[+/=]/g, function(c) {
+    return c === '+' ? '-' : c === '/' ? '_' : '';
+  });
+}
+
+function parseVerifyToken(token) {
+  try {
+    var raw = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
+    var parts = raw.split('|');
+    return { userId: parts[0], email: parts[1], ts: parseInt(parts[2]) };
+  } catch(e) { return null; }
+}
+
+function checkVerifyToken() {
+  // Check URL hash for verification token
+  var hash = window.location.hash;
+  if (!hash.startsWith('#verify=')) return;
+  var token = hash.slice(8);
+  var parsed = parseVerifyToken(token);
+  if (!parsed) return;
+
+  // Check expiry (48 hours)
+  if (Date.now() - parsed.ts > 48 * 60 * 60 * 1000) {
+    showVerifyModal('expired', parsed);
+    return;
+  }
+
+  // Find user
+  var db = getDB();
+  var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
+  if (!user) return;
+
+  showVerifyModal('valid', parsed, user, token);
+}
+
+function showVerifyModal(state, parsed, user, token) {
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-verify-email';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  var content = '';
+  if (state === 'expired') {
+    content = '<div style="text-align:center;padding:20px">' +
+      '<div style="font-size:48px;margin-bottom:16px">⏰</div>' +
+      '<h3 style="color:#1b4332;margin:0 0 8px">Link Expired</h3>' +
+      '<p style="color:#666;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
+      '</div>';
+  } else {
+    content = '<div style="text-align:center;padding:8px 0 16px">' +
+      '<div style="width:60px;height:60px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '</div>' +
+      '<h3 style="color:#1b4332;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
+      '<p style="color:#666;font-size:13px;margin-bottom:20px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>! Set your password to activate your account.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:14px">' +
+      '<label style="font-size:11px;font-weight:600;color:#333;display:block;margin-bottom:6px">New Password <span style="color:red">*</span> <span style="color:#999;font-weight:400">min 6 characters</span></label>' +
+      '<input id="verify-pass1" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px">' +
+    '</div>' +
+    '<div style="margin-bottom:20px">' +
+      '<label style="font-size:11px;font-weight:600;color:#333;display:block;margin-bottom:6px">Confirm Password <span style="color:red">*</span></label>' +
+      '<input id="verify-pass2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px">' +
+    '</div>' +
+    '<div id="verify-alert" style="margin-bottom:12px"></div>' +
+    '<button id="verify-btn" style="width:100%;padding:12px;background:#2d6a4f;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
+  }
+
+  overlay.innerHTML =
+    '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
+      '<div style="background:#1b4332;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"/></svg>' +
+        '<div style="color:white;font-weight:700;font-size:16px">ClaimDataCare</div>' +
+      '</div>' +
+      '<div style="padding:24px">' + content + '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  if (state === 'valid') {
+    setTimeout(function(){
+      document.getElementById('verify-pass1')?.focus();
+      var btn = document.getElementById('verify-btn');
+      if (btn) btn.onclick = function(){ confirmVerifyEmail(token, parsed.userId); };
+    }, 100);
+  }
+}
+
+function confirmVerifyEmail(token, userId) {
+  var p1 = document.getElementById('verify-pass1')?.value || '';
+  var p2 = document.getElementById('verify-pass2')?.value || '';
+  var alertEl = document.getElementById('verify-alert');
+
+  if (!p1 || p1.length < 6) { alertEl.innerHTML = '<div class="alert al-error">Minimum 6 characters required.</div>'; return; }
+  if (p1 !== p2) { alertEl.innerHTML = '<div class="alert al-error">Passwords do not match.</div>'; return; }
+
+  // Mark user as verified and save password hash
+  setDB(function(db) {
+    var user = (db.users || []).find(function(u) { return u.id === userId; });
+    if (user) {
+      user.emailVerified = true;
+      user.verifiedAt = Date.now();
+      user.passHash = btoa(p1); // Simple encoding — replace with proper hash in production
+      user.mustChangePwd = false;
+    }
+  });
+
+  // Remove hash from URL
+  history.replaceState(null, '', window.location.pathname);
+
+  // Close modal and show success
+  var overlay = document.getElementById('modal-verify-email');
+  if (overlay) overlay.remove();
+  toast('Account activated! You can now log in with your new password.', 'ok');
+}
+
 function renderAccountPage() {
   renderUserManagement();
 }
@@ -7892,6 +8022,9 @@ function renderUserManagement() {
     var created = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
     var phone   = u.phone || '—';
     var twoFA   = u.twoFA ? '<span style="color:var(--brand);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>';
+    var verified = u.emailVerified
+      ? '<span style="color:#2d6a4f;font-size:10px;font-weight:600">Verified</span>'
+      : '<span style="color:#c77c3e;font-size:10px">Pending</span>';
     var status  = u.inactive
       ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
       : '<span class="badge b-green" style="font-size:10px">Active</span>';
@@ -7908,7 +8041,7 @@ function renderUserManagement() {
       '<td style="font-size:12px">' + last + '</td>' +
       '<td style="font-size:12px">' + phone + '</td>' +
       '<td>' + roleTag + '</td>' +
-      '<td>' + status + '</td>' +
+      '<td>' + status + ' ' + verified + '</td>' +
       '<td style="text-align:center">' + twoFA + '</td>' +
       '<td style="font-size:11px;color:var(--text3)">' + created + '</td>' +
       '<td style="white-space:nowrap"><div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center">' +
@@ -16543,24 +16676,58 @@ function saveNewUser() {
     if (modal) modal.remove();
     toast('User "' + name + '" created — welcome email sent to ' + email, 'ok');
     renderUserManagement();
-    // Send welcome email
-    var welcomeHtml = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">' +
-      '<div style="background:#1b4332;padding:18px 24px;border-radius:8px 8px 0 0">' +
-        '<h2 style="color:white;margin:0;font-size:18px">Welcome to ClaimDataCare</h2>' +
-      '</div>' +
-      '<div style="background:#f8f6f0;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e0ddd8">' +
-        '<p style="color:#333;font-size:15px">Hello ' + first + ',</p>' +
-        '<p style="color:#333;font-size:14px">Your ClaimDataCare account has been created.</p>' +
-        '<table style="background:#fff;border:1px solid #e0ddd8;border-radius:8px;padding:16px;width:100%;margin:16px 0">' +
-          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Username:</strong></td><td style="color:#1b4332;font-size:13px;font-weight:700">' + name + '</td></tr>' +
-          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Email:</strong></td><td style="color:#333;font-size:13px">' + email + '</td></tr>' +
-          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Role:</strong></td><td style="color:#333;font-size:13px">' + primaryRole + '</td></tr>' +
-        '</table>' +
-        '<p style="color:#666;font-size:13px">Please contact your administrator for your temporary password and login instructions.</p>' +
-        '<p style="color:#999;font-size:12px;margin-top:20px">ClaimDataCare · Secure Medical Billing Platform</p>' +
-      '</div>' +
-    '</div>';
-    sendEmail(email, 'Welcome to ClaimDataCare — Account Created', welcomeHtml, 'onboarding');
+    // Generate temp password and verify token
+    var tempPass = generateTempPassword();
+    var verifyToken = generateVerifyToken(users[users.length-1].id, email);
+    var verifyLink = 'https://claimdatacare.com/app.html#verify=' + verifyToken;
+
+    // Save temp password hash to user
+    setDB(function(db2) {
+      var u2 = (db2.users||[]).find(function(x){ return x.email === email; });
+      if (u2) { u2.passHash = btoa(tempPass); u2.mustChangePwd = true; }
+    });
+
+    // Send welcome email with logo, temp password and verify link
+    var welcomeHtml = [
+      '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
+      // Header with logo
+      '<div style="background:#1b4332;padding:24px 28px;display:flex;align-items:center;gap:14px">',
+        '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" xmlns="http://www.w3.org/2000/svg">',
+          '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+          '<path d="M9 12l2 2 4-4" stroke="white" stroke-width="2.5"/>',
+        '</svg>',
+        '<div>',
+          '<div style="color:white;font-weight:700;font-size:20px;letter-spacing:-.3px">ClaimDataCare</div>',
+          '<div style="color:#a7d3b8;font-size:12px;margin-top:1px">Secure Medical Billing Platform</div>',
+        '</div>',
+      '</div>',
+      // Body
+      '<div style="background:#f8f6f0;padding:28px;border:1px solid #e0ddd8;border-top:none">',
+        '<p style="color:#1b4332;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
+        '<p style="color:#555;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Please review your details and activate your account below.</p>',
+        // Info table
+        '<div style="background:white;border:1px solid #e0ddd8;border-radius:10px;padding:18px;margin-bottom:20px">',
+          '<table style="width:100%;border-collapse:collapse">',
+            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8;width:120px">Username</td><td style="color:#1b4332;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0ede8">' + name + '</td></tr>',
+            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Email</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + email + '</td></tr>',
+            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Role</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + primaryRole + '</td></tr>',
+            '<tr><td style="color:#888;font-size:13px;padding:6px 0">Temp Password</td><td style="color:#c77c3e;font-size:14px;font-weight:700;padding:6px 0;letter-spacing:1px">' + tempPass + '</td></tr>',
+          '</table>',
+        '</div>',
+        // CTA button
+        '<div style="text-align:center;margin-bottom:20px">',
+          '<a href="' + verifyLink + '" style="display:inline-block;background:#2d6a4f;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
+            'Activate My Account &amp; Set Password',
+          '</a>',
+          '<p style="color:#999;font-size:11px;margin-top:10px">Link expires in 48 hours</p>',
+        '</div>',
+        '<p style="color:#999;font-size:11px;border-top:1px solid #e0ddd8;padding-top:14px;margin:0">',
+          'If you did not expect this email, please ignore it or contact your system administrator. &nbsp;·&nbsp; ClaimDataCare &copy; 2025',
+        '</p>',
+      '</div>',
+    '</div>',
+    ].join('');
+    sendEmail(email, 'Welcome to ClaimDataCare — Activate Your Account', welcomeHtml, 'onboarding');
   } else {
     var u2 = users.find(function(x){ return x.id === id; });
     if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
