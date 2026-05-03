@@ -7987,7 +7987,25 @@ function renderUserManagement() {
   if (!el) return;
   var allUsers = getUsers ? getUsers() : (_usersCache || []);
 
+  // Only show users belonging to the active billing provider
+  var session = getSession ? getSession() : {};
+  var isSuperAdmin = session && session.email === 'imbsinc2023@gmail.com';
+
   var users = allUsers.filter(function(u) {
+    // Super admin (no providerId) always shows for the master account
+    var isSystemAdmin = u.email === 'imbsinc2023@gmail.com';
+    if (isSystemAdmin) return _userTab === 'active'; // always show in active tab only
+
+    if (!isSuperAdmin) {
+      // Non-super-admin: only show users of the active provider
+      // Users with no providerId are legacy — hide them
+      if (!u.providerId) return false;
+      if (u.providerId !== activeProviderId) return false;
+    } else {
+      // Super admin: filter by active provider unless no provider set
+      if (u.providerId && u.providerId !== activeProviderId) return false;
+    }
+
     var inactive = u.inactive || u.status === 'inactive';
     return _userTab === 'inactive' ? inactive : !inactive;
   });
