@@ -504,7 +504,41 @@ footer { background: #1A1208; padding: 48px 5%; border-top: 1px solid #2E1F12; }
     <button class="nav-icon-btn" onclick="toggleCustomPanel()" title="Customize appearance">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
-    <button class="btn btn-ghost" onclick="switchModalTab('staff');document.getElementById('trial-modal').classList.add('open')" data-i18n="nav_signin">Sign In</button>
+    <div style="position:relative;display:inline-block" id="signin-dropdown-wrap">
+      <button class="btn btn-ghost" onclick="toggleSignInMenu(event)" data-i18n="nav_signin" style="display:flex;align-items:center;gap:5px">
+        Sign In
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="signin-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;z-index:999;overflow:hidden">
+        <a href="app.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;font-weight:600;color:#1b4332;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><polyline points="16 3 12 7 8 3"/></svg>
+          Provider
+        </a>
+        <div style="height:1px;background:#f1f5f9;margin:0 10px"></div>
+        <a href="#" onclick="alert('Patient Portal — Coming Soon');return false" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;font-weight:600;color:#64748b;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Patient
+          <span style="font-size:10px;background:#f1f5f9;color:#94a3b8;padding:1px 6px;border-radius:10px;margin-left:auto">Soon</span>
+        </a>
+      </div>
+    </div>
+    <script>
+    function toggleSignInMenu(e) {
+      e.stopPropagation();
+      var m = document.getElementById('signin-menu');
+      m.style.display = m.style.display === 'none' ? 'block' : 'none';
+      if (m.style.display === 'block') {
+        setTimeout(function() {
+          document.addEventListener('click', function close(ev) {
+            if (!document.getElementById('signin-dropdown-wrap').contains(ev.target)) {
+              m.style.display = 'none';
+              document.removeEventListener('click', close);
+            }
+          });
+        }, 10);
+      }
+    }
+    </script>
     
   </div>
 </nav>
