@@ -7782,17 +7782,23 @@ btn.textContent = 'Sign In'; btn.disabled = false; return;
 // Local hash auth
 try {
 const hash = await sha256(pass);
+const btoaHash = btoa(pass); // some users stored with btoa
 const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
-const user = allUsers.find(u => (u.email.toLowerCase() === email || (u.name||'').toLowerCase() === email) && u.passHash === hash);
+const user = allUsers.find(function(u) {
+  const matchId = (u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email;
+  const matchHash = u.passHash === hash || u.passHash === btoaHash;
+  return matchId && matchHash;
+});
 if (!user) {
-alertEl.innerHTML = '<div class="alert al-error">Incorrect email or password.</div>';
+alertEl.innerHTML = '<div class="alert al-error">Incorrect username/email or password.</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
 const session = { id:user.id, email:user.email, name:user.name||'Admin',
 role:user.role||'Super Admin', activeBillingProviderId:null,
 providerId: user.providerId || null };
 setSession(session);
-window._sessionVerified = true; // Mark session as verified in this page lifecycle
+window._sessionVerified = true;
+    sessionStorage.setItem('cdc_verified', 'yes');
     setTimeout(function(){ auditLog("LOGIN", "User logged in via internal auth"); }, 500);
 
 // 2FA check
@@ -17098,27 +17104,22 @@ document.addEventListener("DOMContentLoaded", async function() {
       }
       var sess = getSession();
       window._sessionVerified = true;
+      sessionStorage.setItem('cdc_verified', 'yes');
       showApp(sess.name || sess.email);
       Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
       return;
     }
   }
 
-  // ── Security: Always require login on page load ─────────────────
-  // window._sessionVerified is a memory-only flag — cleared on F5/refresh
-  // It is only set AFTER a successful login in this page lifecycle
+  // F5 safe: sessionStorage persists refresh but clears on browser close
   var existSess = getSession();
-  if (existSess && window._sessionVerified === true) {
-    // Valid in-memory verified session — restore app
+  var verifiedToken = sessionStorage.getItem('cdc_verified');
+  if (existSess && verifiedToken === 'yes') {
     showApp(existSess.name || existSess.email);
     Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
     return;
   }
-
-  // Clear any stale session from sessionStorage (F5 case)
   clearSession();
-
-  // ── Always show login ─────────────────────────────────────────
   renderLoginScreen();
 });
 
