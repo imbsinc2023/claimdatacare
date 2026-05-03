@@ -1197,7 +1197,28 @@ border-radius: 8px;
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
-<script>
+<script>function toggleUserMenu(e) {
+  if (e) e.stopPropagation();
+  var menu = document.getElementById('tn-user-menu');
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  // Sync language label
+  var langLabel = document.getElementById('btn-lang-label');
+  var langBtn = document.getElementById('btn-lang');
+  if (langLabel && langBtn) langLabel.textContent = langBtn.textContent || 'EN';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function closeMenu(e2) {
+        var chip = document.getElementById('tn-user-chip');
+        if (chip && !chip.contains(e2.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 10);
+  }
+}
 function openAppearancePanel() {
   document.getElementById('appearance-panel')?.remove();
   const cfg   = _apiConfigCache || {};
@@ -2232,28 +2253,49 @@ return `<div class="app-shell">
 <div id="prov-sel-wrap">
 <select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)"></select>
 </div>
-<div id="tn-user-chip" style="display:flex;align-items:center;gap:7px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.12);cursor:pointer;position:relative" onclick="toggleUserMenu()">
-  <div id="tn-user-avatar" style="width:26px;height:26px;border-radius:50%;background:#2d6a4f;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">?</div>
-  <div>
-    <div id="tn-user-name" style="font-size:12px;font-weight:600;color:var(--text2);line-height:1.2"></div>
-    <div id="tn-user-role" style="font-size:10px;color:var(--text3);line-height:1.2"></div>
+
+<!-- User chip with dropdown -->
+<div id="tn-user-chip" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:22px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.15);cursor:pointer;position:relative;height:34px;box-sizing:border-box" onclick="toggleUserMenu(event)">
+  <div id="tn-user-avatar" style="width:24px;height:24px;border-radius:50%;background:#2d6a4f;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</div>
+  <div style="line-height:1">
+    <div id="tn-user-name" style="font-size:12px;font-weight:600;color:var(--text2)"></div>
+    <div id="tn-user-role" style="font-size:9px;color:var(--text3)"></div>
   </div>
-  <i data-lucide="chevron-down" class="lci" style="width:12px;height:12px;color:var(--text3)"></i>
-  <!-- Dropdown -->
-  <div id="tn-user-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.15);min-width:200px;z-index:1000;padding:6px 0">
-    <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-      <div id="tn-menu-name" style="font-size:13px;font-weight:600;color:var(--text)"></div>
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+
+  <!-- Dropdown menu -->
+  <div id="tn-user-menu" onclick="event.stopPropagation()" style="display:none;position:fixed;top:50px;right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:220px;z-index:9000;overflow:hidden">
+    <!-- User info -->
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:var(--text)"></div>
       <div id="tn-menu-email" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
-      <div id="tn-menu-role" style="font-size:10px;color:var(--brand);font-weight:600;margin-top:3px"></div>
+      <div id="tn-menu-role" style="font-size:10px;color:var(--brand);font-weight:600;margin-top:4px"></div>
     </div>
-    <button onclick="doLogout()" style="width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px">
-      <i data-lucide="log-out" class="lci" style="width:14px;height:14px"></i> Sign Out
-    </button>
+    <!-- Appearance -->
+    <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+      <button onclick="toggleTheme();event.stopPropagation()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
+        <i data-lucide="sun-moon" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Light / Dark Mode
+      </button>
+      <button onclick="openAppearancePanel();toggleUserMenu()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
+        <i data-lucide="palette" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Appearance
+      </button>
+      <button id="btn-lang-menu" onclick="toggleLang();event.stopPropagation()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
+        <i data-lucide="languages" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Language: <span id="btn-lang-label" style="font-weight:600;margin-left:4px"></span>
+      </button>
+    </div>
+    <!-- Sign out -->
+    <div style="padding:6px 0">
+      <button onclick="doLogout()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--red);display:flex;align-items:center;gap:10px">
+        <i data-lucide="log-out" class="lci" style="width:14px;height:14px"></i> Sign Out
+      </button>
+    </div>
   </div>
 </div>
-<button id="btn-lang" class="btn btn-ghost btn-sm" onclick="toggleLang()" style="font-size:11px;font-weight:700;letter-spacing:.06em"></button>
-<button id="btn-appearance" class="btn btn-ghost btn-sm" onclick="openAppearancePanel()" title="Appearance" style="padding:5px 8px"><i data-lucide="palette" class="lci" style="width:16px;height:16px"></i></button><button id="btn-dark" class="btn btn-ghost btn-sm" onclick="toggleTheme()" title="Toggle theme" style="padding:5px 8px"></button>
-<button class="btn btn-ghost btn-sm" onclick="doLogout()" title="Sign out" style="padding:5px 8px"><i data-lucide="log-out" class="lci" style="width:17px;height:17px"></i></button>
+
+<!-- Hidden elements kept for JS compatibility -->
+<button id="btn-lang" style="display:none" onclick="toggleLang()"></button>
+<button id="btn-appearance" style="display:none" onclick="openAppearancePanel()"></button>
+<button id="btn-dark" style="display:none" onclick="toggleTheme()"></button>
 </div>
 </header>
 
@@ -5058,7 +5100,7 @@ box-shadow:0 12px 32px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.2)">
 </div>
 <div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#0f172a">ClaimDataCare</div>
 <div style="font-size:13px;color:#94a3b8;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
-Medical Billing & EHR Platform
+Electronic Health Records
 </div>
 </div>
 
@@ -5068,9 +5110,9 @@ Medical Billing & EHR Platform
 <!-- Email -->
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;letter-spacing:-0.01em">
-Email Address
+Username or Email
 </label>
-<input id="li-email" type="email" autocomplete="username"
+<input id="li-email" type="text" autocomplete="username"
 placeholder="Username or email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
@@ -5095,7 +5137,7 @@ Forgot password?
 </div>
 <div style="position:relative">
 <input id="li-pass" type="password" autocomplete="current-password"
-placeholder="Password"
+placeholder="••••••••"
 onkeydown="if(event.key==='Enter')doLogin()"
 style="width:100%;padding:13px 48px 13px 16px;font-size:15px;
 border:1.5px solid #e2e8f0;border-radius:14px;
@@ -7413,15 +7455,32 @@ btn.textContent = 'Sign In'; btn.disabled = false;
 
 
 function doLogout() {
-  if (!confirm('Sign out?')) return;
-  // Save API key to localStorage before clearing session so it persists
-  try {
-    const cfg = getApiConfig();
-    if (cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
-  } catch(e) {}
-  clearSession();
-  if (_auth) _auth.signOut().catch(function(){});
-  renderLoginScreen();
+  // Native modal confirmation — no browser alert
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:340px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.25)">' +
+      '<div style="padding:24px 24px 16px">' +
+        '<div style="font-weight:700;font-size:16px;color:var(--text);margin-bottom:8px">Sign Out</div>' +
+        '<div style="font-size:13px;color:var(--text3)">Are you sure you want to sign out of ClaimDataCare?</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;padding:16px 24px;border-top:1px solid var(--border);justify-content:flex-end">' +
+        '<button id="logout-cancel-btn" style="padding:9px 18px;border:1.5px solid var(--border2);border-radius:8px;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)">Cancel</button>' +
+        '<button id="confirm-logout-btn" style="padding:9px 18px;border:none;border-radius:8px;background:var(--red,#dc2626);cursor:pointer;font-size:13px;font-weight:600;color:white">Sign Out</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('logout-cancel-btn').onclick = function() { overlay.remove(); };
+  document.getElementById('confirm-logout-btn').onclick = function() {
+    overlay.remove();
+    try {
+      var cfg = getApiConfig();
+      if (cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
+    } catch(e) {}
+    clearSession();
+    if (_auth) _auth.signOut().catch(function(){});
+    renderLoginScreen();
+  };
 }
 
 // ?? BILLING PROVIDERS ????????????????????????????????????????????????????????
@@ -7911,25 +7970,28 @@ function parseVerifyToken(token) {
 }
 
 function checkVerifyToken() {
-  // Check URL hash for verification token
-  var hash = window.location.hash;
-  if (!hash.startsWith('#verify=')) return;
-  var token = hash.slice(8);
+  // Check URL query param for verification token
+  var search = window.location.search;
+  if (!search.startsWith('?verify=')) return;
+  var token = search.slice(8);
   var parsed = parseVerifyToken(token);
   if (!parsed) return;
 
+  // Always show login screen first
+  renderLoginScreen();
+
   // Check expiry (48 hours)
   if (Date.now() - parsed.ts > 48 * 60 * 60 * 1000) {
-    showVerifyModal('expired', parsed);
+    setTimeout(function(){ showVerifyModal('expired', parsed); }, 300);
     return;
   }
 
-  // Find user
-  var db = getDB();
-  var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
-  if (!user) return;
-
-  showVerifyModal('valid', parsed, user, token);
+  // Show set password modal on top of login
+  setTimeout(function(){
+    var db = getDB();
+    var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
+    showVerifyModal('valid', parsed, user || { id: parsed.userId, email: parsed.email, first: '', name: '' }, token);
+  }, 300);
 }
 
 function showVerifyModal(state, parsed, user, token) {
@@ -8003,7 +8065,7 @@ function confirmVerifyEmail(token, userId) {
   });
 
   // Remove hash from URL
-  history.replaceState(null, '', window.location.pathname);
+  history.replaceState(null, '', window.location.pathname + window.location.hash);
 
   // Close modal and show success
   var overlay = document.getElementById('modal-verify-email');
@@ -16737,7 +16799,7 @@ function saveNewUser() {
     // Generate temp password and verify token
     var tempPass = generateTempPassword();
     var verifyToken = generateVerifyToken(users[users.length-1].id, email);
-    var verifyLink = 'https://claimdatacare.com/app.html#verify=' + verifyToken;
+    var verifyLink = 'https://claimdatacare.com/app.html?verify=' + verifyToken;
 
     // Save temp password hash to user
     setDB(function(db2) {
@@ -18103,7 +18165,7 @@ function validateUsername(input) {
 // Check for email verification token on page load (before login)
 if (typeof window !== 'undefined') {
   window.addEventListener('load', function() {
-    if (window.location.hash && window.location.hash.startsWith('#verify=')) {
+    if (window.location.search && window.location.search.startsWith('?verify=')) {
       setTimeout(function(){ if (typeof checkVerifyToken === 'function') checkVerifyToken(); }, 500);
     }
   });
