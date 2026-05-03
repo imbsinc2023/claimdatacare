@@ -501,7 +501,7 @@ border-left: 1px solid #e2e5ed;
 [data-theme="dark"] .tn-right { border-left-color: #2a3347; }
 
 .tn-prov-sel {
-padding: 3px 6px;
+padding: 3px 8px;
 border: 1px solid #e2e5ed;
 border-radius: 6px;
 background: #f7f8fc;
@@ -509,7 +509,8 @@ color: #374151;
 font-size: 12px;
 font-family: var(--font);
 font-weight: 500;
-max-width: 180px;
+max-width: none;
+width: auto;
 cursor: pointer;
 transition: border-color .15s;
 }
@@ -655,7 +656,7 @@ transition:background .12s,color .12s;
 @media(max-width:768px) {
 .tn-nav { display:none }
 .tn-right { border-left:none;padding-left:4px }
-.tn-prov-sel { max-width:120px;font-size:11px }
+.tn-prov-sel { max-width:260px;font-size:11px }
 .tn-hamburger { display:flex }
 .tn-divider { display:none }
 .tn-brand-name { font-size:13px }
@@ -1633,7 +1634,7 @@ const ss={draft:0,pending:0,submitted:0,accepted:0,rejected:0};
 claims.forEach(c=>{ss[c.status]=(ss[c.status]||0)+1;});
 document.getElementById('dash-status').innerHTML=Object.entries(ss).map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center">${statusBadge(s)}<span class="mono" style="font-weight:700">${n}</span></div>`).join('');
 const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
-document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View \u2192</a></div>`:claims.length?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> All claims are valid and ready to export.</div>`:'';
+document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View \u2192</a></div>`:'<div></div>';
 }
 
 
@@ -3751,13 +3752,386 @@ Select a service group and dates to preview
 function renderReferring(){ const db=getDB(); const list=db.referring.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('referring-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\u21a9\ufe0f</div><h3>No referring providers</h3><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Middle</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.referring.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td>${r.mid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openReferringModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
 
 
-function renderReports(){
-const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId);
-const total=claims.reduce((s,c)=>s+claimTotal(c),0); const accepted=claims.filter(c=>c.status==='accepted').reduce((s,c)=>s+claimTotal(c),0); const pending=claims.filter(c=>c.status==='pending').reduce((s,c)=>s+claimTotal(c),0); const rejected=claims.filter(c=>c.status==='rejected').length;
-const byPayer={}; claims.forEach(c=>{ const p=db.patients.find(x=>x.id===c.patId); if(p){ const k=p.payerName||p.payerid; if(!byPayer[k]) byPayer[k]={total:0,cnt:0}; byPayer[k].total+=claimTotal(c); byPayer[k].cnt++; } });
-const byMonth={}; claims.forEach(c=>{ const pts=c.dos.split('/'); if(pts.length===3){ const k=pts[2]+'-'+pts[0].padStart(2,'0'); if(!byMonth[k]) byMonth[k]={total:0,cnt:0}; byMonth[k].total+=claimTotal(c); byMonth[k].cnt++; } });
-document.getElementById('reports-content').innerHTML=`<div class="stats"><div class="stat"><div class="stat-v" style="color:var(--brand)">$${fmtMoney(total)}</div><div class="stat-l">Total Billed</div></div><div class="stat"><div class="stat-v" style="color:var(--green)">$${fmtMoney(accepted)}</div><div class="stat-l">Accepted CH</div></div><div class="stat"><div class="stat-v" style="color:var(--amber)">$${fmtMoney(pending)}</div><div class="stat-l">Pending</div></div><div class="stat"><div class="stat-v" style="color:var(--red)">${rejected}</div><div class="stat-l">Rejected</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card"><div class="card-title" style="margin-bottom:12px">By Payer</div>${Object.entries(byPayer).sort((a,b)=>b[1].total-a[1].total).map(([k,d])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center"><div><div style="font-weight:500">${k}</div><div style="font-size:11px;color:var(--text3)">${d.cnt} claims</div></div><div class="mono" style="font-weight:700">$${fmtMoney(d.total)}</div></div>`).join('')||'<p style="color:var(--text3);font-size:13px">No data</p>'}</div><div class="card"><div class="card-title" style="margin-bottom:12px">By Month</div>${Object.entries(byMonth).sort().reverse().slice(0,12).map(([k,d])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center"><div><div style="font-weight:500">${k}</div><div style="font-size:11px;color:var(--text3)">${d.cnt} claims</div></div><div class="mono" style="font-weight:700">$${fmtMoney(d.total)}</div></div>`).join('')||'<p style="color:var(--text3);font-size:13px">No data</p>'}</div></div>`;
+function renderReports() {
+  var db = getDB();
+  var claims = db.claims.filter(function(c){ return c.providerId === activeProviderId; });
+
+  // Existing stats
+  var total = claims.reduce(function(s,c){ return s+claimTotal(c); }, 0);
+  var accepted = claims.filter(function(c){ return c.status==='accepted'; }).reduce(function(s,c){ return s+claimTotal(c); }, 0);
+  var pending = claims.filter(function(c){ return c.status==='pending'; }).reduce(function(s,c){ return s+claimTotal(c); }, 0);
+  var rejected = claims.filter(function(c){ return c.status==='rejected'; }).length;
+
+  var byPayer = {};
+  claims.forEach(function(c) {
+    var p2 = db.patients.find(function(x){ return x.id===c.patId; });
+    if (p2) {
+      var k = p2.payerName || p2.payerid || 'Unknown';
+      if (!byPayer[k]) byPayer[k] = {total:0,cnt:0};
+      byPayer[k].total += claimTotal(c); byPayer[k].cnt++;
+    }
+  });
+  var byMonth = {};
+  claims.forEach(function(c) {
+    var k = (c.dos||'').slice(0,7);
+    if (k) { if (!byMonth[k]) byMonth[k]={total:0,cnt:0}; byMonth[k].total+=claimTotal(c); byMonth[k].cnt++; }
+  });
+
+  document.getElementById('reports-content').innerHTML =
+    // Stats row
+    '<div class="stats">' +
+      '<div class="stat"><div class="stat-v" style="color:var(--brand)">' + money(total) + '</div><div class="stat-l">Total Billed</div></div>' +
+      '<div class="stat"><div class="stat-v" style="color:var(--green)">' + money(accepted) + '</div><div class="stat-l">Accepted</div></div>' +
+      '<div class="stat"><div class="stat-v" style="color:var(--amber)">' + money(pending) + '</div><div class="stat-l">Pending</div></div>' +
+      '<div class="stat"><div class="stat-v" style="color:var(--red)">' + rejected + '</div><div class="stat-l">Rejected</div></div>' +
+    '</div>' +
+
+    // Report tabs
+    '<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin:20px 0 0">' +
+      '<button onclick="showReportTab(\x27claims\x27)" id="rtab-claims" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0">Claims Submission</button>' +
+      '<button onclick="showReportTab(\x27audit\x27)" id="rtab-audit" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">Log History</button>' +
+      '<button onclick="showReportTab(\x27payer\x27)" id="rtab-payer" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Payer</button>' +
+      '<button onclick="showReportTab(\x27month\x27)" id="rtab-month" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Month</button>' +
+    '</div>' +
+    '<div id="report-tab-content" style="padding:16px 0"></div>';
+
+  showReportTab('claims');
 }
+
+function showReportTab(tab) {
+  ['claims','audit','payer','month'].forEach(function(t) {
+    var btn = document.getElementById('rtab-' + t);
+    if (!btn) return;
+    var on = t === tab;
+    btn.style.borderBottomColor = on ? 'var(--brand)' : 'transparent';
+    btn.style.color = on ? 'var(--brand)' : 'var(--text3)';
+    btn.style.background = on ? 'var(--bg3)' : 'none';
+  });
+  var el = document.getElementById('report-tab-content');
+  if (!el) return;
+  if (tab === 'claims') renderClaimsSubmissionReport(el);
+  else if (tab === 'audit') renderAuditLogReport(el);
+  else if (tab === 'payer') renderPayerReport(el);
+  else if (tab === 'month') renderMonthReport(el);
+}
+
+function renderClaimsSubmissionReport(el) {
+  var today = new Date().toISOString().slice(0,10);
+  var d30   = new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
+  el.innerHTML =
+    // Filters
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<label style="font-size:12px;font-weight:600;color:var(--text3)">DOS From</label>' +
+      '<input type="date" id="rpt-from" value="' + d30 + '" style="padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text)">' +
+      '<label style="font-size:12px;font-weight:600;color:var(--text3)">To</label>' +
+      '<input type="date" id="rpt-to" value="' + today + '" style="padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text)">' +
+      '<select id="rpt-status" style="padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text)">' +
+        '<option value="">All statuses</option>' +
+        '<option value="submitted">Submitted</option>' +
+        '<option value="accepted">Accepted</option>' +
+        '<option value="pending">Pending</option>' +
+        '<option value="rejected">Rejected</option>' +
+      '</select>' +
+      '<button onclick="runClaimsReport()" class="btn btn-primary btn-sm">Run Report</button>' +
+      '<button onclick="exportClaimsReportPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+      '<button onclick="exportClaimsReportXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+    '</div>' +
+    '<div id="rpt-claims-table"></div>';
+  setTimeout(function(){ runClaimsReport(); _renderLucideIcons(); }, 50);
+}
+
+function runClaimsReport() {
+  var from   = document.getElementById('rpt-from')?.value || '';
+  var to     = document.getElementById('rpt-to')?.value || '';
+  var status = document.getElementById('rpt-status')?.value || '';
+  var db = getDB();
+  var claims = db.claims.filter(function(c) {
+    if (c.providerId !== activeProviderId) return false;
+    if (status && c.status !== status) return false;
+    var dos = (c.dos||'').slice(0,10);
+    if (from && dos < from) return false;
+    if (to   && dos > to)   return false;
+    return true;
+  });
+
+  var totalBilled = claims.reduce(function(s,c){ return s+claimTotal(c); }, 0);
+  var el = document.getElementById('rpt-claims-table');
+  if (!el) return;
+
+  if (!claims.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No claims found for selected filters</div>';
+    return;
+  }
+
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">' + claims.length + ' claims · Total billed: <strong style="color:var(--text)">' + money(totalBilled) + '</strong></div>' +
+    '<div class="tbl-wrap">' +
+    '<table><thead><tr>' +
+      '<th>Patient</th><th>DOB</th><th>DOS</th><th>CPT(s)</th><th>Units</th><th>Diag</th><th>Payer</th><th>Status</th><th>Billed</th>' +
+    '</tr></thead><tbody>' +
+    claims.map(function(c) {
+      var pat = db.patients.find(function(p){ return p.id===c.patId; }) || {};
+      var cpts = (c.lines||[]).map(function(l){ return (l.cpt||'')+' x'+(l.units||1); }).join(', ');
+      var units = (c.lines||[]).reduce(function(s,l){ return s+(parseInt(l.units)||1); }, 0);
+      var dx = Array.isArray(c.dx) ? c.dx.join(', ') : (c.dx||'');
+      return '<tr>' +
+        '<td style="font-weight:600">' + (pat.last||'?') + ', ' + (pat.first||'') + '</td>' +
+        '<td style="font-size:11px">' + (pat.dob||'') + '</td>' +
+        '<td style="font-size:11px">' + (c.dos||'') + '</td>' +
+        '<td style="font-size:11px">' + cpts + '</td>' +
+        '<td style="text-align:center">' + units + '</td>' +
+        '<td style="font-size:11px">' + dx + '</td>' +
+        '<td style="font-size:11px">' + (pat.payerName||pat.payerid||'') + '</td>' +
+        '<td>' + statusBadge(c.status||'pending') + '</td>' +
+        '<td style="font-weight:600;text-align:right">' + money(claimTotal(c)) + '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function exportClaimsReportPDF() {
+  var from = document.getElementById('rpt-from')?.value||'';
+  var to   = document.getElementById('rpt-to')?.value||'';
+  var db = getDB();
+  var claims = db.claims.filter(function(c) {
+    if (c.providerId !== activeProviderId) return false;
+    var status = document.getElementById('rpt-status')?.value||'';
+    if (status && c.status !== status) return false;
+    var dos = (c.dos||'').slice(0,10);
+    if (from && dos < from) return false;
+    if (to   && dos > to)   return false;
+    return true;
+  });
+  if (!claims.length) { toast('No claims to export','warn'); return; }
+
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  var prov = (db.providers||[]).find(function(p){ return p.id===activeProviderId; })||{};
+
+  // Header
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,67,50);
+  doc.text('Claims Submission Report', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5);
+  doc.text('Period: ' + (from||'—') + ' to ' + (to||'—') + '   |   ' + claims.length + ' claims   |   Generated: ' + new Date().toLocaleDateString(), M, Y+10);
+  Y += 18;
+
+  // Column headers
+  var cols = ['Patient','DOB','DOS','CPT / Units','Dx','Payer','Status','Billed'];
+  var ws   = [40,20,20,50,30,35,20,20];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(27,67,50);
+  doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1;
+  cols.forEach(function(c,i){ doc.text(c, cx, Y); cx+=ws[i]; });
+  Y += 5;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
+  claims.forEach(function(c, idx) {
+    if (Y > 175) { doc.addPage(); Y = 15; }
+    var pat = db.patients.find(function(p){ return p.id===c.patId; })||{};
+    var cpts = (c.lines||[]).map(function(l){ return (l.cpt||'')+' x'+(l.units||1); }).join(', ');
+    var dx = Array.isArray(c.dx) ? c.dx.slice(0,3).join(',') : (c.dx||'');
+    if (idx%2===1) { doc.setFillColor(245,248,245); doc.rect(M,Y-3,PW,6,'F'); }
+    var row = [
+      (pat.last||'?')+', '+(pat.first||''),
+      pat.dob||'', c.dos||'', cpts, dx,
+      pat.payerName||pat.payerid||'',
+      (c.status||'').toUpperCase(),
+      '$'+claimTotal(c).toFixed(2)
+    ];
+    cx = M+1;
+    row.forEach(function(v,i){
+      var txt = String(v).slice(0,Math.floor(ws[i]/2.2));
+      doc.text(txt, cx, Y); cx+=ws[i];
+    });
+    Y+=6;
+  });
+
+  // Total
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(27,67,50);
+  doc.text('Total Billed: ' + money(claims.reduce(function(s,c){ return s+claimTotal(c); },0)), M, Y+6);
+
+  addPDFWatermark(doc);
+  doc.save('Claims_Report_' + (from||'') + '_' + (to||'') + '.pdf');
+  toast('Claims report PDF exported', 'ok');
+  auditLog('REPORT_EXPORT', 'Claims Submission Report PDF: ' + from + ' to ' + to);
+}
+
+function exportClaimsReportXLSX() {
+  var from = document.getElementById('rpt-from')?.value||'';
+  var to   = document.getElementById('rpt-to')?.value||'';
+  var db = getDB();
+  var claims = db.claims.filter(function(c) {
+    if (c.providerId !== activeProviderId) return false;
+    var status = document.getElementById('rpt-status')?.value||'';
+    if (status && c.status !== status) return false;
+    var dos = (c.dos||'').slice(0,10);
+    if (from && dos < from) return false;
+    if (to   && dos > to)   return false;
+    return true;
+  });
+  if (!claims.length) { toast('No claims to export','warn'); return; }
+
+  var rows = [['Last Name','First Name','DOB','MRN','DOS','CPT Codes','Units','Diagnosis','Payer','NPI','Status','Billed Amount']];
+  claims.forEach(function(c) {
+    var pat = db.patients.find(function(p){ return p.id===c.patId; })||{};
+    var cpts = (c.lines||[]).map(function(l){ return l.cpt||''; }).join(', ');
+    var units = (c.lines||[]).reduce(function(s,l){ return s+(parseInt(l.units)||1); },0);
+    var dx = Array.isArray(c.dx) ? c.dx.join(', ') : (c.dx||'');
+    rows.push([
+      pat.last||'', pat.first||'', pat.dob||'', pat.mrn||pat.id||'',
+      c.dos||'', cpts, units, dx,
+      pat.payerName||pat.payerid||'', c.npi||'',
+      c.status||'', claimTotal(c).toFixed(2)
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Claims');
+  XLSX.writeFile(wb, 'Claims_Report_' + (from||'') + '_' + (to||'') + '.xlsx');
+  toast('Claims report Excel exported', 'ok');
+  auditLog('REPORT_EXPORT', 'Claims Submission Report XLSX: ' + from + ' to ' + to);
+}
+
+function renderAuditLogReport(el) {
+  var logs = getAuditLogs();
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<input type="text" id="audit-q" placeholder="Search user, action..." oninput="filterAuditLog()" ' +
+        'style="padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);width:220px">' +
+      '<select id="audit-action" onchange="filterAuditLog()" style="padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text)">' +
+        '<option value="">All actions</option>' +
+        '<option value="LOGIN">Login</option>' +
+        '<option value="PATIENT">Patient</option>' +
+        '<option value="CLAIM">Claim</option>' +
+        '<option value="REPORT">Report Export</option>' +
+        '<option value="LOGOUT">Logout</option>' +
+      '</select>' +
+      '<button onclick="exportAuditLogPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+      '<button onclick="exportAuditLogXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+      '<span style="font-size:11px;color:var(--text3);margin-left:auto">' + logs.length + ' entries · HIPAA Audit Log</span>' +
+    '</div>' +
+    '<div id="audit-log-table"></div>';
+  setTimeout(function(){ filterAuditLog(); _renderLucideIcons(); }, 50);
+}
+
+function filterAuditLog() {
+  var q = (document.getElementById('audit-q')?.value||'').toLowerCase();
+  var action = document.getElementById('audit-action')?.value||'';
+  var logs = getAuditLogs().filter(function(l) {
+    if (action && !l.action.includes(action)) return false;
+    if (q && !(l.user||'').toLowerCase().includes(q) && !(l.action||'').toLowerCase().includes(q) && !(l.details||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  var el = document.getElementById('audit-log-table');
+  if (!el) return;
+  if (!logs.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No audit entries found</div>';
+    return;
+  }
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Timestamp</th><th>User</th><th>Role</th><th>Action</th><th>Details</th></tr></thead><tbody>' +
+    logs.slice(0,500).map(function(l) {
+      var ts = l.ts ? new Date(l.ts).toLocaleString() : '';
+      var actionColor = l.action.includes('LOGIN')?'var(--brand)':l.action.includes('DELETE')||l.action.includes('REJECT')?'var(--red)':'var(--text)';
+      return '<tr>' +
+        '<td style="font-size:11px;color:var(--text3);white-space:nowrap">' + ts + '</td>' +
+        '<td style="font-size:12px;font-weight:600">' + (l.user||'') + '</td>' +
+        '<td style="font-size:11px;color:var(--text3)">' + (l.role||'') + '</td>' +
+        '<td><span style="font-size:11px;font-weight:700;color:' + actionColor + '">' + (l.action||'') + '</span></td>' +
+        '<td style="font-size:11px;color:var(--text3)">' + (l.details||'') + '</td>' +
+      '</tr>';
+    }).join('') +
+  '</tbody></table></div>';
+}
+
+function exportAuditLogPDF() {
+  var logs = getAuditLogs();
+  if (!logs.length) { toast('No audit entries','warn'); return; }
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  var prov = (getDB().providers||[]).find(function(p){ return p.id===activeProviderId; })||{};
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,67,50);
+  doc.text('HIPAA Audit Log', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5);
+  doc.text('Generated: ' + new Date().toLocaleString() + '  |  ' + logs.length + ' entries', M, Y+10);
+  Y += 18;
+
+  var cols = ['Timestamp','User','Role','Action','Details'];
+  var ws2  = [50,35,25,30,100];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(27,67,50);
+  doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1;
+  cols.forEach(function(c,i){ doc.text(c,cx,Y); cx+=ws2[i]; });
+  Y += 5;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(30,30,30);
+  logs.slice(0,300).forEach(function(l, idx) {
+    if (Y > 175) { doc.addPage(); Y = 15; }
+    if (idx%2===1) { doc.setFillColor(245,248,245); doc.rect(M,Y-3,PW,6,'F'); }
+    var ts = l.ts ? new Date(l.ts).toLocaleString() : '';
+    var row2 = [ts, l.user||'', l.role||'', l.action||'', (l.details||'').slice(0,60)];
+    cx = M+1;
+    row2.forEach(function(v,i){ doc.text(String(v).slice(0,Math.floor(ws2[i]/1.8)), cx, Y); cx+=ws2[i]; });
+    Y+=6;
+  });
+
+  addPDFWatermark(doc);
+  doc.save('AuditLog_' + new Date().toISOString().slice(0,10) + '.pdf');
+  toast('Audit log PDF exported','ok');
+}
+
+function exportAuditLogXLSX() {
+  var logs = getAuditLogs();
+  if (!logs.length) { toast('No audit entries','warn'); return; }
+  var rows2 = [['Timestamp','User','Email','Role','Provider ID','Action','Details']];
+  logs.forEach(function(l) {
+    rows2.push([l.ts||'', l.user||'', l.email||'', l.role||'', l.providerId||'', l.action||'', l.details||'']);
+  });
+  var ws3 = XLSX.utils.aoa_to_sheet(rows2);
+  var wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws3, 'Audit Log');
+  XLSX.writeFile(wb2, 'AuditLog_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('Audit log Excel exported','ok');
+}
+
+function renderPayerReport(el) {
+  var db = getDB();
+  var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  var byPayer = {};
+  claims.forEach(function(c) {
+    var p2 = db.patients.find(function(x){ return x.id===c.patId; });
+    var k = (p2&&(p2.payerName||p2.payerid)) || 'Unknown';
+    if (!byPayer[k]) byPayer[k]={total:0,cnt:0,accepted:0};
+    byPayer[k].total+=claimTotal(c); byPayer[k].cnt++;
+    if (c.status==='accepted') byPayer[k].accepted+=claimTotal(c);
+  });
+  var rows3 = Object.entries(byPayer).sort(function(a,b){ return b[1].total-a[1].total; });
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Payer</th><th>Claims</th><th>Total Billed</th><th>Accepted</th></tr></thead><tbody>' +
+    rows3.map(function(r){ return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td></tr>'; }).join('') +
+  '</tbody></table></div>';
+}
+
+function renderMonthReport(el) {
+  var db = getDB();
+  var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  var byMonth2 = {};
+  claims.forEach(function(c) {
+    var k = (c.dos||'').slice(0,7);
+    if (k) { if (!byMonth2[k]) byMonth2[k]={total:0,cnt:0}; byMonth2[k].total+=claimTotal(c); byMonth2[k].cnt++; }
+  });
+  var rows4 = Object.entries(byMonth2).sort(function(a,b){ return b[0].localeCompare(a[0]); });
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Month</th><th>Claims</th><th>Total Billed</th></tr></thead><tbody>' +
+    rows4.map(function(r){ return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td></tr>'; }).join('') +
+  '</tbody></table></div>';
+}
+
 
 
 // ── Services / CPT Catalog — Add & Edit ──────────────────────────
@@ -5087,15 +5461,12 @@ box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(5,150,105,.08),inset 0 1p
 
 <!-- Logo -->
 <div style="text-align:center;margin-bottom:36px">
-<div style="width:76px;height:76px;
-background:linear-gradient(145deg,#059669,#047857);
-border-radius:22px;margin:0 auto 18px;
-display:flex;align-items:center;justify-content:center;
-box-shadow:0 12px 32px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.2)">
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-<path d="M20 5L33 11V23C33 31 27 37 20 39C13 37 7 31 7 23V11Z" fill="rgba(255,255,255,0.15)"/>
-<rect x="17.5" y="12" width="5" height="16" rx="2.5" fill="white"/>
-<rect x="12" y="17.5" width="16" height="5" rx="2.5" fill="white"/>
+<div style="display:flex;justify-content:center;margin-bottom:4px">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="72" height="72">
+  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#2d6a4f"/>
+  <path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+  <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
+  <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
 </svg>
 </div>
 <div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#0f172a">ClaimDataCare</div>
@@ -5178,8 +5549,7 @@ Sign In
 </div>
 
 <div style="margin-top:28px;text-align:center;font-size:11px;color:#cbd5e1;letter-spacing:.01em">
-<span style="color:#059669;font-weight:700">IMBS Inc</span>
-&nbsp;·&nbsp;ClaimDataCare&nbsp;·&nbsp;Secure &amp; Encrypted
+<span style="color:#2d6a4f;font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
 </div>
 </div>
 </div>`;
@@ -7329,12 +7699,14 @@ svg.innerHTML = showing
 }
 
 async function doLogin() {
-const email = (document.getElementById('li-email')?.value || '').trim().toLowerCase();
+const emailRaw = (document.getElementById('li-email')?.value || '').trim();
+const email = emailRaw.toLowerCase();
+const isEmailFormat = email.includes('@') && email.includes('.');
 const pass = document.getElementById('li-pass')?.value || '';
 const alertEl = document.getElementById('login-alert');
 const btn = document.getElementById('login-btn');
 if (!email || !pass) {
-alertEl.innerHTML = '<div class="alert al-error">Email and password are required.</div>';
+alertEl.innerHTML = '<div class="alert al-error">Username or email and password are required.</div>';
 return;
 }
 btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
@@ -7379,8 +7751,8 @@ function _afterLoad() {
   setTimeout(function() { try { autoApplyLogoPalette(); } catch(e) {} }, 500);
 }
 
-// Try Firebase auth first
-if (_auth && _fbReady) {
+// Try Firebase auth first — only if input looks like an email
+if (_auth && _fbReady && isEmailFormat) {
 try {
 const cred = await _auth.signInWithEmailAndPassword(email, pass);
 const fbUser = cred.user;
@@ -7421,6 +7793,7 @@ role:user.role||'Super Admin', activeBillingProviderId:null,
 providerId: user.providerId || null };
 setSession(session);
 window._sessionVerified = true; // Mark session as verified in this page lifecycle
+    setTimeout(function(){ auditLog("LOGIN", "User logged in via internal auth"); }, 500);
 
 // 2FA check
 if (user.twoFA) {
@@ -8075,6 +8448,111 @@ function confirmVerifyEmail(token, userId) {
 
 function renderAccountPage() {
   renderUserManagement();
+}
+
+// ── Patient Superbills Tab ────────────────────────────────────────
+function renderSuperbillsTab(patId) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id === patId; }) || {};
+  var superbills = (pat.superbills || []).slice().reverse();
+  var el = document.getElementById('tab-superbills');
+  if (!el) return;
+
+  if (!superbills.length) {
+    el.innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">' +
+        '<i data-lucide="file-text" class="lci" style="width:32px;height:32px;margin-bottom:12px;opacity:.3"></i>' +
+        '<div style="font-weight:600;margin-bottom:4px">No superbills yet</div>' +
+        '<div style="font-size:11px">Generated automatically when you export claims</div>' +
+      '</div>';
+    setTimeout(_renderLucideIcons, 30);
+    return;
+  }
+
+  var rows = superbills.map(function(sb) {
+    var date = sb.createdAt ? new Date(sb.createdAt).toLocaleDateString() : '';
+    var time = sb.createdAt ? new Date(sb.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">' +
+      '<input type="checkbox" class="sb-item-cb" data-sbid="' + sb.id + '" style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0" ' +
+        'onchange="updateSBDownloadBtn(\'' + patId + '\')">' +
+      '<div style="width:34px;height:34px;background:#fee2e2;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<i data-lucide="file-text" class="lci" style="width:16px;height:16px;color:#dc2626"></i>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (sb.name||'Superbill') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + date + ' ' + time + '</div>' +
+      '</div>' +
+      '<button onclick="downloadSuperbill(\'' + sb.id + '\',\'' + patId + '\')" ' +
+        'style="padding:5px 11px;border:1.5px solid var(--border2);border-radius:7px;background:none;color:var(--text);font-size:12px;cursor:pointer;flex-shrink:0">' +
+        '<i data-lucide="download" class="lci" style="width:12px;height:12px"></i>' +
+      '</button>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px 2px">' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text3)">' +
+        '<input type="checkbox" id="sb-select-all" style="accent-color:var(--brand);width:14px;height:14px" ' +
+          'onchange="toggleAllSuperbills(this.checked,\'' + patId + '\')">' +
+        'Select all' +
+      '</label>' +
+      '<button id="sb-download-btn" onclick="downloadSelectedSuperbills(\'' + patId + '\')" ' +
+        'style="display:none;padding:6px 14px;background:var(--brand);color:white;border:none;border-radius:8px;' +
+        'font-size:12px;font-weight:600;cursor:pointer;align-items:center;gap:6px">' +
+        '<i data-lucide="download" class="lci" style="width:13px;height:13px"></i> Download Selected' +
+      '</button>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' + rows + '</div>';
+
+  setTimeout(_renderLucideIcons, 30);
+}
+
+function updateSBDownloadBtn(patId) {
+  var checked = document.querySelectorAll('.sb-item-cb:checked');
+  var btn = document.getElementById('sb-download-btn');
+  if (btn) { btn.style.display = checked.length > 0 ? 'flex' : 'none'; }
+  var allCb = document.getElementById('sb-select-all');
+  var allItems = document.querySelectorAll('.sb-item-cb');
+  if (allCb && allItems.length) allCb.indeterminate = checked.length > 0 && checked.length < allItems.length;
+  if (allCb) allCb.checked = allItems.length > 0 && checked.length === allItems.length;
+}
+
+function toggleAllSuperbills(checked, patId) {
+  document.querySelectorAll('.sb-item-cb').forEach(function(cb){ cb.checked = checked; });
+  updateSBDownloadBtn(patId);
+}
+
+function downloadSelectedSuperbills(patId) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id === patId; });
+  if (!pat) return;
+  var ids = Array.from(document.querySelectorAll('.sb-item-cb:checked')).map(function(cb){ return cb.dataset.sbid; });
+  if (!ids.length) { toast('Select at least one superbill', 'warn'); return; }
+  var count = 0;
+  ids.forEach(function(sbId) {
+    var sb = (pat.superbills||[]).find(function(s){ return s.id === sbId; });
+    if (!sb || !sb.data) return;
+    var delay = count * 500;
+    setTimeout(function() {
+      var a = document.createElement('a');
+      a.href = sb.data; a.download = sb.name || 'superbill.pdf'; a.click();
+    }, delay);
+    count++;
+  });
+  toast(count + ' superbill' + (count > 1 ? 's' : '') + ' downloading...', 'ok');
+}
+
+function downloadSuperbill(sbId, patId) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id === patId; });
+  if (!pat) return;
+  var sb = (pat.superbills || []).find(function(s){ return s.id === sbId; });
+  if (!sb || !sb.data) { toast('Superbill not found', 'err'); return; }
+  var a = document.createElement('a');
+  a.href = sb.data;
+  a.download = sb.name || 'superbill.pdf';
+  a.click();
+  toast('Downloading ' + (sb.name||'superbill'), 'ok');
 }
 
 function renderUserManagement() {
@@ -9769,7 +10247,36 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   const f2  = (fpt.first||'XX').slice(0,2).toUpperCase();
   const dp  = _parseDateParts(fpt.dob);
   const sp  = _parseDateParts(fp?.dos);
-  doc.save(`${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`);
+  addPDFWatermark(doc);
+  var _sbFilename = `${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`;
+  doc.save(_sbFilename);
+
+  // Auto-save superbill to patient documents
+  try {
+    var _sbB64 = doc.output('datauristring');
+    var _sbPatId = fpt.id;
+    var _sbDate = new Date().toISOString();
+    setDB(function(db3) {
+      var _pat = db3.patients.find(function(x){ return x.id === _sbPatId; });
+      if (_pat) {
+        if (!_pat.documents) _pat.documents = [];
+        if (!_pat.superbills) _pat.superbills = [];
+        var _sbDoc = {
+          id: 'sb_' + Date.now(),
+          name: _sbFilename,
+          type: 'application/pdf',
+          category: 'Superbill',
+          data: _sbB64,
+          createdAt: _sbDate,
+          claimIds: byPatient.get(_sbPatId) ? byPatient.get(_sbPatId).map(function(c){ return c.id; }) : [],
+          source: 'superbill',
+        };
+        _pat.superbills.push(_sbDoc);
+        _pat.documents.push(_sbDoc);
+      }
+    });
+  } catch(_sbErr) { console.warn('Superbill auto-save:', _sbErr); }
+
   fileCount++;
 }); // end byPatient.forEach
 
@@ -9855,7 +10362,7 @@ hline(y+4); y+=7;
 y+=3; doc.setDrawColor(...NAVY); doc.line(M,y,RX,y); y+=5;
 doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
 doc.text('TOTAL: '+patients.length+' patients', M, y);
-doc.save('Patients_Report_'+dateStr()+'.pdf');
+addPDFWatermark(doc); doc.save('Patients_Report_'+dateStr()+'.pdf');
 toast('PDF exported — '+patients.length+' patients');
 }
 
@@ -13076,7 +13583,7 @@ _drawNoteFooter(doc,prov,fill,t,BGDARK,BLUE,WHITE,MID,W,M,RX,pg,totalPgs);
 const ln2=(pat.last||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const fn2=(pat.first||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const ts=now.getFullYear().toString()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()).padStart(2,'0');
-doc.save(`MN${ln2}${fn2}${ts}${withSuperbill?'_SB':''}.pdf`);
+addPDFWatermark(doc); doc.save(`MN${ln2}${fn2}${ts}${withSuperbill?'_SB':''}.pdf`);
 toast('Medical note PDF exported ?');
 }
 
@@ -14791,6 +15298,7 @@ const TABS = [
 {id:'appointments',label:'Appointments'},
 {id:'followup', label:'Followup'},
 {id:'documents', label:'Documents'},
+{id:'superbills', label:'Superbills'},
 {id:'encounters', label:'Encounters'},
 {id:'bills', label:'Bills'},
 {id:'communication',label:'Communication'},
@@ -16414,7 +16922,7 @@ t(new Date().toISOString().slice(0,10), RX, fY+6.5, {sz:7,c:GRAY3,a:'right'});
 t('Page 1 of 1', RX, fY+11, {sz:6.5,c:GRAY3,a:'right'});
 
 const ts=new Date().toISOString().replace(/[^0-9]/g,'').slice(0,14);
-doc.save(`PatientSummary_${UC(pat.last||'X').slice(0,8)}_${ts}.pdf`);
+addPDFWatermark(doc); doc.save(`PatientSummary_${UC(pat.last||'X').slice(0,8)}_${ts}.pdf`);
 toast('Patient summary PDF exported');
 }
 
@@ -18170,6 +18678,71 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+// ── ClaimDataCare PDF Watermark ───────────────────────────────────
+function addPDFWatermark(doc) {
+  try {
+    var pageCount = doc.internal.getNumberOfPages();
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    for (var pg = 1; pg <= pageCount; pg++) {
+      doc.setPage(pg);
+      // Shield icon (simplified as text mark) + branding text
+      var x = pageW - 8;
+      var y = pageH - 6;
+      // "Powered by ClaimDataCare" text
+      doc.setFontSize(6.5);
+      doc.setTextColor(180, 190, 185);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Powered by ClaimDataCare • claimdatacare.com', x, y, { align: 'right' });
+      // Small shield symbol using Unicode or box
+      doc.setFontSize(8);
+      doc.setTextColor(45, 106, 79); // brand green
+      doc.text('♥', x - 61.5, y, { align: 'left' });
+    }
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+  } catch(e) { console.warn('Watermark error:', e); }
+}
+
+// ── HIPAA Audit Log System ────────────────────────────────────────
+var AUDIT_KEY = 'cdc_audit_log_' + (activeProviderId || 'global');
+
+function auditLog(action, details) {
+  try {
+    var session = getSession() || {};
+    var entry = {
+      id: 'al_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      ts: new Date().toISOString(),
+      user: session.name || session.email || 'Unknown',
+      email: session.email || '',
+      role: session.role || '',
+      providerId: activeProviderId || '',
+      action: action,
+      details: details || '',
+      ip: '', // client-side cannot get real IP
+    };
+    // Save to Firestore if available
+    if (_db) {
+      _db.collection('auditLog').add(entry).catch(function(){});
+    }
+    // Also save locally as fallback
+    try {
+      var key = 'cdc_audit_' + (activeProviderId||'g');
+      var logs = JSON.parse(localStorage.getItem(key)||'[]');
+      logs.unshift(entry);
+      if (logs.length > 2000) logs = logs.slice(0, 2000);
+      localStorage.setItem(key, JSON.stringify(logs));
+    } catch(e) {}
+  } catch(e) {}
+}
+
+function getAuditLogs() {
+  try {
+    var key = 'cdc_audit_' + (activeProviderId||'g');
+    return JSON.parse(localStorage.getItem(key)||'[]');
+  } catch(e) { return []; }
+}
+
 </script>
 
 <!-- SERVICE GROUP MODAL -->
