@@ -7690,18 +7690,18 @@ renderUserManagement(); toast('User '+email+' added ?');
 // ── Email Service ─────────────────────────────────────────────────
 var EMAIL_WORKER_URL = 'https://email-service.imbsinc2023.workers.dev';
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, type) {
   try {
-    var res = await fetch(EMAIL_WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: to, subject: subject, html: html }),
-    });
+    var url = 'https://email-service.imbsinc2023.workers.dev/?'
+      + 'to=' + encodeURIComponent(to)
+      + '&subject=' + encodeURIComponent(subject)
+      + '&html=' + encodeURIComponent(html);
+    var res = await fetch(url);
     var data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Send failed');
-    return true;
+    console.log('[Email]', data);
+    return !!(data.success || data.id);
   } catch(e) {
-    console.error('Email error:', e);
+    console.error('[Email]', e.message);
     return false;
   }
 }
@@ -7758,7 +7758,7 @@ async function send2FACode(user) {
     '</div>',
   ].join('');
 
-  var sent = await sendEmail(user.email, 'ClaimDataCare — Your verification code: ' + code, html);
+  var sent = await sendEmail(user.email, 'ClaimDataCare — Your verification code: ' + code, html, 'security');
   return sent;
 }
 
@@ -16537,8 +16537,26 @@ function saveNewUser() {
       providerId: activeProviderId, createdAt: Date.now()
     });
     if (saveUsers) saveUsers(users);
-    alertEl.innerHTML = '<div class="alert al-success">User "<strong>' + name + '</strong>" created. Add password in Firebase Console → Authentication → Add user with this email.</div>';
+    alertEl.innerHTML = '<div class="alert al-success">User "<strong>' + name + '</strong>" created successfully.</div>';
     renderUserManagement();
+    // Send welcome email
+    var welcomeHtml = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">' +
+      '<div style="background:#1b4332;padding:18px 24px;border-radius:8px 8px 0 0">' +
+        '<h2 style="color:white;margin:0;font-size:18px">Welcome to ClaimDataCare</h2>' +
+      '</div>' +
+      '<div style="background:#f8f6f0;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e0ddd8">' +
+        '<p style="color:#333;font-size:15px">Hello ' + first + ',</p>' +
+        '<p style="color:#333;font-size:14px">Your ClaimDataCare account has been created.</p>' +
+        '<table style="background:#fff;border:1px solid #e0ddd8;border-radius:8px;padding:16px;width:100%;margin:16px 0">' +
+          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Username:</strong></td><td style="color:#1b4332;font-size:13px;font-weight:700">' + name + '</td></tr>' +
+          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Email:</strong></td><td style="color:#333;font-size:13px">' + email + '</td></tr>' +
+          '<tr><td style="color:#666;font-size:13px;padding:4px 0"><strong>Role:</strong></td><td style="color:#333;font-size:13px">' + primaryRole + '</td></tr>' +
+        '</table>' +
+        '<p style="color:#666;font-size:13px">Please contact your administrator for your temporary password and login instructions.</p>' +
+        '<p style="color:#999;font-size:12px;margin-top:20px">ClaimDataCare · Secure Medical Billing Platform</p>' +
+      '</div>' +
+    '</div>';
+    sendEmail(email, 'Welcome to ClaimDataCare — Account Created', welcomeHtml, 'onboarding');
   } else {
     var u2 = users.find(function(x){ return x.id === id; });
     if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
