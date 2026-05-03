@@ -7693,12 +7693,13 @@ var EMAIL_WORKER_URL = 'https://email-service.imbsinc2023.workers.dev';
 async function sendEmail(to, subject, html, type) {
   try {
     var url = 'https://email-service.imbsinc2023.workers.dev/?'
-      + 'to=' + encodeURIComponent(to)
-      + '&subject=' + encodeURIComponent(subject)
-      + '&html=' + encodeURIComponent(html);
+      + 'to='      + encodeURIComponent(to)
+      + '&subject='+ encodeURIComponent(subject)
+      + '&html='   + encodeURIComponent(html)
+      + '&type='   + encodeURIComponent(type || 'noreply');
     var res = await fetch(url);
     var data = await res.json();
-    console.log('[Email]', data);
+    console.log('[Email] sent from:', data.from, 'to:', data.to);
     return !!(data.success || data.id);
   } catch(e) {
     console.error('[Email]', e.message);
@@ -16537,7 +16538,10 @@ function saveNewUser() {
       providerId: activeProviderId, createdAt: Date.now()
     });
     if (saveUsers) saveUsers(users);
-    alertEl.innerHTML = '<div class="alert al-success">User "<strong>' + name + '</strong>" created successfully.</div>';
+    // Close modal immediately
+    var modal = document.getElementById('modal-add-user');
+    if (modal) modal.remove();
+    toast('User "' + name + '" created — welcome email sent to ' + email, 'ok');
     renderUserManagement();
     // Send welcome email
     var welcomeHtml = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">' +
