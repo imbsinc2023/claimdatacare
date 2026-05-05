@@ -103,7 +103,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 /* LAYOUT */
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sidebar{display:none}
-.main{width:100%;flex:1;display:flex;flex-direction:column;padding-top:var(--topbar)}
+.main{width:100%;flex:1;display:flex;flex-direction:column}
 
 .content{flex:1;overflow-y:auto;padding:0 22px 22px 22px}.content>*:first-child{margin-top:0}
 
@@ -280,10 +280,8 @@ border-bottom: 1px solid #e2e5ed;
 flex-shrink: 0;
 z-index: 200;
 gap: 1px;
-position: fixed;
+position: sticky;
 top: 0;
-left: 0;
-right: 0;
 }
 [data-theme="dark"] .topnav {
 background: #161b27;
