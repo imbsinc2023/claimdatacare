@@ -1259,6 +1259,65 @@ border-radius: 8px;
 }
 .cdc-tip:hover::after,
 .cdc-tip:hover::before { opacity: 1; }
+
+/* Pagination */
+.pg-bar{display:flex;align-items:center;gap:3px}
+.pg-btn{min-width:28px;height:26px;padding:0 6px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-size:11px;font-weight:500;cursor:pointer;transition:background .12s}
+.pg-btn:hover{background:var(--brand-bg);color:var(--brand);border-color:var(--brand)}
+.pg-active{background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important}
+.pg-ellipsis{font-size:11px;color:var(--text3);padding:0 2px}
+
+/* ── All user text input → UPPERCASE ────────────────────── */
+input[type="text"], input[type="search"], input[type="email"],
+input:not([type]), input[type="tel"], input[type="url"],
+textarea {
+  text-transform: uppercase;
+}
+/* Exceptions — keep lowercase for passwords, dates, numbers, colors */
+input[type="password"],
+input[type="date"],
+input[type="number"],
+input[type="color"],
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="hidden"],
+.no-upper, .no-upper input, .no-upper textarea,
+input.no-upper, textarea.no-upper { text-transform: none !important; }
+
+/* ── Fast tooltip for title= on icon buttons ─────────────── */
+button[title]:not(.no-tip) {
+  position: relative;
+}
+button[title]:not(.no-tip):hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand-d, #1b4332);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 1;
+}
+button[title]:not(.no-tip):hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--brand-d, #1b4332);
+  pointer-events: none;
+  z-index: 9999;
+}
 </style>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
@@ -1501,7 +1560,7 @@ const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',serv
 
 
 const uid = () => 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-const v = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+const v = id => { const e = document.getElementById(id); return e ? e.value.trim().toUpperCase() : ''; };
 const sv = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
 
 // Patient chart links
@@ -1509,8 +1568,24 @@ function ptLinkName(patId, last, first) {
 return `<a href="#" onclick="openPatientChart('${patId}');return false;" style="color:var(--brand);font-weight:600">${last||'?'}, ${first||''}</a>`;
 }
 function ptLinkAcct(patId, acct) {
-return `<a href="#" onclick="openPatientChart('${patId}');return false;" class="mono" style="color:var(--brand)">${acct||''}</a>`;
+  var el = document.createElement('span');
+  el.textContent = acct || '';
+  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.style.cssText = 'cursor:pointer;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:500;border-radius:4px;padding:1px 4px;transition:background .15s';
+  el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
+  el.setAttribute('onmouseout', "this.style.background=''");
+  return el.outerHTML;
 }
+function ptLinkName(patId, last, first) {
+  var el = document.createElement('span');
+  el.textContent = (last || '?') + ', ' + (first || '');
+  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.style.cssText = 'cursor:pointer;color:var(--text);font-weight:600;font-size:13px;border-radius:4px;padding:1px 4px;transition:background .15s';
+  el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
+  el.setAttribute('onmouseout', "this.style.background=''");
+  return el.outerHTML;
+}
+
 
 // Theme toggle
 function toggleTheme() {
@@ -1719,15 +1794,72 @@ document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn
 
 
 function renderPatients(){
-const db=getDB(); const q=(v('pat-q')||'').toLowerCase();
-let list=db.patients.filter(p=>p.providerId===activeProviderId);
-if(q) list=list.filter(p=>(p.last+' '+p.first+' '+p.acct+' '+p.subNum+' '+p.payerName).toLowerCase().includes(q));
-const el=document.getElementById('patients-tbl');
-if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\ud83d\udc64</div><h3>No patients</h3><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div>`; return; }
-const allP=db.patients;
-el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Acct#</th><th>Last, First</th><th>DOB</th><th>Subscriber ID</th><th>Payer ID</th><th>Payer</th><th>Plan</th><th>Rel</th><th>Claims</th><th></th></tr></thead><tbody>`+
-list.map(p=>{ const oi=allP.findIndex(x=>x.id===p.id); const cnt=db.claims.filter(c=>c.patId===p.id&&c.providerId===activeProviderId).length; return`<tr><td>${ptLinkAcct(p.id,p.acct)}</td><td style="font-weight:600">${ptLinkName(p.id,p.last,p.first)}</td><td class="mono" style="font-size:12px">${p.dob}</td><td class="mono" style="font-size:12px">${p.subNum}</td><td><span class="badge b-blue mono">${p.payerid}</span></td><td style="font-size:12px">${p.payerName}</td><td>${p.plan||'\u2014'}</td><td class="mono">${p.rel}</td><td style="text-align:center">${cnt}</td><td><button class="btn btn-xs" onclick="openPatientChart('${p.id}');setTimeout(()=>_renderChartTab('demographics'),100)" title="Edit Patient" class="btn-icon sm"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></td></tr>`;}).join('')+`</tbody></table></div>`;
+  var db = getDB();
+  var q = (v('pat-q')||'').toLowerCase();
+  var list = db.patients.filter(function(p){ return p.providerId===activeProviderId; });
+  if (q) list = list.filter(function(p){
+    return ((p.last||'')+' '+(p.first||'')+' '+(p.acct||'')+' '+(p.subNum||'')+' '+(p.payerName||'')).toLowerCase().includes(q);
+  });
+  var el = document.getElementById('patients-tbl');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No patients found</h3><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div>';
+    return;
+  }
+  var pgSize  = window._patPgSize  || 20;
+  var pgIndex = window._patPgIndex || 0;
+  var total   = list.length;
+  var pgCount = Math.ceil(total / pgSize);
+  if (pgIndex >= pgCount) pgIndex = 0;
+  window._patPgIndex = pgIndex;
+  var pageList = list.slice(pgIndex * pgSize, (pgIndex+1) * pgSize);
+
+  var rows = pageList.map(function(p) {
+    var cnt = (db.claims||[]).filter(function(c){ return c.patId===p.id && c.providerId===activeProviderId; }).length;
+    return '<tr>'
+      + '<td>' + ptLinkAcct(p.id, p.acct) + '</td>'
+      + '<td>' + ptLinkName(p.id, p.last, p.first) + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.dob||'') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.subNum||'') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.payerid||'') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.payerName||'') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.plan||'\u2014') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + (p.rel||'') + '</td>'
+      + '<td style="font-size:12px;color:var(--text2);text-align:center">' + cnt + '</td>'
+      + '<td><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button></td>'
+      + '</tr>';
+  }).join('');
+
+  // Pagination buttons
+  var lo = Math.max(0, pgIndex-3), hi = Math.min(pgCount-1, pgIndex+3);
+  var pgBtns = '';
+  if (lo > 0) { pgBtns += '<button class="pg-btn" onclick="_patGoPage(0)">1</button>' + (lo>1?'<span class="pg-ellipsis">&hellip;</span>':''); }
+  for (var pi=lo; pi<=hi; pi++) {
+    pgBtns += '<button class="pg-btn' + (pi===pgIndex?' pg-active':'') + '" onclick="_patGoPage(' + pi + ')">' + (pi+1) + '</button>';
+  }
+  if (hi < pgCount-1) { pgBtns += (hi<pgCount-2?'<span class="pg-ellipsis">&hellip;</span>':'') + '<button class="pg-btn" onclick="_patGoPage(' + (pgCount-1) + ')">' + pgCount + '</button>'; }
+
+  var pgSizeOpts = [20,50,100].map(function(s){
+    return '<option value="'+s+'"'+(s===pgSize?' selected':'')+'>'+s+' / page</option>';
+  }).join('');
+
+  var from = pgIndex*pgSize+1, to = Math.min((pgIndex+1)*pgSize, total);
+
+  el.innerHTML =
+    '<div class="tbl-wrap"><table>'
+    + '<thead><tr><th>Acct#</th><th>Last, First</th><th>DOB</th><th>Subscriber ID</th><th>Payer ID</th><th>Payer</th><th>Plan</th><th>Rel</th><th>Claims</th><th></th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table></div>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-top:1px solid var(--border);background:var(--bg2)">'
+    + '<span style="font-size:11px;color:var(--text3)">'+from+'\u2013'+to+' of '+total+' patients</span>'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<div class="pg-bar">'+pgBtns+'</div>'
+    + '<select onchange="_patSetPgSize(this.value)" style="padding:3px 8px;border:1px solid var(--border2);border-radius:5px;font-size:11px;background:var(--bg2);color:var(--text);cursor:pointer">'+pgSizeOpts+'</select>'
+    + '</div></div>';
+
+  setTimeout(_renderLucideIcons, 20);
 }
+function _patGoPage(pi){ window._patPgIndex=pi; renderPatients(); }
+function _patSetPgSize(s){ window._patPgSize=parseInt(s)||20; window._patPgIndex=0; renderPatients(); }
 
 
 function setTab(status, btn) {
@@ -2336,41 +2468,110 @@ return `<div class="app-shell">
 </div>
 
 <!-- User chip with dropdown -->
-<div id="tn-user-chip" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:22px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.15);cursor:pointer;position:relative;height:34px;box-sizing:border-box" onclick="toggleUserMenu(event)">
-  <div id="tn-user-avatar" style="width:24px;height:24px;border-radius:50%;background:#2d6a4f;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?"); return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}</div>
-  <div style="line-height:1">
-    <div id="tn-user-name" style="font-size:11px;font-weight:600;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-    <div id="tn-user-role" style="font-size:9px;color:var(--text3)"></div>
+<div id="tn-user-chip" onclick="toggleUserMenu(event)"
+  style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:20px;
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);cursor:pointer;
+  height:30px;box-sizing:border-box;transition:background .15s;flex-shrink:0"
+  onmouseover="this.style.background='rgba(255,255,255,.22)'"
+  onmouseout="this.style.background='rgba(255,255,255,.13)'">
+  <!-- Avatar circle with initials -->
+  <div id="tn-user-avatar" style="width:22px;height:22px;border-radius:50%;
+    background:var(--brand);color:#fff;font-size:9px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    border:1.5px solid rgba(255,255,255,.4)">
+    ${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?");
+      return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}
   </div>
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+  <!-- Name -->
+  <div id="tn-user-name" style="font-size:11px;font-weight:600;color:#fff;
+    max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1"></div>
+  <!-- Caret -->
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2.5" style="color:rgba(255,255,255,.6);flex-shrink:0">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+</div>
 
-  <!-- Dropdown menu -->
-  <div id="tn-user-menu" onclick="event.stopPropagation()" style="display:none;position:fixed;top:50px;right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:220px;z-index:9000;overflow:hidden">
-    <!-- User info -->
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
-      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:var(--text)"></div>
-      <div id="tn-menu-email" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
-      <div id="tn-menu-role" style="font-size:10px;color:var(--brand);font-weight:600;margin-top:4px"></div>
+<!-- User dropdown menu -->
+<div id="tn-user-menu" onclick="event.stopPropagation()"
+  style="display:none;position:fixed;top:44px;right:10px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">
+
+  <!-- Header with avatar + info -->
+  <div style="padding:16px;background:var(--brand-d);display:flex;align-items:center;gap:12px">
+    <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);
+      border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;
+      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
+      ${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?");
+        return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}
     </div>
-    <!-- Appearance -->
-    <div style="padding:6px 0;border-bottom:1px solid var(--border)">
-      <button onclick="toggleTheme();event.stopPropagation()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
-        <i data-lucide="sun-moon" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Light / Dark Mode
-      </button>
-      <button onclick="openAppearancePanel();toggleUserMenu()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
-        <i data-lucide="palette" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Appearance
-      </button>
-      <button id="btn-lang-menu" onclick="toggleLang();event.stopPropagation()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px">
-        <i data-lucide="languages" class="lci" style="width:14px;height:14px;color:var(--text3)"></i> Language: <span id="btn-lang-label" style="font-weight:600;margin-left:4px"></span>
-      </button>
-    </div>
-    <!-- Sign out -->
-    <div style="padding:6px 0">
-      <button onclick="doLogout()" style="width:100%;padding:9px 16px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;color:var(--red);display:flex;align-items:center;gap:10px">
-        <i data-lucide="log-out" class="lci" style="width:14px;height:14px"></i> Sign Out
-      </button>
+    <div style="min-width:0">
+      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="tn-menu-email" style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="tn-menu-role" style="margin-top:4px;display:inline-block;
+        font-size:10px;font-weight:700;color:var(--brand-d);background:rgba(255,255,255,.9);
+        padding:1px 8px;border-radius:20px" id="tn-menu-role"></div>
     </div>
   </div>
+
+  <!-- Action buttons grid -->
+  <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;
+    border-bottom:1px solid var(--border)">
+    <button onclick="toggleTheme();event.stopPropagation()"
+      style="display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
+      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
+      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
+      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
+      <i data-lucide="sun-moon" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
+      <span style="font-size:11px;font-weight:600;color:var(--text)">Theme</span>
+    </button>
+    <button onclick="openAppearancePanel();toggleUserMenu()"
+      style="display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
+      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
+      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
+      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
+      <i data-lucide="palette" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
+      <span style="font-size:11px;font-weight:600;color:var(--text)">Appearance</span>
+    </button>
+    <button id="btn-lang-menu" onclick="toggleLang();event.stopPropagation()"
+      style="display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
+      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
+      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
+      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
+      <i data-lucide="languages" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
+      <span style="font-size:11px;font-weight:600;color:var(--text)">Language <span id="btn-lang-label" style="color:var(--brand)"></span></span>
+    </button>
+    <button onclick="go('account');toggleUserMenu()"
+      style="display:flex;flex-direction:column;align-items:center;gap:6px;
+      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
+      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
+      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
+      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
+      <i data-lucide="settings" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
+      <span style="font-size:11px;font-weight:600;color:var(--text)">Settings</span>
+    </button>
+  </div>
+
+  <!-- Sign out -->
+  <div style="padding:10px 12px">
+    <button onclick="doLogout()"
+      style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+      padding:10px;border:1.5px solid var(--red,#dc2626);border-radius:10px;
+      background:transparent;cursor:pointer;color:var(--red,#dc2626);
+      font-size:12px;font-weight:700;transition:background .15s"
+      onmouseover="this.style.background='#fef2f2'"
+      onmouseout="this.style.background='transparent'">
+      <i data-lucide="log-out" class="lci" style="width:15px;height:15px"></i>
+      Sign Out
+    </button>
+  </div>
+</div>
 </div>
 
 <!-- Hidden elements kept for JS compatibility -->
@@ -2550,7 +2751,7 @@ return `<div class="app-shell">
 <div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
 <div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
 <div class="search-row">
-<input id="clm-q" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()">
+<input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()">
 <select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select>
 <select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select>
 <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0">
@@ -2564,9 +2765,9 @@ return `<div class="app-shell">
 <div id="claims-tbl"></div>
 </div>
 
-<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Demographic and insurance information</p></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="search-row"><input id="pat-q" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div>
+<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div>
 
-<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage billable services and default rates</p></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="search-row"><input id="svc-q" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div>
+<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage billable services and default rates</p></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div>
 
 <div class="section" id="sec-export">
 <div class="page-hdr">
@@ -2912,7 +3113,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 <div class="modal-body">
 <div style="display:flex;gap:8px;margin-bottom:12px">
-<input id="claimmd-payer-q" placeholder="Search by name or Payer ID..."
+<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."
 style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"
 oninput="filterClearinghousePayers()">
 <select id="claimmd-payer-state" onchange="filterClearinghousePayers()"
@@ -3274,7 +3475,7 @@ Show Paid
 <div class="modal-t" id="mprov-title">New Billing Provider</div>
 <div class="modal-sub" id="mprov-subtitle"></div>
 </div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-provider')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal('modal-provider')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>
 </div>
 <div class="modal-body" style="padding:22px">
 <input type="hidden" id="mprov-id">
@@ -3569,7 +3770,7 @@ Account Key
 <div class="modal-t"><i data-lucide="zap" class="lci"></i> Quick Batch — Generate Claims</div>
 <div class="modal-sub">Generate one claim per date for selected patients and services</div>
 </div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-batch')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal('modal-batch')"><i data-lucide="x" class="lci"></i></button>
 </div>
 
 <!-- Tab switcher -->
@@ -3774,7 +3975,7 @@ Select a service group and dates to preview
 <div class="modal modal-lg">
 <div class="modal-hdr">
 <div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-appt')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal('modal-appt')"><i data-lucide="x" class="lci"></i></button>
 </div>
 <div class="modal-body">
 <div class="fg g2">
@@ -3812,7 +4013,7 @@ Select a service group and dates to preview
 
 <div class="overlay" id="modal-checkin">
 <div class="modal">
-<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-checkin')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal('modal-checkin')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <div id="checkin-info"></div>
 <div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>
@@ -5142,7 +5343,7 @@ list.map(s => {
 const oi = allS.findIndex(x => x.id === s.id);
 const mods = [s.mod1,s.mod2,s.mod3,s.mod4].filter(Boolean).join('/');
 return `<tr><td><span class="badge b-blue mono">${s.code}</span></td><td>${s.desc}</td><td><span class="badge b-gray">${s.cat}</span></td><td class="mono" style="font-weight:700">$${s.rate}</td><td class="mono">${s.units||'1'}</td><td class="mono" style="font-size:11px">${mods||''}</td>
-<td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button class="btn btn-xs btn-danger" onclick="delService(${oi})"><i data-lucide="x" class="lci"></i></button></div></td></tr>`;
+<td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button title="Remove" class="btn btn-xs btn-danger" onclick="delService(${oi})"><i data-lucide="x" class="lci"></i></button></div></td></tr>`;
 }).join('') + '</tbody></table></div>';
 }
 
@@ -5239,7 +5440,7 @@ ${fac ? ' · '+fac.name : ''}
 <button class="btn btn-primary btn-sm" onclick="openBulkFromSG('${g.id}')"><i data-lucide="zap" class="lci"></i> Generate Claims</button>
 <button class="btn btn-sm" onclick="openSGModal('${g.id}')">Edit</button>
 <button class="btn btn-sm" onclick="copySG('${g.id}')"><i data-lucide="copy" class="lci"></i> Copy</button>
-<button class="btn btn-xs btn-danger" onclick="deleteSG('${g.id}')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteSG('${g.id}')"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>`;
 }).join('') + '</div>';
@@ -5599,7 +5800,7 @@ Electronic Health Records
 <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;letter-spacing:-0.01em">
 Username or Email
 </label>
-<input id="li-email" type="text" autocomplete="username"
+<input id="li-email" type="text" class="no-upper" autocomplete="username"
 placeholder="Username or email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
@@ -5687,7 +5888,7 @@ document.getElementById('root').innerHTML = `
 <div style="display:flex;flex-direction:column;gap:16px">
 <div class="field">
 <label style="font-size:12px;font-weight:600;color:var(--text2)">Email</label>
-<input id="fp-email" type="email" autocomplete="username"
+<input id="fp-email" class="no-upper" type="email" autocomplete="username"
 onkeydown="if(event.key==='Enter')doForgotPassword()"
 style="font-size:14px;padding:11px 14px;border:1.5px solid var(--border2);border-radius:8px;width:100%;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none"
 onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='var(--border2)'">
@@ -6439,7 +6640,7 @@ function renderInvSvcLines() {
       + ' oninput="_invSvcLines['+i+'].amount=this.value;if('+i+'===0)_invSvcLines[0]._manualOverride=true;recalcInvoice()">'
       + (isFirst ? '<span title="Auto-calculated — editable" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--brand);pointer-events:none;font-weight:700">AUTO</span>' : '')
       + '</div>'
-      + '<button class="btn btn-xs btn-danger" onclick="_invSvcLines.splice('+i+',1);renderInvSvcLines()"><i data-lucide="x" class="lci"></i></button>'
+      + '<button title="Remove" class="btn btn-xs btn-danger" onclick="_invSvcLines.splice('+i+',1);renderInvSvcLines()"><i data-lucide="x" class="lci"></i></button>'
       + '</div>';
   }).join('');
   const addBtn = document.getElementById('inv-svc-add');
@@ -6868,7 +7069,7 @@ ${iss.logo ? `<img src="${iss.logo}" style="width:56px;height:20px;object-fit:co
 <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${[iss.addr1,iss.city,iss.state].filter(Boolean).join(', ')||'No address'}</div>
 <div class="btn-group">
 <button class="btn btn-sm" onclick="openIssuerModal('${iss.id}')">Edit</button>
-<button class="btn btn-xs btn-danger" onclick="deleteIssuer('${iss.id}')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteIssuer('${iss.id}')"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>`).join('') + '</div>';
 }
@@ -7005,7 +7206,7 @@ db.invoicingClients.map(cli => `<tr>
 <td class="mono">${cli.fee?cli.fee+'%':''}</td>
 <td><div class="btn-group">
 <button class="btn btn-xs" onclick="openClientModal('${cli.id}')">Edit</button>
-<button class="btn btn-xs btn-danger" onclick="deleteClient('${cli.id}')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteClient('${cli.id}')"><i data-lucide="x" class="lci"></i></button>
 </div></td>
 </tr>`).join('') + '</tbody></table></div>';
 }
@@ -7691,7 +7892,7 @@ tbody.innerHTML = _invLines.map((l, i) => `<tr style="border-bottom:1px solid va
 <td style="padding:4px"><input style="width:110px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.insurance||''}" placeholder="Medicare" oninput="_invLines[${i}].insurance=this.value"></td>
 <td style="padding:4px"><input style="width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.month||''}" placeholder="March-2026" oninput="_invLines[${i}].month=this.value"></td>
 <td style="padding:4px"><input class="mono" style="width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);text-align:right" type="number" step="0.01" value="${l.amount||''}" placeholder="0.00" oninput="_invLines[${i}].amount=this.value"></td>
-<td style="padding:4px;text-align:center"><button class="btn btn-xs btn-danger" onclick="_invLines.splice(${i},1);renderInvLines()"><i data-lucide="x" class="lci"></i></button></td>
+<td style="padding:4px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice(${i},1);renderInvLines()"><i data-lucide="x" class="lci"></i></button></td>
 </tr>`).join('');
 }
 
@@ -8020,7 +8221,7 @@ ${!isActive ? `<button class="btn btn-primary btn-sm" onclick="switchProvider('$
 <button class="btn btn-sm" onclick="toggleProviderStatus('${p.id}')" style="background:${status === 'Active' ? 'var(--amber)' : 'var(--green)'};color:#fff;border:none">
 ${status === 'Active' ? 'Deactivate' : 'Activate'}
 </button>
-<button class="btn btn-xs btn-danger" onclick="deleteBP('${p.id}')"><i data-lucide="trash-2" class="lci"></i></button>
+<button title="Delete" class="btn btn-xs btn-danger" onclick="deleteBP('${p.id}')"><i data-lucide="trash-2" class="lci"></i></button>
 </div>` : `
 <div class="btn-group" style="margin-top:10px">
 ${!isActive ? `<button class="btn btn-primary btn-sm" onclick="switchProvider('${p.id}');renderAdminProviders()"><i data-lucide="refresh-cw" class="lci"></i> Switch</button>` : '<button class="btn btn-sm" disabled style="opacity:.5">Current</button>'}
@@ -10757,7 +10958,7 @@ return `
 style="width:48px;padding:3px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:12px;text-align:center"
 oninput="batchSelSvcs[${i}].units=this.value||'1';renderBatchCatalogSelected();updateBatchPreview()">
 <span style="font-size:12px;font-weight:700;color:var(--blue,#059669);min-width:60px;text-align:right" class="mono">= $${_total}</span>
-<button class="btn btn-xs btn-danger" onclick="batchSelSvcs.splice(${i},1);renderBatchCatalog();renderBatchCatalogSelected();updateBatchPreview()"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="batchSelSvcs.splice(${i},1);renderBatchCatalog();renderBatchCatalogSelected();updateBatchPreview()"><i data-lucide="x" class="lci"></i></button>
 </div>`;}).join('') + '</div></div>';
 }
 
@@ -11608,7 +11809,7 @@ ${dx.length?' · '+dx.slice(0,3).join(', '):''}
 </div>
 </div>
 </div>
-<button onclick="_stopVoice();document.getElementById('ai-note-modal').remove()"
+<button title="Remove" onclick="_stopVoice();document.getElementById('ai-note-modal').remove()"
 style="width:34px;height:34px;border-radius:10px;border:none;background:var(--bg3);
 cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);
 transition:all .15s" onmouseover="this.style.background='var(--red-bg)';this.style.color='var(--red)'"
@@ -13279,7 +13480,7 @@ ${n.status!=='finalized'
 ?`<button class="btn btn-sm" style="color:var(--green)" onclick="finalizeNote('${n.id}')"><i data-lucide="check-circle" class="lci"></i> Finalize</button>
 <button class="btn btn-sm" onclick="regenerateNote('${n.id}')"><i data-lucide="refresh-cw" class="lci"></i> Regenerate</button>`
 :`<button class="btn btn-xs" onclick="unfinalizeNote('${n.id}')">Reopen</button>`}
-<button class="btn btn-xs btn-danger" onclick="deleteNote('${n.id}')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteNote('${n.id}')"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>`;
 }).join('');
@@ -13331,7 +13532,7 @@ document.body.insertAdjacentHTML('beforeend',`
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <span class="badge ${ro?'b-green':'b-amber'}">${ro?'Finalized':'Draft'}</span>
-<button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-note-editor').remove()"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-note-editor').remove()"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>
 <div class="modal-body">
@@ -13814,7 +14015,7 @@ background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer">
 <option value="">Status...</option>
 ${statusOpts}
 </select>
-<button class="btn btn-xs btn-danger" onclick="deleteAppt('${a.id}')"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteAppt('${a.id}')"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>
 <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--bg2);margin:0 -14px">
@@ -14277,7 +14478,7 @@ ${ptLinkName(pat.id,pat.last||'?',pat.first||'')} ?
 </div>
 <div style="display:flex;gap:8px;align-items:center">
 <button class="btn btn-sm" onclick="openClaim(getDB().claims.findIndex(c=>c.id==='${claim.id}'));document.getElementById('modal-claim-detail').remove()">Edit Claim</button>
-<button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-claim-detail').remove()"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-claim-detail').remove()"><i data-lucide="x" class="lci"></i></button>
 </div>
 </div>
 <!-- Tab bar -->
@@ -14657,7 +14858,7 @@ document.body.insertAdjacentHTML('beforeend', `
 <div class="modal" style="max-width:560px">
 <div class="modal-hdr">
 <div class="modal-t">Import Payment / EOB</div>
-<button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-eob-entry').remove()"><i data-lucide="x" class="lci"></i></button>
+<button title="Remove" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-eob-entry').remove()"><i data-lucide="x" class="lci"></i></button>
 </div>
 <div class="modal-body">
 <div class="fg g2">
@@ -15356,7 +15557,7 @@ return `
 <div class="ptc-banner">
   <!-- Left: title + patient info -->
   <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden">
-    <span class="ptc-banner-title">&#128203; Patient File</span>
+    <span class="ptc-banner-title">Patient File</span>
     <div class="ptc-banner-meta">
       <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci"></i>${pat.acct||'—'}</span>
       <span class="ptc-banner-meta-item" style="color:${pat.inactive?'#fca5a5':'#6ee7b7'}">
@@ -15630,9 +15831,9 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<div style="font-size:11px;color:var(--text3)">'+(activeCat||'All Documents')+' \u00b7 '+filteredDocs.length+' file'+(filteredDocs.length!==1?'s':'')+'</div>'
   +'</div>'
   +'<div style="display:flex;gap:6px;align-items:center">'
-  +'<span class="cdc-tip" data-tip="Upload Document"><button class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
-  +'<span class="cdc-tip" data-tip="Scan Document"><button class="btn btn-sm" onclick="_scanDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button></span>'
-  +'<span class="cdc-tip" data-tip="Print"><button class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Upload Document"><button title="Upload" class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Scan Document"><button title="Scan Document" class="btn btn-sm" onclick="_scanDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Print"><button title="Print / Superbill PDF" class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
   +'</div></div>'
 
   // Drop zone
@@ -16735,12 +16936,12 @@ return `<tr style="font-size:12px;${i%2===0?'':'background:#f6f8fc'}">
 <td style="padding:6px 8px;font-size:11px;color:var(--text3)">${iv.createdBy||''}</td>
 <td style="padding:6px 8px;font-size:11px">${iv.createdOn||''}</td>
 <td style="padding:6px 8px;text-align:center">
-<button style="background:none;border:none;cursor:pointer;color:var(--brand)" onclick="_editInsurance('${pat.id}',${i})">
+<button title="Edit" style="background:none;border:none;cursor:pointer;color:var(--brand)" onclick="_editInsurance('${pat.id}',${i})">
 <i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i>
 </button>
 </td>
 <td style="padding:6px 8px;text-align:center">
-<button style="background:none;border:none;cursor:pointer;color:#dc2626" onclick="_deleteInsurance('${pat.id}',${i})">
+<button title="Delete" style="background:none;border:none;cursor:pointer;color:#dc2626" onclick="_deleteInsurance('${pat.id}',${i})">
 <i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i>
 </button>
 </td>
@@ -18694,7 +18895,7 @@ function openAddUserModal(existingUser) {
         '<div style="grid-column:1/-1">' +
           '<label style="' + lblStyle + '">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--text3);font-weight:400">for password recovery</span></label>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
-            '<input id="nu-email" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px" autocomplete="off">' +
+            '<input id="nu-email" class="no-upper" type="email" value="' + (u.email||'') + '" placeholder="user@email.com" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px" autocomplete="off">' +
             (isEdit ? '<button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="toast(\'Send via Firebase Console → Authentication\',\'info\')">Reset Password</button>' : '') +
           '</div>' +
           '<div id="nu-email-err" style="font-size:11px;color:var(--red);display:none;margin-top:3px">Enter a valid email address</div>' +
