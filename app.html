@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClaimDataCare</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 
+body, button, input, select, textarea, .modal, .topnav, .section,
+.ptc-banner, .ptc-tabs, .ptc-tab, #pt-main, .ptc-panel,
+.tn-drawer, .tn-menu, h1, h2, h3, h4, h5, h6, p, span, label, div,
+th, td, li, a, .btn, .slabel, .field, .fg, table,
+.ptc-banner-title, .ptc-banner-meta-item { font-family: var(--font) !important; }
 /* Body starts completely blank — JS renders everything */
 html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
 #root{height:100%}
@@ -29,7 +34,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 --shadow-md:0 4px 16px rgba(0,0,0,.08);
 --shadow-lg:0 10px 40px rgba(0,0,0,.12);
 --r:8px;--r-md:12px;--r-lg:14px;--r-xl:16px;
---font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;--mono:'JetBrains Mono','SF Mono',monospace;
+--font:'DM Sans',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono','SF Mono',monospace;
 --sidebar:242px;--topbar:54px;
 }
 [data-theme="dark"]{
@@ -718,19 +723,19 @@ flex-shrink: 0;
 .ptc-qa {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
-  color: rgba(255,255,255,.75); transition: background .15s, color .15s;
+  width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
+  color: rgba(255,255,255,.8); transition: background .15s, color .15s;
   flex-shrink: 0;
 }
-.ptc-qa:hover { background: rgba(255,255,255,.18); color: #fff; }
+.ptc-qa:hover { background: rgba(255,255,255,.2); color: #fff; }
 .ptc-qa .lci { width: 15px; height: 15px; }
 .ptc-qa::after {
   content: attr(data-tip);
-  position: absolute; top: calc(100% + 6px); left: 50%;
+  position: absolute; top: calc(100% + 8px); left: 50%;
   transform: translateX(-50%);
-  background: #1b4332; color: #fff;
+  background: var(--brand-d, #1b4332); color: #fff;
   font-size: 11px; font-weight: 600; white-space: nowrap;
-  padding: 3px 8px; border-radius: 5px;
+  padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1);
   pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 9999;
 }
 .ptc-qa:hover::after { opacity: 1; }
@@ -741,20 +746,31 @@ display: flex; flex-direction: column; overflow: hidden; font-family: var(--font
 }
 /* ?? top banner ???????????????????????????????????????????????? */
 .ptc-banner {
-background: var(--brand-d); color: #fff;
-padding: 6px 14px; font-size: 13px; font-weight: 600;
-display: flex; align-items: center; justify-content: space-between;
-flex-shrink: 0;
+background: var(--brand-d, #1b4332); color: #fff;
+padding: 0 14px; font-size: 12px; font-weight: 500;
+display: flex; align-items: center; gap: 10px;
+flex-shrink: 0; height: 36px;
 }
-.ptc-banner-title { font-size: 14px; font-weight: 700; }
-.ptc-banner-alert {
-background: #e74c3c; color: #fff; font-size: 11px; font-weight: 700;
-padding: 1px 7px; border-radius: 3px; margin-left: 8px;
+.ptc-banner-title {
+font-size: 13px; font-weight: 700; color: #fff;
+white-space: nowrap; letter-spacing: .01em;
 }
+.ptc-banner-meta {
+display: flex; align-items: center; gap: 12px;
+flex: 1; min-width: 0; flex-wrap: nowrap; overflow: hidden;
+}
+.ptc-banner-meta-item {
+display: flex; align-items: center; gap: 4px;
+font-size: 11.5px; color: rgba(255,255,255,.85);
+white-space: nowrap; flex-shrink: 0;
+}
+.ptc-banner-meta-item .lci { width: 12px; height: 12px; opacity: .8; }
 .ptc-banner-close {
-background: none; border: none; color: #fff; font-size: 20px;
-cursor: pointer; padding: 0 4px; line-height: 1;
+background: rgba(255,255,255,.15); border: none; color: #fff;
+font-size: 16px; cursor: pointer; padding: 2px 8px;
+border-radius: 5px; line-height: 1; transition: background .15s;
 }
+.ptc-banner-close:hover { background: rgba(255,255,255,.3); }
 /* ?? tab bar ??????????????????????????????????????????????????? */
 .ptc-tabs {
 background: #e8eaf0; border-bottom: 2px solid #b0b8cc;
@@ -1610,7 +1626,14 @@ function showApp(username) {
     const _tb = document.getElementById('tb-title');
     if(_tb && username) _tb.textContent = username;
     const _tn = document.getElementById('tn-user-name');
-    if(_tn && username) _tn.textContent = (username.split(' ')[0]) || 'Account';
+    if(_tn && username) {
+      // Show as john.smith format — take first word of display name or full username
+      var _uname = username || 'Account';
+      var _sess2 = getSession();
+      if (_sess2 && _sess2.name) _uname = _sess2.name;
+      _tn.textContent = _uname;
+      _tn.title = _uname;
+    }
   } catch(e) {}
   setTimeout(_initTnHover, 100);
   setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
@@ -2316,7 +2339,7 @@ return `<div class="app-shell">
 <div id="tn-user-chip" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:22px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.15);cursor:pointer;position:relative;height:34px;box-sizing:border-box" onclick="toggleUserMenu(event)">
   <div id="tn-user-avatar" style="width:24px;height:24px;border-radius:50%;background:#2d6a4f;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?"); return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}</div>
   <div style="line-height:1">
-    <div id="tn-user-name" style="font-size:12px;font-weight:600;color:var(--text2)"></div>
+    <div id="tn-user-name" style="font-size:11px;font-weight:600;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     <div id="tn-user-role" style="font-size:9px;color:var(--text3)"></div>
   </div>
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
@@ -15331,28 +15354,34 @@ const tabsHTML = TABS.map(t =>
 return `
 <!-- BANNER -->
 <div class="ptc-banner">
-  <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-    <span class="ptc-banner-title" style="white-space:nowrap">Patient's Registration Details</span>
-    <span style="font-weight:400;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-      &nbsp;[ ${pat.acct||''} ],${activeStr}, ${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()} ${pat.mid?pat.mid.toUpperCase():''}, ${age} yrs, ${gender}
-    </span>
-    <div style="display:flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0">
-      <span class="ptc-qa" data-tip="New Appointment"     onclick="_renderChartTab('appointments')"><i data-lucide="calendar-plus"  class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Lab Results"         onclick="_renderChartTab('encounters')"><i data-lucide="flask-conical"    class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Referrals"           onclick="_renderChartTab('auth')"><i data-lucide="share-2"                class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Authorizations"      onclick="_renderChartTab('auth')"><i data-lucide="shield-check"           class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Prescriptions"       onclick="_renderChartTab('pharmacies')"><i data-lucide="pill"             class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Insurance"           onclick="_renderChartTab('insurance')"><i data-lucide="credit-card"       class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Records"             onclick="_renderChartTab('documents')"><i data-lucide="folder-open"       class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Tasks"               onclick="_renderChartTab('tasks')"><i data-lucide="check-square"          class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Messages"            onclick="_renderChartTab('communication')"><i data-lucide="message-circle" class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Clinical Summary"    onclick="_renderChartTab('clinical')"><i data-lucide="activity"           class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Bills"               onclick="_renderChartTab('bills')"><i data-lucide="receipt"               class="lci"></i></span>
+  <!-- Left: title + patient info -->
+  <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden">
+    <span class="ptc-banner-title">&#128203; Patient File</span>
+    <div class="ptc-banner-meta">
+      <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci"></i>${pat.acct||'—'}</span>
+      <span class="ptc-banner-meta-item" style="color:${pat.inactive?'#fca5a5':'#6ee7b7'}">
+        <i data-lucide="${pat.inactive?'user-x':'user-check'}" class="lci"></i>${activeStr}
+      </span>
+      <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci"></i>${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid.toUpperCase():''}</span>
+      <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci"></i>${age} yrs</span>
+      <span class="ptc-banner-meta-item"><i data-lucide="venus-and-mars" class="lci"></i>${gender}</span>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-    <span style="font-size:12px;font-weight:600">Alerts</span>
-    <span class="ptc-banner-alert">${alertCnt}</span>
+  <!-- Right: quick actions + close -->
+  <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:1px;border-right:1px solid rgba(255,255,255,.2);padding-right:8px;margin-right:4px">
+      <span class="ptc-qa" data-tip="New Appointment"  onclick="_renderChartTab('appointments')"><i data-lucide="calendar-plus"   class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Lab Results"      onclick="_renderChartTab('encounters')"><i data-lucide="flask-conical"     class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Referrals"        onclick="_renderChartTab('auth')"><i data-lucide="share-2"                 class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Authorizations"   onclick="_renderChartTab('auth')"><i data-lucide="shield-check"            class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Prescriptions"    onclick="_renderChartTab('pharmacies')"><i data-lucide="pill"              class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Insurance"        onclick="_renderChartTab('insurance')"><i data-lucide="credit-card"        class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Records"          onclick="_renderChartTab('documents')"><i data-lucide="folder-open"        class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Tasks"            onclick="_renderChartTab('tasks')"><i data-lucide="check-square"           class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Messages"         onclick="_renderChartTab('communication')"><i data-lucide="message-circle" class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Clinical Summary" onclick="_renderChartTab('clinical')"><i data-lucide="activity"            class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Bills"            onclick="_renderChartTab('bills')"><i data-lucide="receipt"                class="lci"></i></span>
+    </div>
     <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
   </div>
 </div>
@@ -17600,7 +17629,8 @@ function applyTheme() {
   var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
   var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
   var theme = cfg.theme || ssTheme || 'light';
-  var font  = cfg.font  || ssFont  || 'font-segoe';
+  var font  = cfg.font  || ssFont  || 'font-dmsans';
+  if (!cfg.palette && !cfg.color) cfg.palette = 'forest';
   document.documentElement.setAttribute('data-theme', theme);
   var btnDark = document.getElementById('btn-dark');
   if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
@@ -18533,16 +18563,13 @@ function setAppFont(fontClass) {
     'font-inter':  "'Inter',system-ui,-apple-system,sans-serif",
     'font-mono':   "'JetBrains Mono','SF Mono',monospace",
     'font-dmsans': "'DM Sans',system-ui,sans-serif",
-    'font-lato':   "'Lato',system-ui,sans-serif",
   };
-  const fv = fontMap[fontClass];
-  if (fv) document.documentElement.style.setProperty('--font', fv);
+  const fam = fontMap[fontClass] || fontMap['font-dmsans'];
+  document.documentElement.style.setProperty('--font', fam);
+  // Force inheritance on root so every element picks it up
+  document.documentElement.style.fontFamily = fam;
+  document.body.style.fontFamily = fam;
   _saveUserPrefs({font: fontClass});
-  // Update panel buttons
-  document.querySelectorAll('.app-font-opt').forEach(function(b){
-    b.style.fontWeight = b.dataset.font===fontClass ? '700' : '400';
-    b.style.borderColor = b.dataset.font===fontClass ? 'var(--brand)' : 'var(--border2)';
-  });
 }
 
 
