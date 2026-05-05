@@ -714,8 +714,29 @@ flex-shrink: 0;
 
 
 /* ?? PATIENT CHART OVERLAY ???????????????????????????????????????? */
+/* ── Quick Action icons in patient banner ─────────────── */
+.ptc-qa {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  color: rgba(255,255,255,.75); transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.ptc-qa:hover { background: rgba(255,255,255,.18); color: #fff; }
+.ptc-qa .lci { width: 15px; height: 15px; }
+.ptc-qa::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: #1b4332; color: #fff;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  padding: 3px 8px; border-radius: 5px;
+  pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 9999;
+}
+.ptc-qa:hover::after { opacity: 1; }
 .pt-chart-overlay {
-position: fixed; inset: 0; background: #f0f2f5; z-index: 900;
+position: fixed; top: 36px; left: 0; right: 0; bottom: 0;
+background: #f0f2f5; z-index: 190;
 display: flex; flex-direction: column; overflow: hidden; font-family: var(--font);
 }
 /* ?? top banner ???????????????????????????????????????????????? */
@@ -1186,6 +1207,42 @@ border-radius: 8px;
 /* Appearance panel */
 .ap-theme-active { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
 .ap-font-btn[data-active="true"] { border-color: var(--brand) !important; background: var(--brand-bg) !important; }
+
+/* ── Icon button tooltips ───────────────────────────── */
+.cdc-tip { position:relative; display:inline-block; }
+.cdc-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1b4332;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 9999;
+}
+.cdc-tip::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1b4332;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 9999;
+}
+.cdc-tip:hover::after,
+.cdc-tip:hover::before { opacity: 1; }
 </style>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
@@ -2257,7 +2314,7 @@ return `<div class="app-shell">
 
 <!-- User chip with dropdown -->
 <div id="tn-user-chip" style="display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:22px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.15);cursor:pointer;position:relative;height:34px;box-sizing:border-box" onclick="toggleUserMenu(event)">
-  <div id="tn-user-avatar" style="width:24px;height:24px;border-radius:50%;background:#2d6a4f;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</div>
+  <div id="tn-user-avatar" style="width:24px;height:24px;border-radius:50%;background:#2d6a4f;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?"); return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}</div>
   <div style="line-height:1">
     <div id="tn-user-name" style="font-size:12px;font-weight:600;color:var(--text2)"></div>
     <div id="tn-user-role" style="font-size:9px;color:var(--text3)"></div>
@@ -9832,7 +9889,7 @@ function detectLogoColors(logoB64, callback) {
 // ── Auto-apply logo palette on first login (if no palette saved) ─
 function autoApplyLogoPalette() {
   const cfg = _apiConfigCache || {};
-  if (cfg.palette && cfg.palette !== 'forest') return; // already customized
+  return; // Never auto-detect from logo — user picks their own palette
   const db = getDB();
   const prov = db.providers.find(function(p){ return p.id === activeProviderId; });
   if (!prov || !prov.logo) return;
@@ -15274,31 +15331,34 @@ const tabsHTML = TABS.map(t =>
 return `
 <!-- BANNER -->
 <div class="ptc-banner">
-<div style="display:flex;align-items:center;gap:8px">
-<span class="ptc-banner-title">Patient's Registration Details</span>
-<span style="font-weight:400;font-size:12px">
-&nbsp;[ ${pat.acct||''} ],${activeStr}, ${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()} ${pat.mid?pat.mid.toUpperCase():''}, ${age} Years, ${gender}
-</span>
+  <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+    <span class="ptc-banner-title" style="white-space:nowrap">Patient's Registration Details</span>
+    <span style="font-weight:400;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+      &nbsp;[ ${pat.acct||''} ],${activeStr}, ${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()} ${pat.mid?pat.mid.toUpperCase():''}, ${age} yrs, ${gender}
+    </span>
+    <div style="display:flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0">
+      <span class="ptc-qa" data-tip="New Appointment"     onclick="_renderChartTab('appointments')"><i data-lucide="calendar-plus"  class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Lab Results"         onclick="_renderChartTab('encounters')"><i data-lucide="flask-conical"    class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Referrals"           onclick="_renderChartTab('auth')"><i data-lucide="share-2"                class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Authorizations"      onclick="_renderChartTab('auth')"><i data-lucide="shield-check"           class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Prescriptions"       onclick="_renderChartTab('pharmacies')"><i data-lucide="pill"             class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Insurance"           onclick="_renderChartTab('insurance')"><i data-lucide="credit-card"       class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Records"             onclick="_renderChartTab('documents')"><i data-lucide="folder-open"       class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Tasks"               onclick="_renderChartTab('tasks')"><i data-lucide="check-square"          class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Messages"            onclick="_renderChartTab('communication')"><i data-lucide="message-circle" class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Clinical Summary"    onclick="_renderChartTab('clinical')"><i data-lucide="activity"           class="lci"></i></span>
+      <span class="ptc-qa" data-tip="Bills"               onclick="_renderChartTab('bills')"><i data-lucide="receipt"               class="lci"></i></span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <span style="font-size:12px;font-weight:600">Alerts</span>
+    <span class="ptc-banner-alert">${alertCnt}</span>
+    <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
+  </div>
 </div>
-<div style="display:flex;align-items:center;gap:8px">
-<span style="font-size:12px;font-weight:600">Alerts</span>
-<span class="ptc-banner-alert">${alertCnt}</span>
-<button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
-</div>
-</div>
-
 <!-- TABS -->
 <div class="ptc-tabs">${tabsHTML}</div>
-
-<!-- PRINT BAR -->
-<div class="ptc-print-bar">
-<button class="btn btn-sm" onclick="_exportPatientChartPDF('${pat.id}')" style="display:flex;align-items:center;gap:4px;font-size:11px">
-<i data-lucide="printer" class="lci" style="width:13px;height:13px"></i> Print PDF
-</button>
-<div style="margin-left:auto"></div>
-</div>
-
-<!-- BODY: full width, no persistent sidebar -->
+<!-- BODY -->
 <div style="flex:1;overflow-y:auto;padding:14px 16px" id="pt-main"></div>`;
 }
 
@@ -15397,6 +15457,7 @@ setTimeout(_renderLucideIcons, 20);
 function _buildDocumentsTab(pat, db) {
 if (!pat.documents) pat.documents = [];
 const docs = pat.documents || [];
+
 // Auto-migrate old pat.superbills[] into documents
 if (pat.superbills && pat.superbills.length) {
   pat.superbills.forEach(function(sb) {
@@ -15404,140 +15465,163 @@ if (pat.superbills && pat.superbills.length) {
     if (!already) docs.unshift({
       id: sb.id||('sb_'+(sb.claimId||Date.now())),
       claimId: sb.claimId||'', claimPCN: sb.claimPCN||'',
-      name: sb.name||('Superbill — DOS: '+(sb.dos||sb.date||'')+' — $'+(sb.totalCharge||'0.00')),
-      category: 'Superbills', type: 'pdf',
-      date: sb.dos||sb.date||'', uploadedBy: 'System (Batch)',
-      providerName: sb.providerName||'', providerNPI: sb.providerNPI||'',
-      renderingName: sb.renderingName||'', facilityName: sb.facilityName||'',
-      dx: sb.dx||[], lines: sb.lines||[], ins1: sb.ins1||{},
-      totalCharge: sb.totalCharge||'0.00', createdAt: sb.createdAt||Date.now(),
+      name: sb.name||('Superbill \u2014 DOS: '+(sb.dos||sb.date||'')+' \u2014 $'+(sb.totalCharge||'0.00')),
+      category: 'Superbills', type: 'pdf', date: sb.dos||sb.date||'',
+      uploadedBy: 'System (Batch)', providerName: sb.providerName||'',
+      providerNPI: sb.providerNPI||'', renderingName: sb.renderingName||'',
+      facilityName: sb.facilityName||'', dx: sb.dx||[], lines: sb.lines||[],
+      ins1: sb.ins1||{}, totalCharge: sb.totalCharge||'0.00', createdAt: sb.createdAt||Date.now(),
     });
   });
 }
-const cats = ['Superbills', 'Administrative Documents', 'Authorizations', 'BAKER ACT INFORMATION', 'Clinical Messages', 'Consultation', 'Correspondence Letters', 'Driving License', 'EKG Results', 'Eligibility Verification', 'EOB', 'External Documents', 'HIPAA Form', 'Hospital', 'Imaging (Xray, MRI, etc.)', 'Immunization', 'Insurance Documents', 'Intake Document (HIPAA)', 'Intake Forms', 'Lab Reports', 'Medical Records', 'Operative Reports', 'Prior Authorization', 'Referrals', 'Surgery', 'X-Rays / Radiology'];
+
+// Role check for "Add New Category"
+var _sess = getSession() || {};
+var _role = (_sess.role||'').toLowerCase();
+var _canAddCat = _role.indexOf('super') >= 0 || _role.indexOf('admin') >= 0 || _role.indexOf('manager') >= 0;
+
+// Category groups — grouped by content, alpha within each group. Superbills always first.
+var groups = [
+  { label: 'Billing',            cats: ['Superbills'] },
+  { label: 'Clinical',           cats: ['Clinical Messages','Consultation','EKG Results','Imaging (Xray, MRI, etc.)','Immunization','Lab Reports','Medical Records','Operative Reports','Referrals','Surgery','X-Rays / Radiology'] },
+  { label: 'Administrative',     cats: ['Administrative Documents','Correspondence Letters','Driving License','External Documents','HIPAA Form','Intake Document (HIPAA)','Intake Forms'] },
+  { label: 'Insurance & Billing',cats: ['Authorizations','Eligibility Verification','EOB','Insurance Documents','Prior Authorization'] },
+  { label: 'Facility',           cats: ['Hospital'] },
+];
+
+// Add any custom cats (from docs) not already in a group
+var allGroupedCats = [];
+groups.forEach(function(g){ g.cats.forEach(function(c){ allGroupedCats.push(c); }); });
+var customCats = [];
+docs.forEach(function(d){
+  if (d.category && allGroupedCats.indexOf(d.category) < 0 && customCats.indexOf(d.category) < 0)
+    customCats.push(d.category);
+});
+customCats.sort();
+if (customCats.length) groups.push({ label: 'Other', cats: customCats });
 
 // Count per category
-const catCount = {};
-docs.forEach(d => { catCount[d.category] = (catCount[d.category]||0)+1; });
+var catCount = {};
+docs.forEach(function(d){ catCount[d.category] = (catCount[d.category]||0)+1; });
 
-// Active category (stored in window for this chart session)
-const activeCat = window._docActiveCat || '';
+var activeCat = window._docActiveCat || '';
 
-const catItems = cats.map(c => {
-const cnt = catCount[c]||0;
-const active = activeCat===c;
-return `<div onclick="_setDocCategory('${pat.id}','${c.replace(/'/g,"\\'")}')"
-style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;border-radius:6px;
-background:${active?'var(--brand-bg)':'transparent'};
-border-left:3px solid ${active?'var(--brand)':'transparent'};
-transition:background .15s">
-<i data-lucide="${cnt>0?'folder-open':'folder'}" class="lci"
-style="width:14px;height:14px;color:${cnt>0?'#e07820':'#8090b0'};flex-shrink:0"></i>
-<span style="flex:1;font-size:12px;color:${active?'var(--brand)':'var(--text)'};font-weight:${active?'700':'400'}">${c}</span>
-${cnt>0?`<span style="background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px">${cnt}</span>`:'<span style="font-size:10px;color:var(--text3)">0</span>'}
-</div>`;
+// Build category rows
+function catRow(c) {
+  var cnt = catCount[c]||0;
+  var active = activeCat===c;
+  var badge = cnt > 0
+    ? '<span style="background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px">'+cnt+'</span>'
+    : '<span style="font-size:10px;color:var(--text3)">0</span>';
+  return '<div onclick="_setDocCategory(\''+pat.id+'\',\''+c.replace(/'/g,"\\'")+'\')"'
+    +' style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;border-radius:6px;'
+    +'background:'+(active?'var(--brand-bg)':'transparent')+';'
+    +'border-left:3px solid '+(active?'var(--brand)':'transparent')+';transition:background .15s">'
+    +'<i data-lucide="'+(cnt>0?'folder-open':'folder')+'" class="lci"'
+    +' style="width:13px;height:13px;color:'+(cnt>0?'#e07820':'#8090b0')+';flex-shrink:0"></i>'
+    +'<span style="flex:1;font-size:12px;color:'+(active?'var(--brand)':'var(--text)')+';font-weight:'+(active?'700':'400')+'">'+c+'</span>'
+    +badge
+    +'</div>';
+}
+
+var catItems = groups.map(function(g) {
+  return '<div style="padding:4px 6px 0">'
+    +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 4px 3px">'+g.label+'</div>'
+    +g.cats.map(catRow).join('')
+    +'</div>';
 }).join('');
 
-// Documents in active category
-const filteredDocs = activeCat
-? docs.filter(d => d.category===activeCat)
-: docs;
+var addCatLink = _canAddCat
+  ? '<div style="padding:8px 10px;margin-top:4px"><a href="#" onclick="_addDocCategory(\''+pat.id+'\');return false"'
+    +' style="font-size:11px;color:var(--brand);font-weight:600;display:flex;align-items:center;gap:4px">'
+    +'<i data-lucide="plus-circle" class="lci" style="width:12px;height:12px"></i> Add New Category</a></div>'
+  : '';
 
-// Superbills toolbar when in Superbills category
-const isSBCat = activeCat === 'Superbills';
-const sbToolbar = isSBCat && filteredDocs.length ? `
-<div id="sb-toolbar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border)">
-  <input type="checkbox" id="sb-chk-all" onchange="_sbToggleAll(this.checked,'${pat.id}')"
-    style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">
-  <label for="sb-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0">Select All</label>
-  <button class="btn btn-primary btn-sm" onclick="_sbDownloadSelected('${pat.id}')" style="margin-left:auto">
-    <i data-lucide="download" class="lci"></i> Download Selected
-  </button>
-</div>` : '';
+// Filtered docs
+var filteredDocs = activeCat ? docs.filter(function(d){ return d.category===activeCat; }) : docs;
+var isSBCat = activeCat === 'Superbills';
 
-const docRows = filteredDocs.length ? sbToolbar + filteredDocs.map((d,i) => `
-<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;
-border-bottom:1px solid var(--border);background:${i%2===0?'var(--bg2)':'var(--bg3)'}">
-${isSBCat ? `<input type="checkbox" class="sb-chk" data-idx="${docs.indexOf(d)}" data-id="${d.id||''}"
-  style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0">` : ''}
-<div style="width:36px;height:36px;background:${_docTypeColor(d.type)};border-radius:6px;
-display:flex;align-items:center;justify-content:center;flex-shrink:0">
-<i data-lucide="${_docTypeIcon(d.type)}" class="lci" style="width:18px;height:18px;color:#fff"></i>
-</div>
-<div style="flex:1;min-width:0">
-<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Untitled'}</div>
-<div style="font-size:11px;color:var(--text3)">${d.category||''} · ${d.date||''} · ${d.uploadedBy||''}</div>
-</div>
-<div style="display:flex;gap:6px;flex-shrink:0">
-${isSBCat ? `<button class="btn btn-xs btn-primary" onclick="_sbDownloadOne('${pat.id}',${docs.indexOf(d)})">
-<i data-lucide="download" class="lci"></i> PDF</button>` : ''}
-${d.data?`<button class="btn btn-xs" onclick="_viewDoc('${pat.id}',${docs.indexOf(d)})">
-<i data-lucide="eye" class="lci"></i> View</button>`:''}
-${isSBCat ? `<button class="btn btn-xs" onclick="_viewDoc('${pat.id}',${docs.indexOf(d)})">
-<i data-lucide="eye" class="lci"></i> View</button>` : ''}
-<button class="btn btn-xs btn-danger" onclick="_deleteDoc('${pat.id}',${docs.indexOf(d)})">
-<i data-lucide="trash-2" class="lci"></i>
-</button>
-</div>
-</div>`).join('')
-: `<div style="padding:40px;text-align:center;color:var(--text3)">
-<i data-lucide="folder-open" class="lci" style="width:40px;height:40px;display:block;margin:0 auto 10px"></i>
-<div style="font-size:13px">${activeCat?'No documents in this category':'Select a category or upload a document'}</div>
-</div>`;
-
-return `
-<div style="display:grid;grid-template-columns:230px 1fr;gap:0;height:100%;min-height:500px">
-
-<!-- LEFT: Category sidebar -->
-<div style="border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)">
-
-<!-- Category list -->
-<div id="doc-cat-list" style="flex:1;overflow-y:auto;padding:6px">
-${catItems}
-<div style="padding:8px 10px;margin-top:4px">
-<a href="#" onclick="_addDocCategory('${pat.id}');return false"
-style="font-size:11px;color:var(--brand);font-weight:600;display:flex;align-items:center;gap:4px">
-<i data-lucide="plus-circle" class="lci" style="width:12px;height:12px"></i> Add New Category
-</a>
-</div>
-</div>
-</div>
-
-<!-- RIGHT: Document viewer -->
-<div style="display:flex;flex-direction:column">
-<!-- Header -->
-<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">
-<div>
-<div style="font-size:13px;font-weight:700;color:var(--brand)">Patient Records</div>
-<div style="font-size:11px;color:var(--text3)">${activeCat||'All Documents'} · ${filteredDocs.length} file${filteredDocs.length!==1?'s':''}</div>
-</div>
-<div style="display:flex;gap:8px">
-<button class="btn btn-primary btn-sm" onclick="_uploadDoc('${pat.id}')" title="Upload Document" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button>
-<button class="btn btn-sm" onclick="_scanDoc('${pat.id}')" title="Scan Document" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button>
-<button class="btn btn-sm" onclick="window.print()" title="Print" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button>
-</div>
-</div>
-
-<!-- Upload drop zone -->
-<div id="doc-drop-zone-${pat.id}"
-ondragover="event.preventDefault();this.style.background='var(--brand-bg)'"
-ondragleave="this.style.background=''"
-ondrop="_handleDocDrop(event,'${pat.id}')"
-style="margin:10px 16px;border:2px dashed var(--border2);border-radius:var(--r);padding:12px;text-align:center;font-size:12px;color:var(--text3);transition:background .2s;cursor:pointer"
-onclick="_uploadDoc('${pat.id}')">
-<i data-lucide="cloud-upload" class="lci" style="width:20px;height:20px;display:block;margin:0 auto 4px"></i>
-Drag & drop files here or click to upload
-</div>
-<input type="file" id="doc-upload-input-${pat.id}" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"
-style="display:none" onchange="_handleDocFiles(event,'${pat.id}')">
-
-<!-- Document list -->
-<div style="flex:1;overflow-y:auto">
-${docRows}
-</div>
-</div>
-</div>`;
+// Superbills toolbar
+var sbToolbar = '';
+if (isSBCat && filteredDocs.length) {
+  sbToolbar = '<div id="sb-toolbar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border)">'
+    +'<input type="checkbox" id="sb-chk-all" onchange="_sbToggleAll(this.checked,\''+pat.id+'\')"'
+    +' style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">'
+    +'<label for="sb-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0">Select All</label>'
+    +'<button class="btn btn-primary btn-sm" onclick="_sbDownloadSelected(\''+pat.id+'\')" style="margin-left:auto">'
+    +'<i data-lucide="download" class="lci"></i> Download Selected</button></div>';
 }
+
+// Doc rows
+var docRowsHTML = '';
+if (filteredDocs.length) {
+  docRowsHTML = sbToolbar + filteredDocs.map(function(d, i) {
+    var di = docs.indexOf(d);
+    var showView = !!d.data || (d.category==='Superbills' && d.lines && d.lines.length);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'
+      +'border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--bg2)':'var(--bg3)')+';">'
+      +(isSBCat?'<input type="checkbox" class="sb-chk" data-idx="'+di+'" data-id="'+(d.id||'')+'"'
+        +' style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0">':'')
+      +'<div style="width:34px;height:34px;background:'+_docTypeColor(d.type)+';border-radius:6px;'
+      +'display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +'<i data-lucide="'+_docTypeIcon(d.type)+'" class="lci" style="width:16px;height:16px;color:#fff"></i></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(d.name||'Untitled')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+(d.category||'')+' \u00b7 '+(d.date||'')+' \u00b7 '+(d.uploadedBy||'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0">'
+      +(isSBCat?'<button class="btn btn-xs btn-primary" onclick="_sbDownloadOne(\''+pat.id+'\','+di+')">'
+        +'<i data-lucide="download" class="lci"></i> PDF</button>':'')
+      +(showView?'<button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')">'
+        +'<i data-lucide="eye" class="lci"></i> View</button>':'')
+      +'<button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')">'
+      +'<i data-lucide="trash-2" class="lci"></i></button>'
+      +'</div></div>';
+  }).join('');
+} else {
+  docRowsHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">'
+    +'<i data-lucide="folder-open" class="lci" style="width:40px;height:40px;display:block;margin:0 auto 10px"></i>'
+    +'<div style="font-size:13px">'+(activeCat?'No documents in this category':'Select a category or upload a document')+'</div></div>';
+}
+
+return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:100%;min-height:500px">'
+
+  // LEFT sidebar
+  +'<div style="border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)">'
+  +'<div id="doc-cat-list" style="flex:1;overflow-y:auto;padding:4px 4px 8px">'
+  +catItems
+  +addCatLink
+  +'</div></div>'
+
+  // RIGHT panel
+  +'<div style="display:flex;flex-direction:column">'
+  +'<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">'
+  +'<div>'
+  +'<div style="font-size:13px;font-weight:700;color:var(--brand)">Patient Records</div>'
+  +'<div style="font-size:11px;color:var(--text3)">'+(activeCat||'All Documents')+' \u00b7 '+filteredDocs.length+' file'+(filteredDocs.length!==1?'s':'')+'</div>'
+  +'</div>'
+  +'<div style="display:flex;gap:6px;align-items:center">'
+  +'<span class="cdc-tip" data-tip="Upload Document"><button class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Scan Document"><button class="btn btn-sm" onclick="_scanDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Print"><button class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'</div></div>'
+
+  // Drop zone
+  +'<div id="doc-drop-zone-'+pat.id+'"'
+  +' ondragover="event.preventDefault();this.style.background=\'var(--brand-bg)\'"'
+  +' ondragleave="this.style.background=\'\'"'
+  +' ondrop="_handleDocDrop(event,\''+pat.id+'\')"'
+  +' style="margin:10px 16px;border:2px dashed var(--border2);border-radius:var(--r);padding:12px;text-align:center;font-size:12px;color:var(--text3);transition:background .2s;cursor:pointer"'
+  +' onclick="_uploadDoc(\''+pat.id+'\')">'
+  +'<i data-lucide="cloud-upload" class="lci" style="width:20px;height:20px;display:block;margin:0 auto 4px"></i>'
+  +'Drag &amp; drop files here or click to upload</div>'
+  +'<input type="file" id="doc-upload-input-'+pat.id+'" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"'
+  +' style="display:none" onchange="_handleDocFiles(event,\''+pat.id+'\')">'
+
+  +'<div style="flex:1;overflow-y:auto">'+docRowsHTML+'</div>'
+  +'</div></div>';
+}
+
 
 function _docTypeIcon(type) {
 const t = (type||'').toLowerCase();
@@ -17136,15 +17220,15 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
   }
 
-  // F5 safe: sessionStorage persists refresh but clears on browser close
+  // F5 safe: restore session from localStorage if available
   var existSess = getSession();
-  var verifiedToken = sessionStorage.getItem('cdc_verified');
-  if (existSess && verifiedToken === 'yes') {
+  if (existSess) {
+    // Re-stamp verified token in case sessionStorage lost it
+    sessionStorage.setItem('cdc_verified', 'yes');
     showApp(existSess.name || existSess.email);
     Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
     return;
   }
-  clearSession();
   renderLoginScreen();
 });
 
@@ -18432,10 +18516,15 @@ function setBrandColor(color) {
 }
 
 function setAppFontSize(size) {
-  document.documentElement.style.setProperty('font-size', size + 'px');
-  // Also set base size on body
-  document.body.style.fontSize = size + 'px';
-  _saveUserPrefs({fontSize: size});
+  var sz = parseFloat(size) || 13;
+  document.documentElement.style.setProperty('--base-font-size', sz + 'px');
+  document.documentElement.style.fontSize = sz + 'px';
+  document.body.style.fontSize = sz + 'px';
+  // Apply to all text containers
+  document.querySelectorAll('.section, .topnav, .modal, .ptc-panel').forEach(function(el) {
+    el.style.fontSize = sz + 'px';
+  });
+  _saveUserPrefs({fontSize: sz});
 }
 
 function setAppFont(fontClass) {
