@@ -59,7 +59,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 .hidden{display:none!important}
 .mono{font-family:var(--mono)}
 .page{display:none}.page.active{display:block}
-.section{display:none}.section.active{display:block;min-height:0;padding:14px 20px}
+.section{display:none}.section.active{display:block;min-height:0;padding:10px 16px}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-family:var(--font);white-space:nowrap;transition:all .15s}
@@ -1726,6 +1726,11 @@ function showApp(username) {
   if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
   setTimeout(function(){ setFbStatus('', 'green'); updateAdminUI(); }, 0);
   go('dashboard');
+  // Load Firestore data then render dashboard
+  Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(e){
+    console.warn('Firestore load failed:', e);
+    try { renderDashboard(); } catch(e2) {}
+  });
 }
 
 
@@ -18068,12 +18073,19 @@ return raw ? JSON.parse(raw) : null;
 
 // ?? Load all collections from Firestore ?????????????????????????????????????
 async function loadFromFirestoreWhenReady() {
-  // Wait up to 5s for Firebase Auth to restore session
-  for (let i = 0; i < 50; i++) {
-    if (_auth && _auth.currentUser) break;
-    await new Promise(r => setTimeout(r, 100));
-  }
-  return loadFromFirestore();
+  return new Promise(function(resolve) {
+    var tries = 0;
+    function attempt() {
+      tries++;
+      if (tries > 30) { resolve(); return; } // timeout after 3s
+      if (_fbReady && _db) {
+        loadFromFirestore().then(resolve).catch(resolve);
+      } else {
+        setTimeout(attempt, 100);
+      }
+    }
+    attempt();
+  });
 }
 
 async function loadFromFirestore() {
