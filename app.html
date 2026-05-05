@@ -5462,7 +5462,9 @@ function getSession() {
   try {
     var ss = sessionStorage.getItem(SESSION_KEY);
     if (ss) return JSON.parse(ss);
-    return null; // No localStorage fallback — session must be fresh each visit
+    var ls = localStorage.getItem(SESSION_KEY);
+    if (ls) { try { sessionStorage.setItem(SESSION_KEY, ls); } catch(e) {} return JSON.parse(ls); }
+    return null;
   } catch(e) { return null; }
 }
 
@@ -5473,12 +5475,13 @@ function setSession(user) {
     activeBillingProviderId: user.activeBillingProviderId || null
   });
   try { sessionStorage.setItem(SESSION_KEY, data); } catch(e) {}
-  // Do NOT save to localStorage — session must require login each visit
+  try { localStorage.setItem(SESSION_KEY, data); } catch(e) {}
 }
 
 function clearSession() {
-sessionStorage.removeItem(SESSION_KEY);
-  try { localStorage.removeItem(SESSION_KEY); } catch(e) {};
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem('cdc_verified');
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
 }
 
 // ?? Login screen ?????????????????????????????????????
@@ -15254,7 +15257,7 @@ const TABS = [
 {id:'summary', label:'Summary'},
 {id:'appointments',label:'Appointments'},
 {id:'followup', label:'Followup'},
-{id:'documents', label:'Documents'},
+{id:'documents', label:'Records'},
 {id:'encounters', label:'Encounters'},
 {id:'bills', label:'Bills'},
 {id:'communication',label:'Communication'},
@@ -15394,6 +15397,23 @@ setTimeout(_renderLucideIcons, 20);
 function _buildDocumentsTab(pat, db) {
 if (!pat.documents) pat.documents = [];
 const docs = pat.documents || [];
+// Auto-migrate old pat.superbills[] into documents
+if (pat.superbills && pat.superbills.length) {
+  pat.superbills.forEach(function(sb) {
+    var already = docs.find(function(d){ return d.claimId===sb.claimId && d.category==='Superbills'; });
+    if (!already) docs.unshift({
+      id: sb.id||('sb_'+(sb.claimId||Date.now())),
+      claimId: sb.claimId||'', claimPCN: sb.claimPCN||'',
+      name: sb.name||('Superbill — DOS: '+(sb.dos||sb.date||'')+' — $'+(sb.totalCharge||'0.00')),
+      category: 'Superbills', type: 'pdf',
+      date: sb.dos||sb.date||'', uploadedBy: 'System (Batch)',
+      providerName: sb.providerName||'', providerNPI: sb.providerNPI||'',
+      renderingName: sb.renderingName||'', facilityName: sb.facilityName||'',
+      dx: sb.dx||[], lines: sb.lines||[], ins1: sb.ins1||{},
+      totalCharge: sb.totalCharge||'0.00', createdAt: sb.createdAt||Date.now(),
+    });
+  });
+}
 const cats = ['Superbills', 'Administrative Documents', 'Authorizations', 'BAKER ACT INFORMATION', 'Clinical Messages', 'Consultation', 'Correspondence Letters', 'Driving License', 'EKG Results', 'Eligibility Verification', 'EOB', 'External Documents', 'HIPAA Form', 'Hospital', 'Imaging (Xray, MRI, etc.)', 'Immunization', 'Insurance Documents', 'Intake Document (HIPAA)', 'Intake Forms', 'Lab Reports', 'Medical Records', 'Operative Reports', 'Prior Authorization', 'Referrals', 'Surgery', 'X-Rays / Radiology'];
 
 // Count per category
@@ -15470,17 +15490,7 @@ return `
 
 <!-- LEFT: Category sidebar -->
 <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)">
-<!-- Search -->
-<div style="padding:10px;border-bottom:1px solid var(--border)">
-<input placeholder="Search categories..." oninput="_filterDocCats(this.value)"
-style="width:100%;padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">
-<div style="font-size:10px;color:var(--text3);margin-top:4px">(type 3 or more characters)</div>
-</div>
-<!-- View controls -->
-<div style="display:flex;gap:0;padding:6px 10px;border-bottom:1px solid var(--border)">
-<button class="btn btn-xs" style="border-radius:4px 0 0 4px" onclick="_setDocCategory('${pat.id}','')">View All</button>
-<button class="btn btn-xs" style="border-radius:0 4px 4px 0;border-left:none">Index View</button>
-</div>
+
 <!-- Category list -->
 <div id="doc-cat-list" style="flex:1;overflow-y:auto;padding:6px">
 ${catItems}
@@ -15498,16 +15508,13 @@ style="font-size:11px;color:var(--brand);font-weight:600;display:flex;align-item
 <!-- Header -->
 <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">
 <div>
-<div style="font-size:13px;font-weight:700;color:var(--brand)">Patient Documents</div>
+<div style="font-size:13px;font-weight:700;color:var(--brand)">Patient Records</div>
 <div style="font-size:11px;color:var(--text3)">${activeCat||'All Documents'} · ${filteredDocs.length} file${filteredDocs.length!==1?'s':''}</div>
 </div>
 <div style="display:flex;gap:8px">
-<button class="btn btn-primary btn-sm" onclick="_uploadDoc('${pat.id}')">
-<i data-lucide="upload" class="lci"></i> Upload Document
-</button>
-<button class="btn btn-sm" onclick="_scanDoc('${pat.id}')">
-<i data-lucide="scan" class="lci"></i> Scan Document
-</button>
+<button class="btn btn-primary btn-sm" onclick="_uploadDoc('${pat.id}')" title="Upload Document" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button>
+<button class="btn btn-sm" onclick="_scanDoc('${pat.id}')" title="Scan Document" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button>
+<button class="btn btn-sm" onclick="window.print()" title="Print" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button>
 </div>
 </div>
 
@@ -18712,22 +18719,26 @@ function addPDFWatermark(doc) {
     var pageH = doc.internal.pageSize.getHeight();
     for (var pg = 1; pg <= pageCount; pg++) {
       doc.setPage(pg);
-      // Shield icon (simplified as text mark) + branding text
-      var x = pageW - 8;
-      var y = pageH - 6;
-      // "Powered by ClaimDataCare" text
-      doc.setFontSize(6.5);
-      doc.setTextColor(180, 190, 185);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Powered by ClaimDataCare • claimdatacare.com', x, y, { align: 'right' });
-      // Small shield symbol using Unicode or box
-      doc.setFontSize(8);
-      doc.setTextColor(45, 106, 79); // brand green
-      doc.text('♥', x - 61.5, y, { align: 'left' });
+      var y = pageH - 5;
+      // "Powered by" in light gray
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(160,170,165);
+      doc.text('Powered by', pageW/2 - 14, y, {align:'right'});
+      // Shield drawn with vectors
+      var sx=pageW/2-12.5, sy=y-3.5, sw=4, sh=4.8;
+      doc.setFillColor(27,67,50); doc.setDrawColor(27,67,50);
+      doc.roundedRect(sx, sy, sw, sh*0.72, 0.6, 0.6, 'F');
+      doc.triangle(sx, sy+sh*0.55, sx+sw, sy+sh*0.55, sx+sw/2, sy+sh, 'F');
+      // White cross inside shield
+      doc.setFillColor(255,255,255);
+      var cx=sx+sw/2, cy=sy+sh*0.35;
+      doc.rect(cx-0.275, cy-0.8, 0.55, 1.6, 'F');
+      doc.rect(cx-0.8, cy-0.275, 1.6, 0.55, 'F');
+      // "ClaimDataCare" in dark green bold
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(27,67,50);
+      doc.text('ClaimDataCare', pageW/2+0.5, y, {align:'left'});
     }
-    // Reset text color
-    doc.setTextColor(0, 0, 0);
-  } catch(e) { console.warn('Watermark error:', e); }
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
+  } catch(e) { console.warn('Watermark error:',e); }
 }
 
 // ── HIPAA Audit Log System ────────────────────────────────────────
