@@ -14,7 +14,7 @@ body, button, input, select, textarea, .modal, .topnav, .section,
 th, td, li, a, .btn, .slabel, .field, .fg, table,
 .ptc-banner-title, .ptc-banner-meta-item { font-family: var(--font) !important; }
 /* Body starts completely blank — JS renders everything */
-html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
+html,html{height:100%}body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
 #root{height:100%}
 
 /* ??? TOKENS ??? */
@@ -103,7 +103,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 /* LAYOUT */
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sidebar{display:none}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;width:100%}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;width:100%;position:relative}
 
 .content{flex:1;overflow-y:auto;padding:0}
 
@@ -280,6 +280,7 @@ border-bottom: 1px solid #e2e5ed;
 flex-shrink: 0;
 z-index: 200;
 gap: 1px;
+position: relative;
 }
 [data-theme="dark"] .topnav {
 background: #161b27;
@@ -1737,11 +1738,18 @@ function showApp(username) {
 
 function renderDashboard(){
 if(!activeProviderId) {
-  var el=document.getElementById('sec-dashboard');
-  if(el) el.innerHTML='<div style="padding:20px 0;display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13px">'
-    +'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-    +'Loading provider data...</div>';
-  return;
+  // Try to use cached provider data first
+  var _db0=getDB(), _s0=getSession();
+  if (_db0.providers && _db0.providers.length) {
+    var _sid=_s0&&_s0.activeBillingProviderId;
+    var _vp=(_sid&&_db0.providers.find(function(p){return p.id===_sid;}))||_db0.providers[0];
+    if (_vp) { activeProviderId=_vp.id; }
+  }
+  if (!activeProviderId) {
+    var _el=document.getElementById('sec-dashboard');
+    if(_el) _el.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">Connecting...</div>';
+    return;
+  }
 }
 const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
@@ -7974,8 +7982,9 @@ function _afterLoad() {
   }
 
   rebuildProvSel();
-  try { renderDashboard(); } catch(e) {}
   go('dashboard');
+  try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
+  setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
   updateBadges();
   updateAdminUI();
   // Auto-apply logo palette on first use
