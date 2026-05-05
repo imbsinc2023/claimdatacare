@@ -10266,7 +10266,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
   if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
 
-  y = 42;
+  y = (prov.logo && prov.logo.length > 200) ? 52 : 46;
   hline(M, y, RX, BORDER_LT, 0.4);
   y += 6;
 
@@ -19061,58 +19061,83 @@ function addPDFWatermark(doc) {
     if(!dh.startsWith('#')) dh='#1b4332';
     var bc=_hr(bh), dc=_hr(dh);
 
-    var pageCount=doc.internal.getNumberOfPages();
-    var pageW=doc.internal.pageSize.getWidth();
-    var pageH=doc.internal.pageSize.getHeight();
-    var margin=14;
+    var pageCount = doc.internal.getNumberOfPages();
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    var margin = 14;
 
     for(var pg=1; pg<=pageCount; pg++) {
       doc.setPage(pg);
 
-      // ── Dimensions ────────────────────────────────────────────────
-      // "Powered by" at 5.5pt ≈ 1.9mm tall
-      // "ClaimDataCare" at 7pt ≈ 2.5mm tall
-      // Line gap: 0.6mm
-      // Total text block: ~5mm — shield matches this at 4.8mm tall
-      var shW = 3.2;            // shield width mm
-      var shH = 4.8;            // shield height mm (matches total text block)
-      var shTopH = shH * 0.67;  // rounded-rect portion
+      // ── Layout constants ──────────────────────────────────────────
+      // Text sizes: "Powered by" 5pt, "ClaimDataCare" 7pt
+      // Line heights approx: 5pt=1.76mm, 7pt=2.47mm, gap=0.5mm → total ~4.73mm
+      // Shield height = 4.8mm to match text block exactly
+      var shH  = 4.8;
+      var shW  = shH * (14/29);  // favicon aspect ratio: viewBox 32×32, shield ~14w×29h
+      var shTopH = shH * 0.62;   // rounded top portion (M16 2 → y=17 of 29 = 58%)
 
-      // Position: bottom-right, with margin from edges
+      // Bottom-right position
       var sx = pageW - margin - shW;
       var sy = pageH - margin - shH;
 
-      // ── Favicon shield (exact proportions from favicon.svg) ───────
+      // ── Draw favicon shield (exact SVG paths scaled) ──────────────
+      // SVG coords: 0 0 32 32, shield: x=[4,28], y=[2,31] → w=24, h=29
+      // Scale: shW/24 horizontally, shH/29 vertically
+      var scX = shW / 24;
+      var scY = shH / 29;
+      function px(svgX) { return sx + (svgX - 4) * scX; }
+      function py(svgY) { return sy + (svgY - 2) * scY; }
+
+      // Outer shield fill — brand color
       doc.setFillColor(bc[0],bc[1],bc[2]);
       doc.setDrawColor(bc[0],bc[1],bc[2]);
-      // Top body (rounded rect)
-      doc.roundedRect(sx, sy, shW, shTopH, 0.5, 0.5, 'F');
-      // Bottom point (triangle)
+
+      // Top body: M16 2 L28 7 → top rounded rect approx (y=2 to y=17)
+      var topH = (17-2) * scY;
+      doc.roundedRect(px(4), py(2), shW, topH, 0.4*scX, 0.4*scY, 'F');
+
+      // Bottom pointed tip: triangle from y=17 down to y=31
+      // Left: (4, 17), Right: (28, 17), Tip: (16, 31)
       doc.triangle(
-        sx,           sy + shTopH - 0.25,
-        sx + shW,     sy + shTopH - 0.25,
-        sx + shW/2,   sy + shH,
+        px(4),  py(17),
+        px(28), py(17),
+        px(16), py(31),
         'F'
       );
-      // White cross (proportional to favicon.svg cross)
-      doc.setFillColor(255,255,255);
-      var cx = sx + shW/2;
-      var cy = sy + shH*0.38;
-      doc.rect(cx-0.22, cy-0.85, 0.44, 1.7, 'F');   // vertical
-      doc.rect(cx-0.85, cy-0.22, 1.7,  0.44, 'F');  // horizontal
 
-      // ── Text block — left of shield, 1.5mm gap ────────────────────
+      // White medical cross — exactly from SVG:
+      // rect x=14.5 y=10 w=3 h=12 rx=1.2  (vertical)
+      // rect x=10   y=14.5 w=12 h=3 rx=1.2 (horizontal)
+      doc.setFillColor(255,255,255);
+      // Vertical bar
+      doc.roundedRect(
+        px(14.5), py(10),
+        3*scX, 12*scY,
+        0.3, 0.3, 'F'
+      );
+      // Horizontal bar
+      doc.roundedRect(
+        px(10), py(14.5),
+        12*scX, 3*scY,
+        0.3, 0.3, 'F'
+      );
+
+      // ── Text — left of shield, 1.5mm gap ─────────────────────────
       var tx = sx - 1.5;
-      // "Powered by" top — aligned to top of shield
+      var midY = sy + shH/2;
+
+      // "Powered by" — top, small gray
       doc.setFont('helvetica','normal');
       doc.setFontSize(5.5);
       doc.setTextColor(150,155,152);
-      doc.text('Powered by', tx, sy + 1.7, {align:'right'});
-      // "ClaimDataCare" bottom — aligned to bottom of text block
+      doc.text('Powered by', tx, sy + 1.8, {align:'right'});
+
+      // "ClaimDataCare" — bottom, bold brand-dark
       doc.setFont('helvetica','bold');
       doc.setFontSize(7);
       doc.setTextColor(dc[0],dc[1],dc[2]);
-      doc.text('ClaimDataCare', tx, sy + shH - 0.2, {align:'right'});
+      doc.text('ClaimDataCare', tx, sy + shH, {align:'right'});
     }
     doc.setTextColor(0,0,0);
     doc.setFont('helvetica','normal');
