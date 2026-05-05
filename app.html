@@ -105,7 +105,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 .sidebar{display:none}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;width:100%}
 
-.content{flex:1;overflow-y:auto;padding:22px}
+.content{flex:1;overflow-y:auto;padding:14px 20px}
 
 /* SIDEBAR */
 .sb-brand{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -1697,15 +1697,24 @@ function showApp(username) {
     if (_tb) _tb.textContent = _uname;
     // Populate dropdown header
     var _mn = document.getElementById('tn-menu-name');
-    var _me = document.getElementById('tn-menu-email');
     var _mr = document.getElementById('tn-menu-role');
     if (_mn) _mn.textContent = _uname;
-    // Set avatar initials from name (e.g. "John Smith" → "JS")
-    var _initials = _uname.split(' ').map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
+    // Avatar initials: first letter of each word — "John Smith" → "JS"
+    var _nameParts = _uname.trim().split(/\s+/);
+    var _initials = _nameParts.map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
     var _av1 = document.getElementById('tn-avatar-initials');
     var _av2 = document.getElementById('tn-avatar-initials2');
     if (_av1) _av1.textContent = _initials;
     if (_av2) _av2.textContent = _initials;
+    // Billing provider name under username in chip
+    var _provEl = document.getElementById('tn-user-prov');
+    if (_provEl) {
+      try {
+        var _db2 = getDB();
+        var _prov2 = (_db2.providers||[]).find(function(p){ return p.id===activeProviderId; });
+        _provEl.textContent = _prov2 ? (_prov2.name||'') : '';
+      } catch(e) {}
+    }
     if (_me) _me.textContent = session.email || '';
     if (_mr) _mr.textContent = session.role || '';
   } catch(e) {}
@@ -2478,9 +2487,13 @@ return `<div class="app-shell">
     border:1.5px solid rgba(255,255,255,.4)">
     <span id="tn-avatar-initials">?</span>
   </div>
-  <!-- Name -->
-  <div id="tn-user-name" style="font-size:11px;font-weight:600;color:#fff;
-    max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1"></div>
+  <!-- Name + Provider -->
+  <div style="line-height:1.2;max-width:110px">
+    <div id="tn-user-name" style="font-size:11px;font-weight:700;color:#fff;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    <div id="tn-user-prov" style="font-size:9px;color:rgba(255,255,255,.7);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px"></div>
+  </div>
   <!-- Caret -->
   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2.5" style="color:rgba(255,255,255,.6);flex-shrink:0">
@@ -2495,20 +2508,17 @@ return `<div class="app-shell">
   box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">
 
   <!-- Header with avatar + info -->
-  <div style="padding:16px;background:var(--brand-d);display:flex;align-items:center;gap:12px">
-    <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);
-      border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;
-      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
+  <div style="padding:14px 16px;background:var(--brand-d);display:flex;align-items:center;gap:12px">
+    <div style="width:42px;height:42px;border-radius:50%;background:var(--brand);
+      border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;
+      justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">
       <span id="tn-avatar-initials2">?</span>
     </div>
-    <div style="min-width:0">
+    <div style="min-width:0;flex:1">
       <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="tn-menu-email" style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="tn-menu-role" style="margin-top:4px;display:inline-block;
-        font-size:10px;font-weight:700;color:var(--brand-d);background:rgba(255,255,255,.9);
-        padding:1px 8px;border-radius:20px" id="tn-menu-role"></div>
+      <div id="tn-menu-role" style="font-size:10px;color:rgba(255,255,255,.75);
+        margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     </div>
   </div>
 
@@ -19029,31 +19039,54 @@ if (typeof window !== 'undefined') {
 // ── ClaimDataCare PDF Watermark ───────────────────────────────────
 function addPDFWatermark(doc) {
   try {
-    var pageCount = doc.internal.getNumberOfPages();
-    var pageW = doc.internal.pageSize.getWidth();
-    var pageH = doc.internal.pageSize.getHeight();
-    for (var pg = 1; pg <= pageCount; pg++) {
+    var _root = document.documentElement;
+    var _cs = getComputedStyle(_root);
+    function _hr(h) {
+      h=(h||'').trim().replace('#','');
+      if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      var n=parseInt(h,16)||0;
+      return [n>>16&255,n>>8&255,n&255];
+    }
+    var bh = (_cs.getPropertyValue('--brand')||'#2d6a4f').trim();
+    var dh = (_cs.getPropertyValue('--brand-d')||'#1b4332').trim();
+    if(!bh.startsWith('#')) bh='#2d6a4f';
+    if(!dh.startsWith('#')) dh='#1b4332';
+    var bc=_hr(bh), dc=_hr(dh);
+
+    var pageCount=doc.internal.getNumberOfPages();
+    var pageW=doc.internal.pageSize.getWidth();
+    var pageH=doc.internal.pageSize.getHeight();
+    var margin=14;
+
+    for(var pg=1; pg<=pageCount; pg++) {
       doc.setPage(pg);
-      var y = pageH - 5;
-      // "Powered by" in light gray
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(160,170,165);
-      doc.text('Powered by', pageW/2 - 14, y, {align:'right'});
-      // Shield drawn with vectors
-      var sx=pageW/2-12.5, sy=y-3.5, sw=4, sh=4.8;
-      doc.setFillColor(27,67,50); doc.setDrawColor(27,67,50);
-      doc.roundedRect(sx, sy, sw, sh*0.72, 0.6, 0.6, 'F');
-      doc.triangle(sx, sy+sh*0.55, sx+sw, sy+sh*0.55, sx+sw/2, sy+sh, 'F');
-      // White cross inside shield
+      var ry=pageH-6;
+
+      // Shield favicon — right aligned
+      var shW=5, shH=6, shTopH=shH*0.65;
+      var sx=pageW-margin-shW;
+      var sy=ry-shH+1;
+
+      // Shield body
+      doc.setFillColor(bc[0],bc[1],bc[2]); doc.setDrawColor(bc[0],bc[1],bc[2]);
+      doc.roundedRect(sx,sy,shW,shTopH,0.8,0.8,'F');
+      doc.triangle(sx,sy+shTopH-0.3, sx+shW,sy+shTopH-0.3, sx+shW/2,sy+shH,'F');
+
+      // White cross
       doc.setFillColor(255,255,255);
-      var cx=sx+sw/2, cy=sy+sh*0.35;
-      doc.rect(cx-0.275, cy-0.8, 0.55, 1.6, 'F');
-      doc.rect(cx-0.8, cy-0.275, 1.6, 0.55, 'F');
-      // "ClaimDataCare" in dark green bold
-      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(27,67,50);
-      doc.text('ClaimDataCare', pageW/2+0.5, y, {align:'left'});
+      var cx=sx+shW/2, cy=sy+shH*0.38;
+      doc.rect(cx-0.35,cy-1.1,0.7,2.2,'F');
+      doc.rect(cx-1.1,cy-0.35,2.2,0.7,'F');
+
+      // Text block just left of shield
+      var tx=sx-1.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(160,165,162);
+      doc.text('Powered by',tx,ry-2.2,{align:'right'});
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(dc[0],dc[1],dc[2]);
+      doc.text('ClaimDataCare',tx,ry,{align:'right'});
     }
     doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
-  } catch(e) { console.warn('Watermark error:',e); }
+  } catch(e){ console.warn('Watermark:',e); }
 }
 
 // ── HIPAA Audit Log System ────────────────────────────────────────
