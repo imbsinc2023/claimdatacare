@@ -59,7 +59,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 .hidden{display:none!important}
 .mono{font-family:var(--mono)}
 .page{display:none}.page.active{display:block}
-.section{display:none}.section.active{display:block}
+.section{display:none}.section.active{display:block;min-height:0}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-family:var(--font);white-space:nowrap;transition:all .15s}
@@ -1686,27 +1686,22 @@ setTimeout(_renderLucideIcons, 20);
 
 function showApp(username) {
   const session = getSession();
-  if(!session) { renderLoginScreen(); return; }
+  if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
-  // Set user chip AFTER shell is rendered so elements exist
   try {
-    var _uname = session.name || session.email || username || 'Account';
+    // Full display name: prefer first+last, fallback to name/email
+    var _uname = session.name || session.email || username || 'User';
+    // Initials from full name words
+    var _initials = _uname.trim().split(/\s+/).map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
+    // User chip
     var _tn = document.getElementById('tn-user-name');
     if (_tn) { _tn.textContent = _uname; _tn.title = _uname; }
-    var _tb = document.getElementById('tb-title');
-    if (_tb) _tb.textContent = _uname;
-    // Populate dropdown header
-    var _mn = document.getElementById('tn-menu-name');
-    var _mr = document.getElementById('tn-menu-role');
-    if (_mn) _mn.textContent = _uname;
-    // Avatar initials: first letter of each word — "John Smith" → "JS"
-    var _nameParts = _uname.trim().split(/\s+/);
-    var _initials = _nameParts.map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
+    // Avatar initials
     var _av1 = document.getElementById('tn-avatar-initials');
     var _av2 = document.getElementById('tn-avatar-initials2');
     if (_av1) _av1.textContent = _initials;
     if (_av2) _av2.textContent = _initials;
-    // Billing provider name under username in chip
+    // Billing provider under name
     var _provEl = document.getElementById('tn-user-prov');
     if (_provEl) {
       try {
@@ -1715,29 +1710,32 @@ function showApp(username) {
         _provEl.textContent = _prov2 ? (_prov2.name||'') : '';
       } catch(e) {}
     }
-    if (_me) _me.textContent = session.email || '';
+    // Dropdown header
+    var _mn = document.getElementById('tn-menu-name');
+    var _mr = document.getElementById('tn-menu-role');
+    if (_mn) _mn.textContent = _uname;
     if (_mr) _mr.textContent = session.role || '';
   } catch(e) {}
   setTimeout(_initTnHover, 100);
-  setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
+  setTimeout(function(){ _initNavIcons(); _renderLucideIcons(); }, 150);
   updateAdminUI();
   try { initServices(); } catch(e) {}
-  go('dashboard');
-  const userEl = document.getElementById('sb-username');
-  if(userEl) userEl.textContent = (session.name || session.email || username);
   const btnLang = document.getElementById('btn-lang');
-  if(btnLang) btnLang.textContent = LANG === 'en' ? 'ES' : 'EN';
+  if (btnLang) btnLang.textContent = LANG === 'en' ? 'ES' : 'EN';
   applyTheme();
-  if(!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
-  setTimeout(() => { setFbStatus('', 'green'); updateAdminUI(); }, 0);
-  // Always go to dashboard — _afterLoad will set providers once Firestore loads
+  if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
+  setTimeout(function(){ setFbStatus('', 'green'); updateAdminUI(); }, 0);
   go('dashboard');
 }
 
 
 
 function renderDashboard(){
-if(!activeProviderId) return;
+if(!activeProviderId) {
+  var el=document.getElementById('sec-dashboard');
+  if(el) el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Loading provider data...</div>';
+  return;
+}
 const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
 const claims=db.claims.filter(c=>c.providerId===activeProviderId);
@@ -8081,7 +8079,7 @@ if (_auth && _fbReady && isEmailFormat) {
 try {
 const cred = await _auth.signInWithEmailAndPassword(email, pass);
 const fbUser = cred.user;
-const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||'Admin',
+const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||fbUser.email.split('@')[0]||'Admin',
 role:'Super Admin', activeBillingProviderId:null };
 setSession(session);
 showApp(session.name);
@@ -8118,7 +8116,8 @@ if (!user) {
 alertEl.innerHTML = '<div class="alert al-error">Incorrect username/email or password.</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
-const session = { id:user.id, email:user.email, name:user.name||'Admin',
+const _fullName = ((user.first||'') + ' ' + (user.last||'')).trim() || user.name || 'User';
+const session = { id:user.id, email:user.email, name:_fullName,
 role:user.role||'Super Admin', activeBillingProviderId:null,
 providerId: user.providerId || null };
 setSession(session);
@@ -10232,7 +10231,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   // Top accent bar
   fill(0,0,W,3,BRAND);
 
-  y = 7;
+  y = 12;
   // Provider logo
   const LOGO_W=30, LOGO_H=30;
   let provX = M;
@@ -10465,7 +10464,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   y += 14;
 
   // ══ FOOTER ══════════════════════════════════════════════════════
-  const fY = 248;
+  const fY = 242;
   hline(M, fY, RX, BORDER_LT, 0.3);
   fill(M, fY+1.5, 3, 20, DARK);
 
@@ -17405,6 +17404,15 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     updateAdminUI();
     updateBadges();
+    // Re-populate user chip billing provider after data loads
+    try {
+      var _provEl2 = document.getElementById('tn-user-prov');
+      if (_provEl2 && activeProviderId) {
+        var _db3 = getDB();
+        var _prov3 = (_db3.providers||[]).find(function(p){ return p.id===activeProviderId; });
+        if (_prov3) _provEl2.textContent = _prov3.name||'';
+      }
+    } catch(e) {}
 
     // Sync theme prefs from landing page → Firestore (once after login)
     var ssTheme = sessionStorage.getItem('cdc_theme');
@@ -19060,32 +19068,53 @@ function addPDFWatermark(doc) {
 
     for(var pg=1; pg<=pageCount; pg++) {
       doc.setPage(pg);
-      var ry=pageH-6;
 
-      // Shield favicon — right aligned
-      var shW=5, shH=6, shTopH=shH*0.65;
-      var sx=pageW-margin-shW;
-      var sy=ry-shH+1;
+      // ── Shield: 8mm tall, right-aligned with margin ──────────────
+      // favicon.svg: shield path M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z
+      // scale to 5×7mm in PDF units
+      var shW=5, shH=7;
+      var shTopH=shH*0.68;   // rounded-rect top portion
+      var sx = pageW - margin - shW;  // right edge minus margin minus shield width
+      var sy = pageH - margin - shH;  // above bottom margin
 
-      // Shield body
-      doc.setFillColor(bc[0],bc[1],bc[2]); doc.setDrawColor(bc[0],bc[1],bc[2]);
-      doc.roundedRect(sx,sy,shW,shTopH,0.8,0.8,'F');
-      doc.triangle(sx,sy+shTopH-0.3, sx+shW,sy+shTopH-0.3, sx+shW/2,sy+shH,'F');
+      // Outer shield body
+      doc.setFillColor(bc[0],bc[1],bc[2]);
+      doc.setDrawColor(bc[0],bc[1],bc[2]);
+      doc.roundedRect(sx, sy, shW, shTopH, 0.9, 0.9, 'F');
+      // Bottom triangle (pointed tip)
+      doc.triangle(
+        sx,        sy + shTopH - 0.4,
+        sx + shW,  sy + shTopH - 0.4,
+        sx + shW/2, sy + shH,
+        'F'
+      );
+      // Inner subtle highlight (optional: inner stroke for depth)
+      // White medical cross
+      doc.setFillColor(255, 255, 255);
+      var cx = sx + shW/2;
+      var cy = sy + shH * 0.36;
+      doc.rect(cx-0.4, cy-1.3, 0.8, 2.6, 'F');  // vertical bar
+      doc.rect(cx-1.3, cy-0.4, 2.6, 0.8, 'F');  // horizontal bar
 
-      // White cross
-      doc.setFillColor(255,255,255);
-      var cx=sx+shW/2, cy=sy+shH*0.38;
-      doc.rect(cx-0.35,cy-1.1,0.7,2.2,'F');
-      doc.rect(cx-1.1,cy-0.35,2.2,0.7,'F');
+      // ── Text: "Powered by" + "ClaimDataCare" left of shield ──────
+      // Both lines vertically centered with shield
+      var tx = sx - 2;                          // 2mm gap between text and shield
+      var midY = sy + shH/2;                    // vertical center of shield
 
-      // Text block just left of shield
-      var tx=sx-1.5;
-      doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(160,165,162);
-      doc.text('Powered by',tx,ry-2.2,{align:'right'});
-      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(dc[0],dc[1],dc[2]);
-      doc.text('ClaimDataCare',tx,ry,{align:'right'});
+      // "Powered by" — small gray, above center line
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.5);
+      doc.setTextColor(160, 165, 162);
+      doc.text('Powered by', tx, midY - 1.2, {align:'right'});
+
+      // "ClaimDataCare" — bold dark green, below center line
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(dc[0], dc[1], dc[2]);
+      doc.text('ClaimDataCare', tx, midY + 2.8, {align:'right'});
     }
-    doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
+    doc.setTextColor(0,0,0);
+    doc.setFont('helvetica','normal');
   } catch(e){ console.warn('Watermark:',e); }
 }
 
