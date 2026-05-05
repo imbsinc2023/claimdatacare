@@ -14,7 +14,7 @@ body, button, input, select, textarea, .modal, .topnav, .section,
 th, td, li, a, .btn, .slabel, .field, .fg, table,
 .ptc-banner-title, .ptc-banner-meta-item { font-family: var(--font) !important; }
 /* Body starts completely blank — JS renders everything */
-html,body{height:100%;margin:0;padding:0;padding-top:36px;box-sizing:border-box;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
+html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
 #root{height:100%}
 
 /* ??? TOKENS ??? */
@@ -75,7 +75,7 @@ html,body{height:100%;margin:0;padding:0;padding-top:36px;box-sizing:border-box;
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-xs{padding:3px 8px;font-size:11px}
 .btn-lg{padding:11px 22px;font-size:14px;font-weight:600}
-.btn-block{width:100%;justify-content:center}
+.btn-block{flex:1;display:flex;flex-direction:column;overflow:hidden;width:100%;justify-content:center}
 .btn-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 /* FORMS */
@@ -101,11 +101,11 @@ html,body{height:100%;margin:0;padding:0;padding-top:36px;box-sizing:border-box;
 .input-row button:hover{background:var(--brand-bg);color:var(--brand)}
 
 /* LAYOUT */
-.app-shell{display:block;min-height:100vh}
+.app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sidebar{display:none}
 .main{width:100%}
 
-.content{overflow-y:auto;padding:0}
+.content{flex:1;overflow-y:auto;padding:22px}
 
 /* SIDEBAR */
 .sb-brand{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
