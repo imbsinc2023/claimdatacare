@@ -1287,10 +1287,10 @@ input[type="hidden"],
 input.no-upper, textarea.no-upper { text-transform: none !important; }
 
 /* ── Fast tooltip for title= on icon buttons ─────────────── */
-button[title]:not(.no-tip) {
+.btn-icon[title], button.btn-xs[title], button.btn-icon[title] {
   position: relative;
 }
-button[title]:not(.no-tip):hover::after {
+.btn-icon[title]:hover::after, button.btn-xs[title]:hover::after {
   content: attr(title);
   position: absolute;
   bottom: calc(100% + 6px);
@@ -1303,18 +1303,6 @@ button[title]:not(.no-tip):hover::after {
   white-space: nowrap;
   padding: 4px 8px;
   border-radius: 5px;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 1;
-}
-button[title]:not(.no-tip):hover::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + 1px);
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--brand-d, #1b4332);
   pointer-events: none;
   z-index: 9999;
 }
@@ -1697,26 +1685,35 @@ setTimeout(_renderLucideIcons, 20);
 
 
 function showApp(username) {
-  try {
-    const _tb = document.getElementById('tb-title');
-    if(_tb && username) _tb.textContent = username;
-    const _tn = document.getElementById('tn-user-name');
-    if(_tn && username) {
-      // Show as john.smith format — take first word of display name or full username
-      var _uname = username || 'Account';
-      var _sess2 = getSession();
-      if (_sess2 && _sess2.name) _uname = _sess2.name;
-      _tn.textContent = _uname;
-      _tn.title = _uname;
-    }
-  } catch(e) {}
-  setTimeout(_initTnHover, 100);
-  setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
   const session = getSession();
   if(!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
+  // Set user chip AFTER shell is rendered so elements exist
+  try {
+    var _uname = session.name || session.email || username || 'Account';
+    var _tn = document.getElementById('tn-user-name');
+    if (_tn) { _tn.textContent = _uname; _tn.title = _uname; }
+    var _tb = document.getElementById('tb-title');
+    if (_tb) _tb.textContent = _uname;
+    // Populate dropdown header
+    var _mn = document.getElementById('tn-menu-name');
+    var _me = document.getElementById('tn-menu-email');
+    var _mr = document.getElementById('tn-menu-role');
+    if (_mn) _mn.textContent = _uname;
+    // Set avatar initials from name (e.g. "John Smith" → "JS")
+    var _initials = _uname.split(' ').map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
+    var _av1 = document.getElementById('tn-avatar-initials');
+    var _av2 = document.getElementById('tn-avatar-initials2');
+    if (_av1) _av1.textContent = _initials;
+    if (_av2) _av2.textContent = _initials;
+    if (_me) _me.textContent = session.email || '';
+    if (_mr) _mr.textContent = session.role || '';
+  } catch(e) {}
+  setTimeout(_initTnHover, 100);
+  setTimeout(() => { _initNavIcons(); _renderLucideIcons(); }, 150);
   updateAdminUI();
   try { initServices(); } catch(e) {}
+  go('dashboard');
   const userEl = document.getElementById('sb-username');
   if(userEl) userEl.textContent = (session.name || session.email || username);
   const btnLang = document.getElementById('btn-lang');
@@ -2479,8 +2476,7 @@ return `<div class="app-shell">
     background:var(--brand);color:#fff;font-size:9px;font-weight:700;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     border:1.5px solid rgba(255,255,255,.4)">
-    ${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?");
-      return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}
+    <span id="tn-avatar-initials">?</span>
   </div>
   <!-- Name -->
   <div id="tn-user-name" style="font-size:11px;font-weight:600;color:#fff;
@@ -2503,8 +2499,7 @@ return `<div class="app-shell">
     <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);
       border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;
       justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
-      ${(function(){ var s=getSession(); if(!s) return "?"; var n=(s.name||s.email||"?");
-        return n.split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2); })()}
+      <span id="tn-avatar-initials2">?</span>
     </div>
     <div style="min-width:0">
       <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;
@@ -5208,6 +5203,9 @@ function updateAdminUI() {
 // Admin visibility is based SOLELY on internal session role — no Firebase Auth dependency
 const session = getSession();
 const isSA = !!(session && session.role === 'Super Admin');
+// Provider selector — Super Admin only
+var _provWrap = document.getElementById('prov-sel-wrap');
+if (_provWrap) _provWrap.style.display = isSA ? '' : 'none';
 
 // Top nav admin group (desktop)
 const tngAdmin = document.getElementById('tng-admin');
