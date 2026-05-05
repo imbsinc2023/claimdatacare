@@ -103,7 +103,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 /* LAYOUT */
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sidebar{display:none}
-.main{width:100%;flex:1;display:flex;flex-direction:column;padding-top:36px}
+.main{width:100%;flex:1;display:flex;flex-direction:column}
 
 .content{flex:1;overflow-y:auto;padding:22px}
 
@@ -1680,11 +1680,11 @@ notes: renderNotes,
 invoices: ()=>{ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} },
 };
 if(renders[page]) {
-  setTimeout(function() {
+  requestAnimationFrame(function() {
     renders[page]();
     updateBadges();
     setTimeout(_renderLucideIcons, 20);
-  }, 0);
+  });
 }
 }
 
@@ -1841,8 +1841,13 @@ function renderPatients(){
   window._patPgIndex = pgIndex;
   var pageList = list.slice(pgIndex * pgSize, (pgIndex+1) * pgSize);
 
+  // Pre-index claim counts once — O(n) instead of O(n*m) per row
+  var _claimCount = {};
+  (db.claims||[]).forEach(function(c){
+    if(c.providerId===activeProviderId) _claimCount[c.patId] = (_claimCount[c.patId]||0)+1;
+  });
   var rows = pageList.map(function(p) {
-    var cnt = (db.claims||[]).filter(function(c){ return c.patId===p.id && c.providerId===activeProviderId; }).length;
+    var cnt = _claimCount[p.id] || 0;
     return '<tr>'
       + '<td>' + ptLinkAcct(p.id, p.acct) + '</td>'
       + '<td>' + ptLinkName(p.id, p.last, p.first) + '</td>'
@@ -17969,10 +17974,9 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 
 // Synchronous local cache (for all sync callers)
 function getDB() {
-if (_localDB) return JSON.parse(JSON.stringify(_localDB));
-// No local cache yet — return empty structure, Firestore will populate on load
+if (_localDB) return _localDB;
 _localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[] };
-return JSON.parse(JSON.stringify(_localDB));
+return _localDB;
 }
 
 // ????????????????????????????????????????????????????????????????????????????
