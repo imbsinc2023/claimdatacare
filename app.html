@@ -106,7 +106,8 @@ h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
 .sidebar{display:none}
 .main{width:100%;flex:1;display:flex;flex-direction:column}
 
-.content{flex:1;overflow-y:auto;padding:14px 22px 22px 22px}.content>*:first-child{margin-top:0}
+.content{flex:1;overflow-y:auto;padding:0 22px 22px 22px}.content>*:first-child{margin-top:0}
+.section.active{padding-top:14px}
 
 /* SIDEBAR */
 .sb-brand{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -10461,7 +10462,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
         var _claimIds = byPatient.get(_sbPatId) ? byPatient.get(_sbPatId).map(function(c){ return c.id; }) : [];
         var _dos = (byPatient.get(_sbPatId)||[])[0]?.dos || '';
         // Deduplicate: skip if same claim already saved
-        var _already = (_pat.documents||[]).find(function(d){ return d.source==='superbill' && d.claimIds && _claimIds.length===1 && d.claimIds[0]===_claimIds[0]; });
+        var _already = (_pat.documents||[]).find(function(d){ return d.source==='superbill' && d.claimIds && _claimIds.length && JSON.stringify(d.claimIds.slice().sort())===JSON.stringify(_claimIds.slice().sort()); });
         if (_already) { _already.data = _sbB64; return; } // update existing instead of duplicating
         var _sbDoc = {
           id: 'sb_' + Date.now(),
@@ -19014,105 +19015,77 @@ if (typeof window !== 'undefined') {
   });
 }
 // ── ClaimDataCare PDF Watermark ───────────────────────────────────
-// Lightweight QR code generator for claimdatacare.com
-// Produces a minimal SVG data URI — no heavy base64 PNG
-function _cdcGenQRSVG() {
-  // Pre-computed 25x25 QR matrix for "claimdatacare.com" (version 2, ECC M)
-  // 1 = dark module, 0 = light module
-  var M = [
-    [1,1,1,1,1,1,1,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0],
-    [1,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0],
-    [1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,1,1,0,1,0,1,0,0],
-    [1,0,1,1,1,0,1,0,0,0,1,0,1,0,1,0,1,1,1,0,1,0,0,1,1],
-    [1,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,1,0,1,1,0],
-    [1,0,0,0,0,0,1,0,0,1,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0],
-    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,0,0,1,0],
-    [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,0,1,0,0,1,1,0,0,1],
-    [0,1,0,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,0,1,0,0],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [0,1,0,1,0,1,0,0,0,1,0,1,1,0,0,1,0,1,0,1,0,1,0,1,0],
-    [1,0,0,1,1,0,1,0,1,0,0,0,1,0,1,0,0,1,1,0,1,0,0,1,1],
-    [0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,0,0],
-    [1,1,1,1,1,1,1,0,0,0,1,0,0,0,1,1,1,1,1,1,1,0,1,1,0],
-    [1,0,0,0,0,0,1,0,1,0,0,1,0,1,1,0,0,0,0,0,1,0,0,0,1],
-    [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0],
-    [1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0,0,1,0,1,1],
-    [1,0,1,1,1,0,1,0,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,0],
-    [1,0,0,0,0,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,0,1,0,1,1],
-    [1,1,1,1,1,1,1,0,0,0,1,0,1,0,1,0,0,1,1,1,1,0,1,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,0,1,0,0,1],
-    [0,1,0,1,0,0,1,1,1,0,1,0,0,0,1,1,0,1,0,0,1,0,1,1,0],
-    [0,1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,1,0,1,0,0,1,0,0,1],
-    [0,0,1,1,0,0,1,1,0,0,1,0,1,1,1,0,1,1,0,0,1,1,0,1,0]
-  ];
-  var n = 25, c = 10; // cell size in px for SVG viewBox
-  var rects = '';
+// Draw QR code for claimdatacare.com using native jsPDF rectangles (no image needed)
+// Pre-computed 25×25 matrix — 1=dark, 0=light
+var _CDC_QR_MATRIX = [
+  [1,1,1,1,1,1,1,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0],
+  [1,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0],
+  [1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,1,1,0,1,0,1,0,0],
+  [1,0,1,1,1,0,1,0,0,0,1,0,1,0,1,0,1,1,1,0,1,0,0,1,1],
+  [1,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,1,0,1,1,0],
+  [1,0,0,0,0,0,1,0,0,1,0,1,1,0,1,0,0,0,0,0,1,0,1,0,0],
+  [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,0,0,1,0],
+  [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+  [1,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,0,1,0,0,1,1,0,0,1],
+  [0,1,0,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,0,1,0,0],
+  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+  [0,1,0,1,0,1,0,0,0,1,0,1,1,0,0,1,0,1,0,1,0,1,0,1,0],
+  [1,0,0,1,1,0,1,0,1,0,0,0,1,0,1,0,0,1,1,0,1,0,0,1,1],
+  [0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,0,0],
+  [1,1,1,1,1,1,1,0,0,0,1,0,0,0,1,1,1,1,1,1,1,0,1,1,0],
+  [1,0,0,0,0,0,1,0,1,0,0,1,0,1,1,0,0,0,0,0,1,0,0,0,1],
+  [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0],
+  [1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0,0,1,0,1,1],
+  [1,0,1,1,1,0,1,0,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,0],
+  [1,0,0,0,0,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,0,1,0,1,1],
+  [1,1,1,1,1,1,1,0,0,0,1,0,1,0,1,0,0,1,1,1,1,0,1,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,0,1,0,0,1],
+  [0,1,0,1,0,0,1,1,1,0,1,0,0,0,1,1,0,1,0,0,1,0,1,1,0],
+  [0,1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,1,0,1,0,0,1,0,0,1],
+  [0,0,1,1,0,0,1,1,0,0,1,0,1,1,1,0,1,1,0,0,1,1,0,1,0]
+];
+
+function _drawQRonPDF(doc, x, y, size) {
+  var n = 25;
+  var cell = size / n;
+  doc.setFillColor(255,255,255);
+  doc.rect(x, y, size, size, 'F');
+  doc.setFillColor(0,0,0);
   for(var r=0; r<n; r++){
-    for(var col=0; col<n; col++){
-      if(M[r][col]) rects += '<rect x="'+(col*c)+'" y="'+(r*c)+'" width="'+c+'" height="'+c+'"/>';
+    for(var c=0; c<n; c++){
+      if(_CDC_QR_MATRIX[r][c]) doc.rect(x+c*cell, y+r*cell, cell, cell, 'F');
     }
   }
-  var sz = n*c;
-  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+sz+' '+sz+'" shape-rendering="crispEdges"><rect width="'+sz+'" height="'+sz+'" fill="#fff"/><g fill="#000">'+rects+'</g></svg>';
-  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
-
-// Cache the QR SVG so it's only generated once
-var _cdcQRSVG = null;
-function _getCDCQR(){ if(!_cdcQRSVG) _cdcQRSVG=_cdcGenQRSVG(); return _cdcQRSVG; }
 
 function addPDFWatermark(doc) {
   try {
-    var _root = document.documentElement;
-    var _cs = getComputedStyle(_root);
-    function _hr(h) {
-      h=(h||'').trim().replace('#','');
-      if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-      var n=parseInt(h,16)||0;
-      return [n>>16&255,n>>8&255,n&255];
-    }
-    var dh = (_cs.getPropertyValue('--brand-d')||'#1b4332').trim();
-    if(!dh.startsWith('#')) dh='#1b4332';
-    var dc=_hr(dh);
-
+    var dc = [27,67,50]; // #1b4332 brand-dark
     var pageCount = doc.internal.getNumberOfPages();
     var pageW = doc.internal.pageSize.getWidth();
     var pageH = doc.internal.pageSize.getHeight();
     var margin = 14;
-    var qrMM = 10; // QR size 10×10mm
+    var qrMM = 10;
 
     for(var pg=1; pg<=pageCount; pg++) {
       doc.setPage(pg);
-
-      // QR: bottom-right corner
       var qrX = pageW - margin - qrMM;
       var qrY = pageH - margin - qrMM;
 
-      // Embed SVG QR (lightweight — no heavy JPEG)
-      try {
-        var qrSVG = _getCDCQR();
-        doc.addImage(qrSVG, 'SVG', qrX, qrY, qrMM, qrMM);
-      } catch(imgErr) {
-        // minimal fallback: tiny branded square
-        doc.setFillColor(dc[0],dc[1],dc[2]);
-        doc.rect(qrX, qrY, qrMM, qrMM, 'F');
-      }
+      // Draw QR natively — no image, no SVG, always works
+      _drawQRonPDF(doc, qrX, qrY, qrMM);
 
       // Text right-aligned, left of QR
       var tx = qrX - 2;
       var midY = qrY + qrMM / 2;
-
       doc.setFont('helvetica','normal');
       doc.setFontSize(5.5);
       doc.setTextColor(150,155,152);
       doc.text('Powered by', tx, midY - 1.8, {align:'right'});
-
       doc.setFont('helvetica','bold');
       doc.setFontSize(7);
       doc.setTextColor(dc[0],dc[1],dc[2]);
       doc.text('ClaimDataCare', tx, midY + 0.8, {align:'right'});
-
       doc.setFont('helvetica','normal');
       doc.setFontSize(5);
       doc.setTextColor(150,155,152);
