@@ -286,7 +286,8 @@ top: 0;
 left: 0;
 right: 0;
 }
-.main { padding-top: 36px; }
+.main { padding-top: 0; }
+.content { padding-top: 50px !important; }
 [data-theme="dark"] .topnav {
 background: #161b27;
 border-bottom-color: #2a3347;
@@ -1554,18 +1555,23 @@ function showApp(username) {
   if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
   try {
-    // Full display name: prefer first+last, fallback to name/email
+    // Full display name: prefer name field, then first+last, then email prefix
     var _uname = session.name || session.email || username || 'User';
-    // Initials from first+last (2 chars)
+    // For Firebase super admin — use DEFAULT_ADMIN name if email matches
+    try {
+      if (session.email === atob('aW1ic2luYzIwMjNAZ21haWwuY29t') && _uname.includes('@')) {
+        _uname = 'Frank Cue';
+      }
+    } catch(e) {}
+    // Initials from name words (max 2 chars)
     var _nameParts = _uname.trim().split(/\s+/);
     var _initials = (_nameParts.length >= 2)
       ? (_nameParts[0][0] + _nameParts[_nameParts.length-1][0]).toUpperCase()
       : (_uname.trim().slice(0,2).toUpperCase());
-    // User chip - show first name only
+    // Chip shows first name only
     var _firstName = _nameParts[0] || _uname;
     var _tn = document.getElementById('tn-user-name');
     if (_tn) { _tn.textContent = _firstName; _tn.title = _uname; }
-    // Avatar initials
     var _av1 = document.getElementById('tn-avatar-initials');
     var _av2 = document.getElementById('tn-avatar-initials2');
     if (_av1) _av1.textContent = _initials;
@@ -1578,7 +1584,7 @@ function showApp(username) {
     var _mt = document.getElementById('tn-menu-login-time');
     if (_mn) _mn.textContent = _uname;
     if (_me) _me.textContent = session.email || '';
-    if (_mr) _mr.textContent = session.role || '';
+    if (_mr) _mr.style.display = 'none'; // hide role
     if (_mt) _mt.textContent = 'Logged in ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     if (_mp) {
       try {
@@ -5093,7 +5099,7 @@ return;
 // Local hash fallback — same credentials as main login
 const hash = await sha256(pass);
 const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
-const user = allUsers.find(u => (u.email.toLowerCase() === email || (u.name||'').toLowerCase() === email) && u.passHash === hash);
+const user = allUsers.find(u => ((u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email || (u.username||'').toLowerCase() === email) && u.passHash === hash);
 
 if (!user || user.role !== 'Super Admin') {
 alertEl.innerHTML = '<div class="alert al-error">Incorrect email or password.</div>';
@@ -7922,7 +7928,7 @@ const hash = await sha256(pass);
 const btoaHash = btoa(pass); // some users stored with btoa
 const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
 const user = allUsers.find(function(u) {
-  const matchId = (u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email;
+  const matchId = (u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email || (u.username||'').toLowerCase() === email || (u.first||'').toLowerCase() === email;
   const matchHash = u.passHash === hash || u.passHash === btoaHash;
   return matchId && matchHash;
 });
