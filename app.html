@@ -102,12 +102,11 @@ h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
 .input-row button:hover{background:var(--brand-bg);color:var(--brand)}
 
 /* LAYOUT */
-.app-shell{display:flex;flex-direction:column;height:100vh}
+.app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sidebar{display:none}
 .main{width:100%;flex:1;display:flex;flex-direction:column}
 
-.content{flex:1;overflow-y:auto;padding:0 22px 22px 22px}.content>*:first-child{margin-top:0}
-.section.active{padding-top:14px}
+.content{flex:1;overflow-y:auto;padding:14px 22px 22px 22px}.content>*:first-child{margin-top:0}
 
 /* SIDEBAR */
 .sb-brand{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -282,9 +281,12 @@ border-bottom: 1px solid #e2e5ed;
 flex-shrink: 0;
 z-index: 200;
 gap: 1px;
-position: sticky;
+position: fixed;
 top: 0;
+left: 0;
+right: 0;
 }
+.main { padding-top: 36px; }
 [data-theme="dark"] .topnav {
 background: #161b27;
 border-bottom-color: #2a3347;
@@ -1699,30 +1701,37 @@ function showApp(username) {
   try {
     // Full display name: prefer first+last, fallback to name/email
     var _uname = session.name || session.email || username || 'User';
-    // Initials from full name words
-    var _initials = _uname.trim().split(/\s+/).map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2) || '?';
-    // User chip
+    // Initials from first+last (2 chars)
+    var _nameParts = _uname.trim().split(/\s+/);
+    var _initials = (_nameParts.length >= 2)
+      ? (_nameParts[0][0] + _nameParts[_nameParts.length-1][0]).toUpperCase()
+      : (_uname.trim().slice(0,2).toUpperCase());
+    // User chip - show first name only
+    var _firstName = _nameParts[0] || _uname;
     var _tn = document.getElementById('tn-user-name');
-    if (_tn) { _tn.textContent = _uname; _tn.title = _uname; }
+    if (_tn) { _tn.textContent = _firstName; _tn.title = _uname; }
     // Avatar initials
     var _av1 = document.getElementById('tn-avatar-initials');
     var _av2 = document.getElementById('tn-avatar-initials2');
     if (_av1) _av1.textContent = _initials;
     if (_av2) _av2.textContent = _initials;
-    // Billing provider under name
-    var _provEl = document.getElementById('tn-user-prov');
-    if (_provEl) {
+    // Dropdown info
+    var _mn = document.getElementById('tn-menu-name');
+    var _me = document.getElementById('tn-menu-email');
+    var _mr = document.getElementById('tn-menu-role');
+    var _mp = document.getElementById('tn-menu-prov');
+    var _mt = document.getElementById('tn-menu-login-time');
+    if (_mn) _mn.textContent = _uname;
+    if (_me) _me.textContent = session.email || '';
+    if (_mr) _mr.textContent = session.role || '';
+    if (_mt) _mt.textContent = 'Logged in ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    if (_mp) {
       try {
         var _db2 = getDB();
         var _prov2 = (_db2.providers||[]).find(function(p){ return p.id===activeProviderId; });
-        _provEl.textContent = _prov2 ? (_prov2.name||'') : '';
+        _mp.textContent = _prov2 ? (_prov2.name||'') : '';
       } catch(e) {}
     }
-    // Dropdown header
-    var _mn = document.getElementById('tn-menu-name');
-    var _mr = document.getElementById('tn-menu-role');
-    if (_mn) _mn.textContent = _uname;
-    if (_mr) _mr.textContent = session.role || '';
   } catch(e) {}
   setTimeout(_initTnHover, 100);
   setTimeout(function(){ _initNavIcons(); _renderLucideIcons(); }, 150);
@@ -2497,26 +2506,19 @@ return `<div class="app-shell">
 
 <!-- User chip with dropdown -->
 <div id="tn-user-chip" onclick="toggleUserMenu(event)"
-  style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:20px;
+  style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;border-radius:20px;
   background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);cursor:pointer;
   height:30px;box-sizing:border-box;transition:background .15s;flex-shrink:0"
   onmouseover="this.style.background='rgba(255,255,255,.22)'"
   onmouseout="this.style.background='rgba(255,255,255,.13)'">
-  <!-- Avatar circle with initials -->
   <div id="tn-user-avatar" style="width:22px;height:22px;border-radius:50%;
     background:var(--brand);color:#fff;font-size:9px;font-weight:700;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     border:1.5px solid rgba(255,255,255,.4)">
     <span id="tn-avatar-initials">?</span>
   </div>
-  <!-- Name + Provider -->
-  <div style="line-height:1.2;max-width:110px">
-    <div id="tn-user-name" style="font-size:11px;font-weight:700;color:#fff;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-    <div id="tn-user-prov" style="font-size:9px;color:rgba(255,255,255,.7);
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px"></div>
-  </div>
-  <!-- Caret -->
+  <div id="tn-user-name" style="font-size:11px;font-weight:700;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px"></div>
   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2.5" style="color:rgba(255,255,255,.6);flex-shrink:0">
     <polyline points="6 9 12 15 18 9"></polyline>
@@ -2531,16 +2533,23 @@ return `<div class="app-shell">
 
   <!-- Header with avatar + info -->
   <div style="padding:14px 16px;background:var(--brand-d);display:flex;align-items:center;gap:12px">
-    <div style="width:42px;height:42px;border-radius:50%;background:var(--brand);
+    <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);
       border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;
-      justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">
+      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
       <span id="tn-avatar-initials2">?</span>
     </div>
     <div style="min-width:0;flex:1">
       <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="tn-menu-role" style="font-size:10px;color:rgba(255,255,255,.75);
-        margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="tn-menu-email" style="font-size:10px;color:rgba(255,255,255,.65);
+        margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+        <span id="tn-menu-role" style="font-size:9px;font-weight:700;color:rgba(255,255,255,.9);
+          background:rgba(255,255,255,.15);padding:2px 6px;border-radius:10px"></span>
+        <span id="tn-menu-prov" style="font-size:9px;color:rgba(255,255,255,.65);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px"></span>
+      </div>
+      <div id="tn-menu-login-time" style="font-size:9px;color:rgba(255,255,255,.45);margin-top:3px"></div>
     </div>
   </div>
 
@@ -3196,7 +3205,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="tbl-wrap" style="margin-top:0;border-top:none">
   <table>
     <thead><tr>
-      <th>Username / Email</th>
+      <th>Email</th>
       <th>First Name</th>
       <th>Last Name</th>
       <th>Phone</th>
@@ -8824,11 +8833,19 @@ function renderUserManagement() {
     var last = u.last || nameParts2.slice(1).join(' ');
     last = last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
 
+    var provName = '';
+    try {
+      var db2 = getDB();
+      var prov2 = (db2.providers||[]).find(function(p){ return p.id === u.providerId; });
+      provName = prov2 ? (prov2.name||'') : (isAdmin ? 'All' : '—');
+    } catch(e) { provName = '—'; }
+
     return '<tr>' +
-      '<td style="font-weight:600;font-size:12px">' + (u.name||'') + '</td>' +
+      '<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||u.name||'') + '</td>' +
       '<td style="font-size:12px">' + first + '</td>' +
       '<td style="font-size:12px">' + last + '</td>' +
       '<td style="font-size:12px">' + phone + '</td>' +
+      '<td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + provName + '</td>' +
       '<td>' + roleTag + '</td>' +
       '<td>' + status + ' ' + verified + '</td>' +
       '<td style="text-align:center">' + twoFA + '</td>' +
@@ -15737,13 +15754,13 @@ var isSBCat = activeCat === 'Superbills';
 // Superbills toolbar
 var sbToolbar = '';
 if (isSBCat && filteredDocs.length) {
+if (isSBCat && filteredDocs.length) {
   sbToolbar = '<div id="sb-toolbar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border)">'
-    +'<input type="checkbox" id="sb-chk-all" onchange="_sbToggleAll(this.checked,\''+pat.id+'\')"'
-    +' style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">'
+    +'<input type="checkbox" id="sb-chk-all" onchange="_sbToggleAll(this.checked,\''+ pat.id +'\')"  style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">'
     +'<label for="sb-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0">Select All</label>'
-    +'<button class="btn btn-primary btn-sm" onclick="_sbDownloadSelected(\''+pat.id+'\')" style="margin-left:auto">'
-    +'<i data-lucide="download" class="lci"></i> Download Selected</button></div>';
+    +'</div>';
 }
+
 
 // Doc rows
 var docRowsHTML = '';
@@ -15762,12 +15779,12 @@ if (filteredDocs.length) {
       +'<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(d.name||'Untitled')+'</div>'
       +'<div style="font-size:11px;color:var(--text3)">'+(d.category||'')+' \u00b7 '+(d.date||'')+' \u00b7 '+(d.uploadedBy||'')+'</div>'
       +'</div>'
-      +'<div style="display:flex;gap:6px;flex-shrink:0">'
-      +(isSBCat?'<button class="btn btn-xs btn-primary" onclick="_sbDownloadOne(\''+pat.id+'\','+di+')">'
-        +'<i data-lucide="download" class="lci"></i> PDF</button>':'')
-      +(showView?'<button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')">'
-        +'<i data-lucide="eye" class="lci"></i> View</button>':'')
-      +'<button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')">'
+      +'<div style="display:flex;gap:4px;flex-shrink:0">'
+      +(isSBCat?'<span class="cdc-tip" data-tip="Download PDF"><button class="btn btn-xs btn-primary" onclick="_sbDownloadOne(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button></span>':'')
+      +(showView?'<span class="cdc-tip" data-tip="View"><button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="eye" class="lci" style="width:13px;height:13px"></i></button></span>':'')
+      +'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>'
+      +'</div></div>';
+  }).join('');
       +'<i data-lucide="trash-2" class="lci"></i></button>'
       +'</div></div>';
   }).join('');
@@ -15796,18 +15813,10 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<div style="display:flex;gap:6px;align-items:center">'
   +'<span class="cdc-tip" data-tip="Upload Document"><button title="Upload" class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
   +'<span class="cdc-tip" data-tip="Scan Document"><button title="Scan Document" class="btn btn-sm" onclick="_scanDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button></span>'
-  +'<span class="cdc-tip" data-tip="Print"><button title="Print / Superbill PDF" class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +'<span class="cdc-tip" data-tip="Print"><button title="Print" class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
+  +(isSBCat && filteredDocs.length ? '<span class="cdc-tip" data-tip="Download Selected"><button class="btn btn-sm" onclick="_sbDownloadSelected(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="download" class="lci" style="width:16px;height:16px"></i></button></span>' : '')
   +'</div></div>'
-
-  // Drop zone
-  +'<div id="doc-drop-zone-'+pat.id+'"'
-  +' ondragover="event.preventDefault();this.style.background=\'var(--brand-bg)\'"'
-  +' ondragleave="this.style.background=\'\'"'
-  +' ondrop="_handleDocDrop(event,\''+pat.id+'\')"'
-  +' style="margin:10px 16px;border:2px dashed var(--border2);border-radius:var(--r);padding:12px;text-align:center;font-size:12px;color:var(--text3);transition:background .2s;cursor:pointer"'
-  +' onclick="_uploadDoc(\''+pat.id+'\')">'
-  +'<i data-lucide="cloud-upload" class="lci" style="width:20px;height:20px;display:block;margin:0 auto 4px"></i>'
-  +'Drag &amp; drop files here or click to upload</div>'
+  +'<div id="doc-drop-zone-'+pat.id+'" ondragover="event.preventDefault();this.style.background=\'var(--brand-bg)\'" ondragleave="this.style.background=\'\'" ondrop="_handleDocDrop(event,\''+pat.id+'\')" style="display:none"></div>'
   +'<input type="file" id="doc-upload-input-'+pat.id+'" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"'
   +' style="display:none" onchange="_handleDocFiles(event,\''+pat.id+'\')">'
 
@@ -15980,6 +15989,7 @@ if (!doc.data) { toast('Vista previa no disponible','err'); return; }
 
 // Build preview overlay
 const div = document.createElement('div');
+div.id = 'pdf-preview-overlay';
 div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:6000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px';
 div.onclick = e => { if(e.target===div){ URL.revokeObjectURL(div._blobUrl||''); div.remove(); } };
 
@@ -16014,7 +16024,7 @@ div.innerHTML = `
 style="padding:5px 12px;background:#fff;color:#065f46;border-radius:4px;font-size:12px;font-weight:700;text-decoration:none">
 ⬇ Download
 </a>
-<button onclick="var d=this.closest('[style]').closest('[style]');URL.revokeObjectURL(d._blobUrl||'');d.remove()"
+<button onclick="var d=document.getElementById('pdf-preview-overlay');if(d){URL.revokeObjectURL(d._blobUrl||'');d.remove();}"
 style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button>
 </div>
 </div>
@@ -17775,7 +17785,9 @@ function saveNewUser() {
     + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
     + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
     + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
-    + '<div style="display:flex;gap:4px">' + sizeOpts + '</div>';
+    + '<div style="display:flex;gap:4px;margin-bottom:14px">' + sizeOpts + '</div>'
+    + '<button onclick="saveAppearancePrefs()" style="width:100%;padding:8px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Save</button>'
+    + '<div id="ap-saved-msg" style="text-align:center;font-size:11px;color:var(--brand);margin-top:6px;display:none">Saved ✓</div>';
 
   document.body.appendChild(panel);
   panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
@@ -17786,6 +17798,35 @@ function saveNewUser() {
       }
     });
   }, 100);
+}
+
+function saveAppearancePrefs() {
+  var cfg = _apiConfigCache || {};
+  try {
+    localStorage.setItem('cdc_appearance', JSON.stringify({
+      palette: cfg.palette || 'forest',
+      palCustom: cfg.palCustom || null,
+      font: cfg.font || 'font-dmsans',
+      fontSize: cfg.fontSize || '14',
+      theme: cfg.theme || 'light'
+    }));
+  } catch(e) {}
+  var msg = document.getElementById('ap-saved-msg');
+  if (msg) { msg.style.display='block'; setTimeout(function(){ if(msg) msg.style.display='none'; }, 2000); }
+}
+
+function loadAppearancePrefs() {
+  try {
+    var saved = localStorage.getItem('cdc_appearance');
+    if (!saved) return;
+    var prefs = JSON.parse(saved);
+    if (!_apiConfigCache) _apiConfigCache = {};
+    if (prefs.palette) _apiConfigCache.palette = prefs.palette;
+    if (prefs.palCustom) { _apiConfigCache.palCustom = prefs.palCustom; Object.assign(PALETTES.custom, prefs.palCustom); }
+    if (prefs.font) _apiConfigCache.font = prefs.font;
+    if (prefs.fontSize) _apiConfigCache.fontSize = prefs.fontSize;
+    if (prefs.theme) _apiConfigCache.theme = prefs.theme;
+  } catch(e) {}
 }
 
 function selectPalette(key) {
@@ -17806,6 +17847,7 @@ function updateCustomPalette() {
 }
 var LANG = "en";
 function applyTheme() {
+  loadAppearancePrefs();
   var cfg = _apiConfigCache || {};
   var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
   var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
