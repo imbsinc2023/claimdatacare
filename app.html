@@ -59,7 +59,7 @@ html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--
 .hidden{display:none!important}
 .mono{font-family:var(--mono)}
 .page{display:none}.page.active{display:block}
-.section{display:none}.section.active{display:block;min-height:0;padding:0 16px 4px 16px}
+.section{display:none}.section.active{display:block;min-height:0;padding:0}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-family:var(--font);white-space:nowrap;transition:all .15s}
@@ -1747,16 +1747,12 @@ function showApp(username) {
 function renderDashboard(){
 if(!activeProviderId) {
   var _db0=getDB(), _s0=getSession();
-  var _pids=(_db0.providers||[]).filter(function(p){return p.providerId===(_s0&&_s0.providerId)||true;});
   var _sid=_s0&&(_s0.activeBillingProviderId||_s0.providerId);
   var _vp=(_sid&&(_db0.providers||[]).find(function(p){return p.id===_sid;}))||(_db0.providers||[])[0];
   if(_vp){activeProviderId=_vp.id;}
-  else{
-    var _el=document.getElementById('sec-dashboard');
-    if(_el)_el.innerHTML='<div style="padding:30px 0;text-align:center;color:var(--text3);font-size:13px">Loading...</div>';
-    return;
-  }
+  else{ setTimeout(renderDashboard, 150); return; }
 }
+if(!document.getElementById('dash-stats')){ setTimeout(renderDashboard, 100); return; }
 const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
 const claims=db.claims.filter(c=>c.providerId===activeProviderId);
@@ -2676,7 +2672,29 @@ return `<div class="app-shell">
 
 <div class="main">
 <div class="content">
-<div class="section active" id="sec-dashboard"><div style="padding:20px 0"><div style="height:28px;width:180px;background:var(--border);border-radius:8px;margin-bottom:16px;opacity:.5"></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"><div style="height:80px;background:var(--border);border-radius:10px;opacity:.4"></div><div style="height:80px;background:var(--border);border-radius:10px;opacity:.4"></div><div style="height:80px;background:var(--border);border-radius:10px;opacity:.4"></div><div style="height:80px;background:var(--border);border-radius:10px;opacity:.4"></div></div><div style="height:200px;background:var(--border);border-radius:10px;opacity:.3"></div></div></div>
+<div class="section active" id="sec-dashboard">
+<div class="page-hdr" style="margin-bottom:12px">
+  <div><h1>Dashboard</h1><div id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></div></div>
+</div>
+<div id="dash-alerts" style="margin-bottom:10px"></div>
+<div id="dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px">Recent Claims</div>
+    <div id="dash-recent"></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:6px">By Payer</div>
+      <div id="dash-payers"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:6px">By Status</div>
+      <div id="dash-status"></div>
+    </div>
+  </div>
+</div>
+</div>
 <div class="section" id="sec-claims">
 <div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
 <div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
