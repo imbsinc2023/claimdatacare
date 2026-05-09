@@ -20,22 +20,37 @@ h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
 
 /* ??? TOKENS ??? */
 :root{
---bg:#f5f5f5;--bg2:#ffffff;--bg3:#eaeaea;--surface:#ffffff;
---border:#d4d4d4;--border2:#bfbfbf;
---text:#1a1a1a;--text2:#4d4d4d;--text3:#8c8c8c;
---brand:#4a4a4a;--brand-d:#2a2a2a;--brand-bg:rgba(74,74,74,0.08);--brand-bdr:rgba(74,74,74,0.2);
---blue:#4a4a4a;--blue-bg:#f0f0f0;--blue-bdr:rgba(74,74,74,0.15);
---green:#4a4a4a;--green-bg:#f0f0f0;--green-bdr:rgba(74,74,74,0.15);
---red:#c0392b;--red-bg:#fcefee;--red-bdr:#f5c6c0;
+--bg:#f5f4ed;--bg2:#faf9f5;--bg3:#e8e6dc;--surface:#faf9f5;
+--border:#f0eee6;--border2:#e8e6dc;
+--text:#141413;--text2:#4d4c48;--text3:#87867f;
+--brand:#c96442;--brand-d:#b55330;--brand-bg:rgba(201,100,66,0.08);--brand-bdr:rgba(201,100,66,0.2);
+--blue:#c96442;--blue-bg:rgba(201,100,66,0.08);--blue-bdr:rgba(201,100,66,0.15);
+--green:#4d4c48;--green-bg:#f0eee6;--green-bdr:#e8e6dc;
+--red:#b53333;--red-bg:#fcefee;--red-bdr:#f5c6c0;
 --amber:#b8860b;--amber-bg:#fef9e7;--amber-bdr:#f9e4a8;
 --purple:#6c3483;--purple-bg:#f4ecf7;--purple-bdr:#d7bde2;
---teal:#555555;--teal-bg:#f0f0f0;
---shadow:0 1px 2px rgba(0,0,0,.07);
---shadow-md:0 4px 12px rgba(0,0,0,.09);
---shadow-lg:0 8px 30px rgba(0,0,0,.11);
---r:6px;--r-md:8px;--r-lg:10px;--r-xl:12px;
+--teal:#4d4c48;--teal-bg:#f0eee6;
+--shadow:0 1px 3px rgba(0,0,0,.06);
+--shadow-md:0 4px 16px rgba(0,0,0,.07);
+--shadow-lg:0 8px 32px rgba(0,0,0,.08);
+--r:8px;--r-md:10px;--r-lg:12px;--r-xl:16px;
 --font:'DM Sans',system-ui,sans-serif;--mono:'JetBrains Mono','SF Mono',monospace;
 --sidebar:242px;--topbar:36px;
+}
+[data-theme="dark"] {
+--bg:#141413;--bg2:#30302e;--bg3:#2a2a28;--surface:#30302e;
+--border:#30302e;--border2:#3d3d3a;
+--text:#faf9f5;--text2:#b0aea5;--text3:#87867f;
+--brand:#c96442;--brand-d:#d97757;--brand-bg:rgba(201,100,66,0.12);--brand-bdr:rgba(201,100,66,0.25);
+--blue:#c96442;--blue-bg:rgba(201,100,66,0.12);--blue-bdr:rgba(201,100,66,0.25);
+--green:#b0aea5;--green-bg:#2a2a28;--green-bdr:#3d3d3a;
+--red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bdr:rgba(248,113,113,0.2);
+--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--amber-bdr:rgba(251,191,36,0.2);
+--purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-bdr:rgba(167,139,250,0.2);
+--teal:#b0aea5;--teal-bg:#2a2a28;
+--shadow:0 1px 3px rgba(0,0,0,.2);
+--shadow-md:0 4px 16px rgba(0,0,0,.25);
+--shadow-lg:0 8px 32px rgba(0,0,0,.3);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -90,8 +105,7 @@ input:not([type="email"]):not([type="password"]):not([type="file"]):not(.no-uppe
 .input-row button:hover{background:var(--brand-bg);color:var(--brand)}
 
 /* LAYOUT */
-.app-shell{display:flex;flex-direction:column;height:100vh}
-.app-shell{display:flex;flex-direction:column;height:100vh}
+.app-shell{display:block;height:100vh}
 
 
 .sidebar{display:none}
@@ -118,11 +132,11 @@ input:not([type="email"]):not([type="password"]):not([type="file"]):not(.no-uppe
 
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow)}
-.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .card-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
 
 /* STATS */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
 @media(max-width:900px){.stats{grid-template-columns:1fr 1fr}}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--shadow)}
 .stat-v{font-size:24px;font-weight:700;line-height:1;margin-bottom:3px;font-family:var(--mono)}
@@ -231,9 +245,9 @@ tbody tr:hover td{background:var(--bg3)}
 .auth-sub{text-align:center;font-size:13px;color:var(--text3);margin-bottom:28px}
 
 /* PAGE HEADER */
-.page-hdr{display:flex;justify-content:space-between;align-items:flex-start}
-.page-hdr h1{font-size:20px;font-weight:700}
-.page-hdr p{font-size:13px;color:var(--text3);margin-top:2px}
+.page-hdr{display:flex;justify-content:space-between;align-items:center}
+.page-hdr h1{font-size:18px;font-weight:700;line-height:1.2}
+.page-hdr p{font-size:12px;color:var(--text3);margin-top:1px}
 
 /* ACCT */
 .acct{display:inline-flex;padding:2px 7px;background:var(--purple-bg);border:1px solid var(--purple-bdr);border-radius:var(--r);font-size:11px;font-weight:700;color:var(--purple);font-family:var(--mono)}
@@ -266,19 +280,17 @@ display: flex;
 align-items: center;
 height: 36px;
 padding: 0 8px;
-background: #2a2a2a;
-border-bottom: 1px solid #3a3a3a;
+background: #141413;
+border-bottom: 1px solid #30302e;
 flex-shrink: 0;
 z-index: 200;
 gap: 1px;
-position: sticky;
-top: 0;
 }
-.main{width:100%;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main{position:fixed;top:36px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column}
 .content{flex:1;overflow-y:auto;padding:0 22px 22px}
 [data-theme="dark"] .topnav {
-background: #161b27;
-border-bottom: 1px solid #2a3347;
+background: #141413;
+border-bottom: 1px solid #30302e;
 }
 
 /* Brand */
@@ -381,73 +393,25 @@ flex-shrink: 0;
 background: var(--brand-bg);
 color: var(--brand);
 }
-[data-theme="dark"] .tn-group.open > .tn-item {
-background: #052e1a;
-color: #10b981;
-}
-
-/* Dropdown panel */
-.tn-dropdown {
-display: none;
-position: absolute;
-top: calc(100% + 6px);
-left: 0;
-min-width: 220px;
-background: #ffffff;
-border: 1px solid #e2e5ed;
-border-radius: 12px;
-box-shadow: 0 8px 30px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
-z-index: 400;
-padding: 6px;
-overflow: hidden;
-}
 [data-theme="dark"] .tn-dropdown {
-background: #1e2433;
-border-color: #2a3347;
-box-shadow: 0 8px 30px rgba(0,0,0,.4);
+background: #30302e;
+border: 1px solid #3d3d3a;
+box-shadow: 0 8px 32px rgba(0,0,0,.4);
 }
-.tn-group.open .tn-dropdown { display: block; animation: tnDdIn .15s ease; }
-.tn-dd-right { left: auto; right: 0; }
-
-@keyframes tnDdIn {
-from { opacity: 0; transform: translateY(-6px) scale(.97); }
-to { opacity: 1; transform: translateY(0) scale(1); }
+[data-theme="dark"] .tn-group.open > .tn-item {
+background: rgba(255,255,255,.08);
 }
-
-/* Dropdown items */
-.tn-dd-item {
-display: flex;
-align-items: center;
-gap: 10px;
-padding: 9px 12px;
-border-radius: 8px;
-font-size: 13px;
-font-weight: 500;
-color: #4d4d4d;
-cursor: pointer;
-white-space: nowrap;
-user-select: none;
-transition: background .12s ease, color .12s ease;
-}
-[data-theme="dark"] .tn-dd-item { color: #8c8c8c; }
-
-.tn-dd-item svg {
-width: 15px;
-height: 15px;
-flex-shrink: 0;
-opacity: .6;
-color: #6b7280;
-}
-[data-theme="dark"] .tn-dd-item svg { color: #475569; }
+[data-theme="dark"] .tn-dd-item { color: #b0aea5; }
+[data-theme="dark"] .tn-dd-item svg { color: #87867f; }
 
 .tn-dd-item:hover {
-background: #f3f4f6;
+background: #e8e6dc;
 color: var(--brand);
 }
 .tn-dd-item:hover svg { opacity: 1; color: var(--brand); }
 [data-theme="dark"] .tn-dd-item:hover {
-background: #161b27;
-color: #10b981;
+background: rgba(255,255,255,.06);
+color: #d97757;
 }
 .tn-dd-item.active {
 background: var(--brand-bg);
@@ -455,15 +419,15 @@ color: var(--brand);
 font-weight: 600;
 }
 [data-theme="dark"] .tn-dd-item.active {
-background: #052e1a;
-color: #10b981;
+background: rgba(201,100,66,0.15);
+color: #d97757;
 }
 .tn-dd-sep {
 height: 1px;
-background: #e2e5ed;
+background: #e8e6dc;
 margin: 4px 0;
 }
-[data-theme="dark"] .tn-dd-sep { background: #2a3347; }
+[data-theme="dark"] .tn-dd-sep { background: #3d3d3a; }
 
 .tn-cnt {
 margin-left: auto;
@@ -485,9 +449,9 @@ gap: 2px;
 margin-left: auto;
 flex-shrink: 0;
 padding-left: 8px;
-border-left: 1px solid #e2e5ed;
+border-left: 1px solid #e8e6dc;
 }
-[data-theme="dark"] .tn-right { border-left-color: #2a3347; }
+[data-theme="dark"] .tn-right { border-left-color: #3d3d3a; }
 
 .tn-prov-sel {
 padding: 2px 6px;
@@ -545,14 +509,14 @@ border-radius: 8px;
 background: none;
 border: none;
 cursor: pointer;
-color: #4d4d4d;
+color: #4d4c48;
 flex-shrink: 0;
 margin-right: 4px;
 transition: background .15s;
 }
-.tn-hamburger:hover { background: #f3f4f6; }
-[data-theme="dark"] .tn-hamburger { color: #8c8c8c; }
-[data-theme="dark"] .tn-hamburger:hover { background: #1e2433; }
+.tn-hamburger:hover { background: #f0eee6; }
+[data-theme="dark"] .tn-hamburger { color: #b0aea5; }
+[data-theme="dark"] .tn-hamburger:hover { background: #2a2a28; }
 
 /* Mobile drawer */
 .tn-drawer { display:none;position:fixed;inset:0;z-index:500 }
@@ -560,50 +524,20 @@ transition: background .15s;
 .tn-drawer-backdrop { position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px) }
 .tn-drawer-panel {
 position:absolute;top:0;left:0;width:280px;height:100%;
-background:#ffffff;border-right:1px solid #e2e5ed;
+background:#faf9f5;border-right:1px solid #e8e6dc;
 overflow-y:auto;display:flex;flex-direction:column;
 box-shadow:4px 0 24px rgba(0,0,0,.15);
 }
-[data-theme="dark"] .tn-drawer-panel { background:#161b27;border-right-color:#2a3347; }
-
-.tn-drawer-header {
-display:flex;align-items:center;justify-content:space-between;
-padding:14px 16px;border-bottom:1px solid #e2e5ed;
-}
-[data-theme="dark"] .tn-drawer-header { border-bottom-color:#2a3347; }
-
-.tn-drawer-item {
-display:flex;align-items:center;gap:10px;
-padding:12px 16px;font-size:13.5px;font-weight:600;
-color:#4d4d4d;cursor:pointer;
-border-bottom:1px solid #f3f4f6;transition:background .12s,color .12s;
-}
-[data-theme="dark"] .tn-drawer-item { color:#8c8c8c;border-bottom-color:#1e2433; }
-.tn-drawer-item:hover,.tn-drawer-item.active { color:var(--brand);background:var(--brand-bg); }
-[data-theme="dark"] .tn-drawer-item:hover { color:#10b981;background:#052e1a; }
-
-.tn-drawer-group-hdr {
-display:flex;align-items:center;justify-content:space-between;
-padding:12px 16px;font-size:13.5px;font-weight:700;
-color:#4d4d4d;cursor:pointer;border-bottom:1px solid #f3f4f6;
-transition:background .12s;
-}
-[data-theme="dark"] .tn-drawer-group-hdr { color:#8c8c8c;border-bottom-color:#1e2433; }
-.tn-drawer-group-hdr:hover { background:#f9fafb; }
-[data-theme="dark"] .tn-drawer-group-hdr:hover { background:#1e2433; }
-
-.tn-drawer-sub { display:none;background:#f9fafb; }
-[data-theme="dark"] .tn-drawer-sub { background:#0f1117; }
-.tn-drawer-group.open 
-
-.tn-drawer-sub-item {
-display:block;padding:10px 28px;font-size:13px;
-color:#6b7280;cursor:pointer;border-bottom:1px solid #f3f4f6;
-transition:background .12s,color .12s;
-}
-[data-theme="dark"] .tn-drawer-sub-item { color:#475569;border-bottom-color:#1e2433; }
-.tn-drawer-sub-item:hover,.tn-drawer-sub-item.active { color:var(--brand);background:var(--brand-bg); }
-[data-theme="dark"] .tn-drawer-sub-item:hover { color:#10b981;background:#052e1a; }
+[data-theme="dark"] .tn-drawer-panel { background:#30302e;border-right-color:#3d3d3a; }
+[data-theme="dark"] .tn-drawer-header { border-bottom-color:#3d3d3a; }
+[data-theme="dark"] .tn-drawer-item { color:#b0aea5;border-bottom-color:#2a2a28; }
+[data-theme="dark"] .tn-drawer-item:hover { color:#d97757;background:rgba(201,100,66,0.1); }
+[data-theme="dark"] .tn-drawer-group-hdr { color:#b0aea5;border-bottom-color:#2a2a28; }
+.tn-drawer-group-hdr:hover { background:#f0eee6; }
+[data-theme="dark"] .tn-drawer-group-hdr:hover { background:#2a2a28; }
+[data-theme="dark"] .tn-drawer-sub { background:#2a2a28; }
+[data-theme="dark"] .tn-drawer-sub-item { color:#87867f;border-bottom-color:#2a2a28; }
+[data-theme="dark"] .tn-drawer-sub-item:hover { color:#d97757;background:rgba(201,100,66,0.1); }
 
 /* App layout */
 
@@ -662,11 +596,11 @@ flex-shrink: 0;
 /* Nav item icon alignment */
 .tn-item .lci { opacity: .65; transition: opacity .15s; }
 .tn-item:hover .lci, .tn-item.active .lci { opacity: 1; }
-.tn-dd-item .lci { opacity: .5; color: #6b7280; transition: opacity .12s, color .12s; }
+.tn-dd-item .lci { opacity: .5; color: #87867f; transition: opacity .12s, color .12s; }
 .tn-dd-item:hover .lci { opacity: 1; color: var(--brand); }
 .tn-dd-item.active .lci { opacity: 1; color: var(--brand); }
-[data-theme="dark"] .tn-dd-item .lci { color: #475569; }
-[data-theme="dark"] .tn-dd-item:hover .lci { color: #10b981; }
+[data-theme="dark"] .tn-dd-item .lci { color: #87867f; }
+[data-theme="dark"] .tn-dd-item:hover .lci { color: #d97757; }
 
 
 
@@ -685,7 +619,7 @@ flex-shrink: 0;
   content: attr(data-tip);
   position: absolute; top: calc(100% + 8px); left: 50%;
   transform: translateX(-50%);
-  background: var(--brand-d, #2a2a2a); color: #fff;
+  background: #30302e; color: #fff;
   font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1);
   pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 9999;
@@ -693,12 +627,12 @@ flex-shrink: 0;
 .ptc-qa:hover::after { opacity: 1; }
 .pt-chart-overlay {
 position: fixed; top: 36px; left: 0; right: 0; bottom: 0;
-background: #f0f2f5; z-index: 190;
+background: #f5f4ed; z-index: 190;
 display: flex; flex-direction: column; overflow: hidden; font-family: var(--font);
 }
 /* ?? top banner ???????????????????????????????????????????????? */
 .ptc-banner {
-background: var(--brand-d, #2a2a2a); color: #fff;
+background: var(--brand-d, #c96442); color: #fff;
 padding: 0 14px; font-size: 12px; font-weight: 500;
 display: flex; align-items: center; gap: 10px;
 flex-shrink: 0; height: 36px;
@@ -725,54 +659,54 @@ border-radius: 5px; line-height: 1; transition: background .15s;
 .ptc-banner-close:hover { background: rgba(255,255,255,.3); }
 /* ?? tab bar ??????????????????????????????????????????????????? */
 .ptc-tabs {
-background: #e8eaf0; border-bottom: 2px solid #b0b8cc;
+background: #e8e6dc; border-bottom: 2px solid #d1cfc5;
 display: flex; flex-wrap: wrap; flex-shrink: 0;
 }
 .ptc-tab {
 padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
-border: 1px solid #b0b8cc; border-bottom: none;
-background: #d6dae6; color: #333; margin: 4px 2px 0;
+border: 1px solid #d1cfc5; border-bottom: none;
+background: #dedcd2; color: #4d4c48; margin: 4px 2px 0;
 border-radius: 4px 4px 0 0; user-select: none; white-space: nowrap;
 }
-.ptc-tab:hover { background: #c8cfe0; }
-.ptc-tab.active { background: #fff; color: var(--brand-d); border-color: #8090b0 #8090b0 #fff; }
-.ptc-tab.danger { color: #c0392b; }
+.ptc-tab:hover { background: #d1cfc5; }
+.ptc-tab.active { background: #faf9f5; color: var(--brand); border-color: #d1cfc5 #d1cfc5 #faf9f5; }
+.ptc-tab.danger { color: #b53333; }
 /* ?? body ?????????????????????????????????????????????????????? */
-.ptc-body { display:none } /* unused - replaced by full-width pt-main */
-.ptc-sidebar { display:none } /* sidebar removed - content in summary tab */
+.ptc-body { display:none }
+.ptc-sidebar { display:none }
 .ptc-main { flex: 1; min-width: 0; overflow-y:auto; padding:14px 16px; }
 /* ?? section panels ???????????????????????????????????????????? */
 .ptc-panel {
-background: #fff; border: 1px solid #c0c8d8;
-border-radius: 4px; overflow: hidden;
+background: #faf9f5; border: 1px solid #e8e6dc;
+border-radius: 8px; overflow: hidden;
 }
 .ptc-panel-hdr {
-background: linear-gradient(to bottom, #d6dce8, #c8d0e0);
+background: #f0eee6;
 padding: 5px 10px; font-size: 12px; font-weight: 700;
-color: var(--brand-d); border-bottom: 1px solid #b0b8cc;
+color: var(--brand); border-bottom: 1px solid #e8e6dc;
 display: flex; align-items: center; justify-content: space-between;
 }
 .ptc-panel-body { padding: 8px 10px; font-size: 12px; }
 /* ?? demo row ?????????????????????????????????????????????????? */
 .ptc-row {
 display: grid; grid-template-columns: 120px 1fr;
-padding: 3px 0; border-bottom: 1px solid #eef0f4; font-size: 12px;
+padding: 3px 0; border-bottom: 1px solid #f0eee6; font-size: 12px;
 }
 .ptc-row:last-child { border-bottom: none; }
-.ptc-label { color: #555; font-weight: 600; }
-.ptc-value { color: #111; }
+.ptc-label { color: #87867f; font-weight: 600; }
+.ptc-value { color: #141413; }
 /* ?? billing table ????????????????????????????????????????????? */
 .ptc-aging-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ptc-aging-table th {
-background: #e8eaf0; color: var(--brand-d); font-weight: 700;
-padding: 5px 8px; border: 1px solid #c0c8d8; text-align: center;
+background: #e8e6dc; color: var(--brand); font-weight: 700;
+padding: 5px 8px; border: 1px solid #d1cfc5; text-align: center;
 }
 .ptc-aging-table td {
-padding: 4px 8px; border: 1px solid #d8dce8; text-align: center;
+padding: 4px 8px; border: 1px solid #e8e6dc; text-align: center;
 }
-.ptc-aging-table tr:nth-child(even) td { background: #f6f8fc; }
+.ptc-aging-table tr:nth-child(even) td { background: #f5f4ed; }
 .ptc-aging-table tfoot td {
-font-weight: 700; background: #eef0f6; border-top: 2px solid #b0b8cc;
+font-weight: 700; background: #f0eee6; border-top: 2px solid #d1cfc5;
 }
 /* ?? insurance card ???????????????????????????????????????????? */
 .ptc-ins-grid {
@@ -781,11 +715,11 @@ font-size: 12px;
 }
 .ptc-ins-col { padding: 4px 8px; }
 .ptc-ins-row { display: grid; grid-template-columns: 110px 1fr; padding: 2px 0; }
-.ptc-ins-lbl { color: #555; font-weight: 600; }
+.ptc-ins-lbl { color: #87867f; font-weight: 600; }
 /* ?? sidebar patient photo area ???????????????????????????????? */
 .ptc-photo-box {
-width: 60px; height: 60px; border: 2px solid #8090b0; border-radius: 4px;
-background: #e8eaf0; display: flex; align-items: center; justify-content: center;
+width: 60px; height: 60px; border: 2px solid #87867f; border-radius: 4px;
+background: #e8e6dc; display: flex; align-items: center; justify-content: center;
 font-size: 22px; font-weight: 700; color: var(--brand-d); flex-shrink: 0;
 }
 /* ?? action link ??????????????????????????????????????????????? */
@@ -799,10 +733,10 @@ cursor: pointer; font-weight: 600;
 background: var(--brand-d); color: #fff; border: none; padding: 5px 12px;
 font-size: 11px; font-weight: 700; border-radius: 3px; cursor: pointer;
 }
-.ptc-chart-btn:hover { background: #1a2f5a; }
+.ptc-chart-btn:hover { background: #b55330; }
 /* ?? print bar ????????????????????????????????????????????????? */
 .ptc-print-bar {
-background: #f5f6fa; border-bottom: 1px solid #d0d4e0;
+background: #f5f4ed; border-bottom: 1px solid #e8e6dc;
 padding: 6px 12px; display: flex; align-items: center; gap: 16px;
 font-size: 12px; flex-shrink: 0;
 }
@@ -811,22 +745,22 @@ font-size: 12px; flex-shrink: 0;
 display: flex; align-items: center; gap: 6px;
 font-size: 12px; color: #555;
 }
-.ptc-no { color: #c0392b; font-weight: 700; }
-.ptc-yes { color: #27ae60; font-weight: 700; }
+.ptc-no { color: #b53333; font-weight: 700; }
+.ptc-yes { color: #4d4c48; font-weight: 700; }
 /* ?? net A/R summary ??????????????????????????????????????????? */
 .ptc-net-row {
 display: flex; justify-content: flex-end; gap: 16px;
-padding: 4px 8px; font-size: 12px; font-weight: 700; color: #333;
+padding: 4px 8px; font-size: 12px; font-weight: 700; color: #4d4c48;
 }
 
 /* ?? ENTERPRISE MEDICAL THEME OVERRIDES ?????????????????????????????? */
 
 /* Topnav */
-.topnav{background:#2a2a2a;border-bottom:1px solid #3a3a3a;box-shadow:var(--shadow)}
+.topnav{background:#141413;border-bottom:1px solid #30302e;box-shadow:var(--shadow)}
 .tn-item{color:rgba(255,255,255,.85);border-radius:var(--r);transition:all .2s;font-weight:500}
 .tn-item:hover{background:rgba(255,255,255,.13);color:#ffffff}
 .tn-item.active{background:rgba(255,255,255,.22);color:#ffffff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.15)}
-[data-theme="dark"] .topnav{background:#161b27;border-bottom-color:#2a3347}
+[data-theme="dark"] .topnav{background:#141413;border-bottom-color:#30302e}
 [data-theme="dark"] .tn-item:hover{background:rgba(255,255,255,.13);color:#ffffff}
 [data-theme="dark"] .tn-item.active{background:rgba(255,255,255,.22);color:#ffffff}
 .tn-dropdown{border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden}
@@ -854,14 +788,14 @@ tbody tr:last-child td{border-bottom:none}
 
 /* Badges */
 .badge{border-radius:6px;font-size:11px;font-weight:600;padding:3px 9px;letter-spacing:.02em}
-.b-green{background:var(--green-bg);color:var(--brand-d);border:1px solid var(--green-bdr)}
-.b-blue{background:var(--blue-bg);color:var(--brand-d);border:1px solid var(--blue-bdr)}
-.b-red{background:var(--red-bg);color:#b91c1c;border:1px solid var(--red-bdr)}
-.b-amber{background:var(--amber-bg);color:#b45309;border:1px solid var(--amber-bdr)}
+.b-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bdr)}
+.b-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bdr)}
+.b-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)}
+.b-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bdr)}
 .b-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
-.b-purple{background:var(--purple-bg);color:#6d28d9;border:1px solid var(--purple-bdr)}
-[data-theme="dark"] .b-green{color:#34d399}
-[data-theme="dark"] .b-blue{color:#34d399}
+.b-purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-bdr)}
+[data-theme="dark"] .b-green{color:#b0aea5}
+[data-theme="dark"] .b-blue{color:#d97757}
 [data-theme="dark"] .b-red{color:#f87171}
 [data-theme="dark"] .b-amber{color:#fbbf24}
 
@@ -888,7 +822,7 @@ font-family:var(--font);width:100%
 }
 .field input:focus,.field select:focus,.field textarea:focus{
 outline:none;border-color:var(--brand);
-box-shadow:0 0 0 3px rgba(74,74,74,.12)
+box-shadow:0 0 0 3px rgba(201,100,66,.15)
 }
 
 /* Stat cards */
@@ -909,7 +843,7 @@ border-left:3px solid var(--brand)}
 .hint{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5}
 
 /* Page headers */
-.page-hdr h1{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.page-hdr h1{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1.2}
 
 /* Content area */
 /* content defined above */
@@ -938,7 +872,7 @@ border-left:3px solid var(--brand)}
 .ptc-tab:hover{background:var(--brand-bg);color:var(--brand)}
 .ptc-tab.active{background:#fff;color:var(--brand);border-bottom-color:#fff}
 .ptc-panel{border-radius:var(--r-md);border:1px solid var(--border);overflow:hidden}
-.ptc-panel-hdr{background:linear-gradient(to bottom,#f8fafc,#f1f5f9);
+.ptc-panel-hdr{background:linear-gradient(to bottom,#faf9f5,#e8e6dc);
 border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--brand-d)}
 .ptc-aging-table th{background:var(--bg3);color:var(--text2);font-size:11px}
 .ptc-aging-table td{font-size:12px}
@@ -990,7 +924,7 @@ gap: 6px;
 background: var(--brand);
 color: #fff;
 border: none;
-box-shadow: 0 2px 8px rgba(74,74,74,.3);
+box-shadow: 0 2px 8px rgba(201,100,66,.3);
 }
 .btn-primary:hover { background: var(--brand-d); }
 .btn-ghost {
@@ -1064,10 +998,10 @@ display: inline-flex; align-items: center; gap: 4px;
 
 /* Page header — Apple large title style */
 .page-hdr h1 {
-font-size: 24px; font-weight: 700; letter-spacing: -0.03em;
-color: var(--text);
+font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
+line-height: 1.2; color: var(--text);
 }
-.page-hdr p { font-size: 13px; color: var(--text3); font-weight: 400; margin-top: 2px; }
+.page-hdr p { font-size: 12px; color: var(--text3); font-weight: 400; margin-top: 1px; }
 
 /* Modal — Apple sheet style */
 .modal {
@@ -1185,7 +1119,7 @@ border-radius: 8px;
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: #2a2a2a;
+  background: #30302e;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -1204,7 +1138,7 @@ border-radius: 8px;
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #2a2a2a;
+  border-top-color: #30302e;
   pointer-events: none;
   opacity: 0;
   transition: opacity .15s;
@@ -1240,16 +1174,16 @@ input[type="hidden"],
 input.no-upper, textarea.no-upper { text-transform: none !important; }
 
 /* ── Fast tooltip for title= on icon buttons ─────────────── */
-.btn-icon[title], button.btn-xs[title], button.btn-icon[title] {
+.btn-icon[title], button.btn-xs[title], button.btn-sm[title], button.btn-icon[title] {
   position: relative;
 }
-.btn-icon[title]:hover::after, button.btn-xs[title]:hover::after {
+.btn-icon[title]:hover::after, button.btn-xs[title]:hover::after, button.btn-sm[title]:hover::after {
   content: attr(title);
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--brand-d, #2a2a2a);
+  background: #30302e;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -1263,10 +1197,10 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
 /* DEFINITIVE LAYOUT FIX */
-.app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.topnav{position:relative!important;top:auto!important;left:auto!important;right:auto!important;flex-shrink:0;z-index:200}
-.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.content{flex:1;overflow-y:auto;padding:0 22px 22px!important;margin-top:0!important}
+.app-shell{display:block;height:100vh;overflow:hidden}
+.topnav{position:fixed!important;top:0!important;left:0!important;right:0!important;height:36px;z-index:200;margin:0!important;padding:0 8px!important}
+.main{position:fixed;top:36px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.content{flex:1 1 0;overflow-y:auto;padding:0 22px 22px!important;margin:0!important}
 </style>
 </head>
 <body>
@@ -1888,7 +1822,7 @@ border-radius:var(--r-md);margin-bottom:10px;flex-wrap:wrap">
 <i data-lucide="printer" class="lci"></i> Superbills PDF
 </button>
 <button class="btn btn-sm" onclick="bulkClaimAction('transmit')"
-style="background:#065f46;color:#fff">
+style="background:#c96442;color:#fff">
 <i data-lucide="send" class="lci"></i> Transmit to Clearinghouse
 </button>
 <button class="btn btn-sm btn-danger" onclick="bulkClaimAction('delete')">
@@ -2318,8 +2252,8 @@ return `<div class="app-shell">
   box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">
 
   <!-- Header with avatar + info -->
-  <div style="padding:14px 16px;background:#2a2a2a;display:flex;align-items:center;gap:12px">
-    <div style="width:40px;height:40px;border-radius:50%;background:#555;
+  <div style="padding:14px 16px;background:#141413;display:flex;align-items:center;gap:12px">
+    <div style="width:40px;height:40px;border-radius:50%;background:#4d4c48;
       border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;
       justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
       <span id="tn-avatar-initials2">?</span>
@@ -5490,7 +5424,7 @@ function clearSession() {
 function renderLoginScreen() {
 document.getElementById('root').innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(160deg,#f5f5f5 0%,#f8fafc 60%,#eeeeee 100%);padding:20px">
+background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);padding:20px">
 
 <div style="background:rgba(255,255,255,.85);backdrop-filter:blur(40px) saturate(180%);
 border:1px solid rgba(255,255,255,.9);border-radius:28px;
@@ -5501,14 +5435,14 @@ box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(74,74,74,.08),inset 0 1px
 <div style="text-align:center;margin-bottom:36px">
 <div style="display:flex;justify-content:center;margin-bottom:4px">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="72" height="72">
-  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#4a4a4a"/>
+  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#c96442"/>
   <path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
   <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
 </svg>
 </div>
-<div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#1a1a1a">ClaimDataCare</div>
-<div style="font-size:13px;color:#8c8c8c;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
+<div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:var(--text)">ClaimDataCare</div>
+<div style="font-size:13px;color:#87867f;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
 Electronic Health Records
 </div>
 </div>
@@ -5518,48 +5452,27 @@ Electronic Health Records
 <div style="display:flex;flex-direction:column;gap:14px">
 <!-- Email -->
 <div>
-<label style="display:block;font-size:12px;font-weight:600;color:#4d4d4d;margin-bottom:6px;letter-spacing:-0.01em">
+<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
 Username or Email
 </label>
 <input id="li-email" type="text" class="no-upper" autocomplete="username"
 placeholder="Username or email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
-border:1.5px solid #d4d4d4;border-radius:14px;
-background:rgba(255,255,255,.8);color:#1a1a1a;
+border:1.5px solid #e8e6dc;border-radius:14px;
+background:rgba(255,255,255,.8);color:var(--text);
 font-family:var(--font);outline:none;
 transition:all .2s cubic-bezier(.4,0,.2,1);
 box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
 -webkit-font-smoothing:antialiased"
-onfocus="this.style.borderColor='#4a4a4a';this.style.boxShadow='0 0 0 4px rgba(74,74,74,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#d4d4d4';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
-</div>
-
-<!-- Password -->
-<div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-<label style="font-size:12px;font-weight:600;color:#4d4d4d;letter-spacing:-0.01em">Password</label>
-<button onclick="renderForgotPassword()"
-style="background:none;border:none;cursor:pointer;font-size:12px;color:#4a4a4a;font-family:var(--font);font-weight:500;letter-spacing:-0.01em;padding:0">
-Forgot password?
-</button>
-</div>
-<div style="position:relative">
-<input id="li-pass" type="password" autocomplete="current-password"
-placeholder="••••••••"
-onkeydown="if(event.key==='Enter')doLogin()"
-style="width:100%;padding:13px 48px 13px 16px;font-size:15px;
-border:1.5px solid #d4d4d4;border-radius:14px;
-background:rgba(255,255,255,.8);color:#1a1a1a;
-font-family:var(--font);outline:none;
-transition:all .2s cubic-bezier(.4,0,.2,1);
-box-shadow:0 1px 3px rgba(0,0,0,.06) inset"
-onfocus="this.style.borderColor='#4a4a4a';this.style.boxShadow='0 0 0 4px rgba(74,74,74,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#d4d4d4';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
+onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--brand);font-family:var(--font);font-weight:500;letter-spacing:-0.01em;padding:0">
+onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
 <button id="li-eye" onclick="togglePassVis('li-pass',this)"
 style="position:absolute;right:0;top:0;bottom:0;width:48px;
 background:none;border:none;cursor:pointer;
-display:flex;align-items:center;justify-content:center;color:#8c8c8c;
+display:flex;align-items:center;justify-content:center;color:#87867f;
 transition:color .15s">
 <svg id="li-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -5573,7 +5486,7 @@ stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="r
 <!-- Sign In button -->
 <button onclick="doLogin()" id="login-btn"
 style="width:100%;padding:15px;margin-top:6px;
- background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
+ background:linear-gradient(135deg,#c96442,#b55330);
   color:#fff;border:none;border-radius:14px;
   font-size:16px;font-weight:700;letter-spacing:-0.02em;
   font-family:var(--font);cursor:pointer;
@@ -5587,7 +5500,7 @@ style="width:100%;padding:15px;margin-top:6px;
 </div>
 
 <div style="margin-top:28px;text-align:center;font-size:11px;color:#bfbfbf;letter-spacing:.01em">
-<span style="color:#4a4a4a;font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
+<span style="color:var(--brand);font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
 </div>
 </div>
 </div>`;
@@ -5601,7 +5514,7 @@ document.getElementById('root').innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px">
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
 <div style="text-align:center;margin-bottom:28px">
-<div style="width:56px;height:56px;background:#eaeaea;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px"></div>
+<div style="width:56px;height:56px;background:var(--bg2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px"></div>
 <div style="font-size:22px;font-weight:800">Forgot Password?</div>
 <div style="font-size:13px;color:var(--text3);margin-top:6px;line-height:1.6">Enter your email and we'll send you<br>a reset link via Firebase.</div>
 </div>
@@ -5612,11 +5525,11 @@ document.getElementById('root').innerHTML = `
 <input id="fp-email" class="no-upper" type="email" autocomplete="username"
 onkeydown="if(event.key==='Enter')doForgotPassword()"
 style="font-size:14px;padding:11px 14px;border:1.5px solid var(--border2);border-radius:8px;width:100%;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none"
-onfocus="this.style.borderColor='#4a4a4a'" onblur="this.style.borderColor='var(--border2)'">
+onfocus="this.style.borderColor='#c96442'" onblur="this.style.borderColor='var(--border2)'">
 </div>
 <button onclick="doForgotPassword()" id="fp-btn"
-style="background:#4a4a4a;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;width:100%">
-Send Reset Email
+style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;width:100%">
+ Send Reset Email
 </button>
 <button onclick="renderLoginScreen()"
 style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);font-family:var(--font);padding:6px;text-align:center">
@@ -5663,17 +5576,17 @@ const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 const W = 210, M = 16, RX = W - M, CW = RX - M;
 
 // ?? Palette — soft, professional ??????????????????????????????????
-const GREEN = [0, 102, 204]; // BLUE — no green used
-const BLUE = [0, 102, 204]; // #4a4a4a muted blue
+const GREEN = [201, 100, 66]; // terracotta
+const BLUE = [201, 100, 66]; // terracotta
 const PURPLE = [109, 40, 217]; // #6D28D9 Zelle purple
-const BGBLUE = [235,244,255]; // very light blue background
-const BGGREEN= [235,244,255]; // same as BGBLUE — no green
+const BGBLUE = [250,245,237]; // warm cream
+const BGGREEN= [250,245,237]; // warm cream
 const WHITE = [255,255,255];
 const BLACK = [22, 22, 22];
-const DARK = [40, 50, 60];
-const MID = [90, 100, 115];
-const LIGHT = [248,249,251];
-const BORDER = [218,222,230];
+const DARK = [50, 48, 44];
+const MID = [90, 88, 82];
+const LIGHT = [245,244,237];
+const BORDER = [222,220,210];
 
 const money = n => '$' + fmtMoney(parseFloat(n)||0);
 const line = (x1,y1,x2,y2,c=BORDER,w=0.25) => {
@@ -8283,17 +8196,17 @@ async function send2FACode(user) {
 
   var html = [
     '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">',
-    '<div style="background:#2a2a2a;padding:16px 24px;border-radius:8px 8px 0 0">',
+    '<div style="background:#141413;padding:16px 24px;border-radius:8px 8px 0 0">',
     '<h2 style="color:white;margin:0;font-size:18px">ClaimDataCare — Verification Code</h2>',
     '</div>',
-    '<div style="background:#f8f6f0;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e0ddd8">',
-    '<p style="color:#333;font-size:15px">Hello ' + (user.first || user.name || '') + ',</p>',
-    '<p style="color:#333;font-size:14px">Your verification code is:</p>',
-    '<div style="background:#4a4a4a;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
-    '<p style="color:#666;font-size:13px">This code expires in <strong>10 minutes</strong>.</p>',
-    '<p style="color:#666;font-size:13px">If you did not request this, please ignore this email or contact your administrator.</p>',
+    '<div style="background:#f5f4ed;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e8e6dc">',
+    '<p style="color:#141413;font-size:15px">Hello ' + (user.first || user.name || '') + ',</p>',
+    '<p style="color:#141413;font-size:14px">Your verification code is:</p>',
+    '<div style="background:#c96442;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
+    '<p style="color:#87867f;font-size:13px">This code expires in <strong>10 minutes</strong>.</p>',
+    '<p style="color:#87867f;font-size:13px">If you did not request this, please ignore this email or contact your administrator.</p>',
     '</div>',
-    '<p style="color:#999;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare · Secure Medical Billing</p>',
+    '<p style="color:#b0aea5;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare · Secure Medical Billing</p>',
     '</div>',
   ].join('');
 
@@ -8308,28 +8221,28 @@ function show2FAScreen(user, onSuccess) {
 
   overlay.innerHTML =
     '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-    '<div style="background:#2a2a2a;padding:20px 24px">' +
+    '<div style="background:#141413;padding:20px 24px">' +
       '<div style="color:white;font-weight:700;font-size:17px">Two-Factor Authentication</div>' +
-      '<div style="color:#a7d3b8;font-size:13px;margin-top:4px">A 6-digit code was sent to ' + user.email + '</div>' +
+      '<div style="color:#87867f;font-size:13px;margin-top:4px">A 6-digit code was sent to ' + user.email + '</div>' +
     '</div>' +
     '<div style="padding:24px">' +
       '<div id="tfa-alert" style="margin-bottom:12px"></div>' +
-      '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:8px">Enter verification code</label>' +
+      '<label style="font-size:12px;font-weight:600;color:#141413;display:block;margin-bottom:8px">Enter verification code</label>' +
       '<input id="tfa-code" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"' +
-        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e0ddd8;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#2a2a2a;font-weight:700"' +
+        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e8e6dc;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#141413;font-weight:700"' +
         ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);if(this.value.length===6)verify2FACode()">' +
       '<div style="margin-top:16px">' +
-        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;cursor:pointer">' +
-          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#4a4a4a"> ' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4d4c48;cursor:pointer">' +
+          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#c96442"> ' +
           'Remember this device for 30 days' +
         '</label>' +
       '</div>' +
       '<div style="display:flex;gap:10px;margin-top:20px">' +
-        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid #4a4a4a;background:white;color:#4a4a4a;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
-        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:#4a4a4a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
+        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid var(--brand);background:white;color:var(--brand);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
+        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:var(--brand);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
       '</div>' +
       '<div style="text-align:center;margin-top:14px">' +
-        '<button onclick="cancelLogin()" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer">Cancel — Back to Login</button>' +
+        '<button onclick="cancelLogin()" style="background:none;border:none;color:#87867f;font-size:12px;cursor:pointer">Cancel — Back to Login</button>' +
       '</div>' +
     '</div>' +
     '</div>';
@@ -8448,32 +8361,32 @@ function showVerifyModal(state, parsed, user, token) {
   if (state === 'expired') {
     content = '<div style="text-align:center;padding:20px">' +
       '<div style="font-size:48px;margin-bottom:16px">⏰</div>' +
-      '<h3 style="color:#2a2a2a;margin:0 0 8px">Link Expired</h3>' +
-      '<p style="color:#666;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
+      '<h3 style="color:#141413;margin:0 0 8px">Link Expired</h3>' +
+      '<p style="color:#87867f;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
       '</div>';
   } else {
     content = '<div style="text-align:center;padding:8px 0 16px">' +
-      '<div style="width:60px;height:60px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a4a4a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
       '</div>' +
-      '<h3 style="color:#2a2a2a;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
-      '<p style="color:#666;font-size:13px;margin-bottom:20px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>! Set your password to activate your account.</p>' +
+      '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
+      '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>! Set your password to activate your account.</p>' +
     '</div>' +
     '<div style="margin-bottom:14px">' +
-      '<label style="font-size:11px;font-weight:600;color:#333;display:block;margin-bottom:6px">New Password <span style="color:red">*</span> <span style="color:#999;font-weight:400">min 6 characters</span></label>' +
-      '<input id="verify-pass1" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px">' +
+      '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">New Password <span style="color:#b53333">*</span> <span style="color:#87867f;font-weight:400">min 6 characters</span></label>' +
+      '<input id="verify-pass1" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
     '</div>' +
     '<div style="margin-bottom:20px">' +
-      '<label style="font-size:11px;font-weight:600;color:#333;display:block;margin-bottom:6px">Confirm Password <span style="color:red">*</span></label>' +
-      '<input id="verify-pass2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px">' +
+      '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">Confirm Password <span style="color:#b53333">*</span></label>' +
+      '<input id="verify-pass2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
     '</div>' +
     '<div id="verify-alert" style="margin-bottom:12px"></div>' +
-    '<button id="verify-btn" style="width:100%;padding:12px;background:#4a4a4a;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
+    '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
   }
 
   overlay.innerHTML =
     '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-      '<div style="background:#2a2a2a;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
+      '<div style="background:#141413;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
         '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"/></svg>' +
         '<div style="color:white;font-weight:700;font-size:16px">ClaimDataCare</div>' +
       '</div>' +
@@ -8597,7 +8510,7 @@ function renderUserManagement() {
     var phone   = u.phone || '—';
     var twoFA   = u.twoFA ? '<span style="color:var(--brand);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>';
     var verified = u.emailVerified
-      ? '<span style="color:#4a4a4a;font-size:10px;font-weight:600">Verified</span>'
+      ? '<span style="color:var(--brand);font-size:10px;font-weight:600">Verified</span>'
       : '<span style="color:#c77c3e;font-size:10px">Pending</span>';
     var status  = u.inactive
       ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
@@ -11058,8 +10971,8 @@ btn.innerHTML = '<i data-lucide="mic-off" class="lci" style="width:32px;height:3
 if (status) status.textContent = 'Recording — tap to stop';
 if (live) live.textContent = 'Listening...';
 } else {
-btn.style.background = 'linear-gradient(145deg,#4a4a4a,#2a2a2a)';
-btn.style.boxShadow = '0 6px 20px rgba(74,74,74,.4)';
+btn.style.background = 'linear-gradient(145deg,#c96442,#b55330)';
+btn.style.boxShadow = '0 6px 20px rgba(201,100,66,.4)';
 btn.style.animation = 'none';
 btn.innerHTML = '<i data-lucide="mic" class="lci" style="width:32px;height:32px;color:#fff"></i>';
 if (status) status.textContent = _vBuf ? 'Tap to continue dictating' : 'Tap the mic and dictate your note';
@@ -11160,7 +11073,7 @@ onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this
 onclick="openAINoteModal('${pat.id}','${n.id}','${n.claimId||''}')">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:8px">
-<div style="width:28px;height:28px;background:${n.aiGenerated?'linear-gradient(135deg,#4a4a4a,#2a2a2a)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
+<div style="width:28px;height:28px;background:${n.aiGenerated?'linear-gradient(135deg,var(--brand),#b55330)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
 <i data-lucide="${n.aiGenerated?'bot':'file-text'}" class="lci" style="width:14px;height:14px;color:${n.aiGenerated?'#fff':'var(--text2)'}"></i>
 </div>
 <div>
@@ -11180,7 +11093,7 @@ const claimPrompts=noNotes.slice(0,5).map(c=>{
 const cpts=(c.lines||[]).map(l=>l.cpt).filter(Boolean).join(', ');
 return `<div onclick="openAINoteModal('${pat.id}','','${c.id}')"
 style="background:var(--brand-bg);border:1.5px dashed var(--brand-bdr);border-radius:12px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s;margin-bottom:6px"
-onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='var(--brand-bg)'">
+onmouseover="this.style.background='#f5ebe5'" onmouseout="this.style.background='var(--brand-bg)'">
 <div style="width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
 <i data-lucide="sparkles" class="lci" style="width:15px;height:15px;color:#fff"></i>
 </div>
@@ -11450,7 +11363,7 @@ box-shadow:0 40px 100px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.1);overf
 <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div style="display:flex;align-items:center;gap:12px">
-<div style="width:46px;height:46px;background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
+<div style="width:46px;height:46px;background:linear-gradient(135deg,#c96442,#b55330);
 border-radius:14px;display:flex;align-items:center;justify-content:center;
 box-shadow:0 6px 16px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15)">
 <i data-lucide="mic-vocal" class="lci" style="width:22px;height:22px;color:#fff"></i>
@@ -11487,7 +11400,7 @@ ${hasSpeech ? `
 border:2px solid transparent;transition:all .3s;pointer-events:none"></div>
 <button id="voice-btn" onclick="_toggleVoice()"
 style="width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;
-background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
+background:linear-gradient(135deg,#c96442,#b55330);
 box-shadow:0 8px 24px rgba(74,74,74,.45),inset 0 1px 0 rgba(255,255,255,.2);
 display:flex;align-items:center;justify-content:center;
 transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;z-index:1">
@@ -11728,8 +11641,8 @@ if(ring){ ring.style.border='2px solid rgba(220,38,38,.3)'; ring.style.animation
 if(status) status.innerHTML='<span style="color:var(--red);font-weight:700">REC</span> &nbsp;Tap to stop · Speak your note...';
 if(live){ live.style.borderColor='var(--red-bdr)'; live.style.background='var(--red-bg)'; live.textContent='Listening...'; }
 } else {
-btn.style.background='linear-gradient(145deg,#4a4a4a,#2a2a2a)';
-btn.style.boxShadow='0 8px 24px rgba(74,74,74,.45),inset 0 1px 0 rgba(255,255,255,.2)';
+btn.style.background='linear-gradient(145deg,#c96442,#b55330)';
+btn.style.boxShadow='0 8px 24px rgba(201,100,66,.45),inset 0 1px 0 rgba(255,255,255,.2)';
 btn.innerHTML='<i data-lucide="mic" class="lci" style="width:34px;height:34px;color:#fff"></i>';
 if(ring){ ring.style.border='2px solid transparent'; ring.style.animation='none'; }
 if(status) status.textContent=_vBuf?'Tap to continue · Or click Structure Note':'Tap the mic · Dictate your note · Tap again to stop';
@@ -13313,9 +13226,9 @@ const rend=db.rendering.find(r=>r.id===n.renderingId)||{};
 const {jsPDF}=window.jspdf;
 const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
 const W=216,M=16,RX=W-M,CW=RX-M;
-const BLUE=[0,102,204],BGBLUE=[240,246,255],WHITE=[255,255,255],
-BLACK=[22,22,22],DARK=[40,50,60],MID=[90,100,115],
-LIGHT=[248,249,251],BORDER=[210,215,220],BGDARK=[30,40,55];
+const BLUE=[201,100,66],BGBLUE=[250,245,237],WHITE=[255,255,255],
+BLACK=[22,22,22],DARK=[50,48,44],MID=[90,88,82],
+LIGHT=[245,244,237],BORDER=[222,220,210],BGDARK=[40,38,34];
 
 const fill=(x,y,w,h,c)=>{doc.setFillColor(...c);doc.rect(x,y,w,h,'F');};
 const hln=(y,c=BORDER,lw=0.25)=>{doc.setDrawColor(...c);doc.setLineWidth(lw);doc.line(M,y,RX,y);};
@@ -13506,13 +13419,13 @@ function getAppts() { if(!_localDB.appointments) _localDB.appointments=[]; retur
 function setAppts(fn) { if(!_localDB.appointments) _localDB.appointments=[]; fn(_localDB.appointments); syncToFirestore(); }
 
 const APPT_STATUS = {
-scheduled: { label:'Scheduled', color:'#6b7280', bg:'#f3f4f6', icon:'calendar' },
-confirmed: { label:'Confirmed', color:'#4a4a4a', bg:'#ecfdf5', icon:'check-circle' },
+scheduled: { label:'Scheduled', color:'#87867f', bg:'#f0eee6', icon:'calendar' },
+confirmed: { label:'Confirmed', color:'#4d4c48', bg:'#f5f4ed', icon:'check-circle' },
 checked_in: { label:'Checked In', color:'#16a34a', bg:'#f0fdf4', icon:'check-circle-2' },
 in_progress: { label:'In Progress', color:'#d97706', bg:'#fffbeb', icon:'play-circle' },
 completed: { label:'Completed', color:'#16a34a', bg:'#f0fdf4', icon:'flag' },
 no_show: { label:'No Show', color:'#dc2626', bg:'#fef2f2', icon:'ban' },
-cancelled: { label:'Cancelled', color:'#6b7280', bg:'#f3f4f6', icon:'x-circle' },
+cancelled: { label:'Cancelled', color:'#87867f', bg:'#f0eee6', icon:'x-circle' },
 rescheduled: { label:'Rescheduled', color:'#d97706', bg:'#fffbeb', icon:'refresh-cw' },
 };
 
@@ -14739,22 +14652,22 @@ const docListHTML = allDocs.length ? allDocs.map((d,i) => {
 const isPDF = (d.type&&d.type.includes('pdf')) || /\.pdf$/i.test(d.name||'');
 const isImage = !isPDF;
 const icon = isPDF ? 'file-text' : 'image';
-const iconColor = isPDF ? '#dc2626' : '#4a4a4a';
+const iconColor = isPDF ? '#dc2626' : '#87867f';
 const preview = isImage
-? `<img src="${d.data}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid #e5e7eb">`
+? `<img src="${d.data}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid #e8e6dc">`
 : `<div style="width:38px;height:38px;border-radius:6px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #fecaca">
 <i data-lucide="file-text" class="lci" style="width:18px;height:18px;color:#dc2626"></i>
 </div>`;
 return `<div onclick="_openCropFromDoc('${patId}','${d.id}')"
 style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
-border-bottom:1px solid #f3f4f6;transition:background .15s;border-radius:8px"
-onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background=''">
+border-bottom:1px solid #e8e6dc;transition:background .15s;border-radius:8px"
+onmouseover="this.style.background='rgba(201,100,66,0.05)'" onmouseout="this.style.background=''">
 ${preview}
 <div style="flex:1;min-width:0">
-<div style="font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Document '+(i+1)}</div>
-<div style="font-size:10px;color:#8c8c8c;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF — select page area':'Image'}</div>
+<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Document '+(i+1)}</div>
+<div style="font-size:10px;color:#87867f;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF — select page area':'Image'}</div>
 </div>
-<i data-lucide="scissors" class="lci" style="width:15px;height:15px;color:#4a4a4a;flex-shrink:0"></i>
+<i data-lucide="scissors" class="lci" style="width:15px;height:15px;color:#87867f;flex-shrink:0"></i>
 </div>`;
 }).join('') : '';
 
@@ -14767,13 +14680,13 @@ div.innerHTML = `
 box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden">
 
 <!-- Header -->
-<div style="padding:20px 20px 12px;border-bottom:1px solid #f1f5f9">
+<div style="padding:20px 20px 12px;border-bottom:1px solid #e8e6dc">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div>
-<div style="font-size:16px;font-weight:700;color:#1a1a1a;letter-spacing:-0.02em">Patient Photo</div>
-<div style="font-size:11px;color:#8c8c8c;margin-top:2px">${pat.last||''}, ${pat.first||''} · Chart #${pat.acct||''}</div>
+<div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.02em">Patient Photo</div>
+<div style="font-size:11px;color:#87867f;margin-top:2px">${pat.last||''}, ${pat.first||''} · Chart #${pat.acct||''}</div>
 </div>
-${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #a7f3d0">` : ''}
+${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #e8e6dc">` : ''}
 </div>
 </div>
 
@@ -14782,22 +14695,22 @@ ${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radi
 
 <!-- Camera -->
 <button onclick="_openCamera('${patId}')"
-style="width:100%;padding:12px 16px;background:#4a4a4a;color:#fff;border:none;
+style="width:100%;padding:12px 16px;background:var(--brand);color:#fff;border:none;
 border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;
 display:flex;align-items:center;gap:10px;
-box-shadow:0 4px 12px rgba(74,74,74,.3);transition:all .2s"
-onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='#4a4a4a'">
+box-shadow:0 4px 12px rgba(201,100,66,.3);transition:all .2s"
+onmouseover="this.style.background='#d4734f'" onmouseout="this.style.background='var(--brand)'">
 <i data-lucide="camera" class="lci" style="width:18px;height:18px"></i>
 <span>Take Photo with Camera</span>
 </button>
 
 <!-- Upload photo -->
 <button onclick="document.getElementById('pt-upload-photo-${patId}').click()"
-style="width:100%;padding:12px 16px;background:#f8fafc;color:#1e293b;
-border:1.5px solid #d4d4d4;border-radius:12px;font-size:14px;font-weight:600;
+style="width:100%;padding:12px 16px;background:#faf9f5;color:#141413;
+border:1.5px solid #e8e6dc;border-radius:12px;font-size:14px;font-weight:600;
 cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s"
-onmouseover="this.style.borderColor='#4a4a4a';this.style.color='#4a4a4a'"
-onmouseout="this.style.borderColor='#d4d4d4';this.style.color='#1e293b'">
+onmouseover="this.style.borderColor='#c96442';this.style.color='#c96442'"
+onmouseout="this.style.borderColor='#e8e6dc';this.style.color='#141413'">
 <i data-lucide="upload" class="lci" style="width:18px;height:18px"></i>
 <span>Upload Photo from Device</span>
 </button>
@@ -14806,22 +14719,22 @@ onchange="_handlePhotoUpload(event,'${patId}',false)">
 
 <!-- Divider with label -->
 <div style="display:flex;align-items:center;gap:10px;margin:4px 0">
-<div style="flex:1;height:1px;background:#f1f5f9"></div>
-<span style="font-size:11px;font-weight:600;color:#8c8c8c;letter-spacing:.05em">CROP FROM CHART DOCUMENT</span>
-<div style="flex:1;height:1px;background:#f1f5f9"></div>
+<div style="flex:1;height:1px;background:#e8e6dc"></div>
+<span style="font-size:11px;font-weight:600;color:#87867f;letter-spacing:.05em">CROP FROM CHART DOCUMENT</span>
+<div style="flex:1;height:1px;background:#e8e6dc"></div>
 </div>
 
 <!-- Document list OR empty state -->
 ${allDocs.length ? `
-<div style="border:1.5px solid #d4d4d4;border-radius:12px;overflow:hidden;max-height:220px;overflow-y:auto">
-<div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:#8c8c8c;letter-spacing:.08em;text-transform:uppercase">
+<div style="border:1.5px solid #e8e6dc;border-radius:12px;overflow:hidden;max-height:220px;overflow-y:auto">
+<div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:#87867f;letter-spacing:.08em;text-transform:uppercase">
 ${allDocs.length} document${allDocs.length>1?'s':''} — click to crop
 </div>
 ${docListHTML}
 </div>` : `
-<div style="padding:16px;text-align:center;background:#f8fafc;border-radius:12px;border:1.5px dashed #d4d4d4">
+<div style="padding:16px;text-align:center;background:#faf9f5;border-radius:12px;border:1.5px dashed #e8e6dc">
 <i data-lucide="folder-open" class="lci" style="width:28px;height:28px;color:#bfbfbf;display:block;margin:0 auto 6px"></i>
-<div style="font-size:12px;font-weight:600;color:#8c8c8c">No documents in chart yet</div>
+<div style="font-size:12px;font-weight:600;color:#87867f">No documents in chart yet</div>
 <div style="font-size:11px;color:#bfbfbf;margin-top:2px">Upload an ID, License or image in the Documents tab</div>
 </div>`}
 
@@ -14836,7 +14749,7 @@ font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:c
 
 <!-- Cancel -->
 <button onclick="document.getElementById('pt-photo-dialog').remove()"
-style="width:100%;padding:10px;background:#f8fafc;color:#64748b;border:none;
+style="width:100%;padding:10px;background:#faf9f5;color:#87867f;border:none;
 border-radius:12px;font-size:13px;cursor:pointer;font-weight:500">
 Cancel
 </button>
@@ -14937,7 +14850,7 @@ div.innerHTML = `
 <canvas id="pt-camera-canvas" style="display:none"></canvas>
 <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap">
 <button onclick="_capturePhoto('${patId}')"
-style="padding:14px 32px;background:#065f46;color:#fff;border:none;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer">
+style="padding:14px 32px;background:#c96442;color:#fff;border:none;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer">
 ?? Capture
 </button>
 <button onclick="document.getElementById('pt-camera-facingMode').dataset.front=(document.getElementById('pt-camera-facingMode').dataset.front==='1'?'0':'1');_switchCamera('${patId}')"
@@ -14997,18 +14910,18 @@ div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:55
 div.innerHTML = `
 <div style="background:#fff;border-radius:10px;padding:24px;max-width:340px;width:90%;text-align:center">
 <div style="font-size:32px;margin-bottom:12px"></div>
-<div style="font-size:14px;font-weight:700;color:#c0392b;margin-bottom:8px">Camera Not Available</div>
-<div style="font-size:12px;color:#555;margin-bottom:16px;line-height:1.6">
+<div style="font-size:14px;font-weight:700;color:#b53333;margin-bottom:8px">Camera Not Available</div>
+<div style="font-size:12px;color:#4d4c48;margin-bottom:16px;line-height:1.6">
 The camera requires a secure connection (HTTPS).<br>
 When deployed to Cloudflare Pages, the camera will work automatically.<br><br>
 <strong>For now, use one of these options:</strong>
 </div>
 <button onclick="this.closest('div').closest('div').remove();document.getElementById('pt-photo-upload-fallback').click()"
-style="width:100%;padding:11px;margin-bottom:8px;background:#065f46;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
-?? Upload Photo from Device
+style="width:100%;padding:11px;margin-bottom:8px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
+ ?? Upload Photo from Device
 </button>
 <button onclick="this.closest('div').closest('div').remove()"
-style="width:100%;padding:9px;background:#f3f4f6;color:#555;border:none;border-radius:6px;font-size:12px;cursor:pointer">
+style="width:100%;padding:9px;background:#f0eee6;color:#4d4c48;border:none;border-radius:6px;font-size:12px;cursor:pointer">
 Cancel
 </button>
 </div>`;
@@ -15073,15 +14986,15 @@ div.innerHTML = `
 </div>
 <div style="position:relative;display:inline-block;width:100%;overflow:auto;max-height:60vh;text-align:center">
 <img id="pt-crop-img" src="${src}" style="max-width:100%;display:block;margin:0 auto;user-select:none" draggable="false">
-<div id="pt-crop-sel" style="position:absolute;border:2px dashed #065f46;background:rgba(44,62,107,.15);display:none;pointer-events:none"></div>
+<div id="pt-crop-sel" style="position:absolute;border:2px dashed var(--brand);background:rgba(201,100,66,.15);display:none;pointer-events:none"></div>
 </div>
 <div style="display:flex;gap:10px;margin-top:12px;justify-content:center">
 <button onclick="_cropAndSave('${patId}')"
-style="padding:10px 24px;background:#065f46;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
-?? Crop & Save
+style="padding:10px 24px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">
+ ?? Crop & Save
 </button>
 <button onclick="document.getElementById('pt-crop-modal').remove()"
-style="padding:10px 24px;background:#f3f4f6;color:#555;border:none;border-radius:6px;font-size:13px;cursor:pointer">
+style="padding:10px 24px;background:#f0eee6;color:#4d4c48;border:none;border-radius:6px;font-size:13px;cursor:pointer">
 Cancel
 </button>
 </div>
@@ -15284,10 +15197,10 @@ Patient Details
 </div>
 <div style="flex:1">
 <div style="font-weight:700;font-size:13px;color:#064e3b">${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid:''}</div>
-<div style="font-size:11px;color:#555;margin:2px 0">Chart # ${pat.acct||''}</div>
-<div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#c0392b':'#27ae60'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
-<div style="font-size:11px;color:#333">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
-<div style="font-size:11px;color:#333">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
+<div style="font-size:11px;color:#87867f;margin:2px 0">Chart # ${pat.acct||''}</div>
+<div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#b53333':'#4d4c48'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
+<div style="font-size:11px;color:#4d4c48">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
+<div style="font-size:11px;color:#4d4c48">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
 </div>
 </div>
 ${R('SSN #', pat.ssn ? '***-**-'+String(pat.ssn).slice(-4) : '')}
@@ -15405,7 +15318,7 @@ function catRow(c) {
     +'background:'+(active?'var(--brand-bg)':'transparent')+';'
     +'border-left:3px solid '+(active?'var(--brand)':'transparent')+';transition:background .15s">'
     +'<i data-lucide="'+(cnt>0?'folder-open':'folder')+'" class="lci"'
-    +' style="width:13px;height:13px;color:'+(cnt>0?'#e07820':'#8090b0')+';flex-shrink:0"></i>'
+    +' style="width:13px;height:13px;color:'+(cnt>0?'#e07820':'#87867f')+';flex-shrink:0"></i>'
     +'<span style="flex:1;font-size:12px;color:'+(active?'var(--brand)':'var(--text)')+';font-weight:'+(active?'700':'400')+'">'+c+'</span>'
     +badge
     +'</div>';
@@ -15509,9 +15422,9 @@ return 'paperclip';
 function _docTypeColor(type) {
 const t = (type||'').toLowerCase();
 if (t.includes('pdf')) return '#dc2626';
-if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#4a4a4a';
-if (t.includes('xls')) return '#16a34a';
-return '#6b7280';
+if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#c96442';
+if (t.includes('xls')) return '#4d4c48';
+return '#87867f';
 }
 
 function _setDocCategory(patId, cat) {
@@ -15606,7 +15519,7 @@ if (!doc) return;
 // Superbill: render inline HTML viewer
 if (doc.category==='Superbills' && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
-    return '<tr style="font-size:12px;border-bottom:1px solid #d4d4d4">'+
+    return '<tr style="font-size:12px;border-bottom:1px solid #e8e6dc">'+
       '<td style="padding:6px 8px;font-weight:600">'+( l.cpt||'')+'</td>'+
       '<td style="padding:6px 8px;color:#334155">'+(l.desc||'')+'</td>'+
       '<td style="padding:6px 8px;text-align:center">'+(l.units||1)+'</td>'+
@@ -15614,41 +15527,41 @@ if (doc.category==='Superbills' && doc.lines) {
     '</tr>';
   }).join('');
   var dxHTML = (doc.dx||[]).map(function(d,i){
-    return '<span style="background:#f1f5f9;border:1px solid #d4d4d4;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+d+'</span>';
+    return '<span style="background:#e8e6dc;border:1px solid #e8e6dc;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+d+'</span>';
   }).join(' ');
   var ov = document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.setAttribute('data-sbov','1');
   ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;font-family:Arial,sans-serif">'+
-    '<div style="background:#2a2a2a;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
+    '<div style="background:#141413;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
       '<div><div style="font-size:18px;font-weight:700">ClaimDataCare</div>'+
       '<div style="font-size:11px;opacity:.8">Superbill / Patient Receipt</div></div>'+
       '<button onclick="var p=this;while(p&&!p.dataset.sbov)p=p.parentElement;if(p)p.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">✕ Close</button>'+
     '</div>'+
     '<div style="padding:20px 24px">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
-        '<div><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Provider</div>'+
+        '<div><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:4px">Provider</div>'+
         '<div style="font-size:13px;font-weight:600">'+(doc.providerName||'')+'</div>'+
-        '<div style="font-size:11px;color:#64748b">NPI: '+(doc.providerNPI||'—')+'</div></div>'+
-        '<div><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Patient</div>'+
+        '<div style="font-size:11px;color:#87867f">NPI: '+(doc.providerNPI||'—')+'</div></div>'+
+        '<div><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:4px">Patient</div>'+
         '<div style="font-size:13px;font-weight:600">'+(doc.name||pat.last+', '+pat.first||'')+'</div>'+
-        '<div style="font-size:11px;color:#64748b">DOS: '+(doc.date||'')+'</div></div>'+
+        '<div style="font-size:11px;color:#87867f">DOS: '+(doc.date||'')+'</div></div>'+
       '</div>'+
-      '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">Diagnoses</div>'+
+      '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:6px">Diagnoses</div>'+
       '<div>'+dxHTML+'</div></div>'+
       '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">'+
-        '<thead><tr style="background:#f8fafc">'+
-          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">CPT</th>'+
-          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Description</th>'+
-          '<th style="padding:8px;text-align:center;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Units</th>'+
-          '<th style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Charge</th>'+
+        '<thead><tr style="background:#faf9f5">'+
+          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#87867f;border-bottom:2px solid #e8e6dc">CPT</th>'+
+          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#87867f;border-bottom:2px solid #e8e6dc">Description</th>'+
+          '<th style="padding:8px;text-align:center;font-size:11px;font-weight:700;color:#87867f;border-bottom:2px solid #e8e6dc">Units</th>'+
+          '<th style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:#87867f;border-bottom:2px solid #e8e6dc">Charge</th>'+
         '</tr></thead><tbody>'+linesHTML+'</tbody>'+
         '<tfoot><tr style="background:#f0fdf4">'+
-          '<td colspan="3" style="padding:10px 8px;font-weight:700;font-size:13px;color:#2a2a2a">Total Charges</td>'+
-          '<td style="padding:10px 8px;font-weight:700;font-size:15px;color:#2a2a2a;text-align:right">$'+(doc.totalCharge||'0.00')+'</td>'+
+          '<td colspan="3" style="padding:10px 8px;font-weight:700;font-size:13px;color:#141413">Total Charges</td>'+
+          '<td style="padding:10px 8px;font-weight:700;font-size:15px;color:#141413;text-align:right">$'+(doc.totalCharge||'0.00')+'</td>'+
         '</tr></tfoot>'+
       '</table>'+
-      '<div style="font-size:10px;color:#8c8c8c;text-align:center;border-top:1px solid #d4d4d4;padding-top:10px">'+
+      '<div style="font-size:10px;color:#87867f;text-align:center;border-top:1px solid #e8e6dc;padding-top:10px">'+
         'PCN: '+(doc.claimPCN||'')+' · Generated by ClaimDataCare · '+(doc.date||'')+
       '</div>'+
     '</div>'+
@@ -15690,18 +15603,18 @@ if (isPDF) {
 
 div.innerHTML = `
 <div style="background:#fff;border-radius:8px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#065f46;color:#fff">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--brand);color:#fff">
 <div style="font-size:13px;font-weight:700">${doc.name}</div>
 <div style="display:flex;gap:8px">
 <a href="${doc.data}" download="${doc.name}"
-style="padding:5px 12px;background:#fff;color:#065f46;border-radius:4px;font-size:12px;font-weight:700;text-decoration:none">
+style="padding:5px 12px;background:#fff;color:var(--brand);border-radius:4px;font-size:12px;font-weight:700;text-decoration:none">
 ⬇ Download
 </a>
 <button onclick="var d=document.getElementById('pdf-preview-overlay');if(d){URL.revokeObjectURL(d._blobUrl||'');d.remove();}"
 style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button>
 </div>
 </div>
-<div style="flex:1;overflow:auto;padding:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center">
+<div style="flex:1;overflow:auto;padding:0;background:#f5f4ed;display:flex;align-items:center;justify-content:center">
 ${viewerHTML}
 </div>
 </div>`;
@@ -15746,7 +15659,7 @@ const totIns = insA.reduce((a,b)=>a+b,0);
 const totPat = patA.reduce((a,b)=>a+b,0);
 const totAll = totIns+totPat;
 const $v = n=>'$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-const cell = v=>`<td style="text-align:right;font-family:var(--mono);color:${v>0?'#dc2626':'#4a4a4a'}">${$v(v)}</td>`;
+const cell = v=>`<td style="text-align:right;font-family:var(--mono);color:${v>0?'#dc2626':'#87867f'}">${$v(v)}</td>`;
 
 // ?? Appointments ?????????????????????????????????????????????
 const past = appts.filter(a=>a.date<=today.toISOString().slice(0,10)).sort((a,b)=>b.date.localeCompare(a.date));
@@ -15764,9 +15677,9 @@ const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('seco
 
 // ?? Helpers ???????????????????????????????????????????????????
 const R = (l,v,bold=false)=>v?`
-<div style="display:grid;grid-template-columns:130px 1fr;padding:3px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
-<span style="color:#64748b;font-weight:600">${l}</span>
-<span style="color:#1e293b;font-weight:${bold?'700':'400'}">: ${v}</span>
+<div style="display:grid;grid-template-columns:130px 1fr;padding:3px 0;border-bottom:1px solid #e8e6dc;font-size:12px">
+<span style="color:#87867f;font-weight:600">${l}</span>
+<span style="color:#141413;font-weight:${bold?'700':'400'}">: ${v}</span>
 </div>`:'';
 
 const insBlock = (ins, label) => !ins?'':`
@@ -15828,9 +15741,9 @@ return `
 <!-- Photo column -->
 <div style="text-align:center">
 <div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
-style="width:70px;height:70px;border:2px solid #a7f3d0;border-radius:8px;
-background:#ecfdf5;display:flex;align-items:center;justify-content:center;
-font-size:24px;font-weight:700;color:#4a4a4a;cursor:${pat.photo?'zoom-in':'default'};
+style="width:70px;height:70px;border:2px solid #e8e6dc;border-radius:8px;
+background:#f5f4ed;display:flex;align-items:center;justify-content:center;
+font-size:24px;font-weight:700;color:var(--text2);cursor:${pat.photo?'zoom-in':'default'};
 overflow:hidden;margin:0 auto">
 ${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:`${initials}`}
 </div>
@@ -15906,9 +15819,9 @@ ${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
 </tr>
 </tfoot>
 </table>
-<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #d4d4d4">
+<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #e8e6dc">
 <span>Unapplied Patient Payments: ${$v(0)}</span>
-<span style="color:${totAll>0?'#dc2626':'#4a4a4a'}">Net A/R: ${$v(totAll)}</span>
+<span style="color:${totAll>0?'#dc2626':'#87867f'}">Net A/R: ${$v(totAll)}</span>
 </div>
 </div>
 </div>
@@ -16174,13 +16087,13 @@ style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:rel
 
 <!-- Insurances table -->
 <div style="padding:0 0 4px">
-<div style="background:#4a4a4a;color:#fff;font-size:12px;font-weight:700;padding:5px 10px">Insurances</div>
+<div style="background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:5px 10px">Insurances</div>
 <div style="overflow-x:auto">
 <table style="width:100%;border-collapse:collapse;background:var(--bg2)">
 <thead>
-<tr style="background:#e8eaf0;font-size:11px;color:#333">
+<tr style="background:#e8e6dc;font-size:11px;color:#4d4c48">
 ${['Policy Type','Insurance Type','Relation','Name','Insurance Company','Policy No','Group No','Effective Dates','Created By','Created On','Edit','Delete','',''].map(h=>
-`<th style="padding:5px 8px;text-align:left;border:1px solid #c0c8d8;white-space:nowrap">${h}</th>`
+`<th style="padding:5px 8px;text-align:left;border:1px solid #e8e6dc;white-space:nowrap">${h}</th>`
 ).join('')}
 </tr>
 </thead>
@@ -16192,8 +16105,8 @@ ${['Policy Type','Insurance Type','Relation','Name','Insurance Company','Policy 
 <!-- Case Insurance -->
 <div style="padding:8px 10px;margin-top:8px">
 <button class="btn btn-primary btn-sm" style="margin-bottom:8px">Add Case Insurance Information</button>
-<div style="background:#e8eaf0;font-size:12px;font-weight:700;padding:5px 10px;border:1px solid #c0c8d8">Patient Case</div>
-<div style="padding:8px 10px;font-size:12px;color:#c0392b;font-weight:600">No Case Insurance Data Found</div>
+<div style="background:#e8e6dc;font-size:12px;font-weight:700;padding:5px 10px;border:1px solid #e8e6dc">Patient Case</div>
+<div style="padding:8px 10px;font-size:12px;color:#b53333;font-weight:600">No Case Insurance Data Found</div>
 </div>
 
 <!-- Move Next -->
@@ -16211,7 +16124,7 @@ return ins.map((ins,i) => `
 <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:${ins.inactive?'var(--bg2)':''}">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:10px">
-<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'#eff6ff':ins.type==='Secondary'?'#f0fdf4':'#fafafa'};color:${ins.type==='Primary'?'#2a2a2a':ins.type==='Secondary'?'#15803d':'#6b7280'}">${ins.type||'Primary'}</span>
+<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'rgba(201,100,66,0.08)':ins.type==='Secondary'?'#f0eee6':'#faf9f5'};color:${ins.type==='Primary'?'var(--brand)':ins.type==='Secondary'?'#4d4c48':'#87867f'}">${ins.type||'Primary'}</span>
 <span style="font-weight:700">${ins.name||''}</span>
 <span class="mono" style="font-size:11px;color:var(--text3)">${ins.memberId||''}</span>
 ${ins.inactive?'<span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Inactive</span>':'<span style="background:#f0fdf4;color:#16a34a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Active</span>'}
@@ -16228,18 +16141,6 @@ ${ins.inactive?'<span style="background:#fef2f2;color:#dc2626;font-size:10px;fon
 <div><div class="pt-info-lbl">Effective To</div><div class="pt-info-val">${ins.effTo||''}</div></div>
 </div>
 </div>`).join('');
-}
-
-function _onInsPayerSelect(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  const name = opt ? (opt.dataset.name||'') : '';
-  const pid  = opt ? (opt.dataset.payerid||'') : '';
-  const hidN = document.getElementById('pif-insname');
-  const hidP = document.getElementById('pif-payerid');
-  const disp = document.getElementById('pif-payerid-display');
-  if (hidN) hidN.value = name;
-  if (hidP) hidP.value = pid;
-  if (disp) disp.textContent = pid || '—';
 }
 
 function _addInsurance(patId) {
@@ -16269,6 +16170,7 @@ function _onInsPayerSelect(sel) {
 }
 
 function _showInsuranceForm(patId, idx) {
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
 const db = getDB();
 const pat = db.patients.find(p=>p.id===patId)||{};
 const iv = idx !== null ? (pat.insurances||[])[idx]||{} : {};
@@ -16310,17 +16212,17 @@ const typeRadios = types.map(t =>
 
 const fld = (id, label, val='', type='text', extra='', req=false) =>
 `<div style="display:flex;align-items:center;gap:0;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">${label}${req?' <span style="color:#c0392b">*</span>':''}</label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">${label}${req?' <span style="color:#b53333">*</span>':''}</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
 <input id="${id}" type="${type}" value="${val}" ${extra}
-style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff;color:#333">
+style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff;color:#4d4c48">
 </div>`;
 
 const sel = (id, label, val, opts, onch='') =>
 `<div style="display:flex;align-items:center;gap:0;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">${label}</label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">${label}</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
-<select id="${id}" ${onch} style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff;color:#333">
+<select id="${id}" ${onch} style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff;color:#4d4c48">
 ${opts.map(([v,t])=>`<option value="${v}" ${v===val?'selected':''}>${t}</option>`).join('')}
 </select>
 </div>`;
@@ -16332,10 +16234,10 @@ div.id = 'pt-ins-form';
 div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px';
 
 div.innerHTML = `
-<div style="background:#fff;border:1px solid #aaa;border-radius:4px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
 
 <!-- Title bar -->
-<div style="display:flex;align-items:center;justify-content:space-between;background:#065f46;color:#fff;padding:8px 14px;border-radius:4px 4px 0 0">
+<div style="display:flex;align-items:center;justify-content:space-between;background:#c96442;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0">
 <div style="font-size:14px;font-weight:700">Add/Edit Insurance</div>
 <button onclick="document.getElementById('pt-ins-form').remove()"
 style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1">&times;</button>
@@ -16345,7 +16247,7 @@ style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line
 
 <!-- Type radio row -->
 <div style="display:flex;align-items:center;padding:6px 0;margin-bottom:10px">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Type <span style="color:#c0392b">*</span></label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Type <span style="color:#b53333">*</span></label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
 <div>${typeRadios}</div>
 </div>
@@ -16359,7 +16261,7 @@ ${fld('pif-lname','Last Name *',iv.lname||pat.last||'','text','',true)}
 ${fld('pif-fname','First Name *',iv.fname||pat.first||'','text','',true)}
 ${fld('pif-mid','Middle Name',iv.mid||pat.mid||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Sex <span style="color:#c0392b">*</span></label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Sex <span style="color:#b53333">*</span></label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
 <div style="display:flex;gap:14px">
 ${['Male','Female','Unknown'].map(s=>
@@ -16371,39 +16273,39 @@ ${['Male','Female','Unknown'].map(s=>
 ${fld('pif-dob','Date Of Birth *',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
 ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
 <div style="display:flex;align-items:flex-start;gap:0;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#c0392b">*</span></label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#b53333">*</span></label>
 <span style="color:#555;margin-right:6px;font-size:12px;padding-top:4px">:</span>
 <div style="flex:1">
-  <select id="pif-payer-sel" onchange="_onInsPayerSelect(this)" style="width:100%;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff;color:#333;margin-bottom:4px">
+  <select id="pif-payer-sel" onchange="_onInsPayerSelect(this)" style="width:100%;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff;color:#4d4c48;margin-bottom:4px">
     <option value="">— Select Insurance / Payer —</option>
-    \${(getInsurances()||[]).map(function(ins){
+    ${(getInsurances()||[]).map(function(ins){
       var sel = (iv.name===ins.name||(iv.payerId&&iv.payerId===ins.payerId)) ? 'selected' : '';
       return '<option value="'+ins.id+'" data-name="'+escapeHtml(ins.name||'')+'" data-payerid="'+(ins.payerId||'')+'" '+sel+'>'+escapeHtml(ins.name||'')+' &nbsp;·&nbsp; ID: '+(ins.payerId||'—')+'</option>';
     }).join('')}
   </select>
   <div style="display:flex;align-items:center;gap:8px">
     <span style="font-size:11px;color:#666">Payer ID:</span>
-    <code id="pif-payerid-disp" style="font-size:12px;font-weight:700;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:4px">\${iv.payerId||'—'}</code>
+    <code id="pif-payerid-disp" style="font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-bg);padding:2px 8px;border-radius:4px">${iv.payerId||'—'}</code>
   </div>
-  <input type="hidden" id="pif-ins-company" value="\${iv.name||iv.insuranceName||''}">
-  <input type="hidden" id="pif-payerid-val" value="\${iv.payerId||''}">
+  <input type="hidden" id="pif-ins-company" value="${iv.name||iv.insuranceName||''}">
+  <input type="hidden" id="pif-payerid-val" value="${iv.payerId||''}">
 </div>
 </div>
 ${fld('pif-policy','Policy No * (No \'-\' Please)',iv.policy||iv.memberId||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Plan</label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Plan</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
 <input id="pif-plan-text" value="${iv.plan||''}"
-style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff">
+style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
 <span style="margin:0 8px;font-size:12px;color:#555">(OR)</span>
-<select id="pif-plan-sel" style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff">
+<select id="pif-plan-sel" style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
 <option value="">Select</option>
 </select>
 </div>
 <div style="display:flex;align-items:center;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Plan Type</label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Plan Type</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
-<select id="pif-plan-type" style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff">
+<select id="pif-plan-type" style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
 <option value="">-Select-</option>
 <option value="Medical" ${(iv.planType||'Medical')==='Medical'?'selected':''}>Medical</option>
 <option value="Dental" ${iv.planType==='Dental'?'selected':''}>Dental</option>
@@ -16421,11 +16323,11 @@ ${fld('pif-ins-phone','Insurance Phone #',iv.insPhone||'')}
 <!-- RIGHT column -->
 <div>
 <div style="display:flex;align-items:center;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Relation <span style="color:#c0392b">*</span></label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Relation <span style="color:#b53333">*</span></label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
 <select id="pif-relation"
 onchange="if(this.value==='Self'){window._insPatId='${patId}';const p=getDB().patients.find(x=>x.id==='${patId}')||{};['pif-lname','pif-fname','pif-mid'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[p.last,p.first,p.mid||''][i]||'';});document.getElementById('pif-dob').value=p.dob||'';document.getElementById('pif-ssn').value=p.ssn||'';document.getElementById('pif-addr1').value=p.addr1||'';document.getElementById('pif-city').value=p.city||'';document.getElementById('pif-state').value=p.state||'';document.getElementById('pif-zip').value=p.zip||'';document.getElementById('pif-phone').value=p.phone||'';document.getElementById('pif-mobile').value=p.phone2||'';document.getElementById('pif-email').value=p.email||'';const s=p.sex==='M'?'Male':p.sex==='F'?'Female':'Unknown';['Male','Female','Unknown'].forEach(sv=>{const r=document.getElementById('pif-sex-'+sv);if(r)r.checked=sv===s;});}"
-style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff">
+style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
 ${['Self','Spouse','Child','Parent','Other'].map(r=>`<option value="${r}" ${(iv.relation||'Self')===r?'selected':''}>${r}</option>`).join('')}
 </select>
 </div>
@@ -16440,9 +16342,9 @@ ${fld('pif-mobile','Mobile #',iv.mobile||pat.phone2||'')}
 ${fld('pif-fax','Fax',iv.fax||'')}
 ${fld('pif-employer','Employer',iv.employer||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
-<label style="width:140px;font-size:12px;color:#333;flex-shrink:0">Accept Assignment</label>
+<label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Accept Assignment</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
-<select id="pif-accept-assign" style="flex:1;padding:4px 6px;border:1px solid #c0c8d8;border-radius:3px;font-size:12px;background:#fff">
+<select id="pif-accept-assign" style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
 <option value="Accepted" ${(iv.acceptAssign||'Accepted')==='Accepted'?'selected':''}>Accepted</option>
 <option value="Not Accepted" ${iv.acceptAssign==='Not Accepted'?'selected':''}>Not Accepted</option>
 </select>
@@ -16459,7 +16361,7 @@ ${fld('pif-eff-to','Effective To',iv.effTo||'')}
 </div><!-- /grid -->
 
 <!-- Footer buttons -->
-<div style="display:flex;justify-content:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #d0d4e0">
+<div style="display:flex;justify-content:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
 <button class="btn btn-primary"
 onclick="_saveInsuranceForm('${patId}',${idx})">Save</button>
 <button class="btn btn-primary"
@@ -16501,6 +16403,7 @@ lname, fname: g('pif-fname'), mid: g('pif-mid'),
 sex, dob: g('pif-dob'), ssn: g('pif-ssn'),
 name: insCompany,
 insuranceName:insCompany,
+payerId: newPayerId,
 policy: g('pif-policy'), memberId: g('pif-policy'),
 group: g('pif-group'),
 plan: g('pif-plan-text'),
@@ -16661,8 +16564,8 @@ ${!claims.length?'<div style="padding:30px;text-align:center;color:var(--text3)"
 const billed=(c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
 const paid=(eobMap[c.id]||[]).reduce((s,p)=>s+p.paid,0);
 const bal=billed-paid;
-const stColors={draft:'#6b7280',pending:'#d97706',submitted:'#4a4a4a',accepted:'#4a4a4a',paid:'#16a34a',settled:'#16a34a',denied:'#dc2626',rejected:'#dc2626',partially_paid:'#d97706',patient_balance:'#d97706'};
-const sc=stColors[c.status]||'#6b7280';
+const stColors={draft:'#87867f',pending:'#d97706',submitted:'#4d4c48',accepted:'#4d4c48',paid:'#4d4c48',settled:'#4d4c48',denied:'#b53333',rejected:'#b53333',partially_paid:'#d97706',patient_balance:'#d97706'};
+const sc=stColors[c.status]||'#87867f';
 // PCN is clickable ? opens claim detail
 return `<tr>
 <td><span class="mono" style="font-size:11px;cursor:pointer;color:var(--brand);text-decoration:underline;text-decoration-style:dotted"
@@ -17330,39 +17233,39 @@ function saveNewUser() {
     var welcomeHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
       // Header with logo
-      '<div style="background:#2a2a2a;padding:24px 28px;display:flex;align-items:center;gap:14px">',
+      '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:14px">',
         '<svg width="42" height="42" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">',
-          '<rect width="100" height="100" rx="18" fill="#4a4a4a"/>',
+          '<rect width="100" height="100" rx="18" fill="#c96442"/>',
           '<path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/>',
           '<line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/>',
           '<line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/>',
         '</svg>',
         '<div>',
           '<div style="color:white;font-weight:700;font-size:22px;letter-spacing:-.3px">ClaimDataCare</div>',
-          '<div style="color:#a7d3b8;font-size:12px;margin-top:2px">Electronic Health Records &amp; Billing</div>',
+          '<div style="color:#87867f;font-size:12px;margin-top:2px">Electronic Health Records &amp; Billing</div>',
         '</div>',
       '</div>',
       // Body
-      '<div style="background:#f8f6f0;padding:28px;border:1px solid #e0ddd8;border-top:none">',
-        '<p style="color:#2a2a2a;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
-        '<p style="color:#555;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Please review your details and activate your account below.</p>',
+      '<div style="background:#f5f4ed;padding:28px;border:1px solid #e8e6dc;border-top:none">',
+        '<p style="color:#141413;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
+        '<p style="color:#4d4c48;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Please review your details and activate your account below.</p>',
         // Info table
-        '<div style="background:white;border:1px solid #e0ddd8;border-radius:10px;padding:18px;margin-bottom:20px">',
+        '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;padding:18px;margin-bottom:20px">',
           '<table style="width:100%;border-collapse:collapse">',
-            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8;width:120px">Username</td><td style="color:#2a2a2a;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0ede8">' + name + '</td></tr>',
-            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Email</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + email + '</td></tr>',
-            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Role</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + primaryRole + '</td></tr>',
-            '<tr><td style="color:#888;font-size:13px;padding:6px 0">Temp Password</td><td style="color:#c77c3e;font-size:14px;font-weight:700;padding:6px 0;letter-spacing:1px">' + tempPass + '</td></tr>',
+            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6;width:120px">Username</td><td style="color:#141413;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0eee6">' + name + '</td></tr>',
+            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Email</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + email + '</td></tr>',
+            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Role</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + primaryRole + '</td></tr>',
+            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0">Temp Password</td><td style="color:#c96442;font-size:14px;font-weight:700;padding:6px 0;letter-spacing:1px">' + tempPass + '</td></tr>',
           '</table>',
         '</div>',
         // CTA button
         '<div style="text-align:center;margin-bottom:20px">',
-          '<a href="' + verifyLink + '" style="display:inline-block;background:#4a4a4a;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
+          '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
             'Activate My Account &amp; Set Password',
           '</a>',
-          '<p style="color:#999;font-size:11px;margin-top:10px">Link expires in 48 hours</p>',
+          '<p style="color:#87867f;font-size:11px;margin-top:10px">Link expires in 48 hours</p>',
         '</div>',
-        '<p style="color:#999;font-size:11px;border-top:1px solid #e0ddd8;padding-top:14px;margin:0">',
+        '<p style="color:#87867f;font-size:11px;border-top:1px solid #e8e6dc;padding-top:14px;margin:0">',
           'If you did not expect this email, please ignore it or contact your system administrator. &nbsp;·&nbsp; ClaimDataCare &copy; 2025',
         '</p>',
       '</div>',
@@ -17408,10 +17311,10 @@ const SKIN_SHD = '#F0A870';
 const NECK = '#FBBF8A';
 
 if (sex === 'F') {
-// Female — teal bg, dark hair (shoulder length), emerald shirt
-const BG = '#0d9488';
-const HAIR = '#1e293b';
-const SHRT = '#4a4a4a';
+// Female — warm bg, dark hair, warm shirt
+const BG = '#c96442';
+const HAIR = '#141413';
+const SHRT = '#4d4c48';
 return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 <rect width="100" height="100" rx="50" fill="${BG}"/>
 <clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
@@ -17437,10 +17340,10 @@ return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.
 }
 
 if (sex === 'M') {
-// Male — emerald bg, dark short hair, dark green shirt
-const BG = '#4a4a4a';
-const HAIR = '#1e293b';
-const SHRT = '#065f46';
+// Male — dark warm bg, dark short hair, terracotta shirt
+const BG = '#4d4c48';
+const HAIR = '#141413';
+const SHRT = '#c96442';
 return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 <rect width="100" height="100" rx="50" fill="${BG}"/>
 <clipPath id="mc${s}"><rect width="100" height="100" rx="50"/></clipPath>
@@ -17466,9 +17369,9 @@ return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.
 }
 
 // Unknown / Other — slate bg, neutral
-const BG = '#475569';
-const HAIR = '#1e293b';
-const SHRT = '#334155';
+const BG = '#87867f';
+const HAIR = '#4d4c48';
+const SHRT = '#3d3d3a';
 return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 <rect width="100" height="100" rx="50" fill="${BG}"/>
 <clipPath id="uc${s}"><rect width="100" height="100" rx="50"/></clipPath>
