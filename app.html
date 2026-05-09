@@ -19,37 +19,23 @@ h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
 #root{height:100%}
 
 /* ??? TOKENS ??? */
-:root{--topbar:36px;
-/* Palette: Enterprise Medical / Emerald */
---bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--surface:#ffffff;
---border:#e2e8f0;--border2:#cbd5e1;
---text:#1e293b;--text2:#475569;--text3:#94a3b8;
---brand:var(--brand);--brand-d:var(--brand-d);--brand-bg:var(--brand-bg);--brand-bdr:var(--brand-bg);
---blue:var(--brand);--blue-bg:#eff6ff;--blue-bdr:var(--brand-bg);
---green:var(--brand);--green-bg:var(--brand-bg);--green-bdr:var(--brand-bg);
---red:#dc2626;--red-bg:#fef2f2;--red-bdr:#fecaca;
---amber:#d97706;--amber-bg:#fffbeb;--amber-bdr:#fde68a;
---purple:#7c3aed;--purple-bg:#f5f3ff;--purple-bdr:#ddd6fe;
---teal:#0d9488;--teal-bg:#f0fdfa;
---shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
---shadow-md:0 4px 16px rgba(0,0,0,.08);
---shadow-lg:0 10px 40px rgba(0,0,0,.12);
---r:8px;--r-md:12px;--r-lg:14px;--r-xl:16px;
---font:'DM Sans',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono','SF Mono',monospace;
+:root{
+--bg:#f5f5f5;--bg2:#ffffff;--bg3:#eaeaea;--surface:#ffffff;
+--border:#d4d4d4;--border2:#bfbfbf;
+--text:#1a1a1a;--text2:#4d4d4d;--text3:#8c8c8c;
+--brand:#4a4a4a;--brand-d:#2a2a2a;--brand-bg:rgba(74,74,74,0.08);--brand-bdr:rgba(74,74,74,0.2);
+--blue:#4a4a4a;--blue-bg:#f0f0f0;--blue-bdr:rgba(74,74,74,0.15);
+--green:#4a4a4a;--green-bg:#f0f0f0;--green-bdr:rgba(74,74,74,0.15);
+--red:#c0392b;--red-bg:#fcefee;--red-bdr:#f5c6c0;
+--amber:#b8860b;--amber-bg:#fef9e7;--amber-bdr:#f9e4a8;
+--purple:#6c3483;--purple-bg:#f4ecf7;--purple-bdr:#d7bde2;
+--teal:#555555;--teal-bg:#f0f0f0;
+--shadow:0 1px 2px rgba(0,0,0,.07);
+--shadow-md:0 4px 12px rgba(0,0,0,.09);
+--shadow-lg:0 8px 30px rgba(0,0,0,.11);
+--r:6px;--r-md:8px;--r-lg:10px;--r-xl:12px;
+--font:'DM Sans',system-ui,sans-serif;--mono:'JetBrains Mono','SF Mono',monospace;
 --sidebar:242px;--topbar:36px;
-}
-[data-theme="dark"]{
---bg:#061510;--bg2:#111827;--bg3:#0a1f14;--surface:#111827;
---border:#1e2d3d;--border2:#2d3f55;
---text:#f1f5f9;--text2:#94a3b8;--text3:#475569;
---brand:#10b981;--brand-d:var(--brand);--brand-bg:#052e1a;--brand-bdr:var(--brand-d);
---blue:#10b981;--blue-bg:#052e1a;--blue-bdr:var(--brand-d);
---green:#10b981;--green-bg:#052e1a;--green-bdr:var(--brand-d);
---red:#f87171;--red-bg:#2d1515;--red-bdr:#7f1d1d;
---amber:#fbbf24;--amber-bg:#2d2008;--amber-bdr:#78350f;
---purple:#a78bfa;--purple-bg:#1e1533;--purple-bdr:#4c1d95;
---teal:#2dd4bf;--teal-bg:#0d2929;
---shadow:0 1px 3px rgba(0,0,0,.3);--shadow-md:0 4px 16px rgba(0,0,0,.4);--shadow-lg:0 10px 40px rgba(0,0,0,.5);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -278,8 +264,8 @@ display: flex;
 align-items: center;
 height: 36px;
 padding: 0 8px;
-background: #ffffff;
-border-bottom: 1px solid #e2e5ed;
+background: #2a2a2a;
+border-bottom: 1px solid #3a3a3a;
 flex-shrink: 0;
 z-index: 200;
 gap: 1px;
@@ -287,7 +273,7 @@ position: sticky;
 top: 0;
 }
 .main{width:100%;flex:1;display:flex;flex-direction:column;overflow:hidden}
-.content{flex:1;overflow-y:auto;padding:14px 22px 22px 22px}
+.content{flex:1;overflow-y:auto;padding:6px 22px 22px}
 [data-theme="dark"] .topnav {
 background: #161b27;
 border-bottom-color: #2a3347;
@@ -306,11 +292,10 @@ text-decoration: none;
 .tn-brand-name {
 font-size: 13px;
 font-weight: 800;
-color: #111827;
+color: #ffffff;
 letter-spacing: -.4px;
 white-space: nowrap;
 }
-[data-theme="dark"] .tn-brand-name { color: #f1f5f9; }
 
 .tn-divider {
 width: 1px;
@@ -343,7 +328,7 @@ border: none;
 cursor: pointer;
 font-size: 13px;
 font-weight: 600;
-color: #374151;
+color: rgba(255,255,255,.85);
 font-family: var(--font);
 white-space: nowrap;
 flex-shrink: 0;
@@ -351,32 +336,21 @@ transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 user-select: none;
 letter-spacing: -.01em;
 }
-[data-theme="dark"] .tn-item { color: #94a3b8; }
 
 .tn-item:hover {
-background: #f3f4f6;
-color: #111827;
-}
-[data-theme="dark"] .tn-item:hover {
-background: #1e2433;
-color: #f1f5f9;
+background: rgba(255,255,255,.13);
+color: #ffffff;
 }
 
 .tn-item:active {
-background: #e5e7eb;
+background: rgba(255,255,255,.08);
 transform: scale(0.97);
 }
-[data-theme="dark"] .tn-item:active { background: #2a3347; }
 
 .tn-item.active {
-background: var(--brand-bg);
-color: var(--brand);
-box-shadow: inset 0 0 0 1.5px var(--brand-bg);
-}
-[data-theme="dark"] .tn-item.active {
-background: #052e1a;
-color: #10b981;
-box-shadow: inset 0 0 0 1.5px var(--brand-d);
+background: rgba(255,255,255,.22);
+color: #ffffff;
+box-shadow: none;
 }
 
 /* Caret */
@@ -514,10 +488,10 @@ border-left: 1px solid #e2e5ed;
 
 .tn-prov-sel {
 padding: 3px 8px;
-border: 1px solid #e2e5ed;
+border: 1px solid rgba(255,255,255,.25);
 border-radius: 6px;
-background: #f7f8fc;
-color: #374151;
+background: rgba(255,255,255,.1);
+color: #ffffff;
 font-size: 12px;
 font-family: var(--font);
 font-weight: 500;
@@ -526,21 +500,15 @@ width: auto;
 cursor: pointer;
 transition: border-color .15s;
 }
-[data-theme="dark"] .tn-prov-sel {
-background: #161b27;
-border-color: #2a3347;
-color: #94a3b8;
-}
-.tn-prov-sel:hover { border-color: var(--brand); }
+.tn-prov-sel:hover { border-color: rgba(255,255,255,.5); }
 
 #tn-user-name {
 font-size: 12px;
 font-weight: 600;
-color: #6b7280;
+color: rgba(255,255,255,.85);
 white-space: nowrap;
 padding: 0 4px;
 }
-[data-theme="dark"] #tn-user-name { color: #475569; }
 
 /* Icon-only action buttons in right section */
 .tn-right .btn-ghost {
@@ -551,43 +519,19 @@ width: 26px;
 height: 26px;
 border-radius: 6px;
 padding: 0;
-color: #6b7280;
+color: rgba(255,255,255,.8);
 background: transparent;
 border: none;
 cursor: pointer;
 transition: background .15s, color .15s;
 }
 .tn-right .btn-ghost:hover {
-background: #f3f4f6;
-color: #111827;
-}
-[data-theme="dark"] .tn-right .btn-ghost { color: #475569; }
-[data-theme="dark"] .tn-right .btn-ghost:hover {
-background: #1e2433;
-color: #f1f5f9;
+background: rgba(255,255,255,.13);
+color: #ffffff;
 }
 .tn-right .btn-ghost svg { width: 17px; height: 17px; }
 
-/* Language button */
-#btn-lang {
-font-size: 11px;
-font-weight: 700;
-letter-spacing: .06em;
-color: #6b7280;
-padding: 4px 8px;
-height: 28px;
-border-radius: 6px;
-background: #f3f4f6;
-border: 1px solid #e2e5ed;
-cursor: pointer;
-transition: all .15s;
-}
-#btn-lang:hover { background: #e5e7eb; color: #111827; }
-[data-theme="dark"] #btn-lang {
-background: #1e2433;
-border-color: #2a3347;
-color: #475569;
-}
+
 
 /* Hamburger */
 .tn-hamburger {
@@ -740,7 +684,7 @@ flex-shrink: 0;
   content: attr(data-tip);
   position: absolute; top: calc(100% + 8px); left: 50%;
   transform: translateX(-50%);
-  background: var(--brand-d, #1b4332); color: #fff;
+  background: var(--brand-d, #2a2a2a); color: #fff;
   font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1);
   pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 9999;
@@ -753,7 +697,7 @@ display: flex; flex-direction: column; overflow: hidden; font-family: var(--font
 }
 /* ?? top banner ???????????????????????????????????????????????? */
 .ptc-banner {
-background: var(--brand-d, #1b4332); color: #fff;
+background: var(--brand-d, #2a2a2a); color: #fff;
 padding: 0 14px; font-size: 12px; font-weight: 500;
 display: flex; align-items: center; gap: 10px;
 flex-shrink: 0; height: 36px;
@@ -1239,7 +1183,7 @@ border-radius: 8px;
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1b4332;
+  background: #2a2a2a;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -1258,7 +1202,7 @@ border-radius: 8px;
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #1b4332;
+  border-top-color: #2a2a2a;
   pointer-events: none;
   opacity: 0;
   transition: opacity .15s;
@@ -1303,7 +1247,7 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--brand-d, #1b4332);
+  background: var(--brand-d, #2a2a2a);
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -1320,7 +1264,7 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .topnav{position:relative!important;top:auto!important;left:auto!important;right:auto!important;flex-shrink:0;z-index:200}
 .main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.content{flex:1;overflow-y:auto;padding:14px 22px 22px!important;margin-top:0!important;padding-top:14px!important}
+.content{flex:1;overflow-y:auto;padding:6px 22px 22px!important;margin-top:0!important}
 </style>
 </head>
 <body>
@@ -1364,29 +1308,13 @@ function _apStyleFonts() {
   });
 }
 
-function toggleDark(){
-const root=document.documentElement;
-const isDark=root.getAttribute('data-theme')==='dark';
-const next=isDark?'light':'dark';
-root.setAttribute('data-theme',next);
-localStorage.setItem('rcmpro_theme',next);
-const btn=document.getElementById('btn-dark');
-if(btn) btn.textContent=next==='dark'?'\u2600\ufe0f':'\ud83c\udf19';
-}
-function toggleLang(){
-LANG=LANG==='en'?'es':'en';
-localStorage.setItem('rcmpro_lang',LANG);
-const btn=document.getElementById('btn-lang');
-if(btn) btn.textContent=LANG==='en'?'ES':'EN';
-}
-
 // \u2500\u2500 Provider Selector \u2500\u2500
 function rebuildProvSel() {
   var db = getDB();
   var sel = document.getElementById('prov-sel');
   if (!sel) return;
   var session = getSession ? getSession() : {};
-  var isSA = session && session.email === atob('aW1ic2luYzIwMjNAZ21haWwuY29t');
+  var isSA = session && session.email === SUPER_ADMIN_EMAIL;
 
   var providers = db.providers || [];
 
@@ -1443,28 +1371,6 @@ function ptLinkName(patId, last, first) {
   return el.outerHTML;
 }
 
-
-// Theme toggle
-function toggleTheme() {
-  const root   = document.documentElement;
-  const isDark = root.getAttribute('data-theme') === 'dark';
-  const next   = isDark ? 'light' : 'dark';
-  root.setAttribute('data-theme', next);
-  // Save to Firestore
-  if (!_apiConfigCache) _apiConfigCache = {};
-  _apiConfigCache.theme = next;
-  if (_fbReady && _db) {
-    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true}).catch(function(){});
-  }
-  const btnDark = document.getElementById('btn-dark');
-  if (btnDark) btnDark.innerHTML = next === 'dark' ? _iconSun() : _iconMoon();
-  // Update appearance panel if open
-  const apBtn = document.getElementById('ap-theme-light');
-  const apBtnD = document.getElementById('ap-theme-dark');
-  if (apBtn)  apBtn.classList.toggle('ap-theme-active', next === 'light');
-  if (apBtnD) apBtnD.classList.toggle('ap-theme-active', next === 'dark');
-  _renderLucideIcons();
-}
 
 // PAGE_TITLES for go()
 const PAGE_TITLES = {
@@ -1607,8 +1513,6 @@ function showApp(username) {
   setTimeout(function(){ _initNavIcons(); _renderLucideIcons(); }, 150);
   updateAdminUI();
   try { initServices(); } catch(e) {}
-  const btnLang = document.getElementById('btn-lang');
-  if (btnLang) btnLang.textContent = LANG === 'en' ? 'ES' : 'EN';
   applyTheme();
   if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
   setTimeout(function(){ setFbStatus('', 'green'); updateAdminUI(); }, 0);
@@ -2402,8 +2306,8 @@ return `<div class="app-shell">
   box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">
 
   <!-- Header with avatar + info -->
-  <div style="padding:14px 16px;background:var(--brand-d);display:flex;align-items:center;gap:12px">
-    <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);
+  <div style="padding:14px 16px;background:#2a2a2a;display:flex;align-items:center;gap:12px">
+    <div style="width:40px;height:40px;border-radius:50%;background:#555;
       border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;
       justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">
       <span id="tn-avatar-initials2">?</span>
@@ -2424,37 +2328,10 @@ return `<div class="app-shell">
   </div>
 
   <!-- Action buttons grid -->
-  <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  <div style="padding:12px;display:grid;grid-template-columns:1fr;gap:8px;
     border-bottom:1px solid var(--border)">
-    <button onclick="toggleTheme();event.stopPropagation()"
-      style="display:flex;flex-direction:column;align-items:center;gap:6px;
-      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
-      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
-      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
-      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
-      <i data-lucide="sun-moon" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
-      <span style="font-size:11px;font-weight:600;color:var(--text)">Theme</span>
-    </button>
-    <button onclick="openAppearancePanel();toggleUserMenu()"
-      style="display:flex;flex-direction:column;align-items:center;gap:6px;
-      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
-      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
-      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
-      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
-      <i data-lucide="palette" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
-      <span style="font-size:11px;font-weight:600;color:var(--text)">Appearance</span>
-    </button>
-    <button id="btn-lang-menu" onclick="toggleLang();event.stopPropagation()"
-      style="display:flex;flex-direction:column;align-items:center;gap:6px;
-      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
-      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
-      onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
-      onmouseout="this.style.background='var(--bg3)';this.style.borderColor='var(--border2)'">
-      <i data-lucide="languages" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
-      <span style="font-size:11px;font-weight:600;color:var(--text)">Language <span id="btn-lang-label" style="color:var(--brand)"></span></span>
-    </button>
     <button onclick="go('account');toggleUserMenu()"
-      style="display:flex;flex-direction:column;align-items:center;gap:6px;
+      style="display:flex;align-items:center;justify-content:center;gap:8px;
       padding:12px 8px;border:1px solid var(--border2);border-radius:10px;
       background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"
       onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
@@ -2480,10 +2357,6 @@ return `<div class="app-shell">
 </div>
 </div>
 
-<!-- Hidden elements kept for JS compatibility -->
-<button id="btn-lang" style="display:none" onclick="toggleLang()"></button>
-<button id="btn-appearance" style="display:none" onclick="openAppearancePanel()"></button>
-<button id="btn-dark" style="display:none" onclick="toggleTheme()"></button>
 </div>
 </header>
 
@@ -2545,7 +2418,6 @@ return `<div class="app-shell">
 </div>
 </div>
 <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto;display:flex;gap:8px">
-<button class="btn btn-ghost btn-sm" onclick="toggleTheme();closeTnDrawer()" style="flex:1">Theme</button>
 <button class="btn btn-danger btn-sm" style="flex:1" onclick="doLogout()">Sign Out</button>
 </div>
 </div>
@@ -4020,7 +3892,7 @@ function exportClaimsReportPDF() {
   var prov = (db.providers||[]).find(function(p){ return p.id===activeProviderId; })||{};
 
   // Header
-  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,67,50);
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
   doc.text('Claims Submission Report', M, Y);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
   doc.text(prov.name||'', M, Y+5);
@@ -4031,7 +3903,7 @@ function exportClaimsReportPDF() {
   var cols = ['Patient','DOB','DOS','CPT / Units','Dx','Payer','Status','Billed'];
   var ws   = [40,20,20,50,30,35,20,20];
   doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
-  doc.setFillColor(27,67,50);
+  doc.setFillColor(55,55,55);
   doc.rect(M, Y-4, PW, 7, 'F');
   var cx = M+1;
   cols.forEach(function(c,i){ doc.text(c, cx, Y); cx+=ws[i]; });
@@ -4060,7 +3932,7 @@ function exportClaimsReportPDF() {
   });
 
   // Total
-  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(27,67,50);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(55,55,55);
   doc.text('Total Billed: ' + money(claims.reduce(function(s,c){ return s+claimTotal(c); },0)), M, Y+6);
 
   addPDFWatermark(doc);
@@ -4165,7 +4037,7 @@ function exportAuditLogPDF() {
   var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
   var prov = (getDB().providers||[]).find(function(p){ return p.id===activeProviderId; })||{};
 
-  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,67,50);
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
   doc.text('HIPAA Audit Log', M, Y);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
   doc.text(prov.name||'', M, Y+5);
@@ -4175,7 +4047,7 @@ function exportAuditLogPDF() {
   var cols = ['Timestamp','User','Role','Action','Details'];
   var ws2  = [50,35,25,30,100];
   doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
-  doc.setFillColor(27,67,50);
+  doc.setFillColor(55,55,55);
   doc.rect(M, Y-4, PW, 7, 'F');
   var cx = M+1;
   cols.forEach(function(c,i){ doc.text(c,cx,Y); cx+=ws2[i]; });
@@ -5537,7 +5409,7 @@ const USERS_KEY = 'rcmpro_users_v2'; // v2 forces fresh cache
 // Default super admin — stored in localStorage on first boot
 const DEFAULT_ADMIN = {
 id: 'usr-superadmin',
-email: atob('aW1ic2luYzIwMjNAZ21haWwuY29t'), // obfuscated
+email: SUPER_ADMIN_EMAIL, // obfuscated
 role: 'Super Admin',
 name: 'Frank Cue',
 first: 'Frank',
@@ -5616,7 +5488,7 @@ box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(5,150,105,.08),inset 0 1p
 <div style="text-align:center;margin-bottom:36px">
 <div style="display:flex;justify-content:center;margin-bottom:4px">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="72" height="72">
-  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#2d6a4f"/>
+  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#4a4a4a"/>
   <path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
   <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
@@ -5702,7 +5574,7 @@ Sign In
 </div>
 
 <div style="margin-top:28px;text-align:center;font-size:11px;color:#cbd5e1;letter-spacing:.01em">
-<span style="color:#2d6a4f;font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
+<span style="color:#4a4a4a;font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
 </div>
 </div>
 </div>`;
@@ -7901,8 +7773,6 @@ function _afterLoad() {
   setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
   updateBadges();
   updateAdminUI();
-  // Auto-apply logo palette on first use
-  setTimeout(function() { try { autoApplyLogoPalette(); } catch(e) {} }, 500);
 }
 
 // Try Firebase auth first — only if input looks like an email
@@ -8340,12 +8210,14 @@ renderUserManagement(); toast('User '+email+' added ?');
 }
 
 
+const CLEARINGHOUSE_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
+
 // ── Email Service ─────────────────────────────────────────────────
 var EMAIL_WORKER_URL = 'https://email-service.imbsinc2023.workers.dev';
 
 async function sendEmail(to, subject, html, type) {
   try {
-    var url = 'https://email-service.imbsinc2023.workers.dev/?'
+    var url = EMAIL_WORKER_URL + '/?'
       + 'to='      + encodeURIComponent(to)
       + '&subject='+ encodeURIComponent(subject)
       + '&html='   + encodeURIComponent(html)
@@ -8398,13 +8270,13 @@ async function send2FACode(user) {
 
   var html = [
     '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">',
-    '<div style="background:#1b4332;padding:16px 24px;border-radius:8px 8px 0 0">',
+    '<div style="background:#2a2a2a;padding:16px 24px;border-radius:8px 8px 0 0">',
     '<h2 style="color:white;margin:0;font-size:18px">ClaimDataCare — Verification Code</h2>',
     '</div>',
     '<div style="background:#f8f6f0;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e0ddd8">',
     '<p style="color:#333;font-size:15px">Hello ' + (user.first || user.name || '') + ',</p>',
     '<p style="color:#333;font-size:14px">Your verification code is:</p>',
-    '<div style="background:#2d6a4f;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
+    '<div style="background:#4a4a4a;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
     '<p style="color:#666;font-size:13px">This code expires in <strong>10 minutes</strong>.</p>',
     '<p style="color:#666;font-size:13px">If you did not request this, please ignore this email or contact your administrator.</p>',
     '</div>',
@@ -8423,7 +8295,7 @@ function show2FAScreen(user, onSuccess) {
 
   overlay.innerHTML =
     '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-    '<div style="background:#1b4332;padding:20px 24px">' +
+    '<div style="background:#2a2a2a;padding:20px 24px">' +
       '<div style="color:white;font-weight:700;font-size:17px">Two-Factor Authentication</div>' +
       '<div style="color:#a7d3b8;font-size:13px;margin-top:4px">A 6-digit code was sent to ' + user.email + '</div>' +
     '</div>' +
@@ -8431,17 +8303,17 @@ function show2FAScreen(user, onSuccess) {
       '<div id="tfa-alert" style="margin-bottom:12px"></div>' +
       '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:8px">Enter verification code</label>' +
       '<input id="tfa-code" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"' +
-        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e0ddd8;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#1b4332;font-weight:700"' +
+        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e0ddd8;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#2a2a2a;font-weight:700"' +
         ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);if(this.value.length===6)verify2FACode()">' +
       '<div style="margin-top:16px">' +
         '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;cursor:pointer">' +
-          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#2d6a4f"> ' +
+          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#4a4a4a"> ' +
           'Remember this device for 30 days' +
         '</label>' +
       '</div>' +
       '<div style="display:flex;gap:10px;margin-top:20px">' +
-        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid #2d6a4f;background:white;color:#2d6a4f;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
-        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:#2d6a4f;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
+        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid #4a4a4a;background:white;color:#4a4a4a;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
+        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:#4a4a4a;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
       '</div>' +
       '<div style="text-align:center;margin-top:14px">' +
         '<button onclick="cancelLogin()" style="background:none;border:none;color:#999;font-size:12px;cursor:pointer">Cancel — Back to Login</button>' +
@@ -8563,15 +8435,15 @@ function showVerifyModal(state, parsed, user, token) {
   if (state === 'expired') {
     content = '<div style="text-align:center;padding:20px">' +
       '<div style="font-size:48px;margin-bottom:16px">⏰</div>' +
-      '<h3 style="color:#1b4332;margin:0 0 8px">Link Expired</h3>' +
+      '<h3 style="color:#2a2a2a;margin:0 0 8px">Link Expired</h3>' +
       '<p style="color:#666;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
       '</div>';
   } else {
     content = '<div style="text-align:center;padding:8px 0 16px">' +
       '<div style="width:60px;height:60px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a4a4a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
       '</div>' +
-      '<h3 style="color:#1b4332;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
+      '<h3 style="color:#2a2a2a;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
       '<p style="color:#666;font-size:13px;margin-bottom:20px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>! Set your password to activate your account.</p>' +
     '</div>' +
     '<div style="margin-bottom:14px">' +
@@ -8583,12 +8455,12 @@ function showVerifyModal(state, parsed, user, token) {
       '<input id="verify-pass2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px">' +
     '</div>' +
     '<div id="verify-alert" style="margin-bottom:12px"></div>' +
-    '<button id="verify-btn" style="width:100%;padding:12px;background:#2d6a4f;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
+    '<button id="verify-btn" style="width:100%;padding:12px;background:#4a4a4a;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
   }
 
   overlay.innerHTML =
     '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-      '<div style="background:#1b4332;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
+      '<div style="background:#2a2a2a;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
         '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"/></svg>' +
         '<div style="color:white;font-weight:700;font-size:16px">ClaimDataCare</div>' +
       '</div>' +
@@ -8660,11 +8532,11 @@ function renderUserManagement() {
 
   // Only show users belonging to the active billing provider
   var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && session.email === atob('aW1ic2luYzIwMjNAZ21haWwuY29t');
+  var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
 
   var users = allUsers.filter(function(u) {
     // Super admin (no providerId) always shows for the master account
-    var isSystemAdmin = u.email === atob('aW1ic2luYzIwMjNAZ21haWwuY29t');
+    var isSystemAdmin = u.email === SUPER_ADMIN_EMAIL;
     if (isSystemAdmin) return _userTab === 'active'; // always show in active tab only
 
     if (!isSuperAdmin) {
@@ -8703,7 +8575,7 @@ function renderUserManagement() {
   };
 
   el.innerHTML = users.map(function(u) {
-    var isAdmin = (u.email||'') === atob('aW1ic2luYzIwMjNAZ21haWwuY29t');
+    var isAdmin = (u.email||'') === SUPER_ADMIN_EMAIL;
     var roles   = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : ['User']);
     var roleTag = roles.slice(0,2).map(function(r){
       return '<span class="badge ' + (roleColors[r]||'b-gray') + '" style="font-size:10px;margin-right:2px">' + r + '</span>';
@@ -8712,7 +8584,7 @@ function renderUserManagement() {
     var phone   = u.phone || '—';
     var twoFA   = u.twoFA ? '<span style="color:var(--brand);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>';
     var verified = u.emailVerified
-      ? '<span style="color:#2d6a4f;font-size:10px;font-weight:600">Verified</span>'
+      ? '<span style="color:#4a4a4a;font-size:10px;font-weight:600">Verified</span>'
       : '<span style="color:#c77c3e;font-size:10px">Pending</span>';
     var status  = u.inactive
       ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
@@ -9447,7 +9319,7 @@ async function transmitDirect(filter) {
     return;
   }
 
-  const proxyUrl = 'https://claimmd-proxy.imbsinc2023.workers.dev';
+  const proxyUrl = CLEARINGHOUSE_PROXY;
 
   const db = getDB();
   let claims = db.claims.filter(function(c){ return c.providerId === activeProviderId; });
@@ -9887,123 +9759,19 @@ if (!claim) { toast('Claim not found', 'err'); return; }
 exportBulkClaimsPDF([claim]);
 }
 // ── Brand colors for PDF exports ─────────────────────────────────
-function _hexToRgb(hex) {
-  hex = hex.replace('#','');
-  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-  const n = parseInt(hex, 16);
-  return [(n>>16)&255, (n>>8)&255, n&255];
-}
-
 function getBrandColors() {
-  // Read from _apiConfigCache — set by Firestore config load
-  const cfg = _apiConfigCache || {};
-
-  // Get primary color — check all possible sources in priority order
-  // 1. Named palette (plum, ocean, etc)
-  // 2. Custom palette with p1/c1 keys
-  // 3. Standalone color saved by old setBrandColor
-  // 4. CSS variable currently applied
-  // 5. Default green
-  let primary = '#2d6a4f';
-
-  const palKey = cfg.palette;
-  if (palKey && palKey !== 'custom' && typeof PALETTES !== 'undefined' && PALETTES[palKey]) {
-    const pal = PALETTES[palKey];
-    primary = pal.p1 || pal.c1 || primary;
-  } else if (palKey === 'custom' && cfg.palCustom) {
-    primary = cfg.palCustom.p1 || cfg.palCustom.c1 || primary;
-  } else if (cfg.color) {
-    primary = cfg.color; // legacy single-color save
-  } else {
-    // Read from live CSS var as last resort
-    try {
-      const cv = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
-      if (cv && cv.startsWith('#')) primary = cv;
-    } catch(e) {}
-  }
-
-  // Get active palette for accent
-  let accent = '#d4a017';
-  if (palKey && palKey !== 'custom' && typeof PALETTES !== 'undefined' && PALETTES[palKey]) {
-    accent = PALETTES[palKey].a1 || accent;
-  } else if (palKey === 'custom' && cfg.palCustom) {
-    accent = cfg.palCustom.a1 || cfg.palCustom.c2 || accent;
-  }
-
-  const mk = function(h) { return _hexToRgb(h); };
-  const lt = function(h) { return _hexToRgb(h).map(function(v){ return Math.round(v*0.10+255*0.90); }); };
-
+  const primary = [55,55,55];
   return {
-    primary:     mk(primary),
-    primaryDark: mk(primary),
-    primaryLight: lt(primary),
-    accent:      mk(accent),
-    primaryBg:   lt(primary),
-    hex: { primary: primary, accent: accent }
+    primary:     primary,
+    primaryDark: primary,
+    primaryLight: [230,230,230],
+    accent:      [180,140,50],
+    primaryBg:   [230,230,230],
+    hex: { primary: '#373737', accent: '#b48c32' }
   };
 }
 
-// ── Auto-detect dominant color from logo ─────────────────────────
-function detectLogoColors(logoB64, callback) {
-  if (!logoB64 || logoB64.length < 100) { callback(null); return; }
-  try {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      canvas.width  = Math.min(img.width,  50);
-      canvas.height = Math.min(img.height, 50);
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      // Find most saturated non-white/black pixel
-      let best = null, bestSat = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-        if (a < 128) continue; // skip transparent
-        const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
-        const sat = mx > 0 ? (mx-mn)/mx : 0;
-        const lum = (r+g+b)/765;
-        if (sat > bestSat && lum > 0.1 && lum < 0.95) {
-          bestSat = sat;
-          best = '#' + [r,g,b].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
-        }
-      }
-      callback(best);
-    };
-    img.onerror = function() { callback(null); };
-    img.src = logoB64;
-  } catch(e) { callback(null); }
-}
 
-// ── Auto-apply logo palette on first login (if no palette saved) ─
-function autoApplyLogoPalette() {
-  const cfg = _apiConfigCache || {};
-  return; // Never auto-detect from logo — user picks their own palette
-  const db = getDB();
-  const prov = db.providers.find(function(p){ return p.id === activeProviderId; });
-  if (!prov || !prov.logo) return;
-  detectLogoColors(prov.logo, function(hex) {
-    if (!hex) return;
-    // Set as custom palette based on logo color
-    const darken = function(h, amt) {
-      const n=parseInt(h.replace('#',''),16);
-      const r=Math.max(0,Math.min(255,(n>>16)+amt));
-      const g=Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
-      const b=Math.max(0,Math.min(255,(n&0xff)+amt));
-      return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
-    };
-    PALETTES.custom.p1 = hex;
-    PALETTES.custom.p2 = darken(hex, -30);
-    PALETTES.custom.p3 = darken(hex, 60);
-    PALETTES.custom.a1 = '#d4a017';
-    PALETTES.custom.a2 = '#b5451b';
-    // Only auto-apply if palette is still default
-    if (!cfg.palette || cfg.palette === 'forest') {
-      selectPalette('custom');
-      toast('Paleta detectada del logo del provider', 'ok');
-    }
-  });
-}
 
 function exportBulkClaimsPDF(claims) {
 if (!window.jspdf) { toast('PDF library loading...','warn'); return; }
@@ -15834,7 +15602,7 @@ if (doc.category==='Superbills' && doc.lines) {
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.setAttribute('data-sbov','1');
   ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;font-family:Arial,sans-serif">'+
-    '<div style="background:#1b4332;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
+    '<div style="background:#2a2a2a;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
       '<div><div style="font-size:18px;font-weight:700">ClaimDataCare</div>'+
       '<div style="font-size:11px;opacity:.8">Superbill / Patient Receipt</div></div>'+
       '<button onclick="var p=this;while(p&&!p.dataset.sbov)p=p.parentElement;if(p)p.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">✕ Close</button>'+
@@ -15858,8 +15626,8 @@ if (doc.category==='Superbills' && doc.lines) {
           '<th style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Charge</th>'+
         '</tr></thead><tbody>'+linesHTML+'</tbody>'+
         '<tfoot><tr style="background:#f0fdf4">'+
-          '<td colspan="3" style="padding:10px 8px;font-weight:700;font-size:13px;color:#1b4332">Total Charges</td>'+
-          '<td style="padding:10px 8px;font-weight:700;font-size:15px;color:#1b4332;text-align:right">$'+(doc.totalCharge||'0.00')+'</td>'+
+          '<td colspan="3" style="padding:10px 8px;font-weight:700;font-size:13px;color:#2a2a2a">Total Charges</td>'+
+          '<td style="padding:10px 8px;font-weight:700;font-size:15px;color:#2a2a2a;text-align:right">$'+(doc.totalCharge||'0.00')+'</td>'+
         '</tr></tfoot>'+
       '</table>'+
       '<div style="font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px">'+
@@ -17236,10 +17004,6 @@ lucide.createIcons();
 }
 
 
-// ?? Fix toggleLang to also update button label ??????????????????????????
-const _origToggleLang = typeof toggleLang === 'function' ? toggleLang : null;
-
-
 
 document.addEventListener("DOMContentLoaded", async function() {
   applyTheme();
@@ -17274,20 +17038,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (_prov3) _provEl2.textContent = _prov3.name||'';
       }
     } catch(e) {}
-
-    // Sync theme prefs from landing page → Firestore (once after login)
-    var ssTheme = sessionStorage.getItem('cdc_theme');
-    var ssColor = sessionStorage.getItem('cdc_color');
-    var ssFont  = sessionStorage.getItem('cdc_font');
-    if ((ssTheme || ssColor || ssFont) && _fbReady && _db) {
-      var prefs = Object.assign(_apiConfigCache || {}, {});
-      if (ssTheme) { prefs.theme = ssTheme; sessionStorage.removeItem('cdc_theme'); }
-      if (ssColor) { prefs.color = ssColor; sessionStorage.removeItem('cdc_color'); }
-      if (ssFont)  { prefs.font  = ssFont;  sessionStorage.removeItem('cdc_font'); }
-      _apiConfigCache = prefs;
-      _db.collection('meta').doc('config').set(prefs, {merge:true}).catch(function(){});
-      applyTheme();
-    }
 
     // Force dashboard render now that providers are loaded
     try {
@@ -17543,9 +17293,9 @@ function saveNewUser() {
     var welcomeHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
       // Header with logo
-      '<div style="background:#1b4332;padding:24px 28px;display:flex;align-items:center;gap:14px">',
+      '<div style="background:#2a2a2a;padding:24px 28px;display:flex;align-items:center;gap:14px">',
         '<svg width="42" height="42" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">',
-          '<rect width="100" height="100" rx="18" fill="#2d6a4f"/>',
+          '<rect width="100" height="100" rx="18" fill="#4a4a4a"/>',
           '<path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/>',
           '<line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/>',
           '<line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/>',
@@ -17557,12 +17307,12 @@ function saveNewUser() {
       '</div>',
       // Body
       '<div style="background:#f8f6f0;padding:28px;border:1px solid #e0ddd8;border-top:none">',
-        '<p style="color:#1b4332;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
+        '<p style="color:#2a2a2a;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
         '<p style="color:#555;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Please review your details and activate your account below.</p>',
         // Info table
         '<div style="background:white;border:1px solid #e0ddd8;border-radius:10px;padding:18px;margin-bottom:20px">',
           '<table style="width:100%;border-collapse:collapse">',
-            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8;width:120px">Username</td><td style="color:#1b4332;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0ede8">' + name + '</td></tr>',
+            '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8;width:120px">Username</td><td style="color:#2a2a2a;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0ede8">' + name + '</td></tr>',
             '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Email</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + email + '</td></tr>',
             '<tr><td style="color:#888;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">Role</td><td style="color:#333;font-size:13px;padding:6px 0;border-bottom:1px solid #f0ede8">' + primaryRole + '</td></tr>',
             '<tr><td style="color:#888;font-size:13px;padding:6px 0">Temp Password</td><td style="color:#c77c3e;font-size:14px;font-weight:700;padding:6px 0;letter-spacing:1px">' + tempPass + '</td></tr>',
@@ -17570,7 +17320,7 @@ function saveNewUser() {
         '</div>',
         // CTA button
         '<div style="text-align:center;margin-bottom:20px">',
-          '<a href="' + verifyLink + '" style="display:inline-block;background:#2d6a4f;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
+          '<a href="' + verifyLink + '" style="display:inline-block;background:#4a4a4a;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
             'Activate My Account &amp; Set Password',
           '</a>',
           '<p style="color:#999;font-size:11px;margin-top:10px">Link expires in 48 hours</p>',
@@ -17600,166 +17350,12 @@ function saveNewUser() {
     return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
   }
   return phone;
-}function openAppearancePanel() {
-  document.getElementById('appearance-panel')?.remove();
-  var cfg      = _apiConfigCache || {};
-  var palKey   = cfg.palette || 'forest';
-  var palCust  = cfg.palCustom || PALETTES.custom;
-  var font     = cfg.font || 'font-segoe';
-  var fontSize = cfg.fontSize || '14';
-
-  var panel = document.createElement('div');
-  panel.id = 'appearance-panel';
-  panel.style.cssText = 'position:fixed;top:40px;right:12px;z-index:9000;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;width:270px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:85vh;overflow-y:auto';
-
-  // Palette cards
-  var palCards = Object.entries(PALETTES).map(function(entry) {
-    var k = entry[0], p = entry[1];
-    var active = palKey === k;
-    return '<div onclick="selectPalette(\''+k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid '+(active?'var(--brand)':'var(--border)')+';cursor:pointer;margin-bottom:5px;background:'+(active?'var(--brand-bg)':'var(--bg2)')+';">'
-      + '<div style="display:flex;gap:3px">'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p1+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.p3+'"></div>'
-      + '<div style="width:14px;height:14px;border-radius:50%;background:'+p.a1+'"></div>'
-      + '</div>'
-      + '<span style="font-size:12px;font-weight:'+(active?'700':'400')+';color:var(--text)">'+(k==='custom'?'Custom':p.name)+'</span>'
-      + (active?'<span style="margin-left:auto;font-size:10px;color:var(--brand)">✓</span>':'')
-      + '</div>';
-  }).join('');
-
-  // Custom 3-color picker (shown always, applies when Custom selected)
-  var custPickers = '<div style="display:flex;gap:8px;margin-top:8px">'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Primary</div>'
-    + '<input type="color" id="cust-p1" value="'+(palCust.p1||'#2d6a4f')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Light</div>'
-    + '<input type="color" id="cust-p3" value="'+(palCust.p3||'#40916c')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '<div style="flex:1;text-align:center">'
-    + '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accent</div>'
-    + '<input type="color" id="cust-a1" value="'+(palCust.a1||'#d4a017')+'" onchange="updateCustomPalette()" style="width:100%;height:30px;border:none;border-radius:6px;cursor:pointer;padding:0">'
-    + '</div>'
-    + '</div>';
-
-  // Font options
-  var fontOpts = [['font-segoe','System UI'],['font-inter','Inter'],['font-lato','Lato'],['font-dmsans','DM Sans']].map(function(f) {
-    var active = font===f[0];
-    return '<button data-font="'+f[0]+'" onclick="setAppFont(\''+f[0]+'\')" class="app-font-opt"'
-      + ' style="padding:5px 10px;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;text-align:left;font-family:var(--font);width:100%">'
-      + f[1]+'</button>';
-  }).join('');
-
-  // Size options
-  var sizeOpts = [['12','S'],['14','M'],['15','L'],['16','XL'],['18','XXL']].map(function(s) {
-    var active = fontSize===s[0];
-    return '<button data-sz="'+s[0]+'" onclick="setAppFontSize(\''+s[0]+'\')" class="app-size-opt"'
-      + ' style="flex:1;padding:5px 0;border-radius:6px;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:var(--bg2);color:var(--text);font-size:'+s[0]+'px;font-weight:'+(active?'700':'500')+';cursor:pointer;font-family:var(--font);text-align:center">'
-      + s[1]+'</button>';
-  }).join('');
-
-  panel.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    + '<span style="font-size:13px;font-weight:700;color:var(--text)">Appearance</span>'
-    + '<button id="close-ap" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1">&times;</button>'
-    + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Color Palette</div>'
-    + palCards
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:4px">Custom Colors</div>'
-    + custPickers
-    + '<div style="height:1px;background:var(--border);margin:14px 0"></div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Font</div>'
-    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">' + fontOpts + '</div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Text Size</div>'
-    + '<div style="display:flex;gap:4px;margin-bottom:14px">' + sizeOpts + '</div>'
-    + '<button onclick="saveAppearancePrefs()" style="width:100%;padding:8px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Save</button>'
-    + '<div id="ap-saved-msg" style="text-align:center;font-size:11px;color:var(--brand);margin-top:6px;display:none">Saved ✓</div>';
-
-  document.body.appendChild(panel);
-  panel.querySelector('#close-ap').onclick = function() { panel.remove(); };
-  setTimeout(function() {
-    document.addEventListener('click', function h(e) {
-      if (!panel.contains(e.target) && e.target.id !== 'btn-appearance') {
-        panel.remove(); document.removeEventListener('click', h);
-      }
-    });
-  }, 100);
-}
-
-function saveAppearancePrefs() {
-  var cfg = _apiConfigCache || {};
-  try {
-    localStorage.setItem('cdc_appearance', JSON.stringify({
-      palette: cfg.palette || 'forest',
-      palCustom: cfg.palCustom || null,
-      font: cfg.font || 'font-dmsans',
-      fontSize: cfg.fontSize || '14',
-      theme: cfg.theme || 'light'
-    }));
-  } catch(e) {}
-  var msg = document.getElementById('ap-saved-msg');
-  if (msg) { msg.style.display='block'; setTimeout(function(){ if(msg) msg.style.display='none'; }, 2000); }
-}
-
-function loadAppearancePrefs() {
-  try {
-    var saved = localStorage.getItem('cdc_appearance');
-    if (!saved) return;
-    var prefs = JSON.parse(saved);
-    if (!_apiConfigCache) _apiConfigCache = {};
-    if (prefs.palette) _apiConfigCache.palette = prefs.palette;
-    if (prefs.palCustom) { _apiConfigCache.palCustom = prefs.palCustom; Object.assign(PALETTES.custom, prefs.palCustom); }
-    if (prefs.font) _apiConfigCache.font = prefs.font;
-    if (prefs.fontSize) _apiConfigCache.fontSize = prefs.fontSize;
-    if (prefs.theme) _apiConfigCache.theme = prefs.theme;
-  } catch(e) {}
-}
-
-function selectPalette(key) {
-  var pal = PALETTES[key] || PALETTES.forest;
-  applyPalette(pal);
-  _saveUserPrefs({palette: key, palCustom: PALETTES[key]});
-  // Refresh panel
-  openAppearancePanel();
-}
-
-function updateCustomPalette() {
-  var p1 = document.getElementById('cust-p1')?.value || '#2d6a4f';
-  var p3 = document.getElementById('cust-p3')?.value || '#40916c';
-  var a1 = document.getElementById('cust-a1')?.value || '#d4a017';
-  PALETTES.custom = { name:'Custom', p1:p1, p2:darken(p1,20), p3:p3, a1:a1, a2:PALETTES.custom.a2||'#b5451b' };
-  applyPalette(PALETTES.custom);
-  _saveUserPrefs({palette:'custom', palCustom: PALETTES.custom});
 }
 var LANG = "en";
 function applyTheme() {
-  loadAppearancePrefs();
-  var cfg = _apiConfigCache || {};
-  var ssTheme = (function(){ try{return sessionStorage.getItem('cdc_theme');}catch(e){return null;}})();
-  var ssFont  = (function(){ try{return sessionStorage.getItem('cdc_font');}catch(e){return null;}})();
-  var theme = cfg.theme || ssTheme || 'light';
-  var font  = cfg.font  || ssFont  || 'font-dmsans';
-  if (!cfg.palette && !cfg.color) cfg.palette = 'forest';
-  document.documentElement.setAttribute('data-theme', theme);
-  var btnDark = document.getElementById('btn-dark');
-  if (btnDark) btnDark.innerHTML = theme === 'dark' ? _iconSun() : _iconMoon();
-  // Apply palette
-  var palKey = cfg.palette || 'forest';
-  var pal = PALETTES[palKey] || PALETTES.forest;
-  if (palKey === 'custom' && cfg.palCustom) {
-    Object.assign(PALETTES.custom, cfg.palCustom);
-    pal = PALETTES.custom;
-  }
-  applyPalette(pal);
-  setAppFont(font);
-  if (cfg.fontSize) { try { setAppFontSize(cfg.fontSize); } catch(e) {} }
+  document.documentElement.setAttribute('data-theme', 'light');
   try { _renderLucideIcons(); } catch(e) {}
 }
-
-var LANG = "en";
-
-
 
 const DB_KEY = 'rcmpro_v3';
 const API_CFG_KEY = 'rcmpro_api_cfg';
@@ -17857,7 +17453,7 @@ return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.
 
 function getApiConfig() {
   // Default worker URL if not set per provider
-  const DEFAULT_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
+  const DEFAULT_PROXY = CLEARINGHOUSE_PROXY;
 // Also reads OPENAI_KEY from localStorage if stored
 const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
 if (stored.openaiKey) return stored;
@@ -17877,6 +17473,8 @@ if (cfg.acctKey) return cfg;
 } catch(e) {}
 return {};
 }
+
+const SUPER_ADMIN_EMAIL = 'imbsinc2023@gmail.com';
 
 // ???????????????????????????????????????????????????????
 // FIREBASE — Cloud Database
@@ -17975,73 +17573,92 @@ const CACHE_KEY = 'cdc_cache_v2';
 // Write an array of objects to a Firestore collection using batched writes
 async function _fsWriteCollection(collName, items) {
   if (!_fbReady || !_db || !items?.length) return;
-  for (let i = 0; i < items.length; i += BATCH_SIZE) {
-    const chunk = items.slice(i, i + BATCH_SIZE);
-    const batch = _db.batch();
-    chunk.forEach(item => {
-      if (!item.id) return;
-      // Safety: auto-compress any base64 image field > 700KB before writing
-      const safe = {};
-      for (const [k, v] of Object.entries(item)) {
-        if (typeof v === 'string' && v.startsWith('data:image') && v.length > 933333) {
-          // Compress via canvas
-          try {
-            const canvas = document.createElement('canvas');
-            const img = new Image();
-            img.src = v;
-            if (img.width > 0) {
-              const ratio = Math.min(500/img.width, 500/img.height, 1);
-              canvas.width  = Math.round(img.width  * ratio);
-              canvas.height = Math.round(img.height * ratio);
-              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-              safe[k] = canvas.toDataURL('image/jpeg', 0.7);
-            } else {
-              safe[k] = ''; // can't compress synchronously, skip
-            }
-          } catch(e) { safe[k] = ''; }
-        } else {
-          safe[k] = v;
+  try {
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const chunk = items.slice(i, i + BATCH_SIZE);
+      const batch = _db.batch();
+      chunk.forEach(item => {
+        if (!item.id) return;
+        const safe = {};
+        for (const [k, v] of Object.entries(item)) {
+          if (typeof v === 'string' && v.startsWith('data:image') && v.length > 933333) {
+            try {
+              const canvas = document.createElement('canvas');
+              const img = new Image();
+              img.src = v;
+              if (img.width > 0) {
+                const ratio = Math.min(500/img.width, 500/img.height, 1);
+                canvas.width  = Math.round(img.width  * ratio);
+                canvas.height = Math.round(img.height * ratio);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                safe[k] = canvas.toDataURL('image/jpeg', 0.7);
+              } else {
+                safe[k] = '';
+              }
+            } catch(e) { safe[k] = ''; }
+          } else {
+            safe[k] = v;
+          }
         }
-      }
-      batch.set(_db.collection(collName).doc(String(item.id)), safe);
-    });
-    await batch.commit();
+        batch.set(_db.collection(collName).doc(String(item.id)), safe);
+      });
+      await batch.commit();
+    }
+  } catch(e) {
+    console.warn(`Firestore write failed for ${collName}:`, e.message);
   }
 }
 
 // Read all docs from a collection
 async function _fsReadCollection(collName) {
 if (!_fbReady || !_db) return [];
-const snap = await _db.collection(collName).get();
-return snap.docs.map(d => d.data());
+try {
+  const snap = await _db.collection(collName).get();
+  return snap.docs.map(d => d.data());
+} catch(e) {
+  console.warn(`Firestore read failed for ${collName}:`, e.message);
+  return [];
+}
 }
 
 // Delete docs from a collection that are not in the current list
 async function _fsSyncCollection(collName, items) {
 if (!_fbReady || !_db) return;
-const existing = await _db.collection(collName).get();
-const currentIds = new Set(items.map(i => String(i.id)));
-const batch = _db.batch();
-let deleteCount = 0;
-existing.docs.forEach(doc => {
-if (!currentIds.has(doc.id)) {
-batch.delete(doc.ref);
-deleteCount++;
+try {
+  const existing = await _db.collection(collName).get();
+  const currentIds = new Set(items.map(i => String(i.id)));
+  const batch = _db.batch();
+  let deleteCount = 0;
+  existing.docs.forEach(doc => {
+  if (!currentIds.has(doc.id)) {
+  batch.delete(doc.ref);
+  deleteCount++;
+  }
+  });
+  if (deleteCount > 0) await batch.commit();
+  await _fsWriteCollection(collName, items);
+} catch(e) {
+  console.warn(`Firestore sync failed for ${collName}:`, e.message);
 }
-});
-if (deleteCount > 0) await batch.commit();
-await _fsWriteCollection(collName, items);
 }
 
 // Write/delete a single document
 async function _fsSetDoc(collName, id, data) {
 if (!_fbReady || !_db) return;
-await _db.collection(collName).doc(String(id)).set(data);
+try {
+  await _db.collection(collName).doc(String(id)).set(data);
+} catch(e) {
+  console.warn(`Firestore setDoc failed for ${collName}/${id}:`, e.message);
+}
 }
 
 async function _fsDeleteDoc(collName, id) {
 if (!_fbReady || !_db) return;
-await _db.collection(collName).doc(String(id)).delete();
+try {
+  await _db.collection(collName).doc(String(id)).delete();
+} catch(e) {
+  console.warn(`Firestore deleteDoc failed for ${collName}/${id}:`, e.message);
+}
 }
 
 // ?? Cache ????????????????????????????????????????????????????????????????????
@@ -18087,9 +17704,6 @@ async function loadFromFirestore() {
     if (configDoc.exists) {
       const cfg = configDoc.data();
       _apiConfigCache = cfg;
-      if (cfg.palCustom && typeof PALETTES !== 'undefined') {
-        PALETTES.custom = Object.assign(PALETTES.custom || {}, cfg.palCustom);
-      }
       if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
       try { applyTheme(); } catch(e) {}
     }
@@ -18157,7 +17771,7 @@ async function loadFromFirestore() {
     const [
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, invoicingIssuers, invoicingClients, invoices,
-      claimLogsSnap, claimEOBSnap
+      insurances, claimLogsSnap, claimEOBSnap
     ] = await Promise.all([
       _fsReadCollection('facilities'),
       _fsReadCollection('rendering'),
@@ -18169,6 +17783,7 @@ async function loadFromFirestore() {
       _fsReadCollection('invoicingIssuers'),
       _fsReadCollection('invoicingClients'),
       _fsReadCollection('invoices'),
+      _fsReadCollection('insurances'),
       _db.collection('claimLogs').get(),
       _db.collection('claimEOB').get(),
     ]);
@@ -18181,7 +17796,7 @@ async function loadFromFirestore() {
     Object.assign(_localDB, {
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, claimLogs, claimEOB,
-      invoicingIssuers, invoicingClients, invoices,
+      invoicingIssuers, invoicingClients, invoices, insurances,
     });
 
     _saveCache(_localDB);
@@ -18200,7 +17815,7 @@ const empty = {
 providers:[], facilities:[], rendering:[], referring:[],
 patients:[], claims:[], services:[], serviceGroups:[],
 appointments:[], notes:[], claimLogs:{}, claimEOB:{},
-invoicingIssuers:[], invoicingClients:[], invoices:[]
+invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[]
 };
 return Object.assign(empty, db || {});
 }
@@ -18240,7 +17855,7 @@ return Object.assign(empty, db || {});
 
 // Write an array of objects to a Firestore collection using batched writes
 function setDB(fn) {
-const before = getDB();
+const before = JSON.parse(JSON.stringify(getDB()));
 const db = getDB();
 fn(db);
 _localDB = db;
@@ -18437,257 +18052,9 @@ db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
 }
 
 // \u2500\u2500 Theme / Lang \u2500\u2500
-
-
-// ── Full Palette System ────────────────────────────────────────────
-// 3 pre-built palettes + custom
-const PALETTES = {
-  forest: {
-    name: 'Forest',
-    p1: '#2d6a4f',   // primary
-    p2: '#1b4332',   // dark
-    p3: '#40916c',   // light
-    a1: '#d4a017',   // accent (amber)
-    a2: '#b5451b',   // accent2 (rust)
-  },
-  ocean: {
-    name: 'Ocean',
-    p1: '#0369a1',
-    p2: '#075985',
-    p3: '#0ea5e9',
-    a1: '#f59e0b',
-    a2: '#ef4444',
-  },
-  plum: {
-    name: 'Plum',
-    p1: '#7c3aed',
-    p2: '#5b21b6',
-    p3: '#a78bfa',
-    a1: '#ec4899',
-    a2: '#f97316',
-  },
-  slate: {
-    name: 'Slate',
-    p1: '#334155',
-    p2: '#1e293b',
-    p3: '#64748b',
-    a1: '#06b6d4',
-    a2: '#10b981',
-  },
-  rose: {
-    name: 'Rose',
-    p1: '#be123c',
-    p2: '#881337',
-    p3: '#fb7185',
-    a1: '#f59e0b',
-    a2: '#7c3aed',
-  },
-  custom: {
-    name: 'Custom',
-    p1: '#2d6a4f',
-    p2: '#1b4332',
-    p3: '#40916c',
-    a1: '#d4a017',
-    a2: '#b5451b',
-  }
 };
 
-function hexToRgb(hex) {
-  const n = parseInt(hex.replace('#',''),16);
-  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
-}
-function lighten(hex, pct) {
-  const c = hexToRgb(hex);
-  const f = pct/100;
-  return 'rgb('
-    + Math.round(c.r + (255-c.r)*f) + ','
-    + Math.round(c.g + (255-c.g)*f) + ','
-    + Math.round(c.b + (255-c.b)*f) + ')';
-}
-function darken(hex, pct) {
-  const c = hexToRgb(hex);
-  const f = 1 - pct/100;
-  return 'rgb('
-    + Math.round(c.r*f) + ','
-    + Math.round(c.g*f) + ','
-    + Math.round(c.b*f) + ')';
-}
-function alpha(hex, a) {
-  const c = hexToRgb(hex);
-  return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
-}
 
-function applyPalette(pal) {
-  if (!pal) return;
-  const r = document.documentElement;
-  const p1 = pal.p1, p2 = pal.p2, p3 = pal.p3, a1 = pal.a1, a2 = pal.a2;
-
-  // ── Primary brand ──────────────────────────────────────────────
-  r.style.setProperty('--brand',       p1);
-  r.style.setProperty('--brand-d',     p2);
-  r.style.setProperty('--brand-bg',    alpha(p1, 0.1));
-  r.style.setProperty('--brand-bdr',   alpha(p1, 0.35));
-  r.style.setProperty('--brand-l',     p3);
-  r.style.setProperty('--blue',        p1);
-  r.style.setProperty('--blue-bg',     alpha(p1, 0.08));
-  r.style.setProperty('--blue-bdr',    alpha(p1, 0.3));
-  r.style.setProperty('--green',       p3);
-  r.style.setProperty('--green-bg',    alpha(p3, 0.1));
-  r.style.setProperty('--green-bdr',   alpha(p3, 0.3));
-  r.style.setProperty('--teal',        p3);
-  r.style.setProperty('--teal-bg',     alpha(p3, 0.08));
-  // ── Accent ────────────────────────────────────────────────────
-  r.style.setProperty('--amber',       a1);
-  r.style.setProperty('--amber-bg',    alpha(a1, 0.1));
-  r.style.setProperty('--amber-bdr',   alpha(a1, 0.3));
-  r.style.setProperty('--c2',          a1);
-  // ── CSS vars used in topnav, patient chart, etc. ───────────────
-  r.style.setProperty('--c1',          p1);
-  r.style.setProperty('--c1d',         p2);
-  r.style.setProperty('--c1l',         alpha(p1, 0.15));
-  r.style.setProperty('--c1m',         p3);
-
-  // ── Replace hardcoded inline colors via CSS overrides ─────────
-  // Inject a <style> tag that overrides every hardcoded green
-  let styleEl = document.getElementById('palette-overrides');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = 'palette-overrides';
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `
-    /* === TOPNAV === */
-    .topnav { background: ${p2} !important; border-bottom-color: ${darken(p2,15)} !important; }
-    [data-theme="dark"] .topnav { background: ${darken(p2,25)} !important; }
-    .tn-brand-name { color: #fff !important; }
-    .tn-item { color: rgba(255,255,255,.85) !important; }
-    .tn-item:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    .tn-item.active, .tn-group.open > .tn-item { background: rgba(255,255,255,.22) !important; color: #fff !important; box-shadow: none !important; }
-    .tn-divider { background: rgba(255,255,255,.2) !important; }
-    .tn-right { border-left-color: rgba(255,255,255,.2) !important; }
-    .tn-right .btn-ghost { color: rgba(255,255,255,.8) !important; }
-    .tn-right .btn-ghost:hover { background: rgba(255,255,255,.13) !important; color: #fff !important; }
-    #tn-user-name { color: rgba(255,255,255,.85) !important; }
-    #btn-lang { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel { background: rgba(255,255,255,.1) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; }
-    .tn-prov-sel:hover { border-color: rgba(255,255,255,.5) !important; }
-    /* === DROPDOWNS (light bg) === */
-    .tn-dropdown { background: var(--surface) !important; border-color: var(--border) !important; }
-    .tn-dd-item { color: var(--text) !important; }
-    .tn-dd-item:hover, .tn-dd-item.active { background: ${alpha(p1,.1)} !important; color: ${p1} !important; }
-    .tn-dd-item:hover svg, .tn-dd-item.active svg, .tn-dd-item:hover .lci, .tn-dd-item.active .lci { color: ${p1} !important; opacity:1 !important; }
-    .tn-drawer-item:hover, .tn-drawer-item.active { color: ${p1} !important; background: ${alpha(p1,.08)} !important; }
-    .tn-drawer-sub-item:hover, .tn-drawer-sub-item.active { color: ${p1} !important; }
-    /* === BUTTONS === */
-    .btn-primary { background: ${p1} !important; border-color: ${p1} !important; }
-    .btn-primary:hover { background: ${p2} !important; border-color: ${p2} !important; }
-    #login-btn { background: linear-gradient(145deg,${p1},${p2}) !important; }
-    /* === BADGES === */
-    .b-blue { background: ${alpha(p1,.1)} !important; color: ${p1} !important; border-color: ${alpha(p1,.3)} !important; }
-    .b-green { background: ${alpha(p3,.1)} !important; color: ${darken(p3,10)} !important; border-color: ${alpha(p3,.3)} !important; }
-    /* === TABS / STABS === */
-    .stab.active { color: ${p1} !important; border-bottom-color: ${p1} !important; }
-    .ptc-tab.active { color: ${p2} !important; }
-    /* === LINKS & ACCENTS === */
-    .pt-link-name, .pt-link-acct { color: ${p1} !important; }
-    .slabel { border-left-color: ${p1} !important; color: ${p1} !important; }
-    /* === PATIENT CHART === */
-    .ptc-banner { background: linear-gradient(135deg, ${p2}, ${p1}) !important; }
-    .ptc-panel-hdr { background: linear-gradient(to bottom, var(--bg), var(--bg2)) !important; color: var(--text) !important; }
-    .ptc-panel-hdr h3 { color: var(--text) !important; }
-    .ptc-tab.active { border-top-color: ${p1} !important; }
-    .ptc-aging-table th { background: ${alpha(p2,.08)} !important; color: ${p2} !important; }
-    /* === DARK MODE VARS === */
-    [data-theme="dark"] { --brand: ${p3}; --brand-d: ${p1}; --brand-l: ${lighten(p1,20)}; }
-    /* === ROOT VARS === */
-    :root { --brand: ${p1}; --brand-d: ${p2}; --brand-l: ${p3}; --c1: ${p1}; --c1d: ${p2}; --c1m: ${p3}; }
-  `
-  updateFavicon(p1);
-}
-
-function _saveUserPrefs(updates) {
-  Object.assign(_apiConfigCache || (_apiConfigCache = {}), updates);
-  if (_fbReady && _db) {
-    _db.collection('meta').doc('config').set(_apiConfigCache, {merge:true})
-      .catch(function(e){ console.warn('prefs save failed:', e.message); });
-  }
-}
-
-// ── Dynamic favicon & brand color ─────────────────────────────────
-function updateFavicon(color) {
-  try {
-    color = color || '#2d6a4f';
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
-      + '<path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="' + color + '"/>'
-      + '<path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>'
-      + '<rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>'
-      + '<rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>'
-      + '</svg>';
-    const blob = new Blob([svg], {type:'image/svg+xml'});
-    const url  = URL.createObjectURL(blob);
-    let lnk = document.querySelector("link[rel='icon']");
-    if (!lnk) { lnk = document.createElement('link'); lnk.rel='icon'; lnk.type='image/svg+xml'; document.head.appendChild(lnk); }
-    if (lnk._prev) URL.revokeObjectURL(lnk._prev);
-    lnk._prev = url;
-    lnk.href  = url;
-    // Update nav logos
-    document.querySelectorAll('.nav-favicon').forEach(function(img){ img.src = url; });
-  } catch(e) {}
-}
-
-
-function setBrandColor(color) {
-  if (!color) return;
-  const darken = function(hex, amt) {
-    const n = parseInt(hex.slice(1),16);
-    const r = Math.max(0,Math.min(255,(n>>16)+amt));
-    const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
-    const b = Math.max(0,Math.min(255,(n&0xff)+amt));
-    return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
-  };
-  const ri=parseInt(color.slice(1,3),16), gi=parseInt(color.slice(3,5),16), bi=parseInt(color.slice(5,7),16);
-  const light = 'rgba('+ri+','+gi+','+bi+',.12)';
-  const mid   = 'rgba('+ri+','+gi+','+bi+',.35)';
-  const root  = document.documentElement;
-  root.style.setProperty('--brand',    color);
-  root.style.setProperty('--brand-d',  darken(color,-20));
-  root.style.setProperty('--brand-bg', light);
-  root.style.setProperty('--brand-bdr',mid);
-  root.style.setProperty('--blue',     color);
-  root.style.setProperty('--green',    color);
-  root.style.setProperty('--c1',       color);
-  root.style.setProperty('--c1d',      darken(color,-20));
-  // Save to Firestore
-  _saveUserPrefs({color: color});
-  updateFavicon(color);
-}
-
-function setAppFontSize(size) {
-  var sz = parseFloat(size) || 13;
-  document.documentElement.style.setProperty('--base-font-size', sz + 'px');
-  document.documentElement.style.fontSize = sz + 'px';
-  document.body.style.fontSize = sz + 'px';
-  // Apply to all text containers
-  document.querySelectorAll('.section, .topnav, .modal, .ptc-panel').forEach(function(el) {
-    el.style.fontSize = sz + 'px';
-  });
-  _saveUserPrefs({fontSize: sz});
-}
-
-function setAppFont(fontClass) {
-  const fontMap = {
-    'font-segoe': "'Segoe UI Variable',system-ui,-apple-system,sans-serif",
-    'font-inter':  "'Inter',system-ui,-apple-system,sans-serif",
-    'font-mono':   "'JetBrains Mono','SF Mono',monospace",
-    'font-dmsans': "'DM Sans',system-ui,sans-serif",
-  };
-  const fam = fontMap[fontClass] || fontMap['font-dmsans'];
-  document.documentElement.style.setProperty('--font', fam);
-  // Force inheritance on root so every element picks it up
-  document.documentElement.style.fontFamily = fam;
-  document.body.style.fontFamily = fam;
-  _saveUserPrefs({font: fontClass});
-}
 
 
 function openAddUserModal(existingUser) {
@@ -18721,7 +18088,7 @@ function openAddUserModal(existingUser) {
 
   // Only Super Admin user can assign Super Admin role
   var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && session.email === atob('aW1ic2luYzIwMjNAZ21haWwuY29t');
+  var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
   var availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(function(r){ return r !== 'Super Admin'; });
 
   var rolesHtml = availableRoles.map(function(r) {
@@ -18990,7 +18357,7 @@ function _drawQRonPDF(doc, x, y, size) {
 
 function addPDFWatermark(doc) {
   try {
-    var dc = [27,67,50]; // #1b4332 brand-dark
+    var dc = [55,55,55]; // #2a2a2a brand-dark
     var pageCount = doc.internal.getNumberOfPages();
     var pageW = doc.internal.pageSize.getWidth();
     var pageH = doc.internal.pageSize.getHeight();
@@ -19069,7 +18436,7 @@ function _sbBuildPDF(doc, pat) {
   var W = 215.9, margin = 15, y = 0;
 
   // Header bar
-  pdf.setFillColor(27,67,50);
+  pdf.setFillColor(55,55,55);
   pdf.rect(0, 0, W, 22, 'F');
   pdf.setTextColor(255,255,255);
   pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
@@ -19156,7 +18523,7 @@ function _sbBuildPDF(doc, pat) {
   pdf.setDrawColor(226,232,240); pdf.line(margin, y, W-margin, y); y += 4;
   pdf.setFillColor(240,253,244);
   pdf.rect(margin, y-2, W-(margin*2), 9, 'F');
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(27,67,50);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(55,55,55);
   pdf.text('TOTAL CHARGES', margin+2, y+4);
   pdf.text('$'+parseFloat(doc.totalCharge||0).toFixed(2), W-margin-2, y+4, {align:'right'});
   y += 12;
