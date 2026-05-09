@@ -5454,10 +5454,27 @@ Electronic Health Records
 <!-- Email -->
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
-Username or Email
+Username
 </label>
-<input id="li-email" type="text" class="no-upper" autocomplete="username"
-placeholder="Username or email"
+<input id="li-username" type="text" class="no-upper" autocomplete="username"
+placeholder="Username"
+onkeydown="if(event.key==='Enter')document.getElementById('li-email').focus()"
+style="width:100%;padding:13px 16px;font-size:15px;
+border:1.5px solid #e8e6dc;border-radius:14px;
+background:rgba(255,255,255,.8);color:var(--text);
+font-family:var(--font);outline:none;
+transition:all .2s cubic-bezier(.4,0,.2,1);
+box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
+-webkit-font-smoothing:antialiased"
+onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
+</div>
+<div>
+<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
+Email
+</label>
+<input id="li-email" type="text" class="no-upper" autocomplete="email"
+placeholder="Email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
 border:1.5px solid #e8e6dc;border-radius:14px;
@@ -5519,7 +5536,7 @@ style="width:100%;padding:15px;margin-top:6px;
 </div>
 </div>
 </div>`;
-setTimeout(() => { const el=document.getElementById('li-email'); if(el) el.focus(); }, 80);
+setTimeout(() => { const el=document.getElementById('li-username'); if(el) el.focus(); }, 80);
 }
 
 
@@ -7665,14 +7682,15 @@ svg.innerHTML = showing
 }
 
 async function doLogin() {
+const usernameRaw = (document.getElementById('li-username')?.value || '').trim();
 const emailRaw = (document.getElementById('li-email')?.value || '').trim();
-const email = emailRaw.toLowerCase();
+const email = (emailRaw || usernameRaw).toLowerCase();
 const isEmailFormat = email.includes('@') && email.includes('.');
 const pass = document.getElementById('li-pass')?.value || '';
 const alertEl = document.getElementById('login-alert');
 const btn = document.getElementById('login-btn');
-if (!email || !pass) {
-alertEl.innerHTML = '<div class="alert al-error">Username or email and password are required.</div>';
+if (!usernameRaw || !pass) {
+alertEl.innerHTML = '<div class="alert al-error">Username and password are required.</div>';
 return;
 }
 btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
@@ -9704,16 +9722,32 @@ const claim = db.claims[oi];
 if (!claim) { toast('Claim not found', 'err'); return; }
 exportBulkClaimsPDF([claim]);
 }
+// ── PDF watermark helper ─────────────────────────────────────────
+function addPDFWatermark(doc) {
+  try {
+    var _w = doc.internal.pageSize.getWidth();
+    var _h = doc.internal.pageSize.getHeight();
+    var _pages = doc.internal.getNumberOfPages();
+    for (var _p = 1; _p <= _pages; _p++) {
+      doc.setPage(_p);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.setTextColor(220, 218, 210);
+      doc.text('CLAIMDATACARE', _w / 2, _h / 2, {align:'center'});
+    }
+  } catch(e) {}
+}
+
 // ── Brand colors for PDF exports ─────────────────────────────────
 function getBrandColors() {
-  const primary = [55,55,55];
+  const primary = [201,100,66];
   return {
     primary:     primary,
-    primaryDark: primary,
-    primaryLight: [230,230,230],
-    accent:      [180,140,50],
-    primaryBg:   [230,230,230],
-    hex: { primary: '#373737', accent: '#b48c32' }
+    primaryDark: [181,83,48],
+    primaryLight: [250,245,237],
+    accent:      [201,100,66],
+    primaryBg:   [250,245,237],
+    hex: { primary: '#c96442', accent: '#c96442' }
   };
 }
 
