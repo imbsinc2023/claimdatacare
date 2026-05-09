@@ -997,6 +997,7 @@ display: inline-flex; align-items: center; gap: 4px;
 }
 
 /* Page header — Apple large title style */
+.page-hdr { margin-bottom: 14px; }
 .page-hdr h1 {
 font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
 line-height: 1.2; color: var(--text);
@@ -4543,22 +4544,73 @@ if (groupMode) {
     }
   }
 
-  const firstDate = activeDatesForPat[0];
-  const firstDateStr = firstDate.date || (firstDate.iso ? (function(){
-    var p = firstDate.iso.split('-');
-    return parseInt(p[1])+'/'+parseInt(p[2])+'/'+p[0];
-  })() : String(firstDate));
-
-  pending.push({
-    id: uid(), providerId: activeProviderId, patId,
-    pcn: buildNextPCN(patId, activeProviderId, pending),
-    dos: firstDateStr,
-    pos, dx, lines: groupedLines,
-    renderingId: rendId, facilityId: facId, referringId: refId,
-    status: 'pending', multiDate: true,
-    createdAt: Date.now(), updatedAt: Date.now(),
-    apptId: '', auth: st.auth || asgn.auth || '',
-  });
+  // ── Auto-split if >50 lines ─────────────────────────────────
+  const _fsDate = activeDatesForPat[0];
+  const firstDateStr = _fsDate.date || (_fsDate.iso ? (function(){
+    var _p = _fsDate.iso.split('-');
+    return parseInt(_p[1])+'/'+parseInt(_p[2])+'/'+_p[0];
+  })() : String(_fsDate));
+  if (groupedLines.length > 50) {
+    var _uniqueDates = [];
+    var _seen = {};
+    groupedLines.forEach(function(_gl) {
+      if (!_seen[_gl.dos]) { _seen[_gl.dos] = true; _uniqueDates.push(_gl.dos); }
+    });
+    var _cutoff = prompt(
+      'This claim has ' + groupedLines.length + ' service lines (max 50).\n\n' +
+      'Dates: ' + _uniqueDates.join(', ') + '\n\n' +
+      'Enter cutoff date (M/D/YYYY):\n' +
+      'Lines on or before this date go in claim 1, the rest in claim 2+.\n' +
+      'Click Cancel to abort.',
+      _uniqueDates[Math.ceil(_uniqueDates.length/2)-1] || ''
+    );
+    if (_cutoff === null || !_cutoff.trim()) {
+      toast('Cancelled — too many lines per claim (' + groupedLines.length + ')', 'warn');
+      continue;
+    }
+    var _cp = _cutoff.split('/');
+    var _cutoffDate = new Date(+_cp[2], +_cp[0]-1, +_cp[1]);
+    // Split lines into two groups: before/on cutoff and after cutoff
+    var _before = [], _after = [];
+    groupedLines.forEach(function(_gl) {
+      var _dp = _gl.dos.split('/');
+      var _d = new Date(+_dp[2], +_dp[0]-1, +_dp[1]);
+      (_d <= _cutoffDate ? _before : _after).push(_gl);
+    });
+    // Further split any group that exceeds 50 into chunks of 50
+    var _allBatches = [];
+    [_before, _after].forEach(function(_batch) {
+      while (_batch.length > 0) { _allBatches.push(_batch.splice(0, 50)); }
+    });
+    _allBatches.forEach(function(_batchLines, _bi) {
+      var _batchDates = [];
+      var _seen2 = {};
+      _batchLines.forEach(function(_l) {
+        if (!_seen2[_l.dos]) { _seen2[_l.dos] = true; _batchDates.push(_l.dos); }
+      });
+      pending.push({
+        id: uid(), providerId: activeProviderId, patId,
+        pcn: buildNextPCN(patId, activeProviderId, pending) + (_bi > 0 ? '-' + (_bi+1) : ''),
+        dos: _batchDates[0] || firstDateStr,
+        pos, dx, lines: _batchLines,
+        renderingId: rendId, facilityId: facId, referringId: refId,
+        status: 'pending', multiDate: _batchDates.length > 1,
+        createdAt: Date.now(), updatedAt: Date.now(),
+        apptId: '', auth: st.auth || asgn.auth || '',
+      });
+    });
+  } else {
+    pending.push({
+      id: uid(), providerId: activeProviderId, patId,
+      pcn: buildNextPCN(patId, activeProviderId, pending),
+      dos: firstDateStr,
+      pos, dx, lines: groupedLines,
+      renderingId: rendId, facilityId: facId, referringId: refId,
+      status: 'pending', multiDate: true,
+      createdAt: Date.now(), updatedAt: Date.now(),
+      apptId: '', auth: st.auth || asgn.auth || '',
+    });
+  }
 } else {
   // ── STANDARD — 1 claim per patient per date ───────────────────
   for (const d of activeDatesForPat) {
@@ -5329,19 +5381,18 @@ const _ppu = l.pricePerUnit
 : (parseFloat(l.charge||0) / Math.max(_u, 1));
 return {code:l.cpt, rate:_ppu.toFixed(2), units:l.units||'1', mod1:l.mod1||'', mod2:l.mod2||'', mod3:l.mod3||'', mod4:l.mod4||''};
 });
-// Open the batch modal
+// Open the batch modal first
 openBatch();
-// After modal opens, pre-select rendering and patients
+// Switch to SG tab and pre-select the group
 setTimeout(() => {
-if (sg.renderingProviderId) sv('mb-rend', sg.renderingProviderId);
-// Pre-fill first patient's dx if only one patient
-if (sg.patients.length === 1) {
-const dxList = sg.patients[0].dx.split(',').map(d=>d.trim()).filter(Boolean);
-for (let i=0;i<Math.min(dxList.length,4);i++) sv('mb-dx'+(i+1), dxList[i]);
-}
-renderBatchCatalog();
+setBatchTab('sg');
+var sgSel = document.getElementById('mb-sg-sel');
+if (sgSel) { sgSel.value = sgId; }
+if (sg.renderingProviderId) sv('mb-rend-sg', sg.renderingProviderId);
+if (sg.facilityId) sv('mb-fac-sg', sg.facilityId);
+onBatchSGChange();
 toast(`Service group "${sg.name}" loaded — select dates and submit`);
-}, 100);
+}, 150);
 }
 
 
@@ -7715,40 +7766,38 @@ function _afterLoad() {
   updateAdminUI();
 }
 
-// Resolve loginId to email for Firebase (username → email lookup)
-let fbEmail = isEmailFormat ? loginId : null;
-if (!fbEmail && _auth && _fbReady) {
-const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
-const matchedUser = allUsers.find(u =>
-(u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId
-);
-if (matchedUser && matchedUser.email) fbEmail = matchedUser.email.toLowerCase();
-}
-// Try Firebase auth — only if we have an email to use
-if (_auth && _fbReady && fbEmail) {
+// Try to resolve username/email to a known user
+var _allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(function(u){ return u.id !== DEFAULT_ADMIN.id; })];
+var _matchFn = function(u) {
+return (u.email||'').toLowerCase() === loginId || (u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId;
+};
+var _resolvedUser = _allUsers.find(_matchFn);
+var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
+
+// Try Firebase auth if we have a resolved email
+if (_auth && _fbReady && _fbEmail) {
 try {
-const cred = await _auth.signInWithEmailAndPassword(fbEmail, pass);
-const fbUser = cred.user;
-const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||fbUser.email.split('@')[0]||'Admin',
+var _fbCred = await _auth.signInWithEmailAndPassword(_fbEmail, pass);
+var _fbUser = _fbCred.user;
+var _fbSession = { id:_fbUser.uid, email:_fbUser.email, name:_fbUser.displayName||_fbUser.email.split('@')[0]||'Admin',
 role:'Super Admin', activeBillingProviderId:null };
-setSession(session);
-showApp(session.name);
+setSession(_fbSession);
+showApp(_fbSession.name);
 loadFromFirestore().then(function() {
-  // After load, update name from users table if available
   try {
-    var allU = getUsers ? getUsers() : (_usersCache||[]);
-    var matchU = allU.find(function(u){ return (u.email||'').toLowerCase() === fbUser.email.toLowerCase(); });
-    if (matchU) {
-      var _fn = ((matchU.first||'') + ' ' + (matchU.last||'')).trim() || matchU.name || session.name;
-      var sess2 = getSession(); if(sess2){ sess2.name=_fn; setSession(sess2); }
-      var _tn = document.getElementById('tn-user-name');
-      var _mn = document.getElementById('tn-menu-name');
-      var _np = _fn.trim().split(/\s+/);
-      var _ini = _np.length>=2 ? (_np[0][0]+_np[_np.length-1][0]).toUpperCase() : _fn.slice(0,2).toUpperCase();
-      if(_tn) _tn.textContent = _np[0]||_fn;
-      if(_mn) _mn.textContent = _fn;
-      var a1=document.getElementById('tn-avatar-initials'), a2=document.getElementById('tn-avatar-initials2');
-      if(a1) a1.textContent=_ini; if(a2) a2.textContent=_ini;
+    var _allU2 = getUsers ? getUsers() : (_usersCache||[]);
+    var _matchU2 = _allU2.find(function(u){ return (u.email||'').toLowerCase() === _fbUser.email.toLowerCase(); });
+    if (_matchU2) {
+      var _fn2 = ((_matchU2.first||'') + ' ' + (_matchU2.last||'')).trim() || _matchU2.name || _fbSession.name;
+      var _sess2 = getSession(); if(_sess2){ _sess2.name=_fn2; setSession(_sess2); }
+      var _tn2 = document.getElementById('tn-user-name');
+      var _mn2 = document.getElementById('tn-menu-name');
+      var _np2 = _fn2.trim().split(/\s+/);
+      var _ini2 = _np2.length>=2 ? (_np2[0][0]+_np2[_np2.length-1][0]).toUpperCase() : _fn2.slice(0,2).toUpperCase();
+      if(_tn2) _tn2.textContent = _np2[0]||_fn2;
+      if(_mn2) _mn2.textContent = _fn2;
+      var _a1=document.getElementById('tn-avatar-initials'), _a2=document.getElementById('tn-avatar-initials2');
+      if(_a1) _a1.textContent=_ini2; if(_a2) _a2.textContent=_ini2;
     }
   } catch(e){}
   _afterLoad();
@@ -7757,66 +7806,83 @@ return;
 } catch(e) {
 if (!['auth/configuration-not-found','auth/operation-not-allowed',
 'auth/network-request-failed'].includes(e.code)) {
-const msgs = {
+var _msgs = {
 'auth/user-not-found': 'Incorrect email or password.',
 'auth/wrong-password': 'Incorrect email or password.',
 'auth/invalid-credential': 'Incorrect email or password.',
 'auth/invalid-email': 'Invalid email.',
 'auth/too-many-requests': 'Too many attempts. Try again later.'
 };
-alertEl.innerHTML = `<div class="alert al-error">${msgs[e.code] || e.message}</div>`;
+alertEl.innerHTML = '<div class="alert al-error">' + (_msgs[e.code] || e.message) + '</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
-// Fall through to local auth
+// Config/network errors → fall through to local auth
 }
 }
 
 // Local hash auth
 try {
-const hash = await sha256(pass);
-const btoaHash = btoa(pass); // some users stored with btoa
-const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
-const user = allUsers.find(function(u) {
-  const matchId = (u.email||'').toLowerCase() === loginId || (u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId;
-  const matchHash = u.passHash === hash || u.passHash === btoaHash;
-  return matchId && matchHash;
+var _hash = await sha256(pass);
+var _btoaHash = btoa(pass);
+var _localUser = _allUsers.find(function(u) {
+  return _matchFn(u) && (u.passHash === _hash || u.passHash === _btoaHash);
 });
-if (!user) {
+// If local auth failed but identity matched, try Firebase with resolved email as fallback
+if (!_localUser && _resolvedUser && _resolvedUser.email && _auth && _fbReady) {
+var _fbEmail2 = _resolvedUser.email.toLowerCase();
+try {
+  var _fbCred2 = await _auth.signInWithEmailAndPassword(_fbEmail2, pass);
+  var _fbUser2 = _fbCred2.user;
+  var _fbSession2 = { id:_fbUser2.uid, email:_fbUser2.email, name:_fbUser2.displayName||_fbUser2.email.split('@')[0]||'Admin',
+  role:'Super Admin', activeBillingProviderId:null };
+  setSession(_fbSession2);
+  showApp(_fbSession2.name);
+  loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+  return;
+} catch(e2) {
+  if (!['auth/configuration-not-found','auth/operation-not-allowed','auth/network-request-failed'].includes(e2.code)) {
+    var _msgs2 = { 'auth/user-not-found':'Incorrect email or password.','auth/wrong-password':'Incorrect email or password.','auth/invalid-credential':'Incorrect email or password.','auth/invalid-email':'Invalid email.','auth/too-many-requests':'Too many attempts. Try again later.' };
+    alertEl.innerHTML = '<div class="alert al-error">' + (_msgs2[e2.code] || e2.message) + '</div>';
+    btn.textContent = 'Sign In'; btn.disabled = false; return;
+  }
+}
+}
+if (!_localUser) {
 alertEl.innerHTML = '<div class="alert al-error">Incorrect username/email or password.</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
-const _fullName = ((user.first||'') + ' ' + (user.last||'')).trim() || user.name || 'User';
-const session = { id:user.id, email:user.email, name:_fullName,
-role:user.role||'Super Admin', activeBillingProviderId:null,
-providerId: user.providerId || null };
-setSession(session);
+const _fullName = ((_localUser.first||'') + ' ' + (_localUser.last||'')).trim() || _localUser.name || 'User';
+const _session = { id:_localUser.id, email:_localUser.email, name:_fullName,
+role:_localUser.role||'Super Admin', activeBillingProviderId:null,
+providerId: _localUser.providerId || null };
+setSession(_session);
 window._sessionVerified = true;
     sessionStorage.setItem('cdc_verified', 'yes');
     setTimeout(function(){ auditLog("LOGIN", "User logged in via internal auth"); }, 500);
 
 // 2FA check
-if (user.twoFA) {
-  if (isDeviceRemembered(user.email)) {
+if (_localUser.twoFA) {
+  if (isDeviceRemembered(_localUser.email)) {
     // Device remembered — skip 2FA
-    showApp(session.name);
+    showApp(_session.name);
     loadFromFirestore().then(_afterLoad).catch(_afterLoad);
   } else {
     // Send code and show 2FA screen
     btn.textContent = 'Sending code...';
-    send2FACode(user).then(function(sent) {
+    send2FACode(_localUser).then(function(sent) {
       btn.textContent = 'Sign In'; btn.disabled = false;
       if (!sent) {
         alertEl.innerHTML = '<div class="alert al-error">Could not send verification code. Check email configuration.</div>';
         return;
       }
-      show2FAScreen(user, function() {
-        showApp(session.name);
+      show2FAScreen(_localUser, function() {
+        showApp(_session.name);
         loadFromFirestore().then(_afterLoad).catch(_afterLoad);
       });
     });
   }
 } else {
-  showApp(session.name);
+  showApp(_session.name);
   loadFromFirestore().then(_afterLoad).catch(_afterLoad);
 }
 } catch(e) {
@@ -8609,7 +8675,15 @@ toast('Status updated ?');
 }
 
 
-function addClaimLine() { addLine(); } function _addClaimLineLegacy() {
+function addLine() {
+if (!tmpLines) tmpLines = [];
+if (tmpLines.length >= 50) { toast('Maximum 50 service lines per claim','warn'); return; }
+tmpLines.push({ cpt:'', mod1:'', mod2:'', mod3:'', mod4:'', dxPtr:'A', units:'1', charge:'0.00', dos:'', epsdt:'N', emg:'N' });
+renderClaimLines();
+}
+function _addClaimLineLegacy() {
+if (!tmpLines) tmpLines = [];
+if (tmpLines.length >= 50) { toast('Maximum 50 service lines per claim','warn'); return; }
 tmpLines.push({ cpt:'', mod1:'', mod2:'', mod3:'', mod4:'', dxPtr:'A', units:'1', charge:'0.00', epsdt:'N', emg:'N' });
 renderClaimLines();
 }
@@ -8693,7 +8767,7 @@ updateBatchPreview();
 }
 
 function renderClaimLines() {
-const wrap = document.getElementById('mc-lines-wrap');
+const wrap = document.getElementById('mc-lines');
 if (!wrap) return;
 if (!tmpLines.length) {
 wrap.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">No lines. Click + Add Line.</div>';
@@ -9712,6 +9786,55 @@ const claim = db.claims[oi];
 if (!claim) { toast('Claim not found', 'err'); return; }
 exportBulkClaimsPDF([claim]);
 }
+// ── PDF icon helpers (simple vector icons for Superbill) ──────
+function _drawPdfIcon(doc, name, x, y, s, c) {
+  var ic = c || [80,80,80];
+  doc.setDrawColor(ic[0],ic[1],ic[2]); doc.setLineWidth(s/12);
+  if (name === 'calendar') {
+    doc.setFillColor(ic[0],ic[1],ic[2]);
+    doc.rect(x, y, s, s*0.28, 'F');
+    doc.rect(x, y+s*0.28, s, s*0.72, 'S');
+    doc.line(x+s*0.2, y+s*0.5, x+s*0.8, y+s*0.5);
+    doc.line(x+s*0.2, y+s*0.72, x+s*0.8, y+s*0.72);
+    doc.setLineWidth(s/20);
+    doc.line(x+s*0.15, y-s*0.1, x+s*0.15, y+s*0.05);
+    doc.line(x+s*0.85, y-s*0.1, x+s*0.85, y+s*0.05);
+  } else if (name === 'user') {
+    doc.circle(x+s/2, y+s*0.22, s*0.16, 'S');
+    doc.line(x+s*0.15, y+s, x+s*0.85, y+s);
+    doc.line(x+s*0.5, y+s*0.35, x+s*0.5, y+s);
+  } else if (name === 'building') {
+    doc.rect(x, y+s*0.1, s, s*0.9, 'S');
+    doc.rect(x+s*0.15, y+s*0.3, s*0.22, s*0.7, 'S');
+    doc.line(x+s*0.15, y+s*0.1, x+s/2, y, 'S');
+    doc.line(x+s*0.85, y+s*0.1, x+s/2, y, 'S');
+  } else if (name === 'shield') {
+    var mx = x+s/2;
+    doc.line(mx, y, x, y+s*0.35, 'S');
+    doc.line(mx, y, x+s, y+s*0.35, 'S');
+    doc.line(x, y+s*0.35, x, y+s*0.65, 'S');
+    doc.line(x+s, y+s*0.35, x+s, y+s*0.65, 'S');
+    doc.line(x, y+s*0.65, mx, y+s, 'S');
+    doc.line(x+s, y+s*0.65, mx, y+s, 'S');
+  } else if (name === 'phone') {
+    doc.rect(x+s*0.1, y, s*0.8, s, 0.4, 'S');
+    doc.line(x+s*0.25, y+s*0.2, x+s*0.75, y+s*0.2, 'S');
+    doc.circle(x+s/2, y+s*0.65, s*0.08, 'S');
+  } else if (name === 'dollar') {
+    doc.setFontSize(s*0.9); doc.setFont('helvetica','bold');
+    doc.setTextColor(ic[0],ic[1],ic[2]); doc.text('$', x+s*0.25, y+s*0.8);
+  } else if (name === 'hash') {
+    doc.line(x+s*0.25, y, x+s*0.15, y+s, 'S');
+    doc.line(x+s*0.75, y, x+s*0.65, y+s, 'S');
+    doc.line(x, y+s*0.3, x+s, y+s*0.3, 'S');
+    doc.line(x, y+s*0.65, x+s, y+s*0.65, 'S');
+  } else if (name === 'pin') {
+    doc.circle(x+s/2, y+s*0.3, s*0.18, 'F');
+    doc.line(x+s/2, y+s*0.45, x+s/2, y+s, 'S');
+    doc.line(x+s*0.2, y+s*0.75, x+s*0.8, y+s*0.75, 'S');
+  }
+}
+
 // ── QR code helper ──────────────────────────────────────────────
 var _qrDataURL = null;
 function generateQRDataURL(text, size) {
@@ -9744,17 +9867,21 @@ function addPDFWatermark(doc) {
     var _w = doc.internal.pageSize.getWidth();
     var _h = doc.internal.pageSize.getHeight();
     var _pages = doc.internal.getNumberOfPages();
-    var _qrSize = 22;
+    var _qrSize = 20;
     if (!_qrDataURL) _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
     for (var _p = 1; _p <= _pages; _p++) {
       doc.setPage(_p);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(180, 178, 170);
-      doc.text('Powered by ClaimDataCare', _w - 14, _h - 10, {align:'right'});
+      var _qrX = _w - 14 - _qrSize;
+      var _txtX = _qrX - 2;
       if (_qrDataURL) {
-        try { doc.addImage(_qrDataURL, 'PNG', _w - 14 - _qrSize, _h - 14 - 10 - _qrSize, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
+        try { doc.addImage(_qrDataURL, 'PNG', _qrX, _h - 14 - _qrSize - 10, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
       }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(180, 178, 170);
+      doc.text('Powered by', _txtX, _h - 16, {align:'right'});
+      doc.setFont('helvetica', 'bold');
+      doc.text('ClaimDataCare', _txtX, _h - 11, {align:'right'});
     }
   } catch(e) {}
 }
@@ -9824,7 +9951,7 @@ const t = (s,x,y,o={}) => {
   doc.setTextColor(...(o.c||BLACK));
   doc.text(String(s), x, y, {align:o.a||'left', maxWidth:o.mw});
 };
-const lbl  = (s,x,y) => { doc.setFillColor(...BRAND); doc.circle(x-2.5, y-1.8, 1, 'F'); doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
+const lbl  = (s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
 const UC   = s => String(s||'').toUpperCase();
 const $v   = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const safe = v => (v&&String(v).trim()) ? String(v).trim() : null;
@@ -9898,6 +10025,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   y += 6;
 
   // ══ PATIENT ═════════════════════════════════════════════════════
+  _drawPdfIcon(doc, 'user', M-4, y-3, 3.5, BRAND);
   lbl('Patient', M, y);
   y += 5;
 
@@ -9929,6 +10057,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   // ══ INSURANCE ═══════════════════════════════════════════════════
   if (ins1) {
+    _drawPdfIcon(doc, 'shield', M-4, y-3, 3.5, BRAND);
     lbl('Insurance', M, y);
     y += 5;
 
@@ -9957,6 +10086,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   if (rend.last || ref.last) {
     const halfW = CW/2;
     if (rend.last) {
+      _drawPdfIcon(doc, 'building', M-4, y-3, 3.5, BRAND);
       lbl('Rendering Provider', M, y);
       t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
       const rendInfo = [rend.npi?'NPI: '+rend.npi:null, rend.taxonomy?'Taxonomy: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
@@ -9965,6 +10095,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
       if (facInfo) t(facInfo, M, y+15, {sz:9, c:DARK});
     }
     if (ref.last) {
+      _drawPdfIcon(doc, 'building', M+halfW+2-4, y-3, 3.5, BRAND);
       lbl('Referring Provider', M+halfW+2, y);
       t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
       if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:9, c:DARK});
@@ -9976,6 +10107,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   // ══ DIAGNOSES ═══════════════════════════════════════════════════
   if (dxArr.length) {
+    _drawPdfIcon(doc, 'hash', M-4, y-3, 3.5, BRAND);
     lbl('Diagnoses (ICD-10)', M, y);
     y += 5;
     const dxCols=4, dxW=CW/dxCols;
@@ -9990,14 +10122,15 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   }
 
   // ══ SERVICE LINES — minimal text style ══════════════════════════
+  _drawPdfIcon(doc, 'dollar', M-4, y-3, 3.5, BRAND);
   lbl('Service Lines', M, y);
   y += 4;
   hline(M, y, RX, DARK, 0.3);
   y += 5;
 
   // Column header line
-  const SL = { cptW:16, descW:86, unitW:12, uprcW:20, modsW:14, dxW:12 };
-  // CW=188: 16+86+12+20+14+12=160 + Total(right-aligned) fits fine
+  const SL = { cptW:16, descW:90, unitW:12, uprcW:22, modsW:14, dxW:12 };
+  // CW=188: 16+90+12+22+14+12=166 + Total=22
   // Detect multi-date claim (per-line DOS)
   const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
   // Date column: 24mm when present
@@ -10005,21 +10138,21 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
   const SL2 = {
     cptW:  14,  // slightly narrower CPT when date shown
-    descW: hasDosPerLine ? 52 : SL.descW,  // tighter desc to leave room
+    descW: hasDosPerLine ? 56 : SL.descW,  // tighter desc to leave room
     unitW: SL.unitW,
     uprcW: SL.uprcW,
     modsW: SL.modsW,
     dxW:   SL.dxW,
   };
-  // Multi: 24+14+52+12+22+16+13=153 + margin = fits in CW=188
+  // Multi: 24+14+56+12+22+14+12=154 + Total=34
 
   if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
   t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
   t('Description', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
   t('Units', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
   t('Unit Price', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-  t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+2, y, {sz:7, b:true, c:BLACK});
-  t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+2, y, {sz:7, b:true, c:DARK, a:'center'});
+  t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
+  t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
   t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
   y += 2;
   hline(M, y, RX, DARK, 0.15);
@@ -10052,7 +10185,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
           lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
         }
       } catch(e2){}
-      if (lineDosShort) t(lineDosShort, M+1, y+4, {sz:9, c:DARK});
+      if (lineDosShort) t(lineDosShort, M, y+4, {sz:9, c:DARK});
     }
 
     // CPT bold
@@ -15618,7 +15751,7 @@ if (doc.category==='Superbills' && doc.lines) {
     '<div style="background:#141413;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
       '<div><div style="font-size:18px;font-weight:700">ClaimDataCare</div>'+
       '<div style="font-size:11px;opacity:.8">Superbill / Patient Receipt</div></div>'+
-      '<button onclick="var p=this;while(p&&!p.dataset.sbov)p=p.parentElement;if(p)p.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">✕ Close</button>'+
+      '<button onclick="this.closest(\'[data-sbov]\').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">✕ Close</button>'+
     '</div>'+
     '<div style="padding:20px 24px">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
@@ -18184,9 +18317,8 @@ function _sbBuildPDF(doc, pat) {
   y = 30;
 
   // Provider + Patient columns
-  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-  pdf.circle(margin - 2, y - 2, 1.2, 'F');
-  pdf.circle(W/2, y - 2, 1.2, 'F');
+  _drawPdfIcon(pdf, 'building', margin-4, y-5, 3.5, _brand);
+  _drawPdfIcon(pdf, 'user', W/2-4, y-5, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('PROVIDER', margin+3, y); pdf.text('PATIENT', W/2+3, y);
   y += 4;
@@ -18206,8 +18338,7 @@ function _sbBuildPDF(doc, pat) {
   // Insurance
   var ins = doc.ins1 || pat.ins1 || {};
   if (ins && ins.name) {
-    pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-    pdf.circle(margin, y+1, 1, 'F');
+    _drawPdfIcon(pdf, 'shield', margin-4, y-2, 3.5, _brand);
     pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
     pdf.text('INSURANCE', margin+3, y+4); y += 7;
     pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
@@ -18221,8 +18352,7 @@ function _sbBuildPDF(doc, pat) {
   pdf.line(margin, y, W-margin, y); y += 5;
 
   // Diagnoses
-  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-  pdf.circle(margin, y+1, 1, 'F');
+  _drawPdfIcon(pdf, 'hash', margin-4, y-2, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('DIAGNOSES', margin+3, y+4); y += 7;
   pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
@@ -18232,15 +18362,7 @@ function _sbBuildPDF(doc, pat) {
   });
   y += 2;
 
-  // Services section label
-  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-  pdf.circle(margin, y-2, 1, 'F');
-  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('SERVICES', margin+3, y+1); y += 5;
-
-  // Services section label
-  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-  pdf.circle(margin, y, 1, 'F');
+  _drawPdfIcon(pdf, 'dollar', margin-4, y-2, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('SERVICES', margin+3, y+3); y += 6;
 
@@ -18252,7 +18374,7 @@ function _sbBuildPDF(doc, pat) {
   pdf.text('CPT', margin+2, y+3);
   pdf.text('DESCRIPTION', margin+20, y+3);
   pdf.text('MOD', margin+110, y+3);
-  pdf.text('UNITS', margin+128, y+3);
+  pdf.text('UNITS', margin+130, y+3, {align:'center'});
   pdf.text('CHARGE', W-margin-2, y+3, {align:'right'});
   y += 8;
 
@@ -18286,14 +18408,16 @@ function _sbBuildPDF(doc, pat) {
   // Footer
   if (y > 250) { pdf.addPage(); y = 20; }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(148,163,184);
-  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+(doc.date||''), W/2, y, {align:'center'});
-  y += 6;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.setTextColor(180,178,170);
-  pdf.text('POWERED BY CLAIMDATACARE', W - margin, y, {align:'right'});
+  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+(doc.date||''), W/2, y+2, {align:'center'});
+  var _qrSize = 20;
   if (!_qrDataURL && typeof generateQRDataURL === 'function') _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
   if (_qrDataURL) {
-    try { pdf.addImage(_qrDataURL, 'PNG', W - margin - 22, y - 22, 22, 22, undefined, 'FAST'); } catch(e) {}
+    try { pdf.addImage(_qrDataURL, 'PNG', W - margin - _qrSize, y - _qrSize, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
   }
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(6); pdf.setTextColor(180,178,170);
+  pdf.text('POWERED BY', W - margin - _qrSize - 2, y - 5, {align:'right'});
+  pdf.setFont('helvetica','bold');
+  pdf.text('CLAIMDATACARE', W - margin - _qrSize - 2, y, {align:'right'});
 
   return pdf;
 }
