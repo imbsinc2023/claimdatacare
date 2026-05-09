@@ -1534,7 +1534,7 @@ document.getElementById('dash-stats').innerHTML=`
 </div>`;
 setTimeout(_renderLucideIcons, 20);
 const re=document.getElementById('dash-recent');
-if(!claims.length){ re.innerHTML=`<div class="empty"><div class="empty-ico">\ud83d\udcc4</div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`; }
+if(!claims.length){ re.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="file-text" class="lci" style="width:24px;height:24px"></i></div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`; }
 else { re.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>PCN</th><th>Patient</th><th>DOS</th><th>Total</th><th>Status</th></tr></thead><tbody>`+claims.slice(-8).reverse().map(c=>{const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'};return`<tr><td class="mono" style="font-size:11px">${c.pcn}</td><td style="font-weight:500">${ptLinkName(p.id,p.last,p.first)}</td><td style="font-size:12px">${c.dos}</td><td class="mono" style="font-weight:700">$${fmtMoney(claimTotal(c))}</td><td>${statusBadge(c.status)}</td></tr>`;}).join('')+`</tbody></table></div>`; }
 const ps={};
 claims.forEach(c=>{const p=db.patients.find(x=>x.id===c.patId);if(p){const k=p.payerName||p.payerid;ps[k]=(ps[k]||0)+claimTotal(c);}});
@@ -1543,7 +1543,7 @@ const ss={draft:0,pending:0,submitted:0,accepted:0,rejected:0};
 claims.forEach(c=>{ss[c.status]=(ss[c.status]||0)+1;});
 document.getElementById('dash-status').innerHTML=Object.entries(ss).map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center">${statusBadge(s)}<span class="mono" style="font-weight:700">${n}</span></div>`).join('');
 const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
-document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View \u2192</a></div>`:'<div></div>';
+document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View <i data-lucide="arrow-right" class="lci" style="width:11px;height:11px"></i></a></div>`:'<div></div>';
 }
 
 
@@ -2130,7 +2130,7 @@ _renderLucideIcons();
 
 
 
-function renderRendering(){ const db=getDB(); const list=db.rendering.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('rendering-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\ud83d\udc68\u200d\u2695\ufe0f</div><h3>No rendering providers</h3><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Taxonomy</th><th>Tax ID</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.rendering.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td class="mono">${r.taxonomy||'\u2014'}</td><td class="mono">${r.taxid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openRenderingModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
+function renderRendering(){ const db=getDB(); const list=db.rendering.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('rendering-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round" class="lci" style="width:24px;height:24px"></i></div><h3>No rendering providers</h3><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Taxonomy</th><th>Tax ID</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.rendering.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td class="mono">${r.taxonomy||'\u2014'}</td><td class="mono">${r.taxid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openRenderingModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
 
 
 
@@ -2147,7 +2147,7 @@ function renderExportSummary(){
 const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId);
 const total=claims.reduce((s,c)=>s+claimTotal(c),0); const pending=claims.filter(c=>c.status==='pending').length; const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
 const sumEl=document.getElementById('exp-summary'); if(sumEl) sumEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--brand)">${claims.length}</div><div style="font-size:11px;color:var(--text3)">Total claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">$${fmtMoney(total)}</div><div style="font-size:11px;color:var(--text3)">Total charges</div></div><div style="background:var(--amber-bg);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">${pending}</div><div style="font-size:11px;color:var(--text3)">Pending</div></div><div style="background:${errs?'var(--red-bg)':'var(--green-bg)'};border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:${errs?'var(--red)':'var(--green)'}">${errs||'<i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'}</div><div style="font-size:11px;color:var(--text3)">${errs?'Errors':'No errors'}</div></div></div>`;
-const ea=document.getElementById('exp-alert-top'); if(ea) ea.innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review \u2192</a></div>`:pending?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> ${pending} claim(s) ready to export.</div>`:`<div class="alert al-info"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> No pending claims.</div>`;
+const ea=document.getElementById('exp-alert-top'); if(ea) ea.innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review <i data-lucide="arrow-right" class="lci" style="width:11px;height:11px"></i></a></div>`:pending?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> ${pending} claim(s) ready to export.</div>`:`<div class="alert al-info"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> No pending claims.</div>`;
 }
 
 
@@ -2789,7 +2789,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div id="referring-tbl"></div></div>
 
-<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()">\ud83d\udd04 Re-validate</button></div><div id="val-content"></div></div>
+<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div id="val-content"></div></div>
 
 <div class="section" id="sec-reports">
 <div class="page-hdr">
@@ -3009,7 +3009,7 @@ Show Paid
 </div>
 
 <div class="overlay" id="modal-claim"><div class="modal modal-lg">
-<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-claim')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-claim')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mc-id">
 <div class="dup-warn hidden" id="mc-dup"></div>
@@ -3018,7 +3018,7 @@ Show Paid
 <div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>
 <div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>
 </div>
-<div class="sep"></div><span class="slabel">\ud83d\udcc5 Service</span>
+<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>
 <div class="fg g3">
 <div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>
 <div class="field" style="grid-column:1/-1;padding:6px 0">
@@ -3036,7 +3036,7 @@ Show Paid
 <div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>
 <div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>
 </div>
-<div class="sep"></div><span class="slabel">\ud83e\ude7a ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \u2014 e.g. M25562)</span></span>
+<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \u2014 e.g. M25562)</span></span>
 <div class="fg g4">
 <div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace('.','');syncAllDxPtrs()"></div>
 <div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace('.','');syncAllDxPtrs()"></div>
@@ -3050,8 +3050,8 @@ Show Paid
 <div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \u2014 pointers auto-assign</div>
 <div class="sep"></div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-<span class="slabel" style="margin:0">\ud83d\udc8a Service Lines (CPT)</span>
-<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()">\ud83d\udccb From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()">\u21a9 Last Template</button></div>
+<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>
+<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>
 </div>
 <div id="mc-lines"></div>
 <div class="total-preview" id="mc-total">Total: $0.00</div>
@@ -3064,18 +3064,18 @@ Show Paid
 </div>
 <div class="modal-ftr">
 <button class="btn" onclick="closeModal('modal-claim')">Cancel</button>
-<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none">\ud83d\udccb Duplicate</button>
-<button class="btn btn-sm" onclick="printSuperbill()">\ud83d\udda8 Superbill PDF</button>
-<button class="btn btn-primary" onclick="saveClaim()">\ud83d\udcbe Save Claim</button>
+<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>
+<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>
+<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>
 </div>
 </div></div>
 
 <!-- PATIENT MODAL -->
 <div class="overlay" id="modal-patient"><div class="modal">
-<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-patient')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-patient')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mp-id">
-<span class="slabel">\ud83d\udc64 Patient Information</span>
+<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>
 <div class="fg g2">
 <div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \u2014 cannot be changed later.</div></div>
 <div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>
@@ -3093,7 +3093,7 @@ Show Paid
 <div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \u2014 Self</option><option value="01">01 \u2014 Spouse</option><option value="19">19 \u2014 Child</option><option value="G8">G8 \u2014 Other</option><option value="32">32 \u2014 Mother</option><option value="33">33 \u2014 Father</option></select></div>
 </div>
 <div class="sep"></div>
-<span class="slabel">\ud83e\udeaa Subscriber / Insured</span>
+<span class="slabel"><i data-lucide="id-card" class="lci"></i> Subscriber / Insured</span>
 <div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \u2014 subscriber fields auto-filled from patient data above.</div>
 <div class="fg g2">
 <div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>
@@ -3105,7 +3105,7 @@ Show Paid
 <div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>
 </div>
 <div class="sep"></div>
-<span class="slabel">\ud83c\udfe6 Primary Insurance</span>
+<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>
 <div class="fg g2">
 <div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>
 <div class="field"><label>Payer Name</label><input id="mp-payername"></div>
@@ -3113,7 +3113,7 @@ Show Paid
 <div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-patient')">Cancel</button><button class="btn btn-primary" onclick="savePatient()">\ud83d\udcbe Save Patient</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-patient')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>
 </div></div>
 
 <!-- PROVIDER MODAL -->
@@ -3336,53 +3336,53 @@ Account Key
 
 <!-- FACILITY MODAL -->
 <div class="overlay" id="modal-facility"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-facility')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-facility')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mfac-id">
 <div class="fg g1">
 <div class="field"><label>Facility Name *</label><input id="mfac-name"></div>
-<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'fac')"><button onclick="lookupNPI(v('mfac-npi'),'fac')" id="mfac-npi-btn">\ud83d\udd0d Lookup</button></div><div id="mfac-npi-res"></div></div>
+<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'fac')"><button onclick="lookupNPI(v('mfac-npi'),'fac')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>
 <div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>
 <div class="field"><label>Address *</label><input id="mfac-addr1"></div>
 <div class="field"><label>Address 2</label><input id="mfac-addr2"></div>
 <div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-facility')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()">\ud83d\udcbe Save</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-facility')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>
 </div></div>
 
 <!-- RENDERING MODAL -->
 <div class="overlay" id="modal-rendering"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-rendering')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-rendering')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mrend-id">
 <div class="fg g1">
-<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'rend')"><button onclick="lookupNPI(v('mrend-npi'),'rend')" id="mrend-btn">\ud83d\udd0d NPI Registry</button></div><div id="mrend-res"></div></div>
+<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'rend')"><button onclick="lookupNPI(v('mrend-npi'),'rend')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>
 <div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>
 <div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>
 <div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-rendering')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()">\ud83d\udcbe Save</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-rendering')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>
 </div></div>
 
 <!-- REFERRING MODAL -->
 <div class="overlay" id="modal-referring"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-referring')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-referring')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mref-id">
 <div class="fg g1">
-<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'ref')"><button onclick="lookupNPI(v('mref-npi'),'ref')" id="mref-btn">\ud83d\udd0d NPI Registry</button></div><div id="mref-res"></div></div>
+<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,'ref')"><button onclick="lookupNPI(v('mref-npi'),'ref')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>
 <div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>
 <div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-referring')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()">\ud83d\udcbe Save</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-referring')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>
 </div></div>
 
 <!-- SERVICE MODAL -->
 <div class="overlay" id="modal-service"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-service')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-service')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="msvc-id">
 <div class="fg g1">
@@ -3392,12 +3392,12 @@ Account Key
 <div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>
 </div>
 </div>
-<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-service')">Cancel</button><button class="btn btn-primary" onclick="saveService()">\ud83d\udcbe Save Service</button></div>
+<div class="modal-ftr"><button class="btn" onclick="closeModal('modal-service')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>
 </div></div>
 
 <!-- STATUS MODAL -->
 <div class="overlay" id="modal-status"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-status')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-status')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <input type="hidden" id="mst-id">
 <div class="fg g1">
@@ -3613,7 +3613,7 @@ Select a service group and dates to preview
 
 <!-- CPT PICKER MODAL -->
 <div class="overlay" id="modal-catalog"><div class="modal modal-sm">
-<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-catalog')">\u2715</button></div>
+<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-catalog')"><i data-lucide="x" class="lci"></i></button></div>
 <div class="modal-body">
 <div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\u2026" oninput="renderPickerCatalog()"></div>
 <div class="cpt-scroll" id="cat-list"></div>
@@ -3679,7 +3679,7 @@ Select a service group and dates to preview
 }
 
 
-function renderReferring(){ const db=getDB(); const list=db.referring.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('referring-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\u21a9\ufe0f</div><h3>No referring providers</h3><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Middle</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.referring.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td>${r.mid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openReferringModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
+function renderReferring(){ const db=getDB(); const list=db.referring.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('referring-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round-arrow-left" class="lci" style="width:24px;height:24px"></i></div><h3>No referring providers</h3><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Middle</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.referring.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td>${r.mid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openReferringModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
 
 
 function renderReports() {
@@ -3718,10 +3718,12 @@ function renderReports() {
 
     // Report tabs
     '<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin:20px 0 0">' +
-      '<button onclick="showReportTab(\x27claims\x27)" id="rtab-claims" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0">Claims Submission</button>' +
-      '<button onclick="showReportTab(\x27audit\x27)" id="rtab-audit" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">Log History</button>' +
+      '<button onclick="showReportTab(\x27claims\x27)" id="rtab-claims" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0">Claims</button>' +
+      '<button onclick="showReportTab(\x27audit\x27)" id="rtab-audit" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">Audit Log</button>' +
       '<button onclick="showReportTab(\x27payer\x27)" id="rtab-payer" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Payer</button>' +
       '<button onclick="showReportTab(\x27month\x27)" id="rtab-month" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Month</button>' +
+      '<button onclick="showReportTab(\x27provider\x27)" id="rtab-provider" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Provider</button>' +
+      '<button onclick="showReportTab(\x27procedure\x27)" id="rtab-procedure" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0">By Procedure</button>' +
     '</div>' +
     '<div id="report-tab-content" style="padding:16px 0"></div>';
 
@@ -3729,7 +3731,7 @@ function renderReports() {
 }
 
 function showReportTab(tab) {
-  ['claims','audit','payer','month'].forEach(function(t) {
+  ['claims','audit','payer','month','provider','procedure'].forEach(function(t) {
     var btn = document.getElementById('rtab-' + t);
     if (!btn) return;
     var on = t === tab;
@@ -3743,6 +3745,8 @@ function showReportTab(tab) {
   else if (tab === 'audit') renderAuditLogReport(el);
   else if (tab === 'payer') renderPayerReport(el);
   else if (tab === 'month') renderMonthReport(el);
+  else if (tab === 'provider') renderProviderReport(el);
+  else if (tab === 'procedure') renderProcedureReport(el);
 }
 
 function renderClaimsSubmissionReport(el) {
@@ -4038,13 +4042,92 @@ function renderPayerReport(el) {
   claims.forEach(function(c) {
     var p2 = db.patients.find(function(x){ return x.id===c.patId; });
     var k = (p2&&(p2.payerName||p2.payerid)) || 'Unknown';
-    if (!byPayer[k]) byPayer[k]={total:0,cnt:0,accepted:0};
+    if (!byPayer[k]) byPayer[k]={total:0,cnt:0,accepted:0,rejected:0};
     byPayer[k].total+=claimTotal(c); byPayer[k].cnt++;
     if (c.status==='accepted') byPayer[k].accepted+=claimTotal(c);
+    if (c.status==='rejected') byPayer[k].rejected++;
   });
   var rows3 = Object.entries(byPayer).sort(function(a,b){ return b[1].total-a[1].total; });
-  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Payer</th><th>Claims</th><th>Total Billed</th><th>Accepted</th></tr></thead><tbody>' +
-    rows3.map(function(r){ return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td></tr>'; }).join('') +
+  var grandTotal = claims.reduce(function(s,c){ return s+claimTotal(c); },0);
+  var grandAccepted = claims.filter(function(c){ return c.status==='accepted'; }).reduce(function(s,c){ return s+claimTotal(c); },0);
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span style="font-size:12px;color:var(--text3)">' + rows3.length + ' payers · ' + claims.length + ' claims</span>' +
+      '<div style="margin-left:auto;display:flex;gap:6px">' +
+        '<button onclick="exportPayerReportPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+        '<button onclick="exportPayerReportXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr><th>Payer</th><th>Claims</th><th>Total Billed</th><th>Accepted</th><th>Rejected</th><th>Collection Rate</th></tr></thead><tbody>' +
+    rows3.map(function(r){
+      var rate = r[1].total > 0 ? (r[1].accepted/r[1].total*100).toFixed(1) : '—';
+      return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td><td style="color:var(--red)">' + r[1].rejected + '</td><td style="font-weight:600">' + rate + '%</td></tr>';
+    }).join('') +
+    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td>' + claims.length + '</td><td>' + money(grandTotal) + '</td><td style="color:var(--green)">' + money(grandAccepted) + '</td><td style="color:var(--red)">' + claims.filter(function(c){ return c.status==='rejected'; }).length + '</td><td>' + (grandTotal>0?(grandAccepted/grandTotal*100).toFixed(1):'—') + '%</td></tr>' +
+  '</tbody></table></div>';
+}
+
+function renderProviderReport(el) {
+  var db = getDB();
+  var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  var provs = db.providers||[];
+  var byProv = {};
+  claims.forEach(function(c) {
+    var pid = c.providerId||'unknown';
+    if (!byProv[pid]) byProv[pid]={total:0,cnt:0,accepted:0,rejected:0};
+    byProv[pid].total+=claimTotal(c); byProv[pid].cnt++;
+    if (c.status==='accepted') byProv[pid].accepted+=claimTotal(c);
+    if (c.status==='rejected') byProv[pid].rejected++;
+  });
+  var rows = Object.entries(byProv).sort(function(a,b){ return b[1].total-a[1].total; });
+  var grandTotal = claims.reduce(function(s,c){ return s+claimTotal(c); },0);
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span style="font-size:12px;color:var(--text3)">' + rows.length + ' providers · ' + claims.length + ' claims</span>' +
+      '<div style="margin-left:auto;display:flex;gap:6px">' +
+        '<button onclick="exportProviderReportPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+        '<button onclick="exportProviderReportXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr><th>Provider</th><th>NPI</th><th>Claims</th><th>Total Billed</th><th>Accepted</th><th>Rejected</th></tr></thead><tbody>' +
+    rows.map(function(r){
+      var prov = provs.find(function(p){ return p.id===r[0]; })||{};
+      return '<tr><td style="font-weight:600">' + (prov.name||r[0]) + '</td><td class="mono">' + (prov.npi||'') + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td><td style="color:var(--red)">' + r[1].rejected + '</td></tr>';
+    }).join('') +
+    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td></td><td>' + claims.length + '</td><td>' + money(grandTotal) + '</td><td style="color:var(--green)">' + money(claims.filter(function(c){ return c.status==='accepted'; }).reduce(function(s,c){ return s+claimTotal(c); },0)) + '</td><td style="color:var(--red)">' + claims.filter(function(c){ return c.status==='rejected'; }).length + '</td></tr>' +
+  '</tbody></table></div>';
+}
+
+function renderProcedureReport(el) {
+  var db = getDB();
+  var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  var byProc = {};
+  claims.forEach(function(c) {
+    (c.lines||[]).forEach(function(l){
+      var cpt = l.cpt||'Unknown';
+      if (!byProc[cpt]) byProc[cpt]={cnt:0,total:0,units:0};
+      byProc[cpt].cnt++;
+      byProc[cpt].total += (parseFloat(l.charge)||0)*(parseInt(l.units)||1);
+      byProc[cpt].units += parseInt(l.units)||1;
+    });
+  });
+  var rows = Object.entries(byProc).sort(function(a,b){ return b[1].cnt-a[1].cnt; });
+  var grandTotal = rows.reduce(function(s,r){ return s+r[1].total; },0);
+  var grandUnits = rows.reduce(function(s,r){ return s+r[1].units; },0);
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span style="font-size:12px;color:var(--text3)">' + rows.length + ' procedure codes</span>' +
+      '<div style="margin-left:auto;display:flex;gap:6px">' +
+        '<button onclick="exportProcedureReportPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+        '<button onclick="exportProcedureReportXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr><th>CPT Code</th><th>Times Billed</th><th>Total Units</th><th>Total Charges</th><th>Avg per Unit</th></tr></thead><tbody>' +
+    rows.map(function(r){
+      var avg = r[1].units > 0 ? money(r[1].total/r[1].units) : '$0.00';
+      return '<tr><td class="mono" style="font-weight:600;color:var(--brand)">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + r[1].units + '</td><td>' + money(r[1].total) + '</td><td>' + avg + '</td></tr>';
+    }).join('') +
+    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td>' + rows.reduce(function(s,r){ return s+r[1].cnt; },0) + '</td><td>' + grandUnits + '</td><td>' + money(grandTotal) + '</td><td>' + (grandUnits>0?money(grandTotal/grandUnits):'$0.00') + '</td></tr>' +
   '</tbody></table></div>';
 }
 
@@ -4054,12 +4137,215 @@ function renderMonthReport(el) {
   var byMonth2 = {};
   claims.forEach(function(c) {
     var k = (c.dos||'').slice(0,7);
-    if (k) { if (!byMonth2[k]) byMonth2[k]={total:0,cnt:0}; byMonth2[k].total+=claimTotal(c); byMonth2[k].cnt++; }
+    if (k) { if (!byMonth2[k]) byMonth2[k]={total:0,cnt:0,accepted:0}; byMonth2[k].total+=claimTotal(c); byMonth2[k].cnt++; if (c.status==='accepted') byMonth2[k].accepted+=claimTotal(c); }
   });
   var rows4 = Object.entries(byMonth2).sort(function(a,b){ return b[0].localeCompare(a[0]); });
-  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Month</th><th>Claims</th><th>Total Billed</th></tr></thead><tbody>' +
-    rows4.map(function(r){ return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td></tr>'; }).join('') +
+  var grandTotal = claims.reduce(function(s,c){ return s+claimTotal(c); },0);
+  var grandAccepted = claims.filter(function(c){ return c.status==='accepted'; }).reduce(function(s,c){ return s+claimTotal(c); },0);
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span style="font-size:12px;color:var(--text3)">' + rows4.length + ' months · ' + claims.length + ' claims</span>' +
+      '<div style="margin-left:auto;display:flex;gap:6px">' +
+        '<button onclick="exportMonthReportPDF()" class="btn btn-ghost btn-sm"><i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> PDF</button>' +
+        '<button onclick="exportMonthReportXLSX()" class="btn btn-ghost btn-sm"><i data-lucide="table" class="lci" style="width:13px;height:13px"></i> Excel</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr><th>Month</th><th>Claims</th><th>Total Billed</th><th>Accepted</th><th>Avg per Claim</th></tr></thead><tbody>' +
+    rows4.map(function(r){
+      var avg = r[1].cnt > 0 ? money(r[1].total/r[1].cnt) : '$0.00';
+      return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td><td>' + avg + '</td></tr>';
+    }).join('') +
+    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td>' + claims.length + '</td><td>' + money(grandTotal) + '</td><td style="color:var(--green)">' + money(grandAccepted) + '</td><td>' + (claims.length>0?money(grandTotal/claims.length):'$0.00') + '</td></tr>' +
   '</tbody></table></div>';
+}
+
+// ── Report Export Functions ──────────────────────────────────
+
+function exportPayerReportPDF() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if (!claims.length) { toast('No data to export','warn'); return; }
+  var prov = db.providers.find(function(p){ return p.id===activeProviderId; })||{};
+  var { jsPDF } = window.jspdf; var doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
+  doc.text('Payer Report', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5);
+  doc.text('Generated: ' + new Date().toLocaleDateString() + '  |  ' + claims.length + ' claims', M, Y+10);
+  Y += 18;
+  var cols = ['Payer','Claims','Total Billed','Accepted','Rejected','Rate'];
+  var ws = [45,15,30,30,15,20];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(55,55,55); doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1; cols.forEach(function(c,i){ doc.text(c, cx, Y); cx+=ws[i]; }); Y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
+  var byPayer = {};
+  claims.forEach(function(c){ var p2=db.patients.find(function(x){return x.id===c.patId;}); var k=(p2&&(p2.payerName||p2.payerid))||'Unknown'; if(!byPayer[k]) byPayer[k]={total:0,cnt:0,accepted:0,rejected:0}; byPayer[k].total+=claimTotal(c); byPayer[k].cnt++; if(c.status==='accepted')byPayer[k].accepted+=claimTotal(c); if(c.status==='rejected')byPayer[k].rejected++; });
+  Object.entries(byPayer).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(r,idx){
+    if(Y>175){doc.addPage();Y=15;}
+    if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
+    var rate = r[1].total>0?(r[1].accepted/r[1].total*100).toFixed(1):'—';
+    var row = [r[0],String(r[1].cnt),'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),String(r[1].rejected),rate+'%'];
+    cx=M+1; row.forEach(function(v,i){doc.text(String(v).slice(0,Math.floor(ws[i]/2.2)),cx,Y);cx+=ws[i];});
+    Y+=6;
+  });
+  addPDFWatermark(doc); doc.save('Payer_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('Payer report PDF exported','ok');
+}
+
+function exportPayerReportXLSX() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var rows = [['Payer','Claims','Total Billed','Accepted','Rejected','Collection Rate']];
+  var byPayer = {};
+  claims.forEach(function(c){ var p2=db.patients.find(function(x){return x.id===c.patId;}); var k=(p2&&(p2.payerName||p2.payerid))||'Unknown'; if(!byPayer[k]) byPayer[k]={total:0,cnt:0,accepted:0,rejected:0}; byPayer[k].total+=claimTotal(c); byPayer[k].cnt++; if(c.status==='accepted')byPayer[k].accepted+=claimTotal(c); if(c.status==='rejected')byPayer[k].rejected++; });
+  var grandTotal=0,grandAccepted=0,grandCnt=0,grandRejected=0;
+  Object.entries(byPayer).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(r){
+    var rate = r[1].total>0?(r[1].accepted/r[1].total*100).toFixed(1):'0.0';
+    rows.push([r[0],r[1].cnt,'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),r[1].rejected,rate+'%']);
+    grandTotal+=r[1].total; grandAccepted+=r[1].accepted; grandCnt+=r[1].cnt; grandRejected+=r[1].rejected;
+  });
+  rows.push(['Total',grandCnt,'$'+grandTotal.toFixed(2),'$'+grandAccepted.toFixed(2),grandRejected,(grandTotal>0?(grandAccepted/grandTotal*100).toFixed(1):'0.0')+'%']);
+  var ws = XLSX.utils.aoa_to_sheet(rows); var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'By Payer');
+  XLSX.writeFile(wb, 'Payer_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Payer report Excel exported','ok');
+}
+
+function exportMonthReportPDF() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var prov = db.providers.find(function(p){return p.id===activeProviderId;})||{};
+  var { jsPDF } = window.jspdf; var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
+  doc.text('Monthly Revenue Report', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5);
+  doc.text('Generated: ' + new Date().toLocaleDateString() + '  |  ' + claims.length + ' claims', M, Y+10); Y += 18;
+  var cols = ['Month','Claims','Total Billed','Accepted','Avg/Claim'];
+  var ws = [35,20,35,35,30];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(55,55,55); doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1; cols.forEach(function(c,i){doc.text(c,cx,Y);cx+=ws[i];}); Y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
+  var byMonth = {}; claims.forEach(function(c){var k=(c.dos||'').slice(0,7);if(k){if(!byMonth[k])byMonth[k]={total:0,cnt:0,accepted:0};byMonth[k].total+=claimTotal(c);byMonth[k].cnt++;if(c.status==='accepted')byMonth[k].accepted+=claimTotal(c);}});
+  Object.entries(byMonth).sort(function(a,b){return b[0].localeCompare(a[0]);}).forEach(function(r,idx){
+    if(Y>240){doc.addPage();Y=15;}
+    if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
+    var avg = r[1].cnt>0?'$'+(r[1].total/r[1].cnt).toFixed(2):'$0.00';
+    var row = [r[0],String(r[1].cnt),'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),avg];
+    cx=M+1; row.forEach(function(v,i){doc.text(String(v).slice(0,Math.floor(ws[i]/2.2)),cx,Y);cx+=ws[i];});
+    Y+=6;
+  });
+  addPDFWatermark(doc); doc.save('Monthly_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('Monthly report PDF exported','ok');
+}
+
+function exportMonthReportXLSX() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var rows = [['Month','Claims','Total Billed','Accepted','Avg per Claim']];
+  var byMonth = {}; claims.forEach(function(c){var k=(c.dos||'').slice(0,7);if(k){if(!byMonth[k])byMonth[k]={total:0,cnt:0,accepted:0};byMonth[k].total+=claimTotal(c);byMonth[k].cnt++;if(c.status==='accepted')byMonth[k].accepted+=claimTotal(c);}});
+  var grandTotal=0,grandAccepted=0,grandCnt=0;
+  Object.entries(byMonth).sort(function(a,b){return b[0].localeCompare(a[0]);}).forEach(function(r){
+    var avg = r[1].cnt>0?'$'+(r[1].total/r[1].cnt).toFixed(2):'$0.00';
+    rows.push([r[0],r[1].cnt,'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),avg]);
+    grandTotal+=r[1].total; grandAccepted+=r[1].accepted; grandCnt+=r[1].cnt;
+  });
+  rows.push(['Total',grandCnt,'$'+grandTotal.toFixed(2),'$'+grandAccepted.toFixed(2),grandCnt>0?'$'+(grandTotal/grandCnt).toFixed(2):'$0.00']);
+  var ws = XLSX.utils.aoa_to_sheet(rows); var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'By Month');
+  XLSX.writeFile(wb, 'Monthly_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Monthly report Excel exported','ok');
+}
+
+function exportProviderReportPDF() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var provs = db.providers||[]; var prov = provs.find(function(p){return p.id===activeProviderId;})||{};
+  var { jsPDF } = window.jspdf; var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
+  doc.text('Provider Report', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5); doc.text('Generated: ' + new Date().toLocaleDateString(), M, Y+10); Y += 18;
+  var cols = ['Provider','NPI','Claims','Total Billed','Accepted','Rejected'];
+  var ws = [35,25,15,30,25,15];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(55,55,55); doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1; cols.forEach(function(c,i){doc.text(c,cx,Y);cx+=ws[i];}); Y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
+  var byProv = {}; claims.forEach(function(c){var pid=c.providerId||'unknown';if(!byProv[pid])byProv[pid]={total:0,cnt:0,accepted:0,rejected:0};byProv[pid].total+=claimTotal(c);byProv[pid].cnt++;if(c.status==='accepted')byProv[pid].accepted+=claimTotal(c);if(c.status==='rejected')byProv[pid].rejected++;});
+  Object.entries(byProv).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(r,idx){
+    if(Y>240){doc.addPage();Y=15;}
+    if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
+    var p = provs.find(function(x){return x.id===r[0];})||{};
+    var row = [p.name||r[0],p.npi||'',String(r[1].cnt),'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),String(r[1].rejected)];
+    cx=M+1; row.forEach(function(v,i){doc.text(String(v).slice(0,Math.floor(ws[i]/2.2)),cx,Y);cx+=ws[i];});
+    Y+=6;
+  });
+  addPDFWatermark(doc); doc.save('Provider_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('Provider report PDF exported','ok');
+}
+
+function exportProviderReportXLSX() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var provs = db.providers||[];
+  var rows = [['Provider','NPI','Claims','Total Billed','Accepted','Rejected']];
+  var byProv = {}; claims.forEach(function(c){var pid=c.providerId||'unknown';if(!byProv[pid])byProv[pid]={total:0,cnt:0,accepted:0,rejected:0};byProv[pid].total+=claimTotal(c);byProv[pid].cnt++;if(c.status==='accepted')byProv[pid].accepted+=claimTotal(c);if(c.status==='rejected')byProv[pid].rejected++;});
+  Object.entries(byProv).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(r){
+    var p = provs.find(function(x){return x.id===r[0];})||{};
+    rows.push([p.name||r[0],p.npi||'',r[1].cnt,'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),r[1].rejected]);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(rows); var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'By Provider');
+  XLSX.writeFile(wb, 'Provider_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Provider report Excel exported','ok');
+}
+
+function exportProcedureReportPDF() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var prov = db.providers.find(function(p){return p.id===activeProviderId;})||{};
+  var { jsPDF } = window.jspdf; var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  var M=10, Y=15, PW=doc.internal.pageSize.getWidth()-20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(55,55,55);
+  doc.text('Procedure Code Report', M, Y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(prov.name||'', M, Y+5); doc.text('Generated: ' + new Date().toLocaleDateString(), M, Y+10); Y += 18;
+  var cols = ['CPT','Times Billed','Units','Total Charges','Avg/Unit'];
+  var ws = [25,25,20,35,30];
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.setFillColor(55,55,55); doc.rect(M, Y-4, PW, 7, 'F');
+  var cx = M+1; cols.forEach(function(c,i){doc.text(c,cx,Y);cx+=ws[i];}); Y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
+  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0)*(parseInt(l.units)||1);byProc[cpt].units+=parseInt(l.units)||1;});});
+  Object.entries(byProc).sort(function(a,b){return b[1].cnt-a[1].cnt;}).forEach(function(r,idx){
+    if(Y>240){doc.addPage();Y=15;}
+    if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
+    var avg = r[1].units>0?'$'+(r[1].total/r[1].units).toFixed(2):'$0.00';
+    var row = [r[0],String(r[1].cnt),String(r[1].units),'$'+r[1].total.toFixed(2),avg];
+    cx=M+1; row.forEach(function(v,i){doc.text(String(v).slice(0,Math.floor(ws[i]/2.2)),cx,Y);cx+=ws[i];});
+    Y+=6;
+  });
+  addPDFWatermark(doc); doc.save('Procedure_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('Procedure report PDF exported','ok');
+}
+
+function exportProcedureReportXLSX() {
+  var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
+  if(!claims.length){toast('No data to export','warn');return;}
+  var rows = [['CPT Code','Times Billed','Total Units','Total Charges','Avg per Unit']];
+  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0)*(parseInt(l.units)||1);byProc[cpt].units+=parseInt(l.units)||1;});});
+  var grandTotal=0,grandUnits=0,grandCnt=0;
+  Object.entries(byProc).sort(function(a,b){return b[1].cnt-a[1].cnt;}).forEach(function(r){
+    var avg = r[1].units>0?'$'+(r[1].total/r[1].units).toFixed(2):'$0.00';
+    rows.push([r[0],r[1].cnt,r[1].units,'$'+r[1].total.toFixed(2),avg]);
+    grandTotal+=r[1].total; grandUnits+=r[1].units; grandCnt+=r[1].cnt;
+  });
+  rows.push(['Total',grandCnt,grandUnits,'$'+grandTotal.toFixed(2),grandUnits>0?'$'+(grandTotal/grandUnits).toFixed(2):'$0.00']);
+  var ws = XLSX.utils.aoa_to_sheet(rows); var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'By Procedure');
+  XLSX.writeFile(wb, 'Procedure_Report_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Procedure report Excel exported','ok');
 }
 
 
@@ -4144,17 +4430,17 @@ if(catSel) catSel.innerHTML='<option value="">All categories</option>'+cats.map(
 if(catF) list=list.filter(s=>s.cat===catF);
 if(q) list=list.filter(s=>s.code.toLowerCase().includes(q)||s.desc.toLowerCase().includes(q));
 const el=document.getElementById('services-tbl');
-if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\ud83e\ude7a</div><h3>No services</h3><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div>`; return; }
+if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="activity" class="lci" style="width:24px;height:24px"></i></div><h3>No services</h3><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div>`; return; }
 const allS=db.services;
 el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Category</th><th>Rate</th><th>Units</th><th>Mods</th><th></th></tr></thead><tbody>`+
-list.map(s=>{ const oi=allS.findIndex(x=>x.id===s.id); const mods=[s.mod1,s.mod2,s.mod3,s.mod4].filter(Boolean).join('/'); return`<tr><td><span class="badge b-blue mono">${s.code}</span></td><td>${s.desc}</td><td><span class="badge b-gray">${s.cat}</span></td><td class="mono" style="font-weight:700">$${s.rate}</td><td class="mono">${s.units||'1'}</td><td class="mono" style="font-size:11px">${mods||'\u2014'}</td><td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button class="btn btn-xs btn-danger" onclick="delService(${oi})">\u2715</button></div></td></tr>`;}).join('')+`</tbody></table></div>`;
+list.map(s=>{ const oi=allS.findIndex(x=>x.id===s.id); const mods=[s.mod1,s.mod2,s.mod3,s.mod4].filter(Boolean).join('/'); return`<tr><td><span class="badge b-blue mono">${s.code}</span></td><td>${s.desc}</td><td><span class="badge b-gray">${s.cat}</span></td><td class="mono" style="font-weight:700">$${s.rate}</td><td class="mono">${s.units||'1'}</td><td class="mono" style="font-size:11px">${mods||'\u2014'}</td><td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button class="btn btn-xs btn-danger" onclick="delService(${oi})"><i data-lucide="x" class="lci"></i></button></div></td></tr>`;}).join('')+`</tbody></table></div>`;
 }
 
 
 function renderProviders(){
 const db=getDB(); const el=document.getElementById('providers-grid');
-if(!db.providers.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">\ud83c\udfe5</div><h3>No providers</h3><button class="btn btn-primary btn-sm" onclick="openProviderModal(-1)">+ Add Provider</button></div>`; return; }
-el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">`+db.providers.map((p,i)=>{ const isActive=p.id===activeProviderId; const clmCnt=db.claims.filter(c=>c.providerId===p.id).length; const patCnt=db.patients.filter(pt=>pt.providerId===p.id).length; return`<div class="card" style="${isActive?'border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-bg)':''}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:40px;height:40px;background:var(--brand-bg);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">\ud83c\udfe5</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="mono" style="font-size:11px;color:var(--text3)">NPI: ${p.npi} \u00b7 EIN: ${p.taxid}</div></div>${isActive?'<span class="badge b-green">Active</span>':''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div style="background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--brand)">${clmCnt}</div><div style="font-size:11px;color:var(--text3)">Claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)">${patCnt}</div><div style="font-size:11px;color:var(--text3)">Patients</div></div></div><div style="font-size:12px;color:var(--text3);margin-bottom:12px">${[p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ')}</div><div class="btn-group">${!isActive?`<button class="btn btn-primary btn-sm" onclick="switchProvider('${p.id}')">Set Active \u2192</button>`:''}<button class="btn btn-sm" onclick="openProviderModal(${i})">Edit</button></div></div>`;}).join('')+`</div>`;
+if(!db.providers.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="building" class="lci" style="width:24px;height:24px"></i></div><h3>No providers</h3><button class="btn btn-primary btn-sm" onclick="openProviderModal(-1)">+ Add Provider</button></div>`; return; }
+el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">`+db.providers.map((p,i)=>{ const isActive=p.id===activeProviderId; const clmCnt=db.claims.filter(c=>c.providerId===p.id).length; const patCnt=db.patients.filter(pt=>pt.providerId===p.id).length; return`<div class="card" style="${isActive?'border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-bg)':''}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:40px;height:40px;background:var(--brand-bg);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><i data-lucide="building" class="lci" style="width:18px;height:18px"></i></div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="mono" style="font-size:11px;color:var(--text3)">NPI: ${p.npi} \u00b7 EIN: ${p.taxid}</div></div>${isActive?'<span class="badge b-green">Active</span>':''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div style="background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--brand)">${clmCnt}</div><div style="font-size:11px;color:var(--text3)">Claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)">${patCnt}</div><div style="font-size:11px;color:var(--text3)">Patients</div></div></div><div style="font-size:12px;color:var(--text3);margin-bottom:12px">${[p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ')}</div><div class="btn-group">${!isActive?`<button class="btn btn-primary btn-sm" onclick="switchProvider('${p.id}')">Set Active <i data-lucide="arrow-right" class="lci" style="width:11px;height:11px"></i></button>`:''}<button class="btn btn-sm" onclick="openProviderModal(${i})">Edit</button></div></div>`;}).join('')+`</div>`;
 }
 
 
@@ -4737,7 +5023,7 @@ closeModal('modal-batch');
 renderClaims();
 updateBadges();
 var _n = pending.length;
-toast('✓ '+_n+' claim'+(_n>1?'s':'')+' generated — superbill'+(_n>1?'s':'')+' saved to Documents', 'ok');
+toast('<i data-lucide="check" class="lci" style="width:14px;height:14px"></i> '+_n+' claim'+(_n>1?'s':'')+' generated — superbill'+(_n>1?'s':'')+' saved to Documents', 'ok');
 }
 
 function setBatchTab(tab, btn) {
@@ -4873,12 +5159,12 @@ if (!claim) { ignored++; return; }
 if (status === 'A') {
 claim.status = 'accepted';
 accepted++;
-logTransmit(` ✓ ${claim.pcn} — Accepted`, 'ok');
+logTransmit(` <i data-lucide="check" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} — Accepted`, 'ok');
 } else if (status === 'R') {
 claim.status = 'rejected';
 claim.rejectReason = rejectMsg;
 rejected++;
-logTransmit(` ✗ ${claim.pcn} — Rejected: ${rejectMsg}`, 'err');
+logTransmit(` <i data-lucide="x" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} — Rejected: ${rejectMsg}`, 'err');
 }
 
 if (claimMdId) claim.claimmdId = claimMdId;
@@ -5039,7 +5325,7 @@ if (catF) list = list.filter(s => s.cat === catF);
 if (q) list = list.filter(s => s.code.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q));
 const el = document.getElementById('admin-services-tbl');
 if (!el) return;
-if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-ico"></div><h3>No services</h3><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add</button></div>'; return; }
+if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="activity" class="lci" style="width:24px;height:24px"></i></div><h3>No services</h3><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add</button></div>'; return; }
 const allS = db.services;
 el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Category</th><th>Rate</th><th>Units</th><th>Mods</th><th></th></tr></thead><tbody>' +
 list.map(s => {
@@ -5524,7 +5810,7 @@ onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,
 Password
 </label>
 <div style="position:relative">
-<input id="li-pass" type="password" autocomplete="current-password"
+<input id="li-pass" type="password" autocomplete="current-password" value="••••••••"
 onkeydown="if(event.key==='Enter')doLogin()"
 style="width:100%;padding:13px 16px;font-size:15px;
 border:1.5px solid #e8e6dc;border-radius:14px;
@@ -8449,7 +8735,7 @@ function showVerifyModal(state, parsed, user, token) {
   var content = '';
   if (state === 'expired') {
     content = '<div style="text-align:center;padding:20px">' +
-      '<div style="font-size:48px;margin-bottom:16px">⏰</div>' +
+      '<div style="margin-bottom:16px"><i data-lucide="clock" class="lci" style="width:48px;height:48px;color:var(--text3)"></i></div>' +
       '<h3 style="color:#141413;margin:0 0 8px">Link Expired</h3>' +
       '<p style="color:#87867f;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
       '</div>';
@@ -10121,104 +10407,116 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
     y += 5;
   }
 
-  // ══ SERVICE LINES — minimal text style ══════════════════════════
+  // ══ SERVICE LINES — one page per DOS if multi-date ──────────
   _drawPdfIcon(doc, 'dollar', M-4, y-3, 3.5, BRAND);
   lbl('Service Lines', M, y);
   y += 4;
   hline(M, y, RX, DARK, 0.3);
   y += 5;
 
-  // Column header line
+  // Column header setup
   const SL = { cptW:16, descW:90, unitW:12, uprcW:22, modsW:14, dxW:12 };
-  // CW=188: 16+90+12+22+14+12=166 + Total=22
-  // Detect multi-date claim (per-line DOS)
   const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
-  // Date column: 24mm when present
   const DOS_W = 24;
   const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
   const SL2 = {
-    cptW:  14,  // slightly narrower CPT when date shown
-    descW: hasDosPerLine ? 56 : SL.descW,  // tighter desc to leave room
+    cptW:  14,
+    descW: hasDosPerLine ? 56 : SL.descW,
     unitW: SL.unitW,
     uprcW: SL.uprcW,
     modsW: SL.modsW,
     dxW:   SL.dxW,
   };
-  // Multi: 24+14+56+12+22+14+12=154 + Total=34
 
-  if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
-  t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
-  t('Description', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
-  t('Units', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
-  t('Unit Price', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-  t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
-  t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
-  t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
-  y += 2;
-  hline(M, y, RX, DARK, 0.15);
-  y += 5;
+  // Group lines by DOS for pagination
+  var _dosGroups = [];
+  if (hasDosPerLine) {
+    var _dosMap = {};
+    lines.forEach(function(_l) {
+      var _d = _l.dos || claim.dos || '';
+      if (!_dosMap[_d]) { _dosMap[_d] = []; _dosGroups.push({dos:_d, lines:_dosMap[_d]}); }
+      _dosMap[_d].push(_l);
+    });
+  } else {
+    _dosGroups.push({dos: claim.dos||'', lines: lines});
+  }
 
-  lines.forEach(function(l, li) {
-    const dbSvc    = (db.services||[]).find(function(s){ return s.code===l.cpt||s.cpt===l.cpt; });
-    const descFull = UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
-    const mods     = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
-    const chg      = parseFloat(l.charge)||0;
-    const units    = parseInt(l.units||1)||1;
-    const unitPrc  = units > 1 ? chg/units : chg;
-    const dxPtr    = (l.dxPtr||'A').toUpperCase();
-
-    doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    const descLines = doc.splitTextToSize(descFull||'', SL2.descW - 2);
-    const rowH = Math.max(7, descLines.length * 4.5);
-
-    // Per-line date (multi-date claims)
-    if (hasDosPerLine) {
-      var lineDosRaw = l.dos || claim.dos || '';
-      var lineDosShort = lineDosRaw;
-      try {
-        var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
-        if (lineDosRaw.indexOf('-')>3) {
-          // YYYY-MM-DD → MM/DD/YYYY
-          lineDosShort = dp2[1]+'/'+dp2[2]+'/'+dp2[0];
-        } else {
-          // M/D/YYYY → MM/DD/YYYY
-          lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
-        }
-      } catch(e2){}
-      if (lineDosShort) t(lineDosShort, M, y+4, {sz:9, c:DARK});
+  _dosGroups.forEach(function(_grp, _gi) {
+    if (_gi > 0) {
+      doc.addPage();
+      fill(0,0,W,3,BRAND);
+      t(UC(prov.name||'Medical Provider'), M, 10, {b:true, sz:9, c:BLACK});
+      t('DOS: '+_grp.dos+'  ·  Patient: '+UC(patName||'Unknown'), M, 16, {sz:8, c:DARK});
+      hline(M, 20, RX, BORDER_LT, 0.4);
+      y = 26;
     }
+    // Table header
+    if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
+    t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
+    t('Description', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
+    t('Units', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
+    t('Unit Price', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
+    t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
+    t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
+    t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
+    y += 2;
+    hline(M, y, RX, DARK, 0.15);
+    y += 5;
 
-    // CPT bold
-    t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
+    _grp.lines.forEach(function(l, li) {
+      const dbSvc    = (db.services||[]).find(function(s){ return s.code===l.cpt||s.cpt===l.cpt; });
+      const descFull = UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
+      const mods     = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
+      const chg      = parseFloat(l.charge)||0;
+      const units    = parseInt(l.units||1)||1;
+      const unitPrc  = units > 1 ? chg/units : chg;
+      const dxPtr    = (l.dxPtr||'A').toUpperCase();
 
-    // Description wrapped
-    descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const descLines = doc.splitTextToSize(descFull||'', SL2.descW - 2);
+      const rowH = Math.max(7, descLines.length * 4.5);
 
-    // Units
-    t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
+      if (hasDosPerLine) {
+        var lineDosRaw = l.dos || claim.dos || '';
+        var lineDosShort = lineDosRaw;
+        try {
+          var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
+          if (lineDosRaw.indexOf('-')>3) {
+            lineDosShort = dp2[1]+'/'+dp2[2]+'/'+dp2[0];
+          } else {
+            lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
+          }
+        } catch(e2){}
+        if (lineDosShort) t(lineDosShort, M, y+4, {sz:9, c:DARK});
+      }
 
-    // Unit price — always show
-    t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:9, c:DARK, a:'right'});
+      t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
+      descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
+      t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
+      t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:9, c:DARK, a:'right'});
+      if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:9, c:DARK});
+      t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
+      t($v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
+      y += rowH;
+      if (li < _grp.lines.length - 1) { hline(M, y, RX, BORDER_LT, 0.15); y += 3; }
+    });
 
-    // Mods
-    if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:9, c:DARK});
+    y += 4;
+    hline(M, y, RX, DARK, 0.4);
+    y += 2;
 
-    // Dx pointer
-    t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
-
-    // Total right aligned
-    t($v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
-
-    y += rowH;
-    // Light separator between lines
-    if (li < lines.length - 1) { hline(M, y, RX, BORDER_LT, 0.15); y += 3; }
+    if (_dosGroups.length > 1) {
+      var _grpTotal = _grp.lines.reduce(function(s, l2) {
+        return s + (parseFloat(l2.charge)||0) * (parseInt(l2.units)||1);
+      }, 0);
+      t('Subtotal — DOS '+_grp.dos, M, y+6, {b:true, sz:9, c:DARK});
+      t($v(_grpTotal), RX, y+6, {b:true, sz:10, c:DARK, a:'right'});
+      y += 12;
+    }
   });
 
-  y += 4;
-  hline(M, y, RX, DARK, 0.4);
+  hline(M, y, RX, DARK, 0.6);
   y += 2;
-
-  // Total row — clean, minimal
   t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:BLACK});
   t($v(total), RX, y+6, {b:true, sz:11, c:BLACK, a:'right'});
   y += 14;
@@ -15416,6 +15714,9 @@ ${R('Service Provider', prov.name||'')}
 ${R('Ref. Phys', ref.last ? ref.last+', '+ref.first : '')}
 ${R('PCP Provider', pat.pcpName||'')}
 ${R('Facility/facilities', fac.name||'')}
+${R('Payer ID', pat.payerid||'')}
+${R('Payer Name', pat.payerName||'')}
+${R('Subscriber ID', pat.subNum||'')}
 ${R('Code Status', pat.codeStatus||'')}
 ${R('Special Group', pat.specialGroup||'')}
 <div style="margin-top:6px">
@@ -15751,7 +16052,7 @@ if (doc.category==='Superbills' && doc.lines) {
     '<div style="background:#141413;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
       '<div><div style="font-size:18px;font-weight:700">ClaimDataCare</div>'+
       '<div style="font-size:11px;opacity:.8">Superbill / Patient Receipt</div></div>'+
-      '<button onclick="this.closest(\'[data-sbov]\').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">✕ Close</button>'+
+      '<button onclick="this.closest(\'[data-sbov]\').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px"><i data-lucide="x" class="lci"></i> Close</button>'+
     '</div>'+
     '<div style="padding:20px 24px">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
@@ -15822,8 +16123,8 @@ div.innerHTML = `
 <div style="font-size:13px;font-weight:700">${doc.name}</div>
 <div style="display:flex;gap:8px">
 <a href="${doc.data}" download="${doc.name}"
-style="padding:5px 12px;background:#fff;color:var(--brand);border-radius:4px;font-size:12px;font-weight:700;text-decoration:none">
-⬇ Download
+style="padding:5px 12px;background:#fff;color:var(--brand);border-radius:4px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">
+<i data-lucide="download" class="lci" style="width:14px;height:14px"></i> Download
 </a>
 <button onclick="var d=document.getElementById('pdf-preview-overlay');if(d){URL.revokeObjectURL(d._blobUrl||'');d.remove();}"
 style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button>
@@ -16179,6 +16480,26 @@ ${fld('refPhys','Referring Physician',pat.refPhys||'')}
 ${fld('inactive','Status',pat.inactive?'inactive':'active',null,false,[['active','Active'],['inactive','Inactive']])}
 ${fld('nickname','Nick Name',pat.nickname||'')}
 </div>
+<!-- Insurance -->
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Primary Insurance</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
+${fld('payerid','Payer ID',pat.payerid||'','text',false)}
+${fld('payername','Payer Name',pat.payerName||'')}
+${fld('subnum','Subscriber ID',pat.subNum||'','text',true)}
+${fld('sublast','Subscriber Last',pat.subLast||'')}
+${fld('subfirst','Subscriber First',pat.subFirst||'')}
+${fld('subdob','Subscriber DOB',pat.subDob||'','date')}
+${fld('group','Group #',pat.group||'')}
+${fld('plan','Plan Name',pat.plan||'')}
+${fld('rel','Relationship',pat.rel||'',null,false,[['','— Select —'],['18','Self'],['01','Spouse'],['19','Child'],['G8','Other'],['32','Mother'],['33','Father']])}
+</div>
+<!-- Secondary Insurance -->
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Secondary Insurance</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
+${fld('payerid2','Payer ID',pat.payerid2||'','text',false)}
+${fld('payername2','Payer Name',pat.payerName2||'')}
+${fld('subnum2','Subscriber ID',pat.subNum2||'','text',false)}
+</div>
 <!-- Flags -->
 <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Flags</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px">
@@ -16221,6 +16542,11 @@ dateOfDeath:gv('dateOfDeath'), phone:gv('phone'), phone2:gv('phone2'),
 email:gv('email'), prefContact:gv('prefContact'), apptReminder:gv('apptReminder'),
 pcp:gv('pcp'), refPhys:gv('refPhys'), nickname:gv('nickname'),
 inactive: gv('inactive')==='inactive',
+payerid:gv('payerid'), payerName:gv('payername'),
+subNum:gv('subnum'), subLast:gv('sublast'), subFirst:gv('subfirst'),
+subDob:gv('subdob'), group:gv('group'), plan:gv('plan'),
+rel:gv('rel'),
+payerid2:gv('payerid2'), payerName2:gv('payername2'), subNum2:gv('subnum2'),
 selfInsSync:gc('selfInsSync'), addrSync:gc('addrSync'), specialNeeds:gc('specialNeeds'),
 consentShare:gc('consentShare'), transportation:gc('transportation'), wheelchair:gc('wheelchair'),
 });
@@ -16230,7 +16556,7 @@ const db2 = getDB();
 const pat = db2.patients.find(p=>p.id===patId);
 const sidebar = document.getElementById('pt-sidebar');
 if (sidebar && pat) sidebar.innerHTML = _buildSidebar(pat, db2);
-toast('Demographics saved ?');
+toast('Demographics saved !');
 _renderChartTab('summary');
 }
 
@@ -16247,6 +16573,7 @@ return `<tr style="font-size:12px">
 <td style="padding:6px 8px">${iv.relation||'Self'}</td>
 <td style="padding:6px 8px;font-weight:600">${iv.subscriberName||((pat.last||'')+(', ')+(pat.first||''))||''}</td>
 <td style="padding:6px 8px">${iv.name||iv.insuranceName||''}</td>
+<td style="padding:6px 8px" class="mono">${iv.payerId||''}</td>
 <td style="padding:6px 8px" class="mono">${iv.policy||iv.memberId||''}</td>
 <td style="padding:6px 8px" class="mono">${iv.group||''}</td>
 <td style="padding:6px 8px;font-size:11px">${eff}</td>
@@ -16269,7 +16596,7 @@ return `<tr style="font-size:12px">
 <a href="#" style="color:var(--brand);font-size:11px;font-weight:600" onclick="return false">Plan</a>
 </td>
 </tr>`;
-}).join('') : `<tr><td colspan="14" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No insurance records found.</td></tr>`;
+}).join('') : `<tr><td colspan="15" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No insurance records found.</td></tr>`;
 
 return `
 <div style="padding:0">
@@ -16307,7 +16634,7 @@ style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:rel
 <table style="width:100%;border-collapse:collapse;background:var(--bg2)">
 <thead>
 <tr style="background:#e8e6dc;font-size:11px;color:#4d4c48">
-${['Policy Type','Insurance Type','Relation','Name','Insurance Company','Policy No','Group No','Effective Dates','Created By','Created On','Edit','Delete','',''].map(h=>
+${['Policy Type','Insurance Type','Relation','Name','Insurance Company','Payer ID','Policy No','Group No','Effective Dates','Created By','Created On','Edit','Delete','',''].map(h=>
 `<th style="padding:5px 8px;text-align:left;border:1px solid #e8e6dc;white-space:nowrap">${h}</th>`
 ).join('')}
 </tr>
@@ -16693,7 +17020,7 @@ if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
 
 function _buildInsuranceRowsHTML(pat) {
 const ins = pat.insurances||[];
-if (!ins.length) return `<tr><td colspan="14" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No insurance records found.</td></tr>`;
+if (!ins.length) return `<tr><td colspan="15" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No insurance records found.</td></tr>`;
 return ins.map((iv,i) => {
 const eff = [iv.effFrom,iv.effTo].filter(Boolean).join(' Ð ')||'';
 return `<tr style="font-size:12px;${i%2===0?'':'background:#f6f8fc'}">
@@ -18491,7 +18818,7 @@ function getAuditLogs() {
 <span class="slabel">Assigned Patients</span>
 <div id="sg-patients" style="margin-bottom:10px"></div>
 <div style="margin-bottom:6px;font-size:12px;color:var(--text3)">Search and add patients:</div>
-<input id="sg-pat-search" placeholder="Type patient name or account #É"
+<input id="sg-pat-search" placeholder="Type patient name or account #..."
 oninput="renderSGPatients()"
 style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;margin-bottom:6px">
 <div id="sg-pat-results" style="border:1px solid var(--border);border-radius:var(--r);max-height:150px;overflow-y:auto"></div>
@@ -18536,8 +18863,8 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="field" style="grid-column:1/-1">
   <label><span style="color:#6f3eff;font-weight:700">Z</span> Zelle — Show as</label>
   <div style="display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;margin-top:4px">
-    <button type="button" id="zelle-btn-phone" onclick="setZelleMode('phone')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">📱 Phone</button>
-    <button type="button" id="zelle-btn-email" onclick="setZelleMode('email')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);border-left:1px solid var(--border);border-right:1px solid var(--border);transition:all .15s">✉️ Email</button>
+    <button type="button" id="zelle-btn-phone" onclick="setZelleMode('phone')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s"><i data-lucide="smartphone" class="lci" style="width:12px;height:12px"></i> Phone</button>
+    <button type="button" id="zelle-btn-email" onclick="setZelleMode('email')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);border-left:1px solid var(--border);border-right:1px solid var(--border);transition:all .15s"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i> Email</button>
     <button type="button" id="zelle-btn-both" onclick="setZelleMode('both')" style="padding:6px 16px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">Both</button>
   </div>
   <input type="hidden" id="iss-zelle-mode" value="phone">
@@ -18665,7 +18992,7 @@ Upload an Excel or CSV file from your EHR/clearinghouse. All columns will be det
 <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Or paste tab-separated data:</div>
 <textarea id="inv-paste-input" rows="4"
 style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:11px;resize:vertical"
-placeholder="Paste rows from Excel here (Ctrl+V)É"
+placeholder="Paste rows from Excel here (Ctrl+V)..."
 onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 </div>
 </div>
