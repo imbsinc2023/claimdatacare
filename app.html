@@ -1200,7 +1200,7 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 .app-shell{display:block;height:100vh;overflow:hidden}
 .topnav{position:fixed!important;top:0!important;left:0!important;right:0!important;height:36px;z-index:200;margin:0!important;padding:0 8px!important}
 .main{position:fixed;top:36px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.content{flex:1 1 0;overflow-y:auto;padding:0 22px 22px!important;margin:0!important}
+.content{flex:1 1 0;overflow-y:auto;padding:14px 22px 22px!important;margin:0!important}
 </style>
 </head>
 <body>
@@ -1208,6 +1208,7 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
 <div id="toasts"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
@@ -2395,7 +2396,7 @@ return `<div class="app-shell">
 </div>
 </div>
 <div class="section" id="sec-claims">
-<div class="page-hdr"><div><h1>Claims</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage and submit EDI 837P claims</p></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
+<div class="page-hdr"><div><h1>Claims</h1></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
 <div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
 <div class="search-row">
 <input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()">
@@ -2414,11 +2415,11 @@ return `<div class="app-shell">
 
 <div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div>
 
-<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage billable services and default rates</p></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div>
+<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div>
 
 <div class="section" id="sec-export">
 <div class="page-hdr">
-<div><h1>Export / Submit</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Export CSV or transmit directly to the Clearinghouse</p></div>
+<div><h1>Export / Submit</h1></div>
 </div>
 <div id="exp-alert-top" style="margin-bottom:12px"></div>
 
@@ -2781,13 +2782,13 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 </div>
 
-<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Service locations with POS codes</p></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal('')">+ New Facility</button></div><div id="facilities-tbl"></div></div>
+<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal('')">+ New Facility</button></div><div id="facilities-tbl"></div></div>
 
-<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">NPI auto-lookup enabled</p></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div id="rendering-tbl"></div></div>
+<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div id="rendering-tbl"></div></div>
 
-<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Auto-populated from NPI Registry</p></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div id="referring-tbl"></div></div>
+<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div id="referring-tbl"></div></div>
 
-<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Pre-export claim review</p></div><button class="btn btn-primary btn-sm" onclick="renderValidation()">\ud83d\udd04 Re-validate</button></div><div id="val-content"></div></div>
+<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()">\ud83d\udd04 Re-validate</button></div><div id="val-content"></div></div>
 
 <div class="section" id="sec-reports">
 <div class="page-hdr">
@@ -2798,7 +2799,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-appointments">
 <div class="page-hdr">
-<div><h1>Appointments</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Schedule, check-in, and manage patient visits</p></div>
+<div><h1>Appointments</h1></div>
 <button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
@@ -2813,7 +2814,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-notes">
 <div class="page-hdr">
-<div><h1>Medical Notes</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">SOAP notes linked to claims</p></div>
+<div><h1>Medical Notes</h1></div>
 <div style="display:flex;gap:8px">
 <button class="btn btn-primary btn-sm" onclick="openAINoteModal('','','')">
 <i data-lucide="bot" class="lci"></i> AI Note Assistant
@@ -2831,7 +2832,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-servicegroups">
 <div class="page-hdr">
-<div><h1>Service Groups</h1><p style="font-size:13px;color:var(--text3);margin-top:2px"></p></div>
+<div><h1>Service Groups</h1></div>
 <button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>
 </div>
 <div id="sg-list"></div>
@@ -2997,7 +2998,7 @@ Show Paid
 
 <div class="section" id="sec-admin-providers">
 <div class="page-hdr">
-<div><h1>Billing Providers</h1><p style="font-size:13px;color:var(--text3);margin-top:2px">Manage billing provider accounts</p></div>
+<div><h1>Billing Providers</h1></div>
 <button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>
 </div>
 <div id="bp-grid"></div>
@@ -7714,10 +7715,19 @@ function _afterLoad() {
   updateAdminUI();
 }
 
-// Try Firebase auth first — only if input looks like an email
-if (_auth && _fbReady && isEmailFormat) {
+// Resolve loginId to email for Firebase (username → email lookup)
+let fbEmail = isEmailFormat ? loginId : null;
+if (!fbEmail && _auth && _fbReady) {
+const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
+const matchedUser = allUsers.find(u =>
+(u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId
+);
+if (matchedUser && matchedUser.email) fbEmail = matchedUser.email.toLowerCase();
+}
+// Try Firebase auth — only if we have an email to use
+if (_auth && _fbReady && fbEmail) {
 try {
-const cred = await _auth.signInWithEmailAndPassword(loginId, pass);
+const cred = await _auth.signInWithEmailAndPassword(fbEmail, pass);
 const fbUser = cred.user;
 const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||fbUser.email.split('@')[0]||'Admin',
 role:'Super Admin', activeBillingProviderId:null };
@@ -9702,18 +9712,49 @@ const claim = db.claims[oi];
 if (!claim) { toast('Claim not found', 'err'); return; }
 exportBulkClaimsPDF([claim]);
 }
+// ── QR code helper ──────────────────────────────────────────────
+var _qrDataURL = null;
+function generateQRDataURL(text, size) {
+  if (typeof QRCode !== 'undefined') {
+    try {
+      var qr = QRCode(0, 'M');
+      qr.addData(text);
+      qr.make();
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      var modSize = size / qr.getModuleCount();
+      canvas.width = canvas.height = size;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#000000';
+      for (var row = 0; row < qr.getModuleCount(); row++) {
+        for (var col = 0; col < qr.getModuleCount(); col++) {
+          if (qr.isDark(row, col)) ctx.fillRect(col * modSize, row * modSize, modSize, modSize);
+        }
+      }
+      return canvas.toDataURL('image/png');
+    } catch(e) {}
+  }
+  return null;
+}
+
 // ── PDF watermark helper ─────────────────────────────────────────
 function addPDFWatermark(doc) {
   try {
     var _w = doc.internal.pageSize.getWidth();
     var _h = doc.internal.pageSize.getHeight();
     var _pages = doc.internal.getNumberOfPages();
+    var _qrSize = 22;
+    if (!_qrDataURL) _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
     for (var _p = 1; _p <= _pages; _p++) {
       doc.setPage(_p);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(26);
-      doc.setTextColor(220, 218, 210);
-      doc.text('CLAIMDATACARE', _w / 2, _h / 2, {align:'center'});
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(180, 178, 170);
+      doc.text('Powered by ClaimDataCare', _w - 14, _h - 10, {align:'right'});
+      if (_qrDataURL) {
+        try { doc.addImage(_qrDataURL, 'PNG', _w - 14 - _qrSize, _h - 14 - 10 - _qrSize, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
+      }
     }
   } catch(e) {}
 }
@@ -9783,7 +9824,7 @@ const t = (s,x,y,o={}) => {
   doc.setTextColor(...(o.c||BLACK));
   doc.text(String(s), x, y, {align:o.a||'left', maxWidth:o.mw});
 };
-const lbl  = (s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
+const lbl  = (s,x,y) => { doc.setFillColor(...BRAND); doc.circle(x-2.5, y-1.8, 1, 'F'); doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
 const UC   = s => String(s||'').toUpperCase();
 const $v   = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const safe = v => (v&&String(v).trim()) ? String(v).trim() : null;
@@ -9955,8 +9996,8 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   y += 5;
 
   // Column header line
-  const SL = { cptW:16, descW:82, unitW:12, uprcW:22, modsW:16, dxW:13 };
-  // CW=188: 16+82+12+22+16+13=161 + Total(right-aligned) fits fine
+  const SL = { cptW:16, descW:86, unitW:12, uprcW:20, modsW:14, dxW:12 };
+  // CW=188: 16+86+12+20+14+12=160 + Total(right-aligned) fits fine
   // Detect multi-date claim (per-line DOS)
   const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
   // Date column: 24mm when present
@@ -10058,16 +10099,16 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   const rendName = rend.last
     ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
     : UC(prov.name||'Provider');
-  t('Electronically signed by:', M+6, fY+6, {sz:7, c:GRAY2});
+  t('ELECTRONICALLY SIGNED BY:', M+6, fY+6, {sz:7, c:GRAY2});
   t(rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
-  if (rend.taxonomy) t('Taxonomy: '+rend.taxonomy, M+6, fY+19, {sz:7, c:DARK});
+  if (rend.taxonomy) t('TAXONOMY: '+UC(rend.taxonomy), M+6, fY+19, {sz:7, c:DARK});
 
   const now=new Date();
   const hr12=now.getHours()%12||12;
   const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
   const dosParts2=_parseDateParts(claim.dos);
   const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-  t('Generated: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
+  t('GENERATED: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
     } catch(pdfErr) {
       console.error('[PDF] Error rendering claim:', claim?.pcn, pdfErr);
       toast('PDF error: ' + pdfErr.message, 'err');
@@ -18121,47 +18162,57 @@ function _sbToggleAll(checked, patId) {
 }
 
 function _sbBuildPDF(doc, pat) {
+  var _UC = function(s){ return String(s||'').toUpperCase(); };
   var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
   var pdf = new jsPDF({ unit:'mm', format:'letter' });
   var W = 215.9, margin = 15, y = 0;
+  var _bc = getBrandColors();
+  var _brand = _bc.primary;
 
   // Header bar
-  pdf.setFillColor(55,55,55);
+  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
   pdf.rect(0, 0, W, 22, 'F');
   pdf.setTextColor(255,255,255);
   pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
   pdf.text('ClaimDataCare', margin, 10);
   pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
-  pdf.text('Superbill / Patient Receipt', margin, 16);
+  pdf.text('SUPERBILL / PATIENT RECEIPT', margin, 16);
   pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
-  pdf.text('claimdatacare.com', W - margin, 16, {align:'right'});
-  y = 28;
+  pdf.text('CLAIMDATACARE.COM', W - margin, 16, {align:'right'});
+  pdf.setFillColor(255,255,255);
+  pdf.circle(W - margin, 14, 5, 'F');
+  y = 30;
 
   // Provider + Patient columns
+  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
+  pdf.circle(margin - 2, y - 2, 1.2, 'F');
+  pdf.circle(W/2, y - 2, 1.2, 'F');
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('PROVIDER', margin, y); pdf.text('PATIENT', W/2+2, y);
+  pdf.text('PROVIDER', margin+3, y); pdf.text('PATIENT', W/2+3, y);
   y += 4;
   pdf.setTextColor(30,30,30); pdf.setFontSize(9); pdf.setFont('helvetica','bold');
-  pdf.text(doc.providerName||'', margin, y);
-  pdf.text(doc.patName||(pat.last+', '+pat.first)||'', W/2+2, y);
+  pdf.text(_UC(doc.providerName||''), margin, y);
+  pdf.text(_UC(doc.patName||(pat.last+', '+pat.first)||''), W/2+2, y);
   y += 4;
   pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(80,80,80);
   if (doc.providerNPI) pdf.text('NPI: '+doc.providerNPI, margin, y);
   pdf.text('DOB: '+(doc.patDOB||pat.dob||''), W/2+2, y); y += 4;
-  if (doc.renderingName) pdf.text('Rendering: '+doc.renderingName, margin, y);
-  pdf.text('MRN: '+(doc.patMRN||pat.mrn||pat.acct||''), W/2+2, y); y += 4;
-  if (doc.facilityName) { pdf.text('Facility: '+doc.facilityName, margin, y); y += 4; }
+  if (doc.renderingName) pdf.text('RENDERING: '+_UC(doc.renderingName), margin, y);
+  pdf.text('MRN: '+_UC(doc.patMRN||pat.mrn||pat.acct||''), W/2+2, y); y += 4;
+  if (doc.facilityName) { pdf.text('FACILITY: '+_UC(doc.facilityName), margin, y); y += 4; }
   pdf.text('DOS: '+(doc.date||''), margin, y);
-  pdf.text('PCN: '+(doc.claimPCN||''), W/2+2, y); y += 4;
+  pdf.text('PCN: '+_UC(doc.claimPCN||''), W/2+2, y); y += 4;
 
   // Insurance
   var ins = doc.ins1 || pat.ins1 || {};
   if (ins && ins.name) {
+    pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
+    pdf.circle(margin, y+1, 1, 'F');
     pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-    pdf.text('INSURANCE', margin, y+3); y += 6;
+    pdf.text('INSURANCE', margin+3, y+4); y += 7;
     pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
-    pdf.text(ins.name||'', margin, y);
-    if (ins.memberId||ins.policy) pdf.text('Member ID: '+(ins.memberId||ins.policy||''), W/2+2, y);
+    pdf.text(_UC(ins.name||''), margin, y);
+    if (ins.memberId||ins.policy) pdf.text('MEMBER ID: '+_UC(ins.memberId||ins.policy||''), W/2+2, y);
     y += 4;
   }
 
@@ -18170,14 +18221,28 @@ function _sbBuildPDF(doc, pat) {
   pdf.line(margin, y, W-margin, y); y += 5;
 
   // Diagnoses
+  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
+  pdf.circle(margin, y+1, 1, 'F');
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('DIAGNOSES', margin, y); y += 4;
+  pdf.text('DIAGNOSES', margin+3, y+4); y += 7;
   pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
   var letters = ['A','B','C','D','E','F','G','H'];
   (doc.dx||[]).forEach(function(d,i){
-    pdf.text(letters[i]+'. '+d, margin, y); y += 4;
+    pdf.text(letters[i]+'. '+_UC(d), margin, y); y += 4;
   });
   y += 2;
+
+  // Services section label
+  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
+  pdf.circle(margin, y-2, 1, 'F');
+  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
+  pdf.text('SERVICES', margin+3, y+1); y += 5;
+
+  // Services section label
+  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
+  pdf.circle(margin, y, 1, 'F');
+  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
+  pdf.text('SERVICES', margin+3, y+3); y += 6;
 
   // Services table header
   pdf.setFillColor(248,250,252);
@@ -18199,11 +18264,11 @@ function _sbBuildPDF(doc, pat) {
     pdf.setFillColor(bg[0],bg[1],bg[2]);
     pdf.rect(margin, y-3, W-(margin*2), 7, 'F');
     pdf.setFontSize(8);
-    pdf.text(l.cpt||'', margin+2, y+2);
-    var desc = (l.desc||'').slice(0,52);
+    pdf.text(_UC(l.cpt), margin+2, y+2);
+    var desc = _UC(l.desc||'').slice(0,52);
     pdf.text(desc, margin+20, y+2);
     var mods = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(',');
-    if (mods) pdf.text(mods, margin+110, y+2);
+    if (mods) pdf.text(_UC(mods), margin+110, y+2);
     pdf.text(String(l.units||1), margin+130, y+2, {align:'center'});
     pdf.text('$'+parseFloat(l.charge||0).toFixed(2), W-margin-2, y+2, {align:'right'});
     y += 7;
@@ -18219,8 +18284,16 @@ function _sbBuildPDF(doc, pat) {
   y += 12;
 
   // Footer
+  if (y > 250) { pdf.addPage(); y = 20; }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(148,163,184);
-  pdf.text('Generated by ClaimDataCare · PCN: '+(doc.claimPCN||'')+' · '+(doc.date||''), W/2, y, {align:'center'});
+  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+(doc.date||''), W/2, y, {align:'center'});
+  y += 6;
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.setTextColor(180,178,170);
+  pdf.text('POWERED BY CLAIMDATACARE', W - margin, y, {align:'right'});
+  if (!_qrDataURL && typeof generateQRDataURL === 'function') _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
+  if (_qrDataURL) {
+    try { pdf.addImage(_qrDataURL, 'PNG', W - margin - 22, y - 22, 22, 22, undefined, 'FAST'); } catch(e) {}
+  }
 
   return pdf;
 }
