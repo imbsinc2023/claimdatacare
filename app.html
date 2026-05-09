@@ -422,13 +422,13 @@ padding: 9px 12px;
 border-radius: 8px;
 font-size: 13px;
 font-weight: 500;
-color: #374151;
+color: #4d4d4d;
 cursor: pointer;
 white-space: nowrap;
 user-select: none;
 transition: background .12s ease, color .12s ease;
 }
-[data-theme="dark"] .tn-dd-item { color: #94a3b8; }
+[data-theme="dark"] .tn-dd-item { color: #8c8c8c; }
 
 .tn-dd-item svg {
 width: 15px;
@@ -546,13 +546,13 @@ border-radius: 8px;
 background: none;
 border: none;
 cursor: pointer;
-color: #374151;
+color: #4d4d4d;
 flex-shrink: 0;
 margin-right: 4px;
 transition: background .15s;
 }
 .tn-hamburger:hover { background: #f3f4f6; }
-[data-theme="dark"] .tn-hamburger { color: #94a3b8; }
+[data-theme="dark"] .tn-hamburger { color: #8c8c8c; }
 [data-theme="dark"] .tn-hamburger:hover { background: #1e2433; }
 
 /* Mobile drawer */
@@ -576,20 +576,20 @@ padding:14px 16px;border-bottom:1px solid #e2e5ed;
 .tn-drawer-item {
 display:flex;align-items:center;gap:10px;
 padding:12px 16px;font-size:13.5px;font-weight:600;
-color:#374151;cursor:pointer;
+color:#4d4d4d;cursor:pointer;
 border-bottom:1px solid #f3f4f6;transition:background .12s,color .12s;
 }
-[data-theme="dark"] .tn-drawer-item { color:#94a3b8;border-bottom-color:#1e2433; }
+[data-theme="dark"] .tn-drawer-item { color:#8c8c8c;border-bottom-color:#1e2433; }
 .tn-drawer-item:hover,.tn-drawer-item.active { color:var(--brand);background:var(--brand-bg); }
 [data-theme="dark"] .tn-drawer-item:hover { color:#10b981;background:#052e1a; }
 
 .tn-drawer-group-hdr {
 display:flex;align-items:center;justify-content:space-between;
 padding:12px 16px;font-size:13.5px;font-weight:700;
-color:#374151;cursor:pointer;border-bottom:1px solid #f3f4f6;
+color:#4d4d4d;cursor:pointer;border-bottom:1px solid #f3f4f6;
 transition:background .12s;
 }
-[data-theme="dark"] .tn-drawer-group-hdr { color:#94a3b8;border-bottom-color:#1e2433; }
+[data-theme="dark"] .tn-drawer-group-hdr { color:#8c8c8c;border-bottom-color:#1e2433; }
 .tn-drawer-group-hdr:hover { background:#f9fafb; }
 [data-theme="dark"] .tn-drawer-group-hdr:hover { background:#1e2433; }
 
@@ -888,7 +888,7 @@ font-family:var(--font);width:100%
 }
 .field input:focus,.field select:focus,.field textarea:focus{
 outline:none;border-color:var(--brand);
-box-shadow:0 0 0 3px rgba(5,150,105,.12)
+box-shadow:0 0 0 3px rgba(74,74,74,.12)
 }
 
 /* Stat cards */
@@ -990,7 +990,7 @@ gap: 6px;
 background: var(--brand);
 color: #fff;
 border: none;
-box-shadow: 0 2px 8px rgba(5,150,105,.3);
+box-shadow: 0 2px 8px rgba(74,74,74,.3);
 }
 .btn-primary:hover { background: var(--brand-d); }
 .btn-ghost {
@@ -1095,7 +1095,7 @@ transition: border-color .2s, box-shadow .2s;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
 border-color: var(--brand);
-box-shadow: 0 0 0 4px rgba(5,150,105,.12);
+box-shadow: 0 0 0 4px rgba(74,74,74,.12);
 outline: none;
 }
 
@@ -2514,7 +2514,7 @@ return `<div class="app-shell">
 <!-- Card 2: Direct Transmit -->
 <div class="card" style="border:2px solid var(--brand)">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(5,150,105,.3)">
+<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">
 <i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>
 </div>
 <div>
@@ -5230,9 +5230,9 @@ oninput="_sgForm.lines[${i}].pricePerUnit=parseFloat(this.value)||0;_sgForm.line
 oninput="_sgForm.lines[${i}].units=this.value;_sgForm.lines[${i}].charge=((parseFloat(_sgForm.lines[${i}].pricePerUnit||0))*parseInt(this.value||1)).toFixed(2);renderSGLines()">
 </div>
 <div class="field">
-<label style="color:var(--blue,#059669);font-weight:700">Total Charge $ <span style="font-size:9px;color:var(--text3)">(auto)</span></label>
+<label style="color:var(--blue,#4a4a4a);font-weight:700">Total Charge $ <span style="font-size:9px;color:var(--text3)">(auto)</span></label>
 <input class="mono" value="${total}" readonly
-style="background:var(--brand-bg,#ecfdf5);color:var(--blue,#059669);font-weight:700;font-size:13px;border-color:var(--blue,#059669)" tabindex="-1">
+style="background:var(--brand-bg,#f0f0f0);color:var(--blue,#4a4a4a);font-weight:700;font-size:13px;border-color:var(--blue,#4a4a4a)" tabindex="-1">
 </div>
 <div class="field"><label>Mod 1</label><input class="mono" value="${l.mod1||''}" oninput="_sgForm.lines[${i}].mod1=this.value" maxlength="2"></div>
 <div class="field"><label>Mod 2</label><input class="mono" value="${l.mod2||''}" oninput="_sgForm.lines[${i}].mod2=this.value" maxlength="2"></div>
@@ -5490,12 +5490,12 @@ function clearSession() {
 function renderLoginScreen() {
 document.getElementById('root').innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(160deg,#f0fdf4 0%,#f8fafc 60%,#ecfdf5 100%);padding:20px">
+background:linear-gradient(160deg,#f5f5f5 0%,#f8fafc 60%,#eeeeee 100%);padding:20px">
 
 <div style="background:rgba(255,255,255,.85);backdrop-filter:blur(40px) saturate(180%);
 border:1px solid rgba(255,255,255,.9);border-radius:28px;
 padding:48px 44px;width:100%;max-width:390px;
-box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(5,150,105,.08),inset 0 1px 0 rgba(255,255,255,.9)">
+box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(74,74,74,.08),inset 0 1px 0 rgba(255,255,255,.9)">
 
 <!-- Logo -->
 <div style="text-align:center;margin-bottom:36px">
@@ -5507,8 +5507,8 @@ box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(5,150,105,.08),inset 0 1p
   <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
 </svg>
 </div>
-<div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#0f172a">ClaimDataCare</div>
-<div style="font-size:13px;color:#94a3b8;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
+<div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#1a1a1a">ClaimDataCare</div>
+<div style="font-size:13px;color:#8c8c8c;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
 Electronic Health Records
 </div>
 </div>
@@ -5518,29 +5518,29 @@ Electronic Health Records
 <div style="display:flex;flex-direction:column;gap:14px">
 <!-- Email -->
 <div>
-<label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;letter-spacing:-0.01em">
+<label style="display:block;font-size:12px;font-weight:600;color:#4d4d4d;margin-bottom:6px;letter-spacing:-0.01em">
 Username or Email
 </label>
 <input id="li-email" type="text" class="no-upper" autocomplete="username"
 placeholder="Username or email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
-border:1.5px solid #e2e8f0;border-radius:14px;
-background:rgba(255,255,255,.8);color:#0f172a;
+border:1.5px solid #d4d4d4;border-radius:14px;
+background:rgba(255,255,255,.8);color:#1a1a1a;
 font-family:var(--font);outline:none;
 transition:all .2s cubic-bezier(.4,0,.2,1);
 box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
 -webkit-font-smoothing:antialiased"
-onfocus="this.style.borderColor='#059669';this.style.boxShadow='0 0 0 4px rgba(5,150,105,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
+onfocus="this.style.borderColor='#4a4a4a';this.style.boxShadow='0 0 0 4px rgba(74,74,74,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+onblur="this.style.borderColor='#d4d4d4';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
 </div>
 
 <!-- Password -->
 <div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-<label style="font-size:12px;font-weight:600;color:#374151;letter-spacing:-0.01em">Password</label>
+<label style="font-size:12px;font-weight:600;color:#4d4d4d;letter-spacing:-0.01em">Password</label>
 <button onclick="renderForgotPassword()"
-style="background:none;border:none;cursor:pointer;font-size:12px;color:#059669;font-family:var(--font);font-weight:500;letter-spacing:-0.01em;padding:0">
+style="background:none;border:none;cursor:pointer;font-size:12px;color:#4a4a4a;font-family:var(--font);font-weight:500;letter-spacing:-0.01em;padding:0">
 Forgot password?
 </button>
 </div>
@@ -5549,17 +5549,17 @@ Forgot password?
 placeholder="••••••••"
 onkeydown="if(event.key==='Enter')doLogin()"
 style="width:100%;padding:13px 48px 13px 16px;font-size:15px;
-border:1.5px solid #e2e8f0;border-radius:14px;
-background:rgba(255,255,255,.8);color:#0f172a;
+border:1.5px solid #d4d4d4;border-radius:14px;
+background:rgba(255,255,255,.8);color:#1a1a1a;
 font-family:var(--font);outline:none;
 transition:all .2s cubic-bezier(.4,0,.2,1);
 box-shadow:0 1px 3px rgba(0,0,0,.06) inset"
-onfocus="this.style.borderColor='#059669';this.style.boxShadow='0 0 0 4px rgba(5,150,105,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
+onfocus="this.style.borderColor='#4a4a4a';this.style.boxShadow='0 0 0 4px rgba(74,74,74,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+onblur="this.style.borderColor='#d4d4d4';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
 <button id="li-eye" onclick="togglePassVis('li-pass',this)"
 style="position:absolute;right:0;top:0;bottom:0;width:48px;
 background:none;border:none;cursor:pointer;
-display:flex;align-items:center;justify-content:center;color:#94a3b8;
+display:flex;align-items:center;justify-content:center;color:#8c8c8c;
 transition:color .15s">
 <svg id="li-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -5573,20 +5573,20 @@ stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="r
 <!-- Sign In button -->
 <button onclick="doLogin()" id="login-btn"
 style="width:100%;padding:15px;margin-top:6px;
-background:linear-gradient(145deg,#059669,#047857);
-color:#fff;border:none;border-radius:14px;
-font-size:16px;font-weight:700;letter-spacing:-0.02em;
-font-family:var(--font);cursor:pointer;
-box-shadow:0 6px 20px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.15);
-transition:all .2s cubic-bezier(.4,0,.2,1)"
-onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 30px rgba(5,150,105,.5),inset 0 1px 0 rgba(255,255,255,.15)'"
-onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 20px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.15)'"
-onmousedown="this.style.transform='scale(0.98)'">
-Sign In
+ background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
+  color:#fff;border:none;border-radius:14px;
+  font-size:16px;font-weight:700;letter-spacing:-0.02em;
+  font-family:var(--font);cursor:pointer;
+  box-shadow:0 6px 20px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15);
+  transition:all .2s cubic-bezier(.4,0,.2,1)"
+  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 30px rgba(74,74,74,.5),inset 0 1px 0 rgba(255,255,255,.15)'"
+  onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 20px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15)'"
+  onmousedown="this.style.transform='scale(0.98)'">
+  Sign In
 </button>
 </div>
 
-<div style="margin-top:28px;text-align:center;font-size:11px;color:#cbd5e1;letter-spacing:.01em">
+<div style="margin-top:28px;text-align:center;font-size:11px;color:#bfbfbf;letter-spacing:.01em">
 <span style="color:#4a4a4a;font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
 </div>
 </div>
@@ -5601,7 +5601,7 @@ document.getElementById('root').innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px">
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
 <div style="text-align:center;margin-bottom:28px">
-<div style="width:56px;height:56px;background:#e8f4ff;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px"></div>
+<div style="width:56px;height:56px;background:#eaeaea;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px"></div>
 <div style="font-size:22px;font-weight:800">Forgot Password?</div>
 <div style="font-size:13px;color:var(--text3);margin-top:6px;line-height:1.6">Enter your email and we'll send you<br>a reset link via Firebase.</div>
 </div>
@@ -5612,10 +5612,10 @@ document.getElementById('root').innerHTML = `
 <input id="fp-email" class="no-upper" type="email" autocomplete="username"
 onkeydown="if(event.key==='Enter')doForgotPassword()"
 style="font-size:14px;padding:11px 14px;border:1.5px solid var(--border2);border-radius:8px;width:100%;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none"
-onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='var(--border2)'">
+onfocus="this.style.borderColor='#4a4a4a'" onblur="this.style.borderColor='var(--border2)'">
 </div>
 <button onclick="doForgotPassword()" id="fp-btn"
-style="background:#059669;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;width:100%">
+style="background:#4a4a4a;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;width:100%">
 Send Reset Email
 </button>
 <button onclick="renderLoginScreen()"
@@ -5664,7 +5664,7 @@ const W = 210, M = 16, RX = W - M, CW = RX - M;
 
 // ?? Palette — soft, professional ??????????????????????????????????
 const GREEN = [0, 102, 204]; // BLUE — no green used
-const BLUE = [0, 102, 204]; // #059669 muted blue
+const BLUE = [0, 102, 204]; // #4a4a4a muted blue
 const PURPLE = [109, 40, 217]; // #6D28D9 Zelle purple
 const BGBLUE = [235,244,255]; // very light blue background
 const BGGREEN= [235,244,255]; // same as BGBLUE — no green
@@ -10609,7 +10609,7 @@ return `
 <input type="number" min="1" max="99" value="${s.units||'1'}"
 style="width:48px;padding:3px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:12px;text-align:center"
 oninput="batchSelSvcs[${i}].units=this.value||'1';renderBatchCatalogSelected();updateBatchPreview()">
-<span style="font-size:12px;font-weight:700;color:var(--blue,#059669);min-width:60px;text-align:right" class="mono">= $${_total}</span>
+<span style="font-size:12px;font-weight:700;color:var(--blue,#4a4a4a);min-width:60px;text-align:right" class="mono">= $${_total}</span>
 <button title="Remove" class="btn btn-xs btn-danger" onclick="batchSelSvcs.splice(${i},1);renderBatchCatalog();renderBatchCatalogSelected();updateBatchPreview()"><i data-lucide="x" class="lci"></i></button>
 </div>`;}).join('') + '</div></div>';
 }
@@ -11053,8 +11053,8 @@ btn.innerHTML = '<i data-lucide="mic-off" class="lci" style="width:32px;height:3
 if (status) status.textContent = 'Recording — tap to stop';
 if (live) live.textContent = 'Listening...';
 } else {
-btn.style.background = 'linear-gradient(145deg,#059669,#047857)';
-btn.style.boxShadow = '0 6px 20px rgba(5,150,105,.4)';
+btn.style.background = 'linear-gradient(145deg,#4a4a4a,#2a2a2a)';
+btn.style.boxShadow = '0 6px 20px rgba(74,74,74,.4)';
 btn.style.animation = 'none';
 btn.innerHTML = '<i data-lucide="mic" class="lci" style="width:32px;height:32px;color:#fff"></i>';
 if (status) status.textContent = _vBuf ? 'Tap to continue dictating' : 'Tap the mic and dictate your note';
@@ -11155,7 +11155,7 @@ onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this
 onclick="openAINoteModal('${pat.id}','${n.id}','${n.claimId||''}')">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:8px">
-<div style="width:28px;height:28px;background:${n.aiGenerated?'linear-gradient(135deg,#059669,#047857)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
+<div style="width:28px;height:28px;background:${n.aiGenerated?'linear-gradient(135deg,#4a4a4a,#2a2a2a)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
 <i data-lucide="${n.aiGenerated?'bot':'file-text'}" class="lci" style="width:14px;height:14px;color:${n.aiGenerated?'#fff':'var(--text2)'}"></i>
 </div>
 <div>
@@ -11445,9 +11445,9 @@ box-shadow:0 40px 100px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.1);overf
 <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div style="display:flex;align-items:center;gap:12px">
-<div style="width:46px;height:46px;background:linear-gradient(145deg,#059669,#047857);
+<div style="width:46px;height:46px;background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
 border-radius:14px;display:flex;align-items:center;justify-content:center;
-box-shadow:0 6px 16px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.15)">
+box-shadow:0 6px 16px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15)">
 <i data-lucide="mic-vocal" class="lci" style="width:22px;height:22px;color:#fff"></i>
 </div>
 <div>
@@ -11482,8 +11482,8 @@ ${hasSpeech ? `
 border:2px solid transparent;transition:all .3s;pointer-events:none"></div>
 <button id="voice-btn" onclick="_toggleVoice()"
 style="width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;
-background:linear-gradient(145deg,#059669,#047857);
-box-shadow:0 8px 24px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,255,.2);
+background:linear-gradient(145deg,#4a4a4a,#2a2a2a);
+box-shadow:0 8px 24px rgba(74,74,74,.45),inset 0 1px 0 rgba(255,255,255,.2);
 display:flex;align-items:center;justify-content:center;
 transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;z-index:1">
 <i data-lucide="mic" class="lci" id="voice-icon" style="width:34px;height:34px;color:#fff"></i>
@@ -11539,7 +11539,7 @@ Clinical Note Editor
 <button onclick="_vStructure()" title="Auto-structure into SOAP"
 style="padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:10px;
 font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;
-font-family:var(--font);box-shadow:0 3px 10px rgba(5,150,105,.3);transition:all .18s"
+font-family:var(--font);box-shadow:0 3px 10px rgba(74,74,74,.3);transition:all .18s"
 onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
 <i data-lucide="wand-2" class="lci" style="width:13px;height:13px"></i>
 Structure Note
@@ -11557,7 +11557,7 @@ style="flex:1;min-height:220px;padding:16px;border:1.5px solid var(--border2);
 border-radius:14px;background:var(--bg2);color:var(--text);
 font-size:13px;line-height:1.85;font-family:var(--font);resize:none;
 transition:border-color .2s,box-shadow .2s;outline:none"
-onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px rgba(5,150,105,.1)'"
+onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px rgba(74,74,74,.1)'"
 onblur="this.style.borderColor='var(--border2)';this.style.boxShadow='none'"
 placeholder="Dictate above — or type your SOAP note directly here...
 &#10;&#10;Tip: Say 'Subjective,' then your symptoms. Say 'Plan,' then your treatment steps.">${_vBuf}</textarea>
@@ -11577,9 +11577,9 @@ Cancel
 style="padding:10px 22px;background:var(--brand);color:#fff;border:none;
 border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;
 display:flex;align-items:center;gap:8px;font-family:var(--font);
-box-shadow:0 4px 14px rgba(5,150,105,.35);transition:all .18s"
-onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(5,150,105,.45)'"
-onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 14px rgba(5,150,105,.35)'">
+box-shadow:0 4px 14px rgba(74,74,74,.35);transition:all .18s"
+onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(74,74,74,.45)'"
+onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 14px rgba(74,74,74,.35)'">
 <i data-lucide="save" class="lci" style="width:16px;height:16px"></i>
 Save to Encounter
 </button>
@@ -11723,8 +11723,8 @@ if(ring){ ring.style.border='2px solid rgba(220,38,38,.3)'; ring.style.animation
 if(status) status.innerHTML='<span style="color:var(--red);font-weight:700">REC</span> &nbsp;Tap to stop · Speak your note...';
 if(live){ live.style.borderColor='var(--red-bdr)'; live.style.background='var(--red-bg)'; live.textContent='Listening...'; }
 } else {
-btn.style.background='linear-gradient(145deg,#059669,#047857)';
-btn.style.boxShadow='0 8px 24px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,255,.2)';
+btn.style.background='linear-gradient(145deg,#4a4a4a,#2a2a2a)';
+btn.style.boxShadow='0 8px 24px rgba(74,74,74,.45),inset 0 1px 0 rgba(255,255,255,.2)';
 btn.innerHTML='<i data-lucide="mic" class="lci" style="width:34px;height:34px;color:#fff"></i>';
 if(ring){ ring.style.border='2px solid transparent'; ring.style.animation='none'; }
 if(status) status.textContent=_vBuf?'Tap to continue · Or click Structure Note':'Tap the mic · Dictate your note · Tap again to stop';
@@ -12409,7 +12409,7 @@ style="padding:9px 18px;background:var(--bg2);color:var(--text2);border:1.5px so
 Cancel
 </button>
 <button onclick="recreateClaimFromUnmatched('${unmatchedId}')"
-style="padding:9px 20px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(5,150,105,.3)">
+style="padding:9px 20px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(74,74,74,.3)">
 <i data-lucide="plus-circle" class="lci" style="width:15px;height:15px"></i>
 Create Claim &amp; Post Payment
 </button>
@@ -13502,7 +13502,7 @@ function setAppts(fn) { if(!_localDB.appointments) _localDB.appointments=[]; fn(
 
 const APPT_STATUS = {
 scheduled: { label:'Scheduled', color:'#6b7280', bg:'#f3f4f6', icon:'calendar' },
-confirmed: { label:'Confirmed', color:'#059669', bg:'#ecfdf5', icon:'check-circle' },
+confirmed: { label:'Confirmed', color:'#4a4a4a', bg:'#ecfdf5', icon:'check-circle' },
 checked_in: { label:'Checked In', color:'#16a34a', bg:'#f0fdf4', icon:'check-circle-2' },
 in_progress: { label:'In Progress', color:'#d97706', bg:'#fffbeb', icon:'play-circle' },
 completed: { label:'Completed', color:'#16a34a', bg:'#f0fdf4', icon:'flag' },
@@ -14734,7 +14734,7 @@ const docListHTML = allDocs.length ? allDocs.map((d,i) => {
 const isPDF = (d.type&&d.type.includes('pdf')) || /\.pdf$/i.test(d.name||'');
 const isImage = !isPDF;
 const icon = isPDF ? 'file-text' : 'image';
-const iconColor = isPDF ? '#dc2626' : '#059669';
+const iconColor = isPDF ? '#dc2626' : '#4a4a4a';
 const preview = isImage
 ? `<img src="${d.data}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid #e5e7eb">`
 : `<div style="width:38px;height:38px;border-radius:6px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #fecaca">
@@ -14747,9 +14747,9 @@ onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background=
 ${preview}
 <div style="flex:1;min-width:0">
 <div style="font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Document '+(i+1)}</div>
-<div style="font-size:10px;color:#94a3b8;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF — select page area':'Image'}</div>
+<div style="font-size:10px;color:#8c8c8c;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF — select page area':'Image'}</div>
 </div>
-<i data-lucide="scissors" class="lci" style="width:15px;height:15px;color:#059669;flex-shrink:0"></i>
+<i data-lucide="scissors" class="lci" style="width:15px;height:15px;color:#4a4a4a;flex-shrink:0"></i>
 </div>`;
 }).join('') : '';
 
@@ -14765,8 +14765,8 @@ box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden">
 <div style="padding:20px 20px 12px;border-bottom:1px solid #f1f5f9">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div>
-<div style="font-size:16px;font-weight:700;color:#0f172a;letter-spacing:-0.02em">Patient Photo</div>
-<div style="font-size:11px;color:#94a3b8;margin-top:2px">${pat.last||''}, ${pat.first||''} · Chart #${pat.acct||''}</div>
+<div style="font-size:16px;font-weight:700;color:#1a1a1a;letter-spacing:-0.02em">Patient Photo</div>
+<div style="font-size:11px;color:#8c8c8c;margin-top:2px">${pat.last||''}, ${pat.first||''} · Chart #${pat.acct||''}</div>
 </div>
 ${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #a7f3d0">` : ''}
 </div>
@@ -14777,11 +14777,11 @@ ${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radi
 
 <!-- Camera -->
 <button onclick="_openCamera('${patId}')"
-style="width:100%;padding:12px 16px;background:#059669;color:#fff;border:none;
+style="width:100%;padding:12px 16px;background:#4a4a4a;color:#fff;border:none;
 border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;
 display:flex;align-items:center;gap:10px;
-box-shadow:0 4px 12px rgba(5,150,105,.3);transition:all .2s"
-onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
+box-shadow:0 4px 12px rgba(74,74,74,.3);transition:all .2s"
+onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='#4a4a4a'">
 <i data-lucide="camera" class="lci" style="width:18px;height:18px"></i>
 <span>Take Photo with Camera</span>
 </button>
@@ -14789,10 +14789,10 @@ onmouseover="this.style.background='#047857'" onmouseout="this.style.background=
 <!-- Upload photo -->
 <button onclick="document.getElementById('pt-upload-photo-${patId}').click()"
 style="width:100%;padding:12px 16px;background:#f8fafc;color:#1e293b;
-border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-weight:600;
+border:1.5px solid #d4d4d4;border-radius:12px;font-size:14px;font-weight:600;
 cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s"
-onmouseover="this.style.borderColor='#059669';this.style.color='#059669'"
-onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#1e293b'">
+onmouseover="this.style.borderColor='#4a4a4a';this.style.color='#4a4a4a'"
+onmouseout="this.style.borderColor='#d4d4d4';this.style.color='#1e293b'">
 <i data-lucide="upload" class="lci" style="width:18px;height:18px"></i>
 <span>Upload Photo from Device</span>
 </button>
@@ -14802,22 +14802,22 @@ onchange="_handlePhotoUpload(event,'${patId}',false)">
 <!-- Divider with label -->
 <div style="display:flex;align-items:center;gap:10px;margin:4px 0">
 <div style="flex:1;height:1px;background:#f1f5f9"></div>
-<span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:.05em">CROP FROM CHART DOCUMENT</span>
+<span style="font-size:11px;font-weight:600;color:#8c8c8c;letter-spacing:.05em">CROP FROM CHART DOCUMENT</span>
 <div style="flex:1;height:1px;background:#f1f5f9"></div>
 </div>
 
 <!-- Document list OR empty state -->
 ${allDocs.length ? `
-<div style="border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;max-height:220px;overflow-y:auto">
-<div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase">
+<div style="border:1.5px solid #d4d4d4;border-radius:12px;overflow:hidden;max-height:220px;overflow-y:auto">
+<div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:#8c8c8c;letter-spacing:.08em;text-transform:uppercase">
 ${allDocs.length} document${allDocs.length>1?'s':''} — click to crop
 </div>
 ${docListHTML}
 </div>` : `
-<div style="padding:16px;text-align:center;background:#f8fafc;border-radius:12px;border:1.5px dashed #e2e8f0">
-<i data-lucide="folder-open" class="lci" style="width:28px;height:28px;color:#cbd5e1;display:block;margin:0 auto 6px"></i>
-<div style="font-size:12px;font-weight:600;color:#94a3b8">No documents in chart yet</div>
-<div style="font-size:11px;color:#cbd5e1;margin-top:2px">Upload an ID, License or image in the Documents tab</div>
+<div style="padding:16px;text-align:center;background:#f8fafc;border-radius:12px;border:1.5px dashed #d4d4d4">
+<i data-lucide="folder-open" class="lci" style="width:28px;height:28px;color:#bfbfbf;display:block;margin:0 auto 6px"></i>
+<div style="font-size:12px;font-weight:600;color:#8c8c8c">No documents in chart yet</div>
+<div style="font-size:11px;color:#bfbfbf;margin-top:2px">Upload an ID, License or image in the Documents tab</div>
 </div>`}
 
 <!-- Remove (if has photo) -->
@@ -15504,7 +15504,7 @@ return 'paperclip';
 function _docTypeColor(type) {
 const t = (type||'').toLowerCase();
 if (t.includes('pdf')) return '#dc2626';
-if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#059669';
+if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#4a4a4a';
 if (t.includes('xls')) return '#16a34a';
 return '#6b7280';
 }
@@ -15601,7 +15601,7 @@ if (!doc) return;
 // Superbill: render inline HTML viewer
 if (doc.category==='Superbills' && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
-    return '<tr style="font-size:12px;border-bottom:1px solid #e2e8f0">'+
+    return '<tr style="font-size:12px;border-bottom:1px solid #d4d4d4">'+
       '<td style="padding:6px 8px;font-weight:600">'+( l.cpt||'')+'</td>'+
       '<td style="padding:6px 8px;color:#334155">'+(l.desc||'')+'</td>'+
       '<td style="padding:6px 8px;text-align:center">'+(l.units||1)+'</td>'+
@@ -15609,7 +15609,7 @@ if (doc.category==='Superbills' && doc.lines) {
     '</tr>';
   }).join('');
   var dxHTML = (doc.dx||[]).map(function(d,i){
-    return '<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+d+'</span>';
+    return '<span style="background:#f1f5f9;border:1px solid #d4d4d4;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+d+'</span>';
   }).join(' ');
   var ov = document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -15633,17 +15633,17 @@ if (doc.category==='Superbills' && doc.lines) {
       '<div>'+dxHTML+'</div></div>'+
       '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">'+
         '<thead><tr style="background:#f8fafc">'+
-          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">CPT</th>'+
-          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Description</th>'+
-          '<th style="padding:8px;text-align:center;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Units</th>'+
-          '<th style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0">Charge</th>'+
+          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">CPT</th>'+
+          '<th style="padding:8px;text-align:left;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Description</th>'+
+          '<th style="padding:8px;text-align:center;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Units</th>'+
+          '<th style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:#64748b;border-bottom:2px solid #d4d4d4">Charge</th>'+
         '</tr></thead><tbody>'+linesHTML+'</tbody>'+
         '<tfoot><tr style="background:#f0fdf4">'+
           '<td colspan="3" style="padding:10px 8px;font-weight:700;font-size:13px;color:#2a2a2a">Total Charges</td>'+
           '<td style="padding:10px 8px;font-weight:700;font-size:15px;color:#2a2a2a;text-align:right">$'+(doc.totalCharge||'0.00')+'</td>'+
         '</tr></tfoot>'+
       '</table>'+
-      '<div style="font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px">'+
+      '<div style="font-size:10px;color:#8c8c8c;text-align:center;border-top:1px solid #d4d4d4;padding-top:10px">'+
         'PCN: '+(doc.claimPCN||'')+' · Generated by ClaimDataCare · '+(doc.date||'')+
       '</div>'+
     '</div>'+
@@ -15741,7 +15741,7 @@ const totIns = insA.reduce((a,b)=>a+b,0);
 const totPat = patA.reduce((a,b)=>a+b,0);
 const totAll = totIns+totPat;
 const $v = n=>'$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-const cell = v=>`<td style="text-align:right;font-family:var(--mono);color:${v>0?'#dc2626':'#059669'}">${$v(v)}</td>`;
+const cell = v=>`<td style="text-align:right;font-family:var(--mono);color:${v>0?'#dc2626':'#4a4a4a'}">${$v(v)}</td>`;
 
 // ?? Appointments ?????????????????????????????????????????????
 const past = appts.filter(a=>a.date<=today.toISOString().slice(0,10)).sort((a,b)=>b.date.localeCompare(a.date));
@@ -15825,7 +15825,7 @@ return `
 <div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
 style="width:70px;height:70px;border:2px solid #a7f3d0;border-radius:8px;
 background:#ecfdf5;display:flex;align-items:center;justify-content:center;
-font-size:24px;font-weight:700;color:#059669;cursor:${pat.photo?'zoom-in':'default'};
+font-size:24px;font-weight:700;color:#4a4a4a;cursor:${pat.photo?'zoom-in':'default'};
 overflow:hidden;margin:0 auto">
 ${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:`${initials}`}
 </div>
@@ -15901,9 +15901,9 @@ ${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
 </tr>
 </tfoot>
 </table>
-<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #e2e8f0">
+<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #d4d4d4">
 <span>Unapplied Patient Payments: ${$v(0)}</span>
-<span style="color:${totAll>0?'#dc2626':'#059669'}">Net A/R: ${$v(totAll)}</span>
+<span style="color:${totAll>0?'#dc2626':'#4a4a4a'}">Net A/R: ${$v(totAll)}</span>
 </div>
 </div>
 </div>
@@ -16169,7 +16169,7 @@ style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:rel
 
 <!-- Insurances table -->
 <div style="padding:0 0 4px">
-<div style="background:#059669;color:#fff;font-size:12px;font-weight:700;padding:5px 10px">Insurances</div>
+<div style="background:#4a4a4a;color:#fff;font-size:12px;font-weight:700;padding:5px 10px">Insurances</div>
 <div style="overflow-x:auto">
 <table style="width:100%;border-collapse:collapse;background:var(--bg2)">
 <thead>
@@ -16206,7 +16206,7 @@ return ins.map((ins,i) => `
 <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:${ins.inactive?'var(--bg2)':''}">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:10px">
-<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'#eff6ff':ins.type==='Secondary'?'#f0fdf4':'#fafafa'};color:${ins.type==='Primary'?'#047857':ins.type==='Secondary'?'#15803d':'#6b7280'}">${ins.type||'Primary'}</span>
+<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'#eff6ff':ins.type==='Secondary'?'#f0fdf4':'#fafafa'};color:${ins.type==='Primary'?'#2a2a2a':ins.type==='Secondary'?'#15803d':'#6b7280'}">${ins.type||'Primary'}</span>
 <span style="font-weight:700">${ins.name||''}</span>
 <span class="mono" style="font-size:11px;color:var(--text3)">${ins.memberId||''}</span>
 ${ins.inactive?'<span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Inactive</span>':'<span style="background:#f0fdf4;color:#16a34a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Active</span>'}
@@ -16656,7 +16656,7 @@ ${!claims.length?'<div style="padding:30px;text-align:center;color:var(--text3)"
 const billed=(c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
 const paid=(eobMap[c.id]||[]).reduce((s,p)=>s+p.paid,0);
 const bal=billed-paid;
-const stColors={draft:'#6b7280',pending:'#d97706',submitted:'#059669',accepted:'#059669',paid:'#16a34a',settled:'#16a34a',denied:'#dc2626',rejected:'#dc2626',partially_paid:'#d97706',patient_balance:'#d97706'};
+const stColors={draft:'#6b7280',pending:'#d97706',submitted:'#4a4a4a',accepted:'#4a4a4a',paid:'#16a34a',settled:'#16a34a',denied:'#dc2626',rejected:'#dc2626',partially_paid:'#d97706',patient_balance:'#d97706'};
 const sc=stColors[c.status]||'#6b7280';
 // PCN is clickable ? opens claim detail
 return `<tr>
@@ -17406,7 +17406,7 @@ if (sex === 'F') {
 // Female — teal bg, dark hair (shoulder length), emerald shirt
 const BG = '#0d9488';
 const HAIR = '#1e293b';
-const SHRT = '#059669';
+const SHRT = '#4a4a4a';
 return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 <rect width="100" height="100" rx="50" fill="${BG}"/>
 <clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
@@ -17433,7 +17433,7 @@ return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.
 
 if (sex === 'M') {
 // Male — emerald bg, dark short hair, dark green shirt
-const BG = '#059669';
+const BG = '#4a4a4a';
 const HAIR = '#1e293b';
 const SHRT = '#065f46';
 return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
