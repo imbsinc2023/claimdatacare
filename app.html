@@ -394,7 +394,6 @@ background: var(--brand-bg);
 color: var(--brand);
 }
 [data-theme="dark"] .tn-dropdown {
-background: #30302e;
 border: 1px solid #3d3d3a;
 box-shadow: 0 8px 32px rgba(0,0,0,.4);
 }
@@ -763,9 +762,9 @@ padding: 4px 8px; font-size: 12px; font-weight: 700; color: #4d4c48;
 [data-theme="dark"] .topnav{background:#141413;border-bottom-color:#30302e}
 [data-theme="dark"] .tn-item:hover{background:rgba(255,255,255,.13);color:#ffffff}
 [data-theme="dark"] .tn-item.active{background:rgba(255,255,255,.22);color:#ffffff}
-.tn-dropdown{position:absolute;top:100%;left:0;min-width:200px;z-index:300;padding:4px;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;display:none}
+.tn-dropdown{position:absolute;top:100%;left:0;min-width:220px;z-index:300;padding:6px;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;display:none;background:var(--bg2)}
 .tn-group.open>.tn-dropdown{display:block}
-.tn-dd-item{transition:background .15s;border-radius:0}
+.tn-dd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;transition:background .15s;border-radius:8px;cursor:pointer}
 .tn-dd-item:hover{background:var(--brand-bg);color:var(--brand)}
 
 /* Buttons */
@@ -5451,30 +5450,12 @@ Electronic Health Records
 <div id="login-alert" style="margin-bottom:14px"></div>
 
 <div style="display:flex;flex-direction:column;gap:14px">
-<!-- Email -->
 <div>
 <label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
-Username
+Username or Email
 </label>
 <input id="li-username" type="text" class="no-upper" autocomplete="username"
-placeholder="Username"
-onkeydown="if(event.key==='Enter')document.getElementById('li-email').focus()"
-style="width:100%;padding:13px 16px;font-size:15px;
-border:1.5px solid #e8e6dc;border-radius:14px;
-background:rgba(255,255,255,.8);color:var(--text);
-font-family:var(--font);outline:none;
-transition:all .2s cubic-bezier(.4,0,.2,1);
-box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
--webkit-font-smoothing:antialiased"
-onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
-</div>
-<div>
-<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
-Email
-</label>
-<input id="li-email" type="text" class="no-upper" autocomplete="email"
-placeholder="Email"
+placeholder="Username or email"
 onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
 style="width:100%;padding:13px 16px;font-size:15px;
 border:1.5px solid #e8e6dc;border-radius:14px;
@@ -7682,15 +7663,14 @@ svg.innerHTML = showing
 }
 
 async function doLogin() {
-const usernameRaw = (document.getElementById('li-username')?.value || '').trim();
-const emailRaw = (document.getElementById('li-email')?.value || '').trim();
-const email = (emailRaw || usernameRaw).toLowerCase();
-const isEmailFormat = email.includes('@') && email.includes('.');
+const loginRaw = (document.getElementById('li-username')?.value || '').trim();
+const loginId = loginRaw.toLowerCase();
+const isEmailFormat = loginId.includes('@') && loginId.includes('.');
 const pass = document.getElementById('li-pass')?.value || '';
 const alertEl = document.getElementById('login-alert');
 const btn = document.getElementById('login-btn');
-if (!usernameRaw || !pass) {
-alertEl.innerHTML = '<div class="alert al-error">Username and password are required.</div>';
+if (!loginRaw || !pass) {
+alertEl.innerHTML = '<div class="alert al-error">Username/email and password are required.</div>';
 return;
 }
 btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
@@ -7737,7 +7717,7 @@ function _afterLoad() {
 // Try Firebase auth first — only if input looks like an email
 if (_auth && _fbReady && isEmailFormat) {
 try {
-const cred = await _auth.signInWithEmailAndPassword(email, pass);
+const cred = await _auth.signInWithEmailAndPassword(loginId, pass);
 const fbUser = cred.user;
 const session = { id:fbUser.uid, email:fbUser.email, name:fbUser.displayName||fbUser.email.split('@')[0]||'Admin',
 role:'Super Admin', activeBillingProviderId:null };
@@ -7787,7 +7767,7 @@ const hash = await sha256(pass);
 const btoaHash = btoa(pass); // some users stored with btoa
 const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
 const user = allUsers.find(function(u) {
-  const matchId = (u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email || (u.username||'').toLowerCase() === email || (u.first||'').toLowerCase() === email;
+  const matchId = (u.email||'').toLowerCase() === loginId || (u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId;
   const matchHash = u.passHash === hash || u.passHash === btoaHash;
   return matchId && matchHash;
 });
