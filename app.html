@@ -45,6 +45,8 @@ h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 .hidden{display:none!important}
 .mono{font-family:var(--mono)}
+.upper{text-transform:uppercase}
+input:not([type="email"]):not([type="password"]):not([type="file"]):not(.no-upper),textarea:not(.no-upper){text-transform:uppercase}
 .page{display:none}.page.active{display:block}
 .section{display:none}.section.active{display:block;min-height:0;padding:0}
 
@@ -1347,6 +1349,16 @@ const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',serv
 const uid = () => 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 const v = id => { const e = document.getElementById(id); return e ? e.value.trim().toUpperCase() : ''; };
 const sv = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
+
+// Auto-uppercase all manual input except email/password/.no-upper
+document.addEventListener('input', function(e) {
+  var el = e.target;
+  if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+  if (el.type === 'email' || el.type === 'password' || el.type === 'file' || el.classList.contains('no-upper')) return;
+  var start = el.selectionStart, end = el.selectionEnd;
+  var upper = el.value.toUpperCase();
+  if (el.value !== upper) { el.value = upper; el.setSelectionRange(start, end); }
+});
 
 // Patient chart links
 function ptLinkName(patId, last, first) {
@@ -5401,6 +5413,7 @@ toast(`Service group "${sg.name}" loaded — select dates and submit`);
 // ???????????????????????????????????????????????????????
 // AUTH SYSTEM — Login required, session persisted
 // ???????????????????????????????????????????????????????
+const SUPER_ADMIN_EMAIL = 'imbsinc2023@gmail.com';
 const SESSION_KEY = 'rcmpro_session';
 const _CDC_QR = null; // QR generated inline as SVG — no heavy base64
 window._cdcQRCache = null; // replaced with inline SVG QR
@@ -17005,6 +17018,25 @@ lucide.createIcons();
 
 
 
+// Uppercase all text rendered in PDFs
+function _patchPDF() {
+  try {
+    var proto = (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.prototype);
+    if (!proto) return;
+    var origText = proto.text;
+    if (!origText.__patched) {
+      proto.text = function() {
+        var args = Array.prototype.slice.call(arguments);
+        if (typeof args[0] === 'string') args[0] = args[0].toUpperCase();
+        else if (Array.isArray(args[0])) args[0] = args[0].map(function(t){return typeof t==='string'?t.toUpperCase():t;});
+        return origText.apply(this, args);
+      };
+      proto.text.__patched = true;
+    }
+  } catch(e) {}
+}
+_patchPDF();
+
 document.addEventListener("DOMContentLoaded", async function() {
   applyTheme();
 
@@ -17473,8 +17505,6 @@ if (cfg.acctKey) return cfg;
 } catch(e) {}
 return {};
 }
-
-const SUPER_ADMIN_EMAIL = 'imbsinc2023@gmail.com';
 
 // ???????????????????????????????????????????????????????
 // FIREBASE — Cloud Database
