@@ -763,7 +763,8 @@ padding: 4px 8px; font-size: 12px; font-weight: 700; color: #4d4c48;
 [data-theme="dark"] .topnav{background:#141413;border-bottom-color:#30302e}
 [data-theme="dark"] .tn-item:hover{background:rgba(255,255,255,.13);color:#ffffff}
 [data-theme="dark"] .tn-item.active{background:rgba(255,255,255,.22);color:#ffffff}
-.tn-dropdown{border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden}
+.tn-dropdown{position:absolute;top:100%;left:0;min-width:200px;z-index:300;padding:4px;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;display:none}
+.tn-group.open>.tn-dropdown{display:block}
 .tn-dd-item{transition:background .15s;border-radius:0}
 .tn-dd-item:hover{background:var(--brand-bg);color:var(--brand)}
 
@@ -5429,7 +5430,7 @@ background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);padding:2
 <div style="background:rgba(255,255,255,.85);backdrop-filter:blur(40px) saturate(180%);
 border:1px solid rgba(255,255,255,.9);border-radius:28px;
 padding:48px 44px;width:100%;max-width:390px;
-box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(74,74,74,.08),inset 0 1px 0 rgba(255,255,255,.9)">
+box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(201,100,66,.08),inset 0 1px 0 rgba(255,255,255,.9)">
 
 <!-- Logo -->
 <div style="text-align:center;margin-bottom:36px">
@@ -5466,7 +5467,21 @@ transition:all .2s cubic-bezier(.4,0,.2,1);
 box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
 -webkit-font-smoothing:antialiased"
 onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--brand);font-family:var(--font);font-weight:500;letter-spacing:-0.01em;padding:0">
+onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
+</div>
+<div>
+<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
+Password
+</label>
+<div style="position:relative">
+<input id="li-pass" type="password" autocomplete="current-password"
+onkeydown="if(event.key==='Enter')doLogin()"
+style="width:100%;padding:13px 16px;font-size:15px;
+border:1.5px solid #e8e6dc;border-radius:14px;
+background:rgba(255,255,255,.8);color:var(--text);
+font-family:var(--font);outline:none;padding-right:48px;
+transition:all .2s cubic-bezier(.4,0,.2,1);
+box-shadow:0 1px 3px rgba(0,0,0,.06) inset"
 onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
 onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
 <button id="li-eye" onclick="togglePassVis('li-pass',this)"
@@ -5490,16 +5505,16 @@ style="width:100%;padding:15px;margin-top:6px;
   color:#fff;border:none;border-radius:14px;
   font-size:16px;font-weight:700;letter-spacing:-0.02em;
   font-family:var(--font);cursor:pointer;
-  box-shadow:0 6px 20px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15);
+  box-shadow:0 6px 20px rgba(201,100,66,.4),inset 0 1px 0 rgba(255,255,255,.15);
   transition:all .2s cubic-bezier(.4,0,.2,1)"
-  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 30px rgba(74,74,74,.5),inset 0 1px 0 rgba(255,255,255,.15)'"
-  onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 20px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15)'"
+  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 30px rgba(201,100,66,.5),inset 0 1px 0 rgba(255,255,255,.15)'"
+  onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 20px rgba(201,100,66,.4),inset 0 1px 0 rgba(255,255,255,.15)'"
   onmousedown="this.style.transform='scale(0.98)'">
   Sign In
 </button>
 </div>
 
-<div style="margin-top:28px;text-align:center;font-size:11px;color:#bfbfbf;letter-spacing:.01em">
+<div style="margin-top:28px;text-align:center;font-size:11px;color:#87867f;letter-spacing:.01em">
 <span style="color:var(--brand);font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
 </div>
 </div>
@@ -15241,6 +15256,7 @@ case 'insurance': mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
 case 'appointments': mainEl.innerHTML = _buildApptTab(pat, db); break;
 case 'bills': mainEl.innerHTML = _buildBillsTab(pat, db); break;
 case 'documents': mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
+case 'encounters': mainEl.innerHTML = _buildEncountersTab(pat, db); break;
 default:
 mainEl.innerHTML = `<div class="ptc-panel" style="padding:30px;text-align:center;color:var(--text3)">
 <i data-lucide="construction" class="lci" style="width:30px;height:30px;margin-bottom:8px;display:block;margin-inline:auto"></i>
@@ -15258,21 +15274,32 @@ function _buildDocumentsTab(pat, db) {
 if (!pat.documents) pat.documents = [];
 const docs = pat.documents || [];
 
-// Auto-migrate old pat.superbills[] into documents
+// Auto-migrate old pat.superbills[] into documents (one-time)
 if (pat.superbills && pat.superbills.length) {
+  var _didMigrate = false;
   pat.superbills.forEach(function(sb) {
     var already = docs.find(function(d){ return d.claimId===sb.claimId && d.category==='Superbills'; });
-    if (!already) docs.unshift({
-      id: sb.id||('sb_'+(sb.claimId||Date.now())),
-      claimId: sb.claimId||'', claimPCN: sb.claimPCN||'',
-      name: sb.name||('Superbill \u2014 DOS: '+(sb.dos||sb.date||'')+' \u2014 $'+(sb.totalCharge||'0.00')),
-      category: 'Superbills', type: 'pdf', date: sb.dos||sb.date||'',
-      uploadedBy: 'System (Batch)', providerName: sb.providerName||'',
-      providerNPI: sb.providerNPI||'', renderingName: sb.renderingName||'',
-      facilityName: sb.facilityName||'', dx: sb.dx||[], lines: sb.lines||[],
-      ins1: sb.ins1||{}, totalCharge: sb.totalCharge||'0.00', createdAt: sb.createdAt||Date.now(),
-    });
+    if (!already) {
+      docs.unshift({
+        id: sb.id||('sb_'+(sb.claimId||Date.now())),
+        claimId: sb.claimId||'', claimPCN: sb.claimPCN||'',
+        name: sb.name||('Superbill \u2014 DOS: '+(sb.dos||sb.date||'')+' \u2014 $'+(sb.totalCharge||'0.00')),
+        category: 'Superbills', type: 'pdf', date: sb.dos||sb.date||'',
+        uploadedBy: 'System (Batch)', providerName: sb.providerName||'',
+        providerNPI: sb.providerNPI||'', renderingName: sb.renderingName||'',
+        facilityName: sb.facilityName||'', dx: sb.dx||[], lines: sb.lines||[],
+        ins1: sb.ins1||{}, totalCharge: sb.totalCharge||'0.00', createdAt: sb.createdAt||Date.now(),
+      });
+      _didMigrate = true;
+    }
   });
+  if (_didMigrate) {
+    pat.superbills = [];
+    setDB(function(db2) {
+      var _p = db2.patients.find(function(x){ return x.id === pat.id; });
+      if (_p) { _p.documents = pat.documents; _p.superbills = []; }
+    });
+  }
 }
 
 // Role check for "Add New Category"
