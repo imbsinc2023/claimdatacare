@@ -9573,7 +9573,7 @@ function showVerifyModal(state, parsed, user, token) {
         '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Enter the 6-character code sent to <strong>' + (user.email||'') + '</strong></p>' +
       '</div>' +
       '<div style="margin-bottom:14px">' +
-        '<input id="verify-otp" type="text" maxlength="6" placeholder="------" class="no-upper" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace">' +
+        '<input id="verify-otp" type="text" maxlength="6" placeholder="------" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace;text-transform:uppercase">' +
       '</div>' +
       '<div id="verify-alert" style="margin-bottom:12px"></div>' +
       '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Verify Code</button>';
@@ -9627,7 +9627,7 @@ function showVerifyModal(state, parsed, user, token) {
 }
 
 function verifyOTPAndContinue(token, parsed) {
-  var otp = (document.getElementById('verify-otp')?.value||'').trim();
+  var otp = (document.getElementById('verify-otp')?.value||'').trim().toUpperCase();
   var alertEl = document.getElementById('verify-alert');
   if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-character verification code.</div>'; return; }
 
@@ -20668,7 +20668,16 @@ function saveNewUser() {
     var otpCode = '';
     for (var _i = 0; _i < 6; _i++) otpCode += _chars.charAt(Math.floor(Math.random() * _chars.length));
     var verifyToken = generateVerifyToken(users[users.length-1].id, email);
-    var verifyLink = 'https://claimdatacare.com/app.html?verify=' + verifyToken;
+    var _baseUrl = window.location.origin + window.location.pathname;
+    var verifyLink = _baseUrl + '?verify=' + verifyToken;
+
+    // Look up billing provider for the user
+    var _providerName = '';
+    try {
+      var _provDb = getDB();
+      var _provMatch = (_provDb.providers||[]).find(function(p){ return p.id === activeProviderId; });
+      _providerName = _provMatch ? (_provMatch.name||'') : '';
+    } catch(_e) {}
 
     // Save OTP hash and verify token to user
     var _allU = typeof getUsers === 'function' ? getUsers() : [];
@@ -20681,50 +20690,36 @@ function saveNewUser() {
       if (typeof saveUsers === 'function') saveUsers(_allU);
     }
 
-    // Favicon data URI (shield)
-    var _faviconSvg = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+    var _logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
 
-    // Send welcome email with favicon, OTP, and verify link
     var welcomeHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-      // Header with logo
-      '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:14px">',
-        _faviconSvg,
-        '<div>',
-          '<div style="color:white;font-weight:700;font-size:22px;letter-spacing:-.3px">ClaimDataCare</div>',
-          '<div style="color:#87867f;font-size:12px;margin-top:2px">Electronic Health Records &amp; Billing</div>',
-        '</div>',
+      '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
+        _logoHtml,
+        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Electronic Health Records &amp; Billing</div></div>',
       '</div>',
-      // Body
-      '<div style="background:#f5f4ed;padding:28px;border:1px solid #e8e6dc;border-top:none">',
-        '<p style="color:#141413;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
-        '<p style="color:#4d4c48;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Use the code below to activate your account.</p>',
-        // OTP code
-        '<div style="text-align:center;margin-bottom:20px">',
-          '<div style="color:#87867f;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Verification Code</div>',
-          '<div style="background:#c96442;color:white;font-size:26px;font-weight:700;letter-spacing:8px;text-align:center;padding:12px 16px;border-radius:8px;margin:0 auto;max-width:220px;font-family:monospace">' + otpCode + '</div>',
-          '<p style="color:#87867f;font-size:10px;margin-top:8px">Expires in 48 hours. Keep confidential.</p>',
+      '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
+        '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Welcome, ' + first + '!</p>',
+        '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Your ClaimDataCare account has been created for <strong style="color:#141413">' + _providerName + '</strong>. Click the button below to activate, then enter the code from this email.</p>',
+        // Summary table with ALL info including OTP
+        '<table style="width:100%;border-collapse:collapse;background:#faf9f5;border:1px solid #e8e6dc;border-radius:8px;overflow:hidden;margin-bottom:18px">',
+          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;width:130px;background:#f0eee6;font-weight:600">Verification Code</td>',
+              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;color:#c96442">' + otpCode + '</td></tr>',
+          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Username</td>',
+              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px;font-weight:600">' + name + '</td></tr>',
+          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Email</td>',
+              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + email + '</td></tr>',
+          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Role</td>',
+              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + primaryRole + '</td></tr>',
+          '<tr><td style="padding:10px 14px;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Practice</td>',
+              '<td style="padding:10px 14px;color:#141413;font-size:13px;font-weight:600">' + _providerName + '</td></tr>',
+        '</table>',
+        '<div style="text-align:center;margin-bottom:18px">',
+          '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">Activate Now</a>',
+          '<p style="color:#87867f;font-size:10px;margin-top:8px">Link + code expire in 48 hours. Keep the code confidential.</p>',
         '</div>',
-        // Info table
-        '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;padding:18px;margin-bottom:20px">',
-          '<table style="width:100%;border-collapse:collapse">',
-            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6;width:120px">Username</td><td style="color:#141413;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0eee6">' + name + '</td></tr>',
-            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Email</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + email + '</td></tr>',
-            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Role</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + primaryRole + '</td></tr>',
-          '</table>',
-        '</div>',
-        // CTA button
-        '<div style="text-align:center;margin-bottom:20px">',
-          '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
-            'Activate Now',
-          '</a>',
-          '<p style="color:#87867f;font-size:11px;margin-top:10px">Click the button above, then enter the verification code from this email.</p>',
-        '</div>',
-        '<p style="color:#87867f;font-size:11px;border-top:1px solid #e8e6dc;padding-top:14px;margin:0">',
-          'If you did not expect this email, please ignore it or contact your system administrator. &nbsp;·&nbsp; ClaimDataCare &copy; 2025',
-        '</p>',
-      '</div>',
-    '</div>',
+        '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">If you did not expect this email, please ignore it or contact your administrator. &middot; ClaimDataCare &copy; 2025</p>',
+      '</div></div>',
     ].join('');
     sendEmail(email, 'Welcome to ClaimDataCare — Activate Your Account', welcomeHtml, 'onboarding');
   } else {
@@ -21548,8 +21543,7 @@ function openAddUserModal(existingUser) {
       '<div class="field" style="margin-bottom:10px"><label>Last Name <span class="req">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" oninput="_suggestUserName()" style="'+inpStyle+'"></div>' +
       '<div class="field" style="margin-bottom:10px">' +
         '<label>Username <span class="req">*</span> <span style="font-weight:400;color:var(--text3)">auto-suggested, must contain .</span></label>' +
-        '<input id="nu-name" class="no-upper" value="'+(u.name||_suggestUser(u.first,u.last))+'"
-          oninput="window._nuNameEdited=true" style="'+inpStyle+'">' +
+        '<input id="nu-name" class="no-upper" value="'+(u.name||_suggestUser(u.first,u.last))+'" oninput="window._nuNameEdited=true" style="'+inpStyle+'">' +
         '<div id="nu-name-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div>' +
       '</div>' +
       '<div class="field" style="margin-bottom:10px"><label>Email <span class="req">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inpStyle+'"><div id="nu-email-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
