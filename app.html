@@ -997,7 +997,7 @@ display: inline-flex; align-items: center; gap: 4px;
 }
 
 /* Page header — Apple large title style */
-.page-hdr { margin-bottom: 14px; }
+.page-hdr { margin-bottom: 0; }
 .page-hdr h1 {
 font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
 line-height: 1.2; color: var(--text);
@@ -9675,7 +9675,43 @@ function confirmVerifyEmail(token, userId) {
 
   var overlay = document.getElementById('modal-verify-email');
   if (overlay) overlay.remove();
-  toast('Account activated! You can now log in with your new password.', 'ok');
+
+  // Auto-login after successful activation
+  if (_foundU) {
+    var _fullName = ((_foundU.first||'') + ' ' + (_foundU.last||'')).trim() || _foundU.name || 'User';
+    var _session = { id:_foundU.id, email:_foundU.email, name:_fullName,
+      role:_foundU.role||'Super Admin', activeBillingProviderId:null,
+      providerId: _foundU.providerId || null };
+    setSession(_session);
+    window._sessionVerified = true;
+    sessionStorage.setItem('cdc_verified', 'yes');
+    showApp(_session.name);
+    loadFromFirestore().then(function() {
+      var _db2 = getDB();
+      var _sess2 = getSession();
+      if (!_sess2) return;
+      if (_db2.providers && _db2.providers.length) {
+        var _savedId = _sess2.activeBillingProviderId;
+        var _validProv = (_savedId && _db2.providers.find(function(p) { return p.id === _savedId; })) || _db2.providers[0];
+        activeProviderId = _validProv.id;
+        _sess2.activeBillingProviderId = activeProviderId;
+        setSession(_sess2);
+      }
+      if (!activeProviderId) {
+        var _pIds = [...new Set([...(_db2.claims||[]).map(function(c){ return c.providerId; }), ...(_db2.patients||[]).map(function(p){ return p.providerId; })].filter(Boolean))];
+        if (_pIds.length) { activeProviderId = _pIds[0]; _sess2.activeBillingProviderId = activeProviderId; setSession(_sess2); }
+      }
+      rebuildProvSel();
+      go('dashboard');
+      try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
+      setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
+      updateBadges();
+      updateAdminUI();
+    }).catch(function() { go('dashboard'); });
+    toast('Account activated! Welcome, ' + _fullName + '.', 'ok');
+  } else {
+    toast('Account activated! You can now log in with your new password.', 'ok');
+  }
 }
 
 function renderAccountPage() {
