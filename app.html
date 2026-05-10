@@ -1325,6 +1325,10 @@ const PAGE_TITLES = {
 dashboard: 'Dashboard', claims: 'Claims', patients: 'Patients',
 services: 'Services / CPT', facilities: 'Facilities',
 rendering: 'Rendering Providers', referring: 'Referring Providers',
+'cm-dashboard': 'CM Dashboard', 'cm-clients': 'CM Clients',
+'cm-workers': 'CM Workers', 'cm-plans': 'CM Service Plans',
+'cm-notes': 'CM Progress Notes', 'cm-billing': 'CM Billing',
+'cm-reports': 'CM Reports', 'cm-settings': 'CM Settings',
 validate: 'Validate Claims', export: 'Export / Submit',
 reports: 'Reports', 'admin-providers': 'Billing Providers',
 eob: 'ERA / EOB Payments',
@@ -1394,10 +1398,17 @@ reports: renderReports,
 'admin-services': renderAdminServices,
 servicegroups: renderServiceGroups,
 account: renderAccountPage,
-appointments: renderAppointments,
-notes: renderNotes,
-invoices: ()=>{ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} },
-};
+      appointments: renderAppointments,
+      notes: renderNotes,
+      invoices: ()=>{ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} },
+      'cm-dashboard': renderCMDashboard,
+      'cm-clients': renderCMClients,
+      'cm-workers': renderCMWorkers,
+      'cm-plans': renderCMPlans,
+      'cm-notes': renderCMNotes,
+      'cm-billing': renderCMBilling,
+      'cm-reports': renderCMReports,
+      };
 if(renders[page]) {
   requestAnimationFrame(function() {
     renders[page]();
@@ -1620,6 +1631,23 @@ function renderPatients(){
 function _patGoPage(pi){ window._patPgIndex=pi; renderPatients(); }
 function _patSetPgSize(s){ window._patPgSize=parseInt(s)||20; window._patPgIndex=0; renderPatients(); }
 
+// ── Claims pagination & sorting ──────────────────────────────────
+function _clmGoPage(pi){ window._clmPgIndex=pi; renderClaims(); }
+function _clmSetPgSize(s){ window._clmPgSize=parseInt(s)||20; window._clmPgIndex=0; renderClaims(); }
+function _clmSort(field) {
+  if (window._clmSortField === field) {
+    window._clmSortAsc = !window._clmSortAsc;
+  } else {
+    window._clmSortField = field;
+    window._clmSortAsc = (field === 'dos' || field === 'total') ? false : true;
+  }
+  window._clmPgIndex = 0;
+  renderClaims();
+}
+window._clmSortField = 'dos';
+window._clmSortAsc = false;
+window._clmPgSize = 20;
+window._clmPgIndex = 0;
 
 function setTab(status, btn) {
 claimTabFilter = status || 'all';
@@ -1670,15 +1698,13 @@ function claimDosRange(c) {
 }
 
 function renderClaims() {
-  // If no activeProviderId try to detect from claims
   if (!activeProviderId) {
     const db0 = getDB();
     const pIds = [...new Set((db0.claims||[]).map(c=>c.providerId).filter(Boolean))];
     if (pIds.length) {
       activeProviderId = pIds[0];
-      console.log('renderClaims: auto-set providerId', activeProviderId);
     } else {
-      return; // truly no data
+      return;
     }
   }
 const db = getDB();
@@ -1733,20 +1759,18 @@ const tabFilter = (typeof claimTabFilter!=='undefined') ? claimTabFilter : 'all'
 
 let list = allForProvider;
 if (tabFilter && tabFilter!=='all') list=list.filter(c=>(c.status||'draft')===tabFilter);
-// DOS range filter
 if (dosFrom || dosTo) {
   list = list.filter(function(c) {
     var dates = [c.dos];
     if (Array.isArray(c.lines)) c.lines.forEach(function(l){ if(l.dos) dates.push(l.dos); });
     var isos = dates.filter(Boolean).map(dosToISO).filter(Boolean).sort();
-    if (!isos.length) return !dosFrom; // no date — include only if no from filter
+    if (!isos.length) return !dosFrom;
     var first = isos[0], last = isos[isos.length-1];
     if (dosFrom && last  < dosFrom) return false;
     if (dosTo   && first > dosTo)   return false;
     return true;
   });
 }
-
 if (q) list=list.filter(c=>{
 const pat=db.patients.find(x=>x.id===c.patId)||{};
 const dx=Array.isArray(c.dx)?c.dx.join(' '):String(c.dx||'');
@@ -1755,6 +1779,52 @@ return [c.pcn||'',pat.last||'',pat.first||'',pat.acct||'',dx,cpts].join(' ').toL
 });
 if (payerF) list=list.filter(c=>{const p=db.patients.find(x=>x.id===c.patId)||{};return(p.payerName||p.payerid||'')===payerF;});
 if (monthF) list=list.filter(c=>_dosToMonthKey(c.dos)===monthF);
+
+// ── Sort ─────────────────────────────────────────────────────────
+var sf = window._clmSortField || 'dos';
+var sa = window._clmSortAsc;
+var _clmSortVal = function(c, f) {
+  var p = db.patients.find(function(x){return x.id===c.patId;})||{};
+  switch(f) {
+    case 'pcn': return (c.pcn||'').toLowerCase();
+    case 'acct': return (p.acct||c.acct||'').toLowerCase();
+    case 'patient': return ((p.last||'')+', '+(p.first||'')).toLowerCase();
+    case 'dos': return dosToISO(c.dos||'');
+    case 'cpts': return ((c.lines||[]).map(function(l){return l.cpt||'';}).join(' ')).toLowerCase();
+    case 'lines': return (c.lines||[]).length;
+    case 'total': return claimTotal(c);
+    case 'status': return (c.status||'draft');
+    default: return '';
+  }
+};
+list.sort(function(a, b) {
+  var va = _clmSortVal(a, sf);
+  var vb = _clmSortVal(b, sf);
+  if (typeof va === 'number') return sa ? va - vb : vb - va;
+  if (va < vb) return sa ? -1 : 1;
+  if (va > vb) return sa ? 1 : -1;
+  return 0;
+});
+
+// ── Pagination ───────────────────────────────────────────────────
+var pgSize  = window._clmPgSize  || 20;
+var pgIndex = window._clmPgIndex || 0;
+var total   = list.length;
+var pgCount = Math.ceil(total / pgSize);
+if (pgIndex >= pgCount) pgIndex = 0;
+window._clmPgIndex = pgIndex;
+var pageList = list.slice(pgIndex * pgSize, (pgIndex+1) * pgSize);
+
+// ── Helper for sortable header ──────────────────────────────────
+var _activeF = window._clmSortField;
+var _asc     = window._clmSortAsc;
+var _sortArrow = function(f) {
+  if (_activeF !== f) return '';
+  return _asc ? ' &#9650;' : ' &#9660;';
+};
+var _hdr = function(label, field) {
+  return '<th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="_clmSort(\''+field+'\')">'+label+_sortArrow(field)+'</th>';
+};
 
 const el = document.getElementById('claims-tbl');
 if (!el) return;
@@ -1770,114 +1840,126 @@ _renderLucideIcons(); return;
 }
 
 const allC = db.claims;
-const allSel = list.every(c=>_selectedClaims.has(c.id));
+const allSel = pageList.every(function(c){return _selectedClaims.has(c.id);});
 
-el.innerHTML = `
-<!-- Select all / none bar — always visible when claims exist -->
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-<button onclick="selectAllClaims(true)" title="Select all visible claims"
-style="padding:5px 12px;background:var(--bg3);border:1.5px solid var(--border2);
-border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
-display:flex;align-items:center;gap:6px;font-family:var(--font);color:var(--text2);
-transition:all .15s"
-onmouseover="this.style.borderColor='var(--brand)';this.style.color='var(--brand)'"
-onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-<i data-lucide="check-square" class="lci" style="width:13px;height:13px"></i>
-Select All (${list.length})
-</button>
-<button onclick="selectAllClaims(false)" title="Deselect all"
-style="padding:5px 12px;background:var(--bg3);border:1.5px solid var(--border2);
-border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
-display:flex;align-items:center;gap:6px;font-family:var(--font);color:var(--text2);
-transition:all .15s"
-onmouseover="this.style.borderColor='var(--red-bdr)';this.style.color='var(--red)'"
-onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-<i data-lucide="square" class="lci" style="width:13px;height:13px"></i>
-None
-</button>
-${_selectedClaims.size > 0 ? `<span style="font-size:12px;color:var(--text3);margin-left:4px">${_selectedClaims.size} of ${list.length} selected</span>` : ''}
-</div>
+var from = pgIndex*pgSize+1, to = Math.min((pgIndex+1)*pgSize, total);
 
-<!-- Bulk actions bar — shown when any selected -->
-<div id="clm-bulk-bar" style="display:${_selectedClaims.size>0?'flex':'none'};
-align-items:center;gap:10px;padding:10px 14px;
-background:var(--brand-bg);border:1.5px solid var(--brand-bdr);
-border-radius:var(--r-md);margin-bottom:10px;flex-wrap:wrap">
-<span style="font-size:13px;font-weight:700;color:var(--brand)" id="clm-bulk-count">${_selectedClaims.size} selected</span>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:4px">
-<button class="btn btn-sm btn-primary" onclick="bulkClaimAction('pending')">
-<i data-lucide="clock" class="lci"></i> Pending
-</button>
-<button class="btn btn-sm btn-primary" onclick="bulkClaimAction('submitted')">
-<i data-lucide="send" class="lci"></i> Submit
-</button>
-<button class="btn btn-sm" onclick="bulkClaimAction('accepted')">
-<i data-lucide="check-circle" class="lci"></i> Accept
-</button>
-<button class="btn btn-sm" onclick="bulkClaimAction('rejected')">
-<i data-lucide="x-circle" class="lci"></i> Reject
-</button>
-<button class="btn btn-sm" onclick="bulkClaimAction('export')">
-<i data-lucide="download" class="lci"></i> Export 837P
-</button>
-<button class="btn btn-sm" onclick="bulkClaimAction('pdf')">
-<i data-lucide="printer" class="lci"></i> Superbills PDF
-</button>
-<button class="btn btn-sm" onclick="bulkClaimAction('transmit')"
-style="background:#c96442;color:#fff">
-<i data-lucide="send" class="lci"></i> Transmit to Clearinghouse
-</button>
-<button class="btn btn-sm btn-danger" onclick="bulkClaimAction('delete')">
-<i data-lucide="trash-2" class="lci"></i> Delete
-</button>
-</div>
-<button class="btn btn-xs btn-ghost" onclick="selectAllClaims(false)" style="margin-left:auto">
-<i data-lucide="x" class="lci" style="width:12px;height:12px"></i> Clear
-</button>
-</div>
+// ── Pagination buttons ──────────────────────────────────────────
+var lo = Math.max(0, pgIndex-3), hi = Math.min(pgCount-1, pgIndex+3);
+var pgBtns = '';
+if (lo > 0) { pgBtns += '<button class="pg-btn" onclick="_clmGoPage(0)">1</button>' + (lo>1?'<span class="pg-ellipsis">&hellip;</span>':''); }
+for (var pi=lo; pi<=hi; pi++) {
+  pgBtns += '<button class="pg-btn' + (pi===pgIndex?' pg-active':'') + '" onclick="_clmGoPage(' + pi + ')">' + (pi+1) + '</button>';
+}
+if (hi < pgCount-1) { pgBtns += (hi<pgCount-2?'<span class="pg-ellipsis">&hellip;</span>':'') + '<button class="pg-btn" onclick="_clmGoPage(' + (pgCount-1) + ')">' + pgCount + '</button>'; }
 
-<div class="tbl-wrap"><table>
-<thead><tr>
-<th style="width:32px;padding:8px 10px">
-<input type="checkbox" ${allSel?'checked':''} title="Select all"
-onchange="selectAllClaims(this.checked)"
-style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)">
-</th>
-<th>PCN</th><th>Acct#</th><th>Patient</th><th>DOS</th>
-<th>CPTs</th><th>Lines</th><th>Total</th><th>Status</th><th>Actions</th>
-</tr></thead><tbody>` +
-list.map(c => {
-const oi = allC.findIndex(x=>x.id===c.id);
-const pat = db.patients.find(x=>x.id===c.patId)||{};
+var pgSizeOpts = [20,50,100].map(function(s){
+  return '<option value="'+s+'"'+(s===pgSize?' selected':'')+'>'+s+' / page</option>';
+}).join('');
+
+// ── Build table ─────────────────────────────────────────────────
+var rows = pageList.map(function(c) {
+const oi = allC.findIndex(function(x){return x.id===c.id;});
+const pat = db.patients.find(function(x){return x.id===c.patId;})||{};
 const lines = Array.isArray(c.lines)?c.lines:[];
-const cpts = lines.map(l=>`<span class="mono" style="font-size:11px">${l.cpt||''}</span>`).join(' ');
+const cpts = lines.map(function(l){return '<span class="mono" style="font-size:11px">'+(l.cpt||'')+'</span>';}).join(' ');
 const errs = validateClaim(c);
-const errBadge = errs.length?`<span class="badge b-red" style="font-size:10px;cursor:pointer" title="${errs.join('\n')}">${errs.length} issue${errs.length>1?'s':''}</span>`:'';
+const errBadge = errs.length?'<span class="badge b-red" style="font-size:10px;cursor:pointer" title="'+errs.join('\n')+'">'+errs.length+' issue'+(errs.length>1?'s':'')+'</span>':'';
 const isSel = _selectedClaims.has(c.id);
-return `<tr style="background:${isSel?'var(--brand-bg)':''}">
-<td style="padding:8px 10px">
-<input type="checkbox" ${isSel?'checked':''} data-cid="${c.id}"
-onchange="toggleClaimSelect('${c.id}',this.checked)"
-style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)">
-</td>
-<td class="mono" style="font-size:11px">${c.pcn||''}</td>
-<td><span class="acct">${pat.acct||c.acct||''}</span></td>
-<td style="font-weight:600">${ptLinkName(pat.id,pat.last||'?',pat.first||'')}</td>
-<td style="font-size:12px;white-space:nowrap">${claimDosRange(c)}</td>
-<td>${cpts||''}</td>
-<td style="text-align:center">${lines.length}</td>
-<td class="mono" style="font-weight:700">$${fmtMoney(claimTotal(c))}</td>
-<td>${statusBadge(c.status||'draft')}${errBadge}</td>
-<td><div class="btn-group" style="gap:4px">
-<button class="btn-icon sm" onclick="openClaimModal(${oi})" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
-<button class="btn-icon sm" onclick="openStatusModal(${oi})" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>
-<button class="btn-icon sm" onclick="genSuperbill(${oi})" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>
-<button class="btn-icon sm" onclick="quickDup(${oi})" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>
-<button class="btn-icon sm danger" onclick="delClaim(${oi})" title="Delete"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>
-</div></td>
-</tr>`;
-}).join('') +
-`</tbody></table></div>`;
+return '<tr style="background:'+(isSel?'var(--brand-bg)':'')+'">'+
+'<td style="padding:8px 10px">'+
+'<input type="checkbox" '+(isSel?'checked':'')+' data-cid="'+c.id+'"'+
+'onchange="toggleClaimSelect(\''+c.id+'\',this.checked)"'+
+'style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)">'+
+'</td>'+
+'<td class="mono" style="font-size:11px">'+(c.pcn||'')+'</td>'+
+'<td><span class="acct">'+(pat.acct||c.acct||'')+'</span></td>'+
+'<td style="font-weight:600">'+ptLinkName(pat.id,pat.last||'?',pat.first||'')+'</td>'+
+'<td style="font-size:12px;white-space:nowrap">'+claimDosRange(c)+'</td>'+
+'<td>'+(cpts||'')+'</td>'+
+'<td style="text-align:center">'+lines.length+'</td>'+
+'<td class="mono" style="font-weight:700">$'+fmtMoney(claimTotal(c))+'</td>'+
+'<td>'+statusBadge(c.status||'draft')+errBadge+'</td>'+
+'<td><div class="btn-group" style="gap:4px">'+
+'<button class="btn-icon sm" onclick="openClaimModal('+oi+')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="openStatusModal('+oi+')" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="genSuperbill('+oi+')" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="quickDup('+oi+')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm danger" onclick="delClaim('+oi+')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>'+
+'</div></td>'+
+'</tr>';
+}).join('');
+
+el.innerHTML =
+'<!-- Select all / none bar -->'+
+'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+'<button onclick="selectAllClaims(true)" title="Select all visible claims"'+
+'style="padding:5px 12px;background:var(--bg3);border:1.5px solid var(--border2);'+
+'border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;'+
+'display:flex;align-items:center;gap:6px;font-family:var(--font);color:var(--text2);transition:all .15s"'+
+'onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand)\'"'+
+'onmouseout="this.style.borderColor=\'var(--border2)\';this.style.color=\'var(--text2)\'">'+
+'<i data-lucide="check-square" class="lci" style="width:13px;height:13px"></i>'+
+'Select All ('+pageList.length+')'+
+'</button>'+
+'<button onclick="selectAllClaims(false)" title="Deselect all"'+
+'style="padding:5px 12px;background:var(--bg3);border:1.5px solid var(--border2);'+
+'border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;'+
+'display:flex;align-items:center;gap:6px;font-family:var(--font);color:var(--text2);transition:all .15s"'+
+'onmouseover="this.style.borderColor=\'var(--red-bdr)\';this.style.color=\'var(--red)\'"'+
+'onmouseout="this.style.borderColor=\'var(--border2)\';this.style.color=\'var(--text2)\'">'+
+'<i data-lucide="square" class="lci" style="width:13px;height:13px"></i>'+
+'None'+
+'</button>'+
+(_selectedClaims.size > 0 ? '<span style="font-size:12px;color:var(--text3);margin-left:4px">'+_selectedClaims.size+' of '+total+' selected</span>' : '')+
+'</div>'+
+
+'<!-- Bulk actions bar -->'+
+'<div id="clm-bulk-bar" style="display:'+(_selectedClaims.size>0?'flex':'none')+';'+
+'align-items:center;gap:10px;padding:10px 14px;'+
+'background:var(--brand-bg);border:1.5px solid var(--brand-bdr);'+
+'border-radius:var(--r-md);margin-bottom:10px;flex-wrap:wrap">'+
+'<span style="font-size:13px;font-weight:700;color:var(--brand)" id="clm-bulk-count">'+_selectedClaims.size+' selected</span>'+
+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:4px">'+
+'<button class="btn btn-sm btn-primary" onclick="bulkClaimAction(\'pending\')"><i data-lucide="clock" class="lci"></i> Pending</button>'+
+'<button class="btn btn-sm btn-primary" onclick="bulkClaimAction(\'submitted\')"><i data-lucide="send" class="lci"></i> Submit</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'accepted\')"><i data-lucide="check-circle" class="lci"></i> Accept</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'rejected\')"><i data-lucide="x-circle" class="lci"></i> Reject</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'export\')"><i data-lucide="download" class="lci"></i> Export 837P</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'pdf\')"><i data-lucide="printer" class="lci"></i> Superbills PDF</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'transmit\')" style="background:#c96442;color:#fff"><i data-lucide="send" class="lci"></i> Transmit to Clearinghouse</button>'+
+'<button class="btn btn-sm btn-danger" onclick="bulkClaimAction(\'delete\')"><i data-lucide="trash-2" class="lci"></i> Delete</button>'+
+'</div>'+
+'<button class="btn btn-xs btn-ghost" onclick="selectAllClaims(false)" style="margin-left:auto"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i> Clear</button>'+
+'</div>'+
+
+'<div class="tbl-wrap"><table>'+
+'<thead><tr>'+
+'<th style="width:32px;padding:8px 10px">'+
+'<input type="checkbox" '+(allSel?'checked':'')+' title="Select all"'+
+'onchange="selectAllClaims(this.checked)"'+
+'style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand)">'+
+'</th>'+
+_hdr('PCN','pcn')+
+_hdr('Acct#','acct')+
+_hdr('Patient','patient')+
+_hdr('DOS','dos')+
+_hdr('CPTs','cpts')+
+_hdr('Lines','lines')+
+_hdr('Total','total')+
+_hdr('Status','status')+
+'<th style="white-space:nowrap">Actions</th>'+
+'</tr></thead><tbody>'+
+rows+
+'</tbody></table></div>'+
+
+'<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-top:1px solid var(--border);background:var(--bg2)">'+
+'<span style="font-size:11px;color:var(--text3)">'+from+'\u2013'+to+' of '+total+' claims</span>'+
+'<div style="display:flex;align-items:center;gap:8px">'+
+'<div class="pg-bar">'+pgBtns+'</div>'+
+'<select onchange="_clmSetPgSize(this.value)" style="padding:3px 8px;border:1px solid var(--border2);border-radius:5px;font-size:11px;background:var(--bg2);color:var(--text);cursor:pointer">'+pgSizeOpts+'</select>'+
+'</div></div>';
+
 _renderLucideIcons();
 }
 
@@ -2184,10 +2266,25 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown" id="tn-dd-ehr">
 <div class="tn-dd-item" id="tnd-notes" onclick="go('notes');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Medical Notes</span></div>
-<div class="tn-dd-item" id="tnd-services" onclick="go('services');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>
-</div>
-</div>
-<div class="tn-group" id="tng-config">
+      <div class="tn-dd-item" id="tnd-services" onclick="go('services');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>
+      </div>
+      </div>
+      <div class="tn-group" id="tng-cm" style="display:none">
+      <button class="tn-item tn-has-dd" id="tnav-cm" onclick="toggleTnDropdown('cm',event)">
+      <i data-lucide="briefcase" class="lci"></i><span>Case Management</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="tn-dropdown" id="tn-dd-cm">
+      <div class="tn-dd-item" id="tnd-cm-dashboard" onclick="go('cm-dashboard');closeTnDropdown()"><i data-lucide="layout-dashboard" class="lci"></i><span>Dashboard</span></div>
+      <div class="tn-dd-item" id="tnd-cm-clients" onclick="go('cm-clients');closeTnDropdown()"><i data-lucide="users" class="lci"></i><span>Clients</span></div>
+      <div class="tn-dd-item" id="tnd-cm-workers" onclick="go('cm-workers');closeTnDropdown()"><i data-lucide="user-cog" class="lci"></i><span>Case Workers</span></div>
+      <div class="tn-dd-item" id="tnd-cm-plans" onclick="go('cm-plans');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Service Plans</span></div>
+      <div class="tn-dd-item" id="tnd-cm-notes" onclick="go('cm-notes');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Progress Notes</span></div>
+      <div class="tn-dd-sep"></div>
+      <div class="tn-dd-item" id="tnd-cm-billing" onclick="go('cm-billing');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Billing</span></div>
+      <div class="tn-dd-item" id="tnd-cm-reports" onclick="go('cm-reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
+      </div>
+      </div>
+      <div class="tn-group" id="tng-config">
 <button class="tn-item tn-has-dd" id="tnav-config" onclick="toggleTnDropdown('config',event)">
 <i data-lucide="settings" class="lci"></i><span>Settings</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
 </button>
@@ -2341,9 +2438,21 @@ return `<div class="app-shell">
 <div class="tn-drawer-sub">
 <div class="tn-drawer-sub-item" onclick="go('notes');closeTnDrawer()">Medical Notes</div>
 <div class="tn-drawer-sub-item" onclick="go('services');closeTnDrawer()">Services / CPT</div>
-</div>
-</div>
-<div class="tn-drawer-group" id="mob-grp-config">
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-cm" style="display:none">
+      <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-cm')"><i data-lucide="briefcase" class="lci"></i>Case Management <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="tn-drawer-sub">
+      <div class="tn-drawer-sub-item" onclick="go('cm-dashboard');closeTnDrawer()">Dashboard</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-clients');closeTnDrawer()">Clients</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-workers');closeTnDrawer()">Case Workers</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-plans');closeTnDrawer()">Service Plans</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-notes');closeTnDrawer()">Progress Notes</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-billing');closeTnDrawer()">Billing</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-reports');closeTnDrawer()">Reports</div>
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-config">
 <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-config')"><i data-lucide="settings" class="lci"></i>Settings <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
 <div class="tn-drawer-sub">
 <div class="tn-drawer-sub-item" onclick="go('facilities');closeTnDrawer()">Facilities</div>
@@ -3004,6 +3113,35 @@ Show Paid
 </div>
 <div id="bp-grid"></div>
 </div>
+
+<div class="section" id="sec-cm-dashboard"><div class="page-hdr"><div><h1>Case Management Dashboard</h1></div></div><div id="cm-dash-content"></div></div>
+
+<div class="section" id="sec-cm-clients">
+<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">
+<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>
+<button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>
+<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMClients()">
+<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Workers</option></select>
+<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>
+</div>
+<div id="cm-clients-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-workers">
+<div class="page-hdr"><div><h1>Case Workers</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add Worker</button></div>
+<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>
+<div id="cm-workers-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div>
+
+<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div>
+
+<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div>
+
+<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div id="cm-reports-content"></div></div>
+
+<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div id="cm-settings-content"></div></div>
 
 </div>
 </div>
@@ -4504,10 +4642,47 @@ closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-luci
 
 function delClaim(idx){ if(!confirm('Delete this claim?')) return; setDB(db=>db.claims.splice(idx,1)); renderClaims(); updateBadges(); toast('Claim deleted'); }
 
-
-
-
-
+function openStatusModal(oi) {
+  const db = getDB();
+  const c = db.claims[oi];
+  if (!c) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  var statuses = ['draft','pending','submitted','accepted','rejected','on_hold','denied','partially_paid','paid','settled','patient_balance','voided'];
+  var opts = statuses.map(function(s){
+    var sel = (c.status||'draft')===s?' selected':'';
+    return '<option value="'+s+'"'+sel+'>'+s.replace(/_/g,' ').replace(/\b\w/g,function(l){return l.toUpperCase();})+'</option>';
+  }).join('');
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:20px 24px;border-bottom:1px solid var(--border)">'+
+    '<div style="font-size:16px;font-weight:700">Change Claim Status</div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-top:4px">PCN: '+(c.pcn||'—')+'</div>'+
+    '</div>'+
+    '<div style="padding:20px 24px">'+
+    '<label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Status</label>'+
+    '<select id="osm-status" style="width:100%;padding:10px 12px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--font)">'+opts+'</select>'+
+    '</div>'+
+    '<div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-osm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveStatusFromModal('+oi+')">Save</button>'+
+    '</div></div>';
+  overlay.setAttribute('data-osm','1');
+  document.body.appendChild(overlay);
+}
+function saveStatusFromModal(oi) {
+  var status = document.getElementById('osm-status')?.value;
+  if (!status) return;
+  setDB(function(db2){
+    if (db2.claims[oi]) { db2.claims[oi].status = status; db2.claims[oi].updatedAt = Date.now(); }
+  });
+  var overlays = document.querySelectorAll('[data-osm]');
+  overlays.forEach(function(o){ o.remove(); });
+  renderClaims();
+  updateBadges();
+  toast('Status changed to ' + status.replace(/_/g,' '));
+}
 
 function openRenderingModal(idx){ const db=getDB(); document.getElementById('mrend-title').textContent=idx>=0?'Edit Rendering':'New Rendering Provider'; sv('mrend-id',idx); const r=idx>=0?db.rendering[idx]:{}; sv('mrend-npi',r.npi); sv('mrend-last',r.last); sv('mrend-first',r.first); sv('mrend-taxonomy',r.taxonomy); sv('mrend-taxid',r.taxid); document.getElementById('mrend-res').innerHTML=''; openModal('modal-rendering'); }
 
@@ -5202,9 +5377,15 @@ if (_provWrap) _provWrap.style.display = isSA ? '' : 'none';
 const tngAdmin = document.getElementById('tng-admin');
 if (tngAdmin) tngAdmin.style.display = isSA ? '' : 'none';
 
-// Mobile drawer admin group
-const mobAdmin = document.getElementById('mob-grp-admin');
-if (mobAdmin) mobAdmin.style.display = isSA ? '' : 'none';
+  // Mobile drawer admin group
+  const mobAdmin = document.getElementById('mob-grp-admin');
+  if (mobAdmin) mobAdmin.style.display = isSA ? '' : 'none';
+
+  const isCM = !!(session && (session.role === 'Case Management' || session.role === 'Super Admin'));
+  const tngCM = document.getElementById('tng-cm');
+  if (tngCM) tngCM.style.display = isCM ? '' : 'none';
+  const mobCM = document.getElementById('mob-grp-cm');
+  if (mobCM) mobCM.style.display = isCM ? '' : 'none';
 
 // Legacy sidebar nav (if present)
 const nav = document.getElementById('admin-nav');
@@ -10285,11 +10466,11 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   // Provider info
   t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:11, c:BLACK});
-  const npiTax = [prov.npi?'NPI: '+prov.npi:null, prov.taxid?'EIN: '+prov.taxid:null].filter(Boolean).join('  ·  ');
+  const npiTax = [prov.npi?'NPI: '+UC(prov.npi):null, prov.taxid?'EIN: '+UC(prov.taxid):null].filter(Boolean).join('  ·  ');
   if (npiTax) t(npiTax, provX, y+13, {sz:9, c:DARK});
   const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
   if (addr) t(UC(addr), provX, y+19, {sz:9, c:DARK});
-  if (prov.phone) t('Tel: '+prov.phone, provX, y+25, {sz:9, c:DARK});
+  if (prov.phone) t('TEL: '+UC(prov.phone), provX, y+25, {sz:9, c:DARK});
 
   // SUPERBILL title + PCN (right side)
   t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BLACK, a:'right'});
@@ -10303,7 +10484,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   if (uniqueDates.length > 1) {
     dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
   }
-  const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+posStr:null].filter(Boolean).join('  ·  ');
+  const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+UC(posStr):null].filter(Boolean).join('  ·  ');
   if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
 
   y = (prov.logo && prov.logo.length > 200) ? 52 : 46;
@@ -10311,7 +10492,6 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   y += 6;
 
   // ══ PATIENT ═════════════════════════════════════════════════════
-  _drawPdfIcon(doc, 'user', M-4, y-3, 3.5, BRAND);
   lbl('Patient', M, y);
   y += 5;
 
@@ -10329,8 +10509,8 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   const patInfoParts = [
     pat.dob ? 'DOB: '+_fmtDob(pat.dob) : null,
-    pat.sex ? 'Sex: '+pat.sex : null,
-    pat.acct ? 'Acct: '+UC(pat.acct) : null,
+    pat.sex ? 'SEX: '+UC(pat.sex) : null,
+    pat.acct ? 'ACCT: '+UC(pat.acct) : null,
   ].filter(Boolean);
   if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:9, c:DARK}); y += 5; }
 
@@ -10343,7 +10523,6 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   // ══ INSURANCE ═══════════════════════════════════════════════════
   if (ins1) {
-    _drawPdfIcon(doc, 'shield', M-4, y-3, 3.5, BRAND);
     lbl('Insurance', M, y);
     y += 5;
 
@@ -10351,15 +10530,15 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
       safe(ins1.name||ins1.insuranceName) ? UC(ins1.name||ins1.insuranceName) : null,
       (ins1.payerId||pat.payerid) ? '(ID: '+(ins1.payerId||pat.payerid)+')' : null,
       (ins1.policy||ins1.memberId) ? 'Member: '+(ins1.policy||ins1.memberId) : null,
-      ins1.group ? 'Group: '+ins1.group : null,
+      ins1.group ? 'GROUP: '+UC(ins1.group) : null,
     ].filter(Boolean).join('  ·  ');
     if (ins1Parts) { t(ins1Parts, M, y, {sz:9, c:DARK}); y += 5; }
 
     const subParts = [
-      'Subscriber: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
+      'SUBSCRIBER: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
       (ins1.dob||pat.dob) ? 'DOB: '+_fmtDob(ins1.dob||pat.dob) : null,
-      ins1.relation ? 'Relation: '+({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
-      ins1.plan ? 'Plan: '+UC(ins1.plan) : null,
+      ins1.relation ? 'RELATION: '+UC({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
+      ins1.plan ? 'PLAN: '+UC(ins1.plan) : null,
     ].filter(Boolean).join('  ·  ');
     if (subParts) { t(subParts, M, y, {sz:9, c:DARK}); y += 4; }
 
@@ -10372,19 +10551,17 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   if (rend.last || ref.last) {
     const halfW = CW/2;
     if (rend.last) {
-      _drawPdfIcon(doc, 'building', M-4, y-3, 3.5, BRAND);
       lbl('Rendering Provider', M, y);
       t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
-      const rendInfo = [rend.npi?'NPI: '+rend.npi:null, rend.taxonomy?'Taxonomy: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
+      const rendInfo = [rend.npi?'NPI: '+UC(rend.npi):null, rend.taxonomy?'TAXONOMY: '+UC(rend.taxonomy):null].filter(Boolean).join('  ·  ');
       if (rendInfo) t(rendInfo, M, y+10, {sz:9, c:DARK});
-      const facInfo = fac.name ? 'Facility: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:'') : null;
+      const facInfo = fac.name ? 'FACILITY: '+UC(fac.name)+(fac.npi?' · NPI: '+UC(fac.npi):'') : null;
       if (facInfo) t(facInfo, M, y+15, {sz:9, c:DARK});
     }
     if (ref.last) {
-      _drawPdfIcon(doc, 'building', M+halfW+2-4, y-3, 3.5, BRAND);
       lbl('Referring Provider', M+halfW+2, y);
       t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
-      if (ref.npi) t('NPI: '+ref.npi, M+halfW+2, y+10, {sz:9, c:DARK});
+      if (ref.npi) t('NPI: '+UC(ref.npi), M+halfW+2, y+10, {sz:9, c:DARK});
     }
     y += (rend.last&&fac.name) ? 22 : 18;
     hline(M, y, RX, BORDER_LT, 0.25);
@@ -10393,7 +10570,6 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   // ══ DIAGNOSES ═══════════════════════════════════════════════════
   if (dxArr.length) {
-    _drawPdfIcon(doc, 'hash', M-4, y-3, 3.5, BRAND);
     lbl('Diagnoses (ICD-10)', M, y);
     y += 5;
     const dxCols=4, dxW=CW/dxCols;
@@ -10408,7 +10584,6 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   }
 
   // ══ SERVICE LINES — one page per DOS if multi-date ──────────
-  _drawPdfIcon(doc, 'dollar', M-4, y-3, 3.5, BRAND);
   lbl('Service Lines', M, y);
   y += 4;
   hline(M, y, RX, DARK, 0.3);
@@ -10446,19 +10621,19 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
       doc.addPage();
       fill(0,0,W,3,BRAND);
       t(UC(prov.name||'Medical Provider'), M, 10, {b:true, sz:9, c:BLACK});
-      t('DOS: '+_grp.dos+'  ·  Patient: '+UC(patName||'Unknown'), M, 16, {sz:8, c:DARK});
+      t('DOS: '+UC(_grp.dos)+'  ·  PATIENT: '+UC(patName||'Unknown'), M, 16, {sz:8, c:DARK});
       hline(M, 20, RX, BORDER_LT, 0.4);
       y = 26;
     }
     // Table header
-    if (hasDosPerLine) t('Date', M, y, {sz:7, b:true, c:BLACK});
+    if (hasDosPerLine) t('DATE', M, y, {sz:7, b:true, c:BLACK});
     t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
-    t('Description', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
-    t('Units', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('Unit Price', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-    t('Mods', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
-    t('Dx', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('Total', RX, y, {sz:7, b:true, c:DARK, a:'right'});
+    t('DESCRIPTION', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
+    t('UNITS', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
+    t('UNIT PRICE', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
+    t('MODS', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
+    t('DX', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
+    t('TOTAL', RX, y, {sz:7, b:true, c:DARK, a:'right'});
     y += 2;
     hline(M, y, RX, DARK, 0.15);
     y += 5;
@@ -10509,7 +10684,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
       var _grpTotal = _grp.lines.reduce(function(s, l2) {
         return s + (parseFloat(l2.charge)||0) * (parseInt(l2.units)||1);
       }, 0);
-      t('Subtotal — DOS '+_grp.dos, M, y+6, {b:true, sz:9, c:DARK});
+      t('SUBTOTAL — DOS '+_grp.dos, M, y+6, {b:true, sz:9, c:DARK});
       t($v(_grpTotal), RX, y+6, {b:true, sz:10, c:DARK, a:'right'});
       y += 12;
     }
@@ -10528,7 +10703,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
 
   const rendName = rend.last
-    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+rend.npi:'')
+    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+UC(rend.npi):'')
     : UC(prov.name||'Provider');
   t('ELECTRONICALLY SIGNED BY:', M+6, fY+6, {sz:7, c:GRAY2});
   t(rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
@@ -15091,9 +15266,16 @@ referring: { item:'tnav-config', dd:'tnd-referring' },
 providers: { item:'tnav-config', dd:'tnd-providers' },
 invoices: { item:'tnav-admin', dd:'tnd-invoices' },
 'admin-providers':{ item:'tnav-admin', dd:'tnd-admin-providers' },
-reports: { item:'tnav-admin' },
-account: { item:'tnav-admin' },
-};
+      reports: { item:'tnav-admin' },
+      account: { item:'tnav-admin' },
+      'cm-dashboard': { item:'tnav-cm', dd:'tnd-cm-dashboard' },
+      'cm-clients': { item:'tnav-cm', dd:'tnd-cm-clients' },
+      'cm-workers': { item:'tnav-cm', dd:'tnd-cm-workers' },
+      'cm-plans': { item:'tnav-cm', dd:'tnd-cm-plans' },
+      'cm-notes': { item:'tnav-cm', dd:'tnd-cm-notes' },
+      'cm-billing': { item:'tnav-cm', dd:'tnd-cm-billing' },
+      'cm-reports': { item:'tnav-cm', dd:'tnd-cm-reports' },
+      };
 const m = map[route];
 if (!m) return;
 if (m.item) document.getElementById(m.item)?.classList.add('active');
@@ -16037,13 +16219,13 @@ if (doc.category==='Superbills' && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
     return '<tr style="font-size:12px;border-bottom:1px solid #e8e6dc">'+
       '<td style="padding:6px 8px;font-weight:600">'+( l.cpt||'')+'</td>'+
-      '<td style="padding:6px 8px;color:#334155">'+(l.desc||'')+'</td>'+
+      '<td style="padding:6px 8px;color:#334155">'+((l.desc||'').toUpperCase())+'</td>'+
       '<td style="padding:6px 8px;text-align:center">'+(l.units||1)+'</td>'+
       '<td style="padding:6px 8px;text-align:right;font-weight:600">$'+(l.charge||'0.00')+'</td>'+
     '</tr>';
   }).join('');
   var dxHTML = (doc.dx||[]).map(function(d,i){
-    return '<span style="background:#e8e6dc;border:1px solid #e8e6dc;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+d+'</span>';
+    return '<span style="background:#e8e6dc;border:1px solid #e8e6dc;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">'+(String.fromCharCode(65+i))+'. '+(d||'').toUpperCase()+'</span>';
   }).join(' ');
   var ov = document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -16052,16 +16234,16 @@ if (doc.category==='Superbills' && doc.lines) {
     '<div style="background:#141413;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'+
       '<div><div style="font-size:18px;font-weight:700">ClaimDataCare</div>'+
       '<div style="font-size:11px;opacity:.8">Superbill / Patient Receipt</div></div>'+
-      '<button onclick="this.closest(\'[data-sbov]\').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px"><i data-lucide="x" class="lci"></i> Close</button>'+
+      '<button onclick="this.closest(\'[data-sbov]\').remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">CLOSE</button>'+
     '</div>'+
     '<div style="padding:20px 24px">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
         '<div><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:4px">Provider</div>'+
-        '<div style="font-size:13px;font-weight:600">'+(doc.providerName||'')+'</div>'+
-        '<div style="font-size:11px;color:#87867f">NPI: '+(doc.providerNPI||'—')+'</div></div>'+
+        '<div style="font-size:13px;font-weight:600">'+((doc.providerName||'').toUpperCase())+'</div>'+
+        '<div style="font-size:11px;color:#87867f">NPI: '+((doc.providerNPI||'—').toUpperCase())+'</div></div>'+
         '<div><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:4px">Patient</div>'+
-        '<div style="font-size:13px;font-weight:600">'+(doc.name||pat.last+', '+pat.first||'')+'</div>'+
-        '<div style="font-size:11px;color:#87867f">DOS: '+(doc.date||'')+'</div></div>'+
+        '<div style="font-size:13px;font-weight:600">'+((doc.name||pat.last+', '+pat.first||'').toUpperCase())+'</div>'+
+        '<div style="font-size:11px;color:#87867f">DOS: '+((doc.date||'').toUpperCase())+'</div></div>'+
       '</div>'+
       '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;margin-bottom:6px">Diagnoses</div>'+
       '<div>'+dxHTML+'</div></div>'+
@@ -16078,7 +16260,7 @@ if (doc.category==='Superbills' && doc.lines) {
         '</tr></tfoot>'+
       '</table>'+
       '<div style="font-size:10px;color:#87867f;text-align:center;border-top:1px solid #e8e6dc;padding-top:10px">'+
-        'PCN: '+(doc.claimPCN||'')+' · Generated by ClaimDataCare · '+(doc.date||'')+
+        'PCN: '+((doc.claimPCN||'').toUpperCase())+' · GENERATED BY CLAIMDATACARE · '+((doc.date||'').toUpperCase())+
       '</div>'+
     '</div>'+
   '</div>';
@@ -17487,6 +17669,725 @@ function _patchPDF() {
 }
 _patchPDF();
 
+// ???????????????????????????????????????????????????????????????????????
+// CASE MANAGEMENT (TCM) MODULE
+// ???????????????????????????????????????????????????????????????????????
+const CM_KEY = 'cdc_cm_data_v1';
+function getCMData() {
+  try {
+    var r = localStorage.getItem(CM_KEY);
+    if (r) return JSON.parse(r);
+  } catch(e) {}
+  return { clients:[], workers:[], plans:[], notes:[], billing:[] };
+}
+function saveCMData(d) {
+  try { localStorage.setItem(CM_KEY, JSON.stringify(d)); } catch(e) {}
+}
+function _cmId() { return 'cm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function _cmDateStr(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
+}
+function _cmNowISO() { return new Date().toISOString(); }
+function _cmFmtMoney(n) { return '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function _cmStatusBadge(s) {
+  var m = { Active:'b-green', Inactive:'b-gray', Discharged:'b-red', Draft:'b-gray', Ready:'b-blue', Submitted:'b-amber', Paid:'b-green', Rejected:'b-red', Completed:'b-green', Expired:'b-amber' };
+  var c = m[s] || 'b-gray';
+  return '<span class="badge '+c+'">'+s+'</span>';
+}
+function _cmWorkerName(wid) {
+  var d = getCMData();
+  var w = d.workers.find(function(x){return x.id===wid;});
+  return w ? (w.first+' '+w.last) : '—';
+}
+function _cmClientName(cid) {
+  var d = getCMData();
+  var c = d.clients.find(function(x){return x.id===cid;});
+  return c ? (c.last+', '+c.first) : '—';
+}
+function _cmClientOpts() {
+  var d = getCMData();
+  return d.clients.filter(function(c){return c.status==='Active';}).map(function(c){
+    return '<option value="'+c.id+'">'+c.last+', '+c.first+' ('+(c.medicaidId||'')+')</option>';
+  }).join('');
+}
+function _cmWorkerOpts() {
+  var d = getCMData();
+  return d.workers.filter(function(w){return w.status!=='Inactive';}).map(function(w){
+    var sup = w.supervisorId ? ' — Sup: '+_cmWorkerName(w.supervisorId) : '';
+    return '<option value="'+w.id+'">'+w.first+' '+w.last+sup+'</option>';
+  }).join('');
+}
+function _isCMRole() {
+  var s = getSession();
+  return !!(s && (s.role === 'Case Management' || s.role === 'Super Admin'));
+}
+
+// ── CM: DASHBOARD ──────────────────────────────────────────────
+function renderCMDashboard() {
+  if (!_isCMRole()) { go('dashboard'); return; }
+  var el = document.getElementById('cm-dash-content');
+  if (!el) return;
+  var d = getCMData();
+  var activeClients = d.clients.filter(function(c){return c.status==='Active';});
+  var activeWorkers = d.workers.filter(function(w){return w.status!=='Inactive';});
+  var duePlans = d.plans.filter(function(p){return p.status==='Active' && p.nextReview && new Date(p.nextReview) < new Date(Date.now()+30*86400000);});
+  var todayNotes = d.notes.filter(function(n){var nd=new Date(n.date).toDateString();return nd===new Date().toDateString();});
+  var billingReady = d.billing.filter(function(b){return b.status==='Ready';});
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)">'+activeClients.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Clients</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+activeWorkers.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Workers</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:'+(duePlans.length?'var(--amber)':'var(--text)')+'">'+duePlans.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reviews Due (30d)</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:'+(billingReady.length?'var(--brand)':'var(--text)')+'">'+billingReady.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Billing Ready</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Recent Notes Today ('+todayNotes.length+')</div>'+
+    '<div style="padding:12px 16px;max-height:200px;overflow-y:auto">'+
+    (todayNotes.length ? todayNotes.slice(0,10).map(function(n){
+      return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)"><strong>'+_cmClientName(n.clientId)+'</strong> \u2014 '+(n.billable?'Billable':'Non-Billable')+'</div>';
+    }).join('') : '<div style="font-size:12px;color:var(--text3)">No notes recorded today.</div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Caseload Overview</div>'+
+    '<div style="padding:12px 16px;max-height:200px;overflow-y:auto">'+
+    (activeWorkers.length ? activeWorkers.slice(0,10).map(function(w){
+      var cnt = activeClients.filter(function(c){return c.workerId===w.id;}).length;
+      return '<div style="font-size:12px;padding:4px 0;display:flex;justify-content:space-between"><span>'+w.first+' '+w.last+'</span><span style="font-weight:600">'+cnt+' clients</span></div>';
+    }).join('') : '<div style="font-size:12px;color:var(--text3)">No workers assigned.</div>')+
+    '</div></div></div>';
+}
+
+// ── CM: CLIENTS ─────────────────────────────────────────────────
+function renderCMClients() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-clients-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-cli-q')?.value||'').toLowerCase().trim();
+  var workerF = document.getElementById('cm-cli-worker')?.value||'';
+  var statusF = document.getElementById('cm-cli-status')?.value||'';
+  var showInactive = document.getElementById('cm-cli-show-inactive')?.checked;
+  var workerSel = document.getElementById('cm-cli-worker');
+  if (workerSel) {
+    var cur = workerSel.value;
+    workerSel.innerHTML = '<option value="">All Workers</option>'+d.workers.filter(function(w){return w.status!=='Inactive';}).map(function(w){
+      return '<option value="'+w.id+'"'+(w.id===cur?' selected':'')+'>'+w.first+' '+w.last+'</option>';
+    }).join('');
+  }
+  var list = d.clients;
+  if (!showInactive) list = list.filter(function(c){return c.status==='Active';});
+  if (workerF) list = list.filter(function(c){return c.workerId===workerF;});
+  if (statusF) list = list.filter(function(c){return c.status===statusF;});
+  if (q) list = list.filter(function(c){return (c.first+' '+c.last+' '+c.medicaidId+' '+c.phone).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No clients found</h3></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Medicaid ID</th><th>Worker</th><th>Status</th><th>Auth Until</th><th>Phone</th><th></th></tr></thead><tbody>'+
+    list.map(function(c){
+      return '<tr>'+
+        '<td style="font-weight:600">'+c.last+', '+c.first+'</td>'+
+        '<td style="font-size:12px">'+(c.medicaidId||'—')+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(c.workerId)+'</td>'+
+        '<td>'+_cmStatusBadge(c.status||'Active')+'</td>'+
+        '<td style="font-size:12px">'+(c.authEnd||'—')+'</td>'+
+        '<td style="font-size:12px">'+(c.phone||'')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMClient(\''+c.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMClient(\''+c.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMClientModal(editId) {
+  var d = getCMData();
+  var c = editId ? d.clients.find(function(x){return x.id===editId;}) : {};
+  var workerOpts = '<option value="">— None —</option>'+_cmWorkerOpts();
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Client':'New Client')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmc-first" class="no-upper" value="'+(c.first||'')+'"></div>'+
+    '<div class="field"><label>Last Name</label><input id="cmc-last" class="no-upper" value="'+(c.last||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Medicaid ID</label><input id="cmc-mid" value="'+(c.medicaidId||'')+'"></div>'+
+    '<div class="field"><label>DOB</label><input id="cmc-dob" type="date" value="'+(c.dob||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Phone</label><input id="cmc-phone" value="'+(c.phone||'')+'"></div>'+
+    '<div class="field"><label>Email</label><input id="cmc-email" type="email" value="'+(c.email||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Address</label><input id="cmc-addr" value="'+(c.address||'')+'"></div>'+
+    '<div class="field"><label>Status</label><select id="cmc-status"><option value="Active"'+(c.status==='Active'?' selected':'')+'>Active</option><option value="Inactive"'+(c.status==='Inactive'?' selected':'')+'>Inactive</option><option value="Discharged"'+(c.status==='Discharged'?' selected':'')+'>Discharged</option></select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Case Worker</label><select id="cmc-worker">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
+    '<div class="field"><label>Auth Start</label><input id="cmc-auth-start" type="date" value="'+(c.authStart||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Auth End</label><input id="cmc-auth-end" type="date" value="'+(c.authEnd||'')+'"></div>'+
+    '<div class="field"><label>Auth Units</label><input id="cmc-auth-units" type="number" value="'+(c.authUnits||'')+'"></div></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMClient(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+}
+function saveCMClient(id) {
+  var d = getCMData();
+  var first = document.getElementById('cmc-first')?.value||'';
+  var last = document.getElementById('cmc-last')?.value||'';
+  if (!first || !last) { toast('First and last name required','warn'); return; }
+  var obj = {
+    first: first.trim(), last: last.trim(),
+    medicaidId: document.getElementById('cmc-mid')?.value||'',
+    dob: document.getElementById('cmc-dob')?.value||'',
+    phone: document.getElementById('cmc-phone')?.value||'',
+    email: document.getElementById('cmc-email')?.value||'',
+    address: document.getElementById('cmc-addr')?.value||'',
+    status: document.getElementById('cmc-status')?.value||'Active',
+    workerId: document.getElementById('cmc-worker')?.value||'',
+    authStart: document.getElementById('cmc-auth-start')?.value||'',
+    authEnd: document.getElementById('cmc-auth-end')?.value||'',
+    authUnits: parseInt(document.getElementById('cmc-auth-units')?.value)||0,
+    updatedAt: _cmNowISO()
+  };
+  if (id) {
+    var idx = d.clients.findIndex(function(x){return x.id===id;});
+    if (idx>=0) { Object.assign(d.clients[idx], obj); }
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    obj.status = obj.status || 'Active';
+    d.clients.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMClients();
+  toast('Client saved');
+}
+function editCMClient(id) { openCMClientModal(id); }
+function delCMClient(id) {
+  if (!confirm('Delete this client?')) return;
+  var d = getCMData();
+  d.clients = d.clients.filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMClients();
+  toast('Client deleted');
+}
+
+// ── CM: WORKERS ─────────────────────────────────────────────────
+function renderCMWorkers() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-workers-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-wkr-q')?.value||'').toLowerCase().trim();
+  var list = d.workers;
+  if (q) list = list.filter(function(w){return (w.first+' '+w.last+' '+w.credential+' '+w.email).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No workers found</h3><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add Worker</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Credential</th><th>Supervisor</th><th>Caseload</th><th>Capacity</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(w){
+      var cnt = d.clients.filter(function(c){return c.workerId===w.id && c.status==='Active';}).length;
+      var cap = w.capacity||20;
+      var pct = Math.round(cnt/cap*100);
+      return '<tr>'+
+        '<td style="font-weight:600">'+w.first+' '+w.last+'</td>'+
+        '<td style="font-size:12px">'+(w.credential||'—')+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(w.supervisorId)+'</td>'+
+        '<td style="font-size:12px;font-weight:600">'+cnt+'</td>'+
+        '<td style="font-size:12px"><div style="background:var(--bg3);border-radius:10px;height:6px;width:60px;display:inline-block;vertical-align:middle;overflow:hidden"><div style="background:'+(pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)')+';height:6px;width:'+Math.min(pct,100)+'%;border-radius:10px"></div></div> '+cap+'</td>'+
+        '<td style="font-size:12px">'+(w.email||'')+'</td>'+
+        '<td>'+_cmStatusBadge(w.status||'Active')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMWorker(\''+w.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMWorker(\''+w.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMWorkerModal(editId) {
+  var d = getCMData();
+  var w = editId ? d.workers.find(function(x){return x.id===editId;}) : {};
+  var supOpts = '<option value="">— None —</option>'+d.workers.filter(function(x){return x.id!==editId;}).map(function(x){
+    return '<option value="'+x.id+'"'+(x.id===(w.supervisorId||'')?' selected':'')+'>'+x.first+' '+x.last+'</option>';
+  }).join('');
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Worker':'New Worker')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmw-first" class="no-upper" value="'+(w.first||'')+'"></div>'+
+    '<div class="field"><label>Last Name</label><input id="cmw-last" class="no-upper" value="'+(w.last||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Credential (LSW, LCSW, etc.)</label><input id="cmw-cred" value="'+(w.credential||'')+'"></div>'+
+    '<div class="field"><label>Capacity (max clients)</label><input id="cmw-cap" type="number" value="'+(w.capacity||20)+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
+    '<div class="field"><label>Phone</label><input id="cmw-phone" value="'+(w.phone||'')+'"></div></div>'+
+    '<div class="field"><label>Supervisor</label><select id="cmw-sup">'+supOpts+'</select></div>'+
+    '<div class="fg g2"><div class="field"><label>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div>'+
+    '<div class="field"><label>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMWorker(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+}
+function saveCMWorker(id) {
+  var d = getCMData();
+  var first = document.getElementById('cmw-first')?.value||'';
+  var last = document.getElementById('cmw-last')?.value||'';
+  if (!first || !last) { toast('First and last name required','warn'); return; }
+  var obj = {
+    first: first.trim(), last: last.trim(),
+    credential: document.getElementById('cmw-cred')?.value||'',
+    capacity: parseInt(document.getElementById('cmw-cap')?.value)||20,
+    email: document.getElementById('cmw-email')?.value||'',
+    phone: document.getElementById('cmw-phone')?.value||'',
+    supervisorId: document.getElementById('cmw-sup')?.value||'',
+    hireDate: document.getElementById('cmw-hire')?.value||'',
+    status: document.getElementById('cmw-status')?.value||'Active',
+    updatedAt: _cmNowISO()
+  };
+  if (id) {
+    var idx = d.workers.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.workers[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.workers.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMWorkers();
+  toast('Worker saved');
+}
+function editCMWorker(id) { openCMWorkerModal(id); }
+function delCMWorker(id) {
+  if (!confirm('Delete this worker?')) return;
+  var d = getCMData();
+  d.workers = d.workers.filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMWorkers();
+  toast('Worker deleted');
+}
+
+// ── CM: SERVICE PLANS ──────────────────────────────────────────
+function renderCMPlans() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-plans-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-plan-q')?.value||'').toLowerCase().trim();
+  var sf = document.getElementById('cm-plan-status')?.value||'';
+  var list = d.plans;
+  if (sf) list = list.filter(function(p){return p.status===sf;});
+  if (q) list = list.filter(function(p){return _cmClientName(p.clientId).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No service plans found</h3><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Created</th><th>Next Review</th><th>Goals</th><th>Worker</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(p){
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(p.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(p.createdDate||'')+'</td>'+
+        '<td style="font-size:12px">'+(p.nextReview||'')+'</td>'+
+        '<td style="font-size:12px">'+(p.goals?p.goals.length:0)+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(p.workerId)+'</td>'+
+        '<td>'+_cmStatusBadge(p.status||'Active')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMPlan(\''+p.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMPlan(\''+p.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMPlanModal(editId) {
+  var d = getCMData();
+  var p = editId ? d.plans.find(function(x){return x.id===editId;}) : {goals:[]};
+  var goalsHtml = (p.goals||[]).map(function(g,i){
+    return '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">'+
+      '<input class="cmp-goal" value="'+(g.text||'')+'" placeholder="Goal description" style="flex:1;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+
+      '<select class="cmp-goal-st" style="padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)">'+
+        '<option value="Not Started"'+(g.status==='Not Started'?' selected':'')+'>Not Started</option>'+
+        '<option value="In Progress"'+(g.status==='In Progress'?' selected':'')+'>In Progress</option>'+
+        '<option value="Achieved"'+(g.status==='Achieved'?' selected':'')+'>Achieved</option>'+
+        '<option value="Discontinued"'+(g.status==='Discontinued'?' selected':'')+'>Discontinued</option>'+
+      '</select>'+
+      '<button class="btn btn-xs btn-ghost" onclick="this.parentElement.remove()" style="color:var(--red)">X</button></div>';
+  }).join('');
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Plan':'New Service Plan')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmp-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Worker</label><select id="cmp-worker">'+_cmWorkerOpts()+'</select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Created Date</label><input id="cmp-created" type="date" value="'+(p.createdDate||_cmDateStr(new Date()))+'"></div>'+
+    '<div class="field"><label>Next Review (6 months)</label><input id="cmp-review" type="date" value="'+(p.nextReview||'')+'"></div></div>'+
+    '<div class="field"><label>Status</label><select id="cmp-status"><option value="Active"'+(p.status!=='Completed'&&p.status!=='Expired'?' selected':'')+'>Active</option><option value="Completed"'+(p.status==='Completed'?' selected':'')+'>Completed</option><option value="Expired"'+(p.status==='Expired'?' selected':'')+'>Expired</option></select></div>'+
+    '<div style="margin-top:14px"><div style="font-weight:600;font-size:13px;margin-bottom:8px">Goals & Objectives</div><div id="cmp-goals-list">'+goalsHtml+'</div>'+
+    '<button class="btn btn-xs btn-ghost" onclick="var el=document.getElementById(\'cmp-goals-list\');el.innerHTML+=`<div style=\'display:flex;gap:6px;margin-bottom:6px;align-items:center\'><input class=\'cmp-goal\' placeholder=\'Goal description\' style=\'flex:1;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)\'><select class=\'cmp-goal-st\' style=\'padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)\'><option>Not Started</option><option>In Progress</option><option>Achieved</option><option>Discontinued</option></select><button class=\'btn btn-xs btn-ghost\' onclick=\'this.parentElement.remove()\' style=\'color:var(--red)\'>X</button></div>`" style="margin-top:4px">+ Add Goal</button></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMPlan(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && p.clientId) { var sel=document.getElementById('cmp-client'); if(sel) sel.value=p.clientId; }
+  if (editId && p.workerId) { var sel2=document.getElementById('cmp-worker'); if(sel2) sel2.value=p.workerId; }
+}
+function saveCMPlan(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cmp-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var goalEls = document.querySelectorAll('.cmp-goal');
+  var goalStEls = document.querySelectorAll('.cmp-goal-st');
+  var goals = [];
+  goalEls.forEach(function(el,i){
+    var txt = el.value.trim();
+    if (txt) goals.push({text:txt, status:goalStEls[i]?.value||'Not Started'});
+  });
+  var obj = {
+    clientId: clientId,
+    workerId: document.getElementById('cmp-worker')?.value||'',
+    createdDate: document.getElementById('cmp-created')?.value||'',
+    nextReview: document.getElementById('cmp-review')?.value||'',
+    status: document.getElementById('cmp-status')?.value||'Active',
+    goals: goals,
+    updatedAt: _cmNowISO()
+  };
+  if (id) {
+    var idx = d.plans.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.plans[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.plans.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMPlans();
+  toast('Plan saved');
+}
+function editCMPlan(id) { openCMPlanModal(id); }
+function delCMPlan(id) {
+  if (!confirm('Delete this plan?')) return;
+  var d = getCMData();
+  d.plans = d.plans.filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMPlans();
+  toast('Plan deleted');
+}
+
+// ── CM: PROGRESS NOTES ─────────────────────────────────────────
+function renderCMNotes() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-notes-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-note-q')?.value||'').toLowerCase().trim();
+  var bf = document.getElementById('cm-note-billable')?.value||'';
+  var list = d.notes.slice().sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  if (bf) list = list.filter(function(n){return String(n.billable?1:0)===bf;});
+  if (q) list = list.filter(function(n){return (_cmClientName(n.clientId)+' '+_cmWorkerName(n.workerId)).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No progress notes found</h3><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Worker</th><th>Type</th><th>Units</th><th>Location</th><th>Signature</th><th></th></tr></thead><tbody>'+
+    list.map(function(n){
+      return '<tr>'+
+        '<td style="font-size:12px;white-space:nowrap">'+(n.date||'')+'</td>'+
+        '<td style="font-weight:600">'+_cmClientName(n.clientId)+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(n.workerId)+'</td>'+
+        '<td>'+(n.billable?'<span class="badge b-green">Billable</span>':'<span class="badge b-gray">Non-Billable</span>')+'</td>'+
+        '<td style="text-align:center;font-weight:600">'+(n.units||0)+'</td>'+
+        '<td style="font-size:12px">'+(n.location||'')+'</td>'+
+        '<td style="font-size:11px">'+(n.signature?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">—</span>')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMNote(\''+n.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMNote(\''+n.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMNoteModal(editId) {
+  var d = getCMData();
+  var n = editId ? d.notes.find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Note':'New Progress Note')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmn-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Worker</label><select id="cmn-worker">'+_cmWorkerOpts()+'</select></div></div>'+
+    '<div class="fg g3"><div class="field"><label>Date</label><input id="cmn-date" type="date" value="'+(n.date||_cmDateStr(new Date()))+'"></div>'+
+    '<div class="field"><label>Start Time</label><input id="cmn-start" type="time" value="'+(n.startTime||'09:00')+'"></div>'+
+    '<div class="field"><label>End Time</label><input id="cmn-end" type="time" value="'+(n.endTime||'09:15')+'"></div></div>'+
+    '<div class="fg g3"><div class="field"><label>Billable</label><select id="cmn-billable"><option value="1"'+(n.billable?' selected':'')+'>Yes</option><option value="0"'+(n.billable===false?' selected':'')+'>No</option></select></div>'+
+    '<div class="field"><label>Units (15-min)</label><input id="cmn-units" type="number" value="'+(n.units||1)+'" min="1"></div>'+
+    '<div class="field"><label>Location</label><select id="cmn-location"><option value="Face-to-Face"'+(n.location==='Face-to-Face'?' selected':'')+'>Face-to-Face</option><option value="Telephone"'+(n.location==='Telephone'?' selected':'')+'>Telephone</option><option value="Remote/Virtual"'+(n.location==='Remote/Virtual'?' selected':'')+'>Remote/Virtual</option><option value="Collateral"'+(n.location==='Collateral'?' selected':'')+'>Collateral</option></select></div></div>'+
+    '<div class="field"><label>Service Code</label><select id="cmn-code"><option value="T1017" '+(n.code==='T1017'?'selected':'')+'>T1017 - Targeted Case Management</option><option value="H0031" '+(n.code==='H0031'?'selected':'')+'>H0031 - Mental Health Assessment</option><option value="H0032" '+(n.code==='H0032'?'selected':'')+'>H0032 - Treatment Plan</option><option value="H2019" '+(n.code==='H2019'?'selected':'')+'>H2019 - Therapeutic Behavioral Services</option><option value="S9480" '+(n.code==='S9480'?'selected':'')+'>S9480 - Intensive In-Home</option></select></div>'+
+    '<div class="field"><label>Note Content <span style="font-weight:400;color:var(--text3)">(Describe interaction, progress, concerns)</span></label><textarea id="cmn-content" style="width:100%;min-height:100px;padding:8px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font);resize:vertical">'+(n.content||'')+'</textarea></div>'+
+    '<div class="field"><label><input type="checkbox" id="cmn-sig" '+(n.signature?'checked':'')+'> Electronically sign this note</label></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMNote(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && n.clientId) { var sel=document.getElementById('cmn-client'); if(sel) sel.value=n.clientId; }
+  if (editId && n.workerId) { var sel2=document.getElementById('cmn-worker'); if(sel2) sel2.value=n.workerId; }
+}
+function saveCMNote(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cmn-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var start = document.getElementById('cmn-start')?.value||'';
+  var end = document.getElementById('cmn-end')?.value||'';
+  var units = parseInt(document.getElementById('cmn-units')?.value)||1;
+  if (!end || !start) { toast('Start and end time required','warn'); return; }
+  var startMin = start.split(':').reduce(function(h,m){return parseInt(h)*60+parseInt(m);},0);
+  var endMin = end.split(':').reduce(function(h,m){return parseInt(h)*60+parseInt(m);},0);
+  var calcUnits = Math.max(1, Math.round((endMin - startMin) / 15));
+  var obj = {
+    clientId: clientId,
+    workerId: document.getElementById('cmn-worker')?.value||'',
+    date: document.getElementById('cmn-date')?.value||'',
+    startTime: start,
+    endTime: end,
+    billable: document.getElementById('cmn-billable')?.value==='1',
+    units: units,
+    location: document.getElementById('cmn-location')?.value||'',
+    code: document.getElementById('cmn-code')?.value||'T1017',
+    content: document.getElementById('cmn-content')?.value||'',
+    signature: !!document.getElementById('cmn-sig')?.checked,
+    updatedAt: _cmNowISO()
+  };
+  if (id) {
+    var idx = d.notes.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.notes[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.notes.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMNotes();
+  toast('Note saved');
+}
+function editCMNote(id) { openCMNoteModal(id); }
+function delCMNote(id) {
+  if (!confirm('Delete this note?')) return;
+  var d = getCMData();
+  d.notes = d.notes.filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMNotes();
+  toast('Note deleted');
+}
+
+// ── CM: BILLING ────────────────────────────────────────────────
+function renderCMBilling() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-billing-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var sf = document.getElementById('cm-bill-status')?.value||'';
+  var list = d.billing;
+  if (sf) list = list.filter(function(b){return b.status===sf;});
+  list = list.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No billing entries yet</h3><p style="color:var(--text3);font-size:13px">Click "Generate from Notes" to create billing from billable progress notes.</p></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Service Date</th><th>Code</th><th>Units</th><th>Rate</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(b){
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(b.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(b.serviceDate||'')+'</td>'+
+        '<td style="font-size:12px">'+(b.code||'')+'</td>'+
+        '<td style="text-align:center">'+(b.units||0)+'</td>'+
+        '<td style="text-align:right">'+_cmFmtMoney(b.rate||0)+'</td>'+
+        '<td style="font-weight:700;text-align:right">'+_cmFmtMoney(b.total||0)+'</td>'+
+        '<td>'+_cmStatusBadge(b.status||'Draft')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMBilling(\''+b.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMBilling(\''+b.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function generateCMBilling() {
+  var d = getCMData();
+  var billable = d.notes.filter(function(n){return n.billable && !n._billed;});
+  if (!billable.length) { toast('No unbilled billable notes found','info'); return; }
+  var rate = 12.50; // Default TCM rate per 15-min unit
+  billable.forEach(function(n){
+    var existing = d.billing.find(function(b){return b.noteId===n.id;});
+    if (existing) { n._billed = true; return; }
+    d.billing.push({
+      id: _cmId(),
+      noteId: n.id,
+      clientId: n.clientId,
+      workerId: n.workerId,
+      serviceDate: n.date,
+      code: n.code||'T1017',
+      units: n.units||1,
+      rate: rate,
+      total: (n.units||1) * rate,
+      status: 'Draft',
+      createdAt: _cmNowISO(),
+      updatedAt: _cmNowISO()
+    });
+    n._billed = true;
+  });
+  saveCMData(d);
+  renderCMBilling();
+  toast(billable.length+' billing entries generated');
+}
+function editCMBilling(id) {
+  var d = getCMData();
+  var b = d.billing.find(function(x){return x.id===id;});
+  if (!b) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">Edit Billing Entry</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div style="font-size:13px;margin-bottom:12px"><strong>Client:</strong> '+_cmClientName(b.clientId)+'</div>'+
+    '<div class="fg g2"><div class="field"><label>Units</label><input id="cmb-units" type="number" value="'+b.units+'"></div>'+
+    '<div class="field"><label>Rate</label><input id="cmb-rate" type="number" step="0.01" value="'+b.rate+'"></div></div>'+
+    '<div class="field"><label>Status</label><select id="cmb-status"><option value="Draft"'+(b.status==='Draft'?' selected':'')+'>Draft</option><option value="Ready"'+(b.status==='Ready'?' selected':'')+'>Ready</option><option value="Submitted"'+(b.status==='Submitted'?' selected':'')+'>Submitted</option><option value="Paid"'+(b.status==='Paid'?' selected':'')+'>Paid</option><option value="Rejected"'+(b.status==='Rejected'?' selected':'')+'>Rejected</option></select></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMBilling(\''+b.id+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+}
+function saveCMBilling(id) {
+  var d = getCMData();
+  var idx = d.billing.findIndex(function(x){return x.id===id;});
+  if (idx<0) return;
+  var units = parseInt(document.getElementById('cmb-units')?.value)||0;
+  var rate = parseFloat(document.getElementById('cmb-rate')?.value)||0;
+  d.billing[idx].units = units;
+  d.billing[idx].rate = rate;
+  d.billing[idx].total = units * rate;
+  d.billing[idx].status = document.getElementById('cmb-status')?.value||'Draft';
+  d.billing[idx].updatedAt = _cmNowISO();
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMBilling();
+  toast('Billing entry updated');
+}
+function delCMBilling(id) {
+  if (!confirm('Delete this billing entry?')) return;
+  var d = getCMData();
+  d.billing = d.billing.filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMBilling();
+  toast('Billing entry deleted');
+}
+function exportCMBillingCSV() {
+  var d = getCMData();
+  var list = d.billing.filter(function(b){return b.status!=='Draft';});
+  if (!list.length) { toast('No ready/submitted billing entries to export','warn'); return; }
+  var rows = [['Client','ServiceDate','Code','Units','Rate','Total','Status']];
+  list.forEach(function(b){
+    rows.push([_cmClientName(b.clientId), b.serviceDate, b.code, b.units, b.rate, b.total, b.status]);
+  });
+  var csv = rows.map(function(r){return r.join(',');}).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cm_billing_export_'+_cmDateStr(new Date()).replace(/\//g,'-')+'.csv';
+  a.click();
+  toast('Billing CSV exported');
+}
+
+// ── CM: REPORTS ────────────────────────────────────────────────
+function renderCMReports() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-reports-content');
+  if (!el) return;
+  var d = getCMData();
+  var totalClients = d.clients.length;
+  var activeClients = d.clients.filter(function(c){return c.status==='Active';}).length;
+  var totalWorkers = d.workers.filter(function(w){return w.status!=='Inactive';}).length;
+  var totalNotes = d.notes.length;
+  var billableNotes = d.notes.filter(function(n){return n.billable;}).length;
+  var totalBilled = d.billing.reduce(function(s,b){return s + (b.total||0);},0);
+  var totalPaid = d.billing.filter(function(b){return b.status==='Paid';}).reduce(function(s,b){return s + (b.total||0);},0);
+  var plansActive = d.plans.filter(function(p){return p.status==='Active';}).length;
+  var thisMonth = new Date().getMonth();
+  var thisYear = new Date().getFullYear();
+  var monthNotes = d.notes.filter(function(n){
+    var nd = new Date(n.date);
+    return nd.getMonth()===thisMonth && nd.getFullYear()===thisYear;
+  }).length;
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)">'+activeClients+'/'+totalClients+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Clients</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+totalWorkers+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Workers</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--blue)">'+totalNotes+' ('+monthNotes+' this month)</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Progress Notes</div></div>'+
+    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+_cmFmtMoney(totalBilled)+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total Billed ('+_cmFmtMoney(totalPaid)+' paid)</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Service Plans</div>'+
+    '<div style="padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Active Plans</span><strong>'+plansActive+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Total Plans</span><strong>'+d.plans.length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Billable Notes</span><strong>'+billableNotes+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Non-Billable Notes</span><strong>'+(totalNotes-billableNotes)+'</strong></div>'+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Billing Summary</div>'+
+    '<div style="padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Draft</span><strong>'+d.billing.filter(function(b){return b.status==='Draft';}).length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Ready</span><strong>'+d.billing.filter(function(b){return b.status==='Ready';}).length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Submitted</span><strong>'+d.billing.filter(function(b){return b.status==='Submitted';}).length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Paid</span><strong>'+d.billing.filter(function(b){return b.status==='Paid';}).length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Rejected</span><strong>'+d.billing.filter(function(b){return b.status==='Rejected';}).length+'</strong></div>'+
+    '</div></div></div>';
+}
+
+function renderCMSettings() {
+  var el = document.getElementById('cm-settings-content');
+  if (!el) return;
+  el.innerHTML = '<div class="card" style="padding:24px"><h3>Case Management Settings</h3><p style="color:var(--text3);font-size:13px;margin-top:8px">All CM data is stored locally. Configure billing rates and defaults here.</p></div>';
+}
+
 document.addEventListener("DOMContentLoaded", async function() {
   applyTheme();
 
@@ -17636,7 +18537,8 @@ function openUserSearch() {
 // Roles and Permissions
 var USER_ROLES = [
   'Super Admin','Admin','Office Manager','Billing Manager',
-  'Billing Staff','Clinical Staff','Front Desk','Reporting','Read Only'
+  'Billing Staff','Clinical Staff','Front Desk','Reporting','Read Only',
+  'Case Management'
 ];
 var USER_PERMISSIONS = [
   'View Claims','Submit Claims','Edit Claims','Delete Claims',
@@ -18644,8 +19546,6 @@ function _sbBuildPDF(doc, pat) {
   y = 30;
 
   // Provider + Patient columns
-  _drawPdfIcon(pdf, 'building', margin-4, y-5, 3.5, _brand);
-  _drawPdfIcon(pdf, 'user', W/2-4, y-5, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('PROVIDER', margin+3, y); pdf.text('PATIENT', W/2+3, y);
   y += 4;
@@ -18654,18 +19554,17 @@ function _sbBuildPDF(doc, pat) {
   pdf.text(_UC(doc.patName||(pat.last+', '+pat.first)||''), W/2+2, y);
   y += 4;
   pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(80,80,80);
-  if (doc.providerNPI) pdf.text('NPI: '+doc.providerNPI, margin, y);
+  if (doc.providerNPI) pdf.text('NPI: '+_UC(doc.providerNPI), margin, y);
   pdf.text('DOB: '+(doc.patDOB||pat.dob||''), W/2+2, y); y += 4;
   if (doc.renderingName) pdf.text('RENDERING: '+_UC(doc.renderingName), margin, y);
   pdf.text('MRN: '+_UC(doc.patMRN||pat.mrn||pat.acct||''), W/2+2, y); y += 4;
   if (doc.facilityName) { pdf.text('FACILITY: '+_UC(doc.facilityName), margin, y); y += 4; }
-  pdf.text('DOS: '+(doc.date||''), margin, y);
+  pdf.text('DOS: '+_UC(doc.date||''), margin, y);
   pdf.text('PCN: '+_UC(doc.claimPCN||''), W/2+2, y); y += 4;
 
   // Insurance
   var ins = doc.ins1 || pat.ins1 || {};
   if (ins && ins.name) {
-    _drawPdfIcon(pdf, 'shield', margin-4, y-2, 3.5, _brand);
     pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
     pdf.text('INSURANCE', margin+3, y+4); y += 7;
     pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
@@ -18679,7 +19578,6 @@ function _sbBuildPDF(doc, pat) {
   pdf.line(margin, y, W-margin, y); y += 5;
 
   // Diagnoses
-  _drawPdfIcon(pdf, 'hash', margin-4, y-2, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('DIAGNOSES', margin+3, y+4); y += 7;
   pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
@@ -18689,7 +19587,6 @@ function _sbBuildPDF(doc, pat) {
   });
   y += 2;
 
-  _drawPdfIcon(pdf, 'dollar', margin-4, y-2, 3.5, _brand);
   pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
   pdf.text('SERVICES', margin+3, y+3); y += 6;
 
@@ -18735,7 +19632,7 @@ function _sbBuildPDF(doc, pat) {
   // Footer
   if (y > 250) { pdf.addPage(); y = 20; }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(148,163,184);
-  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+(doc.date||''), W/2, y+2, {align:'center'});
+  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+_UC(doc.date||''), W/2, y+2, {align:'center'});
   var _qrSize = 20;
   if (!_qrDataURL && typeof generateQRDataURL === 'function') _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
   if (_qrDataURL) {
