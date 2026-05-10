@@ -8905,10 +8905,15 @@ loadFromFirestore().then(function() {
 }).catch(_afterLoad);
 return;
 } catch(e) {
-if (!['auth/configuration-not-found','auth/operation-not-allowed',
-'auth/network-request-failed'].includes(e.code)) {
+// Only network/config errors fall through to local auth.
+// Treat auth/user-not-found the same way — the user may only
+// exist in local password storage (created via saveNewUser)
+// and NOT in Firebase Auth.
+if (['auth/configuration-not-found','auth/operation-not-allowed',
+'auth/network-request-failed','auth/user-not-found'].includes(e.code)) {
+// fall through to local auth below
+} else {
 var _msgs = {
-'auth/user-not-found': 'Incorrect email or password.',
 'auth/wrong-password': 'Incorrect email or password.',
 'auth/invalid-credential': 'Incorrect email or password.',
 'auth/invalid-email': 'Invalid email.',
@@ -8917,7 +8922,6 @@ var _msgs = {
 alertEl.innerHTML = '<div class="alert al-error">' + (_msgs[e.code] || e.message) + '</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
-// Config/network errors → fall through to local auth
 }
 }
 
