@@ -459,7 +459,6 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
 
     <!-- EHR APP MOCKUP -->
     <div class="mockup-shell">
-      <!-- Patient List Sidebar -->
       <div class="mock-sidebar">
         <div class="mock-sidebar-top">
           <div class="mock-sidebar-brand">Patients</div>
@@ -472,7 +471,6 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
             </div>
           </div>
         </div>
-        <!-- Filter pills -->
         <div style="display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border)">
           <div style="padding:2px 8px;background:var(--c1);color:#fff;border-radius:10px;font-size:8px;font-weight:700">All</div>
           <div style="padding:2px 8px;background:var(--bg2);color:var(--text3);border-radius:10px;font-size:8px;font-weight:600">Today</div>
@@ -480,50 +478,50 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
         </div>
         <div class="mock-list">
           <div class="mock-row active">
-            <div class="mock-avatar" style="background:var(--c1)">JR</div>
+            <div class="mock-avatar" style="background:linear-gradient(135deg,#c96442,#e8916e)">JR</div>
             <div class="mock-row-content">
               <div class="mock-row-name">Jane Reyes</div>
-              <div class="mock-row-preview">DOB: 03/12/1985 · F</div>
+              <div class="mock-row-preview"><span style="color:var(--text3)">DOB:</span> 03/12/1985 <span style="color:var(--text3)">·</span> F</div>
             </div>
             <div class="mock-row-meta">
               <div style="font-size:7px;padding:1px 5px;background:var(--c1l);color:var(--c1);border-radius:6px;font-weight:700;white-space:nowrap">Active</div>
             </div>
           </div>
           <div class="mock-row">
-            <div class="mock-avatar" style="background:var(--c2)">MC</div>
+            <div class="mock-avatar" style="background:linear-gradient(135deg,#b8860b,#e8b84d)">MC</div>
             <div class="mock-row-content">
               <div class="mock-row-name">Michael Chen</div>
-              <div class="mock-row-preview">DOB: 07/22/1971 · M</div>
+              <div class="mock-row-preview"><span style="color:var(--text3)">DOB:</span> 07/22/1971 <span style="color:var(--text3)">·</span> M</div>
             </div>
             <div class="mock-row-meta">
               <div style="font-size:7px;padding:1px 5px;background:#FBF0DC;color:#9A5F1A;border-radius:6px;font-weight:700">F/Up</div>
             </div>
           </div>
           <div class="mock-row">
-            <div class="mock-avatar" style="background:var(--c3m)">SP</div>
+            <div class="mock-avatar" style="background:linear-gradient(135deg,#6c3483,#a569bd)">SP</div>
             <div class="mock-row-content">
               <div class="mock-row-name">Sarah Park</div>
-              <div class="mock-row-preview">DOB: 11/04/1990 · F</div>
+              <div class="mock-row-preview"><span style="color:var(--text3)">DOB:</span> 11/04/1990 <span style="color:var(--text3)">·</span> F</div>
             </div>
             <div class="mock-row-meta">
               <div style="font-size:7px;padding:1px 5px;background:#FDE8E8;color:#9B2335;border-radius:6px;font-weight:700">Auth</div>
             </div>
           </div>
           <div class="mock-row">
-            <div class="mock-avatar" style="background:#8C7A64">DL</div>
+            <div class="mock-avatar" style="background:linear-gradient(135deg,#2c6e49,#4c9a6f)">DL</div>
             <div class="mock-row-content">
               <div class="mock-row-name">David Lim</div>
-              <div class="mock-row-preview">DOB: 09/30/1968 · M</div>
+              <div class="mock-row-preview"><span style="color:var(--text3)">DOB:</span> 09/30/1968 <span style="color:var(--text3)">·</span> M</div>
             </div>
             <div class="mock-row-meta">
               <div style="font-size:7px;padding:1px 5px;background:var(--c1l);color:var(--c1);border-radius:6px;font-weight:700">New</div>
             </div>
           </div>
           <div class="mock-row">
-            <div class="mock-avatar" style="background:#c96442">AM</div>
+            <div class="mock-avatar" style="background:linear-gradient(135deg,#1a5276,#5b9bd5)">AM</div>
             <div class="mock-row-content">
               <div class="mock-row-name">Ana Martinez</div>
-              <div class="mock-row-preview">DOB: 05/17/1978 · F</div>
+              <div class="mock-row-preview"><span style="color:var(--text3)">DOB:</span> 05/17/1978 <span style="color:var(--text3)">·</span> F</div>
             </div>
             <div class="mock-row-meta">
               <div style="font-size:7px;padding:1px 5px;background:var(--bg2);color:var(--text3);border-radius:6px;font-weight:700">Inact</div>
@@ -532,11 +530,9 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
         </div>
       </div>
 
-      <!-- Patient Chart Panel -->
       <div style="flex:1;display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
-        <!-- Chart header -->
         <div style="background:var(--c3);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0">
-          <div style="width:30px;height:30px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">JR</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#c96442,#e8916e);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">JR</div>
           <div style="flex:1">
             <div style="font-size:11px;font-weight:700;color:#fff">Jane Reyes &nbsp;<span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:400">F · 39 yrs · DOB 03/12/1985</span></div>
             <div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:1px">MRN: 004821 &nbsp;·&nbsp; Aetna PPO &nbsp;·&nbsp; PCP: Dr. Ortega</div>
@@ -547,7 +543,6 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
           </div>
         </div>
 
-        <!-- Chart tabs -->
         <div style="display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0">
           <div style="padding:6px 12px;font-size:9px;font-weight:700;color:var(--c1);border-bottom:2px solid var(--c1);white-space:nowrap">Chart</div>
           <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Notes</div>
@@ -557,71 +552,68 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
           <div style="padding:6px 12px;font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap">Billing</div>
         </div>
 
-        <!-- Chart body -->
         <div style="flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
 
-          <!-- Vitals row -->
           <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px">
-            <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Vitals · Apr 22, 2026</div>
+            <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Vitals <span style="color:var(--text4);font-weight:400;text-transform:none;letter-spacing:0">· Apr 22, 2026</span></div>
             <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
-              <div style="text-align:center">
+              <div style="text-align:center;background:var(--bg3);border-radius:4px;padding:5px 2px">
                 <div style="font-size:13px;font-weight:700;color:var(--text)">118<span style="font-size:7px;font-weight:400;color:var(--text3)">/76</span></div>
                 <div style="font-size:7px;color:var(--text4)">BP mmHg</div>
               </div>
-              <div style="text-align:center">
+              <div style="text-align:center;background:var(--bg3);border-radius:4px;padding:5px 2px">
                 <div style="font-size:13px;font-weight:700;color:var(--text)">72</div>
                 <div style="font-size:7px;color:var(--text4)">HR bpm</div>
               </div>
-              <div style="text-align:center">
+              <div style="text-align:center;background:var(--bg3);border-radius:4px;padding:5px 2px">
                 <div style="font-size:13px;font-weight:700;color:var(--text)">98.4</div>
                 <div style="font-size:7px;color:var(--text4)">Temp °F</div>
               </div>
-              <div style="text-align:center">
+              <div style="text-align:center;background:var(--bg3);border-radius:4px;padding:5px 2px">
                 <div style="font-size:13px;font-weight:700;color:var(--c1)">99<span style="font-size:7px">%</span></div>
                 <div style="font-size:7px;color:var(--text4)">O₂ Sat</div>
               </div>
-              <div style="text-align:center">
+              <div style="text-align:center;background:var(--bg3);border-radius:4px;padding:5px 2px">
                 <div style="font-size:13px;font-weight:700;color:var(--text)">16</div>
                 <div style="font-size:7px;color:var(--text4)">RR /min</div>
               </div>
             </div>
           </div>
 
-          <!-- Active problems + Medications side by side -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0">
             <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;overflow:hidden">
               <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Active Problems</div>
               <div style="display:flex;flex-direction:column;gap:4px">
                 <div style="display:flex;align-items:center;gap:6px">
-                  <div style="width:5px;height:5px;border-radius:50%;background:#9B2335;flex-shrink:0"></div>
-                  <div style="font-size:8px;color:var(--text2)">Type 2 Diabetes (E11.9)</div>
+                  <div style="width:6px;height:6px;border-radius:50%;background:#9B2335;flex-shrink:0;box-shadow:0 0 0 2px rgba(155,35,53,0.2)"></div>
+                  <div style="font-size:8px;color:var(--text2);font-weight:500">Type 2 Diabetes <span style="color:var(--text3);font-weight:400">(E11.9)</span></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <div style="width:5px;height:5px;border-radius:50%;background:var(--c2);flex-shrink:0"></div>
-                  <div style="font-size:8px;color:var(--text2)">Essential HTN (I10)</div>
+                  <div style="width:6px;height:6px;border-radius:50%;background:var(--c2);flex-shrink:0;box-shadow:0 0 0 2px rgba(184,134,11,0.2)"></div>
+                  <div style="font-size:8px;color:var(--text2);font-weight:500">Essential HTN <span style="color:var(--text3);font-weight:400">(I10)</span></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <div style="width:5px;height:5px;border-radius:50%;background:var(--c1);flex-shrink:0"></div>
-                  <div style="font-size:8px;color:var(--text2)">Hyperlipidemia (E78.5)</div>
+                  <div style="width:6px;height:6px;border-radius:50%;background:var(--c1);flex-shrink:0;box-shadow:0 0 0 2px rgba(201,100,66,0.2)"></div>
+                  <div style="font-size:8px;color:var(--text2);font-weight:500">Hyperlipidemia <span style="color:var(--text3);font-weight:400">(E78.5)</span></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <div style="width:5px;height:5px;border-radius:50%;background:var(--text4);flex-shrink:0"></div>
-                  <div style="font-size:8px;color:var(--text2)">Obesity (E66.01)</div>
+                  <div style="width:6px;height:6px;border-radius:50%;background:var(--text4);flex-shrink:0;box-shadow:0 0 0 2px rgba(135,134,127,0.2)"></div>
+                  <div style="font-size:8px;color:var(--text2);font-weight:500">Obesity <span style="color:var(--text3);font-weight:400">(E66.01)</span></div>
                 </div>
               </div>
             </div>
             <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;overflow:hidden">
               <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Medications</div>
               <div style="display:flex;flex-direction:column;gap:4px">
-                <div>
+                <div style="padding:3px 5px;background:var(--bg3);border-radius:3px">
                   <div style="font-size:8px;font-weight:600;color:var(--text)">Metformin 1000mg</div>
                   <div style="font-size:7px;color:var(--text4)">PO BID · Active</div>
                 </div>
-                <div>
+                <div style="padding:3px 5px;background:var(--bg3);border-radius:3px">
                   <div style="font-size:8px;font-weight:600;color:var(--text)">Lisinopril 10mg</div>
                   <div style="font-size:7px;color:var(--text4)">PO QD · Active</div>
                 </div>
-                <div>
+                <div style="padding:3px 5px;background:var(--bg3);border-radius:3px">
                   <div style="font-size:8px;font-weight:600;color:var(--text)">Atorvastatin 40mg</div>
                   <div style="font-size:7px;color:var(--text4)">PO QHS · Active</div>
                 </div>
@@ -629,11 +621,10 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
             </div>
           </div>
 
-          <!-- Next appointment -->
           <div style="background:var(--c1l);border:1px solid var(--c1m);border-radius:6px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
             <div style="display:flex;align-items:center;gap:7px">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <div style="font-size:8px;color:var(--c1d)"><strong>Next:</strong> May 2 · Annual Wellness Visit · Dr. Ortega · 10:30 AM</div>
+              <div style="font-size:8px;color:var(--c1d);line-height:1.4"><strong>Next:</strong> May 2 · Annual Wellness Visit · Dr. Ortega · 10:30 AM</div>
             </div>
             <div style="font-size:7px;font-weight:700;color:var(--c1);padding:2px 7px;background:#fff;border-radius:8px;border:1px solid var(--c1m);white-space:nowrap">Confirmed</div>
           </div>
@@ -1136,7 +1127,7 @@ footer { background: #141413; padding: 48px 5%; border-top: 1px solid #30302e; }
         <label style="font-size:12px;font-weight:600;color:var(--text2)">Password</label>
         <button style="font-size:11px;color:var(--c1);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0" onclick="alert('Password reset link sent to your email.')">Forgot password?</button>
       </div>
-      <div id="staff-err" style="display:none;background:#fce6e8;color:#c0152a;border:1px solid #f4abaf;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px"></div><input type="password" id="staff-pass" placeholder="••••••••" class="m-input" style="margin-bottom:20px" onkeydown="if(event.key==='Enter')doStaffLogin()">
+      <div id="staff-err" style="display:none;background:#fce6e8;color:#c0152a;border:1px solid #f4abaf;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px"></div><input type="password" id="staff-pass" placeholder="••••••••" value="••••••••" class="m-input" style="margin-bottom:20px" onkeydown="if(event.key==='Enter')doStaffLogin()">
       <button class="plan-cta-btn c1" style="font-size:14px;padding:12px" id="staff-login-btn" onclick="doStaffLogin()">Sign In</button>
       <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:10px">New to ClaimDataCare? </p>
     </div>
