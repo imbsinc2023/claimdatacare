@@ -1203,6 +1203,8 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 .main{position:fixed;top:36px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .content{flex:1 1 0;overflow-y:auto;padding:14px 22px 22px!important;margin:0!important}
 </style>
+<script src="cpt-catalog.js"></script>
+<script src="icd10-catalog.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -1325,10 +1327,14 @@ const PAGE_TITLES = {
 dashboard: 'Dashboard', claims: 'Claims', patients: 'Patients',
 services: 'Services / CPT', facilities: 'Facilities',
 rendering: 'Rendering Providers', referring: 'Referring Providers',
-'cm-dashboard': 'CM Dashboard', 'cm-clients': 'CM Clients',
-'cm-workers': 'CM Workers', 'cm-plans': 'CM Service Plans',
-'cm-notes': 'CM Progress Notes', 'cm-billing': 'CM Billing',
-'cm-reports': 'CM Reports', 'cm-settings': 'CM Settings',
+  'cm-dashboard': 'CM Dashboard', 'cm-intake': 'Intake / Referrals',
+  'cm-clients': 'CM Clients', 'cm-workers': 'CM Workers',
+  'cm-assessments': 'Assessments', 'cm-plans': 'Care Plans',
+  'cm-encounters': 'Encounters / Notes', 'cm-tasks': 'Tasks & Follow-Ups',
+  'cm-authorizations': 'Authorizations', 'cm-referrals': 'Referrals & Resources',
+  'cm-supervisor': 'Supervisor Review', 'cm-billing': 'Billing Readiness',
+  'cm-reports': 'CM Reports', 'cm-discharge': 'Discharge',
+  'cm-patient-summary': 'Patient CM Summary', 'cm-settings': 'CM Settings',
 validate: 'Validate Claims', export: 'Export / Submit',
 reports: 'Reports', 'admin-providers': 'Billing Providers',
 eob: 'ERA / EOB Payments',
@@ -1337,6 +1343,7 @@ servicegroups: 'Service Groups', account: 'Account',
 appointments: 'Appointments', notes: 'Medical Notes',
 providers: 'Billing Providers',
 invoices: 'Invoicing',
+'claim-editor': 'Claim Editor',
 };
 
 
@@ -1402,12 +1409,21 @@ account: renderAccountPage,
       notes: renderNotes,
       invoices: ()=>{ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} },
       'cm-dashboard': renderCMDashboard,
+      'cm-intake': renderCMIntake,
       'cm-clients': renderCMClients,
       'cm-workers': renderCMWorkers,
+      'cm-assessments': renderCMAssessments,
       'cm-plans': renderCMPlans,
-      'cm-notes': renderCMNotes,
+      'cm-encounters': renderCMEncounters,
+      'cm-tasks': renderCMTasks,
+      'cm-authorizations': renderCMAuths,
+      'cm-referrals': renderCMCommReferrals,
+      'cm-supervisor': renderCMSupervisor,
       'cm-billing': renderCMBilling,
       'cm-reports': renderCMReports,
+      'cm-discharge': renderCMDischarges,
+      'cm-patient-summary': renderCMPatientSummary,
+      'claim-editor': renderClaimEditor,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
@@ -1695,6 +1711,462 @@ function claimDosRange(c) {
   var first = parsed[0], last = parsed[parsed.length-1];
   if (fmt(first) === fmt(last)) return fmt(first);
   return fmt(first) + ' – ' + fmt(last);
+}
+
+function startNewClaim(patId, apptId, dos, apptData){
+  var db=getDB();
+  var pat=db.patients.find(function(p){return p.id===patId;})||{};
+  var appt=apptData||{};
+  var sgAsgn=(apptData||{}).sgAsgn||{};
+  var claim={
+    id:uid(), providerId:activeProviderId, patId:patId,
+    acct:pat.acct||'', pcn:'CLM-'+Date.now(),
+    dos:dos||appt.date||'', pos:appt.pos||'11',
+    multiDate:false, facilityId:appt.facilityId||'',
+    renderingId:appt.renderingId||'', referringId:sgAsgn.referringId||'',
+    auth:sgAsgn.auth||'', emp:'N', auto:'N',
+    status:'draft', claimmdId:'', rejectReason:'',
+    dx:['','','','','','','',''],
+    lines:[], totalCharge:'0.00', apptId:apptId||'',
+    createdAt:Date.now(), updatedAt:Date.now()
+  };
+  var sg=(db.serviceGroups||[]).find(function(g){return g.id===(appt.sgId||sgAsgn.sgId);});
+  if(sg&&sgAsgn){
+    var dxList=(sgAsgn.dx||'').split(',').map(function(d){return d.trim().toUpperCase();}).filter(Boolean);
+    for(var di=0;di<8;di++) claim.dx[di]=dxList[di]||'';
+    (sg.lines||[]).forEach(function(l){
+      var ppu=parseFloat(l.pricePerUnit||0)||(parseFloat(l.charge||0)/Math.max(parseInt(l.units||1),1));
+      var units=Math.max(parseInt(l.units||1),1);
+      claim.lines.push({
+        cpt:l.cpt, mod1:l.mod1||'', mod2:l.mod2||'', mod3:l.mod3||'', mod4:l.mod4||'',
+        dxPtr:dxList.length?'A':'', units:String(units),
+        charge:(ppu*units).toFixed(2), epsdt:'N', emg:'N'
+      });
+    });
+  }
+  claim.totalCharge=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2);
+  setDB(function(db2){db2.claims.push(claim);});
+  return claim.id;
+}
+
+function renderClaimEditor(){
+  var claimId=null;
+  try{
+    var m=window.location.hash.match(/claim-editor[?/]*(.+)?/);
+    if(m&&m[1]) claimId=m[1].split('&')[0].replace(/^id=/,'');
+  }catch(_){}
+  var db=getDB();
+  var claim=claimId?(db.claims||[]).find(function(c){return c.id===claimId;}):null;
+  var el=document.getElementById('claim-editor-content');
+  if(!el)return;
+  if(!claim){
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:400px"><div class="card" style="padding:40px;text-align:center;max-width:400px"><div style="width:48px;height:48px;border-radius:12px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i data-lucide="file-edit" class="lci" style="width:24px;height:24px;color:var(--brand)"></i></div><h2 style="font-size:16px;font-weight:600;margin-bottom:8px">No Claim Selected</h2><p style="font-size:13px;color:var(--text3);margin-bottom:20px">Select a claim from the Claims page or check in a patient to create a new draft.</p><button class="btn btn-primary btn-sm" onclick="go(\'claims\')">Go to Claims</button></div></div>';
+    setTimeout(_renderLucideIcons,20);
+    return;
+  }
+  var pat=db.patients.find(function(p){return p.id===claim.patId;})||{};
+  var rend=db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
+  var fac=db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
+  var ref=db.referring.find(function(r){return r.id===claim.referringId;})||{};
+  var icd10=db.icd10||[];
+  var cptCat=db.cpt||[];
+  var total=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
+  var errs=validateClaim(claim);
+  var statusOpts=['draft','pending','submitted','accepted','rejected','on_hold','denied','voided'];
+
+  el.innerHTML=
+    '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
+    // Top bar
+    '<div style="display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0">'+
+      '<button class="btn btn-xs btn-ghost" onclick="go(\'claims\')" title="Back"><i data-lucide="arrow-left" class="lci" style="width:14px;height:14px"></i></button>'+
+      '<div style="flex:1;display:flex;align-items:center;gap:10px">'+
+        '<span style="font-weight:600;font-size:14px">'+ptLinkName(pat.id,pat.last,pat.first)+'</span>'+
+        '<span class="mono" style="font-size:11px;color:var(--text3)">'+claim.pcn+'</span>'+
+        statusBadge(claim.status)+
+      '</div>'+
+      '<button class="btn btn-sm btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:13px;height:13px"></i> Save</button>'+
+    '</div>'+
+    // Main content area - two columns
+    '<div style="flex:1;display:flex;overflow:hidden">'+
+      // Left column — Demographics + Diagnoses
+      '<div style="width:380px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">'+
+        // Claim details
+        '<div class="card" style="padding:12px">'+
+          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:10px">Claim Details</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+            _ceField('DOS','date','ce-dos',claim.dos||'')+
+            _ceField('POS','select','ce-pos',claim.pos||'11')+
+            _ceField('Status','select','ce-status',claim.status||'draft')+
+            _ceField('Auth #','text','ce-auth',claim.auth||'')+
+          '</div>'+
+          '<div style="margin-top:8px">'+
+            '<label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">Facility</label>'+
+            '<select id="ce-fac" style="width:100%"><option value="">— None —</option>'+
+            db.facilities.filter(function(f){return f.id===claim.facilityId||!claim.facilityId;}).map(function(f){
+              return '<option value="'+f.id+'"'+(f.id===claim.facilityId?' selected':'')+'>'+f.name+'</option>';
+            }).join('')+'</select>'+
+          '</div>'+
+          '<div style="margin-top:8px">'+
+            '<label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">Rendering</label>'+
+            '<select id="ce-rend" style="width:100%"><option value="">— None —</option>'+
+            db.rendering.filter(function(r){return r.id===claim.renderingId||!claim.renderingId;}).map(function(r){
+              return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
+            }).join('')+'</select>'+
+          '</div>'+
+        '</div>'+
+        // Diagnoses
+        '<div class="card" style="padding:12px;flex:1;display:flex;flex-direction:column">'+
+          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px">Diagnoses (ICD-10)</div>'+
+          '<div style="display:flex;flex-direction:column;gap:6px">'+
+            (function(){
+              var html='';
+              for(var dxi=0;dxi<8;dxi++){
+                var letter=String.fromCharCode(65+dxi);
+                var dxVal=claim.dx[dxi]||'';
+                html+=
+                  '<div style="display:flex;align-items:center;gap:6px">'+
+                    '<span style="font-size:11px;font-weight:600;color:var(--text2);width:16px;flex-shrink:0">'+letter+'.</span>'+
+                    '<input type="text" id="ce-dx'+(dxi+1)+'" class="ce-icd-input" value="'+dxVal+'" placeholder="Search ICD-10..." style="flex:1;font-family:var(--mono);font-size:12px" autocomplete="off">'+
+                  '</div>';
+              }
+              return html;
+            })()+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      // Right column — Service Lines
+      '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
+        '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'+
+          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em">Service Lines</div>'+
+          '<button class="btn btn-xs btn-primary" onclick="_ceAddLine(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Line</button>'+
+        '</div>'+
+        '<div id="ce-lines-wrap" style="flex:1;overflow-y:auto;padding:12px 16px">'+
+          _ceRenderLines(claim, cptCat)+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    // Bottom bar — totals + validation
+    '<div style="display:flex;align-items:center;gap:16px;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0">'+
+      '<div style="font-weight:700" class="mono">Total: $'+total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')+'</div>'+
+      '<div style="flex:1"></div>'+
+      '<div style="font-size:12px"><span style="color:'+(errs.length?'var(--red)':'var(--green)')+'">'+
+        (errs.length?'<i data-lucide="alert-triangle" class="lci" style="width:12px;height:12px"></i> '+errs.length+' error(s)':'<i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> No errors')+
+      '</span></div>'+
+      '<button class="btn btn-xs btn-ghost" onclick="_ceValidate(\''+claimId+'\')"><i data-lucide="search" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '</div>'+
+    // Scrub results panel
+    '<div id="ce-scrub" style="display:none;padding:10px 16px;border-top:1px solid var(--border);background:var(--red-bg);flex-shrink:0">'+
+      '<div id="ce-scrub-list"></div>'+
+    '</div>'+
+    '</div>';
+
+  // Populate POS and status selects
+  (function(){
+    var posEl=document.getElementById('ce-pos');
+    if(posEl){
+      posEl.innerHTML='<option value="">— Select POS —</option>'+
+        '11 Office,12 Home,13 Assisted living,14 Group home,15 Mobile,16 Urgent care,'+
+        '17 Walk-in,18 Place of employment,19 Off campus-OP hosp,20 Urgent care-OP hosp,'+
+        '21 Inpatient hospital,22 Outpatient hospital,23 Emergency room,24 ASC,25 Birthing center,'+
+        '26 Military,27 OSH,28 VA,31 Skilled nursing,32 Nursing facility,33 Custodial care,'+
+        '34 Hospice,35 Adult living,36 SNF,41 Ambulance-land,42 Ambulance-water,'+
+        '43 Ambulance-air,50 Independent lab,51 Indep radiology,52 Indep pathology,'+
+        '53 Osteopath,54 Dental,55 Vision,56 Hearing,57 Psych,58 Non-physician,'+
+        '60 Mass health,61 Opioid tx,62 CMHC,64 Substance abuse,65 Alcohol abuse,'+
+        '71 Public health,72 Rural health,73 Tribal,80 Independent clinic,81 School,'+
+        '82 ICF,83 CBRF,84 CMHC,85 CRC,86 Office-FQHC,87 Office-RHC,90 Other,'+
+        '91 Community,92 Homeless,93 Migrant,94 School-based,95 IHS,96 Correctional,'+
+        '97 Urgent care-FQHC,98 Urgent care-RHC,99 Other'.split(',').map(function(s){
+          var p=s.split(' ');
+          var v=p[0];
+          return '<option value="'+v+'"'+(v===claim.pos?' selected':'')+'>'+s+'</option>';
+        }).join('');
+    }
+    var stEl=document.getElementById('ce-status');
+    if(stEl){
+      stEl.innerHTML=statusOpts.map(function(s){
+        return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';
+      }).join('');
+    }
+  })();
+
+  // Wire up ICD-10 search
+  setTimeout(function(){
+    for(var dxi=0;dxi<8;dxi++){
+      (function(idx){
+        var inp=document.getElementById('ce-dx'+(idx+1));
+        if(!inp)return;
+        inp.addEventListener('input',function(){
+          _ceIcdSearch(this, idx, icd10);
+        });
+        inp.addEventListener('blur',function(){
+          setTimeout(function(){_ceCloseIcdDropdown();},200);
+        });
+      })(dxi);
+    }
+    // Wire up line CPT search
+    _ceWireCptSearch(cptCat, claimId);
+    // Wire up POS change
+    var posEl2=document.getElementById('ce-pos');
+    if(posEl2) posEl2.onchange=function(){_ceMarkDirty(claimId);};
+    document.getElementById('ce-status').onchange=function(){_ceMarkDirty(claimId);};
+    document.getElementById('ce-auth').oninput=function(){_ceMarkDirty(claimId);};
+  },50);
+
+  setTimeout(_renderLucideIcons, 50);
+}
+
+// ── Claim Editor Helpers ──
+
+function _ceField(label, type, id, val){
+  if(type==='select'){
+    return '<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">'+label+'</label><select id="'+id+'"></select></div>';
+  }
+  return '<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">'+label+'</label><input type="'+type+'" id="'+id+'" value="'+(val||'')+'" style="width:100%"></div>';
+}
+
+function _ceRenderLines(claim, cptCat){
+  if(!claim.lines||!claim.lines.length){
+    return '<div class="empty" style="padding:40px 0"><div class="empty-ico"><i data-lucide="file-plus" class="lci" style="width:24px;height:24px"></i></div><h3 style="font-size:14px">No service lines</h3><p style="font-size:12px;color:var(--text3)">Add procedure codes for this claim.</p></div>';
+  }
+  var dxLetters='ABCDEFGH';
+  var dxUsed=claim.dx.filter(Boolean);
+  return '<div style="display:flex;flex-direction:column;gap:10px">'+
+    claim.lines.map(function(l,li){
+      var charge=parseFloat(l.charge||0).toFixed(2);
+      var units=parseInt(l.units||1);
+      var ptr=(l.dxPtr||'').toUpperCase();
+      return '<div class="card" style="padding:12px;border:1px solid var(--border2)">'+
+        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">'+
+          '<div>'+
+            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">CPT / HCPCS</label>'+
+            '<input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+l.cpt+'" placeholder="Search CPT..." style="width:100%;font-family:var(--mono);font-size:12px" autocomplete="off">'+
+          '</div>'+
+          '<div>'+
+            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Mod</label>'+
+            '<input type="text" id="ce-ln-mod1-'+li+'" value="'+(l.mod1||'')+'" style="width:100%;font-size:12px;font-family:var(--mono)" placeholder="—" maxlength="2">'+
+          '</div>'+
+          '<div>'+
+            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Units</label>'+
+            '<input type="number" id="ce-ln-units-'+li+'" value="'+units+'" min="1" max="99" style="width:100%;font-size:12px">'+
+          '</div>'+
+          '<div>'+
+            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Charge</label>'+
+            '<input type="text" id="ce-ln-chg-'+li+'" value="'+charge+'" style="width:100%;font-size:12px;font-family:var(--mono)">'+
+          '</div>'+
+        '</div>'+
+        // Dx pointer checkboxes
+        (dxUsed.length?'<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+
+          '<span style="font-size:10px;color:var(--text3);margin-right:4px">Dx:</span>'+
+          dxLetters.slice(0,dxUsed.length).split('').map(function(letter){
+            var checked=ptr.includes(letter);
+            return '<label style="display:flex;align-items:center;gap:2px;font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;background:'+(checked?'var(--brand-bg)':'transparent')+';border:1px solid '+(checked?'var(--brand)':'var(--border2)')+'">'+
+              '<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(checked?'checked':'')+' value="'+letter+'" style="width:12px;height:12px;margin:0;accent-color:var(--brand)">'+letter+
+            '</label>';
+          }).join('')+
+          '<button class="btn btn-xs btn-ghost" style="margin-left:auto;color:var(--red)" onclick="_ceRemoveLine(\''+claim.id+'\','+li+')" title="Remove line"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>'+
+        '</div>':'')+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+
+function _ceIcdSearch(input, idx, icd10){
+  var val=input.value.toUpperCase().trim();
+  var existing=document.getElementById('ce-icd-dd-'+(idx+1));
+  if(existing) existing.remove();
+  if(val.length<1) return;
+  var dd=document.createElement('div');
+  dd.id='ce-icd-dd-'+(idx+1);
+  dd.style.cssText='position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:200px;overflow-y:auto;width:'+input.offsetWidth+'px;font-size:12px';
+  var rect=input.getBoundingClientRect();
+  var container=input.closest('.section')||document.getElementById('claim-editor-content');
+  if(container){
+    dd.style.top=(rect.bottom-container.getBoundingClientRect().top+window.scrollY)+'px';
+    dd.style.left=(rect.left-container.getBoundingClientRect().left)+'px';
+  } else {
+    dd.style.top=(rect.bottom+window.scrollY)+'px';
+    dd.style.left=(rect.left+window.scrollX)+'px';
+  }
+  var matches=icd10.filter(function(c){
+    return c.code.startsWith(val)||c.desc.toUpperCase().includes(val);
+  }).slice(0,30);
+  if(!matches.length){
+    var parent2=input.parentElement;
+    if(parent2.style.position!=='relative'&&parent2.style.position!=='absolute') parent2.style.position='relative';
+    parent2.appendChild(dd);
+    return;
+  }
+  dd.innerHTML=matches.map(function(c){
+    return '<div class="ce-dd-item" data-val="'+c.code+'" style="padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'" onclick="_cePickIcd(\'ce-dx'+(idx+1)+'\',\''+c.code+'\')">'+
+      '<span class="mono" style="font-weight:600;font-size:12px;color:var(--brand)">'+c.code+'</span>'+
+      '<span style="color:var(--text2);font-size:11px">'+c.desc+'</span>'+
+    '</div>';
+  }).join('');
+  var parent=input.parentElement;
+  if(parent.style.position!=='relative'&&parent.style.position!=='absolute') parent.style.position='relative';
+  parent.appendChild(dd);
+}
+
+function _cePickIcd(inputId, code){
+  var inp=document.getElementById(inputId);
+  if(inp){inp.value=code;}
+  var existing=document.getElementById('ce-icd-dd-'+inputId.replace('ce-dx',''));
+  if(existing) existing.remove();
+}
+
+function _ceCloseIcdDropdown(){
+  document.querySelectorAll('[id^="ce-icd-dd-"]').forEach(function(el){el.remove();});
+}
+
+function _ceWireCptSearch(cptCat, claimId){
+  document.querySelectorAll('.ce-cpt-input').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      _ceCptSearch(this, cptCat, claimId);
+    });
+    inp.addEventListener('blur',function(){
+      setTimeout(function(){_ceCloseCptDropdown();},200);
+    });
+  });
+}
+
+function _ceCptSearch(input, cptCat, claimId){
+  var val=input.value.toUpperCase().trim();
+  var lineIdx= parseInt(input.id.replace('ce-ln-cpt-',''));
+  var ddId='ce-cpt-dd-'+lineIdx;
+  var existing=document.getElementById(ddId);
+  if(existing) existing.remove();
+  if(val.length<1) return;
+  var matches=cptCat.filter(function(c){
+    return c.code.startsWith(val)||c.desc.toUpperCase().includes(val);
+  }).slice(0,30);
+  if(!matches.length) return;
+  var dd=document.createElement('div');
+  dd.id=ddId;
+  dd.style.cssText='position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:200px;overflow-y:auto;width:'+input.offsetWidth+'px;font-size:12px';
+  var rect=input.getBoundingClientRect();
+  var top=rect.bottom+window.scrollY;
+  var left=rect.left+window.scrollX;
+  dd.innerHTML=matches.map(function(c){
+    return '<div class="ce-dd-item" data-val="'+c.code+'" data-rate="'+(c.rate||0)+'" style="padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'" onclick="_cePickCpt('+lineIdx+',\''+c.code+'\','+(c.rate||0)+',\''+claimId+'\')">'+
+      '<span class="mono" style="font-weight:600;font-size:12px;color:var(--brand)">'+c.code+'</span>'+
+      '<span style="color:var(--text2);font-size:11px">'+c.desc+'</span>'+
+    '</div>';
+  }).join('');
+  var parent=input.parentElement;
+  if(parent.style.position!=='relative'&&parent.style.position!=='absolute') parent.style.position='relative';
+  parent.appendChild(dd);
+}
+
+function _cePickCpt(lineIdx, code, rate, claimId){
+  var inp=document.getElementById('ce-ln-cpt-'+lineIdx);
+  var chg=document.getElementById('ce-ln-chg-'+lineIdx);
+  if(inp) inp.value=code;
+  if(chg&&rate>0){
+    var unitsEl=document.getElementById('ce-ln-units-'+lineIdx);
+    var u=parseInt(unitsEl?unitsEl.value:'1')||1;
+    chg.value=(rate*u).toFixed(2);
+  }
+  var dd=document.getElementById('ce-cpt-dd-'+lineIdx);
+  if(dd) dd.remove();
+  _ceMarkDirty(claimId);
+}
+
+function _ceCloseCptDropdown(){
+  document.querySelectorAll('[id^="ce-cpt-dd-"]').forEach(function(el){el.remove();});
+}
+
+function _ceAddLine(claimId){
+  setDB(function(db){
+    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
+    if(!c) return;
+    c.lines.push({cpt:'',mod1:'',mod2:'',mod3:'',mod4:'',dxPtr:'',units:'1',charge:'0.00',epsdt:'N',emg:'N'});
+    c.updatedAt=Date.now();
+  });
+  renderClaimEditor();
+}
+
+function _ceRemoveLine(claimId, lineIdx){
+  setDB(function(db){
+    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
+    if(!c) return;
+    c.lines.splice(lineIdx,1);
+    c.updatedAt=Date.now();
+  });
+  renderClaimEditor();
+}
+
+function _ceMarkDirty(claimId){
+  // Intent: mark claim as needing update. Used on field changes.
+  // Only save on explicit Save button click, not auto-save.
+}
+
+function _ceSave(claimId){
+  var db=getDB();
+  var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim){toast('Claim not found','err');return;}
+  // Read fields
+  claim.dos=document.getElementById('ce-dos')?.value||claim.dos;
+  claim.pos=document.getElementById('ce-pos')?.value||claim.pos;
+  claim.status=document.getElementById('ce-status')?.value||claim.status;
+  claim.auth=document.getElementById('ce-auth')?.value||claim.auth;
+  claim.facilityId=document.getElementById('ce-fac')?.value||claim.facilityId;
+  claim.renderingId=document.getElementById('ce-rend')?.value||claim.renderingId;
+  // Read diagnoses
+  for(var dxi=0;dxi<8;dxi++){
+    var inp=document.getElementById('ce-dx'+(dxi+1));
+    claim.dx[dxi]=inp?inp.value.trim().toUpperCase():'';
+  }
+  // Read lines
+  (claim.lines||[]).forEach(function(l,li){
+    var cptEl=document.getElementById('ce-ln-cpt-'+li);
+    if(cptEl) l.cpt=cptEl.value.trim();
+    var mod1El=document.getElementById('ce-ln-mod1-'+li);
+    if(mod1El) l.mod1=mod1El.value.trim().toUpperCase();
+    var unitsEl=document.getElementById('ce-ln-units-'+li);
+    if(unitsEl) l.units=String(Math.max(parseInt(unitsEl.value)||1,1));
+    var chgEl=document.getElementById('ce-ln-chg-'+li);
+    if(chgEl) l.charge=parseFloat(chgEl.value||'0').toFixed(2);
+    // Read dx pointers
+    var ptr='';
+    for(var dxi2=0;dxi2<8;dxi2++){
+      var cb=document.getElementById('ce-ln-dxptr-'+li+'-'+String.fromCharCode(65+dxi2));
+      if(cb&&cb.checked) ptr+=String.fromCharCode(65+dxi2);
+    }
+    l.dxPtr=ptr||'';
+  });
+  claim.totalCharge=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2);
+  claim.updatedAt=Date.now();
+  setDB(function(db2){
+    var idx=db2.claims.findIndex(function(x){return x.id===claimId;});
+    if(idx>=0) db2.claims[idx]=claim;
+  });
+  toast('Claim saved','ok');
+  renderClaimEditor();
+  renderClaims();
+}
+
+function _ceValidate(claimId){
+  var db=getDB();
+  var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim) return;
+  var errs=validateClaim(claim);
+  var scrubEl=document.getElementById('ce-scrub');
+  var listEl=document.getElementById('ce-scrub-list');
+  if(!scrubEl||!listEl) return;
+  if(!errs.length){
+    scrubEl.style.display='block';
+    scrubEl.style.background='var(--green-bg)';
+    listEl.innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> Claim passes all validation checks.</div>';
+  } else {
+    scrubEl.style.display='block';
+    scrubEl.style.background='var(--red-bg)';
+    listEl.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:6px">'+errs.length+' validation error(s):</div>'+
+      errs.map(function(e){
+        return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--red);padding:2px 0"><i data-lucide="x-circle" class="lci" style="width:12px;height:12px;flex-shrink:0"></i> '+e+'</div>';
+      }).join('');
+  }
+  setTimeout(_renderLucideIcons, 20);
 }
 
 function renderClaims() {
@@ -2255,6 +2727,7 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown" id="tn-dd-billing">
 <div class="tn-dd-item" id="tnd-claims" onclick="go('claims');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>
+<div class="tn-dd-item" id="tnd-claim-editor" onclick="go('claim-editor');closeTnDropdown()"><i data-lucide="edit" class="lci"></i><span>Claim Draft</span></div>
 
 <div class="tn-dd-item" id="tnd-eob" onclick="go('eob');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>
 <div class="tn-dd-item" id="tnd-validate" onclick="go('validate');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>
@@ -2275,13 +2748,21 @@ return `<div class="app-shell">
       </button>
       <div class="tn-dropdown" id="tn-dd-cm">
       <div class="tn-dd-item" id="tnd-cm-dashboard" onclick="go('cm-dashboard');closeTnDropdown()"><i data-lucide="layout-dashboard" class="lci"></i><span>Dashboard</span></div>
+      <div class="tn-dd-item" id="tnd-cm-intake" onclick="go('cm-intake');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Intake / Referrals</span></div>
       <div class="tn-dd-item" id="tnd-cm-clients" onclick="go('cm-clients');closeTnDropdown()"><i data-lucide="users" class="lci"></i><span>Clients</span></div>
       <div class="tn-dd-item" id="tnd-cm-workers" onclick="go('cm-workers');closeTnDropdown()"><i data-lucide="user-cog" class="lci"></i><span>Case Workers</span></div>
-      <div class="tn-dd-item" id="tnd-cm-plans" onclick="go('cm-plans');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Service Plans</span></div>
-      <div class="tn-dd-item" id="tnd-cm-notes" onclick="go('cm-notes');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Progress Notes</span></div>
+      <div class="tn-dd-item" id="tnd-cm-assessments" onclick="go('cm-assessments');closeTnDropdown()"><i data-lucide="clipboard-check" class="lci"></i><span>Assessments</span></div>
+      <div class="tn-dd-item" id="tnd-cm-plans" onclick="go('cm-plans');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Care Plans</span></div>
+      <div class="tn-dd-item" id="tnd-cm-encounters" onclick="go('cm-encounters');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters / Notes</span></div>
       <div class="tn-dd-sep"></div>
-      <div class="tn-dd-item" id="tnd-cm-billing" onclick="go('cm-billing');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Billing</span></div>
+      <div class="tn-dd-item" id="tnd-cm-tasks" onclick="go('cm-tasks');closeTnDropdown()"><i data-lucide="list-checks" class="lci"></i><span>Tasks &amp; Follow-Ups</span></div>
+      <div class="tn-dd-item" id="tnd-cm-auth" onclick="go('cm-authorizations');closeTnDropdown()"><i data-lucide="file-check" class="lci"></i><span>Authorizations</span></div>
+      <div class="tn-dd-item" id="tnd-cm-referrals" onclick="go('cm-referrals');closeTnDropdown()"><i data-lucide="external-link" class="lci"></i><span>Referrals &amp; Resources</span></div>
+      <div class="tn-dd-sep"></div>
+      <div class="tn-dd-item" id="tnd-cm-supervisor" onclick="go('cm-supervisor');closeTnDropdown()"><i data-lucide="eye" class="lci"></i><span>Supervisor Review</span></div>
+      <div class="tn-dd-item" id="tnd-cm-billing" onclick="go('cm-billing');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Billing Readiness</span></div>
       <div class="tn-dd-item" id="tnd-cm-reports" onclick="go('cm-reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
+      <div class="tn-dd-item" id="tnd-cm-discharge" onclick="go('cm-discharge');closeTnDropdown()"><i data-lucide="door-open" class="lci"></i><span>Discharge</span></div>
       </div>
       </div>
       <div class="tn-group" id="tng-config">
@@ -2444,12 +2925,19 @@ return `<div class="app-shell">
       <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-cm')"><i data-lucide="briefcase" class="lci"></i>Case Management <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
       <div class="tn-drawer-sub">
       <div class="tn-drawer-sub-item" onclick="go('cm-dashboard');closeTnDrawer()">Dashboard</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-intake');closeTnDrawer()">Intake / Referrals</div>
       <div class="tn-drawer-sub-item" onclick="go('cm-clients');closeTnDrawer()">Clients</div>
       <div class="tn-drawer-sub-item" onclick="go('cm-workers');closeTnDrawer()">Case Workers</div>
-      <div class="tn-drawer-sub-item" onclick="go('cm-plans');closeTnDrawer()">Service Plans</div>
-      <div class="tn-drawer-sub-item" onclick="go('cm-notes');closeTnDrawer()">Progress Notes</div>
-      <div class="tn-drawer-sub-item" onclick="go('cm-billing');closeTnDrawer()">Billing</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-assessments');closeTnDrawer()">Assessments</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-plans');closeTnDrawer()">Care Plans</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-encounters');closeTnDrawer()">Encounters / Notes</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-tasks');closeTnDrawer()">Tasks &amp; Follow-Ups</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-authorizations');closeTnDrawer()">Authorizations</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-referrals');closeTnDrawer()">Referrals &amp; Resources</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-supervisor');closeTnDrawer()">Supervisor Review</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-billing');closeTnDrawer()">Billing Readiness</div>
       <div class="tn-drawer-sub-item" onclick="go('cm-reports');closeTnDrawer()">Reports</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-discharge');closeTnDrawer()">Discharge</div>
       </div>
       </div>
       <div class="tn-drawer-group" id="mob-grp-config">
@@ -2616,6 +3104,10 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 <div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>
 </div>
 </div>
+</div>
+
+<div class="section" id="sec-claim-editor" style="display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">
+<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>
 </div>
 
 <div class="section" id="sec-eob">
@@ -3140,6 +3632,66 @@ Show Paid
 <div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div>
 
 <div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div id="cm-reports-content"></div></div>
+
+<div class="section" id="sec-cm-intake">
+<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>
+<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMIntake()">
+<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>
+</div>
+<div id="cm-intake-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-assessments">
+<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>
+<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">
+<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>
+<div id="cm-assessments-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-encounters">
+<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()">+ New Encounter</button></div>
+<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMEncounters()">
+<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>
+<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>
+<div id="cm-encounters-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-tasks">
+<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>
+<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">
+<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
+<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>
+<div id="cm-tasks-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-authorizations">
+<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>
+<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">
+<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>
+<div id="cm-auths-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-referrals">
+<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>
+<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">
+<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>
+<div id="cm-referrals-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-supervisor">
+<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>
+<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>
+<div id="cm-supervisor-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-discharge">
+<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>
+<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>
+<div id="cm-discharge-tbl"></div>
+</div>
+
+<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go('cm-clients')">Back to Clients</button></div><div id="cm-patient-summary-content"></div></div>
 
 <div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div id="cm-settings-content"></div></div>
 
@@ -8937,10 +9489,10 @@ function showVerifyModal(state, parsed, user, token) {
         '</div>' +
         '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Verify Your Email</h3>' +
         '<p style="color:#87867f;font-size:13px;margin-bottom:6px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>!</p>' +
-        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Enter the 6-digit code sent to <strong>' + (user.email||'') + '</strong></p>' +
+        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Enter the 6-character code sent to <strong>' + (user.email||'') + '</strong></p>' +
       '</div>' +
       '<div style="margin-bottom:14px">' +
-        '<input id="verify-otp" type="text" inputmode="numeric" maxlength="6" placeholder="000000" class="no-upper" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace">' +
+        '<input id="verify-otp" type="text" maxlength="6" placeholder="------" class="no-upper" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace">' +
       '</div>' +
       '<div id="verify-alert" style="margin-bottom:12px"></div>' +
       '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Verify Code</button>';
@@ -8962,7 +9514,7 @@ function showVerifyModal(state, parsed, user, token) {
         '<input id="verify-pass2" type="password" class="no-upper" placeholder="••••••••" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
       '</div>' +
       '<div style="font-size:11px;color:#87867f;margin-bottom:14px;padding:8px;background:#faf9f5;border-radius:6px;line-height:1.5">' +
-        'Password must have: 8+ characters, 1 uppercase, 1 lowercase, 1 special character (!@#$%^&amp;*).' +
+        'Password must have: 8+ characters, 1 uppercase, 1 lowercase, 1 number, 1 special character (!@#$%^&amp;*).' +
       '</div>' +
       '<div id="verify-alert" style="margin-bottom:12px"></div>' +
       '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
@@ -8996,7 +9548,7 @@ function showVerifyModal(state, parsed, user, token) {
 function verifyOTPAndContinue(token, parsed) {
   var otp = (document.getElementById('verify-otp')?.value||'').trim();
   var alertEl = document.getElementById('verify-alert');
-  if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-digit verification code.</div>'; return; }
+  if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-character verification code.</div>'; return; }
 
   var _allU = typeof getUsers === 'function' ? getUsers() : [];
   var user = _allU.find(function(u) { return u.id === parsed.userId; });
@@ -9018,6 +9570,7 @@ function confirmVerifyEmail(token, userId) {
   if (p1.length < 8) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 8 characters.</div>'; return; }
   if (!/[A-Z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one uppercase letter.</div>'; return; }
   if (!/[a-z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one lowercase letter.</div>'; return; }
+  if (!/[0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one number.</div>'; return; }
   if (!/[^A-Za-z0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one special character (!@#$%^&amp;*).</div>'; return; }
   if (p1 !== p2) { alertEl.innerHTML = '<div class="alert al-error">Passwords do not match.</div>'; return; }
 
@@ -9930,7 +10483,7 @@ async function transmitDirect(filter) {
     if (alertEl) alertEl.innerHTML = '<div class="alert al-success" style="font-size:13px">'
       + claims.length + ' claim(s) transmitidos exitosamente — '
       + new Date().toLocaleTimeString() + '</div>';
-    toast(claims.length + ' claim(s) transmitidos a Clearinghouse', 'ok');
+    alert(claims.length + ' claim(s) transmitidos a Clearinghouse');
 
   } catch(e) {
     console.error('[Clearinghouse error]', e);
@@ -15337,12 +15890,20 @@ invoices: { item:'tnav-admin', dd:'tnd-invoices' },
       reports: { item:'tnav-admin' },
       account: { item:'tnav-admin' },
       'cm-dashboard': { item:'tnav-cm', dd:'tnd-cm-dashboard' },
+      'cm-intake': { item:'tnav-cm', dd:'tnd-cm-intake' },
       'cm-clients': { item:'tnav-cm', dd:'tnd-cm-clients' },
       'cm-workers': { item:'tnav-cm', dd:'tnd-cm-workers' },
+      'cm-assessments': { item:'tnav-cm', dd:'tnd-cm-assessments' },
       'cm-plans': { item:'tnav-cm', dd:'tnd-cm-plans' },
-      'cm-notes': { item:'tnav-cm', dd:'tnd-cm-notes' },
+      'cm-encounters': { item:'tnav-cm', dd:'tnd-cm-encounters' },
+      'cm-tasks': { item:'tnav-cm', dd:'tnd-cm-tasks' },
+      'cm-authorizations': { item:'tnav-cm', dd:'tnd-cm-authorizations' },
+      'cm-referrals': { item:'tnav-cm', dd:'tnd-cm-referrals' },
+      'cm-supervisor': { item:'tnav-cm', dd:'tnd-cm-supervisor' },
       'cm-billing': { item:'tnav-cm', dd:'tnd-cm-billing' },
       'cm-reports': { item:'tnav-cm', dd:'tnd-cm-reports' },
+      'cm-discharge': { item:'tnav-cm', dd:'tnd-cm-discharge' },
+      'claim-editor': { item:'tnav-billing', dd:'tnd-claim-editor' },
       };
 const m = map[route];
 if (!m) return;
@@ -17773,7 +18334,12 @@ function getCMData() {
     var r = localStorage.getItem(CM_KEY);
     if (r) return JSON.parse(r);
   } catch(e) {}
-  return { clients:[], workers:[], plans:[], notes:[], billing:[] };
+  return {
+    clients:[], workers:[], plans:[], notes:[], billing:[],
+    referrals:[], eligibility:[], assessments:[], tasks:[],
+    authorizations:[], communityReferrals:[], encounters:[],
+    discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
+  };
 }
 function saveCMData(d) {
   try { localStorage.setItem(CM_KEY, JSON.stringify(d)); } catch(e) {}
@@ -17787,7 +18353,20 @@ function _cmDateStr(d) {
 function _cmNowISO() { return new Date().toISOString(); }
 function _cmFmtMoney(n) { return '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function _cmStatusBadge(s) {
-  var m = { Active:'b-green', Inactive:'b-gray', Discharged:'b-red', Draft:'b-gray', Ready:'b-blue', Submitted:'b-amber', Paid:'b-green', Rejected:'b-red', Completed:'b-green', Expired:'b-amber' };
+  var m = {
+    Active:'b-green', Inactive:'b-gray', Discharged:'b-red',
+    Draft:'b-gray', Ready:'b-blue', Submitted:'b-amber',
+    Paid:'b-green', Rejected:'b-red',
+    Completed:'b-green', Expired:'b-amber',
+    Pending:'b-amber', Approved:'b-green', 'Needs Review':'b-amber',
+    'Billing Hold':'b-red', 'Ready to Bill':'b-blue',
+    Verified:'b-green', Unverified:'b-gray',
+    Open:'b-blue', Closed:'b-green',
+    High:'b-red', Medium:'b-amber', Low:'b-gray',
+    'In Progress':'b-blue', 'Not Started':'b-gray',
+    Signed:'b-green', 'Missed':'b-red', Cancelled:'b-gray',
+    Converted:'b-blue'
+  };
   var c = m[s] || 'b-gray';
   return '<span class="badge '+c+'">'+s+'</span>';
 }
@@ -17820,39 +18399,6 @@ function _isCMRole() {
 }
 
 // ── CM: DASHBOARD ──────────────────────────────────────────────
-function renderCMDashboard() {
-  if (!_isCMRole()) { go('dashboard'); return; }
-  var el = document.getElementById('cm-dash-content');
-  if (!el) return;
-  var d = getCMData();
-  var activeClients = d.clients.filter(function(c){return c.status==='Active';});
-  var activeWorkers = d.workers.filter(function(w){return w.status!=='Inactive';});
-  var duePlans = d.plans.filter(function(p){return p.status==='Active' && p.nextReview && new Date(p.nextReview) < new Date(Date.now()+30*86400000);});
-  var todayNotes = d.notes.filter(function(n){var nd=new Date(n.date).toDateString();return nd===new Date().toDateString();});
-  var billingReady = d.billing.filter(function(b){return b.status==='Ready';});
-  el.innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)">'+activeClients.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Clients</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+activeWorkers.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Workers</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:'+(duePlans.length?'var(--amber)':'var(--text)')+'">'+duePlans.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Reviews Due (30d)</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:'+(billingReady.length?'var(--brand)':'var(--text)')+'">'+billingReady.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Billing Ready</div></div>'+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
-    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Recent Notes Today ('+todayNotes.length+')</div>'+
-    '<div style="padding:12px 16px;max-height:200px;overflow-y:auto">'+
-    (todayNotes.length ? todayNotes.slice(0,10).map(function(n){
-      return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)"><strong>'+_cmClientName(n.clientId)+'</strong> \u2014 '+(n.billable?'Billable':'Non-Billable')+'</div>';
-    }).join('') : '<div style="font-size:12px;color:var(--text3)">No notes recorded today.</div>')+
-    '</div></div>'+
-    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Caseload Overview</div>'+
-    '<div style="padding:12px 16px;max-height:200px;overflow-y:auto">'+
-    (activeWorkers.length ? activeWorkers.slice(0,10).map(function(w){
-      var cnt = activeClients.filter(function(c){return c.workerId===w.id;}).length;
-      return '<div style="font-size:12px;padding:4px 0;display:flex;justify-content:space-between"><span>'+w.first+' '+w.last+'</span><span style="font-weight:600">'+cnt+' clients</span></div>';
-    }).join('') : '<div style="font-size:12px;color:var(--text3)">No workers assigned.</div>')+
-    '</div></div></div>';
-}
-
 // ── CM: CLIENTS ─────────────────────────────────────────────────
 function renderCMClients() {
   if (!_isCMRole()) return;
@@ -18480,7 +19026,1189 @@ function renderCMReports() {
 function renderCMSettings() {
   var el = document.getElementById('cm-settings-content');
   if (!el) return;
-  el.innerHTML = '<div class="card" style="padding:24px"><h3>Case Management Settings</h3><p style="color:var(--text3);font-size:13px;margin-top:8px">All CM data is stored locally. Configure billing rates and defaults here.</p></div>';
+  var d = getCMData();
+  var s = d.cmSettings || { billingRate:12.50, defaultCode:'T1017' };
+  el.innerHTML =
+    '<div class="card" style="padding:24px;max-width:500px">'+
+    '<h3>Case Management Settings</h3>'+
+    '<p style="color:var(--text3);font-size:12px;margin:6px 0 16px">Configure billing rates, defaults, and preferences.</p>'+
+    '<div class="fg g2"><div class="field"><label>Billing Rate (per 15-min unit)</label><input id="cms-rate" type="number" step="0.01" value="'+s.billingRate+'" style="padding:8px;border:1px solid var(--border2);border-radius:6px;width:100%"></div>'+
+    '<div class="field"><label>Default Service Code</label><select id="cms-code" style="padding:8px;border:1px solid var(--border2);border-radius:6px;width:100%">'+
+    '<option value="T1017"'+(s.defaultCode==='T1017'?' selected':'')+'>T1017 - Targeted Case Mgmt</option>'+
+    '<option value="H0031"'+(s.defaultCode==='H0031'?' selected':'')+'>H0031 - Assessment</option>'+
+    '<option value="H0032"'+(s.defaultCode==='H0032'?' selected':'')+'>H0032 - Treatment Plan</option>'+
+    '<option value="H2019"'+(s.defaultCode==='H2019'?' selected':'')+'>H2019 - Therapeutic Behavioral</option>'+
+    '<option value="S9480"'+(s.defaultCode==='S9480'?' selected':'')+'>S9480 - Intensive In-Home</option></select></div></div>'+
+    '<button class="btn btn-primary btn-sm" onclick="saveCMSettings()" style="margin-top:12px">Save Settings</button></div>';
+}
+function saveCMSettings() {
+  var d = getCMData();
+  d.cmSettings = {
+    billingRate: parseFloat(document.getElementById('cms-rate')?.value) || 12.50,
+    defaultCode: document.getElementById('cms-code')?.value || 'T1017'
+  };
+  saveCMData(d);
+  toast('Settings saved');
+}
+
+// ── CM: INTAKE / REFERRALS ──────────────────────────────────────
+function renderCMIntake() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-intake-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-intake-q')?.value||'').toLowerCase().trim();
+  var sf = document.getElementById('cm-intake-status')?.value||'';
+  var list = d.referrals || [];
+  if (sf) list = list.filter(function(r){return r.status===sf;});
+  if (q) list = list.filter(function(r){return (r.first+' '+r.last+' '+r.medicaidId+' '+r.phone).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No referrals found</h3><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Medicaid ID</th><th>Referral Source</th><th>Date</th><th>Status</th><th>Worker</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      return '<tr>'+
+        '<td style="font-weight:600">'+(r.last||'')+', '+(r.first||'')+'</td>'+
+        '<td style="font-size:12px">'+(r.medicaidId||'—')+'</td>'+
+        '<td style="font-size:12px">'+(r.referralSource||'—')+'</td>'+
+        '<td style="font-size:12px">'+(r.referralDate||'')+'</td>'+
+        '<td>'+_cmStatusBadge(r.status||'Pending')+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(r.intakeCoordinatorId)+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        (r.status==='Pending'||r.status==='In Progress'?'<button class="btn-icon sm" onclick="convertIntakeToClient(\''+r.id+'\')" title="Convert to Client"><i data-lucide="user-check" class="lci" style="width:12px;height:12px"></i></button>':'')+
+        '<button class="btn-icon sm" onclick="editCMIntake(\''+r.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMIntake(\''+r.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMIntakeModal(editId) {
+  var d = getCMData();
+  var r = editId ? (d.referrals||[]).find(function(x){return x.id===editId;}) : {};
+  var workerOpts = '<option value="">— Select —</option>'+_cmWorkerOpts();
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Referral':'New Referral')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmi-first" class="no-upper" value="'+(r.first||'')+'"></div>'+
+    '<div class="field"><label>Last Name</label><input id="cmi-last" class="no-upper" value="'+(r.last||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Medicaid ID</label><input id="cmi-mid" value="'+(r.medicaidId||'')+'"></div>'+
+    '<div class="field"><label>DOB</label><input id="cmi-dob" type="date" value="'+(r.dob||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Phone</label><input id="cmi-phone" value="'+(r.phone||'')+'"></div>'+
+    '<div class="field"><label>Email</label><input id="cmi-email" type="email" value="'+(r.email||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Address</label><input id="cmi-addr" value="'+(r.address||'')+'"></div>'+
+    '<div class="field"><label>Referral Source</label><select id="cmi-source"><option value="PCP"'+(r.referralSource==='PCP'?' selected':'')+'>PCP</option><option value="Hospital"'+(r.referralSource==='Hospital'?' selected':'')+'>Hospital</option><option value="School"'+(r.referralSource==='School'?' selected':'')+'>School</option><option value="Family"'+(r.referralSource==='Family'?' selected':'')+'>Family</option><option value="Self"'+(r.referralSource==='Self'?' selected':'')+'>Self</option><option value="Court"'+(r.referralSource==='Court'?' selected':'')+'>Court</option><option value="Agency"'+(r.referralSource==='Agency'?' selected':'')+'>Agency</option><option value="Other"'+(r.referralSource==='Other'?' selected':'')+'>Other</option></select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Insurance</label><input id="cmi-ins" value="'+(r.insurance||'')+'"></div>'+
+    '<div class="field"><label>Diagnosis</label><input id="cmi-dx" value="'+(r.diagnosis||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Referral Date</label><input id="cmi-date" type="date" value="'+(r.referralDate||_cmDateStr(new Date()))+'"></div>'+
+    '<div class="field"><label>Intake Coordinator</label><select id="cmi-worker">'+workerOpts+'</select></div></div>'+
+    '<div class="field"><label>Status</label><select id="cmi-status"><option value="Pending"'+(r.status==='Pending'?' selected':'')+'>Pending</option><option value="In Progress"'+(r.status==='In Progress'?' selected':'')+'>In Progress</option><option value="Converted"'+(r.status==='Converted'?' selected':'')+'>Converted</option><option value="Closed"'+(r.status==='Closed'?' selected':'')+'>Closed</option></select></div>'+
+    '<div class="field"><label>Notes</label><textarea id="cmi-notes" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+(r.notes||'')+'</textarea></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMIntake(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && r.intakeCoordinatorId) { var sel=document.getElementById('cmi-worker'); if(sel) sel.value=r.intakeCoordinatorId; }
+}
+function saveCMIntake(id) {
+  var d = getCMData();
+  var first = document.getElementById('cmi-first')?.value||'';
+  var last = document.getElementById('cmi-last')?.value||'';
+  if (!first || !last) { toast('First and last name required','warn'); return; }
+  var obj = {
+    first: first.trim(), last: last.trim(),
+    medicaidId: document.getElementById('cmi-mid')?.value||'',
+    dob: document.getElementById('cmi-dob')?.value||'',
+    phone: document.getElementById('cmi-phone')?.value||'',
+    email: document.getElementById('cmi-email')?.value||'',
+    address: document.getElementById('cmi-addr')?.value||'',
+    referralSource: document.getElementById('cmi-source')?.value||'',
+    insurance: document.getElementById('cmi-ins')?.value||'',
+    diagnosis: document.getElementById('cmi-dx')?.value||'',
+    referralDate: document.getElementById('cmi-date')?.value||'',
+    intakeCoordinatorId: document.getElementById('cmi-worker')?.value||'',
+    status: document.getElementById('cmi-status')?.value||'Pending',
+    notes: document.getElementById('cmi-notes')?.value||'',
+    updatedAt: _cmNowISO()
+  };
+  if (!d.referrals) d.referrals = [];
+  if (id) {
+    var idx = d.referrals.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.referrals[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.referrals.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMIntake();
+  toast('Referral saved');
+}
+function editCMIntake(id) { openCMIntakeModal(id); }
+function delCMIntake(id) {
+  if (!confirm('Delete this referral?')) return;
+  var d = getCMData();
+  d.referrals = (d.referrals||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMIntake();
+  toast('Referral deleted');
+}
+function convertIntakeToClient(id) {
+  if (!confirm('Convert this referral to an active client?')) return;
+  var d = getCMData();
+  var r = (d.referrals||[]).find(function(x){return x.id===id;});
+  if (!r) return;
+  if (!d.clients) d.clients = [];
+  var dup = d.clients.find(function(c){return c.medicaidId && c.medicaidId===r.medicaidId;});
+  if (dup) { toast('Client with Medicaid ID '+r.medicaidId+' already exists','warn'); return; }
+  d.clients.push({
+    id: _cmId(), first: r.first, last: r.last,
+    medicaidId: r.medicaidId, dob: r.dob, phone: r.phone,
+    email: r.email, address: r.address,
+    status: 'Active', workerId: r.intakeCoordinatorId||'',
+    createdAt: _cmNowISO(), updatedAt: _cmNowISO()
+  });
+  r.status = 'Converted';
+  r.convertedToClientId = d.clients[d.clients.length-1].id;
+  saveCMData(d);
+  renderCMIntake();
+  toast('Referral converted to client');
+}
+
+// ── CM: ASSESSMENTS ─────────────────────────────────────────────
+function renderCMAssessments() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-assessments-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-assess-q')?.value||'').toLowerCase().trim();
+  var sf = document.getElementById('cm-assess-status')?.value||'';
+  var list = d.assessments || [];
+  if (sf) list = list.filter(function(a){return a.status===sf;});
+  if (q) list = list.filter(function(a){return _cmClientName(a.clientId).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No assessments found</h3><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Date</th><th>Type</th><th>Worker</th><th>Status</th><th>Signature</th><th></th></tr></thead><tbody>'+
+    list.map(function(a){
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(a.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(a.date||'')+'</td>'+
+        '<td style="font-size:12px">'+(a.type||'Comprehensive')+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(a.workerId)+'</td>'+
+        '<td>'+_cmStatusBadge(a.status||'Draft')+'</td>'+
+        '<td style="font-size:11px">'+(a.signatureStatus==='Signed'?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">—</span>')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="viewCMAssessment(\''+a.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm" onclick="editCMAssessment(\''+a.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMAssessment(\''+a.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMAssessmentModal(editId) {
+  var d = getCMData();
+  var a = editId ? (d.assessments||[]).find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  var sect = function(kl, vl) { return '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:2px">'+kl+'</label><textarea style="width:100%;min-height:40px;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+(vl||'')+'</textarea></div>'; };
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Assessment':'New Comprehensive Assessment')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g3"><div class="field"><label>Client</label><select id="cma-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Worker</label><select id="cma-worker">'+_cmWorkerOpts()+'</select></div>'+
+    '<div class="field"><label>Date</label><input id="cma-date" type="date" value="'+(a.date||_cmDateStr(new Date()))+'"></div></div>'+
+    '<div class="field"><label>Type</label><select id="cma-type"><option value="Comprehensive"'+(a.type==='Comprehensive'?' selected':'')+'>Comprehensive</option><option value="Reassessment"'+(a.type==='Reassessment'?' selected':'')+'>Reassessment</option><option value="Brief"'+(a.type==='Brief'?' selected':'')+'>Brief</option></select></div>'+
+    '<div style="margin-top:12px;max-height:400px;overflow-y:auto;padding-right:4px">'+
+    sect('Psychosocial Assessment', a.psychosocial)+
+    sect('Functional Needs', a.functional)+
+    sect('Medical Conditions', a.medical)+
+    sect('Mental Health History', a.mentalHealth)+
+    sect('Substance Use', a.substanceUse)+
+    sect('Housing', a.housing)+
+    sect('Transportation', a.transportation)+
+    sect('Legal Issues', a.legal)+
+    sect('Family Support', a.familySupport)+
+    sect('Safety Risks', a.safetyRisks)+
+    sect('Social Determinants of Health', a.socialDeterminants)+
+    '</div>'+
+    '<div class="fg g2" style="margin-top:8px"><div class="field"><label>Status</label><select id="cma-status"><option value="Draft"'+(a.status==='Draft'?' selected':'')+'>Draft</option><option value="Completed"'+(a.status==='Completed'?' selected':'')+'>Completed</option></select></div>'+
+    '<div class="field"><label><input type="checkbox" id="cma-sig" '+(a.signatureStatus==='Signed'?'checked':'')+'> Electronically sign</label></div></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMAssessment(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && a.clientId) { var sel=document.getElementById('cma-client'); if(sel) sel.value=a.clientId; }
+  if (editId && a.workerId) { var sel2=document.getElementById('cma-worker'); if(sel2) sel2.value=a.workerId; }
+}
+function saveCMAssessment(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cma-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var ta = function(id) { return document.getElementById(id)?.value||''; };
+  var obj = {
+    clientId: clientId,
+    workerId: document.getElementById('cma-worker')?.value||'',
+    date: document.getElementById('cma-date')?.value||'',
+    type: document.getElementById('cma-type')?.value||'Comprehensive',
+    psychosocial: ta('cma-psychosocial'), functional: ta('cma-functional'),
+    medical: ta('cma-medical'), mentalHealth: ta('cma-mentalHealth'),
+    substanceUse: ta('cma-substanceUse'), housing: ta('cma-housing'),
+    transportation: ta('cma-transportation'), legal: ta('cma-legal'),
+    familySupport: ta('cma-familySupport'), safetyRisks: ta('cma-safetyRisks'),
+    socialDeterminants: ta('cma-socialDeterminants'),
+    status: document.getElementById('cma-status')?.value||'Draft',
+    signatureStatus: document.getElementById('cma-sig')?.checked ? 'Signed' : 'Pending',
+    updatedAt: _cmNowISO()
+  };
+  if (!d.assessments) d.assessments = [];
+  if (id) {
+    var idx = d.assessments.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.assessments[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.assessments.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMAssessments();
+  toast('Assessment saved');
+}
+function viewCMAssessment(id) {
+  var d = getCMData();
+  var a = (d.assessments||[]).find(function(x){return x.id===id;});
+  if (!a) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  var secV = function(kl, vl) { return vl ? '<div style="margin-bottom:10px"><strong style="font-size:11px;color:var(--text2)">'+kl+':</strong><p style="font-size:12px;margin:2px 0 0;white-space:pre-wrap">'+vl+'</p></div>' : ''; };
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">Assessment: '+_cmClientName(a.clientId)+'</div><div style="font-size:11px;color:var(--text3)">'+(a.date||'')+' · '+_cmWorkerName(a.workerId)+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    secV('Psychosocial', a.psychosocial)+secV('Functional', a.functional)+secV('Medical', a.medical)+
+    secV('Mental Health', a.mentalHealth)+secV('Substance Use', a.substanceUse)+
+    secV('Housing', a.housing)+secV('Transportation', a.transportation)+
+    secV('Legal', a.legal)+secV('Family Support', a.familySupport)+
+    secV('Safety Risks', a.safetyRisks)+secV('SDOH', a.socialDeterminants)+
+    '<div style="margin-top:10px">'+_cmStatusBadge(a.status||'Draft')+' '+(a.signatureStatus==='Signed'?'<span class="badge b-green">Signed</span>':'')+'</div>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+function editCMAssessment(id) { openCMAssessmentModal(id); }
+function delCMAssessment(id) {
+  if (!confirm('Delete this assessment?')) return;
+  var d = getCMData();
+  d.assessments = (d.assessments||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMAssessments();
+  toast('Assessment deleted');
+}
+
+// ── CM: ENCOUNTERS (enhanced progress notes) ───────────────────
+function renderCMEncounters() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-encounters-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-enc-q')?.value||'').toLowerCase().trim();
+  var bf = document.getElementById('cm-enc-billable')?.value||'';
+  var sf = document.getElementById('cm-enc-status')?.value||'';
+  var list = (d.encounters||[]).slice().sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  if (bf) list = list.filter(function(n){return String(n.billable?1:0)===bf;});
+  if (sf) list = list.filter(function(n){return (n.supervisorStatus||'Draft')===sf;});
+  if (q) list = list.filter(function(n){return (_cmClientName(n.clientId)+' '+_cmWorkerName(n.workerId)).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No encounters found</h3><button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()">+ New Encounter</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Worker</th><th>Contact Type</th><th>Billable</th><th>Supervisor</th><th>Billing Hold</th><th></th></tr></thead><tbody>'+
+    list.map(function(n){
+      var billingIssues = _cmBillingHolds(n, d);
+      var hasHold = billingIssues.length > 0;
+      return '<tr>'+
+        '<td style="font-size:12px;white-space:nowrap">'+(n.date||'')+'</td>'+
+        '<td style="font-weight:600">'+_cmClientName(n.clientId)+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(n.workerId)+'</td>'+
+        '<td style="font-size:11px">'+(n.contactType||'—')+'</td>'+
+        '<td>'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
+        '<td>'+_cmStatusBadge(n.supervisorStatus||'Pending')+'</td>'+
+        '<td>'+(hasHold?'<span class="badge b-red" title="'+billingIssues.join('; ')+'">Hold</span>':'<span class="badge b-green">Clear</span>')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="viewCMEncounter(\''+n.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm" onclick="editCMEncounter(\''+n.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMEncounter(\''+n.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function _cmBillingHolds(n, d) {
+  var issues = [];
+  if (!n.billable) { issues.push('Non-billable encounter'); return issues; }
+  if (!d) d = getCMData();
+  if (n.supervisorStatus !== 'Approved') issues.push('Note not approved by supervisor');
+  if (!n.signatureStatus || n.signatureStatus !== 'Signed') issues.push('Missing signature');
+  var cli = d.clients.find(function(c){return c.id===n.clientId;});
+  if (!cli) { issues.push('Client not found'); return issues; }
+  if (cli.authEnd && new Date(cli.authEnd) < new Date()) issues.push('Authorization expired');
+  var elig = (d.eligibility||[]).find(function(e){return e.clientId===n.clientId;});
+  if (elig && elig.tcmEligible === false) issues.push('Eligibility inactive');
+  if (!n.code) issues.push('Missing service code');
+  return issues;
+}
+function openCMEncounterModal(editId) {
+  var d = getCMData();
+  var n = editId ? (d.encounters||[]).find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  var contactTypes = ['Face-to-Face','Phone','Telehealth','Home Visit','Community Visit','Collateral Contact','School Visit','Office Visit'];
+  var ctOpts = contactTypes.map(function(t){ return '<option value="'+t+'"'+(n.contactType===t?' selected':'')+'>'+t+'</option>'; }).join('');
+  var planOpts = '<option value="">— None —</option>'+(d.plans||[]).filter(function(p){return p.status==='Active';}).map(function(p){
+    return '<option value="'+p.id+'"'+(n.linkedGoalId&&n.linkedGoalId.startsWith(p.id)?' selected':'')+'>'+_cmClientName(p.clientId)+' — '+((p.goals||[])[0]?.text||'').slice(0,40)+'</option>';
+  }).join('');
+  var posOpts = ['Office','Home','Community','School','Telehealth','Facility','Other'].map(function(t){ return '<option value="'+t+'"'+(n.placeOfService===t?' selected':'')+'>'+t+'</option>'; }).join('');
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Encounter':'New Encounter / Case Note')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cme-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Worker</label><select id="cme-worker">'+_cmWorkerOpts()+'</select></div></div>'+
+    '<div class="fg g3"><div class="field"><label>Date</label><input id="cme-date" type="date" value="'+(n.date||_cmDateStr(new Date()))+'"></div>'+
+    '<div class="field"><label>Start Time</label><input id="cme-start" type="time" value="'+(n.startTime||'09:00')+'"></div>'+
+    '<div class="field"><label>End Time</label><input id="cme-end" type="time" value="'+(n.endTime||'09:15')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Place of Service</label><select id="cme-pos">'+posOpts+'</select></div>'+
+    '<div class="field"><label>Contact Type</label><select id="cme-contact">'+ctOpts+'</select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Billable</label><select id="cme-billable"><option value="1"'+(n.billable?' selected':'')+'>Yes</option><option value="0"'+(n.billable===false?' selected':'')+'>No</option></select></div>'+
+    '<div class="field"><label>Units (15-min)</label><input id="cme-units" type="number" value="'+(n.units||1)+'" min="1"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Service Code</label><select id="cme-code">'+
+    '<option value="T1017"'+(n.code==='T1017'?' selected':'')+'>T1017 - Targeted Case Mgmt</option>'+
+    '<option value="H0031"'+(n.code==='H0031'?' selected':'')+'>H0031 - Assessment</option>'+
+    '<option value="H0032"'+(n.code==='H0032'?' selected':'')+'>H0032 - Treatment Plan</option>'+
+    '<option value="H2019"'+(n.code==='H2019'?' selected':'')+'>H2019 - Therapeutic Behavioral</option>'+
+    '<option value="S9480"'+(n.code==='S9480'?' selected':'')+'>S9480 - Intensive In-Home</option></select></div>'+
+    '<div class="field"><label>Link to Care Plan Goal</label><select id="cme-goal">'+planOpts+'</select></div></div>'+
+    '<div class="field"><label>Participants</label><input id="cme-participants" value="'+(n.participants||'')+'" placeholder="Client, family, provider..."></div>'+
+    '<div class="field"><label>Intervention Provided</label><textarea id="cme-intervention" style="width:100%;min-height:50px;padding:8px;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text)" placeholder="Describe intervention...">'+(n.intervention||'')+'</textarea></div>'+
+    '<div class="field"><label>Medical Necessity</label><textarea id="cme-necessity" style="width:100%;min-height:40px;padding:8px;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text)" placeholder="Why is this service medically necessary?">'+(n.medicalNecessity||'')+'</textarea></div>'+
+    '<div class="field"><label>Patient Response / Outcome</label><textarea id="cme-outcome" style="width:100%;min-height:50px;padding:8px;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text)" placeholder="Patient response, outcome, next steps...">'+(n.outcome||'')+'</textarea></div>'+
+    '<div class="field"><label><input type="checkbox" id="cme-sig" '+(n.signatureStatus==='Signed'?'checked':'')+'> Electronically sign this note</label></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMEncounter(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && n.clientId) { var sel=document.getElementById('cme-client'); if(sel) sel.value=n.clientId; }
+  if (editId && n.workerId) { var sel2=document.getElementById('cme-worker'); if(sel2) sel2.value=n.workerId; }
+}
+function saveCMEncounter(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cme-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var start = document.getElementById('cme-start')?.value||'';
+  var end = document.getElementById('cme-end')?.value||'';
+  if (!end || !start) { toast('Start and end time required','warn'); return; }
+  var startMin = start.split(':').reduce(function(h,m){return parseInt(h)*60+parseInt(m);},0);
+  var endMin = end.split(':').reduce(function(h,m){return parseInt(h)*60+parseInt(m);},0);
+  var calcUnits = Math.max(1, Math.round((endMin - startMin) / 15));
+  var obj = {
+    clientId: clientId,
+    workerId: document.getElementById('cme-worker')?.value||'',
+    date: document.getElementById('cme-date')?.value||'',
+    startTime: start, endTime: end,
+    duration: endMin - startMin,
+    placeOfService: document.getElementById('cme-pos')?.value||'',
+    contactType: document.getElementById('cme-contact')?.value||'',
+    billable: document.getElementById('cme-billable')?.value==='1',
+    units: parseInt(document.getElementById('cme-units')?.value)||calcUnits,
+    code: document.getElementById('cme-code')?.value||'T1017',
+    linkedGoalId: document.getElementById('cme-goal')?.value||'',
+    participants: document.getElementById('cme-participants')?.value||'',
+    intervention: document.getElementById('cme-intervention')?.value||'',
+    medicalNecessity: document.getElementById('cme-necessity')?.value||'',
+    outcome: document.getElementById('cme-outcome')?.value||'',
+    signatureStatus: document.getElementById('cme-sig')?.checked ? 'Signed' : 'Pending',
+    supervisorStatus: 'Pending',
+    updatedAt: _cmNowISO()
+  };
+  // Preserve supervisor status on edit
+  if (id) {
+    var existing = (d.encounters||[]).find(function(x){return x.id===id;});
+    if (existing) obj.supervisorStatus = existing.supervisorStatus;
+  }
+  if (!d.encounters) d.encounters = [];
+  if (id) {
+    var idx = d.encounters.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.encounters[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    obj.supervisorStatus = 'Pending';
+    d.encounters.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMEncounters();
+  toast('Encounter saved');
+}
+function viewCMEncounter(id) {
+  var d = getCMData();
+  var n = (d.encounters||[]).find(function(x){return x.id===id;});
+  if (!n) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  var issues = _cmBillingHolds(n, d);
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">Encounter: '+_cmClientName(n.clientId)+'</div><div style="font-size:11px;color:var(--text3)">'+(n.date||'')+' · '+n.contactType+' · '+_cmWorkerName(n.workerId)+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px;font-size:12px">'+
+    '<div><strong>Time:</strong> '+n.startTime+' - '+n.endTime+' ('+n.duration+' min)</div>'+
+    '<div><strong>POS:</strong> '+n.placeOfService+'</div>'+
+    '<div><strong>Code:</strong> '+n.code+' · <strong>Units:</strong> '+n.units+'</div>'+
+    '<div><strong>Participants:</strong> '+(n.participants||'—')+'</div>'+
+    (n.intervention?'<div style="margin-top:8px"><strong>Intervention:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.intervention+'</p></div>':'')+
+    (n.medicalNecessity?'<div style="margin-top:8px"><strong>Medical Necessity:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.medicalNecessity+'</p></div>':'')+
+    (n.outcome?'<div style="margin-top:8px"><strong>Outcome / Next Steps:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.outcome+'</p></div>':'')+
+    '<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">'+
+    _cmStatusBadge(n.supervisorStatus||'Pending')+' '+
+    (n.signatureStatus==='Signed'?'<span class="badge b-green">Signed</span>':'<span class="badge b-gray">Unsigned</span>')+' '+
+    (n.billable?'<span class="badge b-blue">Billable</span>':'<span class="badge b-gray">Non-Billable</span>')+' '+
+    (issues.length?'<span class="badge b-red" title="'+issues.join('; ')+'">'+issues.length+' billing hold(s)</span>':'<span class="badge b-green">Ready to Bill</span>')+
+    '</div>'+
+    (issues.length?'<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--red)"><strong>Billing Holds:</strong><ul style="margin:4px 0 0;padding-left:16px">'+issues.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul></div>':'')+
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+function editCMEncounter(id) { openCMEncounterModal(id); }
+function delCMEncounter(id) {
+  if (!confirm('Delete this encounter?')) return;
+  var d = getCMData();
+  d.encounters = (d.encounters||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMEncounters();
+  toast('Encounter deleted');
+}
+
+// ── CM: TASKS & FOLLOW-UPS ─────────────────────────────────────
+function renderCMTasks() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-tasks-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-task-q')?.value||'').toLowerCase().trim();
+  var pf = document.getElementById('cm-task-priority')?.value||'';
+  var sf = document.getElementById('cm-task-status')?.value||'';
+  var list = (d.tasks||[]).slice().sort(function(a,b){return new Date(b.dueDate||'2099')-new Date(a.dueDate||'2099');});
+  if (pf) list = list.filter(function(t){return t.priority===pf;});
+  if (sf) list = list.filter(function(t){return t.status===sf;});
+  if (q) list = list.filter(function(t){return (t.title+' '+_cmClientName(t.clientId)+' '+_cmWorkerName(t.workerId)).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No tasks found</h3><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Task</th><th>Client</th><th>Worker</th><th>Due Date</th><th>Priority</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(t){
+      var overdue = t.status==='Open' && t.dueDate && new Date(t.dueDate) < new Date();
+      return '<tr>'+
+        '<td style="font-weight:600">'+(t.title||'')+'</td>'+
+        '<td style="font-size:12px">'+_cmClientName(t.clientId)+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(t.workerId)+'</td>'+
+        '<td style="font-size:12px;'+(overdue?'color:var(--red);font-weight:600':'')+'">'+(t.dueDate||'—')+(overdue?' <span class="badge b-red">Overdue</span>':'')+'</td>'+
+        '<td>'+_cmStatusBadge(t.priority||'Medium')+'</td>'+
+        '<td>'+_cmStatusBadge(t.status||'Open')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        (t.status==='Open'?'<button class="btn-icon sm" onclick="completeCMTask(\''+t.id+'\')" title="Complete" style="color:var(--green)"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i></button>':'')+
+        '<button class="btn-icon sm" onclick="editCMTask(\''+t.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMTask(\''+t.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMTaskModal(editId) {
+  var d = getCMData();
+  var t = editId ? (d.tasks||[]).find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Task':'New Task / Follow-Up')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="field"><label>Title</label><input id="cmt-title" value="'+(t.title||'')+'" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div>'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmt-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Worker</label><select id="cmt-worker">'+_cmWorkerOpts()+'</select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Due Date</label><input id="cmt-due" type="date" value="'+(t.dueDate||'')+'"></div>'+
+    '<div class="field"><label>Priority</label><select id="cmt-priority"><option value="High"'+(t.priority==='High'?' selected':'')+'>High</option><option value="Medium"'+(t.priority==='Medium'?' selected':'')+'>Medium</option><option value="Low"'+(t.priority==='Low'?' selected':'')+'>Low</option></select></div></div>'+
+    '<div class="field"><label>Recurring (days)</label><input id="cmt-recur" type="number" value="'+(t.recurringInterval||'')+'" placeholder="Leave empty for one-time" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div>'+
+    '<div class="field"><label>Description</label><textarea id="cmt-desc" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px">'+(t.description||'')+'</textarea></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMTask(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && t.clientId) { var sel=document.getElementById('cmt-client'); if(sel) sel.value=t.clientId; }
+  if (editId && t.workerId) { var sel2=document.getElementById('cmt-worker'); if(sel2) sel2.value=t.workerId; }
+}
+function saveCMTask(id) {
+  var d = getCMData();
+  var title = document.getElementById('cmt-title')?.value||'';
+  if (!title) { toast('Task title is required','warn'); return; }
+  var obj = {
+    title: title.trim(),
+    clientId: document.getElementById('cmt-client')?.value||'',
+    workerId: document.getElementById('cmt-worker')?.value||'',
+    dueDate: document.getElementById('cmt-due')?.value||'',
+    priority: document.getElementById('cmt-priority')?.value||'Medium',
+    recurringInterval: parseInt(document.getElementById('cmt-recur')?.value)||0,
+    description: document.getElementById('cmt-desc')?.value||'',
+    status: 'Open',
+    updatedAt: _cmNowISO()
+  };
+  if (!d.tasks) d.tasks = [];
+  if (id) {
+    var existing = d.tasks.find(function(x){return x.id===id;});
+    if (existing) obj.status = existing.status;
+    var idx = d.tasks.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.tasks[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    d.tasks.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMTasks();
+  toast('Task saved');
+}
+function editCMTask(id) { openCMTaskModal(id); }
+function delCMTask(id) {
+  if (!confirm('Delete this task?')) return;
+  var d = getCMData();
+  d.tasks = (d.tasks||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMTasks();
+  toast('Task deleted');
+}
+function completeCMTask(id) {
+  var d = getCMData();
+  var idx = (d.tasks||[]).findIndex(function(x){return x.id===id;});
+  if (idx<0) return;
+  d.tasks[idx].status = 'Completed';
+  d.tasks[idx].completedAt = _cmNowISO();
+  d.tasks[idx].updatedAt = _cmNowISO();
+  // Create recurring follow-up if interval set
+  if (d.tasks[idx].recurringInterval > 0) {
+    var orig = d.tasks[idx];
+    var newDue = new Date(orig.dueDate);
+    newDue.setDate(newDue.getDate() + orig.recurringInterval);
+    d.tasks.push({
+      id: _cmId(), title: orig.title, clientId: orig.clientId,
+      workerId: orig.workerId, description: orig.description,
+      dueDate: _cmDateStr(newDue), priority: orig.priority,
+      recurringInterval: orig.recurringInterval, status: 'Open',
+      createdAt: _cmNowISO(), updatedAt: _cmNowISO()
+    });
+  }
+  saveCMData(d);
+  renderCMTasks();
+  toast('Task completed');
+}
+
+// ── CM: AUTHORIZATIONS ──────────────────────────────────────────
+function renderCMAuths() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-auths-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-auth-q')?.value||'').toLowerCase().trim();
+  var sf = document.getElementById('cm-auth-status')?.value||'';
+  var list = (d.authorizations||[]).slice().sort(function(a,b){return new Date(b.endDate||'2099')-new Date(a.endDate||'2099');});
+  if (sf) list = list.filter(function(a){return a.status===sf;});
+  if (q) list = list.filter(function(a){return (_cmClientName(a.clientId)+' '+a.authNumber).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No authorizations found</h3><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Auth #</th><th>Start</th><th>End</th><th>Approved</th><th>Used</th><th>Remaining</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(a){
+      var remaining = (a.approvedUnits||0) - (a.usedUnits||0);
+      var expiring = a.status==='Active' && a.endDate && new Date(a.endDate) < new Date(Date.now()+30*86400000);
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(a.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(a.authNumber||'—')+'</td>'+
+        '<td style="font-size:12px">'+(a.startDate||'')+'</td>'+
+        '<td style="font-size:12px;'+(expiring?'color:var(--red);font-weight:600':'')+'">'+(a.endDate||'—')+(expiring?' <span class="badge b-red">Expiring</span>':'')+'</td>'+
+        '<td style="text-align:center">'+(a.approvedUnits||0)+'</td>'+
+        '<td style="text-align:center">'+(a.usedUnits||0)+'</td>'+
+        '<td style="text-align:center;font-weight:600;'+(remaining<=0?'color:var(--red)':'')+'">'+remaining+'</td>'+
+        '<td>'+_cmStatusBadge(a.status||'Active')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMAuth(\''+a.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMAuth(\''+a.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMAuthModal(editId) {
+  var d = getCMData();
+  var a = editId ? (d.authorizations||[]).find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Authorization':'New Authorization')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmauth-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Auth Number</label><input id="cmauth-num" value="'+(a.authNumber||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Start Date</label><input id="cmauth-start" type="date" value="'+(a.startDate||'')+'"></div>'+
+    '<div class="field"><label>End Date</label><input id="cmauth-end" type="date" value="'+(a.endDate||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Approved Units</label><input id="cmauth-appr" type="number" value="'+(a.approvedUnits||0)+'"></div>'+
+    '<div class="field"><label>Used Units</label><input id="cmauth-used" type="number" value="'+(a.usedUnits||0)+'"></div></div>'+
+    '<div class="field"><label>Status</label><select id="cmauth-status"><option value="Active"'+(a.status==='Active'?' selected':'')+'>Active</option><option value="Pending"'+(a.status==='Pending'?' selected':'')+'>Pending</option><option value="Expired"'+(a.status==='Expired'?' selected':'')+'>Expired</option></select></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMAuth(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && a.clientId) { var sel=document.getElementById('cmauth-client'); if(sel) sel.value=a.clientId; }
+}
+function saveCMAuth(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cmauth-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var obj = {
+    clientId: clientId,
+    authNumber: document.getElementById('cmauth-num')?.value||'',
+    startDate: document.getElementById('cmauth-start')?.value||'',
+    endDate: document.getElementById('cmauth-end')?.value||'',
+    approvedUnits: parseInt(document.getElementById('cmauth-appr')?.value)||0,
+    usedUnits: parseInt(document.getElementById('cmauth-used')?.value)||0,
+    status: document.getElementById('cmauth-status')?.value||'Active',
+    updatedAt: _cmNowISO()
+  };
+  if (!d.authorizations) d.authorizations = [];
+  if (id) {
+    var idx = d.authorizations.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.authorizations[idx], obj);
+  } else {
+    obj.id = _cmId(); obj.createdAt = _cmNowISO();
+    d.authorizations.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMAuths();
+  toast('Authorization saved');
+}
+function editCMAuth(id) { openCMAuthModal(id); }
+function delCMAuth(id) {
+  if (!confirm('Delete this authorization?')) return;
+  var d = getCMData();
+  d.authorizations = (d.authorizations||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMAuths();
+  toast('Authorization deleted');
+}
+
+// ── CM: COMMUNITY REFERRALS & RESOURCES ────────────────────────
+function renderCMCommReferrals() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-referrals-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-cr-q')?.value||'').toLowerCase().trim();
+  var tf = document.getElementById('cm-cr-type')?.value||'';
+  var list = (d.communityReferrals||[]).slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if (tf) list = list.filter(function(r){return r.referralType===tf;});
+  if (q) list = list.filter(function(r){return (_cmClientName(r.clientId)+' '+r.provider).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No referrals found</h3><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Type</th><th>Provider</th><th>Status</th><th>Follow-Up</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(r.clientId)+'</td>'+
+        '<td style="font-size:12px">'+_cmStatusBadge(r.referralType||'')+'</td>'+
+        '<td style="font-size:12px">'+(r.provider||'')+'</td>'+
+        '<td>'+_cmStatusBadge(r.status||'Open')+'</td>'+
+        '<td style="font-size:12px">'+(r.followUpDate||'')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="editCMCommReferral(\''+r.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMCommReferral(\''+r.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMCommReferralModal(editId) {
+  var d = getCMData();
+  var r = editId ? (d.communityReferrals||[]).find(function(x){return x.id===editId;}) : {};
+  var types = ['PCP','Psychiatry','Therapy','Housing','Food Assistance','Transportation','Legal Aid','School','Benefits','Other'];
+  var typeOpts = types.map(function(t){ return '<option value="'+t+'"'+(r.referralType===t?' selected':'')+'>'+t+'</option>'; }).join('');
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Referral':'New Community Referral')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmcr-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Referral Type</label><select id="cmcr-type">'+typeOpts+'</select></div></div>'+
+    '<div class="field"><label>Provider / Contact</label><input id="cmcr-provider" value="'+(r.provider||'')+'" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div>'+
+    '<div class="field"><label>Contact Information</label><input id="cmcr-contact" value="'+(r.contactInfo||'')+'" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div>'+
+    '<div class="fg g2"><div class="field"><label>Status</label><select id="cmcr-status"><option value="Open"'+(r.status==='Open'?' selected':'')+'>Open</option><option value="Completed"'+(r.status==='Completed'?' selected':'')+'>Completed</option><option value="Cancelled"'+(r.status==='Cancelled'?' selected':'')+'>Cancelled</option></select></div>'+
+    '<div class="field"><label>Follow-Up Date</label><input id="cmcr-fup" type="date" value="'+(r.followUpDate||'')+'"></div></div>'+
+    '<div class="field"><label>Outcome</label><textarea id="cmcr-outcome" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px">'+(r.outcome||'')+'</textarea></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMCommReferral(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && r.clientId) { var sel=document.getElementById('cmcr-client'); if(sel) sel.value=r.clientId; }
+}
+function saveCMCommReferral(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cmcr-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var obj = {
+    clientId: clientId,
+    referralType: document.getElementById('cmcr-type')?.value||'',
+    provider: document.getElementById('cmcr-provider')?.value||'',
+    contactInfo: document.getElementById('cmcr-contact')?.value||'',
+    status: document.getElementById('cmcr-status')?.value||'Open',
+    followUpDate: document.getElementById('cmcr-fup')?.value||'',
+    outcome: document.getElementById('cmcr-outcome')?.value||'',
+    updatedAt: _cmNowISO()
+  };
+  if (!d.communityReferrals) d.communityReferrals = [];
+  if (id) {
+    var idx = d.communityReferrals.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.communityReferrals[idx], obj);
+  } else {
+    obj.id = _cmId(); obj.createdAt = _cmNowISO();
+    d.communityReferrals.push(obj);
+  }
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMCommReferrals();
+  toast('Referral saved');
+}
+function editCMCommReferral(id) { openCMCommReferralModal(id); }
+function delCMCommReferral(id) {
+  if (!confirm('Delete this referral?')) return;
+  var d = getCMData();
+  d.communityReferrals = (d.communityReferrals||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMCommReferrals();
+  toast('Referral deleted');
+}
+
+// ── CM: SUPERVISOR REVIEW / QA ──────────────────────────────────
+function renderCMSupervisor() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-supervisor-tbl');
+  var statsEl = document.getElementById('cm-sup-stats');
+  if (!el) return;
+  var d = getCMData();
+  var allEnc = d.encounters || [];
+  var filter = document.getElementById('cm-sup-filter')?.value||'pending';
+  var list = allEnc.slice().sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  if (filter==='pending') list = list.filter(function(n){return n.supervisorStatus==='Pending'||!n.supervisorStatus;});
+  else if (filter==='approved') list = list.filter(function(n){return n.supervisorStatus==='Approved';});
+  else if (filter==='returned') list = list.filter(function(n){return n.supervisorStatus==='Returned';});
+  var pending = allEnc.filter(function(n){return n.supervisorStatus==='Pending'||!n.supervisorStatus;}).length;
+  var approved = allEnc.filter(function(n){return n.supervisorStatus==='Approved';}).length;
+  var returned = allEnc.filter(function(n){return n.supervisorStatus==='Returned';}).length;
+  if (statsEl) statsEl.innerHTML =
+    '<div class="card" style="padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--amber)">'+pending+'</div><div style="font-size:10px;color:var(--text3)">Pending Review</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green)">'+approved+'</div><div style="font-size:10px;color:var(--text3)">Approved</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--red)">'+returned+'</div><div style="font-size:10px;color:var(--text3)">Returned</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--blue)">'+allEnc.length+'</div><div style="font-size:10px;color:var(--text3)">Total Encounters</div></div>';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No encounters to review</h3></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Worker</th><th>Contact</th><th>Billable</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+    list.map(function(n){
+      return '<tr>'+
+        '<td style="font-size:12px">'+(n.date||'')+'</td>'+
+        '<td style="font-weight:600">'+_cmClientName(n.clientId)+'</td>'+
+        '<td style="font-size:12px">'+_cmWorkerName(n.workerId)+'</td>'+
+        '<td style="font-size:11px">'+(n.contactType||'—')+'</td>'+
+        '<td>'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
+        '<td>'+_cmStatusBadge(n.supervisorStatus||'Pending')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="viewCMEncounter(\''+n.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
+        (n.supervisorStatus!=='Approved'?'<button class="btn-icon sm" onclick="approveCMEncounter(\''+n.id+'\')" title="Approve" style="color:var(--green)"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i></button>':'')+
+        (n.supervisorStatus!=='Returned'?'<button class="btn-icon sm" onclick="returnCMEncounter(\''+n.id+'\')" title="Return for Correction" style="color:var(--red)"><i data-lucide="undo-2" class="lci" style="width:12px;height:12px"></i></button>':'')+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function approveCMEncounter(id) {
+  if (!confirm('Approve this encounter for billing?')) return;
+  var d = getCMData();
+  var n = (d.encounters||[]).find(function(x){return x.id===id;});
+  if (n) { n.supervisorStatus='Approved'; n.approvedAt=_cmNowISO(); n.updatedAt=_cmNowISO(); }
+  saveCMData(d);
+  renderCMSupervisor();
+  toast('Encounter approved');
+}
+function returnCMEncounter(id) {
+  var reason = prompt('Reason for returning this note:');
+  if (!reason) return;
+  var d = getCMData();
+  var n = (d.encounters||[]).find(function(x){return x.id===id;});
+  if (n) { n.supervisorStatus='Returned'; n.returnReason=reason; n.returnedAt=_cmNowISO(); n.updatedAt=_cmNowISO(); }
+  saveCMData(d);
+  renderCMSupervisor();
+  toast('Encounter returned for correction');
+}
+
+// ── CM: DISCHARGE ──────────────────────────────────────────────
+function renderCMDischarges() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-discharge-tbl');
+  if (!el) return;
+  var d = getCMData();
+  var q = (document.getElementById('cm-dc-q')?.value||'').toLowerCase().trim();
+  var list = (d.discharges||[]).slice().sort(function(a,b){return new Date(b.dischargeDate||'2099')-new Date(a.dischargeDate||'2099');});
+  if (q) list = list.filter(function(dc){return _cmClientName(dc.clientId).toLowerCase().includes(q);});
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><h3>No discharges recorded</h3><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Discharge Date</th><th>Reason</th><th>Goals Met</th><th>Supervisor</th><th></th></tr></thead><tbody>'+
+    list.map(function(dc){
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(dc.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(dc.dischargeDate||'')+'</td>'+
+        '<td style="font-size:12px">'+(dc.reason||'')+'</td>'+
+        '<td>'+(dc.goalsAchieved?'<span class="badge b-green">'+dc.goalsAchieved+'</span>':'—')+'</td>'+
+        '<td>'+(dc.supervisorApproved?'<span class="badge b-green">Approved</span>':'<span class="badge b-amber">Pending</span>')+'</td>'+
+        '<td><div class="btn-group" style="gap:3px">'+
+        '<button class="btn-icon sm" onclick="viewCMDischarge(\''+dc.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm" onclick="editCMDischarge(\''+dc.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="delCMDischarge(\''+dc.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function openCMDischargeModal(editId) {
+  var d = getCMData();
+  var dc = editId ? (d.discharges||[]).find(function(x){return x.id===editId;}) : {};
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Discharge':'New Discharge')+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px">'+
+    '<div class="fg g2"><div class="field"><label>Client</label><select id="cmd-client">'+_cmClientOpts()+'</select></div>'+
+    '<div class="field"><label>Discharge Date</label><input id="cmd-date" type="date" value="'+(dc.dischargeDate||_cmDateStr(new Date()))+'"></div></div>'+
+    '<div class="field"><label>Reason for Discharge</label><select id="cmd-reason"><option value="Goals Achieved"'+(dc.reason==='Goals Achieved'?' selected':'')+'>Goals Achieved</option><option value="Transferred"'+(dc.reason==='Transferred'?' selected':'')+'>Transferred</option><option value="Moved"'+(dc.reason==='Moved'?' selected':'')+'>Moved</option><option value="Client Request"'+(dc.reason==='Client Request'?' selected':'')+'>Client Request</option><option value="Lost Contact"'+(dc.reason==='Lost Contact'?' selected':'')+'>Lost Contact</option><option value="Deceased"'+(dc.reason==='Deceased'?' selected':'')+'>Deceased</option><option value="Other"'+(dc.reason==='Other'?' selected':'')+'>Other</option></select></div>'+
+    '<div class="fg g2"><div class="field"><label>Goals Achieved</label><input id="cmd-ga" value="'+(dc.goalsAchieved||'')+'" placeholder="e.g. 3 of 5" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div>'+
+    '<div class="field"><label>Goals Not Achieved</label><input id="cmd-gna" value="'+(dc.goalsNotAchieved||'')+'" placeholder="e.g. 2 of 5" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px"></div></div>'+
+    '<div class="field"><label>Referrals Provided at Discharge</label><textarea id="cmd-referrals" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px">'+(dc.referralsProvided||'')+'</textarea></div>'+
+    '<div class="field"><label>Continuity of Care Plan</label><textarea id="cmd-continuity" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px">'+(dc.continuityPlan||'')+'</textarea></div>'+
+    '<div class="field"><label>Final Summary</label><textarea id="cmd-summary" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px">'+(dc.finalSummary||'')+'</textarea></div>'+
+    '<div class="field"><label><input type="checkbox" id="cmd-sup" '+(dc.supervisorApproved?'checked':'')+'> Supervisor approved this discharge</label></div>'+
+    '</div>'+
+    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+    '<button class="btn btn-primary" onclick="saveCMDischarge(\''+(editId||'')+'\')">Save</button></div></div>';
+  overlay.setAttribute('data-cm','1');
+  document.body.appendChild(overlay);
+  if (editId && dc.clientId) { var sel=document.getElementById('cmd-client'); if(sel) sel.value=dc.clientId; }
+}
+function saveCMDischarge(id) {
+  var d = getCMData();
+  var clientId = document.getElementById('cmd-client')?.value;
+  if (!clientId) { toast('Select a client','warn'); return; }
+  var obj = {
+    clientId: clientId,
+    dischargeDate: document.getElementById('cmd-date')?.value||'',
+    reason: document.getElementById('cmd-reason')?.value||'',
+    goalsAchieved: document.getElementById('cmd-ga')?.value||'',
+    goalsNotAchieved: document.getElementById('cmd-gna')?.value||'',
+    referralsProvided: document.getElementById('cmd-referrals')?.value||'',
+    continuityPlan: document.getElementById('cmd-continuity')?.value||'',
+    finalSummary: document.getElementById('cmd-summary')?.value||'',
+    supervisorApproved: !!document.getElementById('cmd-sup')?.checked,
+    updatedAt: _cmNowISO()
+  };
+  if (!d.discharges) d.discharges = [];
+  if (id) {
+    var idx = d.discharges.findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.discharges[idx], obj);
+  } else {
+    obj.id = _cmId(); obj.createdAt = _cmNowISO();
+    d.discharges.push(obj);
+  }
+  // Mark client as discharged
+  var cli = d.clients.find(function(c){return c.id===clientId;});
+  if (cli) cli.status = 'Discharged';
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMDischarges();
+  toast('Discharge recorded');
+}
+function viewCMDischarge(id) {
+  var d = getCMData();
+  var dc = (d.discharges||[]).find(function(x){return x.id===id;});
+  if (!dc) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<div><div style="font-size:16px;font-weight:700">Discharge: '+_cmClientName(dc.clientId)+'</div></div>'+
+    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
+    '<div style="padding:16px 20px;font-size:12px">'+
+    '<div><strong>Date:</strong> '+dc.dischargeDate+'</div>'+
+    '<div><strong>Reason:</strong> '+dc.reason+'</div>'+
+    '<div><strong>Goals Achieved:</strong> '+dc.goalsAchieved+'</div>'+
+    '<div><strong>Goals Not Achieved:</strong> '+dc.goalsNotAchieved+'</div>'+
+    (dc.referralsProvided?'<div style="margin-top:8px"><strong>Referrals:</strong><p>'+dc.referralsProvided+'</p></div>':'')+
+    (dc.continuityPlan?'<div style="margin-top:8px"><strong>Continuity Plan:</strong><p>'+dc.continuityPlan+'</p></div>':'')+
+    (dc.finalSummary?'<div style="margin-top:8px"><strong>Final Summary:</strong><p style="white-space:pre-wrap">'+dc.finalSummary+'</p></div>':'')+
+    '<div style="margin-top:10px">'+(dc.supervisorApproved?'<span class="badge b-green">Supervisor Approved</span>':'<span class="badge b-amber">Pending Supervisor</span>')+'</div>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+function editCMDischarge(id) { openCMDischargeModal(id); }
+function delCMDischarge(id) {
+  if (!confirm('Delete this discharge record?')) return;
+  var d = getCMData();
+  d.discharges = (d.discharges||[]).filter(function(x){return x.id!==id;});
+  saveCMData(d);
+  renderCMDischarges();
+  toast('Discharge deleted');
+}
+
+// ── CM: PATIENT SUMMARY ────────────────────────────────────────
+function renderCMPatientSummary() {
+  if (!_isCMRole()) return;
+  var el = document.getElementById('cm-patient-summary-content');
+  if (!el) return;
+  var clientId = window._cmSummaryClientId;
+  if (!clientId) { el.innerHTML = '<div class="empty"><p style="color:var(--text3)">Select a client from the Clients page to view their CM summary.</p></div>'; return; }
+  var d = getCMData();
+  var c = d.clients.find(function(x){return x.id===clientId;});
+  if (!c) { el.innerHTML = '<div class="empty"><h3>Client not found</h3></div>'; return; }
+  var enc = (d.encounters||[]).filter(function(n){return n.clientId===clientId;}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var plans = (d.plans||[]).filter(function(p){return p.clientId===clientId;});
+  var tasks = (d.tasks||[]).filter(function(t){return t.clientId===clientId && t.status==='Open';});
+  var auths = (d.authorizations||[]).filter(function(a){return a.clientId===clientId;});
+  var referrals = (d.communityReferrals||[]).filter(function(r){return r.clientId===clientId;});
+  var assessments = (d.assessments||[]).filter(function(a){return a.clientId===clientId;});
+  var elig = (d.eligibility||[]).filter(function(e){return e.clientId===clientId;});
+  var lastContact = enc.length ? enc[0].date : '—';
+  var nextFup = tasks.length ? tasks[0].dueDate||'—' : '—';
+  var activePlan = plans.find(function(p){return p.status==='Active';});
+  var activeAuth = auths.find(function(a){return a.status==='Active';});
+  var billingIssues = [];
+  if (activeAuth && activeAuth.endDate && new Date(activeAuth.endDate) < new Date()) billingIssues.push('Authorization expired');
+  if (elig.length && !elig[0].tcmEligible) billingIssues.push('Eligibility inactive');
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
+    '<div class="card"><div style="font-weight:700;font-size:14px;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">'+
+    '<span>'+c.last+', '+c.first+'</span><span class="badge b-green">'+c.status+'</span></div>'+
+    '<div style="padding:12px 16px;font-size:12px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+    '<div><strong>Medicaid ID:</strong> '+(c.medicaidId||'—')+'</div>'+
+    '<div><strong>DOB:</strong> '+(c.dob||'—')+'</div>'+
+    '<div><strong>Phone:</strong> '+(c.phone||'—')+'</div>'+
+    '<div><strong>Worker:</strong> '+_cmWorkerName(c.workerId)+'</div>'+
+    '<div><strong>Auth:</strong> '+(c.authStart||'—')+' → '+(c.authEnd||'—')+'</div>'+
+    '<div><strong>Auth Units:</strong> '+(c.authUnits||0)+'</div>'+
+    '</div></div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:14px;padding:12px 16px;border-bottom:1px solid var(--border)">Case Overview</div>'+
+    '<div style="padding:12px 16px;font-size:12px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+    '<div><strong>Last Contact:</strong> '+lastContact+'</div>'+
+    '<div><strong>Next Follow-Up:</strong> '+nextFup+'</div>'+
+    '<div><strong>Open Tasks:</strong> '+tasks.length+'</div>'+
+    '<div><strong>Encounters:</strong> '+enc.length+'</div>'+
+    '<div><strong>Active Plan:</strong> '+(activePlan?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</div>'+
+    '<div><strong>Active Auth:</strong> '+(activeAuth?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</div>'+
+    '</div>'+
+    (billingIssues.length?'<div style="margin-top:8px;padding:6px;background:var(--bg3);border-radius:6px;color:var(--red)"><strong>Alerts:</strong> '+billingIssues.join('; ')+'</div>':'')+
+    '</div></div>'+
+    '<div class="card" style="grid-column:1/-1"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Recent Encounters</div>'+
+    '<div style="padding:12px 16px;max-height:180px;overflow-y:auto">'+
+    (enc.length?enc.slice(0,5).map(function(n){
+      var bi = _cmBillingHolds(n, d);
+      return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span>'+n.date+' · '+n.contactType+'</span><span>'+(bi.length?'<span class="badge b-red">Hold</span>':'<span class="badge b-green">Clear</span>')+' '+_cmStatusBadge(n.supervisorStatus||'Pending')+'</span></div>';
+    }).join(''):'<div style="color:var(--text3);font-size:12px">No encounters recorded.</div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Open Tasks</div><div style="padding:12px 16px;max-height:160px;overflow-y:auto">'+
+    (tasks.length?tasks.map(function(t){return '<div style="font-size:12px;padding:4px 0">• '+(t.title||'')+' — due '+(t.dueDate||'—')+'</div>';}).join(''):'<div style="color:var(--text3);font-size:12px">No open tasks.</div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Active Referrals</div><div style="padding:12px 16px;max-height:160px;overflow-y:auto">'+
+    (referrals.length?referrals.map(function(r){return '<div style="font-size:12px;padding:4px 0">• '+r.referralType+' → '+(r.provider||'')+' ('+r.status+')</div>';}).join(''):'<div style="color:var(--text3);font-size:12px">No active referrals.</div>')+
+    '</div></div></div>';
+}
+function openCMPatientSummary(clientId) {
+  window._cmSummaryClientId = clientId;
+  go('cm-patient-summary');
+}
+
+// ── CM: ENHANCED DASHBOARD ─────────────────────────────────────
+function renderCMDashboard() {
+  if (!_isCMRole()) { go('dashboard'); return; }
+  var el = document.getElementById('cm-dash-content');
+  if (!el) return;
+  var d = getCMData();
+  var s = getSession();
+  var isSup = s.role==='Super Admin' || _cmIsSupervisor();
+  var activeClients = d.clients.filter(function(c){return c.status==='Active';});
+  var activeWorkers = d.workers.filter(function(w){return w.status!=='Inactive';});
+  var now = new Date();
+  // Smart alerts
+  var expiringAuths = (d.authorizations||[]).filter(function(a){return a.status==='Active' && a.endDate && new Date(a.endDate) < new Date(now.getTime()+30*86400000) && new Date(a.endDate) >= now;});
+  var expiredAuths = (d.authorizations||[]).filter(function(a){return a.status==='Active' && a.endDate && new Date(a.endDate) < now;});
+  var expiringPlans = d.plans.filter(function(p){return p.status==='Active' && p.nextReview && new Date(p.nextReview) < new Date(now.getTime()+30*86400000);});
+  var pendingNotes = (d.encounters||[]).filter(function(n){return n.supervisorStatus==='Pending'||!n.supervisorStatus;});
+  var overdueTasks = (d.tasks||[]).filter(function(t){return t.status==='Open' && t.dueDate && new Date(t.dueDate) < now;});
+  var billingHolds = (d.encounters||[]).filter(function(n){return n.billable && _cmBillingHolds(n,d).length > 0;});
+  var unsignedNotes = (d.encounters||[]).filter(function(n){return n.signatureStatus!=='Signed' && n.billable;});
+  var alerts = [];
+  if (expiringAuths.length) alerts.push({type:'warn', text:expiringAuths.length+' authorization(s) expiring within 30 days'});
+  if (expiredAuths.length) alerts.push({type:'err', text:expiredAuths.length+' authorization(s) expired — billing blocked'});
+  if (expiringPlans.length) alerts.push({type:'warn', text:expiringPlans.length+' care plan(s) due for 90-day review'});
+  if (pendingNotes.length) alerts.push({type:'info', text:pendingNotes.length+' encounter(s) pending supervisor review'});
+  if (overdueTasks.length) alerts.push({type:'err', text:overdueTasks.length+' overdue task(s) — needs attention'});
+  if (billingHolds.length) alerts.push({type:'warn', text:billingHolds.length+' encounter(s) on billing hold'});
+  if (unsignedNotes.length) alerts.push({type:'info', text:unsignedNotes.length+' unsigned billable encounter(s)'});
+  var alertHtml = alerts.length ?
+    '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+
+    alerts.map(function(a){
+      var bg = a.type==='err'?'var(--red)':a.type==='warn'?'var(--amber)':'var(--brand)';
+      return '<div style="padding:10px 14px;border-radius:8px;background:'+bg+'15;border-left:3px solid '+bg+';font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px">'+
+        '<i data-lucide="'+(a.type==='err'?'alert-triangle':a.type==='warn'?'alert-circle':'info')+'" class="lci" style="width:14px;height:14px;color:'+bg+';flex-shrink:0"></i> '+a.text+'</div>';
+    }).join('')+'</div>' : '';
+  var thisMonth = now.getMonth();
+  var thisYear = now.getFullYear();
+  var monthEncounters = (d.encounters||[]).filter(function(n){
+    var nd = new Date(n.date); return nd.getMonth()===thisMonth && nd.getFullYear()===thisYear;
+  });
+  var billableThisMonth = monthEncounters.filter(function(n){return n.billable;}).length;
+  var totalBilled = (d.billing||[]).reduce(function(s,b){return s+(b.total||0);},0);
+  var billingReady = (d.billing||[]).filter(function(b){return b.status==='Ready';}).length;
+  el.innerHTML =
+    // Quick Actions
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+
+    '<button class="btn btn-sm" onclick="openCMEncounterModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="notebook-pen" class="lci" style="width:13px;height:13px"></i> New Note</button>'+
+    '<button class="btn btn-sm" onclick="openCMIntakeModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="user-plus" class="lci" style="width:13px;height:13px"></i> New Referral</button>'+
+    '<button class="btn btn-sm" onclick="openCMPlanModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="clipboard-list" class="lci" style="width:13px;height:13px"></i> New Care Plan</button>'+
+    '<button class="btn btn-sm" onclick="openCMTaskModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="list-checks" class="lci" style="width:13px;height:13px"></i> Add Follow-Up</button>'+
+    '<button class="btn btn-sm" onclick="openCMAuthModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="file-check" class="lci" style="width:13px;height:13px"></i> Add Authorization</button>'+
+    '</div>'+
+    // Alerts
+    alertHtml+
+    // Stats
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">'+
+    '<div class="card" style="padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--brand)">'+activeClients.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Active Clients</div></div>'+
+    '<div class="card" style="padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green)">'+activeWorkers.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Active Workers</div></div>'+
+    '<div class="card" style="padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:'+(pendingNotes.length?'var(--amber)':'var(--text)')+'">'+pendingNotes.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Pending Review</div></div>'+
+    '<div class="card" style="padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:'+(expiringAuths.length?'var(--red)':'var(--text)')+'">'+expiringAuths.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Expiring Auths</div></div>'+
+    '<div class="card" style="padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:'+(billingReady?'var(--brand)':'var(--text)')+'">'+billingReady+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Billing Ready</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span>Recent Notes</span><span style="font-weight:400;font-size:11px;color:var(--text3)">This month: '+monthEncounters.length+' ('+billableThisMonth+' billable)</span></div>'+
+    '<div style="padding:10px 14px;max-height:200px;overflow-y:auto">'+
+    (monthEncounters.length?monthEncounters.slice(0,8).map(function(n){
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span><strong>'+_cmClientName(n.clientId)+'</strong> — '+n.contactType+'</span><span>'+(n.billable?'<span class="badge b-green">$</span>':'')+' '+_cmStatusBadge(n.supervisorStatus||'Pending')+'</span></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text3)">No encounters this month.</div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border)">Overdue Tasks</div>'+
+    '<div style="padding:10px 14px;max-height:200px;overflow-y:auto">'+
+    (overdueTasks.length?overdueTasks.slice(0,10).map(function(t){
+      return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span>• '+(t.title||'')+'</span><span style="color:var(--red)">'+(t.dueDate||'')+'</span></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text3)">No overdue tasks. ?</div>')+
+    '</div></div>'+
+    '</div>'+
+    // Caseload + Productivity
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border)">Caseload by Worker</div>'+
+    '<div style="padding:10px 14px;max-height:180px;overflow-y:auto">'+
+    (activeWorkers.length?activeWorkers.map(function(w){
+      var cnt = activeClients.filter(function(c){return c.workerId===w.id;}).length;
+      var cap = w.capacity||20;
+      var pct = Math.round(cnt/cap*100);
+      return '<div style="font-size:12px;padding:4px 0;display:flex;justify-content:space-between;align-items:center"><span>'+w.first+' '+w.last+'</span>'+
+        '<span style="display:flex;align-items:center;gap:6px"><div style="background:var(--bg3);border-radius:8px;height:5px;width:50px;overflow:hidden"><div style="background:'+(pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)')+';height:5px;width:'+Math.min(pct,100)+'%;border-radius:8px"></div></div> '+cnt+'/'+cap+'</span></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text3)">No workers assigned.</div>')+
+    '</div></div>'+
+    '<div class="card"><div style="font-weight:700;font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border)">Productivity Summary</div>'+
+    '<div style="padding:10px 14px;font-size:12px">'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>Total Billed</span><strong>'+_cmFmtMoney(totalBilled)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>Encounters This Month</span><strong>'+monthEncounters.length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>Billable This Month</span><strong>'+billableThisMonth+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>Pending Supervisor</span><strong>'+(pendingNotes.length)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>On Billing Hold</span><strong>'+(billingHolds.length)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>Overdue Tasks</span><strong>'+(overdueTasks.length)+'</strong></div>'+
+    '</div></div></div>';
+  setTimeout(_renderLucideIcons, 20);
+}
+function _cmIsSupervisor() {
+  var s = getSession(); if (!s) return false;
+  var d = getCMData();
+  return d.workers.some(function(w){return w.email===s.email;});
 }
 
 document.addEventListener("DOMContentLoaded", async function() {
@@ -18564,7 +20292,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
     return;
   }
-  renderLoginScreen();
+  checkVerifyToken();
+  if (!window.location.search.startsWith('?verify=')) renderLoginScreen();
 });
 
 // ── Send Invoice by Email ─────────────────────────────────────────
@@ -18707,14 +20436,8 @@ function saveNewUser() {
 
   // Username validation
   var nameErr = document.getElementById('nu-name-err');
-  if (!name || name.length < 8) {
-    if (nameErr) { nameErr.textContent = 'Minimum 8 characters required'; nameErr.style.display = ''; }
-    hasErr = true;
-  } else if (name.length > 16) {
-    if (nameErr) { nameErr.textContent = 'Maximum 16 characters'; nameErr.style.display = ''; }
-    hasErr = true;
-  } else if (!name.includes('.')) {
-    if (nameErr) { nameErr.textContent = 'Must contain at least one period (.)'; nameErr.style.display = ''; }
+  if (!name || !name.includes('.')) {
+    if (nameErr) { nameErr.textContent = 'Username must contain a period (.) — e.g. firstname.lastname'; nameErr.style.display = ''; }
     hasErr = true;
   }
 
@@ -18757,8 +20480,10 @@ function saveNewUser() {
     if (modal) modal.remove();
     toast('User "' + name + '" created — welcome email sent to ' + email, 'ok');
     renderUserManagement();
-    // Generate OTP and verify token
-    var otpCode = generate2FACode();
+    // Generate activation code (6-char alphanumeric) and verify token
+    var _chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var otpCode = '';
+    for (var _i = 0; _i < 6; _i++) otpCode += _chars.charAt(Math.floor(Math.random() * _chars.length));
     var verifyToken = generateVerifyToken(users[users.length-1].id, email);
     var verifyLink = 'https://claimdatacare.com/app.html?verify=' + verifyToken;
 
@@ -18793,9 +20518,9 @@ function saveNewUser() {
         '<p style="color:#4d4c48;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Use the code below to activate your account.</p>',
         // OTP code
         '<div style="text-align:center;margin-bottom:20px">',
-          '<div style="color:#87867f;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Your Verification Code</div>',
-          '<div style="background:#c96442;color:white;font-size:40px;font-weight:700;letter-spacing:14px;text-align:center;padding:20px;border-radius:10px;margin:0 auto;max-width:300px">' + otpCode + '</div>',
-          '<p style="color:#87867f;font-size:11px;margin-top:10px">This code expires in 48 hours. Keep it confidential.</p>',
+          '<div style="color:#87867f;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Verification Code</div>',
+          '<div style="background:#c96442;color:white;font-size:26px;font-weight:700;letter-spacing:8px;text-align:center;padding:12px 16px;border-radius:8px;margin:0 auto;max-width:220px;font-family:monospace">' + otpCode + '</div>',
+          '<p style="color:#87867f;font-size:10px;margin-top:8px">Expires in 48 hours. Keep confidential.</p>',
         '</div>',
         // Info table
         '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;padding:18px;margin-bottom:20px">',
@@ -19528,18 +21253,40 @@ prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in di
 
 // \u2500\u2500 DB \u2500\u2500
 
-function initServices(){
+function _loadLookups(){
+if(typeof CPT_CATALOG==='undefined'||typeof ICD10_CATALOG==='undefined') return;
 setDB(db=>{
+if(!db.cpt||!db.cpt.length) db.cpt=CPT_CATALOG;
+if(!db.icd10||!db.icd10.length) db.icd10=ICD10_CATALOG;
 if(!db.services||!db.services.length){
 db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
 }
 });
 }
 
+function initServices(){
+_loadLookups();
+}
+
 // \\u2500\\u2500 Theme / Lang \\u2500\\u2500
 
 
 
+
+function _suggestUser(first, last) {
+  var f = (first||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  var l = (last||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if (!f || !l) return '';
+  return f + '.' + l;
+}
+function _suggestUserName() {
+  if (window._nuNameEdited) return;
+  var first = document.getElementById('nu-first')?.value||'';
+  var last = document.getElementById('nu-last')?.value||'';
+  var suggested = _suggestUser(first, last);
+  var nameEl = document.getElementById('nu-name');
+  if (nameEl && suggested) nameEl.value = suggested;
+}
 
 function openAddUserModal(existingUser) {
   // Remove any existing modal
@@ -19614,9 +21361,14 @@ function openAddUserModal(existingUser) {
     '<div id="nu-alert" style="padding:0 20px;margin-top:12px"></div>' +
     '<div style="padding:0 20px 20px;overflow-y:auto;flex:1">' +
     '<div class="fg g2">' +
-      '<div class="field" style="margin-bottom:10px"><label>First Name <span class="req">*</span></label><input id="nu-first" class="no-upper" value="'+(u.first||'')+'" style="'+inpStyle+'"></div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Last Name <span class="req">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" style="'+inpStyle+'"></div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Username <span class="req">*</span> <span style="font-weight:400;color:var(--text3)">min 8 chars, must contain .</span></label><input id="nu-name" class="no-upper" value="'+(u.name||'')+'" style="'+inpStyle+'"><div id="nu-name-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>First Name <span class="req">*</span></label><input id="nu-first" class="no-upper" value="'+(u.first||'')+'" oninput="_suggestUserName()" style="'+inpStyle+'"></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Last Name <span class="req">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" oninput="_suggestUserName()" style="'+inpStyle+'"></div>' +
+      '<div class="field" style="margin-bottom:10px">' +
+        '<label>Username <span class="req">*</span> <span style="font-weight:400;color:var(--text3)">auto-suggested, must contain .</span></label>' +
+        '<input id="nu-name" class="no-upper" value="'+(u.name||_suggestUser(u.first,u.last))+'"
+          oninput="window._nuNameEdited=true" style="'+inpStyle+'">' +
+        '<div id="nu-name-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div>' +
+      '</div>' +
       '<div class="field" style="margin-bottom:10px"><label>Email <span class="req">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inpStyle+'"><div id="nu-email-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
       '<div class="field" style="margin-bottom:10px"><label>Phone <span class="req">*</span></label><input id="nu-phone" class="no-upper" value="'+(u.phone||'')+'" style="'+inpStyle+'"><div id="nu-phone-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
       '<div class="field" style="margin-bottom:10px"><label>Phone 2</label><input id="nu-phone2" class="no-upper" value="'+(u.phone2||'')+'" style="'+inpStyle+'"></div>' +
