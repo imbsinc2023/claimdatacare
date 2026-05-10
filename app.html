@@ -5991,7 +5991,7 @@ onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,
 Password
 </label>
 <div style="position:relative">
-<input id="li-pass" type="password" autocomplete="current-password" value="••••••••"
+      <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••"
 onkeydown="if(event.key==='Enter')doLogin()"
 style="width:100%;padding:13px 16px;font-size:15px;
 border:1.5px solid #e8e6dc;border-radius:14px;
@@ -5999,7 +5999,7 @@ background:rgba(255,255,255,.8);color:var(--text);
 font-family:var(--font);outline:none;padding-right:48px;
 transition:all .2s cubic-bezier(.4,0,.2,1);
 box-shadow:0 1px 3px rgba(0,0,0,.06) inset"
-onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
+onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset';this.select()"
 onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
 <button id="li-eye" onclick="togglePassVis('li-pass',this)"
 style="position:absolute;right:0;top:0;bottom:0;width:48px;
@@ -8234,7 +8234,8 @@ function _afterLoad() {
 }
 
 // Try to resolve username/email to a known user
-var _allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(function(u){ return u.id !== DEFAULT_ADMIN.id; })];
+var _localUsers = typeof getUsers === 'function' ? getUsers() : (_usersCache||[]);
+var _allUsers = [DEFAULT_ADMIN, ..._localUsers.filter(function(u){ return u.id !== DEFAULT_ADMIN.id; })];
 var _matchFn = function(u) {
 return (u.email||'').toLowerCase() === loginId || (u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId;
 };
@@ -8858,17 +8859,7 @@ function cancelLogin() {
 // ── Email Verification & Password Setup System ───────────────────
 var VERIFY_BASE_URL = 'https://claimdatacare.com/app.html';
 
-function generateTempPassword() {
-  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
-  var pass = '';
-  for (var i = 0; i < 10; i++) {
-    pass += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return pass;
-}
-
 function generateVerifyToken(userId, email) {
-  // Simple token: base64 of userId+email+timestamp
   var raw = userId + '|' + email + '|' + Date.now();
   return btoa(raw).replace(/[+/=]/g, function(c) {
     return c === '+' ? '-' : c === '/' ? '_' : '';
@@ -8884,34 +8875,34 @@ function parseVerifyToken(token) {
 }
 
 function checkVerifyToken() {
-  // Check URL query param for verification token
   var search = window.location.search;
   if (!search.startsWith('?verify=')) return;
   var token = search.slice(8);
   var parsed = parseVerifyToken(token);
   if (!parsed) return;
 
-  // Always show login screen first
   renderLoginScreen();
 
-  // Check expiry (48 hours)
   if (Date.now() - parsed.ts > 48 * 60 * 60 * 1000) {
     setTimeout(function(){ showVerifyModal('expired', parsed); }, 300);
     return;
   }
 
-  // Show set password modal on top of login
   setTimeout(function(){
     var db = getDB();
     var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
-    showVerifyModal('valid', parsed, user || { id: parsed.userId, email: parsed.email, first: '', name: '' }, token);
+    showVerifyModal('otp', parsed, user || { id: parsed.userId, email: parsed.email, first: '', name: '' }, token);
   }, 300);
 }
 
 function showVerifyModal(state, parsed, user, token) {
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-verify-email';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var overlay = document.getElementById('modal-verify-email');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-verify-email';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(overlay);
+  }
 
   var content = '';
   if (state === 'expired') {
@@ -8920,24 +8911,43 @@ function showVerifyModal(state, parsed, user, token) {
       '<h3 style="color:#141413;margin:0 0 8px">Link Expired</h3>' +
       '<p style="color:#87867f;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
       '</div>';
-  } else {
-    content = '<div style="text-align:center;padding:8px 0 16px">' +
-      '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+  } else if (state === 'otp') {
+    content =
+      '<div style="text-align:center;padding:8px 0 16px">' +
+        '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '</div>' +
+        '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Verify Your Email</h3>' +
+        '<p style="color:#87867f;font-size:13px;margin-bottom:6px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>!</p>' +
+        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Enter the 6-digit code sent to <strong>' + (user.email||'') + '</strong></p>' +
       '</div>' +
-      '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Confirm Your Account</h3>' +
-      '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>! Set your password to activate your account.</p>' +
-    '</div>' +
-    '<div style="margin-bottom:14px">' +
-      '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">New Password <span style="color:#b53333">*</span> <span style="color:#87867f;font-weight:400">min 6 characters</span></label>' +
-      '<input id="verify-pass1" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
-    '</div>' +
-    '<div style="margin-bottom:20px">' +
-      '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">Confirm Password <span style="color:#b53333">*</span></label>' +
-      '<input id="verify-pass2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
-    '</div>' +
-    '<div id="verify-alert" style="margin-bottom:12px"></div>' +
-    '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
+      '<div style="margin-bottom:14px">' +
+        '<input id="verify-otp" type="text" inputmode="numeric" maxlength="6" placeholder="000000" class="no-upper" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace">' +
+      '</div>' +
+      '<div id="verify-alert" style="margin-bottom:12px"></div>' +
+      '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Verify Code</button>';
+  } else if (state === 'password') {
+    content =
+      '<div style="text-align:center;padding:8px 0 16px">' +
+        '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '</div>' +
+        '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Set Your Password</h3>' +
+        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Email verified! Choose a strong password for your account.</p>' +
+      '</div>' +
+      '<div style="margin-bottom:10px">' +
+        '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">New Password <span style="color:#b53333">*</span></label>' +
+        '<input id="verify-pass1" type="password" class="no-upper" placeholder="••••••••" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
+      '</div>' +
+      '<div style="margin-bottom:6px">' +
+        '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">Confirm Password <span style="color:#b53333">*</span></label>' +
+        '<input id="verify-pass2" type="password" class="no-upper" placeholder="••••••••" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
+      '</div>' +
+      '<div style="font-size:11px;color:#87867f;margin-bottom:14px;padding:8px;background:#faf9f5;border-radius:6px;line-height:1.5">' +
+        'Password must have: 8+ characters, 1 uppercase, 1 lowercase, 1 special character (!@#$%^&amp;*).' +
+      '</div>' +
+      '<div id="verify-alert" style="margin-bottom:12px"></div>' +
+      '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
   }
 
   overlay.innerHTML =
@@ -8949,8 +8959,14 @@ function showVerifyModal(state, parsed, user, token) {
       '<div style="padding:24px">' + content + '</div>' +
     '</div>';
 
-  document.body.appendChild(overlay);
-  if (state === 'valid') {
+  if (state === 'otp') {
+    setTimeout(function(){
+      document.getElementById('verify-otp')?.focus();
+      document.getElementById('verify-otp')?.select();
+      var btn = document.getElementById('verify-btn');
+      if (btn) btn.onclick = function(){ verifyOTPAndContinue(token, parsed); };
+    }, 100);
+  } else if (state === 'password') {
     setTimeout(function(){
       document.getElementById('verify-pass1')?.focus();
       var btn = document.getElementById('verify-btn');
@@ -8959,29 +8975,48 @@ function showVerifyModal(state, parsed, user, token) {
   }
 }
 
+function verifyOTPAndContinue(token, parsed) {
+  var otp = (document.getElementById('verify-otp')?.value||'').trim();
+  var alertEl = document.getElementById('verify-alert');
+  if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-digit verification code.</div>'; return; }
+
+  var db = getDB();
+  var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
+  if (!user) { alertEl.innerHTML = '<div class="alert al-error">User not found. Contact your administrator.</div>'; return; }
+
+  var expectedHash = btoa(otp);
+  if (user.otpHash !== expectedHash) { alertEl.innerHTML = '<div class="alert al-error">Incorrect verification code. Check your email and try again.</div>'; return; }
+
+  // OTP verified — show password step
+  showVerifyModal('password', parsed, user, token);
+}
+
 function confirmVerifyEmail(token, userId) {
   var p1 = document.getElementById('verify-pass1')?.value || '';
   var p2 = document.getElementById('verify-pass2')?.value || '';
   var alertEl = document.getElementById('verify-alert');
 
-  if (!p1 || p1.length < 6) { alertEl.innerHTML = '<div class="alert al-error">Minimum 6 characters required.</div>'; return; }
+  // Password validation
+  if (p1.length < 8) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 8 characters.</div>'; return; }
+  if (!/[A-Z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one uppercase letter.</div>'; return; }
+  if (!/[a-z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one lowercase letter.</div>'; return; }
+  if (!/[^A-Za-z0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one special character (!@#$%^&amp;*).</div>'; return; }
   if (p1 !== p2) { alertEl.innerHTML = '<div class="alert al-error">Passwords do not match.</div>'; return; }
 
-  // Mark user as verified and save password hash
   setDB(function(db) {
     var user = (db.users || []).find(function(u) { return u.id === userId; });
     if (user) {
       user.emailVerified = true;
       user.verifiedAt = Date.now();
-      user.passHash = btoa(p1); // Simple encoding — replace with proper hash in production
+      user.passHash = btoa(p1);
       user.mustChangePwd = false;
+      delete user.otpHash;
+      delete user.verifyToken;
     }
   });
 
-  // Remove hash from URL
   history.replaceState(null, '', window.location.pathname + window.location.hash);
 
-  // Close modal and show success
   var overlay = document.getElementById('modal-verify-email');
   if (overlay) overlay.remove();
   toast('Account activated! You can now log in with your new password.', 'ok');
@@ -10732,31 +10767,46 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   var _sbFilename = `${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`;
   doc.save(_sbFilename);
 
-  // Auto-save superbill to patient documents
+  // Auto-save superbill metadata to patient documents (lightweight — no base64)
   try {
-    var _sbB64 = doc.output('datauristring');
     var _sbPatId = fpt.id;
     var _sbDate = new Date().toISOString();
+    var _sbFirstClaim = (byPatient.get(_sbPatId)||[])[0]||{};
+    var _sbProv = db.providers.find(function(x){ return x.id===_sbFirstClaim.providerId; })||{};
+    var _sbRend = db.rendering.find(function(x){ return x.id===_sbFirstClaim.renderingId; })||{};
+    var _sbFac  = db.facilities.find(function(x){ return x.id===_sbFirstClaim.facilityId; })||{};
+    var _sbTotal = claimTotal(_sbFirstClaim)||'0.00';
     setDB(function(db3) {
       var _pat = db3.patients.find(function(x){ return x.id === _sbPatId; });
       if (_pat) {
         if (!_pat.documents) _pat.documents = [];
         if (!_pat.superbills) _pat.superbills = [];
-        var _claimIds = byPatient.get(_sbPatId) ? byPatient.get(_sbPatId).map(function(c){ return c.id; }) : [];
-        var _dos = (byPatient.get(_sbPatId)||[])[0]?.dos || '';
+        var _claims = byPatient.get(_sbPatId) || [];
+        var _claimIds = _claims.map(function(c){ return c.id; });
+        var _dos = _claims[0]?.dos || '';
+        var _claim = _claims[0] || {};
         // Deduplicate: skip if same claim already saved
         var _already = (_pat.documents||[]).find(function(d){ return d.source==='superbill' && d.claimIds && _claimIds.length && JSON.stringify(d.claimIds.slice().sort())===JSON.stringify(_claimIds.slice().sort()); });
-        if (_already) { _already.data = _sbB64; return; } // update existing instead of duplicating
+        if (_already) { return; } // already exists — skip lightweight save
         var _sbDoc = {
           id: 'sb_' + Date.now(),
           name: _sbFilename,
           type: 'application/pdf',
           category: 'Superbills',
           date: _dos,
-          data: _sbB64,
           createdAt: _sbDate,
           claimIds: _claimIds,
           source: 'superbill',
+          // Lightweight structured data (no base64 PDF)
+          providerName: _sbProv.name || '',
+          providerNPI: _sbProv.npi || '',
+          renderingName: ((_sbRend.first||'')+' '+(_sbRend.last||'')).trim(),
+          facilityName: _sbFac.name || '',
+          dx: _claim.dx || [],
+          lines: _claim.lines || [],
+          ins1: _pat.ins1 || {},
+          totalCharge: _sbTotal,
+          claimPCN: _claim.pcn || '',
         };
         _pat.superbills.push(_sbDoc);
         _pat.documents.push(_sbDoc);
@@ -15945,6 +15995,9 @@ function _buildDocumentsTab(pat, db) {
 if (!pat.documents) pat.documents = [];
 const docs = pat.documents || [];
 
+// Auto-purge Recycle Bin items older than 30 days
+_purgeOldTrash();
+
 // Auto-migrate old pat.superbills[] into documents (one-time)
 if (pat.superbills && pat.superbills.length) {
   var _didMigrate = false;
@@ -15985,6 +16038,7 @@ var groups = [
   { label: 'Administrative',     cats: ['Administrative Documents','Correspondence Letters','Driving License','External Documents','HIPAA Form','Intake Document (HIPAA)','Intake Forms'] },
   { label: 'Insurance & Billing',cats: ['Authorizations','Eligibility Verification','EOB','Insurance Documents','Prior Authorization'] },
   { label: 'Facility',           cats: ['Hospital'] },
+  { label: 'System',             cats: ['Recycle Bin'] },
 ];
 
 // Add any custom cats (from docs) not already in a group
@@ -16011,12 +16065,15 @@ function catRow(c) {
   var badge = cnt > 0
     ? '<span style="background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px">'+cnt+'</span>'
     : '<span style="font-size:10px;color:var(--text3)">0</span>';
+  var isTrash = c === 'Recycle Bin';
+  var icon = isTrash ? 'trash-2' : (cnt > 0 ? 'folder-open' : 'folder');
+  var iconColor = isTrash ? '#dc2626' : (cnt > 0 ? '#e07820' : '#87867f');
   return '<div onclick="_setDocCategory(\''+pat.id+'\',\''+c.replace(/'/g,"\\'")+'\')"'
     +' style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;border-radius:6px;'
     +'background:'+(active?'var(--brand-bg)':'transparent')+';'
     +'border-left:3px solid '+(active?'var(--brand)':'transparent')+';transition:background .15s">'
-    +'<i data-lucide="'+(cnt>0?'folder-open':'folder')+'" class="lci"'
-    +' style="width:13px;height:13px;color:'+(cnt>0?'#e07820':'#87867f')+';flex-shrink:0"></i>'
+    +'<i data-lucide="'+icon+'" class="lci"'
+    +' style="width:13px;height:13px;color:'+iconColor+';flex-shrink:0"></i>'
     +'<span style="flex:1;font-size:12px;color:'+(active?'var(--brand)':'var(--text)')+';font-weight:'+(active?'700':'400')+'">'+c+'</span>'
     +badge
     +'</div>';
@@ -16038,13 +16095,20 @@ var addCatLink = _canAddCat
 // Filtered docs
 var filteredDocs = activeCat ? docs.filter(function(d){ return d.category===activeCat; }) : docs;
 var isSBCat = activeCat === 'Superbills';
+var isTrashCat = activeCat === 'Recycle Bin';
 
-// Superbills toolbar
-var sbToolbar = '';
-if (isSBCat && filteredDocs.length) {
-  sbToolbar = '<div id="sb-toolbar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border)">'
-    +'<input type="checkbox" id="sb-chk-all" onchange="_sbToggleAll(this.checked,\''+ pat.id +'\')"  style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">'
-    +'<label for="sb-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0">Select All</label>'
+// Generic selection toolbar (shown for any category with docs)
+var selToolbar = '';
+if (filteredDocs.length) {
+  selToolbar = '<div id="sel-toolbar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap">'
+    +'<input type="checkbox" id="sel-chk-all" onchange="_selToggleAll(this.checked,\''+ pat.id +'\')" style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand)">'
+    +'<label for="sel-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0;margin-right:8px">Select All</label>'
+    +(isTrashCat
+      ? '<span class="cdc-tip" data-tip="Restore Selected"><button class="btn btn-xs" onclick="_restoreSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="rotate-ccw" class="lci" style="width:13px;height:13px"></i> Restore</button></span>'
+        +'<span class="cdc-tip" data-tip="Permanently Delete"><button class="btn btn-xs btn-danger" onclick="_permDeleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete Forever</button></span>'
+      : '<span class="cdc-tip" data-tip="Download Selected"><button class="btn btn-xs" onclick="_downloadSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i> Download</button></span>'
+       +'<span class="cdc-tip" data-tip="Move Selected"><button class="btn btn-xs" onclick="_moveSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="move" class="lci" style="width:13px;height:13px"></i> Move</button></span>'
+       +'<span class="cdc-tip" data-tip="Delete Selected"><button class="btn btn-xs btn-danger" onclick="_deleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete</button></span>')
     +'</div>';
 }
 
@@ -16052,24 +16116,31 @@ if (isSBCat && filteredDocs.length) {
 // Doc rows
 var docRowsHTML = '';
 if (filteredDocs.length) {
-  docRowsHTML = sbToolbar + filteredDocs.map(function(d, i) {
+  docRowsHTML = selToolbar + filteredDocs.map(function(d, i) {
     var di = docs.indexOf(d);
-    var showView = !!d.data || (d.category==='Superbills' && d.lines && d.lines.length);
+    var showView = !!d.data || ((d.category==='Superbills' || d.originalCat==='Superbills' || d.source==='superbill') && d.lines && d.lines.length);
+    var isDocSB = d.category === 'Superbills';
+    var isDeleted = d.deletedAt ? true : false;
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'
-      +'border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--bg2)':'var(--bg3)')+';">'
-      +(isSBCat?'<input type="checkbox" class="sb-chk" data-idx="'+di+'" data-id="'+(d.id||'')+'"'
-        +' style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0">':'')
+      +'border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--bg2)':'var(--bg3)')
+      +(isDeleted?';opacity:0.7':'')+';">'
+      +'<input type="checkbox" class="sel-chk" data-idx="'+di+'" data-id="'+(d.id||'')+'"'
+      +' style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0">'
       +'<div style="width:34px;height:34px;background:'+_docTypeColor(d.type)+';border-radius:6px;'
       +'display:flex;align-items:center;justify-content:center;flex-shrink:0">'
       +'<i data-lucide="'+_docTypeIcon(d.type)+'" class="lci" style="width:16px;height:16px;color:#fff"></i></div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(d.name||'Untitled')+'</div>'
-      +'<div style="font-size:11px;color:var(--text3)">'+(d.category||'')+' \u00b7 '+(d.date||'')+' \u00b7 '+(d.uploadedBy||'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3)">'+(d.category||'')+' \u00b7 '+(d.date||'')+' \u00b7 '+(d.uploadedBy||'')+(isDeleted?' \u00b7 <span style="color:#dc2626">Deleted</span>':'')+'</div>'
       +'</div>'
       +'<div style="display:flex;gap:4px;flex-shrink:0">'
-      +(isSBCat?'<span class="cdc-tip" data-tip="Download PDF"><button class="btn btn-xs btn-primary" onclick="_sbDownloadOne(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button></span>':'')
+      +(isDocSB || (d.data && !isTrashCat)?'<span class="cdc-tip" data-tip="'+(isDocSB?'Download PDF':'Download')+'"><button class="btn btn-xs btn-primary" onclick="_downloadOne(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button></span>':'')
       +(showView?'<span class="cdc-tip" data-tip="View"><button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="eye" class="lci" style="width:13px;height:13px"></i></button></span>':'')
-      +'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>'
+      +(isTrashCat
+        ?'<span class="cdc-tip" data-tip="Restore"><button class="btn btn-xs" onclick="_restoreDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="rotate-ccw" class="lci" style="width:13px;height:13px"></i></button></span>'
+         +'<span class="cdc-tip" data-tip="Delete Forever"><button class="btn btn-xs btn-danger" onclick="_permDeleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>'
+        :'<span class="cdc-tip" data-tip="Move"><button class="btn btn-xs" onclick="_moveDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="move" class="lci" style="width:13px;height:13px"></i></button></span>'
+         +'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>')
       +'</div></div>';
   }).join('');
 } else {
@@ -16098,7 +16169,6 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<span class="cdc-tip" data-tip="Upload Document"><button title="Upload" class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
   +'<span class="cdc-tip" data-tip="Scan Document"><button title="Scan Document" class="btn btn-sm" onclick="_scanDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="scan-line" class="lci" style="width:16px;height:16px"></i></button></span>'
   +'<span class="cdc-tip" data-tip="Print"><button title="Print" class="btn btn-sm" onclick="window.print()" style="padding:6px 10px"><i data-lucide="printer" class="lci" style="width:16px;height:16px"></i></button></span>'
-  +(isSBCat && filteredDocs.length ? '<span class="cdc-tip" data-tip="Download Selected"><button class="btn btn-sm" onclick="_sbDownloadSelected(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="download" class="lci" style="width:16px;height:16px"></i></button></span>' : '')
   +'</div></div>'
   +'<div id="doc-drop-zone-'+pat.id+'" ondragover="event.preventDefault();this.style.background=\'var(--brand-bg)\'" ondragleave="this.style.background=\'\'" ondrop="_handleDocDrop(event,\''+pat.id+'\')" style="display:none"></div>'
   +'<input type="file" id="doc-upload-input-'+pat.id+'" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"'
@@ -16214,8 +16284,8 @@ const pat = db.patients.find(p=>p.id===patId)||{};
 const doc = (pat.documents||[])[idx];
 if (!doc) return;
 
-// Superbill: render inline HTML viewer
-if (doc.category==='Superbills' && doc.lines) {
+// Superbill: render inline HTML viewer (works from any category including Recycle Bin)
+if ((doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
     return '<tr style="font-size:12px;border-bottom:1px solid #e8e6dc">'+
       '<td style="padding:6px 8px;font-weight:600">'+( l.cpt||'')+'</td>'+
@@ -16320,11 +16390,18 @@ document.body.appendChild(div);
 }
 
 function _deleteDoc(patId, idx) {
-if (!confirm('Delete this document?')) return;
-setDB(db=>{ const p=db.patients.find(x=>x.id===patId); if(p?.documents) p.documents.splice(idx,1); });
+if (!confirm('Move this document to Recycle Bin?')) return;
+setDB(db=>{
+  const p=db.patients.find(x=>x.id===patId);
+  if(p?.documents && p.documents[idx]) {
+    p.documents[idx].originalCat = p.documents[idx].originalCat || p.documents[idx].category;
+    p.documents[idx].category = 'Recycle Bin';
+    p.documents[idx].deletedAt = Date.now();
+  }
+});
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
 const el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-setTimeout(_renderLucideIcons,20); toast('Document deleted');
+setTimeout(_renderLucideIcons,20); toast('Document moved to Recycle Bin');
 }
 
 function _buildSummaryTab(pat, db) {
@@ -18662,28 +18739,26 @@ function saveNewUser() {
     if (modal) modal.remove();
     toast('User "' + name + '" created — welcome email sent to ' + email, 'ok');
     renderUserManagement();
-    // Generate temp password and verify token
-    var tempPass = generateTempPassword();
+    // Generate OTP and verify token
+    var otpCode = generate2FACode();
     var verifyToken = generateVerifyToken(users[users.length-1].id, email);
     var verifyLink = 'https://claimdatacare.com/app.html?verify=' + verifyToken;
 
-    // Save temp password hash to user
+    // Save OTP hash and verify token to user
     setDB(function(db2) {
       var u2 = (db2.users||[]).find(function(x){ return x.email === email; });
-      if (u2) { u2.passHash = btoa(tempPass); u2.mustChangePwd = true; }
+      if (u2) { u2.otpHash = btoa(otpCode); u2.verifyToken = verifyToken; u2.mustChangePwd = true; u2.emailVerified = false; }
     });
 
-    // Send welcome email with logo, temp password and verify link
+    // Favicon data URI (shield)
+    var _faviconSvg = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+
+    // Send welcome email with favicon, OTP, and verify link
     var welcomeHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
       // Header with logo
       '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:14px">',
-        '<svg width="42" height="42" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">',
-          '<rect width="100" height="100" rx="18" fill="#c96442"/>',
-          '<path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/>',
-          '<line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/>',
-          '<line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/>',
-        '</svg>',
+        _faviconSvg,
         '<div>',
           '<div style="color:white;font-weight:700;font-size:22px;letter-spacing:-.3px">ClaimDataCare</div>',
           '<div style="color:#87867f;font-size:12px;margin-top:2px">Electronic Health Records &amp; Billing</div>',
@@ -18692,22 +18767,27 @@ function saveNewUser() {
       // Body
       '<div style="background:#f5f4ed;padding:28px;border:1px solid #e8e6dc;border-top:none">',
         '<p style="color:#141413;font-size:16px;font-weight:600;margin:0 0 8px">Welcome, ' + first + '!</p>',
-        '<p style="color:#4d4c48;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Please review your details and activate your account below.</p>',
+        '<p style="color:#4d4c48;font-size:14px;margin:0 0 20px">Your ClaimDataCare account has been created. Use the code below to activate your account.</p>',
+        // OTP code
+        '<div style="text-align:center;margin-bottom:20px">',
+          '<div style="color:#87867f;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Your Verification Code</div>',
+          '<div style="background:#c96442;color:white;font-size:40px;font-weight:700;letter-spacing:14px;text-align:center;padding:20px;border-radius:10px;margin:0 auto;max-width:300px">' + otpCode + '</div>',
+          '<p style="color:#87867f;font-size:11px;margin-top:10px">This code expires in 48 hours. Keep it confidential.</p>',
+        '</div>',
         // Info table
         '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;padding:18px;margin-bottom:20px">',
           '<table style="width:100%;border-collapse:collapse">',
             '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6;width:120px">Username</td><td style="color:#141413;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #f0eee6">' + name + '</td></tr>',
             '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Email</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + email + '</td></tr>',
             '<tr><td style="color:#87867f;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">Role</td><td style="color:#141413;font-size:13px;padding:6px 0;border-bottom:1px solid #f0eee6">' + primaryRole + '</td></tr>',
-            '<tr><td style="color:#87867f;font-size:13px;padding:6px 0">Temp Password</td><td style="color:#c96442;font-size:14px;font-weight:700;padding:6px 0;letter-spacing:1px">' + tempPass + '</td></tr>',
           '</table>',
         '</div>',
         // CTA button
         '<div style="text-align:center;margin-bottom:20px">',
           '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">',
-            'Activate My Account &amp; Set Password',
+            'Activate Now',
           '</a>',
-          '<p style="color:#87867f;font-size:11px;margin-top:10px">Link expires in 48 hours</p>',
+          '<p style="color:#87867f;font-size:11px;margin-top:10px">Click the button above, then enter the verification code from this email.</p>',
         '</div>',
         '<p style="color:#87867f;font-size:11px;border-top:1px solid #e8e6dc;padding-top:14px;margin:0">',
           'If you did not expect this email, please ignore it or contact your system administrator. &nbsp;·&nbsp; ClaimDataCare &copy; 2025',
@@ -19491,38 +19571,59 @@ function openAddUserModal(existingUser) {
   var inpStyle = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px';
   var lblStyle = 'font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px';
   var secStyle = 'font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)';
+  var chkStyle = 'accent-color:var(--brand);width:15px;height:15px;cursor:pointer';
 
   var overlay = document.createElement('div');
   overlay.id = 'modal-add-user';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
 
+  var passPlaceholder = isEdit ? 'Leave blank to keep current password' : 'Set initial password';
+  var passValue = isEdit ? '' : '';
+
   overlay.innerHTML =
+    '<input type="hidden" id="nu-id" value="'+(u.id||'')+'">' +
     '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)">' +
-    '<div><div style="font-size:16px;font-weight:700">Add/Edit User</div>' +
-    '<div style="font-size:12px;color:var(--text3)">Create or modify a user account</div></div>' +
+    '<div><div style="font-size:16px;font-weight:700">'+(isEdit?'Edit User':'Add User')+'</div>' +
+    '<div style="font-size:12px;color:var(--text3)">'+(isEdit?'Modify user account details':'Create a new user account')+'</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="var m=document.getElementById(\'modal-add-user\');if(m)m.remove()">\u00d7</button></div>' +
-    '<div style="padding:20px;overflow-y:auto;flex:1">' +
-    '<div class="field" style="margin-bottom:12px"><label>First Name</label><input id="nu-first" class="no-upper" style="'+inpStyle+'"></div>' +
-    '<div class="field" style="margin-bottom:12px"><label>Last Name</label><input id="nu-last" class="no-upper" style="'+inpStyle+'"></div>' +
-    '<div class="field" style="margin-bottom:12px"><label>Email</label><input id="nu-email" type="email" style="'+inpStyle+'"></div>' +
-    '<div class="field" style="margin-bottom:12px"><label>Password</label><input id="nu-pass" type="password" style="'+inpStyle+'"></div>' +
+    '<div id="nu-alert" style="padding:0 20px;margin-top:12px"></div>' +
+    '<div style="padding:0 20px 20px;overflow-y:auto;flex:1">' +
+    '<div class="fg g2">' +
+      '<div class="field" style="margin-bottom:10px"><label>First Name <span class="req">*</span></label><input id="nu-first" class="no-upper" value="'+(u.first||'')+'" style="'+inpStyle+'"></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Last Name <span class="req">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" style="'+inpStyle+'"></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Username <span class="req">*</span> <span style="font-weight:400;color:var(--text3)">min 8 chars, must contain .</span></label><input id="nu-name" class="no-upper" value="'+(u.name||'')+'" style="'+inpStyle+'"><div id="nu-name-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Email <span class="req">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inpStyle+'"><div id="nu-email-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Phone <span class="req">*</span></label><input id="nu-phone" class="no-upper" value="'+(u.phone||'')+'" style="'+inpStyle+'"><div id="nu-phone-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
+      '<div class="field" style="margin-bottom:10px"><label>Phone 2</label><input id="nu-phone2" class="no-upper" value="'+(u.phone2||'')+'" style="'+inpStyle+'"></div>' +
+    '</div>' +
+    '<div class="field" style="margin-bottom:12px">' +
+      '<label>Password</label>' +
+      '<input id="nu-pass" type="password" class="no-upper" value="'+passValue+'" placeholder="'+passPlaceholder+'" onfocus="this.select()" style="'+inpStyle+'">' +
+      '<div id="nu-pass-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px">'+(isEdit?'':'Required for new users')+'</div>' +
+    '</div>' +
     '<div style="margin-bottom:14px"><div style="'+secStyle+'">Roles</div><div>'+rolesHtml+'</div></div>' +
     '<div style="margin-bottom:14px"><div style="'+secStyle+'">Permissions</div><div>'+permsHtml+'</div></div>' +
+    '<div style="margin-bottom:14px">' +
+      '<div style="'+secStyle+'">Settings</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:6px">' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-track-time" '+(u.trackTime?'checked':'')+' style="'+chkStyle+'"> Track Time</label>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-pass-expire" '+(u.passExpire?'checked':'')+' style="'+chkStyle+'"> Password Expires</label>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive" '+(u.autoInactive?'checked':'')+' style="'+chkStyle+'"> Auto Inactive</label>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-twofa" '+(u.twoFA?'checked':'')+' style="'+chkStyle+'"> Two-Factor Auth</label>' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-inactive" '+(u.inactive?'checked':'')+' style="'+chkStyle+'"> Inactive</label>' +
+      '</div>' +
+    '</div>' +
     '<div style="margin-bottom:14px"><div style="'+secStyle+'">Specialties</div><div id="nu-specs" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);padding:8px">'+specsHtml+'</div></div>' +
     '</div>' +
     '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">' +
     '<button class="btn" onclick="document.getElementById(\'modal-add-user\')&&document.getElementById(\'modal-add-user\').remove()">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveAddUser()">Create User</button></div></div>'
+    '<button class="btn btn-primary" onclick="saveNewUser()">'+(isEdit?'Update User':'Create User')+'</button></div></div>'
   document.body.appendChild(overlay);
 }
 
 // ── Superbill helpers ─────────────────────────────────────────────────────────
-function _sbToggleAll(checked, patId) {
-  document.querySelectorAll('.sb-chk').forEach(function(cb){ cb.checked = checked; });
-}
-
 function _sbBuildPDF(doc, pat) {
   var _UC = function(s){ return String(s||'').toUpperCase(); };
   var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
@@ -19647,30 +19748,238 @@ function _sbBuildPDF(doc, pat) {
 }
 
 function _sbDownloadOne(patId, idx) {
-  var db = getDB();
-  var pat = db.patients.find(function(p){ return p.id===patId; })||{};
-  var doc = (pat.documents||[])[idx];
-  if (!doc || doc.category!=='Superbills') { toast('Not a superbill','err'); return; }
-  var pdf = _sbBuildPDF(doc, pat);
-  var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-  pdf.save(fname);
-  toast('Superbill downloaded','ok');
+  return _downloadOne(patId, idx);
 }
 
 function _sbDownloadSelected(patId) {
+  return _downloadSelected(patId);
+}
+
+// ── Generic document selection, download, move, delete, restore, purge ──────
+
+function _selToggleAll(checked, patId) {
+  document.querySelectorAll('.sel-chk').forEach(function(cb){ cb.checked = checked; });
+}
+
+function _getSelectedIdx(patId) {
+  return Array.from(document.querySelectorAll('.sel-chk:checked')).map(function(cb){ return parseInt(cb.dataset.idx); }).filter(function(i){ return !isNaN(i); });
+}
+
+function _downloadOne(patId, idx) {
   var db = getDB();
   var pat = db.patients.find(function(p){ return p.id===patId; })||{};
-  var checked = Array.from(document.querySelectorAll('.sb-chk:checked'));
-  if (!checked.length) { toast('Select at least one superbill','warn'); return; }
-  checked.forEach(function(cb) {
-    var idx = parseInt(cb.dataset.idx);
-    var doc = (pat.documents||[])[idx];
-    if (!doc || doc.category!=='Superbills') return;
+  var doc = (pat.documents||[])[idx];
+  if (!doc) { toast('Document not found','err'); return; }
+  if (doc.category === 'Superbills') {
     var pdf = _sbBuildPDF(doc, pat);
     var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
     pdf.save(fname);
+    toast('Superbill downloaded','ok');
+  } else if (doc.data) {
+    var a = document.createElement('a');
+    a.href = doc.data;
+    a.download = doc.name || 'document';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Document downloaded','ok');
+  } else {
+    toast('No data to download','warn');
+  }
+}
+
+function _downloadSelected(patId) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id===patId; })||{};
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) { toast('Select at least one document','warn'); return; }
+  indices.forEach(function(idx) {
+    var doc = (pat.documents||[])[idx];
+    if (!doc) return;
+    if (doc.category === 'Superbills') {
+      var pdf = _sbBuildPDF(doc, pat);
+      var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
+      pdf.save(fname);
+    } else if (doc.data) {
+      var a = document.createElement('a');
+      a.href = doc.data;
+      a.download = doc.name || 'document';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
   });
-  toast(checked.length+' superbill'+(checked.length>1?'s':'')+' downloaded','ok');
+  toast(indices.length+' document'+(indices.length>1?'s':'')+' downloaded','ok');
+}
+
+function _deleteSelected(patId) {
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) { toast('Select at least one document','warn'); return; }
+  if (!confirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?')) return;
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if (p && p.documents) {
+      indices.forEach(function(idx){
+        if (p.documents[idx]) {
+          p.documents[idx].originalCat = p.documents[idx].originalCat || p.documents[idx].category;
+          p.documents[idx].category = 'Recycle Bin';
+          p.documents[idx].deletedAt = Date.now();
+        }
+      });
+    }
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' moved to Recycle Bin');
+}
+
+function _moveDoc(patId, idx) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id===patId; });
+  if (!pat) return;
+  var doc = (pat.documents||[])[idx];
+  if (!doc) return;
+  var allCats = [];
+  (pat.documents||[]).forEach(function(d){ if(d.category && d.category!==doc.category && d.category!=='Recycle Bin' && allCats.indexOf(d.category)<0) allCats.push(d.category); });
+  allCats.sort();
+  var catList = allCats.map(function(c,i){ return '<div onclick="_doMoveDoc(\''+patId+'\','+idx+',\''+c.replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'"><i data-lucide="folder" class="lci" style="width:14px;height:14px;color:#e07820"></i>'+c+'</div>'; }).join('');
+  if (!catList.length) { toast('No other categories available','warn'); return; }
+  var ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto">'+
+    '<div style="padding:14px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border)">Move "'+(doc.name||'Document')+'" to...</div>'+
+    '<div style="padding:4px 0">'+catList+'</div>'+
+    '<div style="padding:10px 16px;border-top:1px solid var(--border)"><button class="btn btn-sm" onclick="this.closest(\'[data-movov]\').remove()" style="width:100%">Cancel</button></div></div>';
+  ov.setAttribute('data-movov','1');
+  document.body.appendChild(ov);
+  setTimeout(_renderLucideIcons,20);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
+function _doMoveDoc(patId, idx, targetCat) {
+  var ov = document.querySelector('[data-movov]');
+  if (ov) ov.remove();
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if(p && p.documents && p.documents[idx]) p.documents[idx].category = targetCat;
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast('Document moved to '+targetCat);
+}
+
+function _moveSelected(patId) {
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) { toast('Select at least one document','warn'); return; }
+  var db = getDB();
+  var pat = db.patients.find(function(p){ return p.id===patId; });
+  if (!pat) return;
+  var allCats = [];
+  (pat.documents||[]).forEach(function(d){ if(d.category && d.category!=='Recycle Bin' && allCats.indexOf(d.category)<0) allCats.push(d.category); });
+  allCats.sort();
+  var catList = allCats.map(function(c,i){ return '<div onclick="_doMoveSelected(\''+patId+'\',\''+c.replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'"><i data-lucide="folder" class="lci" style="width:14px;height:14px;color:#e07820"></i>'+c+'</div>'; }).join('');
+  if (!catList.length) { toast('No categories available','warn'); return; }
+  var ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto">'+
+    '<div style="padding:14px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border)">Move '+indices.length+' document'+(indices.length>1?'s':'')+' to...</div>'+
+    '<div style="padding:4px 0">'+catList+'</div>'+
+    '<div style="padding:10px 16px;border-top:1px solid var(--border)"><button class="btn btn-sm" onclick="this.closest(\'[data-mmov]\').remove()" style="width:100%">Cancel</button></div></div>';
+  ov.setAttribute('data-mmov','1');
+  document.body.appendChild(ov);
+  setTimeout(_renderLucideIcons,20);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
+function _doMoveSelected(patId, targetCat) {
+  var ov = document.querySelector('[data-mmov]');
+  if (ov) ov.remove();
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) return;
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if (p && p.documents) {
+      indices.forEach(function(idx){
+        if (p.documents[idx]) p.documents[idx].category = targetCat;
+      });
+    }
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' moved to '+targetCat);
+}
+
+function _restoreDoc(patId, idx) {
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if (p && p.documents && p.documents[idx]) {
+      p.documents[idx].category = p.documents[idx].originalCat || 'External Documents';
+      delete p.documents[idx].deletedAt;
+      delete p.documents[idx].originalCat;
+    }
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast('Document restored');
+}
+
+function _restoreSelected(patId) {
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) { toast('Select at least one document','warn'); return; }
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if (p && p.documents) {
+      indices.forEach(function(idx){
+        if (p.documents[idx]) {
+          p.documents[idx].category = p.documents[idx].originalCat || 'External Documents';
+          delete p.documents[idx].deletedAt;
+          delete p.documents[idx].originalCat;
+        }
+      });
+    }
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' restored');
+}
+
+function _permDeleteDoc(patId, idx) {
+  if (!confirm('Permanently delete this document? This cannot be undone.')) return;
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if(p && p.documents && p.documents[idx]) p.documents.splice(idx,1);
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast('Document permanently deleted');
+}
+
+function _permDeleteSelected(patId) {
+  var indices = _getSelectedIdx(patId);
+  if (!indices.length) { toast('Select at least one document','warn'); return; }
+  if (!confirm('Permanently delete '+indices.length+' selected document'+(indices.length>1?'s':'')+'? This cannot be undone.')) return;
+  setDB(function(db){
+    var p = db.patients.find(function(x){ return x.id===patId; });
+    if (p && p.documents) {
+      // Sort descending so splice doesn't shift indices
+      indices.sort(function(a,b){ return b-a; }).forEach(function(idx){
+        if (p.documents[idx]) p.documents.splice(idx,1);
+      });
+    }
+  });
+  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
+  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
+  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' permanently deleted');
+}
+
+function _purgeOldTrash() {
+  var now = Date.now();
+  var THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  setDB(function(db2){
+    (db2.patients||[]).forEach(function(pat){
+      if (!pat.documents) return;
+      pat.documents = pat.documents.filter(function(d){
+        if (d.category === 'Recycle Bin' && d.deletedAt && (now - d.deletedAt) >= THIRTY_DAYS) return false;
+        return true;
+      });
+    });
+  });
 }
 
 function getAuditLogs() {
