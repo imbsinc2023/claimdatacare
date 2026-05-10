@@ -5991,7 +5991,7 @@ onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,
 Password
 </label>
 <div style="position:relative">
-      <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••"
+      <input id="li-pass" type="password" class="no-upper" autocomplete="current-password" placeholder="••••••••"
 onkeydown="if(event.key==='Enter')doLogin()"
 style="width:100%;padding:13px 16px;font-size:15px;
 border:1.5px solid #e8e6dc;border-radius:14px;
@@ -8315,6 +8315,24 @@ try {
   }
 }
 }
+// Fallback: check _localDB.users for passHashes stored by old activation code
+if (!_localUser) {
+  try {
+    var _dbUsers = (typeof getDB === 'function' ? (getDB().users||[]) : []);
+    var _dbUser = _dbUsers.find(function(u){ return _matchFn(u) && (u.passHash === _hash || u.passHash === _btoaHash); });
+    if (_dbUser && _dbUser.passHash) {
+      // Migrate passHash to users cache
+      var _allU2 = typeof getUsers === 'function' ? getUsers() : [];
+      var _cacheUser = _allU2.find(function(u){ return u.id === _dbUser.id || (u.email||'').toLowerCase() === (_dbUser.email||'').toLowerCase(); });
+      if (_cacheUser) {
+        _cacheUser.passHash = _dbUser.passHash;
+        if (_dbUser.emailVerified) _cacheUser.emailVerified = true;
+        if (typeof saveUsers === 'function') saveUsers(_allU2);
+        _localUser = _cacheUser;
+      }
+    }
+  } catch(_e) {}
+}
 if (!_localUser) {
 alertEl.innerHTML = '<div class="alert al-error">Incorrect username/email or password.</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
@@ -8889,8 +8907,8 @@ function checkVerifyToken() {
   }
 
   setTimeout(function(){
-    var db = getDB();
-    var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
+    var _allU = typeof getUsers === 'function' ? getUsers() : [];
+    var user = _allU.find(function(u) { return u.id === parsed.userId; });
     showVerifyModal('otp', parsed, user || { id: parsed.userId, email: parsed.email, first: '', name: '' }, token);
   }, 300);
 }
@@ -8980,8 +8998,8 @@ function verifyOTPAndContinue(token, parsed) {
   var alertEl = document.getElementById('verify-alert');
   if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-digit verification code.</div>'; return; }
 
-  var db = getDB();
-  var user = (db.users || []).find(function(u) { return u.id === parsed.userId; });
+  var _allU = typeof getUsers === 'function' ? getUsers() : [];
+  var user = _allU.find(function(u) { return u.id === parsed.userId; });
   if (!user) { alertEl.innerHTML = '<div class="alert al-error">User not found. Contact your administrator.</div>'; return; }
 
   var expectedHash = btoa(otp);
@@ -9003,17 +9021,17 @@ function confirmVerifyEmail(token, userId) {
   if (!/[^A-Za-z0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one special character (!@#$%^&amp;*).</div>'; return; }
   if (p1 !== p2) { alertEl.innerHTML = '<div class="alert al-error">Passwords do not match.</div>'; return; }
 
-  setDB(function(db) {
-    var user = (db.users || []).find(function(u) { return u.id === userId; });
-    if (user) {
-      user.emailVerified = true;
-      user.verifiedAt = Date.now();
-      user.passHash = btoa(p1);
-      user.mustChangePwd = false;
-      delete user.otpHash;
-      delete user.verifyToken;
-    }
-  });
+  var _allU = typeof getUsers === 'function' ? getUsers() : [];
+  var _foundU = _allU.find(function(u) { return u.id === userId; });
+  if (_foundU) {
+    _foundU.emailVerified = true;
+    _foundU.verifiedAt = Date.now();
+    _foundU.passHash = btoa(p1);
+    _foundU.mustChangePwd = false;
+    delete _foundU.otpHash;
+    delete _foundU.verifyToken;
+    if (typeof saveUsers === 'function') saveUsers(_allU);
+  }
 
   history.replaceState(null, '', window.location.pathname + window.location.hash);
 
@@ -18745,10 +18763,15 @@ function saveNewUser() {
     var verifyLink = 'https://claimdatacare.com/app.html?verify=' + verifyToken;
 
     // Save OTP hash and verify token to user
-    setDB(function(db2) {
-      var u2 = (db2.users||[]).find(function(x){ return x.email === email; });
-      if (u2) { u2.otpHash = btoa(otpCode); u2.verifyToken = verifyToken; u2.mustChangePwd = true; u2.emailVerified = false; }
-    });
+    var _allU = typeof getUsers === 'function' ? getUsers() : [];
+    var _foundU = _allU.find(function(x){ return x.email === email; });
+    if (_foundU) {
+      _foundU.otpHash = btoa(otpCode);
+      _foundU.verifyToken = verifyToken;
+      _foundU.mustChangePwd = true;
+      _foundU.emailVerified = false;
+      if (typeof saveUsers === 'function') saveUsers(_allU);
+    }
 
     // Favicon data URI (shield)
     var _faviconSvg = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
