@@ -9224,16 +9224,19 @@ const acctRow = document.getElementById('mprov-acctkey-row');
 if (acctRow) acctRow.style.display = isSA ? '' : 'none';
 const saveBtn = document.getElementById('mprov-save-btn');
 if (saveBtn) saveBtn.style.display = '';
-if (!isSA) {
-['mprov-name','mprov-npi','mprov-taxid'].forEach(function(id){
-  var el = document.getElementById(id);
-  if (el) el.disabled = true;
-});
-document.querySelectorAll('#modal-provider input:not([disabled]), #modal-provider select:not([disabled])')
-.forEach(el => { el.disabled = false; });
+var restrictedFields = ['mprov-name','mprov-npi','mprov-taxid'];
+var activeSec = document.querySelector('.section.active');
+var isFromAdmin = activeSec && activeSec.id === 'sec-admin-providers';
+if (isFromAdmin && isSA) {
+  document.querySelectorAll('#modal-provider input, #modal-provider select')
+  .forEach(el => { el.disabled = false; });
 } else {
-document.querySelectorAll('#modal-provider input, #modal-provider select')
-.forEach(el => { el.disabled = false; });
+  restrictedFields.forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  document.querySelectorAll('#modal-provider input:not([disabled]), #modal-provider select:not([disabled])')
+  .forEach(el => { el.disabled = false; });
 }
 setTimeout(_renderLucideIcons, 20);
 }
@@ -9245,8 +9248,10 @@ if(!npi||npi.length!==10){toast('NPI must be 10 digits','err');return;}
 if(!taxid||taxid.length!==9){toast('Tax ID must be 9 digits','err');return;}
 const db=getDB(); const existingId=v('mprov-id'); const isNew=!existingId;
 const isSA = isAdmin();
-if (!isSA) {
-  if (isNew) { toast('Only Super Admin can create billing providers','err'); return; }
+var activeSec = document.querySelector('.section.active');
+var isFromAdmin = activeSec && activeSec.id === 'sec-admin-providers';
+if (!isSA || !isFromAdmin) {
+  if (isNew) { toast('Only Super Admin can create billing providers from Admin section','err'); return; }
   const existing = db.providers.find(function(x){ return x.id === existingId; });
   if (existing) {
     if (name !== (existing.name||'').toUpperCase()) { toast('Provider Name is read-only','err'); return; }
