@@ -1344,7 +1344,7 @@ appointments: 'Appointments', notes: 'Medical Notes',
 providers: 'Billing Providers',
 invoices: 'Invoicing',
 'claim-editor': 'Claim Editor',
-bills: 'Bills',
+bills: 'Claims',
 };
 
 
@@ -2499,13 +2499,7 @@ if(nb){ if(errs){nb.classList.remove('hidden');nb.textContent=errs;}else nb.clas
 const total=mine.reduce((s,c)=>s+claimTotal(c),0);
 const ts=document.getElementById('tb-stats');
 if(ts) ts.textContent=`${mine.length} claims \u00b7 $${fmtMoney(total)}`;
-// Bills badge — count draft + pending
-const billsEl=document.getElementById('tnc-bills');
-if(billsEl){
-  var billsCount=mine.filter(c=>c.status==='draft'||c.status==='pending').length;
-  if(billsCount>0){billsEl.textContent=billsCount;billsEl.style.display='';}
-  else billsEl.style.display='none';
-}
+
 }
 
 
@@ -2784,9 +2778,7 @@ return `<div class="app-shell">
 </button>
 <div class="tn-dropdown" id="tn-dd-billing">
 <div class="tn-dd-item" id="tnd-claims" onclick="go('claims');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>
-<div class="tn-dd-item" id="tnd-bills" onclick="go('bills');closeTnDropdown()"><i data-lucide="list-checks" class="lci"></i><span>Bills <span id="tnc-bills" class="tn-cnt" style="display:none">0</span></span></div>
-<div class="tn-dd-item" id="tnd-claim-editor" onclick="go('claim-editor');closeTnDropdown()"><i data-lucide="edit" class="lci"></i><span>Claim Draft</span></div>
-
+<div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-eob" onclick="go('eob');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>
 <div class="tn-dd-item" id="tnd-validate" onclick="go('validate');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>
 </div>
@@ -3079,7 +3071,7 @@ return `<div class="app-shell">
 </div>
 <div id="exp-alert-top" style="margin-bottom:12px"></div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
 
 <!-- Card 1: CSV Export -->
 <div class="card">
@@ -3133,7 +3125,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 </div>
 
 <!-- Summary + Instructions row -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
 <div class="card">
 <div class="card-title" style="margin-bottom:12px">Summary</div>
 <div id="exp-summary"></div>
@@ -3151,7 +3143,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 </div>
 
 <!-- Transmission Log -->
-<div class="card" style="margin-top:16px">
+<div class="card">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
 <div class="card-title">Transmission Log</div>
 <button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">
@@ -3181,7 +3173,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 <option value="voided">Voided</option>
 </select>
 <input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">
-<button class="btn btn-primary btn-sm" onclick="go('claim-editor')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Bill</button>
+<button class="btn btn-primary btn-sm" onclick="go('claims')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>
 </div>
 </div>
 <div id="bills-tbl"></div>
@@ -3562,7 +3554,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 
 <!-- Active / Inactive tabs -->
-<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:12px">
+<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">
   <button id="utab-active" onclick="setUserTab('active')"
     style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">
     Active
@@ -3615,10 +3607,10 @@ Invoicing
 </div>
 
 <!-- DASHBOARD -->
-<div id="inv-dashboard" style="margin-bottom:20px"></div>
+<div id="inv-dashboard" style="margin-bottom:14px"></div>
 
 <!-- TABS -->
-<div class="stabs" id="inv-tabs" style="margin-bottom:16px">
+<div class="stabs" id="inv-tabs" style="margin-bottom:14px">
 <button class="stab active" id="inv-stab-dashboard" onclick="setInvTab('dashboard',this)">
 <i data-lucide="layout-dashboard" class="lci" style="width:13px;height:13px"></i> Dashboard
 </button>
@@ -8905,23 +8897,9 @@ loadFromFirestore().then(function() {
 }).catch(_afterLoad);
 return;
 } catch(e) {
-// Only network/config errors fall through to local auth.
-// Treat auth/user-not-found the same way — the user may only
-// exist in local password storage (created via saveNewUser)
-// and NOT in Firebase Auth.
-if (['auth/configuration-not-found','auth/operation-not-allowed',
-'auth/network-request-failed','auth/user-not-found'].includes(e.code)) {
-// fall through to local auth below
-} else {
-var _msgs = {
-'auth/wrong-password': 'Incorrect email or password.',
-'auth/invalid-credential': 'Incorrect email or password.',
-'auth/invalid-email': 'Invalid email.',
-'auth/too-many-requests': 'Too many attempts. Try again later.'
-};
-alertEl.innerHTML = '<div class="alert al-error">' + (_msgs[e.code] || e.message) + '</div>';
-btn.textContent = 'Sign In'; btn.disabled = false; return;
-}
+// Always fall through to local auth — users created via
+// saveNewUser() may only exist in local password storage
+// and NOT in Firebase Auth. Local auth is the source of truth.
 }
 }
 
@@ -8945,11 +8923,7 @@ try {
   loadFromFirestore().then(_afterLoad).catch(_afterLoad);
   return;
 } catch(e2) {
-  if (!['auth/configuration-not-found','auth/operation-not-allowed','auth/network-request-failed'].includes(e2.code)) {
-    var _msgs2 = { 'auth/user-not-found':'Incorrect email or password.','auth/wrong-password':'Incorrect email or password.','auth/invalid-credential':'Incorrect email or password.','auth/invalid-email':'Invalid email.','auth/too-many-requests':'Too many attempts. Try again later.' };
-    alertEl.innerHTML = '<div class="alert al-error">' + (_msgs2[e2.code] || e2.message) + '</div>';
-    btn.textContent = 'Sign In'; btn.disabled = false; return;
-  }
+  // Continue to local auth fallback regardless of Firebase error
 }
 }
 // Fallback: check _localDB.users for passHashes stored by old activation code
