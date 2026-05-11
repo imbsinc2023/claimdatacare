@@ -1199,12 +1199,12 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 .app-shell{display:block;height:100vh;overflow:hidden}
 .topnav{position:fixed!important;top:0!important;left:0!important;right:0!important;height:36px;z-index:200;margin:0!important;padding:0 8px!important}
 .main{position:fixed;top:36px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.content{flex:1 1 0;overflow-y:auto;padding:14px 22px 22px!important;margin:0!important}
+.content{flex:1 1 0;overflow-y:auto;padding:14px 22px 22px;margin:0}
 /* Standardised internal page layout — mirrors Dashboard as gold standard */
-.section.active{display:block;min-height:0;padding:0;margin:0}
-.page-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:0;padding:0}
+.section.active{display:flex;flex-direction:column;min-height:0;padding:0;margin:0}
+.page-hdr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-bottom:0;padding:0}
 .page-hdr h1{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--text);margin:0;padding:0}
-.page-body{margin:0;padding:0}
+.page-body{flex:1 1 auto;min-height:0;padding:0;margin:0}
 </style>
 <script src="cpt-catalog.js"></script>
 <script src="icd10-catalog.js"></script>
@@ -3027,6 +3027,7 @@ return `<div class="app-shell">
 <div class="page-hdr">
   <div><h1>Dashboard</h1><div id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></div></div>
 </div>
+<div class="page-body">
 <div id="dash-alerts" style="margin-bottom:8px"></div>
 <div id="dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
@@ -3042,12 +3043,14 @@ return `<div class="app-shell">
     <div class="card">
       <div class="card-title" style="margin-bottom:6px">By Status</div>
       <div id="dash-status"></div>
-    </div>
   </div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="sec-claims">
 <div class="page-hdr"><div><h1>Claims</h1></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>
+<div class="page-body">
 <div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab('all',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('draft',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab('pending',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab('submitted',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab('accepted',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab('rejected',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>
 <div class="search-row">
 <input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\u2026" oninput="renderClaims()">
@@ -3063,15 +3066,17 @@ return `<div class="app-shell">
 </div>
 <div id="claims-tbl"></div>
 </div>
+</div>
 
-<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div>
+<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>
 
-<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div>
+<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>
 
 <div class="section" id="sec-export">
 <div class="page-hdr">
 <div><h1>Export / Submit</h1></div>
 </div>
+<div class="page-body">
 <div id="exp-alert-top" style="margin-bottom:12px"></div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
@@ -3158,6 +3163,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 </div>
 </div>
 </div>
+</div>
 
 <div class="section" id="sec-bills">
 <div class="page-hdr">
@@ -3179,7 +3185,9 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 <button class="btn btn-primary btn-sm" onclick="go('claims')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>
 </div>
 </div>
+<div class="page-body">
 <div id="bills-tbl"></div>
+</div>
 </div>
 
 <div class="section" id="sec-claim-editor" style="display:flex;flex-direction:column;height:100%;padding:0;overflow:hidden">
@@ -3203,6 +3211,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 </button>
 </div>
 </div>
+<div class="page-body">
 <input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">
 
 <!-- Tabs -->
@@ -3220,6 +3229,7 @@ Ready for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="backgrou
 
 <div id="eob-alert" style="margin-bottom:12px"></div>
 <div id="eob-content"></div>
+</div>
 </div>
 
 <!-- MANUAL EOB POSTING MODAL -->
@@ -3329,7 +3339,9 @@ Click "Find &amp; Add Claim" to search and add claims to this payment
 <i data-lucide="plus" class="lci"></i> Add Provider
 </button>
 </div>
+<div class="page-body">
 <div id="bp-grid"></div>
+</div>
 </div>
 
 <div class="section" id="sec-insurances">
@@ -3346,7 +3358,7 @@ Click "Find &amp; Add Claim" to search and add claims to this payment
 </button>
 </div>
 </div>
-
+<div class="page-body">
 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
 <input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"
 style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">
@@ -3365,6 +3377,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 
 <div id="insurances-tbl"></div>
+</div>
 </div>
 
 <!-- INSURANCE MODAL -->
@@ -3460,19 +3473,21 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 </div>
 
-<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal('')">+ New Facility</button></div><div id="facilities-tbl"></div></div>
+<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal('')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>
 
-<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div id="rendering-tbl"></div></div>
+<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>
 
-<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div id="referring-tbl"></div></div>
+<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>
 
-<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div id="val-content"></div></div>
+<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>
 
 <div class="section" id="sec-reports">
 <div class="page-hdr">
 <div><h1>Reports</h1></div>
 </div>
+<div class="page-body">
 <div id="reports-content"></div>
+</div>
 </div>
 
 <div class="section" id="sec-appointments">
@@ -3480,6 +3495,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div><h1>Appointments</h1></div>
 <button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>
 </div>
+<div class="page-body">
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
 <select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>
 <select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>
@@ -3487,6 +3503,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </div>
 <div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>
 <div id="appt-list"></div>
+</div>
 </div>
 
 
@@ -3499,12 +3516,14 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 </button>
 </div>
 </div>
+<div class="page-body">
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
 <input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">
 <select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>
 <select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>
 </div>
 <div id="notes-list"></div>
+</div>
 </div>
 
 
@@ -3513,7 +3532,9 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div><h1>Service Groups</h1></div>
 <button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>
 </div>
+<div class="page-body">
 <div id="sg-list"></div>
+</div>
 </div>
 
 <div class="section" id="sec-account">
@@ -3531,6 +3552,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
     </button>
   </div>
 </div>
+<div class="page-body">
 
 <!-- Search panel -->
 <div id="user-search-bar" style="display:none;margin-bottom:14px">
@@ -3591,6 +3613,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 
 </div>
+</div>
 
 <div class="section" id="sec-invoices">
 <div class="page-hdr">
@@ -3606,6 +3629,7 @@ Invoicing
 </button>
 </div>
 </div>
+<div class="page-body">
 
 <!-- DASHBOARD -->
 <div id="inv-dashboard" style="margin-bottom:14px"></div>
@@ -3670,6 +3694,7 @@ Show Paid
 <div id="inv-issuers-list"></div>
 </div>
 </div>
+</div>
 
 
 <div class="section" id="sec-admin-providers">
@@ -3677,97 +3702,119 @@ Show Paid
 <div><h1>Billing Providers</h1></div>
 <button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>
 </div>
+<div class="page-body">
 <div id="bp-grid"></div>
 </div>
+</div>
 
-<div class="section" id="sec-cm-dashboard"><div class="page-hdr"><div><h1>Case Management Dashboard</h1></div></div><div id="cm-dash-content"></div></div>
+<div class="section" id="sec-cm-dashboard"><div class="page-hdr"><div><h1>Case Management Dashboard</h1></div></div><div class="page-body"><div id="cm-dash-content"></div></div></div>
 
 <div class="section" id="sec-cm-clients">
 <div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">
 <label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>
 <button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMClients()">
 <select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Workers</option></select>
 <select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>
 </div>
 <div id="cm-clients-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-workers">
 <div class="page-hdr"><div><h1>Case Workers</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add Worker</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>
 <div id="cm-workers-tbl"></div>
 </div>
+</div>
 
-<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div>
+<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>
 
-<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div>
+<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>
 
-<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div>
+<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="page-body"><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div></div>
 
-<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div id="cm-reports-content"></div></div>
+<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>
 
 <div class="section" id="sec-cm-intake">
 <div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMIntake()">
 <select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>
 </div>
 <div id="cm-intake-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-assessments">
 <div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">
 <select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>
 <div id="cm-assessments-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-encounters">
 <div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()">+ New Encounter</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMEncounters()">
 <select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>
 <select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>
 <div id="cm-encounters-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-tasks">
 <div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">
 <select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
 <select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>
 <div id="cm-tasks-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-authorizations">
 <div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">
 <select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>
 <div id="cm-auths-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-referrals">
 <div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">
 <select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>
 <div id="cm-referrals-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-supervisor">
 <div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>
+<div class="page-body">
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>
 <div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>
 <div id="cm-supervisor-tbl"></div>
 </div>
+</div>
 
 <div class="section" id="sec-cm-discharge">
 <div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>
+<div class="page-body">
 <div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>
 <div id="cm-discharge-tbl"></div>
 </div>
+</div>
 
-<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go('cm-clients')">Back to Clients</button></div><div id="cm-patient-summary-content"></div></div>
+<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go('cm-clients')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>
 
-<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div id="cm-settings-content"></div></div>
+<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>
 
 </div>
 </div>
