@@ -1346,6 +1346,7 @@ servicegroups: 'Service Groups', account: 'Account',
 appointments: 'Schedule', notes: 'Medical Notes',
 providers: 'Billing Providers',
 invoices: 'Invoicing',
+'provider-info': 'Provider Information',
 'claim-editor': 'Claim Editor',
 bills: 'Claims',
 };
@@ -1429,6 +1430,7 @@ account: renderAccountPage,
       'cm-patient-summary': renderCMPatientSummary,
       'claim-editor': renderClaimEditor,
       bills: renderBills,
+      'provider-info': renderProviderInfo,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
@@ -2830,7 +2832,7 @@ return `<div class="app-shell">
 <div class="tn-dd-item" id="tnd-rendering" onclick="go('rendering');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Rendering Providers</span></div>
 <div class="tn-dd-item" id="tnd-referring" onclick="go('referring');closeTnDropdown()"><i data-lucide="arrow-right-left" class="lci"></i><span>Referring Providers</span></div>
 <div class="tn-dd-sep"></div>
-<div class="tn-dd-item" id="tnd-providers" onclick="go('providers');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Billing Providers</span></div>
+<div class="tn-dd-item" id="tnd-provider-info" onclick="go('provider-info');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Provider Information</span></div>
 </div>
 </div>
 <div class="tn-group" id="tng-admin" style="display:none">
@@ -2999,7 +3001,7 @@ return `<div class="app-shell">
 <div class="tn-drawer-sub-item" onclick="go('facilities');closeTnDrawer()">Facilities</div>
 <div class="tn-drawer-sub-item" onclick="go('rendering');closeTnDrawer()">Rendering Providers</div>
 <div class="tn-drawer-sub-item" onclick="go('referring');closeTnDrawer()">Referring Providers</div>
-<div class="tn-drawer-sub-item" onclick="go('providers');closeTnDrawer()">Billing Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('provider-info');closeTnDrawer()">Provider Information</div>
 </div>
 </div>
 <div class="tn-drawer-group" id="mob-grp-admin" style="display:none">
@@ -3612,6 +3614,15 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 
 
+</div>
+</div>
+
+<div class="section" id="sec-provider-info">
+<div class="page-hdr">
+<div><h1>Provider Information</h1></div>
+</div>
+<div class="page-body">
+<div id="provider-info-content"></div>
 </div>
 </div>
 
@@ -9067,6 +9078,36 @@ function doLogout() {
 }
 
 // ?? BILLING PROVIDERS ????????????????????????????????????????????????????????
+function renderProviderInfo() {
+  var db = getDB();
+  var isSA = isAdmin();
+  var el = document.getElementById('provider-info-content');
+  if (!el) return;
+  if (!db.providers.length) {
+    el.innerHTML = '<div class="empty"><h3>No billing providers configured</h3></div>';
+    return;
+  }
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+    '<th>Provider Name</th><th>NPI</th><th>Tax ID</th><th>Type</th><th>Status</th><th>Address</th><th>Phone</th><th>Email</th><th></th>' +
+    '</tr></thead><tbody>' +
+    db.providers.map(function(p, i) {
+      var sc = {Active:'b-green',Pending:'b-amber',Inactive:'b-gray'}[p.status||'Active']||'b-gray';
+      var addr = [p.addr1, p.city, p.state, p.zip].filter(Boolean).join(', ') || '—';
+      return '<tr>' +
+        '<td><strong>' + (p.name||'') + '</strong></td>' +
+        '<td class="mono">' + (p.npi||'—') + '</td>' +
+        '<td class="mono">' + (p.taxid||'—') + '</td>' +
+        '<td>' + (p.providerType||'Organization') + '</td>' +
+        '<td><span class="badge ' + sc + '">' + (p.status||'Active') + '</span></td>' +
+        '<td style="font-size:12px;color:var(--text3)">' + addr + '</td>' +
+        '<td class="mono">' + (p.phone||'—') + '</td>' +
+        '<td>' + (p.email||'—') + '</td>' +
+        '<td><button class="btn btn-sm" onclick="openBPModal(' + i + ')" style="white-space:nowrap"><i data-lucide="pencil" class="lci"></i> Edit</button></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div>';
+  _renderLucideIcons();
+}
+
 function renderAdminProviders() {
 const db = getDB();
 const isSA = isAdmin();
@@ -9181,12 +9222,14 @@ openModal('modal-provider');
 const acctRow = document.getElementById('mprov-acctkey-row');
 if (acctRow) acctRow.style.display = isSA ? '' : 'none';
 const saveBtn = document.getElementById('mprov-save-btn');
-if (saveBtn) saveBtn.style.display = isSA ? '' : 'none';
+if (saveBtn) saveBtn.style.display = '';
 if (!isSA) {
-document.querySelectorAll('#modal-provider input, #modal-provider select')
-.forEach(el => { el.disabled = true; });
-const titleEl2 = document.getElementById('mprov-title');
-if (titleEl2) titleEl2.textContent = 'Billing Provider (View Only)';
+['mprov-name','mprov-npi','mprov-taxid'].forEach(function(id){
+  var el = document.getElementById(id);
+  if (el) el.disabled = true;
+});
+document.querySelectorAll('#modal-provider input:not([disabled]), #modal-provider select:not([disabled])')
+.forEach(el => { el.disabled = false; });
 } else {
 document.querySelectorAll('#modal-provider input, #modal-provider select')
 .forEach(el => { el.disabled = false; });
@@ -9200,6 +9243,16 @@ if(!name){toast('Organization name is required','err');return;}
 if(!npi||npi.length!==10){toast('NPI must be 10 digits','err');return;}
 if(!taxid||taxid.length!==9){toast('Tax ID must be 9 digits','err');return;}
 const db=getDB(); const existingId=v('mprov-id'); const isNew=!existingId;
+const isSA = isAdmin();
+if (!isSA) {
+  if (isNew) { toast('Only Super Admin can create billing providers','err'); return; }
+  const existing = db.providers.find(function(x){ return x.id === existingId; });
+  if (existing) {
+    if (name !== (existing.name||'').toUpperCase()) { toast('Provider Name is read-only','err'); return; }
+    if (npi !== (existing.npi||'').toUpperCase()) { toast('NPI is read-only','err'); return; }
+    if (taxid !== (existing.taxid||'').toUpperCase()) { toast('Tax ID is read-only','err'); return; }
+  }
+}
 const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
 if(dupNPI){toast('NPI '+npi+' already registered to '+dupNPI.name,'err');return;}
 const newAcctKey = document.getElementById('mprov-acctkey')?.value?.trim() || '';
@@ -16121,6 +16174,7 @@ referring: { item:'tnav-config', dd:'tnd-referring' },
 providers: { item:'tnav-config', dd:'tnd-providers' },
 invoices: { item:'tnav-admin', dd:'tnd-invoices' },
 'admin-providers':{ item:'tnav-admin', dd:'tnd-admin-providers' },
+'provider-info':{ item:'tnav-config', dd:'tnd-provider-info' },
       reports: { item:'tnav-admin' },
       account: { item:'tnav-admin' },
       'cm-dashboard': { item:'tnav-cm', dd:'tnd-cm-dashboard' },
