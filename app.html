@@ -9111,11 +9111,12 @@ function renderProviderInfo() {
 function renderAdminProviders() {
 const db = getDB();
 const isSA = isAdmin();
-const el = document.getElementById('bp-grid');
+const activeSection = document.querySelector('.section.active');
+const el = activeSection ? activeSection.querySelector('#bp-grid') : document.getElementById('bp-grid');
 if (!el) return;
 
 // Show/hide the + Add Provider button
-const addBtn = document.querySelector('.admin-only[onclick="openBPModal(-1)"]');
+const addBtn = activeSection ? activeSection.querySelector('.admin-only[onclick="openBPModal(-1)"]') : document.querySelector('.admin-only[onclick="openBPModal(-1)"]');
 if (addBtn) addBtn.style.display = isSA ? '' : 'none';
 
 if (!db.providers.length) {
