@@ -1213,6 +1213,39 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 .page-hdr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-bottom:0;padding:0}
 .page-hdr h1{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--text);margin:0;padding:0}
 .page-body{flex:1 1 auto;min-height:0;padding:0;margin:0}
+/* Encounter Editor */
+.enc-editor{display:flex;flex-direction:column;flex:1;min-height:0;height:100%}
+.enc-editor-hdr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:10px}
+.enc-editor-body{display:flex;flex:1;min-height:0;gap:10px;overflow:hidden}
+.enc-editor-sidebar{width:180px;flex-shrink:0;overflow-y:auto;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);padding:6px}
+.enc-editor-sidebar .ee-nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s;margin-bottom:2px}
+.enc-editor-sidebar .ee-nav-item:hover{background:var(--surface)}
+.enc-editor-sidebar .ee-nav-item.active{background:var(--brand);color:#fff;font-weight:600}
+.enc-editor-sidebar .ee-nav-divider{height:1px;background:var(--border);margin:6px 8px}
+.enc-editor-content{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.enc-editor-content .ee-section{display:none;flex-direction:column;flex:1;min-height:0}
+.enc-editor-content .ee-section.active{display:flex}
+.enc-editor-content .ee-section textarea{flex:1;min-height:120px;padding:12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;line-height:1.75;resize:none;font-family:var(--font);outline:none;transition:border-color .18s,box-shadow .18s}
+.enc-editor-content .ee-section textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(74,74,74,.1)}
+.enc-editor-preview{width:340px;flex-shrink:0;overflow-y:auto;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);padding:14px;display:none;flex-direction:column;font-size:12px;line-height:1.7}
+.enc-editor-preview.show{display:flex}
+.enc-editor-preview .ep-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.enc-editor-preview .ep-section{margin-bottom:10px}
+.enc-editor-preview .ep-section-label{font-weight:600;color:var(--brand);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.enc-editor-preview .ep-section-text{color:var(--text2);font-size:11px;white-space:pre-wrap}
+.enc-editor-ftr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding:8px 0 0;border-top:1px solid var(--border);margin-top:8px;font-size:11px;color:var(--text3)}
+/* Macro Picker */
+.ee-macro-btn{position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;transition:all .15s;z-index:5;line-height:1}
+.ee-macro-btn:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+.ee-macro-dd{position:absolute;right:0;bottom:100%;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:220px;overflow-y:auto;width:280px;z-index:20;font-size:12px}
+.ee-macro-dd-item{padding:7px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s;color:var(--text2)}
+.ee-macro-dd-item:hover{background:var(--brand-bg);color:var(--text)}
+.ee-macro-dd-item:last-child{border-bottom:none}
+/* Signature section */
+.ee-sig-canvas{width:100%;height:160px;border:1.5px dashed var(--border2);border-radius:var(--r);background:#fff;cursor:crosshair;touch-action:none;display:block}
+.ee-sig-upload{width:100%;padding:16px;border:1.5px dashed var(--border2);border-radius:var(--r);text-align:center;font-size:12px;color:var(--text3);cursor:pointer;transition:all .15s;background:var(--bg3)}
+.ee-sig-upload:hover{border-color:var(--brand);background:var(--brand-bg)}
+.ee-sig-preview{max-width:100%;max-height:100px;border-radius:var(--r);margin-top:6px}
 </style>
 <script src="cpt-catalog.js"></script>
 <script src="icd10-catalog.js"></script>
@@ -1224,6 +1257,7 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" defer></script>
@@ -1351,12 +1385,13 @@ reports: 'Reports', 'admin-providers': 'Billing Providers',
 eob: 'ERA / EOB Payments',
 insurances: 'Insurances / Payers',
 servicegroups: 'Service Groups', account: 'Account',
-appointments: 'Schedule', notes: 'Medical Notes',
+appointments: 'Schedule', notes: 'Encounters',
 providers: 'Billing Providers',
 invoices: 'Invoicing',
 'provider-info': 'Provider Information',
 'claim-editor': 'Claim Editor',
 bills: 'Claims',
+'intake-center': 'Intake Center',
 };
 
 
@@ -1439,6 +1474,7 @@ account: renderAccountPage,
       'claim-editor': renderClaimEditor,
       bills: renderBills,
       'provider-info': renderProviderInfo,
+      'intake-center': renderIntakeCenter,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
@@ -2801,7 +2837,7 @@ return `<div class="app-shell">
 <i data-lucide="stethoscope" class="lci"></i><span>EHR</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
 </button>
 <div class="tn-dropdown" id="tn-dd-ehr">
-<div class="tn-dd-item" id="tnd-notes" onclick="go('notes');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Medical Notes</span></div>
+<div class="tn-dd-item" id="tnd-notes" onclick="go('notes');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters</span></div>
       <div class="tn-dd-item" id="tnd-services" onclick="go('services');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>
       </div>
       </div>
@@ -2855,6 +2891,8 @@ return `<div class="app-shell">
 <div class="tn-dd-item" onclick="go('reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-invoices" onclick="go('invoices');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>
+<div class="tn-dd-sep"></div>
+<div class="tn-dd-item" id="tnd-intake" onclick="go('intake-center');closeTnDropdown()"><i data-lucide="clipboard-check" class="lci"></i><span>Intake Center</span></div>
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>
 <div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>
@@ -2980,7 +3018,7 @@ return `<div class="app-shell">
 <div class="tn-drawer-group" id="mob-grp-ehr">
 <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-ehr')"><i data-lucide="stethoscope" class="lci"></i>EHR <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
 <div class="tn-drawer-sub">
-<div class="tn-drawer-sub-item" onclick="go('notes');closeTnDrawer()">Medical Notes</div>
+<div class="tn-drawer-sub-item" onclick="go('notes');closeTnDrawer()">Encounters</div>
 <div class="tn-drawer-sub-item" onclick="go('services');closeTnDrawer()">Services / CPT</div>
       </div>
       </div>
@@ -3021,6 +3059,9 @@ return `<div class="app-shell">
 <div class="tn-drawer-sub-item" onclick="go('account');closeTnDrawer()">Users &amp; Account</div>
 <div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
 <div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
+<div class="tn-drawer-sub-sep"></div>
+<div class="tn-drawer-sub-item" onclick="go('intake-center');closeTnDrawer()" style="font-weight:700;color:var(--brand)">Intake Center</div>
+<div class="tn-drawer-sub-sep"></div>
 <div class="tn-drawer-sub-item" onclick="exportBackup();closeTnDrawer()">Backup Data</div>
 <div class="tn-drawer-sub-item" onclick="triggerRestore()">Restore Data</div>
 </div>
@@ -3524,7 +3565,7 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 
 <div class="section" id="sec-notes">
 <div class="page-hdr">
-<div><h1>Medical Notes</h1></div>
+<div><h1>Encounters</h1></div>
 <div style="display:flex;gap:8px">
 <button class="btn btn-primary btn-sm" onclick="openAINoteModal('','','')">
 <i data-lucide="bot" class="lci"></i> AI Note Assistant
@@ -3538,6 +3579,16 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>
 </div>
 <div id="notes-list"></div>
+<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">
+  <div class="enc-editor-hdr" id="ee-hdr"></div>
+  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>
+  <div class="enc-editor-body">
+    <div class="enc-editor-sidebar" id="ee-sidebar"></div>
+    <div class="enc-editor-content" id="ee-content"></div>
+    <div class="enc-editor-preview" id="ee-preview"></div>
+  </div>
+  <div class="enc-editor-ftr" id="ee-ftr"></div>
+</div>
 </div>
 </div>
 
@@ -3782,12 +3833,16 @@ Show Paid
 </div>
 
 <div class="section" id="sec-cm-encounters">
-<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()">+ New Encounter</button></div>
+<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">
+<button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()"><i data-lucide="notebook-pen" class="lci"></i> CM Encounter</button>
+<button class="btn btn-sm" onclick="openTCMEncounter()"><i data-lucide="briefcase" class="lci"></i> + TCM Note</button>
+</div></div>
 <div class="page-body">
 <div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMEncounters()">
 <select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>
 <select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>
 <div id="cm-encounters-tbl"></div>
+<div id="cm-tcm-notes" style="margin-top:16px"></div>
 </div>
 </div>
 
@@ -3839,6 +3894,28 @@ Show Paid
 <div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go('cm-clients')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>
 
 <div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>
+
+<!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->
+<div class="section" id="sec-intake-center">
+<div class="page-hdr">
+<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>
+<div class="btn-group">
+<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>
+</div>
+</div>
+<div class="page-body">
+<!-- Tabs -->
+<div class="stabs" style="margin-bottom:14px">
+<button class="stab active" id="ic-stab-clients" onclick="icSetTab('clients',this)"><i data-lucide="users" class="lci"></i> Clients</button>
+<button class="stab" id="ic-stab-forms" onclick="icSetTab('forms',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>
+<button class="stab" id="ic-stab-eval" onclick="icSetTab('eval',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>
+</div>
+<!-- Panels -->
+<div id="ic-panel-clients"></div>
+<div id="ic-panel-forms" style="display:none"></div>
+<div id="ic-panel-eval" style="display:none"></div>
+</div>
+</div>
 
 </div>
 </div>
@@ -6957,10 +7034,11 @@ y += 10;
 
 // Auto page break if Total Due won't fit
 if (y + 70 > 265) {
-  fill(0, 282, W, 15, DARK);
-  fill(0, 282, 5, 15, GREEN);
-  txt(iss.name||'', M+2, 292, { size:7.5, color:[200,205,210] });
-  txt('Continued...', W/2, 292, { size:7.5, color:[200,205,210], align:'center' });
+  fill(0, 282, W, 18, DARK);
+  fill(0, 282, 5, 18, GREEN);
+  txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
+  txt('Continued...', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
+  txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
   doc.addPage();
   fill(0, 0, 5, 297, GREEN);
   y = M + 4;
@@ -7045,11 +7123,12 @@ y += noteLines.length * 4 + 4;
 }
 
 // ?? Footer ?????????????????????????????????????????????????????????
-fill(0, 282, W, 15, DARK);
-fill(0, 282, 5, 15, GREEN);
-txt(iss.name||'', M+2, 292, { size:7.5, color:[200,205,210] });
-txt('Thank you for your business', W/2, 292, { size:7.5, color:[200,205,210], align:'center' });
-txt('Page 1', RX, 292, { size:7.5, color:[180,185,195], align:'right' });
+fill(0, 282, W, 18, DARK);
+fill(0, 282, 5, 18, GREEN);
+txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
+txt('Thank you for your business', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
+txt('Page 1', RX, 294, { size:7.5, color:[180,185,195], align:'right' });
+txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
 
 // ????????????????????????????????????????????????
 // PAGE 2+ — PAYMENT DETAIL
@@ -7100,9 +7179,10 @@ inv.lines.forEach((l, i) => {
 // New page if needed
 if (py > 268) {
 // Footer current page
-fill(0, 282, W, 15, DARK); fill(0,282,5,15,GREEN);
-txt(iss.name||'', M+2, 292, { size:7.5, color:[200,205,210] });
-txt('Payment Detail (cont.)', W/2, 292, { size:7.5, color:[200,205,210], align:'center' });
+fill(0, 282, W, 18, DARK); fill(0,282,5,18,GREEN);
+txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
+txt('Payment Detail (cont.)', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
+txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
 
 doc.addPage();
 fill(0, 0, 5, 297, GREEN);
@@ -7159,10 +7239,11 @@ txt('Total Revenue', M+8, py+7, { size:10, bold:true, color:BLUE });
 txt(money(pageRev), RX-2, py+7, { size:12, bold:true, color:BLUE, align:'right' });
 
 // Footer last page
-fill(0, 282, W, 15, DARK); fill(0,282,5,15,GREEN);
-txt(iss.name||'', M+2, 292, { size:7.5, color:[200,205,210] });
-txt('Payment Detail', W/2, 292, { size:7.5, color:[200,205,210], align:'center' });
-txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7.5, color:[180,185,195], align:'right' });
+fill(0, 282, W, 18, DARK); fill(0,282,5,18,GREEN);
+txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
+txt('Payment Detail', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
+txt('Page '+doc.getNumberOfPages(), RX, 294, { size:7.5, color:[180,185,195], align:'right' });
+txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
 }
 
 doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
@@ -7919,24 +8000,35 @@ const el = document.getElementById('inv-issuers-list');
 if (!el) return;
 if (!db.invoicingIssuers.length) {
 el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="building-2" class="lci"></i></div><h3>No billing entities yet</h3><p>Add the company that sends invoices.</p></div>';
+_renderLucideIcons();
 return;
 }
-el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">' +
-db.invoicingIssuers.map(iss => `
-<div class="card">
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-${iss.logo ? `<img src="${iss.logo}" style="width:56px;height:20px;object-fit:contain;background:var(--bg3);border-radius:4px">` : '<div style="width:56px;height:20px;background:var(--bg3);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)">No logo</div>'}
-<div>
-<div style="font-weight:800;font-size:14px">${iss.name}</div>
-<div style="font-size:11px;color:var(--text3)">${iss.email||''} ${iss.phone?'· '+iss.phone:''}</div>
-</div>
-</div>
-<div style="font-size:12px;color:var(--text3);margin-bottom:10px">${[iss.addr1,iss.city,iss.state].filter(Boolean).join(', ')||'No address'}</div>
-<div class="btn-group">
-<button class="btn btn-sm" onclick="openIssuerModal('${iss.id}')">Edit</button>
-<button title="Remove" class="btn btn-xs btn-danger" onclick="deleteIssuer('${iss.id}')"><i data-lucide="x" class="lci"></i></button>
-</div>
-</div>`).join('') + '</div>';
+el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+'<th>Entity</th><th>Contact</th><th>Address</th><th>Zelle</th><th>Terms</th><th></th>' +
+'</tr></thead><tbody>' +
+db.invoicingIssuers.map(iss => {
+const addr = [iss.addr1,iss.city,iss.state,iss.zip].filter(Boolean).join(', ') || '—';
+const zelleMode = iss.zelleMode || 'phone';
+const zelleVal = zelleMode === 'email' ? (iss.email||'—') : zelleMode === 'both' ? 'Phone + Email' : (iss.phone ? fmtPhone(iss.phone) : '—');
+return '<tr>' +
+'<td><div style="display:flex;align-items:center;gap:10px">' +
+(iss.logo ? `<img src="${iss.logo}" style="width:40px;height:14px;object-fit:contain;background:var(--bg3);border-radius:3px">` : '<div style="width:40px;height:14px;background:var(--bg3);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">—</div>') +
+'<div><div style="font-weight:700;font-size:13px">'+(iss.name||'')+'</div>'+
+(iss.taxid ? '<div class="mono" style="font-size:10px;color:var(--text3)">EIN: '+iss.taxid+'</div>' : '')+'</div></div></td>' +
+'<td style="font-size:12px">' +
+(iss.email ? '<div>'+iss.email+'</div>' : '') +
+(iss.phone ? '<div style="font-size:11px;color:var(--text3)">'+fmtPhone(iss.phone)+'</div>' : '') +
+(iss.web ? '<div style="font-size:11px;color:var(--brand)">'+iss.web+'</div>' : '') +
+'</td>' +
+'<td style="font-size:12px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+addr+'">'+addr+'</td>' +
+'<td style="font-size:12px">'+zelleVal+'</td>' +
+'<td style="font-size:12px">'+(iss.terms||'Net 30')+'</td>' +
+'<td><div class="btn-group" style="white-space:nowrap">' +
+'<button class="btn btn-xs" onclick="openIssuerModal(\''+iss.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:11px;height:11px"></i></button>' +
+'<button class="btn btn-xs btn-danger" onclick="deleteIssuer(\''+iss.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>' +
+'</div></td></tr>';
+}).join('') + '</tbody></table></div>';
+_renderLucideIcons();
 }
 
 function fmtPhone(p) {
@@ -8743,22 +8835,54 @@ renderInvLines();
   try { recalcInvoice(); } catch(e) {}
 }
 
+let _invSortKey = '';
+let _invSortDir = 'asc';
+function _invSortBy(key) {
+  if (_invSortKey === key) _invSortDir = _invSortDir === 'asc' ? 'desc' : 'asc';
+  else { _invSortKey = key; _invSortDir = 'asc'; }
+  document.querySelectorAll('.inv-sort-ico').forEach(function(el) {
+    el.textContent = el.getAttribute('data-sort') === key ? (_invSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+  renderInvLines();
+}
+
 function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
+// Sort if key is set
+if (_invSortKey) {
+  const sorted = _invLines.slice().sort(function(a, b) {
+    var va = String(a[_invSortKey]||'').toLowerCase();
+    var vb = String(b[_invSortKey]||'').toLowerCase();
+    if (_invSortKey === 'amount') {
+      va = parseFloat(a.amount||0);
+      vb = parseFloat(b.amount||0);
+      return _invSortDir === 'asc' ? va - vb : vb - va;
+    }
+    if (_invSortKey === 'date') {
+      va = a.date||'';
+      vb = b.date||'';
+    }
+    if (va < vb) return _invSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return _invSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  _invLines = sorted;
+}
 if (!_invLines.length) {
 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">No lines. Click "+ Add Line" or paste from Excel.</td></tr>';
 return;
 }
 tbody.innerHTML = _invLines.map((l, i) => `<tr style="border-bottom:1px solid var(--border)">
-<td style="padding:4px"><input class="mono" style="width:110px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" type="date" value="${l.date||''}" oninput="_invLines[${i}].date=this.value"></td>
-<td style="padding:4px"><input style="width:150px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.desc||''}" placeholder="ACH Deposit" oninput="_invLines[${i}].desc=this.value"></td>
-<td style="padding:4px"><input class="mono" style="width:110px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.paymentId||''}" placeholder="ID/Check#" oninput="_invLines[${i}].paymentId=this.value"></td>
-<td style="padding:4px"><input style="width:110px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.insurance||''}" placeholder="Medicare" oninput="_invLines[${i}].insurance=this.value"></td>
-<td style="padding:4px"><input style="width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" value="${l.month||''}" placeholder="March-2026" oninput="_invLines[${i}].month=this.value"></td>
-<td style="padding:4px"><input class="mono" style="width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);text-align:right" type="number" step="0.01" value="${l.amount||''}" placeholder="0.00" oninput="_invLines[${i}].amount=this.value"></td>
-<td style="padding:4px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice(${i},1);renderInvLines()"><i data-lucide="x" class="lci"></i></button></td>
+<td style="padding:4px;width:13%"><input class="mono" style="width:100%;min-width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" type="date" value="${l.date||''}" oninput="_invLines[${i}].date=this.value"></td>
+<td style="padding:4px;width:22%"><input style="width:100%;min-width:100px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.desc||''}" placeholder="ACH Deposit" oninput="_invLines[${i}].desc=this.value"></td>
+<td style="padding:4px;width:15%"><input class="mono" style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.paymentId||''}" placeholder="ID/Check#" oninput="_invLines[${i}].paymentId=this.value"></td>
+<td style="padding:4px;width:15%"><input style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.insurance||''}" placeholder="Medicare" oninput="_invLines[${i}].insurance=this.value"></td>
+<td style="padding:4px;width:13%"><input style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.month||''}" placeholder="March-2026" oninput="_invLines[${i}].month=this.value"></td>
+<td style="padding:4px;width:12%"><input class="mono" style="width:100%;min-width:70px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" type="number" step="0.01" value="${l.amount||''}" placeholder="0.00" oninput="_invLines[${i}].amount=this.value"></td>
+<td style="padding:4px;width:40px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice(${i},1);renderInvLines()"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button></td>
 </tr>`).join('');
+setTimeout(_renderLucideIcons,10);
 }
 
 function importPaymentFile(event) {
@@ -11149,21 +11273,22 @@ function addPDFWatermark(doc) {
     var _w = doc.internal.pageSize.getWidth();
     var _h = doc.internal.pageSize.getHeight();
     var _pages = doc.internal.getNumberOfPages();
-    var _qrSize = 20;
-    if (!_qrDataURL) _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
+    var _qrSize = 14;
+    if (!_qrDataURL) _qrDataURL = generateQRDataURL('https://claimdatacare.com', 60);
     for (var _p = 1; _p <= _pages; _p++) {
       doc.setPage(_p);
-      var _qrX = _w - 14 - _qrSize;
-      var _txtX = _qrX - 2;
+      var _qrX = _w - 12 - _qrSize;
+      var _txtX = _qrX - 1;
       if (_qrDataURL) {
-        try { doc.addImage(_qrDataURL, 'PNG', _qrX, _h - 14 - _qrSize - 10, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
+        try { doc.addImage(_qrDataURL, 'PNG', _qrX, _h - 12 - _qrSize - 6, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
       }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(180, 178, 170);
-      doc.text('Powered by', _txtX, _h - 16, {align:'right'});
+      doc.setFontSize(5.5);
+      doc.setTextColor(190, 188, 182);
+      doc.text('Powered by', _txtX, _h - 13, {align:'right'});
       doc.setFont('helvetica', 'bold');
-      doc.text('ClaimDataCare', _txtX, _h - 11, {align:'right'});
+      doc.setTextColor(170, 168, 162);
+      doc.text('ClaimDataCare', _txtX, _h - 9, {align:'right'});
     }
   } catch(e) {}
 }
@@ -12333,6 +12458,32 @@ plan: 'Continue maintenance TMS per authorized protocol schedule. Depression sym
 
 
 
+// ?? T1017: Targeted Case Management ????????????????????????????????
+'T1017': {
+label: 'Targeted Case Management (TCM)',
+category: 'case_management',
+format: 'full_clinical',
+mn_driver: 'Member requires targeted case management services to coordinate care, access community resources, monitor progress toward treatment goals, and address barriers to engagement and retention in services.',
+intervention_type: 'case_management',
+time_based: true,
+requires_goals: true,
+pos_expected: ['53','99'],
+templates: [{id:0,
+presenting_needs: 'Member referred for targeted case management services to address barriers to treatment engagement, coordinate care across multiple providers, and support community stability. Presenting needs include coordination of behavioral health services, linkage to community resources, and advocacy to address social determinants of health impacting treatment participation and functional outcomes.',
+care_coordination: 'Case manager coordinated care with treating providers including prescribing practitioner, therapist, and primary care physician to ensure integrated service delivery and continuity of care. Communication occurred via telephone and secure messaging regarding member\'s current clinical status, treatment adherence, and identified barriers. Care coordination activities documented per program standards and authorization requirements.',
+interventions: 'Case management interventions provided included assessment of member needs, development of individualized care plan, coordination of services across multiple providers, advocacy with community agencies, monitoring of treatment adherence and progress toward goals, and provision of supportive counseling and problem-solving assistance to address identified barriers.',
+service_linkage: 'Provided information, referrals, and linkage assistance for community resources including housing assistance programs, food benefits (SNAP/CalFresh), transportation services, Medi-Cal enrollment/renewal support, vocational rehabilitation services, and peer support programs as identified in the member\'s individualized care plan.',
+barriers: 'Identified barriers to treatment engagement and community stability include transportation difficulties limiting access to appointments, housing instability affecting consistency of care, limited social support network, financial constraints impacting ability to obtain medications and meet basic needs, and navigation challenges with complex healthcare and social service systems.',
+resources: 'Provided education and resource information regarding available community services, assisted with completion of applications for benefit programs, coordinated with community agencies to facilitate access to identified resources, and provided follow-up to verify successful linkage and member understanding of how to access services.',
+progress: 'Member demonstrates variable progress toward identified care plan goals. Areas of progress include increased attendance at scheduled appointments with collateral support and improved medication adherence with case manager follow-up. Ongoing challenges include consistent engagement with recommended services and independent navigation of community resources without case management support.',
+member_response: 'Member responsive to case management interventions, actively participating in care planning discussions and demonstrating willingness to engage with recommended services when barriers are addressed. Member expresses appreciation for case management support and identifies case manager as a trusted resource for problem-solving and advocacy.',
+collateral: 'Collateral contact made with family member/caregiver to gather collateral information regarding member\'s community functioning, treatment adherence, and emerging needs. Collateral source reports member is engaged with services when transportation is available and identifies ongoing need for case management support to maintain stability.',
+follow_up: 'Follow-up scheduled for next authorized case management contact. Case manager will continue to monitor progress toward care plan goals, provide linkage support for pending community resource applications, and coordinate with treating providers regarding member\'s clinical status and treatment adherence. Care plan review scheduled per program requirements.',
+mn_statement: 'Targeted case management services (T1017) are medically necessary for this member who presents with identified barriers to treatment engagement and community stability related to behavioral health diagnosis. Case management is required to coordinate care across multiple service systems, ensure access to medically necessary treatment, address social determinants of health impacting clinical outcomes, and support the member\'s ability to remain stable in the community. Without case management support, the member is at risk of disengagement from treatment, clinical decompensation, and need for a higher level of care.',
+narrative: ''
+}]
+},
+
 // ?? Generic CPT fallback engine ?????????????????????????????????????
 'DEFAULT': {
 label: 'Clinical Service',
@@ -12370,7 +12521,7 @@ return available[Math.abs(hash) % available.length];
 }
 
 // ?? Full Note Builder ???????????????????????????????????????????????????
-function buildNoteBody(cpt, templateId, pat, rend, prov, claim, db) {
+function buildNoteBody(cpt, templateId, pat, rend, prov, claim, db, encType) {
 const engine = CPT_ENGINE[cpt] || CPT_ENGINE['DEFAULT'];
 const template = engine.templates.find(t=>t.id===templateId) || engine.templates[0];
 const dx = (claim.dx||[]).filter(Boolean);
@@ -12381,17 +12532,7 @@ const units = claim.lines?.reduce((s,l)=>s+parseInt(l.units||1),0)||1;
 const rendName = rend?.last ? `${rend.last}, ${rend.first||''}, ${rend.cred||''}`.trim().replace(/,\s*$/, '') : (prov?.name||'');
 const facName = db.facilities?.find(f=>f.id===claim.facilityId)?.name || 'clinical setting';
 
-return {
-chief_complaint: template.chief_complaint,
-history: template.history,
-subjective: template.subjective,
-objective: template.objective,
-interventions: template.interventions,
-assessment: template.assessment,
-mn_statement: template.mn_statement,
-plan: template.plan,
-// Structured metadata for PDF header
-meta: {
+const meta = {
 patient_name: `${pat.last||'?'}, ${pat.first||''}`,
 dob: pat.dob||'',
 dos: claim.dos,
@@ -12405,7 +12546,36 @@ dx_codes: dxPhrase,
 units: String(units),
 acct: pat.acct||'',
 insurance: `${pat.payerName||''} · ID: ${pat.subNum||''}`,
+};
+
+if (encType === 'tcm') {
+return {
+presenting_needs: template.presenting_needs || template.chief_complaint || '',
+care_coordination: template.care_coordination || '',
+interventions: template.interventions || '',
+service_linkage: template.service_linkage || '',
+barriers: template.barriers || '',
+resources: template.resources || '',
+progress: template.progress || '',
+member_response: template.member_response || '',
+collateral: template.collateral || '',
+follow_up: template.follow_up || template.plan || '',
+mn_statement: template.mn_statement || '',
+narrative: template.narrative || '',
+meta,
+};
 }
+
+return {
+chief_complaint: template.chief_complaint,
+history: template.history,
+subjective: template.subjective,
+objective: template.objective,
+interventions: template.interventions,
+assessment: template.assessment,
+mn_statement: template.mn_statement,
+plan: template.plan,
+meta,
 };
 }
 
@@ -12572,15 +12742,20 @@ const claims=(db.claims||[]).filter(c=>c.patId===pat.id);
 const noNotes=claims.filter(c=>!notes.find(n=>n.claimId===c.id));
 
 const noteCards=notes.map(n=>{
+const encType=n.encounterType||'medical';
+const eCfg=ENCOUNTER_TYPES[encType]||ENCOUNTER_TYPES.medical;
+const isTCM=encType==='tcm';
+const onClick=isTCM?`openEncounterEditor('${n.id}','tcm')`:`openAINoteModal('${pat.id}','${n.id}','${n.claimId||''}')`;
 const cpts=(n.cptAll||[n.cpt]).filter(Boolean).join(', ');
 const dxList=(n.dxAll||[]).filter(Boolean).join(', ');
+const preview=isTCM?(Object.values(n.body||{}).filter(Boolean).join(' ').slice(0,180)||''):(n.full_note||n.subjective||'');
 return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow .2s"
 onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'"
-onclick="openAINoteModal('${pat.id}','${n.id}','${n.claimId||''}')">
+onclick="${onClick}">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:8px">
-<div style="width:28px;height:28px;background:${n.aiGenerated?'linear-gradient(135deg,var(--brand),#b55330)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
-<i data-lucide="${n.aiGenerated?'bot':'file-text'}" class="lci" style="width:14px;height:14px;color:${n.aiGenerated?'#fff':'var(--text2)'}"></i>
+<div style="width:28px;height:28px;background:${isTCM?'var(--brand-bg)':n.aiGenerated?'linear-gradient(135deg,var(--brand),#b55330)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
+<i data-lucide="${isTCM?'briefcase':n.aiGenerated?'bot':'file-text'}" class="lci" style="width:14px;height:14px;color:${isTCM?'var(--brand)':n.aiGenerated?'#fff':'var(--text2)'}"></i>
 </div>
 <div>
 <div style="font-size:13px;font-weight:700;color:var(--text)">DOS: ${n.dos||''}</div>
@@ -12588,11 +12763,11 @@ onclick="openAINoteModal('${pat.id}','${n.id}','${n.claimId||''}')">
 </div>
 </div>
 <div style="display:flex;align-items:center;gap:6px">
-${n.aiGenerated?`<span style="font-size:10px;font-weight:700;background:var(--brand-bg);color:var(--brand);padding:2px 7px;border-radius:6px;border:1px solid var(--brand-bdr)">AI</span>`:''}
+${isTCM?`<span style="font-size:10px;font-weight:600;background:var(--brand-bg);color:var(--brand);padding:2px 7px;border-radius:6px;border:1px solid var(--brand-bdr)">TCM</span>`:n.aiGenerated?`<span style="font-size:10px;font-weight:700;background:var(--brand-bg);color:var(--brand);padding:2px 7px;border-radius:6px;border:1px solid var(--brand-bdr)">AI</span>`:''}
 <span class="badge ${n.status==='finalized'?'b-green':'b-amber'}">${n.status==='finalized'?'Finalized':'Draft'}</span>
 </div>
 </div>
-${(n.full_note||n.subjective)?`<div style="font-size:12px;color:var(--text2);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${(n.full_note||n.subjective).slice(0,180)}...</div>`:''}</div>`;
+${preview?`<div style="font-size:12px;color:var(--text2);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${preview.slice(0,180)}...</div>`:''}</div>`;
 }).join('');
 
 const claimPrompts=noNotes.slice(0,5).map(c=>{
@@ -14514,7 +14689,7 @@ const db = getDB();
 const notes = getNotes().filter(n=>n.providerId===activeProviderId);
 _populateNoteFilters(db, notes);
 if (!notes.length) {
-el.innerHTML='<div class="empty"><div class="empty-ico"></div><h3>No medical notes yet</h3><p>Notes are automatically created when claims are generated.</p></div>';
+el.innerHTML='<div class="empty"><div class="empty-ico"></div><h3>No encounters yet</h3><p>Encounters are automatically created when claims are generated.</p></div>';
 return;
 }
 const q = (document.getElementById('notes-q')?.value||'').toLowerCase();
@@ -14549,7 +14724,7 @@ ${stBadge}
 </div>
 </div>
 <div class="btn-group">
-<button class="btn btn-sm" onclick="openNoteModal('${n.id}')">Edit / View</button>
+<button class="btn btn-sm" onclick="openEncounterEditor('${n.id}')">Edit / View</button>
 <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',false)"><i data-lucide="file-text" class="lci"></i> Export Note</button>
 <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',true)"><i data-lucide="clipboard-list" class="lci"></i> Note + Superbill</button>
 ${n.status!=='finalized'
@@ -14628,7 +14803,7 @@ document.body.insertAdjacentHTML('beforeend',`
 <div class="modal" style="max-width:820px;width:96%;max-height:92vh;overflow-y:auto">
 <div class="modal-hdr">
 <div>
-<div class="modal-t">Medical Note — ${cptLabel}</div>
+<div class="modal-t">Encounter Note — ${cptLabel}</div>
 <div class="modal-sub">${ptLinkName(pat.id,pat.last,pat.first)} · DOS: ${n.dos} · CPT: ${(n.cptAll||[n.cpt]).join(', ')}</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
@@ -14736,6 +14911,49 @@ function _neCloseIcdDropdown(){
   document.querySelectorAll('[id^="ne-icd-dd-"]').forEach(function(el){el.remove();});
 }
 
+// ICD-10 search for Encounter Editor (uses ee-dx* IDs)
+function _eeIcdSearch(input, idx, icd10){
+  var val=input.value.toUpperCase().trim();
+  var existing=document.getElementById('ee-icd-dd-'+(idx+1));
+  if(existing) existing.remove();
+  if(val.length<1) return;
+  var dd=document.createElement('div');
+  dd.id='ee-icd-dd-'+(idx+1);
+  dd.style.cssText='position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:200px;overflow-y:auto;width:'+input.offsetWidth+'px;font-size:12px';
+  var rect=input.getBoundingClientRect();
+  var container=document.getElementById('encounter-editor')||document.body;
+  dd.style.top=(rect.bottom-container.getBoundingClientRect().top+window.scrollY)+'px';
+  dd.style.left=(rect.left-container.getBoundingClientRect().left)+'px';
+  var matches=icd10.filter(function(c){
+    return c.code.startsWith(val)||c.desc.toUpperCase().includes(val);
+  }).slice(0,30);
+  if(!matches.length){
+    var parent2=input.parentElement;
+    if(parent2.style.position!=='relative'&&parent2.style.position!=='absolute') parent2.style.position='relative';
+    parent2.appendChild(dd);
+    return;
+  }
+  dd.innerHTML=matches.map(function(c){
+    return '<div class="ce-dd-item" data-val="'+c.code+'" style="padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'" onclick="_eePickIcd('+(idx+1)+',\''+c.code+'\')">'+
+      '<span class="mono" style="font-weight:600;font-size:12px;color:var(--brand)">'+c.code+'</span>'+
+      '<span style="color:var(--text2);font-size:11px">'+c.desc+'</span>'+
+    '</div>';
+  }).join('');
+  var parent=input.parentElement;
+  if(parent.style.position!=='relative'&&parent.style.position!=='absolute') parent.style.position='relative';
+  parent.appendChild(dd);
+}
+function _eePickIcd(idx, code){
+  var inp=document.getElementById('ee-dx'+idx);
+  if(inp) inp.value=code;
+  var existing=document.getElementById('ee-icd-dd-'+idx);
+  if(existing) existing.remove();
+  eeMarkDirty();
+}
+function _eeCloseIcdDropdown(){
+  document.querySelectorAll('[id^="ee-icd-dd-"]').forEach(function(el){el.remove();});
+}
+
 function _neSyncDxToClaim(noteId, dx){
   var notes=getNotes();
   var n=notes.find(function(x){return x.id===noteId;});
@@ -14823,6 +15041,719 @@ setNotes(arr=>{const i=arr.findIndex(x=>x.id===id);if(i>=0)arr.splice(i,1);});
 renderNotes(); toast('Note deleted');
 }
 
+// ?? Encounter Editor (full-page) ?????????????????????????????????????????
+const ENCOUNTER_TYPES = {
+  medical: { label: 'Medical', icon: 'stethoscope', sections: [
+    {key:'chief_complaint', label:'Chief Complaint / Reason for Visit'},
+    {key:'history', label:'History & Clinical Context'},
+    {key:'subjective', label:'Subjective (Patient Report)'},
+    {key:'objective', label:'Objective (Provider Observations)'},
+    {key:'interventions', label:'Interventions Performed'},
+    {key:'assessment', label:'Assessment & Clinical Reasoning'},
+    {key:'mn_statement', label:'Medical Necessity Justification'},
+    {key:'plan', label:'Plan & Follow-Up'},
+  ]},
+  tcm: { label: 'TCM / Case Management', icon: 'briefcase', sections: [
+    {key:'presenting_needs', label:'Presenting Needs / Current Concerns'},
+    {key:'care_coordination', label:'Care Coordination Activities'},
+    {key:'interventions', label:'Interventions Performed'},
+    {key:'service_linkage', label:'Service Linkage & Referrals'},
+    {key:'barriers', label:'Barriers & Social Determinants'},
+    {key:'resources', label:'Community Resources Provided'},
+    {key:'progress', label:'Progress Toward Goals'},
+    {key:'member_response', label:'Member Response / Outcome'},
+    {key:'collateral', label:'Collateral Contacts & Communication'},
+    {key:'follow_up', label:'Follow-Up Plan & Next Steps'},
+    {key:'mn_statement', label:'Medical Necessity Justification'},
+    {key:'narrative', label:'Additional Narrative'},
+  ]},
+  psychiatry: { label: 'Psychiatry', icon: 'brain', sections: [
+    {key:'chief_complaint', label:'Chief Complaint'},
+    {key:'history', label:'History & Clinical Context'},
+    {key:'subjective', label:'Subjective'},
+    {key:'objective', label:'Objective / Mental Status Exam'},
+    {key:'assessment', label:'Assessment & Diagnostic Impression'},
+    {key:'plan', label:'Medication & Treatment Plan'},
+    {key:'mn_statement', label:'Medical Necessity Justification'},
+  ]},
+  psychotherapy: { label: 'Psychotherapy', icon: 'message-circle', sections: [
+    {key:'presenting', label:'Presenting Concerns'},
+    {key:'therapeutic_interventions', label:'Therapeutic Interventions'},
+    {key:'client_response', label:'Client Response'},
+    {key:'assessment', label:'Clinical Assessment'},
+    {key:'plan', label:'Treatment Plan / Follow-Up'},
+    {key:'mn_statement', label:'Medical Necessity Justification'},
+  ]},
+};
+const EE_SECTIONS = ENCOUNTER_TYPES.medical.sections;
+let _eeNoteId = '';
+let _eeDirty = false;
+let _eeAutoSaveTimer = null;
+let _eeSaving = false;
+let _eeEncType = 'medical';
+let _eeSections = ENCOUNTER_TYPES.medical.sections;
+
+function openEncounterEditor(noteId, encType) {
+  const notes = getNotes();
+  const n = notes.find(x => x.id === noteId);
+  if (!n) { toast('Note not found','err'); return; }
+  const db = getDB();
+  const pat = db.patients.find(p => p.id === n.patId) || {};
+  const rend = db.rendering.find(r => r.id === n.renderingId) || {};
+  const prov = db.providers.find(p => p.id === n.providerId) || {};
+  // Resolve encounter type: from param, stored on note, or default to medical
+  const eType = encType || n.encounterType || 'medical';
+  const eConfig = ENCOUNTER_TYPES[eType] || ENCOUNTER_TYPES.medical;
+  const sections = eConfig.sections;
+  const isTCM = eType === 'tcm';
+  const cptLabel = (CPT_ENGINE[n.cpt] || CPT_ENGINE['DEFAULT']).label;
+  const ro = n.status === 'finalized';
+  _eeNoteId = noteId; _eeDirty = false; _eeSaving = false;
+  _eeEncType = eType; _eeSections = sections;
+
+  // Hide list, show editor
+  document.querySelector('#sec-notes .page-hdr').style.display = 'none';
+  document.querySelector('#sec-notes .page-body > div:first-child').style.display = 'none';
+  document.getElementById('notes-list').style.display = 'none';
+  const ee = document.getElementById('encounter-editor');
+  ee.style.display = 'flex';
+
+  // Build header
+  const stBadge = ro
+    ? '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Finalized</span>'
+    : '<span class="badge b-amber">Draft</span>';
+  const engine = CPT_ENGINE[n.cpt] || CPT_ENGINE['DEFAULT'];
+  const tmpls = engine.templates || [];
+  const tmplOpts = tmpls.map((t,i) => `<option value="${t.id}" ${t.id===n.templateId?'selected':''}>${engine.label} — Template ${i+1}</option>`).join('');
+  const isSA = isAdmin();
+  document.getElementById('ee-hdr').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-ghost btn-sm" onclick="closeEncounterEditor()" title="Back to list">
+        <i data-lucide="arrow-left" class="lci"></i>
+      </button>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.02em">${ptLinkName(pat.id, pat.last, pat.first)} · ${n.dos}</div>
+        <div style="font-size:11px;color:var(--text3)">${cptLabel} · ${(n.cptAll||[n.cpt]).join(', ')}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      ${stBadge}
+      ${!ro ? `<button class="btn btn-sm" onclick="eeSave()"><i data-lucide="save" class="lci"></i> <span id="ee-save-label">Save</span></button>
+      <button class="btn btn-primary btn-sm" onclick="eeSave(true)"><i data-lucide="check-circle" class="lci"></i> Finalize</button>`
+      : (isSA ? `<button class="btn btn-sm" style="color:var(--amber)" onclick="eeUnlock()"><i data-lucide="unlock" class="lci"></i> Unlock</button>`
+      : `<button class="btn btn-sm" onclick="unfinalizeNote('${n.id}');openEncounterEditor('${n.id}')">Reopen</button>`)}
+      <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',false)"><i data-lucide="file-text" class="lci"></i> PDF</button>
+      <button class="btn btn-sm" onclick="exportNotePDF('${n.id}',true)"><i data-lucide="clipboard-list" class="lci"></i> + Superbill</button>
+    </div>`;
+
+  // Build toolbar with template selector
+  const tb = document.getElementById('ee-toolbar');
+  if (tmpls.length > 1 && !ro) {
+    tb.style.display = 'flex';
+    tb.innerHTML = `<span style="font-weight:600;color:var(--text3);flex-shrink:0">Template:</span>
+      <select id="ee-template-select" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;font-family:var(--font)">${tmplOpts}</select>
+      <button class="btn btn-xs" onclick="if(confirm('Apply this template? It will replace all current content.')){eeApplyTemplate(document.getElementById('ee-template-select').value)}">Apply</button>`;
+  } else { tb.style.display = 'none'; }
+
+  // Build sidebar
+  document.getElementById('ee-sidebar').innerHTML = `
+    <div class="ee-nav-item active" data-key="" onclick="eeNavSection('')">
+      <i data-lucide="layout-dashboard" class="lci" style="width:14px;height:14px"></i> Overview
+    </div>
+    <div class="ee-nav-divider"></div>
+    ${sections.map((s,i) => {
+      const icons = ['message-circle','clock','user','eye','activity','brain','file-check','calendar','phone','clipboard-list','file-text','book-open'];
+      return `<div class="ee-nav-item" data-key="${s.key}" onclick="eeNavSection('${s.key}')">
+        <i data-lucide="${icons[i]||'file-text'}" class="lci" style="width:14px;height:14px"></i>
+        ${s.label.split('/')[0].trim()}
+      </div>`;
+    }).join('')}
+    <div class="ee-nav-divider"></div>
+    <div class="ee-nav-item" data-key="dx" onclick="eeNavSection('dx')">
+      <i data-lucide="stethoscope" class="lci" style="width:14px;height:14px"></i> Diagnoses
+    </div>
+    <div class="ee-nav-item" data-key="sig" onclick="eeOpenSignature()">
+      <i data-lucide="pen-box" class="lci" style="width:14px;height:14px"></i> Signature${n.signatureData?' ✓':''}
+    </div>
+    <div class="ee-nav-divider"></div>
+    <div class="ee-nav-item" onclick="var _vn=getNotes().find(x=>x.id==='${n.id}');closeEncounterEditor();setTimeout(function(){openAINoteModal(_vn.patId,_vn.id,_vn.claimId||'');},300)">
+      <i data-lucide="mic" class="lci" style="width:14px;height:14px"></i> Voice Dictation
+    </div>
+    <div class="ee-nav-item" onclick="eeTogglePreview()">
+      <i data-lucide="eye" class="lci" style="width:14px;height:14px"></i> <span id="ee-preview-label">Preview</span>
+    </div>`;
+
+  // Build overview tab + section content
+  const isDxEmpty = !(n.dx||[]).some(Boolean);
+  const dxBadges = (n.dx||[]).filter(Boolean).map((d,i) =>
+    `<span class="badge b-blue mono">${String.fromCharCode(65+i)}. ${d}</span>`).join('') || '<span style="color:var(--text3);font-size:11px">No diagnoses coded</span>';
+  document.getElementById('ee-content').innerHTML = `
+    <div class="ee-section active" id="ee-sec-overview">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:14px;font-size:12px">
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">Patient</div>${ptLinkName(pat.id,pat.last||'?',pat.first||'')}</div>
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">DOB</div><strong>${pat.dob||''}</strong></div>
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">Date of Service</div><strong>${n.dos}</strong></div>
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">CPT Code(s)</div><strong>${(n.cptAll||[n.cpt]).join(', ')}</strong></div>
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">Rendering Provider</div><strong>${rend.last?rend.last+', '+rend.first:prov.name||''}</strong></div>
+        <div><div style="font-size:9px;text-transform:uppercase;color:var(--text3);margin-bottom:2px">POS</div><strong>${n.pos||''}</strong></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Diagnoses (ICD-10)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${dxBadges}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        ${sections.map(s => {
+          const txt = (n.body?.[s.key]||'').trim();
+          return txt ? `<div style="margin-bottom:8px"><span style="font-weight:600;color:var(--brand);font-size:10.5px;text-transform:uppercase">${s.label}</span><br>${txt.slice(0,200)}${txt.length>200?'...':''}</div>` : '';
+        }).filter(Boolean).join('')||'<div style="color:var(--text3);font-style:italic">No content yet. Use the sidebar to add notes.</div>'}
+      </div>
+    </div>
+    ${sections.map(s => `
+      <div class="ee-section" id="ee-sec-${s.key}">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.01em">${s.label}</div>
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0">
+          <textarea id="ee-txt-${s.key}" ${ro?'readonly':''}
+            oninput="eeMarkDirty()" placeholder="Enter ${s.label.toLowerCase()}...">${n.body?.[s.key]||''}</textarea>
+          ${ro?'':`<button class="ee-macro-btn" onclick="eeToggleMacros('${s.key}',this)" title="Quick phrases">+</button>`}
+        </div>
+      </div>`).join('')}
+    <div class="ee-section" id="ee-sec-dx">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.01em">Diagnoses (ICD-10)</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Diagnoses sync to the linked claim on save.</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${Array.from({length:8}, (_,dxi) => {
+          const letter = String.fromCharCode(65+dxi);
+          return `<div style="display:flex;align-items:center;gap:6px;position:relative"><span style="font-size:11px;font-weight:600;color:var(--text2);width:16px">${letter}.</span><input type="text" id="ee-dx${dxi+1}" class="ne-icd-input" value="${(n.dx||[])[dxi]||''}" placeholder="Search ICD-10..." style="flex:1;font-family:var(--mono);font-size:12px" autocomplete="off" oninput="eeMarkDirty()"></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // Footer
+  const ftrEl = document.getElementById('ee-ftr');
+  const unlockInfo = n.unlockedAt ? ` · <span style="color:var(--amber)">Unlocked ${new Date(n.unlockedAt).toLocaleString()} by ${n.unlockedBy||'?'}</span>` : '';
+  ftrEl.innerHTML = `<span>${eConfig.label} · v${n.version||1} · ${new Date(n.createdAt).toLocaleString()}${unlockInfo}</span>
+    <span id="ee-status" style="color:var(--green)">Ready</span>`;
+
+  // Wire ICD-10 search
+  if (!ro) {
+    const _eeIcd10 = getDB().icd10 || [];
+    setTimeout(() => {
+      for (let dxi = 0; dxi < 8; dxi++) {
+        const inp = document.getElementById('ee-dx'+(dxi+1));
+        if (!inp) continue;
+        inp.addEventListener('input', function() { _eeIcdSearch(this, dxi, _eeIcd10); });
+        inp.addEventListener('blur', function() { setTimeout(() => _eeCloseIcdDropdown(), 200); });
+      }
+    }, 50);
+  }
+
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function closeEncounterEditor() {
+  if (_eeDirty && !confirm('You have unsaved changes. Discard them?')) return;
+  _eeNoteId = ''; _eeDirty = false; _eeSaving = false;
+  if (_eeAutoSaveTimer) { clearTimeout(_eeAutoSaveTimer); _eeAutoSaveTimer = null; }
+  _eeCloseIcdDropdown();
+  document.getElementById('encounter-editor').style.display = 'none';
+  document.querySelector('#sec-notes .page-hdr').style.display = '';
+  document.querySelector('#sec-notes .page-body > div:first-child').style.display = '';
+  document.getElementById('notes-list').style.display = '';
+  renderNotes();
+}
+
+function eeNavSection(key) {
+  document.querySelectorAll('.ee-nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.ee-section').forEach(el => el.classList.remove('active'));
+  if (!key) {
+    document.querySelector('.ee-nav-item[data-key=""]')?.classList.add('active');
+    document.getElementById('ee-sec-overview')?.classList.add('active');
+    return;
+  }
+  const navEl = document.querySelector(`.ee-nav-item[data-key="${key}"]`);
+  if (navEl) navEl.classList.add('active');
+  const secEl = document.getElementById(`ee-sec-${key}`);
+  if (secEl) secEl.classList.add('active');
+  // Focus textarea if editable
+  const ta = secEl?.querySelector('textarea');
+  if (ta && !ta.readOnly) setTimeout(() => ta.focus(), 100);
+}
+
+function eeMarkDirty() {
+  if (_eeSaving) return;
+  _eeDirty = true;
+  document.getElementById('ee-status').textContent = 'Unsaved changes';
+  document.getElementById('ee-status').style.color = 'var(--amber)';
+  if (_eeAutoSaveTimer) clearTimeout(_eeAutoSaveTimer);
+  _eeAutoSaveTimer = setTimeout(() => { if (_eeDirty) eeSave(); }, 3000);
+  const previewEl = document.getElementById('ee-preview');
+  if (previewEl?.classList.contains('show')) eeUpdatePreview();
+}
+
+function eeSave(andFinalize) {
+  if (_eeSaving) return;
+  const id = _eeNoteId;
+  if (!id) return;
+  _eeSaving = true;
+  const saveLabel = document.getElementById('ee-save-label');
+  if (saveLabel) saveLabel.textContent = 'Saving...';
+
+  const body = {};
+  _eeSections.forEach(s => { body[s.key] = document.getElementById(`ee-txt-${s.key}`)?.value || ''; });
+  const dx = [];
+  for (let dxi = 0; dxi < 8; dxi++) {
+    const inp = document.getElementById('ee-dx'+(dxi+1));
+    dx.push(inp ? inp.value.trim().toUpperCase() : '');
+  }
+
+  setNotes(arr => {
+    const n = arr.find(x => x.id === id);
+    if (n) {
+      n.body = { ...n.body, ...body };
+      n.dx = dx;
+      n.editedAt = Date.now(); n.updatedAt = Date.now(); n.version = (n.version||1) + 1;
+      if (andFinalize) { n.status = 'finalized'; n.finalizedAt = Date.now(); }
+    }
+  });
+  _neSyncDxToClaim(id, dx);
+  _eeDirty = false;
+
+  if (andFinalize) {
+    eeAuditLog('ENCOUNTER_FINALIZE', `Encounter ${id} finalized by ${(getSession()?.email||'?')}`);
+    closeEncounterEditor();
+    toast('Encounter finalized ?');
+  } else {
+    _eeSaving = false;
+    if (saveLabel) saveLabel.textContent = 'Save';
+    document.getElementById('ee-status').textContent = 'Saved ' + new Date().toLocaleTimeString();
+    document.getElementById('ee-status').style.color = 'var(--green)';
+    toast('Saved');
+  }
+}
+
+function eeTogglePreview() {
+  const el = document.getElementById('ee-preview');
+  const label = document.getElementById('ee-preview-label');
+  if (!el) return;
+  const show = !el.classList.contains('show');
+  el.classList.toggle('show', show);
+  if (label) label.textContent = show ? 'Hide Preview' : 'Preview';
+  if (show) eeUpdatePreview();
+}
+
+function eeUpdatePreview() {
+  const db = getDB();
+  const notes = getNotes();
+  const n = notes.find(x => x.id === _eeNoteId);
+  if (!n) return;
+  const pat = db.patients.find(p => p.id === n.patId) || {};
+  const el = document.getElementById('ee-preview');
+  el.innerHTML = `<div class="ep-title">Note Preview — ${pat.last||''}, ${pat.first||''}</div>
+    ${_eeSections.map(s => {
+      const txt = document.getElementById(`ee-txt-${s.key}`)?.value?.trim();
+      return txt ? `<div class="ep-section">
+        <div class="ep-section-label">${s.label}</div>
+        <div class="ep-section-text">${txt.slice(0,300)}</div>
+      </div>` : '';
+    }).filter(Boolean).join('')||'<div style="color:var(--text3);font-style:italic">No content yet</div>'}
+    <div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3)">
+      ${n.status==='finalized'?'FINALIZED':'Draft'} · v${n.version||1}
+    </div>`;
+}
+
+// Hook preview updates into section navigation
+const _origNavSection = eeNavSection;
+eeNavSection = function(key) {
+  _origNavSection(key);
+  const previewEl = document.getElementById('ee-preview');
+  if (previewEl?.classList.contains('show')) eeUpdatePreview();
+};
+
+// ?? TCM Encounter Creation ????????????????????????????????????????????
+function openTCMEncounter(patId) {
+  const db = getDB();
+  if (!patId) {
+    const pats = (db.patients||[]).filter(p=>p.providerId===activeProviderId);
+    if (!pats.length) { toast('No patients found','warn'); return; }
+    const d = document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:5500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)';
+    d.innerHTML=`<div style="background:var(--surface);border-radius:20px;padding:20px 18px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px;color:var(--text);letter-spacing:-.03em">Select Patient</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Choose a patient for the TCM encounter</div>
+      ${pats.map(p=>`<div onclick="this.closest('[style]').remove();openTCMEncounter('${p.id}')"
+        style="padding:11px 14px;border-radius:12px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px;display:flex;align-items:center;gap:12px;transition:all .15s"
+        onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
+        onmouseout="this.style.background='';this.style.borderColor='var(--border)'">
+        <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--brand-bg)">
+        ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
+        </div>
+        <div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">Chart #${p.acct||''}</div></div>
+        <i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3);margin-left:auto"></i>
+      </div>`).join('')}
+      <button onclick="this.closest('[style]').remove()" style="width:100%;padding:10px;margin-top:6px;background:var(--bg3);border:none;border-radius:12px;font-size:13px;cursor:pointer;font-family:var(--font);color:var(--text2);font-weight:500">Cancel</button>
+    </div>`;
+    document.body.appendChild(d);
+    setTimeout(_renderLucideIcons,10);
+    return;
+  }
+  const pat = db.patients.find(p=>p.id===patId)||{};
+  const rend = db.rendering.find(r=>r.id===activeProviderId)||{};
+  const prov = db.providers.find(p=>p.id===activeProviderId)||{};
+  const note = {
+    id: uid(), patId, providerId: activeProviderId, renderingId: rend?.id||'',
+    dos: new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}),
+    cpt: 'T1017', cptAll: ['T1017'], dx: [], pos: '53',
+    encounterType: 'tcm', templateId: 0, status: 'draft',
+    body: {}, createdAt: Date.now(), updatedAt: Date.now(),
+    finalizedAt: null, editedAt: null, version: 1,
+  };
+  setNotes(arr => arr.push(note));
+  toast('New TCM encounter created');
+  openEncounterEditor(note.id, 'tcm');
+}
+
+// ?? Template / Macro System ???????????????????????????????????????????
+const EE_MACROS = {
+  chief_complaint: [
+    'Patient presents for scheduled follow-up visit.',
+    'Patient here for initial evaluation and treatment planning.',
+    'Routine follow-up — patient reports stable condition.',
+    'Patient returns for reassessment of symptoms.',
+  ],
+  history: [
+    'No significant changes since last visit.',
+    'Condition has been stable with current treatment regimen.',
+    'Patient reports intermittent symptoms consistent with prior presentation.',
+    'No new complaints or concerns at this time.',
+  ],
+  subjective: [
+    'Patient reports compliance with current treatment plan.',
+    'Patient denies any adverse effects from current medications.',
+    'Patient reports moderate improvement since last visit.',
+    'Patient endorses continued symptoms but at reduced intensity.',
+  ],
+  objective: [
+    'Patient appears well-groomed, alert, and oriented x3.',
+    'Mood euthymic, affect full range and appropriate to content.',
+    'Speech clear, coherent, and goal-directed.',
+    'No acute distress noted. Vitals within normal limits.',
+  ],
+  interventions: [
+    'Provided psychoeducation regarding diagnosis and treatment options.',
+    'Reviewed coping strategies and stress management techniques.',
+    'Discussed medication compliance and addressed questions.',
+    'Therapeutic rapport building and supportive counseling provided.',
+  ],
+  assessment: [
+    'Patient continues to meet diagnostic criteria with moderate functional impairment.',
+    'Clinical presentation consistent with previous assessment. Partial response to current treatment.',
+    'Gradual improvement noted. Patient engaged and motivated for continued treatment.',
+    'Stable — no significant change from prior assessment. Continue current plan.',
+  ],
+  mn_statement: [
+    'Services are medically necessary to address documented symptoms and functional impairment.',
+    'Continued treatment is clinically indicated to maintain stability and prevent decompensation.',
+    'Skilled intervention is required as patient cannot self-manage symptoms independently.',
+    'Medical necessity is established by continued diagnostic severity and functional limitations.',
+  ],
+  plan: [
+    'Continue current treatment plan. Follow up as scheduled.',
+    'Increase frequency of sessions to address acute symptomatology.',
+    'Refer for psychiatric evaluation for medication management.',
+    'Coordinate care with primary care provider and specialists as indicated.',
+    'Patient to follow up in 2 weeks or sooner if symptoms worsen.',
+  ],
+  // TCM-specific macros
+  presenting_needs: [
+    'Client referred for targeted case management services due to ongoing mental health needs and functional impairments.',
+    'Client presents with multiple psychosocial stressors impacting stability and community tenure.',
+    'Ongoing case management services requested to support community integration and care coordination.',
+  ],
+  care_coordination: [
+    'Coordinated care with outpatient mental health provider regarding treatment progress and medication management.',
+    'Contacted primary care provider to coordinate integrated care and share updated treatment information.',
+    'Scheduled interdisciplinary team meeting to review client progress and update care plan.',
+    'Facilitated communication between client and community support agencies.',
+  ],
+  service_linkage: [
+    'Assisted client with application for housing assistance program.',
+    'Connected client to vocational rehabilitation services for employment support.',
+    'Linked client to substance use treatment program for assessment.',
+    'Provided referral to food assistance program and utility assistance resources.',
+  ],
+  barriers: [
+    'Client identified transportation as a barrier to accessing scheduled appointments.',
+    'Financial constraints identified as a barrier to medication adherence.',
+    'Housing instability identified as a primary barrier to treatment engagement.',
+    'Client reports difficulty navigating healthcare system and understanding benefit options.',
+  ],
+  resources: [
+    'Provided information regarding Medicaid transportation benefits and scheduled transport.',
+    'Connected client to local food pantry and SNAP application assistance.',
+    'Provided referral to community mental health center for ongoing therapy.',
+    'Assisted client with housing application and coordinated with case worker.',
+  ],
+  progress: [
+    'Client has made significant progress toward treatment goals and demonstrates improved coping skills.',
+    'Client is making gradual progress. Continues to benefit from structured case management support.',
+    'Client has met all treatment goals for this reporting period. Continuing maintenance and monitoring.',
+    'Minimal progress noted due to ongoing environmental stressors. Continued case management indicated.',
+  ],
+  member_response: [
+    'Client was receptive and engaged during the session. Participated actively in developing strategies.',
+    'Client expressed frustration with current circumstances but remained willing to engage in services.',
+    'Client reported satisfaction with services and noted improvement in ability to manage daily stressors.',
+    'Client was difficult to engage initially but became more responsive as rapport was established.',
+  ],
+  collateral: [
+    'Spoke with family member regarding client progress and community support needs.',
+    'Contacted landlord to discuss housing stability concerns and coordinate support.',
+    'Communicated with probation officer regarding client compliance with treatment requirements.',
+    'Left message for prescribing provider regarding medication concerns.',
+  ],
+  follow_up: [
+    'Client to follow up with case manager in 2 weeks or as needed.',
+    'Schedule home visit within next week to assess living situation and support needs.',
+    'Continue weekly case management sessions to support treatment goals and monitor progress.',
+    'Referral to be submitted for additional community support services. Follow up at next contact.',
+  ],
+};
+
+function eeApplyTemplate(tmplId) {
+  const notes = getNotes();
+  const n = notes.find(x => x.id === _eeNoteId);
+  if (!n) return;
+  const db = getDB();
+  const pat = db.patients.find(p => p.id === n.patId) || {};
+  const rend = db.rendering.find(r => r.id === n.renderingId) || {};
+  const prov = db.providers.find(p => p.id === n.providerId) || {};
+  const claim = db.claims?.find(c => c.id === n.claimId) || { dos: n.dos, pos: n.pos, lines: [], dx: n.dx || [] };
+  const body = buildNoteBody(n.cpt, parseInt(tmplId), pat, rend, prov, claim, db, _eeEncType);
+  _eeSections.forEach(s => {
+    const ta = document.getElementById(`ee-txt-${s.key}`);
+    if (ta) ta.value = body[s.key] || '';
+  });
+  setNotes(arr => {
+    const x = arr.find(m => m.id === _eeNoteId);
+    if (x) { x.templateId = parseInt(tmplId); x.body = body; x.updatedAt = Date.now(); x.version = (x.version || 1) + 1; }
+  });
+  _eeDirty = false;
+  document.getElementById('ee-status').textContent = 'Template applied';
+  document.getElementById('ee-status').style.color = 'var(--green)';
+  const previewEl = document.getElementById('ee-preview');
+  if (previewEl?.classList.contains('show')) eeUpdatePreview();
+  toast('Template applied');
+}
+
+function eeInsertMacro(sectionKey, text) {
+  const ta = document.getElementById(`ee-txt-${sectionKey}`);
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const before = ta.value.substring(0, start);
+  const after = ta.value.substring(end);
+  ta.value = before + (before && !before.match(/\n$/) ? '\n' : '') + text + (after ? '\n' : '') + after;
+  const pos = start + text.length + (before && !before.match(/\n$/) ? 1 : 0);
+  ta.selectionStart = ta.selectionEnd = pos;
+  ta.focus();
+  eeMarkDirty();
+  document.querySelector('.ee-macro-dd')?.remove();
+}
+
+function eeToggleMacros(sectionKey, btn) {
+  const existing = document.querySelector('.ee-macro-dd');
+  if (existing) { existing.remove(); return; }
+  const macros = EE_MACROS[sectionKey] || [];
+  const dd = document.createElement('div');
+  dd.className = 'ee-macro-dd';
+  dd.innerHTML = '<div style="padding:6px 12px;font-weight:600;font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);background:var(--bg3)">Quick Phrases</div>' +
+    macros.map(m => `<div class="ee-macro-dd-item" onclick="eeInsertMacro('${sectionKey}',\`${m.replace(/`/g,'\\`')}\`)">${m}</div>`).join('');
+  btn.parentElement.appendChild(dd);
+}
+
+// ?? Signature System ????????????????????????????????????????????????????
+function eeOpenSignature() {
+  const notes = getNotes();
+  const n = notes.find(x => x.id === _eeNoteId);
+  if (!n) return;
+  const db = getDB();
+  const pat = db.patients.find(p => p.id === n.patId) || {};
+  const rend = db.rendering.find(r => r.id === n.renderingId) || {};
+  const prov = db.providers.find(p => p.id === n.providerId) || {};
+  const sigName = rend.last ? `${rend.last}, ${rend.first||''} ${rend.cred||''}`.trim() : (prov.name || '');
+  const existingSig = n.signatureData || '';
+
+  const old = document.getElementById('modal-ee-sig');
+  if (old) old.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+  <div class="overlay" id="modal-ee-sig" style="display:flex;z-index:6000">
+  <div class="modal" style="max-width:440px;width:94%">
+    <div class="modal-hdr"><div><div class="modal-t">Signature — ${sigName}</div></div>
+    <button title="Close" class="btn btn-ghost btn-sm" onclick="this.closest('.overlay').remove()"><i data-lucide="x" class="lci"></i></button></div>
+    <div class="modal-body" style="min-height:300px">
+      <div style="margin-bottom:12px">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="ee-sig-tab-draw" class="btn btn-sm btn-primary" onclick="eeSigTab('draw')"><i data-lucide="pen" class="lci"></i> Draw</button>
+          <button id="ee-sig-tab-upload" class="btn btn-sm" onclick="eeSigTab('upload')"><i data-lucide="upload" class="lci"></i> Upload</button>
+          <button id="ee-sig-tab-electronic" class="btn btn-sm" onclick="eeSigTab('electronic')"><i data-lucide="check" class="lci"></i> Electronic</button>
+        </div>
+        <div id="ee-sig-panel-draw" style="display:block">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Draw your signature below:</div>
+          <canvas id="ee-sig-canvas" class="ee-sig-canvas" width="380" height="160"></canvas>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-sm" onclick="eeSigClear()"><i data-lucide="eraser" class="lci"></i> Clear</button>
+          </div>
+        </div>
+        <div id="ee-sig-panel-upload" style="display:none">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Upload a signature image (PNG, JPG):</div>
+          <label class="ee-sig-upload" id="ee-sig-upload-label">
+            <i data-lucide="cloud-upload" class="lci" style="width:28px;height:28px;display:block;margin:0 auto 6px;color:var(--text3)"></i>
+            Click to select image
+            <input type="file" accept="image/png,image/jpeg,image/gif" style="display:none" onchange="eeSigUploaded(this)">
+          </label>
+          <img id="ee-sig-upload-preview" class="ee-sig-preview" style="display:none">
+        </div>
+        <div id="ee-sig-panel-electronic" style="display:none">
+          <label style="display:flex;align-items:center;gap:8px;padding:14px;background:var(--bg3);border-radius:var(--r);cursor:pointer;font-size:13px">
+            <input type="checkbox" id="ee-sig-electronic-cb" ${n.electronicSig?'checked':''} style="accent-color:var(--brand);width:18px;height:18px">
+            <span>Electronically sign as <strong>${sigName}</strong></span>
+          </label>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;padding:8px 14px;background:var(--amber-bg);border-radius:var(--r);border:1px solid var(--amber-bdr)">
+            <i data-lucide="info" class="lci" style="width:12px;height:12px;display:inline;vertical-align:middle"></i>
+            Electronic signature confirms identity and intent to sign.
+          </div>
+        </div>
+      </div>
+      ${existingSig ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Current Signature</div>
+        <img src="${existingSig}" style="max-width:200px;max-height:50px;border-radius:6px;border:1px solid var(--border)">
+      </div>` : ''}
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost btn-sm" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="eeSigSave()"><i data-lucide="save" class="lci"></i> Save Signature</button>
+    </div>
+  </div>
+  </div>`);
+  setTimeout(() => {
+    _renderLucideIcons();
+    const canvas = document.getElementById('ee-sig-canvas');
+    if (canvas) eeSigInitCanvas(canvas);
+  }, 50);
+}
+
+let _eeSigCtx = null, _eeSigDrawing = false;
+
+function eeSigInitCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  _eeSigCtx = ctx;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const rect = canvas.getBoundingClientRect();
+  const getPos = e => {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (canvas.width / r.width), y: (t.clientY - r.top) * (canvas.height / r.height) };
+  };
+  const start = e => { _eeSigDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = e => { if (!_eeSigDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { _eeSigDrawing = false; };
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, { passive: true });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end);
+}
+
+function eeSigTab(tab) {
+  ['draw','upload','electronic'].forEach(t => {
+    document.getElementById(`ee-sig-tab-${t}`).className = 'btn btn-sm' + (t === tab ? ' btn-primary' : '');
+    document.getElementById(`ee-sig-panel-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+function eeSigClear() {
+  if (!_eeSigCtx) return;
+  const canvas = document.getElementById('ee-sig-canvas');
+  _eeSigCtx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function eeSigUploaded(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById('ee-sig-upload-preview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('ee-sig-upload-label').style.display = 'none';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function eeSigSave() {
+  const notes = getNotes();
+  const n = notes.find(x => x.id === _eeNoteId);
+  if (!n) return;
+  let sigData = '';
+  let sigType = '';
+  if (document.getElementById('ee-sig-panel-draw')?.style.display !== 'none') {
+    const canvas = document.getElementById('ee-sig-canvas');
+    sigData = canvas.toDataURL('image/png');
+    sigType = 'drawn';
+  } else if (document.getElementById('ee-sig-panel-upload')?.style.display !== 'none') {
+    const img = document.getElementById('ee-sig-upload-preview');
+    if (img?.src && img.style.display !== 'none') { sigData = img.src; sigType = 'uploaded'; }
+    else { toast('Please upload a signature image first','warn'); return; }
+  } else {
+    const cb = document.getElementById('ee-sig-electronic-cb');
+    sigType = 'electronic';
+    sigData = cb?.checked ? 'electronic' : '';
+    if (!sigData) { toast('Please check the electronic signature box','warn'); return; }
+  }
+  setNotes(arr => {
+    const x = arr.find(m => m.id === _eeNoteId);
+    if (x) { x.signatureData = sigData; x.signatureType = sigType; x.signedAt = Date.now(); x.updatedAt = Date.now(); }
+  });
+  document.getElementById('modal-ee-sig')?.remove();
+  _eeDirty = true;
+  eeMarkDirty();
+  toast('Signature saved');
+  const navEl = document.querySelector('.ee-nav-item[data-key="sig"]');
+  if (navEl) navEl.innerHTML = '<i data-lucide="pen-box" class="lci" style="width:14px;height:14px"></i> Signature ✓';
+  setTimeout(_renderLucideIcons, 10);
+}
+
+// ?? Unlock Workflow ????????????????????????????????????????????????????
+function eeAuditLog(action, details) {
+  try {
+    const key = 'cdc_audit_' + (activeProviderId || 'g');
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    const s = getSession();
+    logs.push({ ts: Date.now(), user: s?.email || s?.name || 'unknown', role: s?.role || '', action, details });
+    localStorage.setItem(key, JSON.stringify(logs.slice(-500)));
+  } catch(e) {}
+}
+
+function eeUnlock(reason) {
+  if (!reason || !reason.trim()) { reason = prompt('Reason for unlocking this encounter:'); if (!reason) return; }
+  if (!confirm('Unlock this finalized encounter? It will revert to draft status.')) return;
+  const notes = getNotes();
+  const n = notes.find(x => x.id === _eeNoteId);
+  if (!n) return;
+  const s = getSession();
+  setNotes(arr => {
+    const x = arr.find(m => m.id === _eeNoteId);
+    if (x) { x.status = 'draft'; x.finalizedAt = null; x.unlockedAt = Date.now(); x.unlockedBy = s?.email || s?.name || 'unknown'; x.unlockReason = reason.trim(); x.updatedAt = Date.now(); }
+  });
+  eeAuditLog('ENCOUNTER_UNLOCK', `Encounter ${_eeNoteId} unlocked by ${s?.email||'?'}: ${reason}`);
+  closeEncounterEditor();
+  openEncounterEditor(_eeNoteId);
+  toast('Encounter unlocked and reopened');
+}
+
 function openClaimById(claimId) {
 const db=getDB();
 const idx=db.claims.findIndex(c=>c.id===claimId);
@@ -14874,7 +15805,9 @@ t(prov.name||'',hx,M+8,{bold:true,size:10,color:DARK,maxWidth:90});
 t(`NPI: ${rend.npi||prov.npi||''} · EIN: ${prov.taxid||''}`,hx,M+14,{size:7.5,color:MID});
 t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,color:MID});
 // Document label
-t('MEDICAL NOTE',RX,M+9,{bold:true,size:14,color:DARK,align:'right'});
+const eType = n.encounterType || 'medical';
+const eLabel = (ENCOUNTER_TYPES[eType]||ENCOUNTER_TYPES.medical).label;
+t(eLabel.toUpperCase(),RX,M+9,{bold:true,size:14,color:DARK,align:'right'});
 const cptLabel=(CPT_ENGINE[n.cpt]||CPT_ENGINE['DEFAULT']).label;
 t(cptLabel,RX,M+15,{size:8,color:BLUE,align:'right'});
 t(n.status==='finalized'?'FINALIZED':'DRAFT — Not for Billing',RX,M+21,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
@@ -14920,16 +15853,13 @@ y+=30;
 hln(y,BORDER,0.4); y+=5;
 
 // ?? Clinical Sections ????????????????????????????????????????????????
-const clinSections=[
-{key:'chief_complaint', label:'REASON FOR VISIT / CHIEF COMPLAINT', highlight:false},
-{key:'history', label:'HISTORY & CLINICAL CONTEXT', highlight:false},
-{key:'subjective', label:'SUBJECTIVE', highlight:false},
-{key:'objective', label:'OBJECTIVE', highlight:false},
-{key:'interventions', label:'INTERVENTIONS PERFORMED', highlight:true},
-{key:'assessment', label:'ASSESSMENT & CLINICAL REASONING', highlight:false},
-{key:'mn_statement', label:'MEDICAL NECESSITY JUSTIFICATION', highlight:true},
-{key:'plan', label:'PLAN & FOLLOW-UP', highlight:false},
-];
+const eType = n.encounterType || 'medical';
+const eSections = (ENCOUNTER_TYPES[eType]||ENCOUNTER_TYPES.medical).sections;
+const clinSections = eSections.map(s => ({
+  key: s.key,
+  label: s.label.toUpperCase(),
+  highlight: s.key === 'mn_statement' || s.key === 'interventions' || s.key === 'barriers',
+}));
 
 clinSections.forEach(sec=>{
 const text=n.body?.[sec.key]||'Not documented.';
@@ -14953,17 +15883,34 @@ hln(y,[230,234,240],0.2); y+=3;
 // ?? Signature Block ??????????????????????????????????????????????????
 y=newPageIfNeeded(20,y);
 y+=3;
-fill(M,y,CW,16,LIGHT);
-fill(M,y,3,16,BLUE);
+const sigH = (n.signatureData && n.signatureData !== 'electronic') ? 20 : 16;
+fill(M,y,CW,sigH,LIGHT);
+fill(M,y,3,sigH,BLUE);
 const now=new Date();
 const sigName=rend.last?`${rend.last}, ${rend.first||''} ${rend.cred||''}`.trim():prov.name||'';
 t('PROVIDER AUTHENTICATION',M+6,y+5,{size:6.5,bold:true,color:MID});
-t('Electronically signed by:',M+6,y+10,{font:'courier',size:7.5,color:MID});
-t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
-t(`Signed: ${n.dos} ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`,RX,y+10,{font:'courier',size:7.5,color:MID,align:'right'});
-if(rend.npi) t(`NPI: ${rend.npi}`,M+6,y+14,{font:'courier',size:7.5,color:MID});
-if(n.finalizedAt) t(`Finalized: ${new Date(n.finalizedAt).toLocaleString()}`,RX,y+14,{font:'courier',size:7.5,color:[0,140,70],align:'right'});
-y+=19;
+// Draw signature image if available (not electronic-only)
+if (n.signatureData && n.signatureData !== 'electronic') {
+  try { doc.addImage(n.signatureData, 'PNG', M+48, y+3, 40, 14, undefined, 'FAST'); } catch(e) {
+    // fallback: if image fails, just show name text
+    t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
+  }
+} else {
+  t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
+}
+t(`Signed: ${n.signedAt?new Date(n.signedAt).toLocaleString():n.dos+' '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`,RX,y+10,{font:'courier',size:7.5,color:MID,align:'right'});
+if(rend.npi) t(`NPI: ${rend.npi}`,M+6,y+sigH-5,{font:'courier',size:7.5,color:MID});
+if(n.finalizedAt) t(`Finalized: ${new Date(n.finalizedAt).toLocaleString()}`,RX,y+sigH-5,{font:'courier',size:7.5,color:[0,140,70],align:'right'});
+// Generate note-specific QR for verification
+try {
+  const qrText = `CDCNOTE:${n.id}:${prov.npi||rend.npi||''}:${n.dos}:${n.status}`;
+  const qrSize = 18;
+  if (!_qrDataURL || _qrDataURL.indexOf('claimdatacare.com')>0) _qrDataURL = generateQRDataURL(qrText, 80);
+  if (_qrDataURL) {
+    try { doc.addImage(_qrDataURL, 'PNG', RX - qrSize - 2, y + 1, qrSize, qrSize, undefined, 'FAST'); } catch(e) {}
+  }
+} catch(e) {}
+y+=sigH+3;
 
 // ?? Optional Superbill Reference Page ????????????????????????????????
 if(withSuperbill){
@@ -15010,13 +15957,13 @@ const ln2=(pat.last||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const fn2=(pat.first||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const ts=now.getFullYear().toString()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()).padStart(2,'0');
 addPDFWatermark(doc); doc.save(`MN${ln2}${fn2}${ts}${withSuperbill?'_SB':''}.pdf`);
-toast('Medical note PDF exported ?');
+toast('Encounter note PDF exported ?');
 }
 
 function _drawNoteFooter(doc,prov,fill,t,BGDARK,BLUE,WHITE,MID,W,M,RX,pg,total){
 fill(0,263,W,12,BGDARK); fill(0,263,W,2,BLUE);
 t(prov.name||'',M+2,271.5,{size:7.5,color:[200,205,210]});
-t('Medical Note — Confidential',W/2,271.5,{size:7.5,color:[160,175,195],align:'center'});
+t('Encounter Note — Confidential',W/2,271.5,{size:7.5,color:[160,175,195],align:'center'});
 if(pg&&total) t(`Page ${pg} of ${total}`,RX,271.5,{size:7.5,color:[200,205,210],align:'right'});
 }
 
@@ -15499,7 +16446,7 @@ epsdt: 'N', emg: 'N'
   var claim=(getDB().claims||[]).find(function(c){return c.id===_claimId;})||{};
   claim.status='pending';
 
-  // Auto-generate medical note
+  // Auto-generate encounter note
   try {
     const cpt = lines[0]?.cpt || 'DEFAULT';
     const engine = (typeof CPT_ENGINE !== 'undefined') ? (CPT_ENGINE[cpt] || CPT_ENGINE['DEFAULT']) : null;
@@ -19740,6 +20687,24 @@ function renderCMEncounters() {
         '</div></td></tr>';
     }).join('')+
     '</tbody></table></div>';
+  // Render TCM notes from unified store
+  try {
+    const tcmEl = document.getElementById('cm-tcm-notes');
+    if (tcmEl) {
+      const allTcm = getNotes().filter(n => n.encounterType === 'tcm').sort((a,b) => b.createdAt - a.createdAt);
+      if (allTcm.length) {
+        tcmEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;padding-top:8px;border-top:1px solid var(--border)">TCM Notes ('+allTcm.length+')</div>'+
+          allTcm.map(n => {
+            const pat = getDB().patients.find(p => p.id === n.patId) || {};
+            const preview = n.body?.presenting_needs || n.body?.care_coordination || '';
+            return '<div class="card" style="margin-bottom:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openEncounterEditor(\''+n.id+'\',\'tcm\')">'+
+              '<div><div style="font-weight:600;font-size:13px">'+(pat.last||'?')+', '+(pat.first||'')+'</div>'+
+              '<div style="font-size:11px;color:var(--text3)">'+(n.dos||'')+' · '+(preview.slice(0,80)||'No content')+'</div></div>'+
+              '<span class="badge '+(n.status==='finalized'?'b-green':'b-amber')+'">'+(n.status==='finalized'?'Finalized':'Draft')+'</span></div>';
+          }).join('');
+      } else tcmEl.innerHTML = '';
+    }
+  } catch(e) {}
   setTimeout(_renderLucideIcons, 20);
 }
 function _cmBillingHolds(n, d) {
@@ -20674,36 +21639,68 @@ document.addEventListener("DOMContentLoaded", async function() {
 // ── Send Invoice by Email ─────────────────────────────────────────
 function sendInvoiceEmail(inv) {
   const db = getDB();
-  const iss = (db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
-  const cli = (db.clients||[]).find(function(x){ return x.id===inv.clientId; }) || {};
+  const iss = (db.invoicingIssuers||db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
+  const cli = resolveInvClient(inv.clientId, db) || {};
+  const sess = getSession() || {};
+  const senderEmail = sess.email || '';
+  const fromName = iss.name || 'ClaimDataCare Billing';
 
   const toEmail = cli.email || cli.billingEmail || '';
-  const fromName = iss.name || 'Billing';
-  const subject = 'Invoice ' + (inv.number||'') + ' — ' + (inv.month||'') + ' — $' + fmtMoney(parseFloat(inv.billingFee||inv.total||0));
+  const amount = '$' + fmtMoney(parseFloat(inv.billingFee||inv.total||0));
+  const subject = 'Invoice ' + (inv.number||'') + ' — ' + (inv.month||'') + ' — ' + amount;
+
   const body = [
     'Dear ' + (cli.name||'Client') + ',',
     '',
-    'Please find your invoice details below:',
+    'Attached you will find the invoice corresponding to ' + (inv.month||'the current billing period') + '.',
     '',
+    '—' .repeat(30),
     'Invoice #: ' + (inv.number||''),
     'Period: ' + (inv.month||''),
-    'Amount Due: $' + fmtMoney(parseFloat(inv.billingFee||inv.total||0)),
-    'Due Date: ' + (inv.due||''),
+    'Amount Due: ' + amount,
+    'Due Date: ' + (inv.due||'Upon receipt'),
+    '—' .repeat(30),
     '',
-    'Please remit payment at your earliest convenience.',
+    'Payment Instructions:',
+    (iss.zelleMode ? 'Zelle: ' + (iss.zelleMode==='email' ? iss.email : fmtPhone(iss.phone)) + '\n' : '') +
+    'Paper checks accepted at ' + (iss.addr1 || 'the address on file') + '.',
     '',
-    'Thank you,',
+    'Please remit payment by the due date. For questions regarding this invoice, contact ' + (iss.email||'our billing department') + '.',
+    '',
+    'Thank you for your partnership,',
     fromName,
+    '',
+    '—',
+    'This invoice was generated via ClaimDataCare. For support, contact support@claimdatacare.com.'
   ].join('\n');
 
-  if (!toEmail) {
-    // No email on file — ask user
-    const email = prompt('Email address for ' + (cli.name||'client') + ':', '');
-    if (!email) return;
-    window.open('mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
-  } else {
-    window.open('mailto:' + toEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
-    toast('Email abierto para ' + toEmail, 'ok');
+  const finalTo = toEmail || prompt('Email address for ' + (cli.name||'client') + ':', '');
+  if (!finalTo) return;
+
+  window.open('mailto:' + finalTo + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body),
+    '_blank', 'noopener,noreferrer');
+  toast('Invoice email opened for ' + finalTo + '. Please attach the PDF before sending.', 'ok');
+
+  // Also open a confirmation email for the sender
+  if (senderEmail) {
+    const confirmSubject = 'Invoice Sent: ' + (inv.number||'') + ' to ' + (cli.name||'Client');
+    const confirmBody = [
+      'This is a confirmation that invoice ' + (inv.number||'') + ' has been prepared for delivery.',
+      '',
+      'Recipient: ' + (cli.name||'') + ' <' + finalTo + '>',
+      'Invoice #: ' + (inv.number||''),
+      'Period: ' + (inv.month||''),
+      'Amount: ' + amount,
+      'Sent: ' + new Date().toLocaleString(),
+      '',
+      'Thank you,',
+      'ClaimDataCare Billing System'
+    ].join('\n');
+    setTimeout(function() {
+      window.open('mailto:' + senderEmail + '?subject=' + encodeURIComponent(confirmSubject) + '&body=' + encodeURIComponent(confirmBody),
+        '_blank', 'noopener,noreferrer');
+    }, 500);
+    toast('Sender confirmation opened for ' + senderEmail, 'ok');
   }
 }
 
@@ -21168,7 +22165,7 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 // Synchronous local cache (for all sync callers)
 function getDB() {
 if (_localDB) return _localDB;
-_localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[] };
+_localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[], intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[] };
 return _localDB;
 }
 
@@ -21186,7 +22183,7 @@ return _localDB;
 // services/{id} — CPT services
 // serviceGroups/{id} — service groups
 // appointments/{id} — appointments
-// notes/{id} — medical notes
+// notes/{id} — encounter notes
 // claimLogs/{claimId} — claim log entries
 // claimEOB/{claimId} — EOB records
 // invoicingIssuers/{id} — billing entities
@@ -21469,7 +22466,7 @@ return Object.assign(empty, db || {});
 // services/{id} — CPT services
 // serviceGroups/{id} — service groups
 // appointments/{id} — appointments
-// notes/{id} — medical notes
+// notes/{id} — encounter notes
 // claimLogs/{claimId} — claim log entries
 // claimEOB/{claimId} — EOB records
 // invoicingIssuers/{id} — billing entities
@@ -21595,9 +22592,9 @@ function toast(msg, type='ok'){
 const c=document.getElementById('toasts');
 const el=document.createElement('div');
 el.className=`toast t-${type}`;
-el.textContent=msg;
+el.innerHTML=msg;
 c.appendChild(el);
-requestAnimationFrame(()=>el.classList.add('show'));
+requestAnimationFrame(()=>{el.classList.add('show');try{_renderLucideIcons();}catch(e){}});
 setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
 }
 
@@ -22410,14 +23407,12 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 <table style="width:100%;border-collapse:collapse;font-size:12px" id="inv-lines-table">
 <thead>
 <tr style="background:var(--bg3)">
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Payment Date</th>
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Description / Product</th>
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Payment ID</th>
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Insurance</th>
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Invoice Month</th>
-<th style="padding:6px 8px;text-align:right;white-space:nowrap">Amount</th>
-<th style="padding:6px 8px;text-align:center;white-space:nowrap">Status</th>
-<th style="padding:6px 8px;text-align:left;white-space:nowrap">Notes</th>
+<th style="padding:6px 8px;text-align:left;white-space:nowrap;cursor:pointer" onclick="_invSortBy('date')">Payment Date <span class="inv-sort-ico" data-sort="date"></span></th>
+<th style="padding:6px 8px;text-align:left;white-space:nowrap;cursor:pointer" onclick="_invSortBy('desc')">Description <span class="inv-sort-ico" data-sort="desc"></span></th>
+<th style="padding:6px 8px;text-align:left;white-space:nowrap;cursor:pointer" onclick="_invSortBy('paymentId')">Payment ID <span class="inv-sort-ico" data-sort="paymentId"></span></th>
+<th style="padding:6px 8px;text-align:left;white-space:nowrap;cursor:pointer" onclick="_invSortBy('insurance')">Insurance <span class="inv-sort-ico" data-sort="insurance"></span></th>
+<th style="padding:6px 8px;text-align:left;white-space:nowrap;cursor:pointer" onclick="_invSortBy('month')">Month <span class="inv-sort-ico" data-sort="month"></span></th>
+<th style="padding:6px 8px;text-align:right;white-space:nowrap;cursor:pointer" onclick="_invSortBy('amount')">Amount <span class="inv-sort-ico" data-sort="amount"></span></th>
 <th style="padding:6px 4px"></th>
 </tr>
 </thead>
