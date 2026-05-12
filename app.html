@@ -171,7 +171,8 @@ tbody tr:hover td{background:var(--bg3)}
 .overlay.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px}
 .modal-ov.open{display:flex}
 .open{display:flex}
-.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:720px;max-height:93vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+.modal{background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:720px;max-height:93vh;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--border);display:flex;flex-direction:column}
+.modal-body{flex:1;min-height:0;overflow-y:auto}
 .modal-lg{max-width:920px}
 .modal-sm{max-width:460px}
 .modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
@@ -1128,7 +1129,7 @@ border-radius: 8px;
   pointer-events: none;
   opacity: 0;
   transition: opacity .15s;
-  z-index: 9999;
+  z-index: 2147483647;
 }
 .cdc-tip::before {
   content: '';
@@ -1141,7 +1142,7 @@ border-radius: 8px;
   pointer-events: none;
   opacity: 0;
   transition: opacity .15s;
-  z-index: 9999;
+  z-index: 2147483647;
 }
 .cdc-tip:hover::after,
 .cdc-tip:hover::before { opacity: 1; }
@@ -1190,7 +1191,14 @@ input.no-upper, textarea.no-upper { text-transform: none !important; }
   padding: 4px 8px;
   border-radius: 5px;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483647;
+}
+#modal-provider input:disabled, #modal-provider select:disabled {
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: not-allowed;
+  opacity: .7;
+  border-color: var(--border2);
 }
 </style>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -3952,7 +3960,7 @@ Show Paid
 <input type="hidden" id="mprov-id">
 
 <!-- NPI Lookup -->
-<div style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);padding:14px;margin-bottom:18px">
+<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);padding:14px;margin-bottom:18px">
 <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:8px;display:flex;align-items:center;gap:6px">
 <i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup — Auto-fill from NPPES Registry
 </div>
@@ -9227,6 +9235,7 @@ openModal('modal-provider');
 const acctRow = document.getElementById('mprov-acctkey-row');
 const statusRow = document.getElementById('mprov-status-row');
 const specsSection = document.getElementById('mprov-specialties-section');
+const npiLookup = document.getElementById('mprov-npi-lookup-section');
 const saveBtn = document.getElementById('mprov-save-btn');
 if (saveBtn) saveBtn.style.display = '';
 var restrictedFields = ['mprov-name','mprov-npi','mprov-taxid','mprov-taxtype','mprov-taxonomy','mprov-type'];
@@ -9236,12 +9245,14 @@ if (isFromAdmin && isSA) {
   if (acctRow) acctRow.style.display = '';
   if (statusRow) statusRow.style.display = '';
   if (specsSection) specsSection.style.display = '';
+  if (npiLookup) npiLookup.style.display = '';
   document.querySelectorAll('#modal-provider input, #modal-provider select')
   .forEach(el => { el.disabled = false; });
 } else {
   if (acctRow) acctRow.style.display = 'none';
   if (statusRow) statusRow.style.display = 'none';
   if (specsSection) specsSection.style.display = 'none';
+  if (npiLookup) npiLookup.style.display = 'none';
   restrictedFields.forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.disabled = true;
@@ -22127,7 +22138,7 @@ function getAuditLogs() {
 </script>
 
 <!-- SERVICE GROUP MODAL -->
-<div class="overlay" id="modal-sg"><div class="modal modal-lg" style="max-height:90vh;overflow-y:auto">
+<div class="overlay" id="modal-sg"><div class="modal modal-lg" style="max-height:90vh">
 <div class="modal-hdr" style="position:sticky;top:0;background:var(--surface);z-index:1">
 <div><div class="modal-t" id="sg-title">New Service Group</div><div class="modal-sub">Define CPT bundle + assign patients</div></div>
 <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sg')">×</button>
