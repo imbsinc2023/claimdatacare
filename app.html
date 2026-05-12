@@ -3513,6 +3513,8 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>
 <select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>
 <select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="week">This Week</option><option value="today">Today</option><option value="month">This Month</option><option value="all">All</option></select>
+<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>
+<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>
 </div>
 <div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>
 <div id="appt-list"></div>
@@ -15107,9 +15109,10 @@ renderAppointments();
 }
 
 function _renderApptGrid(list, db, dateStr) {
+var interval = parseInt(document.getElementById('appt-slot-interval')?.value || '30');
 var slots = [];
 for (var h = 7; h <= 19; h++) {
-for (var m = 0; m < 60; m += 30) {
+for (var m = 0; m < 60; m += interval) {
 var t = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 var apps = list.filter(function(a){ return a.date === dateStr && a.startTime === t; });
 var display = h > 12 ? (h-12)+':'+String(m).padStart(2,'0')+'p' : h+':'+String(m).padStart(2,'0')+(h===12?'p':'a');
@@ -15121,10 +15124,16 @@ db.rendering.filter(function(r){ return r.providerId === activeProviderId; }).fo
 var html = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">' + dateStr + '</div>';
 html += '<div style="display:flex;flex-direction:column;gap:2px">';
 slots.forEach(function(s){
-if (!s.apps.length) return;
+var displaySlot = true;
+if (!s.apps.length) {
+var showEmpty = document.getElementById('appt-show-empty')?.checked;
+if (!showEmpty) displaySlot = false;
+}
+if (!displaySlot) return;
 html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:var(--bg3)">';
 html += '<div class="mono" style="font-size:11px;color:var(--text3);min-width:48px;flex-shrink:0;padding-top:2px">' + s.display + '</div>';
 html += '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px">';
+if (s.apps.length) {
 s.apps.forEach(function(a){
 var st = APPT_STATUS[a.status] || APPT_STATUS.scheduled;
 var provName = rendProvs[a.renderingId] || '—';
@@ -15138,6 +15147,9 @@ html += '<span style="font-size:10px;color:var(--text3)">' + provName + '</span>
 html += '<span class="badge" style="background:' + st.bg + ';color:' + st.color + ';font-size:9px">' + st.label + '</span>';
 html += '</div>';
 });
+} else {
+html += '<div style="font-size:11px;color:var(--text3);padding:4px 0;cursor:pointer" onclick="openApptModal(null);setTimeout(function(){document.getElementById(\'appt-date\').value=\'' + dateStr + '\';document.getElementById(\'appt-start\').value=\'' + s.time + '\'},100)">+ Click to schedule</div>';
+}
 html += '</div></div>';
 });
 html += '</div>';
