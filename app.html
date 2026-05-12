@@ -3503,7 +3503,10 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="section" id="sec-appointments">
 <div class="page-hdr">
 <div><h1>Schedule</h1></div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px">Grid</button>
 <button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>
+</div>
 </div>
 <div class="page-body">
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
@@ -15074,6 +15077,9 @@ if (dateF) list = list.filter(a => a.date === dateF);
 
 _renderDayStrip(appts);
 
+var viewMode = document.getElementById('btn-appt-view-toggle');
+var isGrid = viewMode && viewMode.textContent === 'List';
+
 if (!list.length) {
 el.innerHTML = `<div class="empty">
 <div class="empty-ico"></div>
@@ -15083,9 +15089,59 @@ el.innerHTML = `<div class="empty">
 </div>`;
 return;
 }
+
+if (isGrid && dateF) {
+el.innerHTML = _renderApptGrid(list, db, dateF);
+} else {
 el.innerHTML = list.map(a => _renderApptCard(a, db)).join('');
+}
 
 setTimeout(_renderLucideIcons, 20);
+}
+
+function toggleApptView() {
+var btn = document.getElementById('btn-appt-view-toggle');
+if (!btn) return;
+btn.textContent = btn.textContent === 'Grid' ? 'List' : 'Grid';
+renderAppointments();
+}
+
+function _renderApptGrid(list, db, dateStr) {
+var slots = [];
+for (var h = 7; h <= 19; h++) {
+for (var m = 0; m < 60; m += 30) {
+var t = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+var apps = list.filter(function(a){ return a.date === dateStr && a.startTime === t; });
+var display = h > 12 ? (h-12)+':'+String(m).padStart(2,'0')+'p' : h+':'+String(m).padStart(2,'0')+(h===12?'p':'a');
+slots.push({ time:t, display:display, apps:apps });
+}
+}
+var rendProvs = {};
+db.rendering.filter(function(r){ return r.providerId === activeProviderId; }).forEach(function(r){ rendProvs[r.id] = r.last + ', ' + r.first; });
+var html = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">' + dateStr + '</div>';
+html += '<div style="display:flex;flex-direction:column;gap:2px">';
+slots.forEach(function(s){
+if (!s.apps.length) return;
+html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:var(--bg3)">';
+html += '<div class="mono" style="font-size:11px;color:var(--text3);min-width:48px;flex-shrink:0;padding-top:2px">' + s.display + '</div>';
+html += '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px">';
+s.apps.forEach(function(a){
+var st = APPT_STATUS[a.status] || APPT_STATUS.scheduled;
+var provName = rendProvs[a.renderingId] || '—';
+var patNames = (a.patients||[]).map(function(ap){
+var pat = db.patients.find(function(p){ return p.id === ap.patId; });
+return pat ? (pat.last||'') + ', ' + (pat.first||'') : '?';
+}).join(', ');
+html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;border-left:3px solid ' + st.color + ';background:var(--bg2);font-size:12px">';
+html += '<span style="font-weight:600">' + patNames + '</span>';
+html += '<span style="font-size:10px;color:var(--text3)">' + provName + '</span>';
+html += '<span class="badge" style="background:' + st.bg + ';color:' + st.color + ';font-size:9px">' + st.label + '</span>';
+html += '</div>';
+});
+html += '</div></div>';
+});
+html += '</div>';
+return html;
 }
 
 
