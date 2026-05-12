@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ClaimDataCare v2</title>
+<title>ClaimDataCare</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -2898,13 +2898,18 @@ return `<div class="app-shell">
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-invoices" onclick="go('invoices');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>
 <div class="tn-dd-sep"></div>
-<div style="font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;padding:6px 14px 2px">Clinical Intake Management</div>
-<div class="tn-dd-item" id="tnd-intake-clients" onclick="go('intake-clients');closeTnDropdown()"><i data-lucide="users" class="lci"></i><span>Clients</span></div>
-<div class="tn-dd-item" id="tnd-intake-forms" onclick="go('intake-forms');closeTnDropdown()"><i data-lucide="file-signature" class="lci"></i><span>Consent Forms</span></div>
-<div class="tn-dd-item" id="tnd-intake-eval" onclick="go('intake-eval');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Comprehensive Evaluation</span></div>
-<div class="tn-dd-sep"></div>
 <div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>
 <div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>
+</div>
+</div>
+<div class="tn-group" id="tng-intake" style="display:none">
+<button class="tn-item tn-has-dd" id="tnav-intake" onclick="toggleTnDropdown('intake',event)">
+<i data-lucide="clipboard-pen" class="lci"></i><span>Intake</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+</button>
+<div class="tn-dropdown" id="tn-dd-intake">
+<div class="tn-dd-item" id="tnd-intake-clients" onclick="go('intake-clients');closeTnDropdown()"><i data-lucide="users" class="lci"></i><span>Clients</span></div>
+<div class="tn-dd-item" id="tnd-intake-forms" onclick="go('intake-forms');closeTnDropdown()"><i data-lucide="file-signature" class="lci"></i><span>Forms</span></div>
+<div class="tn-dd-item" id="tnd-intake-eval" onclick="go('intake-eval');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Evaluations</span></div>
 </div>
 </div>
 </nav>
@@ -3069,13 +3074,16 @@ return `<div class="app-shell">
 <div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
 <div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
 <div class="tn-drawer-sub-sep"></div>
-<div style="font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;padding:10px 14px 4px">Clinical Intake Management</div>
-<div class="tn-drawer-sub-item" onclick="go('intake-clients');closeTnDrawer()" style="font-weight:600">Clients</div>
-<div class="tn-drawer-sub-item" onclick="go('intake-forms');closeTnDrawer()" style="font-weight:600">Consent Forms</div>
-<div class="tn-drawer-sub-item" onclick="go('intake-eval');closeTnDrawer()" style="font-weight:600">Comprehensive Evaluation</div>
-<div class="tn-drawer-sub-sep"></div>
 <div class="tn-drawer-sub-item" onclick="exportBackup();closeTnDrawer()">Backup Data</div>
 <div class="tn-drawer-sub-item" onclick="triggerRestore()">Restore Data</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-intake" style="display:none">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-intake')"><i data-lucide="clipboard-pen" class="lci"></i>Intake <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('intake-clients');closeTnDrawer()">Clients</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-forms');closeTnDrawer()">Forms</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-eval');closeTnDrawer()">Evaluations</div>
 </div>
 </div>
 <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto;display:flex;gap:8px">
@@ -3728,7 +3736,6 @@ Invoicing
 </button>
 <button class="stab" id="inv-stab-invoices" onclick="setInvTab('invoices',this)">
 <i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> Invoices
-<span id="inv-cnt-invoices" class="nav-cnt" style="background:var(--brand)">0</span>
 </button>
 <button class="stab" id="inv-stab-clients" onclick="setInvTab('clients',this)">
 <i data-lucide="building" class="lci" style="width:13px;height:13px"></i> Clients
@@ -6246,6 +6253,14 @@ if (tngAdmin) tngAdmin.style.display = isSA ? '' : 'none';
   const mobAdmin = document.getElementById('mob-grp-admin');
   if (mobAdmin) mobAdmin.style.display = isSA ? '' : 'none';
 
+  // Top nav intake group (desktop) — Super Admin only
+  const tngIntake = document.getElementById('tng-intake');
+  if (tngIntake) tngIntake.style.display = isSA ? '' : 'none';
+
+  // Mobile drawer intake group — Super Admin only
+  const mobIntake = document.getElementById('mob-grp-intake');
+  if (mobIntake) mobIntake.style.display = isSA ? '' : 'none';
+
   const isCM = !!(session && (session.role === 'Case Management' || session.role === 'Super Admin'));
   const tngCM = document.getElementById('tng-cm');
   if (tngCM) tngCM.style.display = isCM ? '' : 'none';
@@ -8099,11 +8114,9 @@ db.invoicingIssuers.map(iss => {
 const addr = [iss.addr1,iss.city,iss.state,iss.zip].filter(Boolean).join(', ') || '—';
 const zelleMode = iss.zelleMode || 'phone';
 const zelleVal = zelleMode === 'email' ? (iss.email||'—') : zelleMode === 'both' ? 'Phone + Email' : (iss.phone ? fmtPhone(iss.phone) : '—');
-return '<tr>' +
-'<td><div style="display:flex;align-items:center;gap:10px">' +
-(iss.logo ? `<img src="${iss.logo}" style="width:40px;height:14px;object-fit:contain;background:var(--bg3);border-radius:3px">` : '<div style="width:40px;height:14px;background:var(--bg3);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">—</div>') +
-'<div><div style="font-weight:700;font-size:13px">'+(iss.name||'')+'</div>'+
-(iss.taxid ? '<div class="mono" style="font-size:10px;color:var(--text3)">EIN: '+iss.taxid+'</div>' : '')+'</div></div></td>' +
+    return '<tr>' +
+    '<td><div style="font-weight:700;font-size:13px">'+(iss.name||'')+'</div>'+
+    (iss.taxid ? '<div class="mono" style="font-size:10px;color:var(--text3);margin-top:2px">EIN: '+iss.taxid+'</div>' : '')+'</td>' +
 '<td style="font-size:12px">' +
 (iss.email ? '<div>'+iss.email+'</div>' : '') +
 (iss.phone ? '<div style="font-size:11px;color:var(--text3)">'+fmtPhone(iss.phone)+'</div>' : '') +
@@ -8638,10 +8651,6 @@ if (stF) list = list.filter(x=>x.status===stF);
 // Hide paid unless explicitly shown
 if (!showPaid && !stF) list = list.filter(x=>x.status!=='Paid');
 
-// Update count badge
-const cnt = document.getElementById('inv-cnt-invoices');
-if (cnt) cnt.textContent = (db.invoices||[]).filter(x=>x.status!=='Paid').length;
-
 if (!list.length) {
 el.innerHTML = `<div class="empty">
 <div class="empty-ico"><i data-lucide="receipt" class="lci" style="width:40px;height:40px;color:var(--text3)"></i></div>
@@ -8839,9 +8848,16 @@ if (_invMonthHid) _invMonthHid.value = inv?.month || _buildInvPeriod(_parsedPeri
 const excUsedEl = document.getElementById('inv-exc-used');
 if (excUsedEl) excUsedEl.value = inv?.excUsed || '0';
 
-renderInvSvcLines();
+ renderInvSvcLines();
 renderInvLines();
 recalcInvoice();
+_invDirty = false;
+setTimeout(function(){
+  document.querySelectorAll('#modal-invoice input, #modal-invoice select, #modal-invoice textarea').forEach(function(el){
+    el.addEventListener('change', function(){ _invDirty = true; });
+    el.addEventListener('input', function(){ _invDirty = true; });
+  });
+}, 100);
 openModal('modal-invoice');
 }
 
@@ -23423,7 +23439,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <div class="overlay" id="modal-invoice"><div class="modal modal-lg">
 <div class="modal-hdr">
 <div><div class="modal-t" id="inv-modal-title">New Invoice</div><div class="modal-sub" id="inv-modal-sub"></div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invoice')">×</button>
+<button class="btn btn-ghost btn-sm" onclick="if(_invDirty){showInvUnsavedDialog();}else{closeModal('modal-invoice');}" title="Close"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i></button>
 </div>
 <div class="modal-body">
 <input type="hidden" id="inv-id">
@@ -23566,10 +23582,10 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 <div class="field"><label>Internal Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);resize:vertical" placeholder="Optional internal notes"></textarea></div>
 </div>
 <div class="modal-ftr">
-<button class="btn" onclick="closeModal('modal-invoice')">Cancel</button>
-<button class="btn btn-sm" onclick="exportInvoiceExcel(_currentInvId||document.getElementById('inv-id').value)">Excel</button>
-<button class="btn btn-sm" onclick="exportInvoicePDF(_currentInvId||document.getElementById('inv-id').value)">PDF</button>
-<button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
+<button class="btn btn-sm" onclick="if(_invDirty){showInvUnsavedDialog();}else{closeModal('modal-invoice');}" title="Cancel"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i></button>
+<button class="btn btn-sm" onclick="exportInvoiceExcel(_currentInvId||document.getElementById('inv-id').value)" title="Export Excel"><i data-lucide="file-spreadsheet" class="lci" style="width:14px;height:14px"></i></button>
+<button class="btn btn-sm" onclick="exportInvoicePDF(_currentInvId||document.getElementById('inv-id').value)" title="Export PDF"><i data-lucide="file-text" class="lci" style="width:14px;height:14px"></i></button>
+<button class="btn btn-primary btn-sm" onclick="saveInvoice()" title="Save Invoice"><i data-lucide="check" class="lci" style="width:14px;height:14px"></i></button>
 </div>
 </div></div>
 
