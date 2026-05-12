@@ -1392,6 +1392,9 @@ invoices: 'Invoicing',
 'claim-editor': 'Claim Editor',
 bills: 'Claims',
 'intake-center': 'Intake Center',
+'intake-clients': 'Clinical Intake — Clients',
+'intake-forms': 'Clinical Intake — Consent Forms',
+'intake-eval': 'Clinical Intake — Comprehensive Evaluation',
 };
 
 
@@ -1475,6 +1478,9 @@ account: renderAccountPage,
       bills: renderBills,
       'provider-info': renderProviderInfo,
       'intake-center': renderIntakeCenter,
+      'intake-clients': renderIntakeClients,
+      'intake-forms': renderIntakeConsentForms,
+      'intake-eval': renderIntakeEvaluation,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
@@ -2892,7 +2898,10 @@ return `<div class="app-shell">
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-invoices" onclick="go('invoices');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>
 <div class="tn-dd-sep"></div>
-<div class="tn-dd-item" id="tnd-intake" onclick="go('intake-center');closeTnDropdown()"><i data-lucide="clipboard-check" class="lci"></i><span>Intake Center</span></div>
+<div style="font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;padding:6px 14px 2px">Clinical Intake Management</div>
+<div class="tn-dd-item" id="tnd-intake-clients" onclick="go('intake-clients');closeTnDropdown()"><i data-lucide="users" class="lci"></i><span>Clients</span></div>
+<div class="tn-dd-item" id="tnd-intake-forms" onclick="go('intake-forms');closeTnDropdown()"><i data-lucide="file-signature" class="lci"></i><span>Consent Forms</span></div>
+<div class="tn-dd-item" id="tnd-intake-eval" onclick="go('intake-eval');closeTnDropdown()"><i data-lucide="clipboard-list" class="lci"></i><span>Comprehensive Evaluation</span></div>
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>
 <div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>
@@ -3060,7 +3069,10 @@ return `<div class="app-shell">
 <div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
 <div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
 <div class="tn-drawer-sub-sep"></div>
-<div class="tn-drawer-sub-item" onclick="go('intake-center');closeTnDrawer()" style="font-weight:700;color:var(--brand)">Intake Center</div>
+<div style="font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;padding:10px 14px 4px">Clinical Intake Management</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-clients');closeTnDrawer()" style="font-weight:600">Clients</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-forms');closeTnDrawer()" style="font-weight:600">Consent Forms</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-eval');closeTnDrawer()" style="font-weight:600">Comprehensive Evaluation</div>
 <div class="tn-drawer-sub-sep"></div>
 <div class="tn-drawer-sub-item" onclick="exportBackup();closeTnDrawer()">Backup Data</div>
 <div class="tn-drawer-sub-item" onclick="triggerRestore()">Restore Data</div>
@@ -3914,6 +3926,83 @@ Show Paid
 <div id="ic-panel-clients"></div>
 <div id="ic-panel-forms" style="display:none"></div>
 <div id="ic-panel-eval" style="display:none"></div>
+</div>
+</div>
+
+<!-- Intake Clients section -->
+<div class="section" id="sec-intake-clients">
+<div class="page-hdr">
+<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>
+<div class="btn-group">
+<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">
+<option value="">All Statuses</option>
+<option value="Pending Forms">Pending Forms</option>
+<option value="Forms Sent">Forms Sent</option>
+<option value="Signed">Signed</option>
+<option value="Evaluation Pending">Evaluation Pending</option>
+<option value="Evaluation Completed">Evaluation Completed</option>
+<option value="Archived">Archived</option>
+</select>
+<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>
+</div>
+</div>
+<div class="page-body">
+<div class="search-row">
+<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">
+<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>
+</div>
+<div id="ic-clients-tbl"></div>
+</div>
+</div>
+
+<!-- Intake Consent Forms section -->
+<div class="section" id="sec-intake-forms">
+<div class="page-hdr">
+<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>
+<div class="btn-group">
+<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>
+</div>
+</div>
+<div class="page-body">
+<div class="search-row">
+<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">
+<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>
+<option value="HIPAA">HIPAA</option>
+<option value="Consent">Consent</option>
+<option value="Financial">Financial</option>
+<option value="Release">Release of Information</option>
+<option value="Telehealth">Telehealth</option>
+<option value="Signature">Electronic Signature</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div class="stabs" style="margin-bottom:10px">
+<button class="stab active" onclick="icFormFilterSet('all',this)">All</button>
+<button class="stab" onclick="icFormFilterSet('active',this)">Active</button>
+<button class="stab" onclick="icFormFilterSet('archived',this)">Archived</button>
+</div>
+<div id="ic-forms-tbl"></div>
+</div>
+</div>
+
+<!-- Intake Comprehensive Evaluation section -->
+<div class="section" id="sec-intake-eval">
+<div class="page-hdr">
+<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>
+<div class="btn-group">
+<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>
+</div>
+</div>
+<div class="page-body">
+<div class="search-row">
+<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">
+<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>
+<option value="Draft">Draft</option>
+<option value="In Progress">In Progress</option>
+<option value="Completed">Completed</option>
+</select>
+</div>
+<div id="ic-eval-tbl"></div>
 </div>
 </div>
 
@@ -6173,7 +6262,7 @@ if (addBtn) addBtn.style.display = isSA ? '' : 'none';
 
 // If non-SA is somehow on an admin page, redirect
 if (!isSA) {
-const adminSec = document.querySelector('#sec-admin-providers.active, #sec-account.active');
+const adminSec = document.querySelector('#sec-admin-providers.active, #sec-account.active, #sec-intake-clients.active, #sec-intake-forms.active, #sec-intake-eval.active, #sec-intake-center.active');
 if (adminSec) { try { go('dashboard'); } catch(_) {} }
 }
 }
@@ -21633,7 +21722,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     return;
   }
   checkVerifyToken();
-  if (!window.location.search.startsWith('?verify=')) renderLoginScreen();
+  checkIntakeToken();
+  if (!window.location.search.startsWith('?verify=') && !window.location.search.startsWith('?intake=')) renderLoginScreen();
 });
 
 // ── Send Invoice by Email ─────────────────────────────────────────
@@ -22401,7 +22491,8 @@ async function loadFromFirestore() {
     const [
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, invoicingIssuers, invoicingClients, invoices,
-      insurances, claimLogsSnap, claimEOBSnap
+      insurances, intakeClients, intakeForms, intakeSubmissions, evaluations,
+      claimLogsSnap, claimEOBSnap
     ] = await Promise.all([
       _fsReadCollection('facilities'),
       _fsReadCollection('rendering'),
@@ -22414,6 +22505,10 @@ async function loadFromFirestore() {
       _fsReadCollection('invoicingClients'),
       _fsReadCollection('invoices'),
       _fsReadCollection('insurances'),
+      _fsReadCollection('intakeClients'),
+      _fsReadCollection('intakeForms'),
+      _fsReadCollection('intakeSubmissions'),
+      _fsReadCollection('evaluations'),
       _db.collection('claimLogs').get(),
       _db.collection('claimEOB').get(),
     ]);
@@ -22427,6 +22522,7 @@ async function loadFromFirestore() {
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, claimLogs, claimEOB,
       invoicingIssuers, invoicingClients, invoices, insurances,
+      intakeClients, intakeForms, intakeSubmissions, evaluations,
     });
 
     _saveCache(_localDB);
@@ -22445,7 +22541,8 @@ const empty = {
 providers:[], facilities:[], rendering:[], referring:[],
 patients:[], claims:[], services:[], serviceGroups:[],
 appointments:[], notes:[], claimLogs:{}, claimEOB:{},
-invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[]
+invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[],
+intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[]
 };
 return Object.assign(empty, db || {});
 }
@@ -22494,13 +22591,15 @@ _saveCache(_localDB);
 if (!_fbReady || !_db) return;
 
 // Detect which collections changed and sync only those
-const colls = [
+var _syncColls = [
 'providers','facilities','rendering','referring',
 'patients','claims','services','serviceGroups',
-'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances'
+'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances',
+'intakeClients','intakeForms','intakeSubmissions','evaluations'
 ];
 
-for (const coll of colls) {
+for (var _ci = 0; _ci < _syncColls.length; _ci++) {
+var coll = _syncColls[_ci];
 const prev = before[coll] || [];
 const next = db[coll] || [];
 if (JSON.stringify(prev) !== JSON.stringify(next)) {
@@ -23474,5 +23573,1434 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 <button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
 </div>
 </div></div>
+
+<!-- Intake Client Modal -->
+<div class="overlay modal-ov" id="modal-intake-client"><div class="modal modal-lg">
+<div class="modal-hdr"><div><div class="modal-t" id="ic-client-title">New Intake Client</div><div class="modal-sub">Intake/evaluation demographic record</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-intake-client')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="modal-body" style="padding:18px 22px">
+<input type="hidden" id="ic-client-id">
+<div class="fg g2">
+<div class="field"><label>Child Full Name *</label><input id="ic-c-first" placeholder="First Name"></div>
+<div class="field"><label>Last Name *</label><input id="ic-c-last" placeholder="Last Name"></div>
+</div>
+<div class="fg g3">
+<div class="field"><label>Date of Birth *</label><input id="ic-c-dob" type="date"></div>
+<div class="field"><label>Gender</label><select id="ic-c-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+<div class="field"><label>Language Preference</label><input id="ic-c-language" placeholder="e.g. English, Spanish"></div>
+</div>
+<div class="sep"></div>
+<span class="slabel">Guardian / Parent Information</span>
+<div class="fg g2">
+<div class="field"><label>Guardian Full Name *</label><input id="ic-g-name" placeholder="Full name"></div>
+<div class="field"><label>Relationship *</label><select id="ic-g-rel"><option value="">Select</option><option>Mother</option><option>Father</option><option>Legal Guardian</option><option>Grandparent</option><option>Other</option></select></div>
+</div>
+<div class="fg g3">
+<div class="field"><label>Phone *</label><input id="ic-g-phone" placeholder="(305) 555-1234"></div>
+<div class="field"><label>Alternate Phone</label><input id="ic-g-phone2" placeholder="(305) 555-5678"></div>
+<div class="field"><label>Email *</label><input id="ic-g-email" type="email" placeholder="guardian@email.com"></div>
+</div>
+<div class="fg g2">
+<div class="field"><label>Address</label><input id="ic-g-addr" placeholder="Street address"></div>
+<div class="field"><label>City, State ZIP</label><input id="ic-g-city" placeholder="City, State ZIP"></div>
+</div>
+<div class="sep"></div>
+<span class="slabel">Emergency Contact</span>
+<div class="fg g3">
+<div class="field"><label>Emergency Contact Name</label><input id="ic-e-name"></div>
+<div class="field"><label>Emergency Phone</label><input id="ic-e-phone"></div>
+<div class="field"><label>Relationship</label><input id="ic-e-rel"></div>
+</div>
+<div class="sep"></div>
+<span class="slabel">Insurance &amp; Referral</span>
+<div class="fg g3">
+<div class="field"><label>Insurance Provider</label><input id="ic-ins-provider" placeholder="e.g. Aetna, Cigna"></div>
+<div class="field"><label>Member ID</label><input id="ic-ins-id"></div>
+<div class="field"><label>Group Number</label><input id="ic-ins-group"></div>
+</div>
+<div class="fg g2">
+<div class="field"><label>Referral Source</label><input id="ic-ref-source" placeholder="e.g. Pediatrician, School, Self"></div>
+<div class="field"><label>PCP Name &amp; Phone</label><input id="ic-pcp" placeholder="Dr. Name / Phone"></div>
+</div>
+<div class="fg g2">
+<div class="field"><label>School / District</label><input id="ic-school"></div>
+<div class="field"><label>Grade</label><input id="ic-grade"></div>
+</div>
+<div class="fg g3">
+<div class="field"><label>Existing ABA Provider</label><input id="ic-aba-provider"></div>
+<div class="field"><label>Existing Diagnoses</label><input id="ic-dx" placeholder="e.g. F84.0, F90.0"></div>
+<div class="field"><label>Custody/Legal Notes</label><input id="ic-custody"></div>
+</div>
+<div class="sep"></div>
+<div class="fg g2">
+<div class="field"><label>Intake Status</label><select id="ic-status">
+<option value="Pending Forms">Pending Forms</option>
+<option value="Forms Sent">Forms Sent</option>
+<option value="Signed">Signed</option>
+<option value="Evaluation Pending">Evaluation Pending</option>
+<option value="Evaluation Completed">Evaluation Completed</option>
+<option value="Archived">Archived</option>
+</select></div>
+<div class="field"><label>Internal Notes</label><textarea id="ic-notes" rows="2" placeholder="Internal notes..." style="resize:vertical"></textarea></div>
+</div>
+</div>
+<div class="modal-ftr">
+<button class="btn" onclick="closeModal('modal-intake-client')">Cancel</button>
+<button class="btn btn-primary" onclick="icSaveClient()">Save Client</button>
+</div>
+</div></div>
+
+<!-- Intake Form Template Modal -->
+<div class="overlay modal-ov" id="modal-intake-form"><div class="modal modal-lg">
+<div class="modal-hdr"><div><div class="modal-t" id="ic-form-title">New Consent Form Template</div><div class="modal-sub">Create or edit a legal intake form template</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-intake-form')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="modal-body" style="padding:18px 22px">
+<input type="hidden" id="ic-form-id">
+<div class="fg g2">
+<div class="field"><label>Form Name *</label><input id="ic-form-name" placeholder="e.g. HIPAA Acknowledgement"></div>
+<div class="field"><label>Form Type *</label><select id="ic-form-type-modal"><option>HIPAA</option><option>Consent</option><option>Financial</option><option>Release</option><option>Telehealth</option><option>Signature</option><option>Other</option></select></div>
+</div>
+<div class="fg g2">
+<div class="field"><label>Category</label><input id="ic-form-cat" placeholder="e.g. Legal, Clinical, Administrative"></div>
+<div class="field"><label style="display:flex;align-items:center;gap:6px;margin-top:18px"><input type="checkbox" id="ic-form-required" checked style="width:16px;height:16px;accent-color:var(--brand)"> Required for intake completion</label></div>
+</div>
+<div class="field"><label>Form Description</label><textarea id="ic-form-desc" rows="2" placeholder="Brief description of this form..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Form Content (HTML / Markup)</label><textarea id="ic-form-content" rows="8" placeholder="Form content with placeholders: {{childName}}, {{guardianName}}, {{date}}, {{signature}}..." style="resize:vertical;font-family:var(--mono);font-size:12px"></textarea></div>
+<div class="field" style="flex-direction:row;gap:12px;align-items:center">
+<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="ic-form-active" checked style="width:15px;height:15px;accent-color:var(--brand)"> Active</label>
+<label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="ic-form-electronic" checked style="width:15px;height:15px;accent-color:var(--brand)"> Allow electronic signature</label>
+</div>
+</div>
+<div class="modal-ftr">
+<button class="btn" onclick="closeModal('modal-intake-form')">Cancel</button>
+<button class="btn btn-primary" onclick="icSaveForm()">Save Template</button>
+</div>
+</div></div>
+
+<!-- Intake Evaluation Modal -->
+<div class="overlay modal-ov" id="modal-intake-eval"><div class="modal modal-lg" style="max-width:960px">
+<div class="modal-hdr"><div><div class="modal-t" id="ic-eval-title">Comprehensive Diagnostic Evaluation</div><div class="modal-sub">ABA-focused evaluation data collection — SUBJECTIVE section only</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-intake-eval')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="ic-eval-body" id="ic-eval-body" style="padding:18px 22px;overflow-y:auto;max-height:70vh">
+<input type="hidden" id="ic-eval-id">
+<input type="hidden" id="ic-eval-uuid">
+<input type="hidden" id="ic-eval-client-id">
+<div class="fg g3">
+<div class="field"><label>Client *</label><select id="ic-eval-client-sel" onchange="icEvalClientChanged(this.value)"><option value="">Select client...</option></select></div>
+<div class="field"><label>Date of Evaluation</label><input id="ic-eval-date" type="date"></div>
+<div class="field"><label>Status</label><select id="ic-eval-status-modal"><option>Draft</option><option>In Progress</option><option>Completed</option></select></div>
+</div>
+<div class="sep"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div>
+<span class="slabel">Developmental History</span>
+<div class="field"><label>Prenatal/Perinatal History</label><textarea id="ic-e-prenatal" rows="3" placeholder="Pregnancy, delivery, complications..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Milestones</label><textarea id="ic-e-milestones" rows="3" placeholder="Motor, speech, social milestones..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Behavioral Concerns</label><textarea id="ic-e-behavior" rows="3" placeholder="Current behavioral concerns as reported by parent..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Communication History</label><textarea id="ic-e-communication" rows="3" placeholder="Speech/language development, concerns..." style="resize:vertical"></textarea></div>
+</div>
+<div>
+<span class="slabel">Clinical Presentation</span>
+<div class="field"><label>Sensory Concerns</label><textarea id="ic-e-sensory" rows="3" placeholder="Sensitivities, seeking/avoiding behaviors..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Repetitive Behaviors</label><textarea id="ic-e-repetitive" rows="3" placeholder="Stereotypies, rituals, restricted interests..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Social Functioning</label><textarea id="ic-e-social" rows="3" placeholder="Peer interactions, social reciprocity..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Emotional/Behavioral Regulation</label><textarea id="ic-e-emotional" rows="3" placeholder="Mood, anxiety, tantrums, aggression..." style="resize:vertical"></textarea></div>
+</div>
+</div>
+<div class="sep"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div>
+<span class="slabel">Educational &amp; Medical History</span>
+<div class="field"><label>Educational History</label><textarea id="ic-e-education" rows="3" placeholder="School setting, IEP/504, performance..." style="resize:vertical"></textarea></div>
+<div class="field"><label>School Performance</label><textarea id="ic-e-school-perf" rows="3" placeholder="Grades, behavior at school, teacher reports..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Therapies Received</label><textarea id="ic-e-therapies" rows="3" placeholder="Speech, OT, PT, ABA, previous services..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Prior Diagnoses / Evaluations</label><textarea id="ic-e-prior-dx" rows="3" placeholder="Previous diagnoses, evaluations, reports..." style="resize:vertical"></textarea></div>
+</div>
+<div>
+<span class="slabel">Family &amp; Medical History</span>
+<div class="field"><label>Family/Social History</label><textarea id="ic-e-family" rows="3" placeholder="Family structure, living situation..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Medical History</label><textarea id="ic-e-medical" rows="3" placeholder="Significant illnesses, hospitalizations, allergies..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Psychiatric History</label><textarea id="ic-e-psych" rows="3" placeholder="Previous psychiatric diagnoses, treatments..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Medications</label><textarea id="ic-e-meds" rows="3" placeholder="Current medications, dosages..." style="resize:vertical"></textarea></div>
+</div>
+</div>
+<div class="sep"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div>
+<span class="slabel">Daily Functioning</span>
+<div class="field"><label>Sleep Patterns</label><textarea id="ic-e-sleep" rows="2" placeholder="Sleep quality, duration, issues..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Eating Patterns</label><textarea id="ic-e-eating" rows="2" placeholder="Dietary habits, restrictions, feeding issues..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Adaptive Functioning</label><textarea id="ic-e-adaptive" rows="2" placeholder="Self-care, daily living skills, independence..." style="resize:vertical"></textarea></div>
+</div>
+<div>
+<span class="slabel">Safety &amp; Strengths</span>
+<div class="field"><label>Safety Concerns</label><textarea id="ic-e-safety" rows="2" placeholder="Elopement, self-harm, aggression, supervision needs..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Trauma / Stressors</label><textarea id="ic-e-trauma" rows="2" placeholder="Significant life events, stressors, trauma history..." style="resize:vertical"></textarea></div>
+<div class="field"><label>Strengths &amp; Interests</label><textarea id="ic-e-strengths" rows="2" placeholder="Talents, preferred activities, motivators..." style="resize:vertical"></textarea></div>
+</div>
+</div>
+<div class="sep"></div>
+<div class="field"><label>Parent/Guardian Concerns &amp; Goals</label><textarea id="ic-e-goals" rows="4" placeholder="What are the primary concerns? What goals does the family hope to achieve through evaluation and services?" style="resize:vertical"></textarea></div>
+<div class="field"><label>Evaluator Clinical Notes (Subjective Summary)</label><textarea id="ic-e-subjective" rows="4" placeholder="This field will be auto-populated with AI/narrative generation. Review and edit before finalizing." style="resize:vertical;font-family:var(--mono);font-size:12px;background:var(--amber-bg);border-color:var(--amber-bdr)"></textarea></div>
+<div class="hint"><i data-lucide="info" class="lci" style="width:11px;height:11px"></i> The SUBJECTIVE section only. Do NOT include Assessment, Plan, or diagnostic conclusions here.</div>
+</div>
+<div class="modal-ftr">
+<button class="btn" onclick="closeModal('modal-intake-eval')">Cancel</button>
+<button class="btn btn-ghost" onclick="icGenerateNarrative()"><i data-lucide="wand" class="lci"></i> Generate Narrative</button>
+<button class="btn btn-ghost" onclick="icGenerateWordDoc(document.getElementById('ic-eval-uuid').value)"><i data-lucide="file-text" class="lci"></i> Generate Word Doc</button>
+<button class="btn btn-primary" onclick="icSaveEval()">Save Evaluation</button>
+</div>
+</div></div>
+
+<!-- Signature Pad Modal -->
+<div class="overlay modal-ov" id="modal-signature"><div class="modal" style="max-width:600px">
+<div class="modal-hdr"><div><div class="modal-t">Electronic Signature</div><div class="modal-sub">Sign using mouse, touch, or trackpad</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-signature')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="modal-body" style="padding:18px 22px">
+<div id="sig-signer-info" style="margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px;line-height:1.6"></div>
+<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:12px;font-weight:600;color:var(--text2)">Signature Area</span>
+<div class="btn-group">
+<button class="btn btn-xs" onclick="icClearSignature()">Clear</button>
+<button class="btn btn-xs" onclick="icSetSigMode('draw')" id="sig-mode-draw" style="background:var(--brand);color:#fff">Draw</button>
+<button class="btn btn-xs" onclick="icSetSigMode('type')" id="sig-mode-type">Type</button>
+</div>
+</div>
+<div id="sig-canvas-wrap" style="border:2px dashed var(--border2);border-radius:var(--r);background:#fff;touch-action:none;position:relative">
+<canvas id="sig-canvas" width="540" height="160" style="width:100%;height:160px;display:block;cursor:crosshair;touch-action:none"></canvas>
+</div>
+<div id="sig-type-wrap" style="display:none;margin-top:8px">
+<input id="sig-type-input" type="text" class="no-upper" placeholder="Type your full legal name..." style="width:100%;padding:10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:18px;font-family:'Brush Script MT',cursive;text-transform:none" oninput="icPreviewTypeSig(this.value)">
+<div style="margin-top:6px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:22px;font-family:'Brush Script MT',cursive;color:var(--brand);min-height:40px" id="sig-type-preview"></div>
+</div>
+<div style="margin-top:8px;padding:10px;background:var(--amber-bg);border-radius:var(--r);font-size:11px;color:var(--amber);line-height:1.5">
+<i data-lucide="shield" class="lci" style="width:12px;height:12px"></i> By signing, you consent electronically. Your signature will be timestamped and stored securely for legal purposes.
+</div>
+<input type="hidden" id="sig-result-data">
+<input type="hidden" id="sig-result-type">
+<input type="hidden" id="sig-callback">
+</div>
+<div class="modal-ftr">
+<button class="btn" onclick="closeModal('modal-signature')">Cancel</button>
+<button class="btn btn-primary" onclick="icConfirmSignature()">Accept &amp; Sign</button>
+</div>
+</div></div>
+
+<!-- Send Intake Link Modal -->
+<div class="overlay modal-ov" id="modal-send-intake"><div class="modal modal-sm">
+<div class="modal-hdr"><div><div class="modal-t">Send Intake Forms</div><div class="modal-sub">Email secure intake link to guardian</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-send-intake')"><i data-lucide="x" class="lci"></i></button></div>
+<div class="modal-body" style="padding:18px 22px">
+<input type="hidden" id="si-client-id">
+<div id="si-client-info" style="margin-bottom:14px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px;line-height:1.6"></div>
+<div class="field" style="margin-bottom:12px"><label>Guardian Email *</label><input id="si-email" type="email" placeholder="guardian@email.com"></div>
+<div class="field" style="margin-bottom:12px"><label>Select Forms to Send</label>
+<div id="si-form-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);padding:8px"></div>
+</div>
+<div class="field"><label>Optional Message</label><textarea id="si-message" rows="2" placeholder="Add a personal message to the guardian..." style="resize:vertical"></textarea></div>
+</div>
+<div class="modal-ftr">
+<button class="btn" onclick="closeModal('modal-send-intake')">Cancel</button>
+<button class="btn btn-primary" onclick="icSendIntakeForms()"><i data-lucide="send" class="lci"></i> Send Forms</button>
+</div>
+</div></div>
+
+<script>
+// ===================================================================
+// CLINICAL INTAKE MANAGEMENT MODULE — Super Admin Only
+// ===================================================================
+var _icFormFilter = 'all';
+
+function _icRequireSA() {
+  var _s = getSession();
+  if (!_s || _s.email !== SUPER_ADMIN_EMAIL) { go('dashboard'); toast('Access denied. Super Admin only.','err'); return false; }
+  return true;
+}
+
+function _icAuditLog(action, details) {
+  try {
+    var _s = getSession();
+    var entry = { ts: Date.now(), action: action, details: details || '', by: (_s?._email||_s?.email||'unknown'), ip: '' };
+    var db = getDB();
+    if (!db._auditLog) db._auditLog = [];
+    db._auditLog.push(entry);
+    setDB(function(d){ d._auditLog = db._auditLog; });
+    if (db._auditLog.length > 5000) db._auditLog = db._auditLog.slice(-5000);
+  } catch(e) {}
+}
+
+// ── Intake Center Dashboard ──
+function renderIntakeCenter() {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var clients = db.intakeClients || [];
+  var forms = db.intakeForms || [];
+  var evals = db.evaluations || [];
+  var submissions = db.intakeSubmissions || [];
+
+  var statsHtml = '<div class="stats" style="margin-bottom:14px">' +
+    '<div class="stat"><div class="stat-v" style="color:var(--brand)">' + clients.length + '</div><div class="stat-l">Total Intake Clients</div></div>' +
+    '<div class="stat"><div class="stat-v" style="color:var(--amber)">' + clients.filter(function(c){ return c.status === 'Pending Forms' || c.status === 'Forms Sent'; }).length + '</div><div class="stat-l">Pending / Sent</div></div>' +
+    '<div class="stat"><div class="stat-v" style="color:var(--green)">' + clients.filter(function(c){ return c.status === 'Signed' || c.status === 'Evaluation Completed'; }).length + '</div><div class="stat-l">Completed</div></div>' +
+    '<div class="stat"><div class="stat-v" style="color:var(--purple)">' + evals.length + '</div><div class="stat-l">Evaluations</div></div>' +
+    '</div>';
+
+  var recentHtml = '<div class="card"><div class="card-title" style="margin-bottom:10px">Recent Intake Clients</div>';
+  var recent = clients.slice(-5).reverse();
+  if (!recent.length) {
+    recentHtml += '<div class="empty" style="padding:24px"><h3>No intake clients yet</h3><p style="font-size:12px">Click "New Intake Client" to begin</p></div>';
+  } else {
+    recentHtml += '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Guardian</th><th>Status</th><th>Created</th></tr></thead><tbody>' +
+      recent.map(function(c){
+        var created = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—';
+        return '<tr><td style="font-weight:600">' + (c.lastName||'') + ', ' + (c.firstName||'') + '</td><td>' + (c.guardianName||'') + '</td><td>' + _icStatusBadge(c.status||'Pending Forms') + '</td><td style="font-size:12px;color:var(--text3)">' + created + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  recentHtml += '</div>';
+
+  // Render the dashboard into the intake-center section page-body
+  var icBody = document.querySelector('#sec-intake-center .page-body');
+  if (icBody) {
+    icBody.innerHTML = statsHtml + '<div style="margin-top:14px">' + recentHtml + '</div>';
+  }
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function _icStatusBadge(status) {
+  var colors = { 'Pending Forms': 'b-gray', 'Forms Sent': 'b-blue', 'Signed': 'b-green', 'Evaluation Pending': 'b-amber', 'Evaluation Completed': 'b-purple', 'Archived': 'b-gray' };
+  return '<span class="badge ' + (colors[status]||'b-gray') + '">' + status + '</span>';
+}
+
+// ── Intake Clients ──
+function renderIntakeClients() {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var list = db.intakeClients || [];
+  var q = (document.getElementById('ic-client-q')?.value||'').toLowerCase();
+  var statusF = document.getElementById('ic-status-filter')?.value || '';
+
+  if (q) list = list.filter(function(c){
+    return ((c.firstName||'')+' '+(c.lastName||'')+' '+(c.guardianName||'')+' '+(c.guardianPhone||'')+' '+(c.guardianEmail||'')).toLowerCase().includes(q);
+  });
+  if (statusF) list = list.filter(function(c){ return (c.status||'Pending Forms') === statusF; });
+
+  // Build referral source filter options
+  var refSources = [...new Set(list.map(function(c){ return c.referralSource||''; }).filter(Boolean))].sort();
+  var refSel = document.getElementById('ic-client-ref');
+  if (refSel) {
+    var curVal = refSel.value;
+    refSel.innerHTML = '<option value="">All Referral Sources</option>' + refSources.map(function(s){ return '<option value="' + s + '"' + (s === curVal ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+  }
+  var refF = refSel ? refSel.value : '';
+  if (refF) list = list.filter(function(c){ return (c.referralSource||'') === refF; });
+
+  var el = document.getElementById('ic-clients-tbl');
+  if (!el) return;
+  var fullClients = db.intakeClients || [];
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="users" class="lci" style="width:32px;height:32px"></i></div><h3>No intake clients found</h3><p>Click "New Intake Client" to add one</p></div>';
+  } else {
+    el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>DOB</th><th>Guardian</th><th>Phone</th><th>Email</th><th>Referral</th><th>Status</th><th></th></tr></thead><tbody>' +
+      list.map(function(c){
+        var realIdx = fullClients.indexOf(c);
+        return '<tr>' +
+          '<td style="font-weight:600">' + (c.lastName||'') + ', ' + (c.firstName||'') + '</td>' +
+          '<td style="font-size:12px">' + (c.dob||'') + '</td>' +
+          '<td>' + (c.guardianName||'') + '</td>' +
+          '<td style="font-size:12px">' + (c.guardianPhone||'') + '</td>' +
+          '<td style="font-size:12px">' + (c.guardianEmail||'') + '</td>' +
+          '<td style="font-size:12px">' + (c.referralSource||'—') + '</td>' +
+          '<td>' + _icStatusBadge(c.status||'Pending Forms') + '</td>' +
+          '<td style="white-space:nowrap"><div class="btn-group">' +
+            '<button class="btn btn-xs" onclick="icOpenClientModal(' + realIdx + ')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>' +
+            '<button class="btn btn-xs btn-ghost" onclick="icSendIntakeLink(' + realIdx + ')" title="Send Intake Forms"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i></button>' +
+            '<button class="btn btn-xs btn-ghost" onclick="icViewSignedForms(' + realIdx + ')" title="View Signed Forms"><i data-lucide="file-check" class="lci" style="width:12px;height:12px"></i></button>' +
+            (c.status !== 'Archived' ? '<button class="btn btn-xs btn-ghost" onclick="icOpenEvalForClient(' + realIdx + ')" title="Create Evaluation"><i data-lucide="clipboard-list" class="lci" style="width:12px;height:12px"></i></button>' : '') +
+          '</div></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function icOpenClientModal(idx) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var c = (idx >= 0 && db.intakeClients && db.intakeClients[idx]) ? db.intakeClients[idx] : {};
+  document.getElementById('ic-client-title').textContent = idx >= 0 ? 'Edit Intake Client' : 'New Intake Client';
+  document.getElementById('ic-client-id').value = idx;
+  document.getElementById('ic-c-first').value = c.firstName || '';
+  document.getElementById('ic-c-last').value = c.lastName || '';
+  document.getElementById('ic-c-dob').value = c.dob || '';
+  document.getElementById('ic-c-gender').value = c.gender || '';
+  document.getElementById('ic-c-language').value = c.language || '';
+  document.getElementById('ic-g-name').value = c.guardianName || '';
+  document.getElementById('ic-g-rel').value = c.guardianRel || '';
+  document.getElementById('ic-g-phone').value = c.guardianPhone || '';
+  document.getElementById('ic-g-phone2').value = c.guardianPhone2 || '';
+  document.getElementById('ic-g-email').value = c.guardianEmail || '';
+  document.getElementById('ic-g-addr').value = c.address || '';
+  document.getElementById('ic-g-city').value = c.city || '';
+  document.getElementById('ic-e-name').value = c.emergName || '';
+  document.getElementById('ic-e-phone').value = c.emergPhone || '';
+  document.getElementById('ic-e-rel').value = c.emergRel || '';
+  document.getElementById('ic-ins-provider').value = c.insuranceProvider || '';
+  document.getElementById('ic-ins-id').value = c.insuranceId || '';
+  document.getElementById('ic-ins-group').value = c.insuranceGroup || '';
+  document.getElementById('ic-ref-source').value = c.referralSource || '';
+  document.getElementById('ic-pcp').value = c.pcp || '';
+  document.getElementById('ic-school').value = c.school || '';
+  document.getElementById('ic-grade').value = c.grade || '';
+  document.getElementById('ic-aba-provider').value = c.abaProvider || '';
+  document.getElementById('ic-dx').value = c.diagnoses || '';
+  document.getElementById('ic-custody').value = c.custody || '';
+  document.getElementById('ic-status').value = c.status || 'Pending Forms';
+  document.getElementById('ic-notes').value = c.notes || '';
+  openModal('modal-intake-client');
+}
+
+function icSaveClient() {
+  if (!_icRequireSA()) return;
+  var idx = parseInt(document.getElementById('ic-client-id').value);
+  var firstName = document.getElementById('ic-c-first').value.trim();
+  var lastName = document.getElementById('ic-c-last').value.trim();
+  var guardianName = document.getElementById('ic-g-name').value.trim();
+  var guardianEmail = document.getElementById('ic-g-email').value.trim();
+  if (!firstName || !lastName) { toast('Child first and last name required','err'); return; }
+  if (!guardianName) { toast('Guardian name required','err'); return; }
+
+  var obj = {
+    firstName: firstName,
+    lastName: lastName,
+    dob: document.getElementById('ic-c-dob').value,
+    gender: document.getElementById('ic-c-gender').value,
+    language: document.getElementById('ic-c-language').value.trim(),
+    guardianName: guardianName,
+    guardianRel: document.getElementById('ic-g-rel').value,
+    guardianPhone: document.getElementById('ic-g-phone').value.trim(),
+    guardianPhone2: document.getElementById('ic-g-phone2').value.trim(),
+    guardianEmail: guardianEmail,
+    address: document.getElementById('ic-g-addr').value.trim(),
+    city: document.getElementById('ic-g-city').value.trim(),
+    emergName: document.getElementById('ic-e-name').value.trim(),
+    emergPhone: document.getElementById('ic-e-phone').value.trim(),
+    emergRel: document.getElementById('ic-e-rel').value.trim(),
+    insuranceProvider: document.getElementById('ic-ins-provider').value.trim(),
+    insuranceId: document.getElementById('ic-ins-id').value.trim(),
+    insuranceGroup: document.getElementById('ic-ins-group').value.trim(),
+    referralSource: document.getElementById('ic-ref-source').value.trim(),
+    pcp: document.getElementById('ic-pcp').value.trim(),
+    school: document.getElementById('ic-school').value.trim(),
+    grade: document.getElementById('ic-grade').value.trim(),
+    abaProvider: document.getElementById('ic-aba-provider').value.trim(),
+    diagnoses: document.getElementById('ic-dx').value.trim(),
+    custody: document.getElementById('ic-custody').value.trim(),
+    status: document.getElementById('ic-status').value,
+    notes: document.getElementById('ic-notes').value.trim(),
+  };
+
+  setDB(function(db){
+    if (!db.intakeClients) db.intakeClients = [];
+    if (idx >= 0 && idx < db.intakeClients.length) {
+      var existing = db.intakeClients[idx];
+      Object.assign(existing, obj);
+      existing.updatedAt = Date.now();
+    } else {
+      obj.id = uid();
+      obj.createdAt = Date.now();
+      obj.updatedAt = Date.now();
+      db.intakeClients.push(obj);
+    }
+  });
+
+  closeModal('modal-intake-client');
+  _icAuditLog('intake-client-save', 'Client: ' + lastName + ', ' + firstName);
+  renderIntakeClients();
+  toast('Intake client saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+}
+
+// ── Send Intake Forms ──
+function icSendIntakeLink(idx) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var c = (db.intakeClients || [])[idx];
+  if (!c) { toast('Client not found','err'); return; }
+
+  document.getElementById('si-client-id').value = idx;
+  document.getElementById('si-email').value = c.guardianEmail || '';
+  document.getElementById('si-message').value = '';
+  document.getElementById('si-client-info').innerHTML =
+    '<strong>' + (c.lastName||'') + ', ' + (c.firstName||'') + '</strong><br>' +
+    'Guardian: ' + (c.guardianName||'') + ' &middot; DOB: ' + (c.dob||'—') + '<br>' +
+    'Current Status: ' + (c.status||'Pending Forms');
+
+  // List available active forms
+  var forms = (db.intakeForms || []).filter(function(f){ return f.active !== false; });
+  var formList = document.getElementById('si-form-list');
+  if (!forms.length) {
+    formList.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:12px">No active form templates. Create one in Consent Forms first.</div>';
+  } else {
+    formList.innerHTML = forms.map(function(f, fi){
+      return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px">' +
+        '<input type="checkbox" class="si-form-cb" value="' + fi + '" checked style="width:15px;height:15px;accent-color:var(--brand)"> ' +
+        '<strong>' + (f.name||'Untitled') + '</strong> <span style="color:var(--text3);font-size:11px">(' + (f.type||'') + ')</span>' +
+        '</label>';
+    }).join('');
+  }
+
+  openModal('modal-send-intake');
+}
+
+function icSendIntakeForms() {
+  var idx = parseInt(document.getElementById('si-client-id').value);
+  var email = document.getElementById('si-email').value.trim();
+  var message = document.getElementById('si-message').value.trim();
+  if (!email) { toast('Guardian email is required','err'); return; }
+
+  var db = getDB();
+  var c = (db.intakeClients || [])[idx];
+  if (!c) { toast('Client not found','err'); return; }
+
+  // Collect selected form indices
+  var selectedIndices = [];
+  document.querySelectorAll('.si-form-cb:checked').forEach(function(cb){ selectedIndices.push(parseInt(cb.value)); });
+  if (!selectedIndices.length) { toast('Select at least one form to send','warn'); return; }
+
+  // Generate secure token
+  var token = btoa(c.id + '|' + email + '|' + Date.now() + '|' + Math.random().toString(36).slice(2)).replace(/[+/=]/g, function(ch){
+    return ch === '+' ? '-' : ch === '/' ? '_' : '';
+  });
+  var baseUrl = window.location.origin + window.location.pathname;
+  var intakeLink = baseUrl + '?intake=' + token;
+
+  // Build email HTML
+  var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
+  var childName = (c.firstName||'') + ' ' + (c.lastName||'');
+  var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+
+  var emailHtml = [
+    '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
+    '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
+      logoHtml,
+      '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Secure Intake Portal</div></div>',
+    '</div>',
+    '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
+      '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Secure Intake Forms for ' + childName + '</p>',
+      '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
+      '<p style="color:#4d4c48;font-size:13px;margin:0 0 14px;line-height:1.5">The following intake forms are ready for your review and electronic signature:</p>',
+      '<div style="background:#fff;border:1px solid #e8e6dc;border-radius:8px;padding:14px 18px;margin-bottom:18px">',
+        '<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#141413">Forms to complete:</p>',
+        '<p style="margin:0;font-size:13px;color:#4d4c48">' + formNames + '</p>',
+      '</div>',
+      (message ? '<p style="color:#4d4c48;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + message + '</em></p>' : ''),
+      '<div style="text-align:center;margin-bottom:18px">',
+        '<a href="' + intakeLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
+        '<p style="color:#87867f;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours. Do not share.</p>',
+      '</div>',
+      '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">If you did not expect this email, please ignore it. &middot; ClaimDataCare &copy; 2026</p>',
+    '</div></div>',
+  ].join('');
+
+  sendEmail(email, 'ClaimDataCare — Secure Intake Forms for ' + childName, emailHtml, 'intake').then(function(sent){
+    if (sent) {
+      // Update client status
+      setDB(function(db){
+        var client = (db.intakeClients || [])[idx];
+        if (client && (client.status === 'Pending Forms' || !client.status)) {
+          client.status = 'Forms Sent';
+          client.updatedAt = Date.now();
+        }
+        if (!db.intakeSubmissions) db.intakeSubmissions = [];
+        selectedIndices.forEach(function(fi){
+          var form = (db.intakeForms || [])[fi];
+          if (form) {
+            db.intakeSubmissions.push({
+              id: uid(),
+              clientIdx: idx,
+              clientId: c.id,
+              formIdx: fi,
+              formId: form.id,
+              formName: form.name,
+              guardianEmail: email,
+              token: token,
+              sentAt: Date.now(),
+              status: 'Sent',
+              childName: childName,
+              guardianName: c.guardianName,
+            });
+          }
+        });
+      });
+      _icAuditLog('intake-forms-sent', 'Forms: ' + formNames + ' to ' + email + ' for ' + childName);
+      closeModal('modal-send-intake');
+      renderIntakeClients();
+      toast('Intake forms sent to ' + email + ' <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+    } else {
+      toast('Failed to send email. Check email configuration.','err');
+    }
+  });
+}
+
+// ── Intake Forms (Consent Forms) ──
+function _icSeedDefaultForms() {
+  var db = getDB();
+  if (db.intakeForms && db.intakeForms.length > 0) return;
+  var defaults = [
+    {
+      name: 'HIPAA Acknowledgment & Authorization',
+      type: 'HIPAA',
+      category: 'Legal',
+      required: true,
+      electronicSig: true,
+      active: true,
+      description: 'Authorization to use and disclose protected health information (PHI) for treatment, payment, and healthcare operations.',
+      content: '<h3>ACKNOWLEDGMENT OF NOTICE OF PRIVACY PRACTICES</h3><p>I acknowledge that I have received a copy of the Notice of Privacy Practices for {{childName}}. I understand that my protected health information may be used and disclosed for treatment, payment, and healthcare operations as described in the Notice.</p><p>I have the right to request restrictions on the use and disclosure of my protected health information. The practice is not required to agree to these restrictions.</p><p>I have the right to revoke this authorization in writing at any time, except to the extent that action has already been taken in reliance on this authorization.</p><p><strong>Child:</strong> {{childName}}<br><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
+    },
+    {
+      name: 'Consent for Evaluation & Treatment',
+      type: 'Consent',
+      category: 'Clinical',
+      required: true,
+      electronicSig: true,
+      active: true,
+      description: 'Consent for comprehensive diagnostic evaluation and behavioral health treatment services.',
+      content: '<h3>CONSENT FOR COMPREHENSIVE EVALUATION AND TREATMENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, hereby consent to a comprehensive diagnostic evaluation and/or behavioral health treatment services at ClaimDataCare Behavioral Health.</p><p>I understand that the evaluation may include clinical interviews, behavioral observations, standardized assessments, and review of records. I consent to the administration of these procedures as deemed clinically appropriate.</p><p>I understand that treatment may include behavioral health interventions, parent training, and coordination of care with other providers. I have been informed of the nature and purpose of the proposed services.</p><p>I understand that my consent is voluntary and may be withdrawn at any time.</p><p><strong>Child:</strong> {{childName}}<br><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
+    },
+    {
+      name: 'Financial Responsibility Agreement',
+      type: 'Financial',
+      category: 'Administrative',
+      required: true,
+      electronicSig: true,
+      active: true,
+      description: 'Agreement regarding financial responsibility for services not covered by insurance.',
+      content: '<h3>FINANCIAL RESPONSIBILITY AGREEMENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, agree to be financially responsible for all services provided to {{childName}} by ClaimDataCare Behavioral Health.</p><p>I understand that:</p><ul><li>I am responsible for any co-payments, co-insurance, deductibles, or non-covered services as determined by my insurance plan.</li><li>Payment is due at the time of service unless other arrangements have been made.</li><li>A valid credit/debit card may be kept on file for automatic payment of balances.</li><li>I will provide accurate and updated insurance information as changes occur.</li></ul><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
+    },
+    {
+      name: 'Release of Information',
+      type: 'Release',
+      category: 'Legal',
+      required: false,
+      electronicSig: true,
+      active: true,
+      description: 'Authorization to exchange protected health information with specified providers, schools, or agencies.',
+      content: '<h3>AUTHORIZATION FOR RELEASE OF INFORMATION</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, authorize ClaimDataCare Behavioral Health to exchange protected health information with:</p><p><strong>Organization:</strong> _________________________________<br><strong>Contact:</strong> _________________________________<br><strong>Phone:</strong> _________________________________<br><strong>Fax:</strong> _________________________________</p><p>This authorization permits the use and disclosure of the following information (check all that apply):<br>[ ] Diagnostic evaluations and reports<br>[ ] Treatment plans and progress notes<br>[ ] Psychological or developmental testing results<br>[ ] Medication records<br>[ ] Educational records and IEP/504 plans<br>[ ] Billing and insurance information</p><p>This authorization expires one year from the date of signature unless revoked earlier.</p><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
+    },
+    {
+      name: 'Telehealth Consent',
+      type: 'Telehealth',
+      category: 'Clinical',
+      required: false,
+      electronicSig: true,
+      active: true,
+      description: 'Consent for the delivery of behavioral health services via telehealth/telemedicine.',
+      content: '<h3>TELEHEALTH INFORMED CONSENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, hereby consent to the use of telehealth for the delivery of behavioral health services.</p><p>I understand that:</p><ul><li>Telehealth involves the use of secure video conferencing technology to provide services remotely.</li><li>I have the right to decline telehealth services and request in-person services at any time.</li><li>There are potential risks including possible technical failures and limitations in the assessment process.</li><li>Emergency procedures have been explained to me.</li><li>My privacy will be protected through encrypted, HIPAA-compliant technology.</li></ul><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
+    },
+  ];
+  setDB(function(db){
+    if (!db.intakeForms) db.intakeForms = [];
+    if (db.intakeForms.length > 0) return;
+    defaults.forEach(function(tpl){
+      tpl.id = uid();
+      tpl.createdAt = Date.now();
+      tpl.updatedAt = Date.now();
+      db.intakeForms.push(tpl);
+    });
+  });
+}
+
+function renderIntakeConsentForms() {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  _icSeedDefaultForms();
+  var list = db.intakeForms || [];
+  var q = (document.getElementById('ic-form-q')?.value||'').toLowerCase();
+  var type = document.getElementById('ic-form-type')?.value || '';
+  if (q) list = list.filter(function(f){ return (f.name||'').toLowerCase().includes(q) || (f.type||'').toLowerCase().includes(q); });
+  if (type) list = list.filter(function(f){ return (f.type||'') === type; });
+  if (_icFormFilter === 'active') list = list.filter(function(f){ return f.active !== false; });
+  if (_icFormFilter === 'archived') list = list.filter(function(f){ return f.active === false; });
+
+  var el = document.getElementById('ic-forms-tbl');
+  if (!el) return;
+  var fullForms = db.intakeForms || [];
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="file-signature" class="lci" style="width:32px;height:32px"></i></div><h3>No consent form templates</h3><p>Click "New Template" to create one</p></div>';
+  } else {
+    el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Category</th><th>Electronic Sig</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>' +
+      list.map(function(f){
+        var realIdx = fullForms.indexOf(f);
+        var created = f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '—';
+        return '<tr>' +
+          '<td style="font-weight:600">' + (f.name||'') + '</td>' +
+          '<td><span class="badge b-blue" style="font-size:10px">' + (f.type||'') + '</span></td>' +
+          '<td style="font-size:12px;color:var(--text2)">' + (f.category||'—') + '</td>' +
+          '<td>' + (f.electronicSig !== false ? '<span style="color:var(--green);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>') + '</td>' +
+          '<td>' + (f.active !== false ? '<span class="badge b-green">Active</span>' : '<span class="badge b-gray">Archived</span>') + '</td>' +
+          '<td style="font-size:12px;color:var(--text3)">' + created + '</td>' +
+          '<td><div class="btn-group"><button class="btn btn-xs" onclick="icOpenFormModal(' + realIdx + ')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button></div></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function icFormFilterSet(filter, btn) {
+  _icFormFilter = filter;
+  document.querySelectorAll('#sec-intake-forms .stab').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderIntakeConsentForms();
+}
+
+function icOpenFormModal(idx) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var f = (idx >= 0 && db.intakeForms && db.intakeForms[idx]) ? db.intakeForms[idx] : {};
+  document.getElementById('ic-form-title').textContent = idx >= 0 ? 'Edit Form Template' : 'New Consent Form Template';
+  document.getElementById('ic-form-id').value = idx;
+  document.getElementById('ic-form-name').value = f.name || '';
+  document.getElementById('ic-form-type-modal').value = f.type || 'HIPAA';
+  document.getElementById('ic-form-cat').value = f.category || '';
+  document.getElementById('ic-form-required').checked = f.required !== false;
+  document.getElementById('ic-form-desc').value = f.description || '';
+  document.getElementById('ic-form-content').value = f.content || '';
+  document.getElementById('ic-form-active').checked = f.active !== false;
+  document.getElementById('ic-form-electronic').checked = f.electronicSig !== false;
+  openModal('modal-intake-form');
+}
+
+function icSaveForm() {
+  if (!_icRequireSA()) return;
+  var idx = parseInt(document.getElementById('ic-form-id').value);
+  var name = document.getElementById('ic-form-name').value.trim();
+  if (!name) { toast('Form name is required','err'); return; }
+
+  var obj = {
+    name: name,
+    type: document.getElementById('ic-form-type-modal').value,
+    category: document.getElementById('ic-form-cat').value.trim(),
+    required: document.getElementById('ic-form-required').checked,
+    description: document.getElementById('ic-form-desc').value.trim(),
+    content: document.getElementById('ic-form-content').value,
+    active: document.getElementById('ic-form-active').checked,
+    electronicSig: document.getElementById('ic-form-electronic').checked,
+  };
+
+  setDB(function(db){
+    if (!db.intakeForms) db.intakeForms = [];
+    if (idx >= 0 && idx < db.intakeForms.length) {
+      Object.assign(db.intakeForms[idx], obj);
+      db.intakeForms[idx].updatedAt = Date.now();
+    } else {
+      obj.id = uid();
+      obj.createdAt = Date.now();
+      obj.updatedAt = Date.now();
+      db.intakeForms.push(obj);
+    }
+  });
+
+  closeModal('modal-intake-form');
+  _icAuditLog('intake-form-save', 'Form: ' + name);
+  renderIntakeConsentForms();
+  toast('Form template saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+}
+
+// ── Signed Forms Viewer ──
+function icViewSignedForms(idx) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var c = (db.intakeClients || [])[idx];
+  if (!c) return;
+  var submissions = (db.intakeSubmissions || []).filter(function(s){
+    return s.clientId === c.id || s.clientIdx === idx;
+  });
+  if (!submissions.length) {
+    toast('No forms sent yet. Click the mail icon to send intake forms.','info');
+    return;
+  }
+  var html = '<div style="padding:16px"><h3 style="margin-bottom:12px">Signed Forms for ' + (c.lastName||'') + ', ' + (c.firstName||'') + '</h3>';
+  html += '<div class="tbl-wrap"><table><thead><tr><th>Form</th><th>Sent</th><th>Status</th><th>Signed At</th><th></th></tr></thead><tbody>';
+  submissions.forEach(function(s){
+    var sent = s.sentAt ? new Date(s.sentAt).toLocaleDateString() : '—';
+    var signed = s.signedAt ? new Date(s.signedAt).toLocaleString() : '—';
+    html += '<tr><td>' + (s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status === 'Signed' ? 'Signed' : 'Forms Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
+      '<td>' + (s.signedAt ? '<button class="btn btn-xs" onclick="icDownloadSignedPDF(\'' + s.id + '\')"><i data-lucide="download" class="lci"></i> PDF</button>' : '') + '</td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  var existing = document.getElementById('modal-signed-forms');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.className = 'overlay modal-ov open';
+  overlay.id = 'modal-signed-forms';
+  overlay.onclick = function(e) { if (e.target === overlay) { closeModal('modal-signed-forms'); } };
+  overlay.innerHTML = '<div class="modal modal-lg"><div class="modal-hdr"><div><div class="modal-t">Signed Forms</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-signed-forms\')"><i data-lucide="x" class="lci"></i></button></div><div class="modal-body">' + html + '</div></div>';
+  document.body.appendChild(overlay);
+  setTimeout(_renderLucideIcons, 50);
+}
+
+function icDownloadSignedPDF(submissionId) {
+  // In a real implementation, this would generate a PDF with the signed form
+  // For now, we'll create a simple document representation
+  var db = getDB();
+  var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
+  if (!sub) { toast('Submission not found','err'); return; }
+
+  try {
+    var doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text('Signed Document', 20, 30);
+    doc.setFontSize(11);
+    doc.text('Form: ' + (sub.formName||''), 20, 45);
+    doc.text('Signed by: ' + (sub.signedByName||''), 20, 55);
+    doc.text('Date: ' + (sub.signedAt ? new Date(sub.signedAt).toLocaleString() : ''), 20, 65);
+    doc.text('IP: ' + (sub.signerIp||'N/A'), 20, 75);
+    doc.text('Signature ID: ' + sub.id, 20, 85);
+    doc.save('signed_' + sub.formName + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+    toast('PDF downloaded','ok');
+  } catch(e) {
+    toast('PDF generation requires jsPDF library.','warn');
+  }
+}
+
+// ── Comprehensive Evaluation ──
+function renderIntakeEvaluation() {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var list = db.evaluations || [];
+  var q = (document.getElementById('ic-eval-q')?.value||'').toLowerCase();
+  var statusF = document.getElementById('ic-eval-status')?.value || '';
+  if (q) list = list.filter(function(e){
+    var c = (db.intakeClients || []).find(function(cl){ return cl.id === e.clientId; });
+    var name = (c ? (c.lastName||'') + ' ' + (c.firstName||'') : e.clientName||'');
+    return name.toLowerCase().includes(q);
+  });
+  if (statusF) list = list.filter(function(e){ return (e.status||'Draft') === statusF; });
+
+  var el = document.getElementById('ic-eval-tbl');
+  if (!el) return;
+  var fullEvals = db.evaluations || [];
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="clipboard-list" class="lci" style="width:32px;height:32px"></i></div><h3>No evaluations yet</h3><p>Click "New Evaluation" to start one</p></div>';
+  } else {
+    el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>DOB</th><th>Evaluation Date</th><th>Status</th><th>Last Updated</th><th></th></tr></thead><tbody>' +
+      list.map(function(e){
+        var realIdx = fullEvals.indexOf(e);
+        var c = (db.intakeClients || []).find(function(cl){ return cl.id === e.clientId; });
+        var name = c ? (c.lastName||'') + ', ' + (c.firstName||'') : (e.clientName||'Unknown');
+        var dob = c ? (c.dob||'') : '';
+        var updated = e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : (e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '—');
+        return '<tr>' +
+          '<td style="font-weight:600">' + name + '</td>' +
+          '<td style="font-size:12px">' + dob + '</td>' +
+          '<td style="font-size:12px">' + (e.evalDate||'') + '</td>' +
+          '<td>' + _icEvalStatusBadge(e.status||'Draft') + '</td>' +
+          '<td style="font-size:12px;color:var(--text3)">' + updated + '</td>' +
+          '<td><div class="btn-group"><button class="btn btn-xs" onclick="icOpenEvalModal(' + realIdx + ')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>' +
+          '<button class="btn btn-xs btn-ghost" onclick="icGenerateWordDoc(\'' + e.id + '\')" title="Generate Word Doc"><i data-lucide="file-text" class="lci" style="width:12px;height:12px"></i></button></div></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function _icEvalStatusBadge(status) {
+  var colors = { 'Draft': 'b-gray', 'In Progress': 'b-blue', 'Completed': 'b-green' };
+  return '<span class="badge ' + (colors[status]||'b-gray') + '">' + status + '</span>';
+}
+
+function icOpenEvalForClient(idx) {
+  var db = getDB();
+  var c = (db.intakeClients || [])[idx];
+  if (!c) { toast('Client not found','err'); return; }
+  // Check if evaluation already exists
+  var existing = (db.evaluations || []).findIndex(function(e){ return e.clientId === c.id; });
+  if (existing >= 0) {
+    icOpenEvalModal(existing);
+  } else {
+    // Create a new one
+    icOpenEvalModal(-1);
+    document.getElementById('ic-eval-client-id').value = c.id || '';
+    document.getElementById('ic-eval-client-sel').value = c.id || '';
+  }
+}
+
+function icOpenEvalModal(idx) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var e = (idx >= 0 && db.evaluations && db.evaluations[idx]) ? db.evaluations[idx] : {};
+
+  // Populate client dropdown
+  var clients = db.intakeClients || [];
+  var clientSel = document.getElementById('ic-eval-client-sel');
+  clientSel.innerHTML = '<option value="">Select client...</option>' +
+    clients.map(function(c){ return '<option value="' + (c.id||'') + '">' + (c.lastName||'') + ', ' + (c.firstName||'') + '</option>'; }).join('');
+
+  document.getElementById('ic-eval-title').textContent = idx >= 0 ? 'Edit Comprehensive Evaluation' : 'New Comprehensive Evaluation';
+  document.getElementById('ic-eval-id').value = idx;
+  document.getElementById('ic-eval-uuid').value = e.id || '';
+  document.getElementById('ic-eval-client-id').value = e.clientId || '';
+  clientSel.value = e.clientId || '';
+  document.getElementById('ic-eval-date').value = e.evalDate || '';
+  document.getElementById('ic-eval-status-modal').value = e.status || 'Draft';
+
+  // Fill all fields
+  var fields = ['prenatal','milestones','behavior','communication','sensory','repetitive','social','emotional',
+    'education','schoolPerf','therapies','priorDx','family','medical','psych','meds','sleep','eating','adaptive',
+    'safety','trauma','strengths','goals','subjective'];
+  fields.forEach(function(f){
+    var el = document.getElementById('ic-e-' + f);
+    if (el) el.value = e[f] || '';
+  });
+
+  openModal('modal-intake-eval');
+}
+
+function icEvalClientChanged(clientId) {
+  document.getElementById('ic-eval-client-id').value = clientId || '';
+}
+
+function icSaveEval() {
+  if (!_icRequireSA()) return;
+  var idx = parseInt(document.getElementById('ic-eval-id').value);
+  var clientId = document.getElementById('ic-eval-client-id').value;
+  if (!clientId) { toast('Please select a client','err'); return; }
+
+  var obj = { clientId: clientId };
+  obj.evalDate = document.getElementById('ic-eval-date').value;
+  obj.status = document.getElementById('ic-eval-status-modal').value;
+
+  var fields = ['prenatal','milestones','behavior','communication','sensory','repetitive','social','emotional',
+    'education','schoolPerf','therapies','priorDx','family','medical','psych','meds','sleep','eating','adaptive',
+    'safety','trauma','strengths','goals','subjective'];
+  fields.forEach(function(f){
+    var el = document.getElementById('ic-e-' + f);
+    if (el) obj[f] = el.value;
+  });
+
+  setDB(function(db){
+    if (!db.evaluations) db.evaluations = [];
+    if (idx >= 0 && idx < db.evaluations.length) {
+      Object.assign(db.evaluations[idx], obj);
+      db.evaluations[idx].updatedAt = Date.now();
+      document.getElementById('ic-eval-uuid').value = db.evaluations[idx].id;
+    } else {
+      obj.id = uid();
+      obj.createdAt = Date.now();
+      obj.updatedAt = Date.now();
+      db.evaluations.push(obj);
+      document.getElementById('ic-eval-uuid').value = obj.id;
+    }
+  });
+
+  closeModal('modal-intake-eval');
+  _icAuditLog('intake-eval-save', 'Evaluation for client: ' + clientId);
+  renderIntakeEvaluation();
+  toast('Evaluation saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+}
+
+// ── AI Narrative Generation ──
+function icGenerateNarrative() {
+  var fields = {
+    prenatal: { label: 'Prenatal/Perinatal History', el: 'ic-e-prenatal' },
+    milestones: { label: 'Developmental Milestones', el: 'ic-e-milestones' },
+    behavior: { label: 'Behavioral Concerns', el: 'ic-e-behavior' },
+    communication: { label: 'Communication History', el: 'ic-e-communication' },
+    sensory: { label: 'Sensory Concerns', el: 'ic-e-sensory' },
+    repetitive: { label: 'Repetitive Behaviors', el: 'ic-e-repetitive' },
+    social: { label: 'Social Functioning', el: 'ic-e-social' },
+    emotional: { label: 'Emotional/Behavioral Regulation', el: 'ic-e-emotional' },
+    education: { label: 'Educational History', el: 'ic-e-education' },
+    schoolPerf: { label: 'School Performance', el: 'ic-e-school-perf' },
+    therapies: { label: 'Therapies Received', el: 'ic-e-therapies' },
+    priorDx: { label: 'Prior Diagnoses', el: 'ic-e-prior-dx' },
+    family: { label: 'Family/Social History', el: 'ic-e-family' },
+    medical: { label: 'Medical History', el: 'ic-e-medical' },
+    psych: { label: 'Psychiatric History', el: 'ic-e-psych' },
+    meds: { label: 'Medications', el: 'ic-e-meds' },
+    sleep: { label: 'Sleep Patterns', el: 'ic-e-sleep' },
+    eating: { label: 'Eating Patterns', el: 'ic-e-eating' },
+    adaptive: { label: 'Adaptive Functioning', el: 'ic-e-adaptive' },
+    safety: { label: 'Safety Concerns', el: 'ic-e-safety' },
+    trauma: { label: 'Trauma/Stressors', el: 'ic-e-trauma' },
+    strengths: { label: 'Strengths & Interests', el: 'ic-e-strengths' },
+    goals: { label: 'Parent Concerns & Goals', el: 'ic-e-goals' },
+  };
+
+  var parts = [];
+  var hasData = false;
+  Object.keys(fields).forEach(function(k){
+    var val = (document.getElementById(fields[k].el)?.value||'').trim();
+    if (val) {
+      hasData = true;
+      parts.push(fields[k].label + ': ' + val);
+    }
+  });
+
+  if (!hasData) {
+    toast('No data entered yet. Fill in evaluation fields first.','warn');
+    return;
+  }
+
+  // Build a structured SUBJECTIVE narrative
+  var clientName = '';
+  var clientId = document.getElementById('ic-eval-client-id').value;
+  if (clientId) {
+    var db = getDB();
+    var c = (db.intakeClients || []).find(function(cl){ return cl.id === clientId; });
+    if (c) clientName = (c.firstName||'') + ' ' + (c.lastName||'');
+  }
+
+  var narrative = 'SUBJECTIVE\n\n';
+  narrative += clientName ? clientName + ' is a ' + (document.getElementById('ic-c-dob')?.value ? '' : '') + 'year-old ' + (document.getElementById('ic-c-gender')?.value||'').toLowerCase() + ' ' : 'The client ';
+  narrative += 'presented for a comprehensive diagnostic evaluation. The following information was obtained through clinical interview with the parent/guardian and review of available records.\n\n';
+
+  // Organize into sections
+  var sectionOrder = [
+    { title: 'Developmental History', keys: ['prenatal','milestones','behavior'] },
+    { title: 'Communication and Social Functioning', keys: ['communication','social'] },
+    { title: 'Behavioral and Emotional Presentation', keys: ['behavior','emotional','repetitive','sensory'] },
+    { title: 'Educational History and School Performance', keys: ['education','schoolPerf'] },
+    { title: 'Medical and Psychiatric History', keys: ['medical','psych','meds','priorDx'] },
+    { title: 'Therapeutic History', keys: ['therapies'] },
+    { title: 'Family and Social History', keys: ['family'] },
+    { title: 'Daily Functioning', keys: ['sleep','eating','adaptive'] },
+    { title: 'Safety and Risk Considerations', keys: ['safety','trauma'] },
+    { title: 'Strengths and Interests', keys: ['strengths'] },
+    { title: 'Parent/Guardian Concerns and Goals', keys: ['goals'] },
+  ];
+
+  sectionOrder.forEach(function(sec){
+    var secParts = [];
+    sec.keys.forEach(function(k){
+      var val = (document.getElementById(fields[k]?.el)?.value||'').trim();
+      if (val) secParts.push(val);
+    });
+    if (secParts.length) {
+      narrative += '\n' + sec.title.toUpperCase() + '\n';
+      secParts.forEach(function(p){ narrative += '  ' + p + '\n'; });
+    }
+  });
+
+  narrative += '\nThe above represents the subjective history as reported by the parent/guardian and is based on clinical interview. This information is intended to inform the diagnostic formulation and is subject to review and interpretation by the evaluating clinician.\n';
+  narrative += '\n--- THIS IS THE SUBJECTIVE SECTION ONLY ---\n';
+  narrative += 'Assessment, Plan, and diagnostic conclusions must be added separately by the evaluating provider.\n';
+
+  document.getElementById('ic-e-subjective').value = narrative;
+  _icAuditLog('intake-narrative-generated', 'Client: ' + clientName);
+  toast('Narrative generated. Review and edit before finalizing.','info');
+}
+
+// ── Word Document Generation ──
+function icGenerateWordDoc(evalId) {
+  if (!_icRequireSA()) return;
+  var db = getDB();
+  var e = (db.evaluations || []).find(function(ev){ return ev.id === evalId; });
+  if (!e) { toast('Evaluation not found','err'); return; }
+
+  var c = (db.intakeClients || []).find(function(cl){ return cl.id === e.clientId; });
+  var clientName = c ? ((c.firstName||'') + ' ' + (c.lastName||'')) : (e.clientName||'Unknown');
+  var dob = c ? (c.dob||'') : '';
+  var gender = c ? (c.gender||'') : '';
+  var guardian = c ? (c.guardianName||'') : '';
+  var evalDate = e.evalDate || new Date().toISOString().slice(0,10);
+
+  // Build HTML for Word document
+  var htmlContent = [
+    '<html xmlns:o="http://www.w3.org/TR/REC-html-RDFa-2" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns="http://www.w3.org/TR/REC-html40">',
+    '<head><meta charset="UTF-8"><style>',
+    'body { font-family: "Calibri", "Times New Roman", serif; font-size: 12pt; color: #1a1a1a; margin: 1in; line-height: 1.8; }',
+    'h1 { font-size: 18pt; font-weight: 700; color: #1a1a1a; text-align: center; margin-bottom: 4pt; letter-spacing: 0.5pt; }',
+    'h2 { font-size: 14pt; font-weight: 700; color: #2c2c2c; margin-top: 18pt; margin-bottom: 6pt; border-bottom: 1px solid #666; padding-bottom: 3pt; }',
+    'h3 { font-size: 12pt; font-weight: 700; color: #333; margin-top: 12pt; margin-bottom: 4pt; }',
+    'p { margin: 0 0 6pt 0; text-align: justify; }',
+    '.header { text-align: center; margin-bottom: 24pt; }',
+    '.header .practice { font-size: 16pt; font-weight: 700; }',
+    '.header .info { font-size: 10pt; color: #555; }',
+    '.demographics { margin-bottom: 18pt; }',
+    '.demographics table { width: 100%; border-collapse: collapse; font-size: 11pt; }',
+    '.demographics td { padding: 3pt 6pt; border: 1px solid #ccc; }',
+    '.demographics .label { font-weight: 700; width: 30%; background: #f5f5f5; }',
+    '.subjective { margin-top: 18pt; }',
+    '.subjective p { text-indent: 0; margin-bottom: 8pt; }',
+    '.note { font-size: 10pt; color: #888; font-style: italic; margin-top: 18pt; border-top: 1px solid #ccc; padding-top: 8pt; }',
+    '.page-break { page-break-before: always; }',
+    '</style></head><body>',
+    '<div class="header">',
+    '<div class="practice">ClaimDataCare Behavioral Health</div>',
+    '<div class="info">Comprehensive Diagnostic Evaluation &mdash; SUBJECTIVE Section</div>',
+    '<div class="info">Date of Evaluation: ' + evalDate + '</div>',
+    '</div>',
+    '<h2>Demographic Information</h2>',
+    '<div class="demographics"><table>',
+    '<tr><td class="label">Client Name</td><td>' + clientName + '</td></tr>',
+    '<tr><td class="label">Date of Birth</td><td>' + dob + '</td></tr>',
+    '<tr><td class="label">Gender</td><td>' + gender + '</td></tr>',
+    '<tr><td class="label">Parent/Guardian</td><td>' + guardian + '</td></tr>',
+    '<tr><td class="label">Evaluation Date</td><td>' + evalDate + '</td></tr>',
+    '</table></div>',
+    '<h2>Subjective Clinical Documentation</h2>',
+    '<div class="subjective">'
+  ];
+
+  // Add sections that have content
+  var sections = [
+    { title: 'Developmental History', fields: ['prenatal','milestones','behavior'] },
+    { title: 'Communication History', fields: ['communication'] },
+    { title: 'Sensory and Repetitive Behaviors', fields: ['sensory','repetitive'] },
+    { title: 'Social and Emotional Functioning', fields: ['social','emotional'] },
+    { title: 'Educational History', fields: ['education','schoolPerf'] },
+    { title: 'Therapeutic and Intervention History', fields: ['therapies'] },
+    { title: 'Medical and Psychiatric History', fields: ['medical','psych','meds','priorDx'] },
+    { title: 'Family and Social History', fields: ['family'] },
+    { title: 'Daily Living and Adaptive Functioning', fields: ['sleep','eating','adaptive'] },
+    { title: 'Safety and Risk Assessment', fields: ['safety','trauma'] },
+    { title: 'Strengths and Interests', fields: ['strengths'] },
+    { title: 'Parent/Guardian Concerns and Goals for Evaluation', fields: ['goals'] },
+    { title: 'Additional Clinical Observations', fields: ['subjective'] },
+  ];
+
+  var hasContent = false;
+  sections.forEach(function(sec){
+    var secTexts = [];
+    sec.fields.forEach(function(f){
+      if (e[f] && e[f].trim()) secTexts.push(e[f].trim());
+    });
+    if (secTexts.length) {
+      hasContent = true;
+      htmlContent.push('<h3>' + sec.title + '</h3>');
+      secTexts.forEach(function(t){
+        htmlContent.push('<p>' + t.replace(/\n/g, '<br>') + '</p>');
+      });
+    }
+  });
+
+  if (!hasContent) {
+    htmlContent.push('<p><em>No subjective data has been documented for this domain at this time. Further information may be obtained through additional clinical interview and record review.</em></p>');
+  }
+
+  htmlContent.push(
+    '</div>',
+    '<p class="note">',
+    '<strong>Clinical Note:</strong> This document represents the SUBJECTIVE portion of the comprehensive diagnostic evaluation only. The information contained herein is based on parent/guardian report and clinical interview. Assessment, diagnostic impressions, and treatment recommendations are not included in this section and must be documented separately by the evaluating clinician.<br><br>',
+    'Document generated: ' + new Date().toLocaleString() + '<br>',
+    'Electronic signature: ___________________________________ &nbsp;&nbsp; Date: _______________<br>',
+    '</p>',
+    '</body></html>'
+  );
+
+  var fullHtml = htmlContent.join('\n');
+  var blob = new Blob([fullHtml], { type: 'application/msword;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'Comprehensive_Evaluation_' + clientName.replace(/[^a-zA-Z0-9]/g, '_') + '_' + evalDate + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  _icAuditLog('intake-word-generated', 'Evaluation: ' + evalId + ' for ' + clientName);
+  toast('Word document generated <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+}
+
+// ── Signature Pad ──
+var _sigCanvas = null;
+var _sigCtx = null;
+var _sigDrawing = false;
+var _sigMode = 'draw';
+var _sigCallback = null;
+
+function icOpenSignaturePad(signerName, signerEmail, callback) {
+  document.getElementById('sig-signer-info').innerHTML = 'Signing as: <strong>' + (signerName||'') + '</strong> &middot; ' + (signerEmail||'');
+  document.getElementById('sig-result-data').value = '';
+  document.getElementById('sig-result-type').value = '';
+  _sigCallback = callback ? callback.toString() : '';
+  document.getElementById('sig-callback').value = _sigCallback;
+
+  // Reset mode
+  icSetSigMode('draw');
+  openModal('modal-signature');
+
+  setTimeout(function(){
+    _sigCanvas = document.getElementById('sig-canvas');
+    if (!_sigCanvas) return;
+    _sigCtx = _sigCanvas.getContext('2d');
+    _sigCtx.fillStyle = '#fff';
+    _sigCtx.fillRect(0, 0, _sigCanvas.width, _sigCanvas.height);
+    _sigCtx.strokeStyle = '#141413';
+    _sigCtx.lineWidth = 2;
+    _sigCtx.lineCap = 'round';
+    _sigCtx.lineJoin = 'round';
+
+    // Mouse events
+    _sigCanvas.onmousedown = function(e){
+      _sigDrawing = true;
+      var rect = _sigCanvas.getBoundingClientRect();
+      var x = (e.clientX - rect.left) * (_sigCanvas.width / rect.width);
+      var y = (e.clientY - rect.top) * (_sigCanvas.height / rect.height);
+      _sigCtx.beginPath();
+      _sigCtx.moveTo(x, y);
+    };
+    _sigCanvas.onmousemove = function(e){
+      if (!_sigDrawing) return;
+      var rect = _sigCanvas.getBoundingClientRect();
+      var x = (e.clientX - rect.left) * (_sigCanvas.width / rect.width);
+      var y = (e.clientY - rect.top) * (_sigCanvas.height / rect.height);
+      _sigCtx.lineTo(x, y);
+      _sigCtx.stroke();
+    };
+    _sigCanvas.onmouseup = function(){ _sigDrawing = false; _sigCtx.closePath(); };
+    _sigCanvas.onmouseleave = function(){ _sigDrawing = false; };
+
+    // Touch events
+    _sigCanvas.ontouchstart = function(e){
+      e.preventDefault();
+      var touch = e.touches[0];
+      var rect = _sigCanvas.getBoundingClientRect();
+      var x = (touch.clientX - rect.left) * (_sigCanvas.width / rect.width);
+      var y = (touch.clientY - rect.top) * (_sigCanvas.height / rect.height);
+      _sigCtx.beginPath();
+      _sigCtx.moveTo(x, y);
+    };
+    _sigCanvas.ontouchmove = function(e){
+      e.preventDefault();
+      if (!e.touches.length) return;
+      var touch = e.touches[0];
+      var rect = _sigCanvas.getBoundingClientRect();
+      var x = (touch.clientX - rect.left) * (_sigCanvas.width / rect.width);
+      var y = (touch.clientY - rect.top) * (_sigCanvas.height / rect.height);
+      _sigCtx.lineTo(x, y);
+      _sigCtx.stroke();
+    };
+    _sigCanvas.ontouchend = function(e){ e.preventDefault(); };
+  }, 200);
+}
+
+function icClearSignature() {
+  if (!_sigCtx || !_sigCanvas) return;
+  _sigCtx.fillStyle = '#fff';
+  _sigCtx.fillRect(0, 0, _sigCanvas.width, _sigCanvas.height);
+  document.getElementById('sig-type-input').value = '';
+  document.getElementById('sig-type-preview').innerHTML = '';
+  document.getElementById('sig-result-data').value = '';
+}
+
+function icSetSigMode(mode) {
+  _sigMode = mode;
+  document.getElementById('sig-canvas-wrap').style.display = mode === 'draw' ? '' : 'none';
+  document.getElementById('sig-type-wrap').style.display = mode === 'type' ? '' : 'none';
+  document.querySelectorAll('#modal-signature [id^="sig-mode-"]').forEach(function(b){
+    b.style.background = '';
+    b.style.color = '';
+  });
+  var btn = document.getElementById('sig-mode-' + mode);
+  if (btn) { btn.style.background = 'var(--brand)'; btn.style.color = '#fff'; }
+}
+
+function icPreviewTypeSig(val) {
+  document.getElementById('sig-type-preview').textContent = val || '';
+}
+
+function icConfirmSignature() {
+  var sigData = '';
+  var sigType = _sigMode;
+
+  if (_sigMode === 'draw') {
+    if (!_sigCanvas) { toast('Signature pad not ready','err'); return; }
+    sigData = _sigCanvas.toDataURL('image/png');
+    // Check if anything was drawn
+    var pixels = _sigCtx.getImageData(0, 0, _sigCanvas.width, _sigCanvas.height).data;
+    var hasDrawing = false;
+    for (var i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] !== 0) { hasDrawing = true; break; }
+    }
+    if (!hasDrawing) { toast('Please draw your signature','warn'); return; }
+  } else {
+    var typedName = document.getElementById('sig-type-input').value.trim();
+    if (!typedName) { toast('Please type your full name','warn'); return; }
+    sigData = typedName;
+  }
+
+  document.getElementById('sig-result-data').value = sigData;
+  document.getElementById('sig-result-type').value = sigType;
+
+  var sigObj = {
+    data: sigData,
+    type: sigType,
+    timestamp: Date.now(),
+    signerIp: '',
+  };
+
+  closeModal('modal-signature');
+  _icAuditLog('signature-captured', 'Mode: ' + sigType);
+
+  // Execute callback if set
+  var cbStr = document.getElementById('sig-callback').value || _sigCallback;
+  if (cbStr && cbStr !== '') {
+    try {
+      var cb = new Function('sig', cbStr);
+      cb(sigObj);
+    } catch(e) {
+      console.warn('Signature callback error:', e);
+    }
+  }
+
+  toast('Signature captured <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
+}
+
+// ── Legacy Intake Center tab support ──
+function icSetTab(tab, btn) {
+  document.querySelectorAll('#sec-intake-center .stab').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  document.getElementById('ic-panel-clients').style.display = tab === 'clients' ? '' : 'none';
+  document.getElementById('ic-panel-forms').style.display = tab === 'forms' ? '' : 'none';
+  document.getElementById('ic-panel-eval').style.display = tab === 'eval' ? '' : 'none';
+  if (tab === 'clients') renderIntakeClients();
+  else if (tab === 'forms') renderIntakeConsentForms();
+  else if (tab === 'eval') renderIntakeEvaluation();
+}
+
+// ── Intake Link Verification Handler ──
+function checkIntakeToken() {
+  var search = window.location.search;
+  if (!search.startsWith('?intake=')) return;
+  var token = search.slice(8);
+  var raw = '';
+  try { raw = atob(token.replace(/-/g, '+').replace(/_/g, '/')); } catch(e) { return; }
+  var parts = raw.split('|');
+  if (parts.length < 3) return;
+  var clientId = parts[0];
+  var email = parts[1];
+  var ts = parseInt(parts[2]);
+
+  if (Date.now() - ts > 72 * 60 * 60 * 1000) {
+    alert('This intake link has expired (72 hours). Please contact the provider for a new link.');
+    return;
+  }
+
+  // Render intake portal UI
+  var db = getDB();
+  var c = (db.intakeClients || []).find(function(cl){ return cl.id === clientId; });
+  if (!c) {
+    // Client might be in dev mode with index-based lookup
+    var _idx = parseInt(clientId);
+    if (!isNaN(_idx)) c = (db.intakeClients || [])[_idx];
+    if (!c) { alert('Client record not found.'); return; }
+  }
+
+  // Show intake portal
+  var pendingSubs = (db.intakeSubmissions || []).filter(function(s){
+    return s.token === token && s.status !== 'Signed';
+  });
+
+  if (!pendingSubs.length) {
+    alert('All forms have already been completed. Thank you!');
+    return;
+  }
+
+  renderIntakePortal(c, pendingSubs, token);
+}
+
+function renderIntakePortal(client, pendingSubs, token) {
+  var root = document.getElementById('root');
+  var childName = (client.firstName||'') + ' ' + (client.lastName||'');
+  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+
+  root.innerHTML = [
+    '<div style="min-height:100vh;background:#f5f4ed;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,sans-serif">',
+    '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);width:100%;max-width:640px;overflow:hidden">',
+    '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:12px">',
+    logoHtml,
+    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:2px">Secure Intake Portal</div></div>',
+    '</div>',
+    '<div style="padding:28px">',
+    '<h2 style="margin:0 0 6px;font-size:20px;color:#141413">Welcome, ' + (client.guardianName||'Guardian') + '</h2>',
+    '<p style="margin:0 0 20px;color:#87867f;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
+    '<div id="intake-portal-forms">',
+    pendingSubs.map(function(sub, si){
+      var db = getDB();
+      var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx] || {};
+      return [
+        '<div class="card" style="margin-bottom:12px;border:1.5px solid #e8e6dc;border-radius:12px;overflow:hidden">',
+        '<div style="padding:14px 18px;background:#faf9f5;border-bottom:1px solid #e8e6dc;display:flex;justify-content:space-between;align-items:center">',
+        '<span style="font-weight:700;font-size:14px;color:#141413">' + (form.name||'Form') + '</span>',
+        '<span style="font-size:11px;color:#87867f;background:#e8e6dc;padding:2px 10px;border-radius:20px">' + (form.type||'') + '</span>',
+        '</div>',
+        '<div style="padding:14px 18px">',
+        '<div id="portal-form-content-' + si + '" style="font-size:13px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' + (form.description||'Please review and sign this form.') + '</div>',
+        '<div style="background:#f5f4ed;border-radius:8px;padding:12px;font-size:12px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' +
+        '<strong>Child:</strong> ' + childName + '<br>' +
+        '<strong>Guardian:</strong> ' + (client.guardianName||'') + '<br>' +
+        '<strong>Date:</strong> ' + new Date().toLocaleDateString() +
+        '</div>',
+        '<div style="border-top:1px solid #e8e6dc;padding-top:14px">',
+        '<p style="font-size:12px;color:#87867f;margin:0 0 10px">By signing below, I acknowledge that I have read and agree to the terms of this form.</p>',
+        '<div style="display:flex;gap:8px">',
+        '<input id="portal-sig-' + si + '" type="text" class="no-upper" placeholder="Type your full legal name to sign" style="flex:1;padding:10px 12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:16px;font-family:\'Brush Script MT\',cursive;text-transform:none">',
+        '<button class="btn btn-primary" onclick="icPortalSign(' + si + ',\'' + sub.id + '\',\'' + token + '\',\'' + (client.guardianName||'') + '\')" style="white-space:nowrap">Sign</button>',
+        '</div>',
+        '<div id="portal-sig-status-' + si + '" style="margin-top:8px;font-size:12px"></div>',
+        '</div></div></div>'
+      ].join('');
+    }).join(''),
+    '</div>',
+    '<div id="portal-thanks" style="display:none;text-align:center;padding:20px">',
+    '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    '<h3 style="margin:12px 0 6px;color:#141413">Thank You!</h3>',
+    '<p style="color:#87867f;font-size:14px">All forms have been submitted successfully. You may close this page.</p>',
+    '</div>',
+    '</div></div></div>'
+  ].join('');
+}
+
+function icPortalSign(si, submissionId, token, signerName) {
+  var sigValue = document.getElementById('portal-sig-' + si)?.value?.trim();
+  if (!sigValue) { toast('Please type your full name to sign','warn'); return; }
+
+  setDB(function(db){
+    var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
+    if (sub) {
+      sub.status = 'Signed';
+      sub.signedAt = Date.now();
+      sub.signedByName = signerName || sigValue;
+      sub.signerIp = '';
+      sub.signatureData = sigValue;
+      sub.signatureType = 'typed';
+    }
+    // Check if all submissions for this token are signed
+    var allSubs = (db.intakeSubmissions || []).filter(function(s){ return s.token === token; });
+    var allSigned = allSubs.every(function(s){ return s.status === 'Signed'; });
+    if (allSigned) {
+      // Update client status
+      var clientSub = allSubs[0];
+      var cl = (db.intakeClients || []).find(function(c){
+        return c.id === clientSub.clientId || (db.intakeClients[clientSub.clientIdx] && db.intakeClients[clientSub.clientIdx].id === c.id);
+      });
+      if (cl) {
+        cl.status = 'Signed';
+        cl.updatedAt = Date.now();
+      }
+    }
+  });
+
+  document.getElementById('portal-sig-status-' + si).innerHTML = '<span style="color:var(--green);font-weight:600">&#10003; Signed on ' + new Date().toLocaleString() + '</span>';
+  document.getElementById('portal-sig-' + si).disabled = true;
+  document.getElementById('portal-sig-' + si).style.background = '#f0f0f0';
+  toast('Form signed successfully','ok');
+
+  // Check if all done
+  var allDone = true;
+  document.querySelectorAll('[id^="portal-sig-"]').forEach(function(el){
+    if (el.id.startsWith('portal-sig-') && !el.disabled) allDone = false;
+  });
+  if (allDone) {
+    setTimeout(function(){
+      document.getElementById('intake-portal-forms').style.display = 'none';
+      document.getElementById('portal-thanks').style.display = '';
+    }, 1000);
+  }
+}
+
+// ── Init on load ──
+setTimeout(function(){
+  try { checkIntakeToken(); } catch(e) {}
+}, 500);
+</script>
 
 </body>
