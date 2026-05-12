@@ -3999,7 +3999,7 @@ style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radi
 <option value="Individual">Individual</option>
 </select>
 </div>
-<div class="field">
+<div class="field" id="mprov-status-row">
 <label>Status</label>
 <select id="mprov-status">
 <option value="Active">Active</option>
@@ -4056,6 +4056,7 @@ Account Key
 
 </div>
 
+<div id="mprov-specialties-section">
 <!-- Specialties -->
 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Specialties</div>
 <div class="field" style="grid-column:1/-1">
@@ -4129,6 +4130,7 @@ Account Key
     oninput="if(this.value.trim())document.getElementById('mprov-spec-other-cb').value=this.value.trim()">
   </div>
 </label>
+</div>
 </div>
 </div>
 
@@ -9223,16 +9225,23 @@ if(logoPrev) logoPrev.innerHTML = _provLogoB64
 openModal('modal-provider');
 // Role-based modal controls
 const acctRow = document.getElementById('mprov-acctkey-row');
-if (acctRow) acctRow.style.display = isSA ? '' : 'none';
+const statusRow = document.getElementById('mprov-status-row');
+const specsSection = document.getElementById('mprov-specialties-section');
 const saveBtn = document.getElementById('mprov-save-btn');
 if (saveBtn) saveBtn.style.display = '';
-var restrictedFields = ['mprov-name','mprov-npi','mprov-taxid'];
+var restrictedFields = ['mprov-name','mprov-npi','mprov-taxid','mprov-taxtype','mprov-taxonomy','mprov-type'];
 var activeSec = document.querySelector('.section.active');
 var isFromAdmin = activeSec && activeSec.id === 'sec-admin-providers';
 if (isFromAdmin && isSA) {
+  if (acctRow) acctRow.style.display = '';
+  if (statusRow) statusRow.style.display = '';
+  if (specsSection) specsSection.style.display = '';
   document.querySelectorAll('#modal-provider input, #modal-provider select')
   .forEach(el => { el.disabled = false; });
 } else {
+  if (acctRow) acctRow.style.display = 'none';
+  if (statusRow) statusRow.style.display = 'none';
+  if (specsSection) specsSection.style.display = 'none';
   restrictedFields.forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.disabled = true;
@@ -9259,6 +9268,12 @@ if (!isSA || !isFromAdmin) {
     if (name !== (existing.name||'').toUpperCase()) { toast('Provider Name is read-only','err'); return; }
     if (npi !== (existing.npi||'').toUpperCase()) { toast('NPI is read-only','err'); return; }
     if (taxid !== (existing.taxid||'').toUpperCase()) { toast('Tax ID is read-only','err'); return; }
+    var taxtype = document.getElementById('mprov-taxtype')?.value || '';
+    var providerType = document.getElementById('mprov-type')?.value || '';
+    var taxonomy = (document.getElementById('mprov-taxonomy')?.value || '').toUpperCase();
+    if (taxtype !== (existing.taxType||'E')) { toast('Tax ID Type is read-only','err'); return; }
+    if (providerType !== (existing.providerType||'Organization')) { toast('Provider Type is read-only','err'); return; }
+    if (taxonomy !== (existing.taxonomy||'').toUpperCase()) { toast('Taxonomy Code is read-only','err'); return; }
   }
 }
 const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
