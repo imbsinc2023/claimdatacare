@@ -9083,16 +9083,18 @@ function renderProviderInfo() {
   var isSA = isAdmin();
   var el = document.getElementById('provider-info-content');
   if (!el) return;
-  if (!db.providers.length) {
+  var providers = db.providers.filter(function(p){ return p.id === activeProviderId; });
+  if (!providers.length) {
     el.innerHTML = '<div class="empty"><h3>No billing providers configured</h3></div>';
     return;
   }
   el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
     '<th>Provider Name</th><th>NPI</th><th>Tax ID</th><th>Type</th><th>Status</th><th>Address</th><th>Phone</th><th>Email</th><th></th>' +
     '</tr></thead><tbody>' +
-    db.providers.map(function(p, i) {
+    providers.map(function(p) {
       var sc = {Active:'b-green',Pending:'b-amber',Inactive:'b-gray'}[p.status||'Active']||'b-gray';
       var addr = [p.addr1, p.city, p.state, p.zip].filter(Boolean).join(', ') || '—';
+      var globalIdx = db.providers.indexOf(p);
       return '<tr>' +
         '<td><strong>' + (p.name||'') + '</strong></td>' +
         '<td class="mono">' + (p.npi||'—') + '</td>' +
@@ -9102,7 +9104,7 @@ function renderProviderInfo() {
         '<td style="font-size:12px;color:var(--text3)">' + addr + '</td>' +
         '<td class="mono">' + (p.phone||'—') + '</td>' +
         '<td>' + (p.email||'—') + '</td>' +
-        '<td><button class="btn btn-sm" onclick="openBPModal(' + i + ')" style="white-space:nowrap"><i data-lucide="pencil" class="lci"></i> Edit</button></td>' +
+        '<td><button class="btn btn-sm" onclick="openBPModal(' + globalIdx + ')" style="white-space:nowrap"><i data-lucide="pencil" class="lci"></i> Edit</button></td>' +
         '</tr>';
     }).join('') + '</tbody></table></div>';
   _renderLucideIcons();
