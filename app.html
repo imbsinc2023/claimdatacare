@@ -9141,8 +9141,10 @@ _renderLucideIcons();
 return;
 }
 
-el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px">' +
-db.providers.map((p, i) => {
+el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' +
+  '<th>Provider</th><th>Status</th><th>Stats</th><th>Address</th><th>Total Billed</th>' + (isSA ? '<th>API Key</th>' : '') + '<th></th>' +
+  '</tr></thead><tbody>' +
+  db.providers.map((p, i) => {
 const isActive = p.id === activeProviderId;
 const claimCnt = db.claims.filter(c => c.providerId === p.id).length;
 const patCnt = db.patients.filter(pt => pt.providerId === p.id).length;
@@ -9151,55 +9153,37 @@ const rendCnt = db.rendering.filter(r => r.providerId === p.id).length;
 const total = db.claims.filter(c => c.providerId === p.id).reduce((s,c) => s + claimTotal(c), 0);
 const status = p.status || 'Active';
 const sc = { Active:'b-green', Pending:'b-amber', Inactive:'b-gray' }[status] || 'b-gray';
-const iconEl = `<div style="width:46px;height:46px;background:${isActive ? 'var(--brand)' : 'var(--bg3)'};border-radius:12px;display:flex;align-items:center;justify-content:center">
-<i data-lucide="${isActive ? 'building-2' : 'building'}" class="lci" style="width:22px;height:22px;color:${isActive ? '#fff' : 'var(--text3)'}"></i>
-</div>`;
+const addr = [p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ') || '—';
+const apiKeyStatus = p.acctKey
+  ? '<span style="color:var(--green);font-size:11px">Configured</span>'
+  : '<span style="color:var(--amber);font-size:11px">Not set</span>';
 
-const actionBtns = isSA ? `
-<div class="btn-group" style="margin-top:10px">
-${!isActive ? `<button class="btn btn-primary btn-sm" onclick="switchProvider('${p.id}');renderAdminProviders()"><i data-lucide="refresh-cw" class="lci"></i> Switch</button>` : '<button class="btn btn-sm" disabled style="opacity:.5">Current</button>'}
-<button class="btn btn-sm" onclick="openBPModal(${i})"><i data-lucide="pencil" class="lci"></i> Edit</button>
-<button class="btn btn-sm" onclick="toggleProviderStatus('${p.id}')" style="background:${status === 'Active' ? 'var(--amber)' : 'var(--green)'};color:#fff;border:none">
-${status === 'Active' ? 'Deactivate' : 'Activate'}
-</button>
-<button title="Delete" class="btn btn-xs btn-danger" onclick="deleteBP('${p.id}')"><i data-lucide="trash-2" class="lci"></i></button>
+const actions = isSA ? `
+<div class="btn-group" style="white-space:nowrap">
+${!isActive ? `<button class="btn btn-xs btn-primary" onclick="switchProvider('${p.id}');renderAdminProviders()" title="Switch to this provider"><i data-lucide="refresh-cw" class="lci" style="width:11px;height:11px"></i></button>` : '<button class="btn btn-xs" disabled style="opacity:.5" title="Current provider"><i data-lucide="check" class="lci" style="width:11px;height:11px"></i></button>'}
+<button class="btn btn-xs" onclick="openBPModal(${i})" title="Edit"><i data-lucide="pencil" class="lci" style="width:11px;height:11px"></i></button>
+<button class="btn btn-xs" onclick="toggleProviderStatus('${p.id}')" title="${status === 'Active' ? 'Deactivate' : 'Activate'}" style="${status === 'Active' ? 'color:var(--amber)' : 'color:var(--green)'}"><i data-lucide="${status === 'Active' ? 'pause-circle' : 'play-circle'}" class="lci" style="width:11px;height:11px"></i></button>
+<button class="btn btn-xs btn-danger" onclick="deleteBP('${p.id}')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>
 </div>` : `
-<div class="btn-group" style="margin-top:10px">
-${!isActive ? `<button class="btn btn-primary btn-sm" onclick="switchProvider('${p.id}');renderAdminProviders()"><i data-lucide="refresh-cw" class="lci"></i> Switch</button>` : '<button class="btn btn-sm" disabled style="opacity:.5">Current</button>'}
+<div class="btn-group" style="white-space:nowrap">
+${!isActive ? `<button class="btn btn-xs btn-primary" onclick="switchProvider('${p.id}');renderAdminProviders()" title="Switch to this provider"><i data-lucide="refresh-cw" class="lci" style="width:11px;height:11px"></i></button>` : '<button class="btn btn-xs" disabled style="opacity:.5" title="Current provider"><i data-lucide="check" class="lci" style="width:11px;height:11px"></i></button>'}
 </div>`;
 
-// API key: only show to Super Admin
-const apiKeyRow = isSA ? `
-<div style="font-size:11px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:6px">
-<i data-lucide="key" class="lci" style="width:12px;height:12px"></i>
-${p.acctKey ? '<span style="color:var(--green)">Clearinghouse key configured</span>' : '<span style="color:var(--amber)">No Clearinghouse key — add in Edit</span>'}
-</div>` : '';
-
-return `<div class="card" style="border:2px solid ${isActive ? 'var(--brand)' : 'var(--border)'}">
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
-<div style="display:flex;align-items:center;gap:12px">
-${iconEl}
-<div><div style="font-size:15px;font-weight:800">${p.name}</div>
-<div class="mono" style="font-size:11px;color:var(--text3)">NPI: ${p.npi || ''} · EIN: ${p.taxid || ''}</div></div>
-</div>
-<div style="display:flex;gap:6px"><span class="badge ${sc}">${status}</span>${isActive ? '<span class="badge b-blue">Active</span>' : ''}</div>
-</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
-${[['Patients',patCnt,'brand'],['Claims',claimCnt,'green'],['Rendering',rendCnt,'purple'],['Facilities',facCnt,'teal']].map(([l,n,c]) =>
-`<div style="background:var(--bg3);border-radius:var(--r);padding:8px;text-align:center">
-<div style="font-size:18px;font-weight:800;color:var(--${c})">${n}</div>
-<div style="font-size:10px;color:var(--text3)">${l}</div>
-</div>`).join('')}
-</div>
-<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${[p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ') || 'No address'}</div>
-${apiKeyRow}
-<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);margin-top:8px">
-<span class="mono" style="font-size:13px;font-weight:700;color:var(--green)">$${fmtMoney(total)}</span>
-<span style="font-size:11px;color:var(--text3)">total billed</span>
-</div>
-${actionBtns}
-</div>`;
-}).join('') + '</div>';
+return '<tr>' +
+  '<td><div style="font-weight:700;font-size:13px">' + (p.name||'') + '</div><div class="mono" style="font-size:10px;color:var(--text3)">NPI: ' + (p.npi||'—') + ' · EIN: ' + (p.taxid||'—') + '</div></td>' +
+  '<td><span class="badge ' + sc + '">' + status + '</span>' + (isActive ? ' <span class="badge b-blue" style="font-size:10px">Active</span>' : '') + '</td>' +
+  '<td style="font-size:11px;white-space:nowrap">' +
+    '<span style="color:var(--brand);font-weight:700">' + patCnt + '</span> Patients · ' +
+    '<span style="color:var(--green);font-weight:700">' + claimCnt + '</span> Claims · ' +
+    '<span style="color:var(--purple);font-weight:700">' + rendCnt + '</span> Rend · ' +
+    '<span style="color:var(--teal);font-weight:700">' + facCnt + '</span> Fac' +
+  '</td>' +
+  '<td style="font-size:12px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + addr + '">' + addr + '</td>' +
+  '<td style="font-weight:700;color:var(--green);font-family:var(--mono);font-size:13px">$' + fmtMoney(total) + '</td>' +
+  (isSA ? '<td>' + apiKeyStatus + '</td>' : '') +
+  '<td>' + actions + '</td>' +
+  '</tr>';
+}).join('') + '</tbody></table></div>';
 _renderLucideIcons();
 }
 
