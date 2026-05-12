@@ -6987,18 +6987,14 @@ const { jsPDF } = window.jspdf;
 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 const W = 210, M = 16, RX = W - M, CW = RX - M;
 
-// ?? Palette — soft, professional ??????????????????????????????????
-const GREEN = [201, 100, 66]; // terracotta
-const BLUE = [201, 100, 66]; // terracotta
-const PURPLE = [109, 40, 217]; // #6D28D9 Zelle purple
-const BGBLUE = [250,245,237]; // warm cream
-const BGGREEN= [250,245,237]; // warm cream
+// ?? Palette — minimal, neutral ??????????????????????????????????
+const ACCENT = [201, 100, 66]; // terracotta — used sparingly
 const WHITE = [255,255,255];
 const BLACK = [22, 22, 22];
 const DARK = [50, 48, 44];
-const MID = [90, 88, 82];
-const LIGHT = [245,244,237];
-const BORDER = [222,220,210];
+const MID = [130, 128, 124];
+const LIGHT = [248, 247, 244];
+const BORDER = [235, 234, 230];
 
 const money = n => '$' + fmtMoney(parseFloat(n)||0);
 const line = (x1,y1,x2,y2,c=BORDER,w=0.25) => {
@@ -7012,27 +7008,34 @@ doc.setTextColor(...(opts.color||BLACK));
 doc.text(String(s||''), x, y, { align: opts.align||'left', maxWidth: opts.maxWidth });
 };
 
+// Generate subtle QR for footer
+let _invQR = null;
+try {
+  if (typeof generateQRDataURL === 'function') {
+    _invQR = generateQRDataURL('https://claimdatacare.com/invoice/' + (inv.number||''), 60);
+  }
+} catch(e) {}
+
 // ????????????????????????????????????????????????
 // PAGE 1 — INVOICE
 // ????????????????????????????????????????????????
 let y = M;
 
 // ?? Left accent bar ????????????????????????????????????????????????
-fill(0, 0, 5, 297, GREEN);
+fill(0, 0, 3, 297, ACCENT);
 
-// ?? Logo area (square 28?28 mm, top left after bar) ???????????????
+// ?? Logo area (square 28x28 mm, top left after bar)
 const LOGO_X = M + 2, LOGO_Y = M, LOGO_SZ = 28;
 if (iss.logo) {
 try {
-// Always render as square, cropped/fitted to 28?28
 doc.addImage(iss.logo, 'PNG', LOGO_X, LOGO_Y, LOGO_SZ, LOGO_SZ, undefined, 'FAST');
 } catch(e) {}
 }
 
-// ?? INVOICE label — top right ?????????????????????????????????????
-txt('INVOICE', RX, M + 10, { bold:true, size:26, color:DARK, align:'right' });
-txt(inv.number||'', RX, M + 18, { size:9, color:MID, align:'right' });
-txt(fmtInvDate(inv.month)||inv.month||'', RX, M + 24, { size:9, color:MID, align:'right' });
+// ?? INVOICE label — top right
+txt('INVOICE', RX, M + 10, { bold:true, size:22, color:DARK, align:'right' });
+txt(inv.number||'', RX, M + 17, { size:8, color:MID, align:'right' });
+txt(fmtInvDate(inv.month)||inv.month||'', RX, M + 22, { size:8, color:MID, align:'right' });
 
 y = M + LOGO_SZ + 10;
 line(M + 2, y, RX, y, BORDER, 0.4);
@@ -7044,45 +7047,35 @@ const COL1 = M + 2;
 
 const blockFrom = (entity, x, startY, label) => {
 let ly = startY;
-txt(label, x, ly, { size:7, bold:true, color:GREEN });
+txt(label, x, ly, { size:6.5, bold:true, color:DARK });
 ly += 5;
 txt(entity.name||'', x, ly, { size:10, bold:true, color:DARK, maxWidth: CW/2 - 4 });
 ly += 5;
-doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...MID);
-if (entity.contact) { doc.text(entity.contact, x, ly); ly += 4; }
-if (entity.addr1) { doc.text(entity.addr1, x, ly); ly += 4; }
+doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MID);
+if (entity.contact) { doc.text(entity.contact, x, ly); ly += 3.5; }
+if (entity.addr1) { doc.text(entity.addr1, x, ly); ly += 3.5; }
 const cs = [entity.city, entity.state, entity.zip].filter(Boolean).join(', ');
-if (cs) { doc.text(cs, x, ly); ly += 4; }
-if (entity.email) { doc.text(entity.email, x, ly); ly += 4; }
+if (cs) { doc.text(cs, x, ly); ly += 3.5; }
+if (entity.email) { doc.text(entity.email, x, ly); ly += 3.5; }
 if (entity.phone) {
-// Zelle indicator with ? symbol
-const zelleRow = label === 'FROM' ? `Zelle ${entity.phone}` : entity.phone;
-if (label === 'FROM') {
-// Draw Zelle "Z" badge — purple icon only
-fill(x, ly - 3.5, 8, 4.5, [235,230,255]);
-doc.setFillColor(...PURPLE); doc.rect(x, ly-3.5, 1.5, 4.5,'F');
-txt('Z', x + 2.5, ly, { size:7, bold:true, color:PURPLE });
-txt(entity.phone, x + 10, ly, { size:8.5, color:MID });
-} else {
-txt(entity.phone, x, ly, { size:8.5, color:MID });
+const phoneLabel = label === 'FROM' ? 'Zelle: ' + entity.phone : entity.phone;
+txt(phoneLabel, x, ly, { size:8, color:MID });
+ly += 3.5;
 }
-ly += 4;
-}
-if (entity.taxid) { txt('EIN: ' + entity.taxid, x, ly, { size:8, color:MID }); ly += 4; }
+if (entity.taxid) { txt('EIN: ' + entity.taxid, x, ly, { size:7.5, color:MID }); ly += 3.5; }
 return ly;
 };
 
 const yA = blockFrom(iss, COL1, y, 'FROM');
 const yB = blockFrom(cli, COL2, y, 'BILL TO');
 // Subtle divider between columns
-line(COL2 - 4, y - 2, COL2 - 4, Math.max(yA, yB) + 2, BORDER, 0.25);
+line(COL2 - 4, y - 2, COL2 - 4, Math.max(yA, yB) + 2, BORDER, 0.2);
 
 y = Math.max(yA, yB) + 8;
-line(M+2, y, RX, y, BORDER, 0.4);
-y += 6;
+line(M+2, y, RX, y, BORDER, 0.3);
+y += 7;
 
-// ?? Invoice detail strip ??????????????????????????????????????????
-fill(M+2, y-2, CW, 12, LIGHT);
+// ?? Invoice detail strip
 const dets = [
 ['Invoice Date', inv.date||''],
 ['Due Date', inv.due||'Upon receipt'],
@@ -7092,31 +7085,30 @@ const dets = [
 const dw = CW / dets.length;
 dets.forEach(([lbl, val], i) => {
 const dx = M + 2 + i * dw + 3;
-txt(lbl, dx, y + 2, { size:6.5, color:MID });
-txt(val, dx, y + 8, { size:8.5, bold:true, color:DARK });
+txt(lbl, dx, y + 1, { size:6.5, color:MID });
+txt(val, dx, y + 6.5, { size:8, bold:true, color:DARK });
 });
-y += 16;
-line(M+2, y, RX, y, BORDER, 0.4);
+y += 14;
+line(M+2, y, RX, y, BORDER, 0.3);
 y += 7;
 
-// ?? Services table ????????????????????????????????????????????????
+// ?? Services table
 // Header
-fill(M+2, y-3, CW, 8, GREEN);
-txt('DESCRIPTION', M+5, y+2, { size:7.5, bold:true, color:WHITE });
-txt('AMOUNT', RX-2, y+2, { size:7.5, bold:true, color:WHITE, align:'right' });
-y += 9;
+line(M+2, y-1, RX, y-1, BORDER, 0.5);
+txt('DESCRIPTION', M+5, y+2, { size:7, bold:true, color:MID });
+txt('AMOUNT', RX-2, y+2, { size:7, bold:true, color:MID, align:'right' });
+line(M+2, y+4, RX, y+4, LIGHT, 0.5);
+y += 8;
 
 const svcLines = inv.svcLines || [];
 svcLines.forEach(function(s, i) {
-  // Skip empty lines — no desc and no amount
   if (!s.desc && (!s.amount || parseFloat(s.amount) === 0)) return;
-  if (i % 2 === 1) fill(M+2, y-3, CW, 7.5, LIGHT);
-  txt(s.desc||'', M+5, y+1, { size:9, color:DARK });
-  // Only show amount if it exists and is non-zero
+  if (i % 2 === 1) fill(M+2, y-3, CW, 7, LIGHT);
+  txt(s.desc||'', M+5, y+1, { size:8.5, color:DARK });
   if (s.amount && parseFloat(s.amount) !== 0) {
-    txt(money(s.amount), RX-2, y+1, { size:9, bold:true, color:DARK, align:'right' });
+    txt(money(s.amount), RX-2, y+1, { size:8.5, color:DARK, align:'right' });
   }
-  y += 7.5;
+  y += 7;
 });
 
 // Fee calculation (not shown as line — included in service lines by user)
@@ -7126,129 +7118,105 @@ const excBase = parseFloat(inv.excBase)||0;
 const revenue = parseFloat(inv.revenue)||0;
 
 y += 2;
-line(M+2, y, RX, y, BORDER, 0.4);
-y += 4;
-
-// ?? Subtotal row ??????????????????????????????????????????????????
-const svcTotal = svcLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
-txt('Subtotal', M+5, y+4, { size:9, color:MID });
-txt(money(svcTotal), RX-2, y+4, { size:9, color:DARK, align:'right' });
-y += 10;
-
-
-// Auto page break if Total Due won't fit
-if (y + 70 > 265) {
-  fill(0, 282, W, 18, DARK);
-  fill(0, 282, 5, 18, GREEN);
-  txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
-  txt('Continued...', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
-  txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
-  doc.addPage();
-  fill(0, 0, 5, 297, GREEN);
-  y = M + 4;
-  fill(M+2, y, CW, 10, DARK);
-  fill(M+2, y, 3, 10, BLUE);
-  txt('Invoice '+(inv.number||'')+' — Summary (continued)', M+8, y+6.5, { size:9, bold:true, color:WHITE });
-  txt(cli.name||'', RX, y+6.5, { size:8.5, color:[180,200,255], align:'right' });
-  y += 16;
-}
-// ?? TOTAL DUE ?????????????????????????????????????????????????????
-fill(M+2, y-2, CW, 12, BGBLUE);
-line(M+2, y-2, M+5, y+10, BLUE, 0); // left mini bar
-fill(M+2, y-2, 3, 12, BLUE);
-txt('TOTAL DUE', M+8, y+6, { size:11, bold:true, color:BLUE });
-txt(money(svcTotal), RX-2, y+6, { size:13, bold:true, color:BLUE, align:'right' });
-y += 18;
-
-// ?? Payment instructions ??????????????????????????????????????????
-line(M+2, y, RX, y, BORDER, 0.4);
+line(M+2, y, RX, y, BORDER, 0.3);
 y += 5;
-fill(M+2, y-2, CW, 18, BGGREEN);
-fill(M+2, y-2, 3, 18, GREEN);
 
-txt('PAYMENT INSTRUCTIONS', M+8, y+3, { size:7.5, bold:true, color:GREEN });
-txt('Preferred: Zelle or Paper Check — no processing fees.', M+8, y+8.5, { size:8.5, color:DARK });
-txt('Virtual card & direct deposit: 4.5% bank processing fee applies.', M+8, y+13.5, { size:8, color:MID });
+// ?? Subtotal row
+const svcTotal = svcLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+txt('Subtotal', M+5, y+3, { size:8.5, color:MID });
+txt(money(svcTotal), RX-2, y+3, { size:8.5, color:DARK, align:'right' });
+y += 9;
+
+
+// Auto page break
+if (y + 70 > 265) {
+  line(M+2, 280, RX, 280, BORDER, 0.3);
+  txt(iss.name||'', M+2, 292, { size:7, color:MID });
+  txt('Continued...', W/2, 292, { size:7, color:MID, align:'center' });
+  if (_invQR) {
+    try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
+  }
+  txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
+  doc.addPage();
+  fill(0, 0, 3, 297, ACCENT);
+  y = M + 4;
+  txt('Invoice '+(inv.number||'')+' — continued', M+5, y+4, { size:9, bold:true, color:DARK });
+  line(M+2, y+7, RX, y+7, BORDER, 0.3);
+  y += 14;
+}
+// ?? TOTAL
+line(M+2, y-1, RX, y-1, DARK, 0.4);
+y += 4;
+txt('TOTAL', M+5, y+3, { size:10, bold:true, color:DARK });
+txt(money(svcTotal), RX-2, y+3, { size:11, bold:true, color:DARK, align:'right' });
+y += 12;
+line(M+2, y, RX, y, BORDER, 0.3);
+y += 6;
+
+// ?? Payment instructions
+txt('Payment', M+5, y+1, { size:7, bold:true, color:MID });
+y += 5;
+txt('Preferred payment: Zelle or paper check — no processing fees.', M+5, y+1, { size:8, color:DARK });
+y += 4;
+txt('Virtual card & direct deposit: 4.5% bank processing fee applies.', M+5, y+1, { size:7.5, color:MID });
+y += 5;
 
 const zelleMode = iss.zelleMode || 'phone';
 const showZellePhone = (zelleMode==='phone'||zelleMode==='both') && iss.phone;
 const showZelleEmail = (zelleMode==='email'||zelleMode==='both') && iss.email;
 if (showZellePhone || showZelleEmail) {
-  y += 6;
-  if (showZellePhone && showZelleEmail) {
-    // BOTH phone and email — two rows
-    // Phone row
-    fill(M+2, y, CW, 10, BGBLUE);
-    fill(M+2, y, 3, 10, PURPLE);
-    txt('Z  Zelle (Phone):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
-    txt(fmtPhone(iss.phone), M+60, y+6.5, { size:9, color:DARK });
-    y += 12;
-    // Email row
-    fill(M+2, y, CW, 10, BGBLUE);
-    fill(M+2, y, 3, 10, PURPLE);
-    txt('Z  Zelle (Email):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
-    txt(iss.email, M+60, y+6.5, { size:9, color:DARK });
-    y += 12;
-  } else if (showZellePhone) {
-    // Phone only
-    fill(M+2, y, CW, 10, BGBLUE);
-    fill(M+2, y, 3, 10, PURPLE);
-    txt('Z  Zelle (Phone):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
-    txt(fmtPhone(iss.phone), M+60, y+6.5, { size:9, color:DARK });
-    y += 12;
-  } else {
-    // Email only
-    fill(M+2, y, CW, 10, BGBLUE);
-    fill(M+2, y, 3, 10, PURPLE);
-    txt('Z  Zelle (Email):', M+8, y+6.5, { size:8, bold:true, color:PURPLE });
-    txt(iss.email, M+60, y+6.5, { size:9, color:DARK });
-    y += 12;
+  if (showZellePhone) {
+    txt('Zelle (Phone): ' + fmtPhone(iss.phone), M+5, y+2, { size:7.5, color:MID });
+    y += 4;
   }
-  y += 4;
-} else {
-  y += 22;
+  if (showZelleEmail) {
+    txt('Zelle (Email): ' + iss.email, M+5, y+2, { size:7.5, color:MID });
+    y += 4;
+  }
+  y += 2;
 }
 
-// Exception note in PDF
+// Exception note
 if (inv.excNoteText) {
-line(M+2, y, RX, y, [255,200,0], 0.5);
+line(M+2, y, RX, y, BORDER, 0.3);
 y += 4;
-fill(M+2, y, CW, 9, [255,251,235]);
-txt('[!] ' + inv.excNoteText, M+5, y+6, { size:8, color:[146,64,14], bold:true });
-y += 12;
+txt(inv.excNoteText, M+5, y+2, { size:7.5, color:DARK });
+y += 9;
 }
 if (iss.notes || inv.notes) {
-line(M+2, y, RX, y, BORDER, 0.25);
+line(M+2, y, RX, y, BORDER, 0.2);
 y += 4;
-const noteText = [iss.notes, inv.notes].filter(Boolean).join(' ¥ ');
+const noteText = [iss.notes, inv.notes].filter(Boolean).join(' \u00b7 ');
 const noteLines = doc.splitTextToSize(noteText, CW - 6);
-txt(noteLines, M+5, y+3, { size:8, color:MID });
-y += noteLines.length * 4 + 4;
+txt(noteLines, M+5, y+2, { size:7.5, color:MID });
+y += noteLines.length * 3.5 + 4;
 }
 
-// ?? Footer ?????????????????????????????????????????????????????????
-fill(0, 282, W, 18, DARK);
-fill(0, 282, 5, 18, GREEN);
-txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
-txt('Thank you for your business', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
-txt('Page 1', RX, 294, { size:7.5, color:[180,185,195], align:'right' });
-txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
+// ?? Footer
+line(M+2, 280, RX, 280, BORDER, 0.3);
+line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
+txt(iss.name||'', M+2, 292, { size:7, color:MID });
+txt('Thank you for your business', W/2, 292, { size:7, color:MID, align:'center' });
+if (_invQR) {
+  try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
+}
+txt('Page 1', RX, 292, { size:7, color:MID, align:'right' });
+txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
 
 // ????????????????????????????????????????????????
 // PAGE 2+ — PAYMENT DETAIL
 // ????????????????????????????????????????????????
 if (inv.lines && inv.lines.length) {
 doc.addPage();
-fill(0, 0, 5, 297, GREEN); // accent bar
+fill(0, 0, 3, 297, ACCENT);
 let py = M;
 
 // Page header
-fill(M+2, py, CW, 14, DARK);
-fill(M+2, py, 3, 14, BLUE);
-txt('Payment Detail', M+8, py+5, { size:10, bold:true, color:WHITE });
-txt(`${iss.name||''} · ${cli.name||''} · ${inv.month||''}`, M+8, py+10.5, { size:7.5, color:[180,185,200] });
-txt(inv.number||'', RX, py+5, { size:9, bold:true, color:[180,210,255], align:'right' });
-py += 18;
+txt('Payment Detail', M+5, py+4, { size:11, bold:true, color:DARK });
+txt(`${iss.name||''} · ${cli.name||''} · ${inv.month||''}`, M+5, py+9, { size:7, color:MID });
+txt(inv.number||'', RX, py+4, { size:8, color:MID, align:'right' });
+line(M+2, py+12, RX, py+12, BORDER, 0.3);
+py += 17;
 
 // Build active columns
 const allCols = [
@@ -7268,12 +7236,13 @@ if (!c.right) xc += c.w;
 });
 
 // Column header
-fill(M+2, py, CW, 8, GREEN);
+line(M+2, py-1, RX, py-1, BORDER, 0.5);
 allCols.forEach(c => {
-txt(c.label, c.right ? c.x : c.x, py+5.5,
-{ size:7.5, bold:true, color:WHITE, align: c.right?'right':'left' });
+txt(c.label, c.right ? c.x : c.x, py+1.5,
+{ size:6.5, bold:true, color:MID, align: c.right?'right':'left' });
 });
-py += 10;
+line(M+2, py+4, RX, py+4, LIGHT, 0.5);
+py += 8;
 
 let pageRev = 0;
 doc.setFont('helvetica','normal');
@@ -7282,72 +7251,71 @@ doc.setFontSize(9);
 inv.lines.forEach((l, i) => {
 // New page if needed
 if (py > 268) {
-// Footer current page
-fill(0, 282, W, 18, DARK); fill(0,282,5,18,GREEN);
-txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
-txt('Payment Detail (cont.)', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
-txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
-
+  line(M+2, 280, RX, 280, BORDER, 0.3);
+  txt(iss.name||'', M+2, 292, { size:7, color:MID });
+  txt('Payment Detail (cont.)', W/2, 292, { size:7, color:MID, align:'center' });
+  if (_invQR) {
+    try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
+  }
+  txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
 doc.addPage();
-fill(0, 0, 5, 297, GREEN);
+fill(0, 0, 3, 297, ACCENT);
 py = M;
-// Repeat column header
-fill(M+2, py, CW, 8, GREEN);
+line(M+2, py-1, RX, py-1, BORDER, 0.5);
 allCols.forEach(c => {
-txt(c.label, c.right?c.x:c.x, py+5.5,
-{ size:7.5, bold:true, color:WHITE, align:c.right?'right':'left' });
+txt(c.label, c.right?c.x:c.x, py+1.5,
+{ size:6.5, bold:true, color:MID, align:c.right?'right':'left' });
 });
-py += 10;
+line(M+2, py+4, RX, py+4, LIGHT, 0.5);
+py += 8;
 }
 
 // Alternating rows
-if (i % 2 === 1) fill(M+2, py-2, CW, 8, LIGHT);
+if (i % 2 === 1) fill(M+2, py-2, CW, 7.5, LIGHT);
 
 allCols.forEach(c => {
 if (c.right) {
-// Amount — bold, right-aligned
-txt(money(parseFloat(l.amount)||0), c.x, py+3,
-{ size:9, bold:true, color:DARK, align:'right' });
+txt(money(parseFloat(l.amount)||0), c.x, py+2.5,
+{ size:8.5, color:DARK, align:'right' });
 } else {
 let val = String(l[c.key]||'');
 const maxLen = Math.max(4, Math.floor(c.w / 2.0));
 val = val.slice(0, maxLen);
-
-// Zelle highlight in paymentId / description
 const isZelle = (c.key==='paymentId'||c.key==='desc') &&
 (l.paymentId||l.desc||'').toLowerCase().includes('zelle');
 if (isZelle) {
-fill(c.x - 1, py-2, c.w, 8, [235,230,255]);
-txt(val, c.x, py+3, { size:9, bold:true, color:PURPLE });
+txt(val, c.x, py+2.5, { size:8.5, color:DARK });
 } else {
-doc.setTextColor(...(c.key==='date'?MID:DARK));
-doc.setFontSize(9);
+doc.setTextColor(...DARK);
+doc.setFontSize(8.5);
 doc.setFont('helvetica','normal');
-doc.text(val, c.x, py+3);
+doc.text(val, c.x, py+2.5);
 }
 }
 });
 
-line(M+2, py+5.5, RX, py+5.5, BORDER, 0.2);
+line(M+2, py+5, RX, py+5, BORDER, 0.2);
 pageRev += parseFloat(l.amount)||0;
 py += 8;
 });
 
 // Total revenue row
 py += 3;
-line(M+2, py, RX, py, GREEN, 0.6);
-py += 3;
-fill(M+2, py, CW, 11, BGBLUE);
-fill(M+2, py, 3, 11, BLUE);
-txt('Total Revenue', M+8, py+7, { size:10, bold:true, color:BLUE });
-txt(money(pageRev), RX-2, py+7, { size:12, bold:true, color:BLUE, align:'right' });
+line(M+2, py, RX, py, DARK, 0.4);
+py += 4;
+txt('Total Revenue', M+5, py+2, { size:9, bold:true, color:DARK });
+txt(money(pageRev), RX-2, py+2, { size:10, bold:true, color:DARK, align:'right' });
 
 // Footer last page
-fill(0, 282, W, 18, DARK); fill(0,282,5,18,GREEN);
-txt(iss.name||'', M+2, 294, { size:7.5, color:[200,205,210] });
-txt('Payment Detail', W/2, 294, { size:7.5, color:[200,205,210], align:'center' });
-txt('Page '+doc.getNumberOfPages(), RX, 294, { size:7.5, color:[180,185,195], align:'right' });
-txt('Powered by ClaimDataCare', W/2, 286, { size:6.5, color:[160,165,175], align:'center' });
+line(M+2, 280, RX, 280, BORDER, 0.3);
+line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
+txt(iss.name||'', M+2, 292, { size:7, color:MID });
+txt('Payment Detail', W/2, 292, { size:7, color:MID, align:'center' });
+if (_invQR) {
+  try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
+}
+txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7, color:MID, align:'right' });
+txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
 }
 
 doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
