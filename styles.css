@@ -52,7 +52,7 @@ input,select,textarea,.btn,.fg{cursor:default}
 textarea{resize:vertical;min-height:60px}
 button{border:0;background:none;cursor:pointer;font:inherit;color:inherit;padding:0;margin:0;letter-spacing:inherit}
 button:disabled{opacity:.4;pointer-events:none}
-svg.lci{width:14px;height:14px;flex-shrink:0}
+svg.lci,i.lci{width:14px;height:14px;flex-shrink:0;display:inline-block;vertical-align:middle}
 .mono{font-family:var(--mono);font-size:.93em;letter-spacing:0}
 .nav-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px;background:var(--bg3);color:var(--text2)}
 .card-title{font-weight:600;font-size:13px;color:var(--text2)}
