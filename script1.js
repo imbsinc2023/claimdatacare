@@ -2841,7 +2841,7 @@ Show Paid
 <div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \u2014 Self</option><option value="01">01 \u2014 Spouse</option><option value="19">19 \u2014 Child</option><option value="G8">G8 \u2014 Other</option><option value="32">32 \u2014 Mother</option><option value="33">33 \u2014 Father</option></select></div>
 </div>
 <div class="sep"></div>
-<span class="slabel"><i data-lucide="id-card" class="lci"></i> Subscriber / Insured</span>
+<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>
 <div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \u2014 subscriber fields auto-filled from patient data above.</div>
 <div class="fg g2">
 <div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>
