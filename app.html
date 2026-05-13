@@ -6976,10 +6976,44 @@ btn.textContent='Send Reset Email'; btn.disabled=false;
 }
 }
 
-async function exportInvoicePDF(invId) {
+function _imgDim(b64) {
+  try {
+    const raw = atob((b64 || '').split(',')[1] || b64 || '');
+    if (!raw || raw.length < 24) return null;
+    const len = raw.length, d = [];
+    for (let i = 0; i < Math.min(len, 256); i++) d.push(raw.charCodeAt(i) & 0xFF);
+    if (d[0] === 137 && d[1] === 80 && d[2] === 78 && d[3] === 71)
+      return { w: (d[16]<<24)|(d[17]<<16)|(d[18]<<8)|d[19], h: (d[20]<<24)|(d[21]<<16)|(d[22]<<8)|d[23] };
+    if (d[0] === 0xFF && d[1] === 0xD8 && d[2] === 0xFF)
+      for (let i = 2; i < Math.min(len - 9, 256); i++)
+        if (d[i] === 0xFF && (d[i+1] & 0xF0) === 0xC0 && d[i+1] !== 0xFF)
+          return { w: (d[i+7]<<8)|d[i+8], h: (d[i+5]<<8)|d[i+6] };
+  } catch(e) {}
+  return null;
+}
+function _imgFmt(b64) {
+  if (!b64) return 'PNG';
+  if (b64.startsWith('data:image/png')) return 'PNG';
+  if (b64.startsWith('data:image/jpeg') || b64.startsWith('data:image/jpg')) return 'JPEG';
+  try {
+    const raw = atob(b64.split(',')[1] || b64);
+    const c = raw.charCodeAt(0) & 0xFF;
+    if (c === 0xFF) return 'JPEG';
+    if (c === 137) return 'PNG';
+  } catch(e) {}
+  return 'PNG';
+}
+function _fitLogo(b64, maxDim) {
+  const dim = _imgDim(b64);
+  if (!dim || dim.w <= 0 || dim.h <= 0) return { w: maxDim, h: maxDim };
+  const scale = Math.min(maxDim / dim.w, maxDim / dim.h);
+  return { w: Math.round(dim.w * scale * 10) / 10, h: Math.round(dim.h * scale * 10) / 10 };
+}
+
+function _buildInvoicePDF(invId) {
 const db = getInvDB();
 const inv = db.invoices.find(x => x.id === invId);
-if (!inv) { toast('Save the invoice first','warn'); return; }
+if (!inv) return null;
 const iss = db.invoicingIssuers.find(x => x.id === inv.issuerId) || {};
 const cli = resolveInvClient(inv.clientId, db);
 
@@ -6987,8 +7021,7 @@ const { jsPDF } = window.jspdf;
 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 const W = 210, M = 16, RX = W - M, CW = RX - M;
 
-// ?? Palette — minimal, neutral ??????????????????????????????????
-const ACCENT = [201, 100, 66]; // terracotta — used sparingly
+const ACCENT = [201, 100, 66];
 const WHITE = [255,255,255];
 const BLACK = [22, 22, 22];
 const DARK = [50, 48, 44];
@@ -7008,7 +7041,6 @@ doc.setTextColor(...(opts.color||BLACK));
 doc.text(String(s||''), x, y, { align: opts.align||'left', maxWidth: opts.maxWidth });
 };
 
-// Generate subtle QR for footer
 let _invQR = null;
 try {
   if (typeof generateQRDataURL === 'function') {
@@ -7016,71 +7048,44 @@ try {
   }
 } catch(e) {}
 
-// ????????????????????????????????????????????????
-// PAGE 1 — INVOICE
-// ????????????????????????????????????????????????
 let y = M;
-
-// ?? Left accent bar ????????????????????????????????????????????????
 fill(0, 0, 3, 297, ACCENT);
-
-// ?? Logo area (square 28x28 mm, top left after bar)
-const LOGO_X = M + 2, LOGO_Y = M, LOGO_SZ = 28;
+let _logoH = 28;
 if (iss.logo) {
-try {
-doc.addImage(iss.logo, 'PNG', LOGO_X, LOGO_Y, LOGO_SZ, LOGO_SZ, undefined, 'FAST');
-} catch(e) {}
+try { const _ld = _fitLogo(iss.logo, 28); doc.addImage(iss.logo, _imgFmt(iss.logo), M+2, M, _ld.w, _ld.h, undefined, 'FAST'); _logoH = _ld.h; } catch(e) {}
 }
-
-// ?? INVOICE label — top right
 txt('INVOICE', RX, M + 10, { bold:true, size:22, color:DARK, align:'right' });
 txt(inv.number||'', RX, M + 17, { size:8, color:MID, align:'right' });
 txt(fmtInvDate(inv.month)||inv.month||'', RX, M + 22, { size:8, color:MID, align:'right' });
-
-y = M + LOGO_SZ + 10;
+y = M + _logoH + 10;
 line(M + 2, y, RX, y, BORDER, 0.4);
 y += 6;
 
-// ?? FROM / BILL TO ??????????????????????????????????????????????
 const COL2 = M + 2 + CW / 2 + 4;
 const COL1 = M + 2;
-
 const blockFrom = (entity, x, startY, label) => {
 let ly = startY;
-txt(label, x, ly, { size:6.5, bold:true, color:DARK });
-ly += 5;
-txt(entity.name||'', x, ly, { size:10, bold:true, color:DARK, maxWidth: CW/2 - 4 });
-ly += 5;
+txt(label, x, ly, { size:6.5, bold:true, color:DARK }); ly += 5;
+txt(entity.name||'', x, ly, { size:10, bold:true, color:DARK, maxWidth: CW/2 - 4 }); ly += 5;
 doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MID);
 if (entity.contact) { doc.text(entity.contact, x, ly); ly += 3.5; }
 if (entity.addr1) { doc.text(entity.addr1, x, ly); ly += 3.5; }
 const cs = [entity.city, entity.state, entity.zip].filter(Boolean).join(', ');
 if (cs) { doc.text(cs, x, ly); ly += 3.5; }
 if (entity.email) { doc.text(entity.email, x, ly); ly += 3.5; }
-if (entity.phone) {
-const phoneLabel = label === 'FROM' ? 'Zelle: ' + entity.phone : entity.phone;
-txt(phoneLabel, x, ly, { size:8, color:MID });
-ly += 3.5;
-}
+if (entity.phone) { txt(label === 'FROM' ? 'Zelle: ' + entity.phone : entity.phone, x, ly, { size:8, color:MID }); ly += 3.5; }
 if (entity.taxid) { txt('EIN: ' + entity.taxid, x, ly, { size:7.5, color:MID }); ly += 3.5; }
 return ly;
 };
-
 const yA = blockFrom(iss, COL1, y, 'FROM');
 const yB = blockFrom(cli, COL2, y, 'BILL TO');
-// Subtle divider between columns
 line(COL2 - 4, y - 2, COL2 - 4, Math.max(yA, yB) + 2, BORDER, 0.2);
-
 y = Math.max(yA, yB) + 8;
-line(M+2, y, RX, y, BORDER, 0.3);
-y += 7;
+line(M+2, y, RX, y, BORDER, 0.3); y += 7;
 
-// ?? Invoice detail strip
 const dets = [
-['Invoice Date', inv.date||''],
-['Due Date', inv.due||'Upon receipt'],
-['Period', inv.month||''],
-['Terms', iss.terms||'Due on receipt'],
+['Invoice Date', inv.date||''], ['Due Date', inv.due||'Upon receipt'],
+['Period', inv.month||''], ['Terms', iss.terms||'Due on receipt'],
 ];
 const dw = CW / dets.length;
 dets.forEach(([lbl, val], i) => {
@@ -7088,238 +7093,144 @@ const dx = M + 2 + i * dw + 3;
 txt(lbl, dx, y + 1, { size:6.5, color:MID });
 txt(val, dx, y + 6.5, { size:8, bold:true, color:DARK });
 });
-y += 14;
-line(M+2, y, RX, y, BORDER, 0.3);
-y += 7;
+y += 14; line(M+2, y, RX, y, BORDER, 0.3); y += 7;
 
-// ?? Services table
-// Header
 line(M+2, y-1, RX, y-1, BORDER, 0.5);
 txt('DESCRIPTION', M+5, y+2, { size:7, bold:true, color:MID });
 txt('AMOUNT', RX-2, y+2, { size:7, bold:true, color:MID, align:'right' });
-line(M+2, y+4, RX, y+4, LIGHT, 0.5);
-y += 8;
+line(M+2, y+4, RX, y+4, LIGHT, 0.5); y += 8;
 
 const svcLines = inv.svcLines || [];
 svcLines.forEach(function(s, i) {
   if (!s.desc && (!s.amount || parseFloat(s.amount) === 0)) return;
   if (i % 2 === 1) fill(M+2, y-3, CW, 7, LIGHT);
   txt(s.desc||'', M+5, y+1, { size:8.5, color:DARK });
-  if (s.amount && parseFloat(s.amount) !== 0) {
-    txt(money(s.amount), RX-2, y+1, { size:8.5, color:DARK, align:'right' });
-  }
+  if (s.amount && parseFloat(s.amount) !== 0) txt(money(s.amount), RX-2, y+1, { size:8.5, color:DARK, align:'right' });
   y += 7;
 });
-
-// Fee calculation (not shown as line — included in service lines by user)
-const feePct = parseFloat(inv.fee)||0;
-const minBase = parseFloat(inv.minBase)||0;
-const excBase = parseFloat(inv.excBase)||0;
-const revenue = parseFloat(inv.revenue)||0;
-
-y += 2;
-line(M+2, y, RX, y, BORDER, 0.3);
-y += 5;
-
-// ?? Subtotal row
+y += 2; line(M+2, y, RX, y, BORDER, 0.3); y += 5;
 const svcTotal = svcLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
 txt('Subtotal', M+5, y+3, { size:8.5, color:MID });
 txt(money(svcTotal), RX-2, y+3, { size:8.5, color:DARK, align:'right' });
 y += 9;
 
-
-// Auto page break
 if (y + 70 > 265) {
   line(M+2, 280, RX, 280, BORDER, 0.3);
   txt(iss.name||'', M+2, 292, { size:7, color:MID });
   txt('Continued...', W/2, 292, { size:7, color:MID, align:'center' });
-  if (_invQR) {
-    try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
-  }
+  if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
   txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
-  doc.addPage();
-  fill(0, 0, 3, 297, ACCENT);
+  doc.addPage(); fill(0, 0, 3, 297, ACCENT);
   y = M + 4;
   txt('Invoice '+(inv.number||'')+' — continued', M+5, y+4, { size:9, bold:true, color:DARK });
-  line(M+2, y+7, RX, y+7, BORDER, 0.3);
-  y += 14;
+  line(M+2, y+7, RX, y+7, BORDER, 0.3); y += 14;
 }
-// ?? TOTAL
-line(M+2, y-1, RX, y-1, DARK, 0.4);
-y += 4;
+line(M+2, y-1, RX, y-1, DARK, 0.4); y += 4;
 txt('TOTAL', M+5, y+3, { size:10, bold:true, color:DARK });
 txt(money(svcTotal), RX-2, y+3, { size:11, bold:true, color:DARK, align:'right' });
-y += 12;
-line(M+2, y, RX, y, BORDER, 0.3);
-y += 6;
+y += 12; line(M+2, y, RX, y, BORDER, 0.3); y += 6;
 
-// ?? Payment instructions
-txt('Payment', M+5, y+1, { size:7, bold:true, color:MID });
-y += 5;
-txt('Preferred payment: Zelle or paper check — no processing fees.', M+5, y+1, { size:8, color:DARK });
-y += 4;
-txt('Virtual card & direct deposit: 4.5% bank processing fee applies.', M+5, y+1, { size:7.5, color:MID });
-y += 5;
-
+txt('Payment', M+5, y+1, { size:7, bold:true, color:MID }); y += 5;
+txt('Preferred payment: Zelle or paper check — no processing fees.', M+5, y+1, { size:8, color:DARK }); y += 4;
+txt('Virtual card & direct deposit: 4.5% bank processing fee applies.', M+5, y+1, { size:7.5, color:MID }); y += 5;
 const zelleMode = iss.zelleMode || 'phone';
-const showZellePhone = (zelleMode==='phone'||zelleMode==='both') && iss.phone;
-const showZelleEmail = (zelleMode==='email'||zelleMode==='both') && iss.email;
-if (showZellePhone || showZelleEmail) {
-  if (showZellePhone) {
-    txt('Zelle (Phone): ' + fmtPhone(iss.phone), M+5, y+2, { size:7.5, color:MID });
-    y += 4;
-  }
-  if (showZelleEmail) {
-    txt('Zelle (Email): ' + iss.email, M+5, y+2, { size:7.5, color:MID });
-    y += 4;
-  }
-  y += 2;
-}
-
-// Exception note
-if (inv.excNoteText) {
-line(M+2, y, RX, y, BORDER, 0.3);
-y += 4;
-txt(inv.excNoteText, M+5, y+2, { size:7.5, color:DARK });
-y += 9;
-}
+if ((zelleMode==='phone'||zelleMode==='both') && iss.phone) { txt('Zelle (Phone): ' + fmtPhone(iss.phone), M+5, y+2, { size:7.5, color:MID }); y += 4; }
+if ((zelleMode==='email'||zelleMode==='both') && iss.email) { txt('Zelle (Email): ' + iss.email, M+5, y+2, { size:7.5, color:MID }); y += 4; }
+y += 2;
+if (inv.excNoteText) { line(M+2, y, RX, y, BORDER, 0.3); y += 4; txt(inv.excNoteText, M+5, y+2, { size:7.5, color:DARK }); y += 9; }
 if (iss.notes || inv.notes) {
-line(M+2, y, RX, y, BORDER, 0.2);
-y += 4;
-const noteText = [iss.notes, inv.notes].filter(Boolean).join(' \u00b7 ');
-const noteLines = doc.splitTextToSize(noteText, CW - 6);
-txt(noteLines, M+5, y+2, { size:7.5, color:MID });
-y += noteLines.length * 3.5 + 4;
+line(M+2, y, RX, y, BORDER, 0.2); y += 4;
+const noteLines = doc.splitTextToSize([iss.notes, inv.notes].filter(Boolean).join(' \u00b7 '), CW - 6);
+txt(noteLines, M+5, y+2, { size:7.5, color:MID }); y += noteLines.length * 3.5 + 4;
 }
-
-// ?? Footer
 line(M+2, 280, RX, 280, BORDER, 0.3);
 line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
 txt(iss.name||'', M+2, 292, { size:7, color:MID });
 txt('Thank you for your business', W/2, 292, { size:7, color:MID, align:'center' });
-if (_invQR) {
-  try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
-}
+if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
 txt('Page 1', RX, 292, { size:7, color:MID, align:'right' });
 txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
 
-// ????????????????????????????????????????????????
-// PAGE 2+ — PAYMENT DETAIL
-// ????????????????????????????????????????????????
 if (inv.lines && inv.lines.length) {
-doc.addPage();
-fill(0, 0, 3, 297, ACCENT);
+doc.addPage(); fill(0, 0, 3, 297, ACCENT);
 let py = M;
-
-// Page header
 txt('Payment Detail', M+5, py+4, { size:11, bold:true, color:DARK });
 txt(`${iss.name||''} · ${cli.name||''} · ${inv.month||''}`, M+5, py+9, { size:7, color:MID });
 txt(inv.number||'', RX, py+4, { size:8, color:MID, align:'right' });
-line(M+2, py+12, RX, py+12, BORDER, 0.3);
-py += 17;
-
-// Build active columns
+line(M+2, py+12, RX, py+12, BORDER, 0.3); py += 17;
 const allCols = [
-{ key:'date', label:'Date', w:24 },
-{ key:'desc', label:'Description', w:38 },
-{ key:'paymentId', label:'Check / ID', w:30 },
-{ key:'insurance', label:'Insurance', w:34 },
-{ key:'month', label:'Month', w:24 },
-{ key:'amount', label:'Amount', w:0, right:true },
+{ key:'date', label:'Date', w:24 }, { key:'desc', label:'Description', w:38 },
+{ key:'paymentId', label:'Check / ID', w:30 }, { key:'insurance', label:'Insurance', w:34 },
+{ key:'month', label:'Month', w:24 }, { key:'amount', label:'Amount', w:0, right:true },
 ].filter(c => c.right || (inv.lines||[]).some(l => l[c.key]));
-
-// X positions
 let xc = M + 4;
-allCols.forEach(c => {
-c.x = c.right ? RX - 2 : xc;
-if (!c.right) xc += c.w;
-});
-
-// Column header
+allCols.forEach(c => { c.x = c.right ? RX - 2 : xc; if (!c.right) xc += c.w; });
 line(M+2, py-1, RX, py-1, BORDER, 0.5);
-allCols.forEach(c => {
-txt(c.label, c.right ? c.x : c.x, py+1.5,
-{ size:6.5, bold:true, color:MID, align: c.right?'right':'left' });
-});
-line(M+2, py+4, RX, py+4, LIGHT, 0.5);
-py += 8;
-
+allCols.forEach(c => { txt(c.label, c.right ? c.x : c.x, py+1.5, { size:6.5, bold:true, color:MID, align: c.right?'right':'left' }); });
+line(M+2, py+4, RX, py+4, LIGHT, 0.5); py += 8;
 let pageRev = 0;
-doc.setFont('helvetica','normal');
-doc.setFontSize(9);
-
+doc.setFont('helvetica','normal'); doc.setFontSize(9);
 inv.lines.forEach((l, i) => {
-// New page if needed
 if (py > 268) {
   line(M+2, 280, RX, 280, BORDER, 0.3);
   txt(iss.name||'', M+2, 292, { size:7, color:MID });
   txt('Payment Detail (cont.)', W/2, 292, { size:7, color:MID, align:'center' });
-  if (_invQR) {
-    try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
-  }
+  if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
   txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
-doc.addPage();
-fill(0, 0, 3, 297, ACCENT);
-py = M;
-line(M+2, py-1, RX, py-1, BORDER, 0.5);
-allCols.forEach(c => {
-txt(c.label, c.right?c.x:c.x, py+1.5,
-{ size:6.5, bold:true, color:MID, align:c.right?'right':'left' });
-});
-line(M+2, py+4, RX, py+4, LIGHT, 0.5);
-py += 8;
+  doc.addPage(); fill(0, 0, 3, 297, ACCENT); py = M;
+  line(M+2, py-1, RX, py-1, BORDER, 0.5);
+  allCols.forEach(c => { txt(c.label, c.right?c.x:c.x, py+1.5, { size:6.5, bold:true, color:MID, align:c.right?'right':'left' }); });
+  line(M+2, py+4, RX, py+4, LIGHT, 0.5); py += 8;
 }
-
-// Alternating rows
 if (i % 2 === 1) fill(M+2, py-2, CW, 7.5, LIGHT);
-
 allCols.forEach(c => {
-if (c.right) {
-txt(money(parseFloat(l.amount)||0), c.x, py+2.5,
-{ size:8.5, color:DARK, align:'right' });
-} else {
-let val = String(l[c.key]||'');
-const maxLen = Math.max(4, Math.floor(c.w / 2.0));
-val = val.slice(0, maxLen);
-const isZelle = (c.key==='paymentId'||c.key==='desc') &&
-(l.paymentId||l.desc||'').toLowerCase().includes('zelle');
-if (isZelle) {
-txt(val, c.x, py+2.5, { size:8.5, color:DARK });
-} else {
-doc.setTextColor(...DARK);
-doc.setFontSize(8.5);
-doc.setFont('helvetica','normal');
-doc.text(val, c.x, py+2.5);
-}
+if (c.right) { txt(money(parseFloat(l.amount)||0), c.x, py+2.5, { size:8.5, color:DARK, align:'right' }); }
+else {
+  let val = String(l[c.key]||'').slice(0, Math.max(4, Math.floor(c.w / 2.0)));
+  txt(val, c.x, py+2.5, { size:8.5, color:DARK });
 }
 });
-
 line(M+2, py+5, RX, py+5, BORDER, 0.2);
-pageRev += parseFloat(l.amount)||0;
-py += 8;
+pageRev += parseFloat(l.amount)||0; py += 8;
 });
-
-// Total revenue row
-py += 3;
-line(M+2, py, RX, py, DARK, 0.4);
-py += 4;
+py += 3; line(M+2, py, RX, py, DARK, 0.4); py += 4;
 txt('Total Revenue', M+5, py+2, { size:9, bold:true, color:DARK });
 txt(money(pageRev), RX-2, py+2, { size:10, bold:true, color:DARK, align:'right' });
-
-// Footer last page
 line(M+2, 280, RX, 280, BORDER, 0.3);
 line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
 txt(iss.name||'', M+2, 292, { size:7, color:MID });
 txt('Payment Detail', W/2, 292, { size:7, color:MID, align:'center' });
-if (_invQR) {
-  try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {}
-}
+if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
 txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7, color:MID, align:'right' });
 txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
 }
+return doc;
+}
 
+async function exportInvoicePDF(invId) {
+const doc = _buildInvoicePDF(invId);
+if (!doc) { toast('Save the invoice first','warn'); return; }
+const inv = getInvDB().invoices.find(x => x.id === invId);
 doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
 toast('Invoice PDF exported');
+}
+
+function previewInvoicePDF(invId) {
+const doc = _buildInvoicePDF(invId);
+if (!doc) { toast('Save the invoice first','warn'); return; }
+const inv = getInvDB().invoices.find(x => x.id === invId);
+try {
+  const pdfData = doc.output('datauristring');
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write('<iframe src="'+pdfData+'" style="width:100%;height:100%;border:none;position:fixed;top:0;left:0;right:0;bottom:0"></iframe>');
+    w.document.title = 'Invoice ' + (inv.number||'');
+  } else {
+    window.location.href = pdfData;
+  }
+} catch(e) {
+  toast('Preview failed — try downloading instead','err');
+}
 }
 
 
@@ -8667,10 +8578,13 @@ ${statusOptions.map(s=>`<option value="${s}" ${s===inv.status?'selected':''}>${s
 <button class="btn-icon sm" onclick="openPartialPaymentModal('${inv.id}')" title="Record Payment" style="color:var(--brand)">
 <i data-lucide="dollar-sign" class="lci" style="width:13px;height:13px"></i>
 </button>
-<button class="btn-icon sm" onclick="exportInvoicePDF('${inv.id}')" title="PDF">
+<button class="btn-icon sm" onclick="previewInvoicePDF('${inv.id}')" title="Preview" style="color:var(--text2)">
+<i data-lucide="eye" class="lci" style="width:13px;height:13px"></i>
+</button>
+<button class="btn-icon sm" onclick="exportInvoicePDF('${inv.id}')" title="Download PDF">
 <i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i>
 </button>
-<button class="btn-icon sm" onclick="sendInvoiceEmail(inv)" title="Enviar por Email" style="color:var(--brand)">
+<button class="btn-icon sm" onclick="sendInvoiceEmail(inv)" title="Send by Email" style="color:var(--brand)">
 <i data-lucide="mail" class="lci" style="width:13px;height:13px"></i>
 </button>
 <button class="btn-icon sm" onclick="openInvoiceModal('${inv.id}')" title="Edit">
@@ -11467,13 +11381,15 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
 
   y = 18;
   // Provider logo
-  const LOGO_W=30, LOGO_H=30;
+  let _supLogoH = 30;
   let provX = M;
   if (prov.logo && prov.logo.length > 200) {
     try {
-      const fmt = prov.logo.startsWith('data:image/png')?'PNG':'JPEG';
-      doc.addImage(prov.logo, fmt, M, y, LOGO_W, LOGO_H, undefined, 'FAST');
-      provX = M + LOGO_W + 5;
+      const _ld = _fitLogo(prov.logo, 30);
+      const _fmt = _imgFmt(prov.logo);
+      doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h, undefined, 'FAST');
+      provX = M + _ld.w + 5;
+      _supLogoH = _ld.h;
     } catch(e) {}
   }
 
@@ -11500,7 +11416,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
   const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+UC(posStr):null].filter(Boolean).join('  ·  ');
   if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
 
-  y = (prov.logo && prov.logo.length > 200) ? 52 : 46;
+  y = (prov.logo && prov.logo.length > 200) ? (18 + _supLogoH + 4) : 46;
   hline(M, y, RX, BORDER_LT, 0.4);
   y += 6;
 
@@ -11849,7 +11765,7 @@ const NAVY=[0,102,204],WHITE=[255,255,255],BLACK=[20,20,20],GRAY=[110,115,130],L
 const hline=(y,c=LGRAY)=>{doc.setDrawColor(...c);doc.line(M,y,RX,y);};
 doc.setFillColor(...NAVY); doc.rect(0,0,W,16,'F');
 doc.setFillColor(0,122,255); doc.rect(0,13,W,3,'F');
-if(prov.logo){try{doc.addImage(prov.logo,'PNG',M,1,13,13,undefined,'FAST');}catch(e){}}
+if(prov.logo){try{const _ld=_fitLogo(prov.logo,13);doc.addImage(prov.logo,_imgFmt(prov.logo),M,1,_ld.w,_ld.h,undefined,'FAST');}catch(e){}}
 doc.setFont(undefined,'bold'); doc.setFontSize(12); doc.setTextColor(...WHITE);
 doc.text('Patient Report — '+prov.name, M+16, 11);
 doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(180,195,220);
@@ -15871,9 +15787,11 @@ return curY;
 // ?? Page 1: Document Header ??????????????????????????????????????????
 fill(0,0,W,2,BLUE);
 // Logo
-const LOGO_SZ=24;
-if(prov.logo){try{doc.addImage(prov.logo,'PNG',M,M+2,LOGO_SZ,LOGO_SZ,undefined,'FAST');}catch(e){}}
-const hx=prov.logo?M+LOGO_SZ+6:M;
+let _encLogoH = 24;
+if (prov.logo) {
+  try { const _ld = _fitLogo(prov.logo, 24); doc.addImage(prov.logo, _imgFmt(prov.logo), M, M+2, _ld.w, _ld.h, undefined, 'FAST'); _encLogoH = _ld.h; } catch(e) {}
+}
+const hx = prov.logo ? M + _encLogoH + 6 : M;
 t(prov.name||'',hx,M+8,{bold:true,size:10,color:DARK,maxWidth:90});
 t(`NPI: ${rend.npi||prov.npi||''} · EIN: ${prov.taxid||''}`,hx,M+14,{size:7.5,color:MID});
 t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,color:MID});
@@ -15884,7 +15802,7 @@ t(eLabel.toUpperCase(),RX,M+9,{bold:true,size:14,color:DARK,align:'right'});
 const cptLabel=(CPT_ENGINE[n.cpt]||CPT_ENGINE['DEFAULT']).label;
 t(cptLabel,RX,M+15,{size:8,color:BLUE,align:'right'});
 t(n.status==='finalized'?'FINALIZED':'DRAFT — Not for Billing',RX,M+21,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
-let y=M+LOGO_SZ+8;
+let y=M+_encLogoH+8;
 hln(y,BORDER,0.5); y+=5;
 
 // ?? Patient / Encounter Information Block ????????????????????????????
@@ -19444,7 +19362,7 @@ fill(0,0,W,2,EMERALD);
 
 const hasLogo = prov.logo && prov.logo.length>200;
 if (hasLogo) {
-try { doc.addImage(prov.logo,'JPEG',M,6,20,20,undefined,'FAST'); }
+try { const _ld=_fitLogo(prov.logo,20); doc.addImage(prov.logo,_imgFmt(prov.logo),M,6,_ld.w,_ld.h,undefined,'FAST'); }
 catch(e) { drawShield(M+10,17,9); }
 } else if (prov.name) {
 drawShield(M+9,17,9);
@@ -21711,69 +21629,90 @@ document.addEventListener("DOMContentLoaded", async function() {
 
 // ── Send Invoice by Email ─────────────────────────────────────────
 function sendInvoiceEmail(inv) {
-  const db = getDB();
-  const iss = (db.invoicingIssuers||db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
-  const cli = resolveInvClient(inv.clientId, db) || {};
-  const sess = getSession() || {};
-  const senderEmail = sess.email || '';
-  const fromName = iss.name || 'ClaimDataCare Billing';
+  try {
+    const db = getDB();
+    const iss = (db.invoicingIssuers||db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
+    const cli = resolveInvClient(inv.clientId, db) || {};
+    const sess = getSession() || {};
+    const senderEmail = sess.email || '';
+    const fromName = iss.name || 'ClaimDataCare Billing';
 
-  const toEmail = cli.email || cli.billingEmail || '';
-  const amount = '$' + fmtMoney(parseFloat(inv.billingFee||inv.total||0));
-  const subject = 'Invoice ' + (inv.number||'') + ' — ' + (inv.month||'') + ' — ' + amount;
+    const toEmail = cli.email || cli.billingEmail || '';
+    const amount = '$' + fmtMoney(parseFloat(inv.billingFee||inv.total||0));
+    const subject = 'Invoice ' + (inv.number||'') + ' — ' + (inv.month||'') + ' — ' + amount;
 
-  const body = [
-    'Dear ' + (cli.name||'Client') + ',',
-    '',
-    'Attached you will find the invoice corresponding to ' + (inv.month||'the current billing period') + '.',
-    '',
-    '—' .repeat(30),
-    'Invoice #: ' + (inv.number||''),
-    'Period: ' + (inv.month||''),
-    'Amount Due: ' + amount,
-    'Due Date: ' + (inv.due||'Upon receipt'),
-    '—' .repeat(30),
-    '',
-    'Payment Instructions:',
-    (iss.zelleMode ? 'Zelle: ' + (iss.zelleMode==='email' ? iss.email : fmtPhone(iss.phone)) + '\n' : '') +
-    'Paper checks accepted at ' + (iss.addr1 || 'the address on file') + '.',
-    '',
-    'Please remit payment by the due date. For questions regarding this invoice, contact ' + (iss.email||'our billing department') + '.',
-    '',
-    'Thank you for your partnership,',
-    fromName,
-    '',
-    '—',
-    'This invoice was generated via ClaimDataCare. For support, contact support@claimdatacare.com.'
-  ].join('\n');
+    if (!toEmail) {
+      toast('No email on file for this client. Add an email address first.','err');
+      return;
+    }
 
-  const finalTo = toEmail || prompt('Email address for ' + (cli.name||'client') + ':', '');
-  if (!finalTo) return;
-
-  window.open('mailto:' + finalTo + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body),
-    '_blank', 'noopener,noreferrer');
-  toast('Invoice email opened for ' + finalTo + '. Please attach the PDF before sending.', 'ok');
-
-  // Also open a confirmation email for the sender
-  if (senderEmail) {
-    const confirmSubject = 'Invoice Sent: ' + (inv.number||'') + ' to ' + (cli.name||'Client');
-    const confirmBody = [
-      'This is a confirmation that invoice ' + (inv.number||'') + ' has been prepared for delivery.',
+    const body = [
+      'Dear ' + (cli.name||'Client') + ',',
       '',
-      'Recipient: ' + (cli.name||'') + ' <' + finalTo + '>',
+      'Please find attached the invoice for ' + (inv.month||'the current billing period') + '.',
+      '',
       'Invoice #: ' + (inv.number||''),
       'Period: ' + (inv.month||''),
       'Amount: ' + amount,
-      'Sent: ' + new Date().toLocaleString(),
+      'Due Date: ' + (inv.due||'Upon receipt'),
       '',
-      'Thank you,',
-      'ClaimDataCare Billing System'
-    ].join('\n');
-    setTimeout(function() {
-      window.open('mailto:' + senderEmail + '?subject=' + encodeURIComponent(confirmSubject) + '&body=' + encodeURIComponent(confirmBody),
-        '_blank', 'noopener,noreferrer');
-    }, 500);
-    toast('Sender confirmation opened for ' + senderEmail, 'ok');
+      'Payment Instructions:',
+      iss.zelleMode ? 'Zelle: ' + (iss.zelleMode==='email' ? iss.email : fmtPhone(iss.phone)) : '',
+      'Paper checks accepted at ' + (iss.addr1 || 'the address on file') + '.',
+      '',
+      'Please remit payment by the due date. For questions, contact ' + (iss.email||'our billing department') + '.',
+      '',
+      'Thank you for your partnership,',
+      fromName
+    ].filter(Boolean).join('\n');
+
+    // Generate and download PDF first
+    try {
+      const doc = _buildInvoicePDF(inv.id);
+      if (doc) {
+        doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
+      }
+    } catch(pdfErr) {
+      console.warn('PDF generation for send failed:', pdfErr);
+    }
+
+    // Open email client
+    const mailtoUrl = 'mailto:' + toEmail +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(body);
+    const mailWin = window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
+    if (!mailWin || mailWin.closed) {
+      window.location.href = mailtoUrl;
+    }
+
+    // Mark as Sent
+    setDB(function(db) {
+      const idx = db.invoices.findIndex(function(x){ return x.id === inv.id; });
+      if (idx >= 0 && db.invoices[idx].status === 'Draft') db.invoices[idx].status = 'Sent';
+    });
+    renderInvoicesList();
+
+    toast('PDF downloaded and email opened for ' + toEmail + '. Attach the PDF before sending.', 'ok');
+
+    // Sender confirmation
+    if (senderEmail) {
+      const confirmBody = [
+        'Invoice ' + (inv.number||'') + ' sent to ' + (cli.name||'Client') + ' <' + toEmail + '>',
+        '',
+        'Amount: ' + amount,
+        'Sent: ' + new Date().toLocaleString()
+      ].join('\n');
+      setTimeout(function() {
+        const cUrl = 'mailto:' + senderEmail +
+          '?subject=' + encodeURIComponent('Invoice Sent: ' + (inv.number||'')) +
+          '&body=' + encodeURIComponent(confirmBody);
+        const cWin = window.open(cUrl, '_blank', 'noopener,noreferrer');
+        if (!cWin || cWin.closed) window.location.href = cUrl;
+      }, 600);
+    }
+  } catch(e) {
+    toast('Failed to send invoice: ' + (e.message||'unknown error'), 'err');
+    console.error('sendInvoiceEmail error:', e);
   }
 }
 
