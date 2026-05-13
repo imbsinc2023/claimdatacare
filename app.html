@@ -21630,11 +21630,11 @@ document.addEventListener("DOMContentLoaded", async function() {
 // ── Send Invoice by Email ─────────────────────────────────────────
 function sendInvoiceEmail(inv) {
   try {
-    const db = getDB();
-    const iss = (db.invoicingIssuers||db.issuers||db.billingEntities||[]).find(function(x){ return x.id===inv.issuerId; }) || {};
+    const db = getInvDB();
+    const iss = db.invoicingIssuers.find(x => x.id === inv.issuerId) || {};
     const cli = resolveInvClient(inv.clientId, db) || {};
     const sess = getSession() || {};
-    const senderEmail = sess.email || '';
+    const senderEmail = sess.email || iss.email || '';
     const fromName = iss.name || 'ClaimDataCare Billing';
 
     const toEmail = cli.email || cli.billingEmail || '';
@@ -21645,6 +21645,11 @@ function sendInvoiceEmail(inv) {
       toast('No email on file for this client. Add an email address first.','err');
       return;
     }
+
+    var msg = 'Send Invoice ' + (inv.number||'') + ' to ' + (cli.name||'Client') + ' <' + toEmail + '>';
+    if (senderEmail) msg += '\n\nCC: ' + senderEmail;
+    msg += '\n\nThe PDF will be downloaded for you to attach.';
+    if (!confirm(msg)) return;
 
     const body = [
       'Dear ' + (cli.name||'Client') + ',',
@@ -21666,50 +21671,24 @@ function sendInvoiceEmail(inv) {
       fromName
     ].filter(Boolean).join('\n');
 
-    // Generate and download PDF first
+    var mailtoUrl = 'mailto:' + toEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    if (senderEmail) mailtoUrl += '&cc=' + encodeURIComponent(senderEmail);
+
     try {
       const doc = _buildInvoicePDF(inv.id);
-      if (doc) {
-        doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
-      }
-    } catch(pdfErr) {
-      console.warn('PDF generation for send failed:', pdfErr);
-    }
+      if (doc) doc.save('Invoice_' + (inv.number||'draft') + '.pdf');
+    } catch(pdfErr) { console.warn('PDF generation failed:', pdfErr); }
 
-    // Open email client
-    const mailtoUrl = 'mailto:' + toEmail +
-      '?subject=' + encodeURIComponent(subject) +
-      '&body=' + encodeURIComponent(body);
-    const mailWin = window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
-    if (!mailWin || mailWin.closed) {
-      window.location.href = mailtoUrl;
-    }
+    var mailWin = window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
+    if (!mailWin || mailWin.closed) window.location.href = mailtoUrl;
 
-    // Mark as Sent
     setDB(function(db) {
-      const idx = db.invoices.findIndex(function(x){ return x.id === inv.id; });
+      var idx = db.invoices.findIndex(function(x){ return x.id === inv.id; });
       if (idx >= 0 && db.invoices[idx].status === 'Draft') db.invoices[idx].status = 'Sent';
     });
     renderInvoicesList();
 
-    toast('PDF downloaded and email opened for ' + toEmail + '. Attach the PDF before sending.', 'ok');
-
-    // Sender confirmation
-    if (senderEmail) {
-      const confirmBody = [
-        'Invoice ' + (inv.number||'') + ' sent to ' + (cli.name||'Client') + ' <' + toEmail + '>',
-        '',
-        'Amount: ' + amount,
-        'Sent: ' + new Date().toLocaleString()
-      ].join('\n');
-      setTimeout(function() {
-        const cUrl = 'mailto:' + senderEmail +
-          '?subject=' + encodeURIComponent('Invoice Sent: ' + (inv.number||'')) +
-          '&body=' + encodeURIComponent(confirmBody);
-        const cWin = window.open(cUrl, '_blank', 'noopener,noreferrer');
-        if (!cWin || cWin.closed) window.location.href = cUrl;
-      }, 600);
-    }
+    toast('Invoice PDF downloaded — email ready to send to ' + toEmail + (senderEmail ? ' (CC: ' + senderEmail + ')' : ''), 'ok');
   } catch(e) {
     toast('Failed to send invoice: ' + (e.message||'unknown error'), 'err');
     console.error('sendInvoiceEmail error:', e);
