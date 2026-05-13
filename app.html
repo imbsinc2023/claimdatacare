@@ -3945,7 +3945,10 @@ Show Paid
 <option value="">All Statuses</option>
 <option value="Pending Forms">Pending Forms</option>
 <option value="Forms Sent">Forms Sent</option>
+<option value="Viewed">Viewed</option>
+<option value="Partially Completed">Partially Completed</option>
 <option value="Signed">Signed</option>
+<option value="Completed">Completed</option>
 <option value="Evaluation Pending">Evaluation Pending</option>
 <option value="Evaluation Completed">Evaluation Completed</option>
 <option value="Archived">Archived</option>
@@ -6981,12 +6984,12 @@ function _imgDim(b64) {
     const raw = atob((b64 || '').split(',')[1] || b64 || '');
     if (!raw || raw.length < 24) return null;
     const len = raw.length, d = [];
-    for (let i = 0; i < Math.min(len, 256); i++) d.push(raw.charCodeAt(i) & 0xFF);
+    for (let i = 0; i < Math.min(len, 4096); i++) d.push(raw.charCodeAt(i) & 0xFF);
     if (d[0] === 137 && d[1] === 80 && d[2] === 78 && d[3] === 71)
       return { w: (d[16]<<24)|(d[17]<<16)|(d[18]<<8)|d[19], h: (d[20]<<24)|(d[21]<<16)|(d[22]<<8)|d[23] };
     if (d[0] === 0xFF && d[1] === 0xD8 && d[2] === 0xFF)
-      for (let i = 2; i < Math.min(len - 9, 256); i++)
-        if (d[i] === 0xFF && (d[i+1] & 0xF0) === 0xC0 && d[i+1] !== 0xFF)
+      for (let i = 2; i < Math.min(len - 9, d.length); i++)
+        if (d[i] === 0xFF && (d[i+1] === 0xC0 || d[i+1] === 0xC1 || d[i+1] === 0xC2))
           return { w: (d[i+7]<<8)|d[i+8], h: (d[i+5]<<8)|d[i+6] };
   } catch(e) {}
   return null;
@@ -7006,8 +7009,11 @@ function _imgFmt(b64) {
 function _fitLogo(b64, maxDim) {
   const dim = _imgDim(b64);
   if (!dim || dim.w <= 0 || dim.h <= 0) return { w: maxDim, h: maxDim };
-  const scale = Math.min(maxDim / dim.w, maxDim / dim.h);
-  return { w: Math.round(dim.w * scale * 10) / 10, h: Math.round(dim.h * scale * 10) / 10 };
+  var wMm = dim.w / 96 * 25.4, hMm = dim.h / 96 * 25.4;
+  if (wMm <= maxDim && hMm <= maxDim)
+    return { w: Math.round(wMm * 10) / 10, h: Math.round(hMm * 10) / 10 };
+  var scale = Math.min(maxDim / wMm, maxDim / hMm);
+  return { w: Math.round(wMm * scale * 10) / 10, h: Math.round(hMm * scale * 10) / 10 };
 }
 
 function _buildInvoicePDF(invId) {
@@ -7052,7 +7058,7 @@ let y = M;
 fill(0, 0, 3, 297, ACCENT);
 let _logoH = 28;
 if (iss.logo) {
-try { const _ld = _fitLogo(iss.logo, 28); doc.addImage(iss.logo, _imgFmt(iss.logo), M+2, M, _ld.w, _ld.h, undefined, 'FAST'); _logoH = _ld.h; } catch(e) {}
+try { const _ld = _fitLogo(iss.logo, 28); doc.addImage(iss.logo, _imgFmt(iss.logo), M+2, M, _ld.w, _ld.h); _logoH = _ld.h; } catch(e) {}
 }
 txt('INVOICE', RX, M + 10, { bold:true, size:22, color:DARK, align:'right' });
 txt(inv.number||'', RX, M + 17, { size:8, color:MID, align:'right' });
@@ -11387,7 +11393,7 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
     try {
       const _ld = _fitLogo(prov.logo, 30);
       const _fmt = _imgFmt(prov.logo);
-      doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h, undefined, 'FAST');
+      doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h);
       provX = M + _ld.w + 5;
       _supLogoH = _ld.h;
     } catch(e) {}
@@ -11765,7 +11771,7 @@ const NAVY=[0,102,204],WHITE=[255,255,255],BLACK=[20,20,20],GRAY=[110,115,130],L
 const hline=(y,c=LGRAY)=>{doc.setDrawColor(...c);doc.line(M,y,RX,y);};
 doc.setFillColor(...NAVY); doc.rect(0,0,W,16,'F');
 doc.setFillColor(0,122,255); doc.rect(0,13,W,3,'F');
-if(prov.logo){try{const _ld=_fitLogo(prov.logo,13);doc.addImage(prov.logo,_imgFmt(prov.logo),M,1,_ld.w,_ld.h,undefined,'FAST');}catch(e){}}
+if(prov.logo){try{const _ld=_fitLogo(prov.logo,13);doc.addImage(prov.logo,_imgFmt(prov.logo),M,1,_ld.w,_ld.h);}catch(e){}}
 doc.setFont(undefined,'bold'); doc.setFontSize(12); doc.setTextColor(...WHITE);
 doc.text('Patient Report — '+prov.name, M+16, 11);
 doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(180,195,220);
@@ -15789,7 +15795,7 @@ fill(0,0,W,2,BLUE);
 // Logo
 let _encLogoH = 24;
 if (prov.logo) {
-  try { const _ld = _fitLogo(prov.logo, 24); doc.addImage(prov.logo, _imgFmt(prov.logo), M, M+2, _ld.w, _ld.h, undefined, 'FAST'); _encLogoH = _ld.h; } catch(e) {}
+  try { const _ld = _fitLogo(prov.logo, 24); doc.addImage(prov.logo, _imgFmt(prov.logo), M, M+2, _ld.w, _ld.h); _encLogoH = _ld.h; } catch(e) {}
 }
 const hx = prov.logo ? M + _encLogoH + 6 : M;
 t(prov.name||'',hx,M+8,{bold:true,size:10,color:DARK,maxWidth:90});
@@ -15881,7 +15887,7 @@ const sigName=rend.last?`${rend.last}, ${rend.first||''} ${rend.cred||''}`.trim(
 t('PROVIDER AUTHENTICATION',M+6,y+5,{size:6.5,bold:true,color:MID});
 // Draw signature image if available (not electronic-only)
 if (n.signatureData && n.signatureData !== 'electronic') {
-  try { doc.addImage(n.signatureData, 'PNG', M+48, y+3, 40, 14, undefined, 'FAST'); } catch(e) {
+  try { doc.addImage(n.signatureData, 'PNG', M+48, y+3, 40, 14); } catch(e) {
     // fallback: if image fails, just show name text
     t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
   }
@@ -19362,7 +19368,7 @@ fill(0,0,W,2,EMERALD);
 
 const hasLogo = prov.logo && prov.logo.length>200;
 if (hasLogo) {
-try { const _ld=_fitLogo(prov.logo,20); doc.addImage(prov.logo,_imgFmt(prov.logo),M,6,_ld.w,_ld.h,undefined,'FAST'); }
+try { const _ld=_fitLogo(prov.logo,20); doc.addImage(prov.logo,_imgFmt(prov.logo),M,6,_ld.w,_ld.h); }
 catch(e) { drawShield(M+10,17,9); }
 } else if (prov.name) {
 drawShield(M+9,17,9);
@@ -23536,7 +23542,10 @@ onpaste="setTimeout(()=>previewPastedLines(),50)"></textarea>
 <div class="field"><label>Intake Status</label><select id="ic-status">
 <option value="Pending Forms">Pending Forms</option>
 <option value="Forms Sent">Forms Sent</option>
+<option value="Viewed">Viewed</option>
+<option value="Partially Completed">Partially Completed</option>
 <option value="Signed">Signed</option>
+<option value="Completed">Completed</option>
 <option value="Evaluation Pending">Evaluation Pending</option>
 <option value="Evaluation Completed">Evaluation Completed</option>
 <option value="Archived">Archived</option>
@@ -23763,7 +23772,7 @@ function renderIntakeCenter() {
 }
 
 function _icStatusBadge(status) {
-  var colors = { 'Pending Forms': 'b-gray', 'Forms Sent': 'b-blue', 'Signed': 'b-green', 'Evaluation Pending': 'b-amber', 'Evaluation Completed': 'b-purple', 'Archived': 'b-gray' };
+  var colors = { 'Pending Forms': 'b-gray', 'Forms Sent': 'b-blue', 'Viewed': 'b-amber', 'Partially Completed': 'b-amber', 'Signed': 'b-green', 'Completed': 'b-green', 'Evaluation Pending': 'b-amber', 'Evaluation Completed': 'b-purple', 'Archived': 'b-gray' };
   return '<span class="badge ' + (colors[status]||'b-gray') + '">' + status + '</span>';
 }
 
@@ -23812,6 +23821,7 @@ function renderIntakeClients() {
             '<button class="btn btn-xs btn-ghost" onclick="icSendIntakeLink(' + realIdx + ')" title="Send Intake Forms"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icViewSignedForms(' + realIdx + ')" title="View Signed Forms"><i data-lucide="file-check" class="lci" style="width:12px;height:12px"></i></button>' +
             (c.status !== 'Archived' ? '<button class="btn btn-xs btn-ghost" onclick="icOpenEvalForClient(' + realIdx + ')" title="Create Evaluation"><i data-lucide="clipboard-list" class="lci" style="width:12px;height:12px"></i></button>' : '') +
+            '<button class="btn btn-xs btn-ghost danger" onclick="icDeleteClient(' + realIdx + ')" title="Delete" style="color:var(--red)"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' +
           '</div></td>' +
         '</tr>';
       }).join('') + '</tbody></table></div>';
@@ -24219,7 +24229,7 @@ function icViewSignedForms(idx) {
   submissions.forEach(function(s){
     var sent = s.sentAt ? new Date(s.sentAt).toLocaleDateString() : '—';
     var signed = s.signedAt ? new Date(s.signedAt).toLocaleString() : '—';
-    html += '<tr><td>' + (s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status === 'Signed' ? 'Signed' : 'Forms Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
+    html += '<tr><td>' + (s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status || 'Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
       '<td>' + (s.signedAt ? '<button class="btn btn-xs" onclick="icDownloadSignedPDF(\'' + s.id + '\')"><i data-lucide="download" class="lci"></i> PDF</button>' : '') + '</td></tr>';
   });
   html += '</tbody></table></div></div>';
@@ -24236,27 +24246,21 @@ function icViewSignedForms(idx) {
 }
 
 function icDownloadSignedPDF(submissionId) {
-  // In a real implementation, this would generate a PDF with the signed form
-  // For now, we'll create a simple document representation
   var db = getDB();
   var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
   if (!sub) { toast('Submission not found','err'); return; }
-
   try {
-    var doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text('Signed Document', 20, 30);
-    doc.setFontSize(11);
-    doc.text('Form: ' + (sub.formName||''), 20, 45);
-    doc.text('Signed by: ' + (sub.signedByName||''), 20, 55);
-    doc.text('Date: ' + (sub.signedAt ? new Date(sub.signedAt).toLocaleString() : ''), 20, 65);
-    doc.text('IP: ' + (sub.signerIp||'N/A'), 20, 75);
-    doc.text('Signature ID: ' + sub.id, 20, 85);
-    doc.save('signed_' + sub.formName + '_' + new Date().toISOString().slice(0,10) + '.pdf');
-    toast('PDF downloaded','ok');
-  } catch(e) {
-    toast('PDF generation requires jsPDF library.','warn');
-  }
+    var client = (db.intakeClients || []).find(function(c){ return c.id === sub.clientId; });
+    var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx];
+    var prov = (db.providers || []).find(function(p){ return p.id === activeProviderId; }) || {};
+    var pdfData = _icBuildSignedPDF(sub, client, form, prov);
+    if (!pdfData) { toast('PDF generation requires jsPDF library.','warn'); return; }
+    var link = document.createElement('a');
+    link.href = pdfData;
+    link.download = 'Signed_' + (sub.formName||'Form').replace(/\s+/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+    document.body.appendChild(link); link.click(); link.remove();
+    toast('Signed PDF downloaded','ok');
+  } catch(e) { toast('PDF generation failed','err'); console.error(e); }
 }
 
 // ── Comprehensive Evaluation ──
@@ -24766,142 +24770,531 @@ function checkIntakeToken() {
   try { raw = atob(token.replace(/-/g, '+').replace(/_/g, '/')); } catch(e) { return; }
   var parts = raw.split('|');
   if (parts.length < 3) return;
-  var clientId = parts[0];
-  var email = parts[1];
+  var intakeClientId = parts[0];
+  var intakeEmail = parts[1];
   var ts = parseInt(parts[2]);
 
   if (Date.now() - ts > 72 * 60 * 60 * 1000) {
-    alert('This intake link has expired (72 hours). Please contact the provider for a new link.');
+    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Link Expired</h3><p style="color:#87867f;font-size:14px;line-height:1.5">This intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
     return;
   }
 
-  // Render intake portal UI
-  var db = getDB();
-  var c = (db.intakeClients || []).find(function(cl){ return cl.id === clientId; });
-  if (!c) {
-    // Client might be in dev mode with index-based lookup
-    var _idx = parseInt(clientId);
-    if (!isNaN(_idx)) c = (db.intakeClients || [])[_idx];
-    if (!c) { alert('Client record not found.'); return; }
+  function _tryLoad(tries) {
+    var db = getDB();
+    var c = (db.intakeClients || []).find(function(cl){ return cl.id === intakeClientId; });
+    if (!c) {
+      var _idx = parseInt(intakeClientId);
+      if (!isNaN(_idx)) c = (db.intakeClients || [])[_idx];
+    }
+    if (!c) {
+      if (tries > 0) {
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+        setTimeout(function(){ _tryLoad(tries - 1); }, 800);
+      } else {
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+      }
+      return;
+    }
+
+    var pendingSubs = (db.intakeSubmissions || []).filter(function(s){ return s.token === token && s.status !== 'Signed'; });
+    if (!pendingSubs.length) {
+      document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h3 style="margin:16px 0 8px;color:#141413">All Completed!</h3><p style="color:#87867f;font-size:14px;line-height:1.5">All forms have already been completed. Thank you! You may close this page.</p></div></div>';
+      return;
+    }
+
+    renderIntakePortal(c, pendingSubs, token);
   }
 
-  // Show intake portal
-  var pendingSubs = (db.intakeSubmissions || []).filter(function(s){
-    return s.token === token && s.status !== 'Signed';
-  });
-
-  if (!pendingSubs.length) {
-    alert('All forms have already been completed. Thank you!');
-    return;
-  }
-
-  renderIntakePortal(c, pendingSubs, token);
+  _tryLoad(15);
 }
 
 function renderIntakePortal(client, pendingSubs, token) {
-  var root = document.getElementById('root');
+  document.getElementById('root').innerHTML = _icPortalLayout(client, pendingSubs, token);
+  document.getElementById('intake-portal-forms').innerHTML = pendingSubs.map(function(sub, si){
+    return _icPortalFormCard(client, sub, si, token);
+  }).join('');
+  pendingSubs.forEach(function(_, si){
+    setTimeout(function(){ _icPortalInitCanvas(si); }, 100);
+  });
+  // Mark as Viewed
+  setDB(function(db){
+    pendingSubs.forEach(function(s){
+      var sub = (db.intakeSubmissions || []).find(function(x){ return x.id === s.id; });
+      if (sub && sub.status === 'Sent') sub.status = 'Viewed';
+    });
+    var cl = (db.intakeClients || []).find(function(c){ return c.id === client.id; });
+    if (cl && (cl.status === 'Pending Forms' || cl.status === 'Forms Sent')) cl.status = 'Viewed';
+  });
+}
+
+function _icPortalLayout(client, pendingSubs, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
   var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-
-  root.innerHTML = [
-    '<div style="min-height:100vh;background:#f5f4ed;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,sans-serif">',
-    '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);width:100%;max-width:640px;overflow:hidden">',
+  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#4d4c48;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#f0efe8;border:1px solid #e8e6dc;color:#4d4c48;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#141413}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #e8e6dc;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
+  return [
+    '<style>' + css + '</style>',
+    '<div style="min-height:100vh;background:#f5f4ed;padding:20px;font-family:Arial,sans-serif">',
+    '<div style="max-width:640px;margin:0 auto">',
+    '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);overflow:hidden;margin-bottom:16px">',
     '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:12px">',
     logoHtml,
     '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:2px">Secure Intake Portal</div></div>',
     '</div>',
     '<div style="padding:28px">',
     '<h2 style="margin:0 0 6px;font-size:20px;color:#141413">Welcome, ' + (client.guardianName||'Guardian') + '</h2>',
-    '<p style="margin:0 0 20px;color:#87867f;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
-    '<div id="intake-portal-forms">',
-    pendingSubs.map(function(sub, si){
-      var db = getDB();
-      var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx] || {};
-      return [
-        '<div class="card" style="margin-bottom:12px;border:1.5px solid #e8e6dc;border-radius:12px;overflow:hidden">',
-        '<div style="padding:14px 18px;background:#faf9f5;border-bottom:1px solid #e8e6dc;display:flex;justify-content:space-between;align-items:center">',
-        '<span style="font-weight:700;font-size:14px;color:#141413">' + (form.name||'Form') + '</span>',
-        '<span style="font-size:11px;color:#87867f;background:#e8e6dc;padding:2px 10px;border-radius:20px">' + (form.type||'') + '</span>',
-        '</div>',
-        '<div style="padding:14px 18px">',
-        '<div id="portal-form-content-' + si + '" style="font-size:13px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' + (form.description||'Please review and sign this form.') + '</div>',
-        '<div style="background:#f5f4ed;border-radius:8px;padding:12px;font-size:12px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' +
-        '<strong>Child:</strong> ' + childName + '<br>' +
-        '<strong>Guardian:</strong> ' + (client.guardianName||'') + '<br>' +
-        '<strong>Date:</strong> ' + new Date().toLocaleDateString() +
-        '</div>',
-        '<div style="border-top:1px solid #e8e6dc;padding-top:14px">',
-        '<p style="font-size:12px;color:#87867f;margin:0 0 10px">By signing below, I acknowledge that I have read and agree to the terms of this form.</p>',
-        '<div style="display:flex;gap:8px">',
-        '<input id="portal-sig-' + si + '" type="text" class="no-upper" placeholder="Type your full legal name to sign" style="flex:1;padding:10px 12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:16px;font-family:\'Brush Script MT\',cursive;text-transform:none">',
-        '<button class="btn btn-primary" onclick="icPortalSign(' + si + ',\'' + sub.id + '\',\'' + token + '\',\'' + (client.guardianName||'') + '\')" style="white-space:nowrap">Sign</button>',
-        '</div>',
-        '<div id="portal-sig-status-' + si + '" style="margin-top:8px;font-size:12px"></div>',
-        '</div></div></div>'
-      ].join('');
-    }).join(''),
-    '</div>',
-    '<div id="portal-thanks" style="display:none;text-align:center;padding:20px">',
+    '<p style="margin:0 0 4px;color:#87867f;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
+    '<p style="margin:0 0 20px;color:#87867f;font-size:12px">' + pendingSubs.length + ' form(s) need your review and signature</p>',
+    '<div id="intake-portal-forms"></div>',
+    '<div id="portal-thanks" style="display:none;text-align:center;padding:30px 20px">',
     '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    '<h3 style="margin:12px 0 6px;color:#141413">Thank You!</h3>',
-    '<p style="color:#87867f;font-size:14px">All forms have been submitted successfully. You may close this page.</p>',
+    '<h3 style="margin:16px 0 6px;color:#141413;font-size:20px">Thank You!</h3>',
+    '<p style="color:#87867f;font-size:14px;line-height:1.5">All forms have been submitted successfully. Your responses have been securely saved. You may close this page.</p>',
     '</div>',
-    '</div></div></div>'
+    '</div></div></div></div>'
   ].join('');
 }
 
-function icPortalSign(si, submissionId, token, signerName) {
-  var sigValue = document.getElementById('portal-sig-' + si)?.value?.trim();
-  if (!sigValue) { toast('Please type your full name to sign','warn'); return; }
+function _icPortalFormContent(form, client) {
+  if (!form || !form.content) return '';
+  var html = form.content
+    .replace(/\{\{childName\}\}/g, (client.firstName||'') + ' ' + (client.lastName||''))
+    .replace(/\{\{guardianName\}\}/g, client.guardianName||'')
+    .replace(/\{\{date\}\}/g, new Date().toLocaleDateString())
+    .replace(/\{\{signature\}\}/g, '_________________________');
+  return html;
+}
 
-  setDB(function(db){
-    var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
-    if (sub) {
-      sub.status = 'Signed';
-      sub.signedAt = Date.now();
-      sub.signedByName = signerName || sigValue;
-      sub.signerIp = '';
-      sub.signatureData = sigValue;
-      sub.signatureType = 'typed';
+function _icPortalFormCard(client, sub, si, token) {
+  var db = getDB();
+  var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx] || {};
+  var childName = (client.firstName||'') + ' ' + (client.lastName||'');
+  var formContent = _icPortalFormContent(form, client);
+
+  var formHtml = '<div style="margin-bottom:12px;border:1.5px solid #e8e6dc;border-radius:12px;overflow:hidden;background:#fff">';
+  formHtml += '<div style="padding:14px 18px;background:#faf9f5;border-bottom:1px solid #e8e6dc;display:flex;justify-content:space-between;align-items:center">';
+  formHtml += '<span style="font-weight:700;font-size:14px;color:#141413">' + (form.name||'Form') + ' <span style="font-size:11px;color:#87867f;font-weight:400;background:#e8e6dc;padding:2px 10px;border-radius:20px;margin-left:6px">' + (form.type||'') + '</span></span>';
+  formHtml += '<span id="pf-badge-' + si + '" style="font-size:11px;background:#e8e6dc;padding:2px 10px;border-radius:20px;color:#87867f">Pending</span>';
+  formHtml += '</div>';
+  formHtml += '<div style="padding:14px 18px">';
+
+  // Form content — collapsible
+  if (formContent) {
+    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#c96442;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
+    formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#4d4c48;line-height:1.7;padding:12px;background:#faf9f5;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #e8e6dc">' + formContent + '</div>';
+  }
+
+  // Info box
+  formHtml += '<div style="background:#f5f4ed;border-radius:8px;padding:12px;font-size:12px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' +
+    '<strong>Child:</strong> ' + childName + '<br>' +
+    '<strong>Guardian:</strong> ' + (client.guardianName||'') + '<br>' +
+    '<strong>Date:</strong> ' + new Date().toLocaleDateString() +
+    '</div>';
+
+  // Signature section
+  formHtml += '<div style="border-top:1px solid #e8e6dc;padding-top:14px">';
+  formHtml += '<p style="font-size:12px;color:#87867f;margin:0 0 12px;font-weight:600">Your Signature</p>';
+
+  // Signature tabs
+  formHtml += '<div style="display:flex;flex-wrap:wrap;margin-bottom:0">';
+  formHtml += '<button class="sig-tab active" id="pf-stab-draw-' + si + '" onclick="_icPortalSigTab(' + si + ',\'draw\')">Draw</button>';
+  formHtml += '<button class="sig-tab" id="pf-stab-type-' + si + '" onclick="_icPortalSigTab(' + si + ',\'type\')">Type</button>';
+  formHtml += '<button class="sig-tab" id="pf-stab-upload-' + si + '" onclick="_icPortalSigTab(' + si + ',\'upload\')">Upload</button>';
+  formHtml += '</div>';
+
+  // Draw panel
+  formHtml += '<div id="pf-sig-panel-draw-' + si + '" class="sig-panel active" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<canvas id="portal-canvas-' + si + '" class="portal-canvas" width="540" height="140" style="border:1px solid #e8e6dc;border-radius:6px;width:100%;height:120px;touch-action:none;cursor:crosshair;background:#fff"></canvas>';
+  formHtml += '<button style="margin-top:6px;font-size:11px;color:#87867f;background:none;border:none;cursor:pointer;text-decoration:underline" onclick="_icPortalClearDraw(' + si + ')">Clear drawing</button>';
+  formHtml += '</div>';
+
+  // Type panel
+  formHtml += '<div id="pf-sig-panel-type-' + si + '" class="sig-panel" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<input id="portal-sig-type-' + si + '" type="text" placeholder="Type your full legal name" style="width:100%;padding:10px 12px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:18px;font-family:\'Brush Script MT\',cursive;box-sizing:border-box;text-transform:none" oninput="document.getElementById(\'portal-sig-preview-' + si + '\').textContent=this.value">';
+  formHtml += '<div id="portal-sig-preview-' + si + '" style="margin-top:8px;font-size:22px;font-family:\'Brush Script MT\',cursive;color:#4d4c48;min-height:30px;padding:4px 8px;border-bottom:1px solid #e8e6dc"></div>';
+  formHtml += '</div>';
+
+  // Upload panel
+  formHtml += '<div id="pf-sig-panel-upload-' + si + '" class="sig-panel" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<p style="font-size:12px;color:#87867f;margin:0 0 8px">Upload an image of your signature (PNG or JPEG)</p>';
+  formHtml += '<input id="portal-sig-upload-' + si + '" type="file" accept="image/*" style="font-size:12px" onchange="_icPortalLoadUpload(' + si + ',this)">';
+  formHtml += '<div id="portal-sig-upload-preview-' + si + '" style="margin-top:8px;display:none"><img style="max-height:60px;border:1px solid #e8e6dc;border-radius:4px"></div>';
+  formHtml += '</div>';
+
+  // Hidden result
+  formHtml += '<input type="hidden" id="portal-sig-result-' + si + '" value="">';
+  formHtml += '<input type="hidden" id="portal-sig-type-result-' + si + '" value="">';
+
+  // Sign button
+  formHtml += '<div style="display:flex;gap:8px;margin-top:12px">';
+  formHtml += '<button class="btn btn-primary" style="flex:1;padding:10px;font-size:14px" onclick="icPortalSign(' + si + ',\'' + sub.id + '\',\'' + token + '\',\'' + (client.guardianName||'').replace(/'/g,"\\'") + '\')">Sign & Complete</button>';
+  formHtml += '</div>';
+  formHtml += '<div id="portal-sig-status-' + si + '" style="margin-top:8px;font-size:12px"></div>';
+  formHtml += '</div></div></div>';
+
+  return formHtml;
+}
+
+function _icPortalSigTab(si, mode) {
+  ['draw','type','upload'].forEach(function(m){
+    var tab = document.getElementById('pf-stab-' + m + '-' + si);
+    var panel = document.getElementById('pf-sig-panel-' + m + '-' + si);
+    if (tab) tab.className = 'sig-tab' + (m === mode ? ' active' : '');
+    if (panel) panel.className = 'sig-panel' + (m === mode ? ' active' : '');
+  });
+}
+
+function _icPortalClearDraw(si) {
+  var canvas = document.getElementById('portal-canvas-' + si);
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function _icPortalLoadUpload(si, input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var preview = document.getElementById('portal-sig-upload-preview-' + si);
+    if (preview) {
+      preview.style.display = '';
+      preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:60px;border:1px solid #e8e6dc;border-radius:4px">';
     }
-    // Check if all submissions for this token are signed
-    var allSubs = (db.intakeSubmissions || []).filter(function(s){ return s.token === token; });
-    var allSigned = allSubs.every(function(s){ return s.status === 'Signed'; });
-    if (allSigned) {
-      // Update client status
-      var clientSub = allSubs[0];
-      var cl = (db.intakeClients || []).find(function(c){
-        return c.id === clientSub.clientId || (db.intakeClients[clientSub.clientIdx] && db.intakeClients[clientSub.clientIdx].id === c.id);
-      });
-      if (cl) {
-        cl.status = 'Signed';
-        cl.updatedAt = Date.now();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function _icPortalInitCanvas(si) {
+  var canvas = document.getElementById('portal-canvas-' + si);
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#141413';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  var drawing = false;
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+  }
+
+  canvas.onmousedown = function(e) { drawing = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  canvas.onmousemove = function(e) { if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  canvas.onmouseup = function() { drawing = false; ctx.closePath(); };
+  canvas.onmouseleave = function() { drawing = false; };
+
+  canvas.ontouchstart = function(e) { e.preventDefault(); drawing = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  canvas.ontouchmove = function(e) { e.preventDefault(); if (!drawing || !e.touches.length) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  canvas.ontouchend = function(e) { e.preventDefault(); drawing = false; };
+}
+
+function _icPortalGetSigData(si) {
+  // Draw mode
+  var drawPanel = document.getElementById('pf-sig-panel-draw-' + si);
+  if (drawPanel && drawPanel.className.indexOf('active') >= 0) {
+    var canvas = document.getElementById('portal-canvas-' + si);
+    if (!canvas) return null;
+    // Check if anything was drawn
+    var ctx = canvas.getContext('2d');
+    var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    var hasContent = false;
+    for (var i = 3; i < imgData.length; i += 4) { if (imgData[i] > 0) { hasContent = true; break; } }
+    if (!hasContent) return null;
+    return { data: canvas.toDataURL('image/png'), type: 'draw' };
+  }
+
+  // Type mode
+  var typeInput = document.getElementById('portal-sig-type-' + si);
+  if (typeInput && typeInput.value && typeInput.value.trim()) {
+    return { data: typeInput.value.trim(), type: 'typed' };
+  }
+
+  // Upload mode
+  var uploadInput = document.getElementById('portal-sig-upload-' + si);
+  var uploadPreview = document.getElementById('portal-sig-upload-preview-' + si);
+  if (uploadInput && uploadInput.files && uploadInput.files[0]) {
+    return null; // Will be handled in sign function
+  }
+
+  return null;
+}
+
+function icPortalSign(si, submissionId, token, signerName) {
+  var db = getDB();
+  var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
+  if (!sub) { alert('Submission not found.'); return; }
+
+  var sigData = null;
+  var sigType = '';
+
+  // Draw mode
+  var drawPanel = document.getElementById('pf-sig-panel-draw-' + si);
+  if (drawPanel && drawPanel.className.indexOf('active') >= 0) {
+    var canvas = document.getElementById('portal-canvas-' + si);
+    if (canvas) {
+      var ctx = canvas.getContext('2d');
+      var px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      for (var i = 3; i < px.length; i += 4) { if (px[i] > 0) { sigData = canvas.toDataURL('image/png'); sigType = 'draw'; break; } }
+    }
+    if (!sigData) { toast('Please draw your signature on the canvas','warn'); return; }
+  }
+
+  // Type mode
+  if (!sigData) {
+    var typePanel = document.getElementById('pf-sig-panel-type-' + si);
+    if (typePanel && typePanel.className.indexOf('active') >= 0) {
+      var typeInput = document.getElementById('portal-sig-type-' + si);
+      if (typeInput && typeInput.value && typeInput.value.trim()) {
+        sigData = typeInput.value.trim();
+        sigType = 'typed';
+      } else {
+        toast('Please type your full name to sign','warn'); return;
       }
+    }
+  }
+
+  // Upload mode
+  if (!sigData) {
+    var uploadPanel = document.getElementById('pf-sig-panel-upload-' + si);
+    if (uploadPanel && uploadPanel.className.indexOf('active') >= 0) {
+      var uploadInput = document.getElementById('portal-sig-upload-' + si);
+      if (uploadInput && uploadInput.files && uploadInput.files[0]) {
+        sigData = URL.createObjectURL(uploadInput.files[0]);
+        sigType = 'upload';
+      } else {
+        toast('Please upload a signature image','warn'); return;
+      }
+    }
+  }
+
+  // Build audit metadata
+  var audit = {
+    signedAt: Date.now(),
+    signerName: signerName || sigData,
+    signerIp: '',
+    userAgent: navigator.userAgent || '',
+    platform: navigator.platform || '',
+    language: navigator.language || '',
+  };
+  try {
+    var rtc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    rtc.createDataChannel('');
+    rtc.createOffer().then(function(offer){ rtc.setLocalDescription(offer); });
+    rtc.onicecandidate = function(e) { if (e.candidate) { audit.signerIp = e.candidate.address || e.candidate.ip || ''; } };
+  } catch(e) {}
+
+  // Update submission in DB
+  setDB(function(db){
+    var s = (db.intakeSubmissions || []).find(function(x){ return x.id === submissionId; });
+    if (s) {
+      s.status = 'Signed';
+      s.signedAt = audit.signedAt;
+      s.signedByName = signerName || sigData;
+      s.signerIp = audit.signerIp;
+      s.userAgent = audit.userAgent;
+      s.platform = audit.platform;
+      s.language = audit.language;
+      s.signatureData = sigData;
+      s.signatureType = sigType;
     }
   });
 
-  document.getElementById('portal-sig-status-' + si).innerHTML = '<span style="color:var(--green);font-weight:600">&#10003; Signed on ' + new Date().toLocaleString() + '</span>';
-  document.getElementById('portal-sig-' + si).disabled = true;
-  document.getElementById('portal-sig-' + si).style.background = '#f0f0f0';
+  // Update UI
+  var badge = document.getElementById('pf-badge-' + si);
+  if (badge) { badge.textContent = 'Signed'; badge.style.background = '#c8e6c9'; badge.style.color = '#2e7d32'; }
+  document.getElementById('portal-sig-status-' + si).innerHTML = '<span style="color:#2e7d32;font-weight:600">&#10003; Signed on ' + new Date().toLocaleString() + '</span>';
+
+  // Disable all signature inputs for this form
+  var drawTab = document.getElementById('pf-stab-draw-' + si);
+  var typeTab = document.getElementById('pf-stab-type-' + si);
+  var uploadTab = document.getElementById('pf-stab-upload-' + si);
+  [drawTab, typeTab, uploadTab].forEach(function(el){ if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '.5'; }});
+  var signBtn = document.querySelector('#pf-sig-panel-draw-' + si + ' button, #pf-sig-panel-type-' + si + ' button, #pf-sig-panel-upload-' + si + ' button');
+  if (signBtn) signBtn.style.display = 'none';
+
   toast('Form signed successfully','ok');
 
-  // Check if all done
+  // Generate signed PDF and save to records
+  _icFinalizeSignedForm(submissionId);
+
+  // Check if all forms done
   var allDone = true;
-  document.querySelectorAll('[id^="portal-sig-"]').forEach(function(el){
-    if (el.id.startsWith('portal-sig-') && !el.disabled) allDone = false;
+  document.querySelectorAll('[id^="pf-badge-"]').forEach(function(el){
+    if (el.textContent !== 'Signed') allDone = false;
   });
   if (allDone) {
     setTimeout(function(){
       document.getElementById('intake-portal-forms').style.display = 'none';
       document.getElementById('portal-thanks').style.display = '';
-    }, 1000);
+      // Update client status to Completed
+      setDB(function(db){
+        var cl = (db.intakeClients || []).find(function(c){ return c.id === sub.clientId; });
+        if (cl) { cl.status = 'Completed'; cl.updatedAt = Date.now(); }
+      });
+    }, 1200);
   }
+}
+
+function _icFinalizeSignedForm(submissionId) {
+  try {
+    var db = getDB();
+    var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
+    if (!sub || !sub.signatureData) return;
+
+    var client = (db.intakeClients || []).find(function(c){ return c.id === sub.clientId; });
+    var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx];
+    var prov = (db.providers || []).find(function(p){ return p.id === activeProviderId; }) || {};
+
+    // Generate signed PDF
+    var pdfData = _icBuildSignedPDF(sub, client, form, prov);
+
+    // Save to patient records if we can find a matching patient
+    if (client && pdfData) {
+      var patient = (db.patients || []).find(function(p){
+        return (p.lastName||'').toLowerCase() === (client.lastName||'').toLowerCase() &&
+               (p.firstName||'').toLowerCase() === (client.firstName||'').toLowerCase();
+      });
+      if (patient) {
+        if (!patient.documents) patient.documents = [];
+        patient.documents.unshift({
+          id: sub.id,
+          name: (form ? form.name : 'Signed Form') + ' — ' + (client.firstName||'') + ' ' + (client.lastName||''),
+          category: 'Intake Forms',
+          type: 'pdf',
+          data: pdfData,
+          date: new Date().toISOString().slice(0,10),
+          uploadedBy: 'Intake Portal',
+          signedAt: sub.signedAt,
+          signedByName: sub.signedByName,
+          formName: form ? form.name : '',
+          createdAt: Date.now(),
+        });
+        setDB(function(db2){
+          var p = db2.patients.find(function(x){ return x.id === patient.id; });
+          if (p) p.documents = patient.documents;
+        });
+      }
+    }
+  } catch(e) { console.warn('Finalize signed form error:', e); }
+}
+
+function _icBuildSignedPDF(sub, client, form, prov) {
+  if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return null;
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var W = 210, M = 16, RX = W - M;
+  var ACCENT = [201, 100, 66], DARK = [50, 48, 44], MID = [130, 128, 124], LIGHT = [248, 247, 244], BORDER = [235, 234, 230];
+
+  // Branding header
+  doc.setFillColor(...ACCENT); doc.rect(0, 0, 3, 297, 'F');
+
+  // Provider logo
+  var logoY = M;
+  if (prov && prov.logo) {
+    try {
+      var _ld = typeof _fitLogo === 'function' ? _fitLogo(prov.logo, 20) : { w: 20, h: 20 };
+      doc.addImage(prov.logo, typeof _imgFmt === 'function' ? _imgFmt(prov.logo) : 'PNG', M+2, logoY, _ld.w, _ld.h);
+      logoY += _ld.h + 4;
+    } catch(e) { logoY += 4; }
+  }
+
+  // Title
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(...DARK);
+  doc.text(form ? form.name : 'Signed Document', RX, M+10, { align:'right' });
+  if (form && form.type) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...MID);
+    doc.text(form.type, RX, M+16, { align:'right' });
+  }
+
+  // Signed info bar
+  var infoY = Math.max(logoY + 6, M + 22);
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.4);
+  doc.line(M+2, infoY, RX, infoY);
+  infoY += 6;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MID);
+  doc.text('Signed by: ' + (sub.signedByName||''), M+2, infoY);
+  doc.text('Date: ' + (sub.signedAt ? new Date(sub.signedAt).toLocaleString() : ''), RX, infoY, { align:'right' });
+  infoY += 4;
+  doc.text('Client: ' + (client ? (client.firstName||'') + ' ' + (client.lastName||'') : ''), M+2, infoY);
+  doc.text('Guardian: ' + (client ? (client.guardianName||'') : ''), RX, infoY, { align:'right' });
+  infoY += 4;
+  if (sub.signerIp) doc.text('IP: ' + sub.signerIp, M+2, infoY);
+  doc.text('ID: ' + sub.id.slice(0,8) + '...', RX, infoY, { align:'right' });
+  infoY += 3;
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+  doc.line(M+2, infoY, RX, infoY);
+  infoY += 6;
+
+  // Form content
+  if (form && form.content) {
+    var contentHtml = form.content
+      .replace(/\{\{childName\}\}/g, (client ? (client.firstName||'') + ' ' + (client.lastName||'') : ''))
+      .replace(/\{\{guardianName\}\}/g, client ? (client.guardianName||'') : '')
+      .replace(/\{\{date\}\}/g, new Date().toLocaleDateString())
+      .replace(/\{\{signature\}\}/g, '_________________________');
+
+    // Strip HTML tags for PDF text rendering
+    var plainText = contentHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    var lines = doc.splitTextToSize(plainText, CW - 6);
+
+    var textY = infoY;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
+    for (var li = 0; li < lines.length; li++) {
+      if (textY > 268) {
+        doc.addPage();
+        doc.setFillColor(...ACCENT); doc.rect(0, 0, 3, 297, 'F');
+        textY = M;
+      }
+      doc.text(lines[li], M+5, textY);
+      textY += 4.5;
+    }
+    infoY = textY + 8;
+  }
+
+  // Signature block
+  if (infoY > 260) { doc.addPage(); doc.setFillColor(...ACCENT); doc.rect(0, 0, 3, 297, 'F'); infoY = M; }
+  doc.setDrawColor(...DARK); doc.setLineWidth(0.5);
+  doc.line(M+2, infoY, M+70, infoY);
+  infoY += 4;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+  doc.text('Signature', M+2, infoY);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MID);
+  doc.text('Signed electronically by ' + (sub.signedByName||''), M+2, infoY+4);
+
+  // Embed signature image if it's a draw/upload
+  if (sub.signatureType === 'draw' || sub.signatureType === 'upload') {
+    infoY += 8;
+    try {
+      if (sub.signatureData && sub.signatureData.length > 100) {
+        var sigFmt = sub.signatureData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(sub.signatureData, sigFmt, M+2, infoY-4, 50, 14);
+        infoY += 16;
+      }
+    } catch(e) {}
+  }
+
+  // Footer
+  if (infoY > 280) infoY = 280;
+  doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+  doc.line(M+2, 280, RX, 280, BORDER, 0.3);
+  doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor([190,188,184]);
+  doc.text('Powered by ClaimDataCare', RX, 290, { align:'right' });
+  doc.text('Document ID: ' + sub.id, M+2, 290);
+
+  return doc.output('datauristring');
 }
 
 // ── Init on load ──
 setTimeout(function(){
   try { checkIntakeToken(); } catch(e) {}
-}, 500);
+}, 300);
 </script>
 
 </body>
