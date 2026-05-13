@@ -21657,7 +21657,7 @@ document.addEventListener("DOMContentLoaded", async function() {
   }
   checkVerifyToken();
   checkIntakeToken();
-  if (!window.location.search.startsWith('?verify=') && !window.location.search.startsWith('?intake=')) renderLoginScreen();
+  if (!window.location.search.startsWith('?verify=') && !window.location.search.startsWith('?intake=') && !window.location.search.startsWith('?demographics=')) renderLoginScreen();
 });
 
 // ── Send Invoice by Email ─────────────────────────────────────────
@@ -24004,12 +24004,21 @@ function icSendIntakeForms() {
   document.querySelectorAll('.si-form-cb:checked').forEach(function(cb){ selectedIndices.push(parseInt(cb.value)); });
   if (!selectedIndices.length) { toast('Select at least one form to send','warn'); return; }
 
-  // Generate secure token
+  // Generate secure token + embed client data for standalone portal access
   var token = btoa(c.id + '|' + email + '|' + Date.now() + '|' + Math.random().toString(36).slice(2)).replace(/[+/=]/g, function(ch){
     return ch === '+' ? '-' : ch === '/' ? '_' : '';
   });
   var baseUrl = window.location.origin + window.location.pathname;
-  var intakeLink = baseUrl + '?intake=' + token;
+  var idata = encodeURIComponent(btoa(JSON.stringify({
+    firstName: c.firstName||'', lastName: c.lastName||'', dob: c.dob||'', gender: c.gender||'',
+    guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||'',
+    guardianEmail: c.guardianEmail||'', address: c.address||'', city: c.city||'',
+    emergName: c.emergName||'', emergPhone: c.emergPhone||'', emergRel: c.emergRel||'',
+    insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||'', insuranceGroup: c.insuranceGroup||'',
+    referralSource: c.referralSource||'', pcp: c.pcp||'', school: c.school||'', grade: c.grade||'',
+    abaProvider: c.abaProvider||'', diagnoses: c.diagnoses||'', custody: c.custody||'', language: c.language||''
+  })));
+  var intakeLink = baseUrl + '?intake=' + token + '&idata=' + idata;
 
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
@@ -24092,7 +24101,16 @@ function icSendDemoLink(idx) {
     return ch === '+' ? '-' : ch === '/' ? '_' : '';
   });
   var baseUrl = window.location.origin + window.location.pathname;
-  var demoLink = baseUrl + '?demographics=' + token;
+  var idata = encodeURIComponent(btoa(JSON.stringify({
+    firstName: c.firstName||'', lastName: c.lastName||'', dob: c.dob||'', gender: c.gender||'',
+    guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||',
+    guardianPhone2: c.guardianPhone2||'', guardianEmail: c.guardianEmail||'', address: c.address||'', city: c.city||'',
+    emergName: c.emergName||'', emergPhone: c.emergPhone||'', emergRel: c.emergRel||'',
+    insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||'', insuranceGroup: c.insuranceGroup||'',
+    referralSource: c.referralSource||'', pcp: c.pcp||'', school: c.school||'', grade: c.grade||'',
+    abaProvider: c.abaProvider||'', diagnoses: c.diagnoses||'', custody: c.custody||'', language: c.language||''
+  })));
+  var demoLink = baseUrl + '?demographics=' + token + '&idata=' + idata;
 
   // Save token to submissions
   setDB(function(db){
@@ -24898,6 +24916,91 @@ function icSetTab(tab, btn) {
   else if (tab === 'eval') renderIntakeEvaluation();
 }
 
+// ── Intake Link Firestore Helper (anonymous/public sessions) ──
+function _icExtractIData() {
+  try {
+    var m = window.location.search.match(/[?&]idata=([^&]+)/);
+    if (!m) return null;
+    var json = atob(decodeURIComponent(m[1]));
+    var data = JSON.parse(json);
+    if (data.firstName || data.lastName) return data;
+  } catch(e) {}
+  return null;
+}
+
+function _icTryFirestoreLoad(clientId, callback) {
+  if (!_db || !firebase || !firebase.firestore) { callback(false); return; }
+  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+  var db = getDB();
+  // Try direct Firestore query for this intake client
+  _db.collection('intakeClients').where('id', '==', clientId).get().then(function(snap) {
+    if (!snap.empty) {
+      var data = snap.docs[0].data();
+      if (!db.intakeClients) db.intakeClients = [];
+      // Avoid duplicates
+      var existing = db.intakeClients.find(function(c){ return c.id === data.id; });
+      if (!existing) db.intakeClients.push(data);
+      // Also try to load intake forms and submissions for full portal functionality
+      Promise.all([
+        _db.collection('intakeForms').get().then(function(sf) {
+          if (!sf.empty) {
+            if (!db.intakeForms) db.intakeForms = [];
+            sf.docs.forEach(function(d){
+              var f = d.data();
+              if (!db.intakeForms.find(function(x){ return x.id === f.id; })) db.intakeForms.push(f);
+            });
+          }
+        }).catch(function(){}),
+        _db.collection('intakeSubmissions').get().then(function(ss) {
+          if (!ss.empty) {
+            if (!db.intakeSubmissions) db.intakeSubmissions = [];
+            ss.docs.forEach(function(d){
+              var s = d.data();
+              if (!db.intakeSubmissions.find(function(x){ return x.id === s.id; })) db.intakeSubmissions.push(s);
+            });
+          }
+        }).catch(function(){})
+      ]).then(function() { callback(true); }).catch(function() { callback(true); });
+    } else {
+      // Try older format where documents use auto-ID with id field
+      _db.collection('intakeClients').get().then(function(allSnap) {
+        if (!allSnap.empty) {
+          var found = false;
+          allSnap.docs.forEach(function(d){
+            var data = d.data();
+            if (data.id === clientId) {
+              if (!db.intakeClients) db.intakeClients = [];
+              var existing = db.intakeClients.find(function(c){ return c.id === data.id; });
+              if (!existing) db.intakeClients.push(data);
+              found = true;
+            }
+          });
+          callback(found);
+        } else {
+          callback(false);
+        }
+      }).catch(function() { callback(false); });
+    }
+  }).catch(function(e) {
+    // Firestore query failed (permissions/offline) — try loading from localStorage backup
+    try {
+      var backup = localStorage.getItem('cdc_firestore_backup_intakeClients');
+      if (backup) {
+        var parsed = JSON.parse(backup);
+        var match = parsed.find(function(c){ return c.id === clientId; });
+        if (match) {
+          if (!db.intakeClients) db.intakeClients = [];
+          var existing = db.intakeClients.find(function(c){ return c.id === match.id; });
+          if (!existing) db.intakeClients.push(match);
+          callback(true);
+          return;
+        }
+      }
+    } catch(_) {}
+    callback(false);
+  });
+}
+
 // ── Intake Link Verification Handler ──
 function checkIntakeToken() {
   var search = window.location.search;
@@ -24928,7 +25031,22 @@ function checkIntakeToken() {
         document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+        // Retries exhausted — try embedded client data from URL (standalone portal)
+        var _idata = _icExtractIData();
+        if (_idata) {
+          var db2 = getDB();
+          if (!db2.intakeClients) db2.intakeClients = [];
+          _idata.id = intakeClientId;
+          db2.intakeClients.push(_idata);
+          _tryLoad(15);
+        } else {
+          _icTryFirestoreLoad(intakeClientId, function(found) {
+            if (found) { _tryLoad(15); }
+            else {
+              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+            }
+          });
+        }
       }
       return;
     }
@@ -25456,7 +25574,22 @@ function checkDemographicToken() {
         document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+        // Retries exhausted — try embedded client data from URL (standalone portal)
+        var _idata = _icExtractIData();
+        if (_idata) {
+          var db2 = getDB();
+          if (!db2.intakeClients) db2.intakeClients = [];
+          _idata.id = intakeClientId;
+          db2.intakeClients.push(_idata);
+          _tryLoad(15);
+        } else {
+          _icTryFirestoreLoad(intakeClientId, function(found) {
+            if (found) { _tryLoad(15); }
+            else {
+              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+            }
+          });
+        }
       }
       return;
     }
