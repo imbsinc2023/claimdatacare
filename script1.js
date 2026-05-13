@@ -232,7 +232,16 @@ if(renders[page]) {
 
 
 
+function _injectCriticalCSS() {
+  if (document.getElementById('cdc-critical-css')) return;
+  var s = document.createElement('style');
+  s.id = 'cdc-critical-css';
+  s.textContent = '.section{display:none;flex-direction:column;height:100%}.section.active{display:flex}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}';
+  document.head.appendChild(s);
+}
+
 function showApp(username) {
+  _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
@@ -21366,7 +21375,7 @@ rejected: '<span class="badge b-red"><i data-lucide="x-circle" class="lci" style
 on_hold: '<span class="badge b-amber"><i data-lucide="lock" class="lci" style="width:11px;height:11px"></i> On Hold</span>',
 denied: '<span class="badge b-red"><i data-lucide="ban" class="lci" style="width:11px;height:11px"></i> Denied</span>',
 partially_paid: '<span class="badge b-amber"><i data-lucide="dollar-sign" class="lci" style="width:11px;height:11px"></i> Partial</span>',
-paid: '<span class="badge b-green"><i data-lucide="circle-check" class="lci" style="width:11px;height:11px"></i> Paid</span>',
+paid: '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Paid</span>',
 settled: '<span class="badge b-green"><i data-lucide="check-check" class="lci" style="width:11px;height:11px"></i> Settled</span>',
 patient_balance: '<span class="badge b-amber"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i> Patient Balance</span>',
 voided: '<span class="badge b-gray"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i> Voided</span>',
