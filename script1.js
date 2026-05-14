@@ -236,7 +236,7 @@ function _injectCriticalCSS() {
   if (document.getElementById('cdc-critical-css')) return;
   var s = document.createElement('style');
   s.id = 'cdc-critical-css';
-  s.textContent = '.section{display:none;flex-direction:column;height:100%}.section.active{display:flex}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}';
+  s.textContent = 'html,body,#root{height:100%;margin:0}.section{display:none;flex-direction:column;height:100%}.section.active{display:flex}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}';
   document.head.appendChild(s);
 }
 
@@ -245,6 +245,17 @@ function showApp(username) {
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
+  // Force layout via JS in case CSS is not loading
+  try {
+    var _shell = document.querySelector('.app-shell');
+    if (_shell) { _shell.style.display = 'flex'; _shell.style.flexDirection = 'column'; _shell.style.height = '100%'; }
+    var _main = document.querySelector('.main');
+    if (_main) { _main.style.flex = '1'; _main.style.display = 'flex'; _main.style.flexDirection = 'column'; _main.style.overflow = 'hidden'; _main.style.minHeight = '0'; }
+    var _cont = document.querySelector('.content');
+    if (_cont) { _cont.style.flex = '1'; _cont.style.overflowY = 'auto'; _cont.style.minHeight = '0'; }
+    var _dash = document.getElementById('sec-dashboard');
+    if (_dash) { _dash.style.display = 'flex'; _dash.style.flexDirection = 'column'; _dash.style.height = '100%'; }
+  } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
     var _uname = session.name || session.email || username || 'User';
@@ -308,14 +319,17 @@ function showApp(username) {
 
 
 function renderDashboard(){
+if (typeof window._dashRt === 'undefined') window._dashRt = 0;
 if(!activeProviderId) {
   var _db0=getDB(), _s0=getSession();
   var _sid=_s0&&(_s0.activeBillingProviderId||_s0.providerId);
   var _vp=(_sid&&(_db0.providers||[]).find(function(p){return p.id===_sid;}))||(_db0.providers||[])[0];
-  if(_vp){activeProviderId=_vp.id;}
-  else{ setTimeout(renderDashboard, 150); return; }
+  if(_vp){activeProviderId=_vp.id; window._dashRt = 0;}
+  else if (window._dashRt < 30) { window._dashRt++; setTimeout(renderDashboard, 150); return; }
+  else { window._dashRt = 0; return; }
 }
-if(!document.getElementById('dash-stats')){ setTimeout(renderDashboard, 100); return; }
+if(!document.getElementById('dash-stats')){ if (window._dashRt < 30) { window._dashRt++; setTimeout(renderDashboard, 100); return; } else { window._dashRt = 0; return; } }
+window._dashRt = 0;
 const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
 const claims=db.claims.filter(c=>c.providerId===activeProviderId);
@@ -7837,10 +7851,22 @@ function _afterLoad() {
   }
 
   rebuildProvSel();
-  go('dashboard');
-  try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
-  setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
-  updateBadges();
+  // Only re-render dashboard if it is the currently active section
+  // (prevents redirecting away from a page the user navigated to)
+  var _curActive = document.querySelector('.section.active');
+  if (!_curActive || _curActive.id === 'sec-dashboard') {
+    go('dashboard');
+    try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
+    setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
+  } else {
+    // Re-render current page so it picks up the freshly loaded Firestore data
+    var _curPage = _curActive.id.replace('sec-', '');
+    try {
+      var _invoicesRender = function(){ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} };
+      var _renderFn = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,invoices:_invoicesRender,'cm-dashboard':renderCMDashboard,'cm-clients':renderCMClients,'cm-intake':renderCMIntake,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation})[_curPage];
+      if (_renderFn) { _renderFn(); updateBadges(); }
+    } catch(e) {}
+  }
   updateAdminUI();
 }
 
@@ -18373,10 +18399,15 @@ const btnLang = document.getElementById('btn-lang');
 if (btnLang) btnLang.textContent = (typeof LANG !== 'undefined' && LANG === 'es') ? 'EN' : 'ES';
 _renderLucideIcons();
 }
+var _lucideTimer = null;
 function _renderLucideIcons() {
+if (_lucideTimer) return;
+_lucideTimer = setTimeout(function() {
+_lucideTimer = null;
 if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
 lucide.createIcons();
 }
+}, 20);
 }
 
 
@@ -20919,7 +20950,12 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 // Synchronous local cache (for all sync callers)
 function getDB() {
 if (_localDB) return _localDB;
+var _cached = _loadCache();
+if (_cached) {
+_localDB = _mergeEmpty(_cached);
+} else {
 _localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[], intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[] };
+}
 return _localDB;
 }
 
