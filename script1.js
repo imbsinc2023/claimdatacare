@@ -171,9 +171,16 @@ console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | sessio
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-document.querySelectorAll('.section').forEach(e=>{e.style.display='';e.classList.remove('active');});
+document.querySelectorAll('.section').forEach(e=>{e.style.display='none';e.classList.remove('active');});
+console.log('[CDC] sections hidden:', document.querySelectorAll('.section').length);
 const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
-const sec = document.getElementById('sec-'+page); if(sec) sec.classList.add('active');
+const sec = document.getElementById('sec-'+page); if(sec){sec.style.display='flex';sec.classList.add('active');}
+console.log('[CDC] section shown:', page, 'exists:', !!sec, 'computed display:', sec?getComputedStyle(sec).display:'N/A');
+// Debug: count how many sections still have display !== 'none'
+setTimeout(function(){
+  var _v = [].slice.call(document.querySelectorAll('.section')).filter(function(s){return s.style.display!=='none'&&getComputedStyle(s).display!=='none';});
+  if(_v.length>1) console.log('[CDC] WARNING: visible sections >1:', _v.map(function(s){return s.id;}));
+}, 50);
 try { setActiveTopNav(page); } catch(_) {}
 const _tbt = document.getElementById('tb-title');
 if(_tbt) _tbt.textContent = PAGE_TITLES[page] || page;
