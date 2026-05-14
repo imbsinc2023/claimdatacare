@@ -1,3 +1,12 @@
+// Global error trap — catches JS errors that break nav/render functions
+window.onerror = function(msg, src, line, col, err) {
+  console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('[CDC PROMISE ERROR]', e.reason);
+});
+
 function toggleUserMenu(e) {
   if (e) e.stopPropagation();
   var menu = document.getElementById('tn-user-menu');
