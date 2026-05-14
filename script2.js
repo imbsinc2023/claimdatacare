@@ -2052,7 +2052,14 @@ function icSubmitDemographic(clientId, token) {
 }
 
 // ── Init on load ──
+// Only run intake token check when there is actually a token in the URL.
+// This prevents any risk of wiping #root on a normal admin login.
 setTimeout(function(){
-  try { checkIntakeToken(); } catch(e) {}
+  try {
+    var _qs = window.location.search;
+    if (_qs.startsWith('?intake=') || _qs.startsWith('?demographics=')) {
+      checkIntakeToken();
+    }
+  } catch(e) {}
 }, 300);
 
