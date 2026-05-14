@@ -14851,7 +14851,26 @@ return ka > kb ? -1 : 1;
 });
 if (rendF) list = list.filter(a => a.renderingId === rendF);
 if (statusF) list = list.filter(a => a.status === statusF);
-if (dateF) list = list.filter(a => a.date === dateF);
+// Date range filter — dateF is a range keyword OR an exact ISO date (set by day-strip clicks)
+if (dateF && dateF !== 'all') {
+  const _today = new Date();
+  const _todayStr = _today.toISOString().split('T')[0];
+  if (dateF === 'today') {
+    list = list.filter(a => a.date === _todayStr);
+  } else if (dateF === 'week') {
+    const _wStart = new Date(_today); _wStart.setDate(_today.getDate() - _today.getDay());
+    const _wEnd   = new Date(_wStart); _wEnd.setDate(_wStart.getDate() + 6);
+    const _wS = _wStart.toISOString().split('T')[0];
+    const _wE = _wEnd.toISOString().split('T')[0];
+    list = list.filter(a => a.date >= _wS && a.date <= _wE);
+  } else if (dateF === 'month') {
+    const _mPrefix = _todayStr.slice(0, 7); // "YYYY-MM"
+    list = list.filter(a => (a.date||'').startsWith(_mPrefix));
+  } else {
+    // Exact ISO date set by day-strip click
+    list = list.filter(a => a.date === dateF);
+  }
+}
 
 _renderDayStrip(appts);
 
@@ -18447,11 +18466,9 @@ _patchPDF();
 // CASE MANAGEMENT (TCM) MODULE
 // ???????????????????????????????????????????????????????????????????????
 const CM_KEY = 'cdc_cm_data_v1';
-function getCMData() {
-  try {
-    var r = localStorage.getItem(CM_KEY);
-    if (r) return JSON.parse(r);
-  } catch(e) {}
+
+// CM empty template
+function _cmEmpty() {
   return {
     clients:[], workers:[], plans:[], notes:[], billing:[],
     referrals:[], eligibility:[], assessments:[], tasks:[],
@@ -18459,8 +18476,55 @@ function getCMData() {
     discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
   };
 }
+
+// getCMData -- reads from _localDB.cm (Firestore-backed).
+// Falls back to legacy CM_KEY localStorage on first run and auto-migrates.
+function getCMData() {
+  // Primary: in-memory _localDB.cm (populated from Firestore on login)
+  if (_localDB && _localDB.cm && Object.keys(_localDB.cm).length > 0) {
+    return _localDB.cm;
+  }
+  // Migration: if old CM_KEY data exists in localStorage, adopt it
+  try {
+    var r = localStorage.getItem(CM_KEY);
+    if (r) {
+      var parsed = JSON.parse(r);
+      if (parsed && typeof parsed === 'object') {
+        if (!_localDB) _localDB = {};
+        _localDB.cm = Object.assign(_cmEmpty(), parsed);
+        // Kick off async Firestore write so it propagates to other devices
+        _saveCMToFirestore(_localDB.cm);
+        // Clear old key so migration only happens once
+        try { localStorage.removeItem(CM_KEY); } catch(e) {}
+        console.log('[CDC] CM data migrated from localStorage to Firestore');
+        return _localDB.cm;
+      }
+    }
+  } catch(e) {}
+  // No data anywhere -- return empty and initialize in _localDB
+  if (!_localDB) _localDB = {};
+  if (!_localDB.cm) _localDB.cm = _cmEmpty();
+  return _localDB.cm;
+}
+
+// saveCMData -- writes to _localDB.cm and syncs to Firestore
 function saveCMData(d) {
-  try { localStorage.setItem(CM_KEY, JSON.stringify(d)); } catch(e) {}
+  if (!_localDB) _localDB = {};
+  _localDB.cm = d;
+  // Save full cache so offline reload includes updated CM data
+  try { _saveCache(_localDB); } catch(e) {}
+  // Async sync to Firestore
+  _saveCMToFirestore(d);
+}
+
+// Async Firestore write for CM data (stored as a single meta document)
+function _saveCMToFirestore(d) {
+  if (!_fbReady || !_db || !d) return;
+  try {
+    _db.collection('meta').doc('cmData').set(d).catch(function(e){
+      console.warn('[CDC] CM Firestore write failed:', e.message);
+    });
+  } catch(e) {}
 }
 function _cmId() { return 'cm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
 function _cmDateStr(d) {
@@ -21151,12 +21215,13 @@ async function loadFromFirestore() {
 
   // ── Load critical collections first (providers, patients, claims) ──
   try {
-    const [providers, patients, claims, configDoc2, usersDoc] = await Promise.all([
+    const [providers, patients, claims, configDoc2, usersDoc, cmDoc] = await Promise.all([
       _fsReadCollection('providers'),
       _fsReadCollection('patients'),
       _fsReadCollection('claims'),
       _db.collection('meta').doc('config').get(),
       _db.collection('meta').doc('users').get(),
+      _db.collection('meta').doc('cmData').get(),
     ]);
 
     // Show data immediately — don't wait for the rest
@@ -21168,6 +21233,27 @@ async function loadFromFirestore() {
     if (usersDoc.exists) {
       _usersCache = usersDoc.data().list || [];
       try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
+    }
+
+    // Load CM data from Firestore (merged with empty template to ensure all keys exist)
+    if (cmDoc.exists) {
+      _localDB.cm = Object.assign(_cmEmpty(), cmDoc.data());
+      console.log('[CDC] CM data loaded from Firestore: ' + (_localDB.cm.clients||[]).length + ' clients');
+    } else {
+      // Check if there is legacy data in localStorage to migrate
+      try {
+        var _cmLegacy = localStorage.getItem(CM_KEY);
+        if (_cmLegacy) {
+          var _cmParsed = JSON.parse(_cmLegacy);
+          if (_cmParsed && typeof _cmParsed === 'object') {
+            _localDB.cm = Object.assign(_cmEmpty(), _cmParsed);
+            _saveCMToFirestore(_localDB.cm);
+            try { localStorage.removeItem(CM_KEY); } catch(e) {}
+            console.log('[CDC] CM data migrated from localStorage to Firestore on load');
+          }
+        }
+      } catch(e) {}
+      if (!_localDB.cm) _localDB.cm = _cmEmpty();
     }
 
     setFbStatus('', 'green');
@@ -21210,6 +21296,7 @@ async function loadFromFirestore() {
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, invoicingIssuers, invoicingClients, invoices,
       insurances, intakeClients, intakeForms, intakeSubmissions, evaluations,
+      eobBatches, eobUnmatched,
       claimLogsSnap, claimEOBSnap
     ] = await Promise.all([
       _fsReadCollection('facilities'),
@@ -21227,6 +21314,8 @@ async function loadFromFirestore() {
       _fsReadCollection('intakeForms'),
       _fsReadCollection('intakeSubmissions'),
       _fsReadCollection('evaluations'),
+      _fsReadCollection('eobBatches'),
+      _fsReadCollection('eobUnmatched'),
       _db.collection('claimLogs').get(),
       _db.collection('claimEOB').get(),
     ]);
@@ -21241,6 +21330,7 @@ async function loadFromFirestore() {
       appointments, notes, claimLogs, claimEOB,
       invoicingIssuers, invoicingClients, invoices, insurances,
       intakeClients, intakeForms, intakeSubmissions, evaluations,
+      eobBatches, eobUnmatched,
     });
 
     _saveCache(_localDB);
@@ -21260,9 +21350,19 @@ providers:[], facilities:[], rendering:[], referring:[],
 patients:[], claims:[], services:[], serviceGroups:[],
 appointments:[], notes:[], claimLogs:{}, claimEOB:{},
 invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[],
-intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[]
+intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[],
+eobBatches:[], eobUnmatched:[],
+cm: null  // CM data stored as a sub-object; null means not yet loaded
 };
-return Object.assign(empty, db || {});
+const merged = Object.assign(empty, db || {});
+// Ensure cm sub-keys exist if cm is present
+if (merged.cm) merged.cm = Object.assign({
+  clients:[], workers:[], plans:[], notes:[], billing:[],
+  referrals:[], eligibility:[], assessments:[], tasks:[],
+  authorizations:[], communityReferrals:[], encounters:[],
+  discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
+}, merged.cm);
+return merged;
 }
 
 // ?? setDB: mutate state and sync changed collection to Firestore ?????????????
@@ -21313,7 +21413,8 @@ var _syncColls = [
 'providers','facilities','rendering','referring',
 'patients','claims','services','serviceGroups',
 'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances',
-'intakeClients','intakeForms','intakeSubmissions','evaluations'
+'intakeClients','intakeForms','intakeSubmissions','evaluations',
+'eobBatches','eobUnmatched'
 ];
 
 for (var _ci = 0; _ci < _syncColls.length; _ci++) {
