@@ -158,6 +158,7 @@ function renderTransmitLog() {
 }
 
 function go(page) {
+console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | session='+JSON.stringify(getSession()?{email:getSession().email,pid:getSession().activeBillingProviderId}:null));
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
@@ -333,6 +334,7 @@ window._dashRt = 0;
 const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
 const claims=db.claims.filter(c=>c.providerId===activeProviderId);
+console.log('[CDC] renderDashboard: activeProviderId='+activeProviderId+' | total claims='+(db.claims||[]).length+' | matching='+claims.length+' | providers='+(db.providers||[]).length);
 const total=claims.reduce((s,c)=>s+claimTotal(c),0);
 const pending=claims.filter(c=>c.status==='pending').length;
 const accepted=claims.filter(c=>c.status==='accepted').length;
@@ -1036,15 +1038,19 @@ function _ceValidate(claimId){
 
 function renderClaims() {
   if (!activeProviderId) {
+    console.log('[CDC] renderClaims: activeProviderId NULL, attempting to derive from claims');
     const db0 = getDB();
     const pIds = [...new Set((db0.claims||[]).map(c=>c.providerId).filter(Boolean))];
     if (pIds.length) {
       activeProviderId = pIds[0];
+      console.log('[CDC] renderClaims: derived activeProviderId='+activeProviderId+' from claims');
     } else {
+      console.log('[CDC] renderClaims: NO claims found to derive providerId — returning early');
       return;
     }
   }
 const db = getDB();
+console.log('[CDC] renderClaims: activeProviderId='+activeProviderId+' | total claims in DB='+(db.claims||[]).length+' | matching='+(db.claims||[]).filter(function(c){return c.providerId===activeProviderId;}).length);
 
 function _dosToMonthKey(dos) {
 if (!dos) return '';
@@ -7823,7 +7829,8 @@ btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
 function _afterLoad() {
   const db2 = getDB();
   const sess = getSession();
-  if (!sess) return;
+  if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); return; }
+  console.log('[CDC] _afterLoad: providers='+(db2.providers||[]).length+' session.pid='+sess.activeBillingProviderId);
 
   // Try to set activeProviderId from providers list
   if (db2.providers && db2.providers.length) {
@@ -7832,10 +7839,12 @@ function _afterLoad() {
     activeProviderId = validProv.id;
     sess.activeBillingProviderId = activeProviderId;
     setSession(sess);
+    console.log('[CDC] _afterLoad: set activeProviderId='+activeProviderId+' from provider "'+(validProv.name||'')+'"');
   }
 
   // If still no activeProviderId, detect from claims or patients
   if (!activeProviderId) {
+    console.log('[CDC] _afterLoad: still NO activeProviderId, deriving from claims/patients');
     const pIds = [
       ...new Set([
         ...(db2.claims||[]).map(c=>c.providerId),
@@ -7846,11 +7855,14 @@ function _afterLoad() {
       activeProviderId = pIds[0];
       sess.activeBillingProviderId = activeProviderId;
       setSession(sess);
-      console.log('Auto-detected providerId from data:', activeProviderId);
+      console.log('[CDC] _afterLoad: derived activeProviderId='+activeProviderId);
+    } else {
+      console.log('[CDC] _afterLoad: NO claims or patients to derive providerId');
     }
   }
 
   rebuildProvSel();
+  console.log('[CDC] _afterLoad: currentSection='+(document.querySelector('.section.active')?.id||'none'));
   // Only re-render dashboard if it is the currently active section
   // (prevents redirecting away from a page the user navigated to)
   var _curActive = document.querySelector('.section.active');
@@ -20949,12 +20961,14 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 
 // Synchronous local cache (for all sync callers)
 function getDB() {
-if (_localDB) return _localDB;
+if (_localDB) { return _localDB; }
 var _cached = _loadCache();
 if (_cached) {
 _localDB = _mergeEmpty(_cached);
+console.log('[CDC] getDB: loaded from cache | providers='+(_localDB.providers||[]).length+' patients='+(_localDB.patients||[]).length+' claims='+(_localDB.claims||[]).length);
 } else {
 _localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[], intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[] };
+console.log('[CDC] getDB: NO cache found, created empty DB');
 }
 return _localDB;
 }
