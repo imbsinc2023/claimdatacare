@@ -162,7 +162,7 @@ console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | sessio
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-document.querySelectorAll('.section').forEach(e=>e.classList.remove('active'));
+document.querySelectorAll('.section').forEach(e=>{e.style.display='';e.classList.remove('active');});
 const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
 const sec = document.getElementById('sec-'+page); if(sec) sec.classList.add('active');
 try { setActiveTopNav(page); } catch(_) {}
@@ -20381,12 +20381,16 @@ document.addEventListener("DOMContentLoaded", async function() {
       }
     } catch(e) {}
 
-    // Force dashboard render now that providers are loaded
+    // Re-render current page or dashboard with fresh data
     try {
-      document.querySelectorAll('.section').forEach(function(e){ e.classList.remove('active'); });
-      var dashSec = document.getElementById('sec-dashboard');
-      if (dashSec) dashSec.classList.add('active');
-      renderDashboard();
+      var _curActive = document.querySelector('.section.active');
+      if (!_curActive || _curActive.id === 'sec-dashboard') {
+        go('dashboard');
+      } else {
+        var _curPage = _curActive.id.replace('sec-', '');
+        var _renderFns = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,bills:renderBills,'provider-info':renderProviderInfo,'cm-dashboard':renderCMDashboard,'cm-intake':renderCMIntake,'cm-clients':renderCMClients,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation})[_curPage];
+        if (_renderFns) { _renderFns(); updateBadges(); }
+      }
     } catch(e) { go('dashboard'); }
   }
 
