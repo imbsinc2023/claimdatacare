@@ -222,6 +222,22 @@ account: renderAccountPage,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
+    // Guarantee activeProviderId before any render runs
+    if (!activeProviderId) {
+      try {
+        var _db0 = getDB();
+        var _s0 = getSession();
+        var _sid = _s0 && (_s0.activeBillingProviderId || _s0.providerId);
+        var _vp = (_sid && (_db0.providers||[]).find(function(p){return p.id===_sid;})) || (_db0.providers||[])[0];
+        if (_vp) {
+          activeProviderId = _vp.id;
+          console.log('[CDC] go(): derived activeProviderId='+activeProviderId+' before render of '+page);
+        } else {
+          console.warn('[CDC] go(): NO providers in DB yet — render may show empty. providers='+(_db0.providers||[]).length);
+        }
+      } catch(e) {}
+    }
+    console.log('[CDC] go(): rendering page='+page+' | activeProviderId='+activeProviderId);
     renders[page]();
     updateBadges();
     setTimeout(_renderLucideIcons, 20);
@@ -309,15 +325,28 @@ function showApp(username) {
   go('dashboard');
   // Immediately render dashboard with cached localStorage data
   try { _afterLoad(); } catch(e) {}
-  // Then load fresh data from Firestore and re-render
-  Promise.resolve(loadFromFirestoreWhenReady()).then(function(){
-    try { _afterLoad(); } catch(e) {}
-  }).catch(function(e){
-    console.warn('Firestore load failed:', e);
-  });
+  // Note: Firestore load is handled by DOMContentLoaded caller — no duplicate load here
 }
 
 
+
+// ── RUNTIME DIAGNOSTIC: shows in UI when data is missing ────────
+function _cdcDiag() {
+  var db = typeof _localDB !== 'undefined' ? _localDB : null;
+  var sess = getSession();
+  var lines = [
+    'activeProviderId: ' + (activeProviderId || 'NULL'),
+    'session: ' + (sess ? sess.email + ' | role: ' + sess.role : 'NONE'),
+    'providers: ' + (db&&db.providers?db.providers.length:0),
+    'patients: '  + (db&&db.patients?db.patients.length:0),
+    'claims: '    + (db&&db.claims?db.claims.length:0),
+    'appointments: '+(db&&db.appointments?db.appointments.length:0),
+    'notes: '     + (db&&db.notes?db.notes.length:0),
+    'fbReady: '   + (typeof _fbReady !== 'undefined' ? _fbReady : '?'),
+    'cache: '     + (localStorage.getItem('cdc_cache_v2') ? 'YES ('+Math.round((localStorage.getItem('cdc_cache_v2')||'').length/1024)+'KB)' : 'NONE'),
+  ];
+  return lines.join('\n');
+}
 
 function renderDashboard(){
 if (typeof window._dashRt === 'undefined') window._dashRt = 0;
@@ -395,6 +424,7 @@ document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn
 
 function renderPatients(){
   var db = getDB();
+  console.log('[CDC] renderPatients: activeProviderId='+activeProviderId+' | total patients='+db.patients.length+' | matching='+db.patients.filter(function(p){return p.providerId===activeProviderId;}).length);
   var q = (v('pat-q')||'').toLowerCase();
   var list = db.patients.filter(function(p){ return p.providerId===activeProviderId; });
   if (q) list = list.filter(function(p){
@@ -5212,6 +5242,7 @@ return getDB().serviceGroups.filter(g => g.providerId === activeProviderId);
 
 function renderServiceGroups() {
 const groups = getScopedServiceGroups();
+console.log('[CDC] renderServiceGroups: activeProviderId='+activeProviderId+' | total SGs='+getDB().serviceGroups.length+' | scoped='+groups.length);
 const el = document.getElementById('sg-list');
 if (!el) return;
 if (!groups.length) {
@@ -13515,6 +13546,7 @@ const el = document.getElementById('notes-list');
 if (!el) return;
 const db = getDB();
 const notes = getNotes().filter(n=>n.providerId===activeProviderId);
+console.log('[CDC] renderNotes: activeProviderId='+activeProviderId+' | total notes='+getNotes().length+' | matching='+notes.length);
 _populateNoteFilters(db, notes);
 if (!notes.length) {
 el.innerHTML='<div class="empty"><div class="empty-ico"></div><h3>No encounters yet</h3><p>Encounters are automatically created when claims are generated.</p></div>';
@@ -14828,6 +14860,7 @@ const el = document.getElementById('appt-list');
 if (!el) return;
 const db = getDB();
 const appts = getAppts().filter(a => a.providerId === activeProviderId);
+console.log('[CDC] renderAppointments: activeProviderId='+activeProviderId+' | total appts='+getAppts().length+' | matching='+appts.length);
 
 // Populate provider filter once
 const provSel = document.getElementById('appt-filter-prov');
