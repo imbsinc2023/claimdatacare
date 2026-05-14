@@ -277,6 +277,7 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
+  document.getElementById('root').innerHTML = getAppShellHTML();
   try { _closeAllOverlays(); } catch(e) {}
   // Force layout via JS in case CSS is not loading
   try {
