@@ -257,7 +257,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
    Top Navigation Layout (getAppShellHTML)
    ============================================= */
 .app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
-.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}
+.topnav{height:44px;max-height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100;overflow:visible}
 .tn-hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:rgba(255,255,255,.7);border-radius:8px;flex-shrink:0}
 .tn-hamburger:hover{background:rgba(255,255,255,.1);color:#fff}
 .tn-brand{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-right:4px}
@@ -286,7 +286,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 .tn-right{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}
 
 /* Main content area */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)}
 
 /* Mobile drawer */
 .tn-drawer{display:none;position:fixed;inset:0;z-index:5000}

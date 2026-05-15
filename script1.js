@@ -1,3 +1,4 @@
+// ClaimDataCare script1.js v20260515-FINAL
 // Global error trap — catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
   console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
@@ -168,6 +169,19 @@ function renderTransmitLog() {
 
 function go(page) {
 console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | session='+JSON.stringify(getSession()?{email:getSession().email,pid:getSession().activeBillingProviderId}:null));
+// Enforce layout on every navigation
+try {
+  var _dr = document.getElementById('tn-drawer');
+  if (_dr) _dr.style.display = 'none';
+  var _mn = document.querySelector('.main');
+  if (_mn && _mn.getBoundingClientRect().top > 100) {
+    _mn.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
+    var _ct = document.querySelector('.content');
+    if (_ct) _ct.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
+    var _sh = document.querySelector('.app-shell');
+    if (_sh) _sh.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;flex:1';
+  }
+} catch(_) {}
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
@@ -277,34 +291,22 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  // Inject shell in two steps to avoid browser innerHTML truncation
-  var _root = document.getElementById('root');
-  var _fullShell = getAppShellHTML();
-  var _mainIdx = _fullShell.indexOf('<div class="main"');
-  if (_mainIdx > 0) {
-    _root.innerHTML = _fullShell.slice(0, _mainIdx) + '</div>';
-    var _mainEl = document.createElement('div');
-    _mainEl.innerHTML = _fullShell.slice(_mainIdx);
-    while (_mainEl.firstChild) _root.firstElementChild ? _root.appendChild(_mainEl.firstChild) : _root.appendChild(_mainEl.firstChild);
-    // Actually simpler: just append to root directly
-    _root.innerHTML = '';
-    var _wrapper = document.createElement('div');
-    _wrapper.innerHTML = _fullShell;
-    while (_wrapper.firstChild) _root.appendChild(_wrapper.firstChild);
-  } else {
-    _root.innerHTML = _fullShell;
-  }
+  document.getElementById('root').innerHTML = getAppShellHTML();
   try { _closeAllOverlays(); } catch(e) {}
-  // Force layout via JS in case CSS is not loading
+  // Force layout via JS — ensures correct layout regardless of CSS load order
   try {
+    var _root2 = document.getElementById('root');
+    _root2.style.cssText = 'height:100%;overflow:hidden;display:flex;flex-direction:column';
     var _shell = document.querySelector('.app-shell');
-    if (_shell) { _shell.style.display = 'flex'; _shell.style.flexDirection = 'column'; _shell.style.height = '100%'; }
+    if (_shell) _shell.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;flex:1';
+    var _topnav = document.getElementById('topnav');
+    if (_topnav) _topnav.style.cssText = 'height:44px;max-height:44px;min-height:44px;flex-shrink:0;display:flex;align-items:center;overflow:visible;position:relative;z-index:100;background:#141413;color:#fff';
+    var _drawer = document.getElementById('tn-drawer');
+    if (_drawer) _drawer.style.cssText = 'display:none';
     var _main = document.querySelector('.main');
-    if (_main) { _main.style.flex = '1'; _main.style.display = 'flex'; _main.style.flexDirection = 'column'; _main.style.overflow = 'hidden'; _main.style.minHeight = '0'; }
+    if (_main) _main.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
     var _cont = document.querySelector('.content');
-    if (_cont) { _cont.style.flex = '1'; _cont.style.overflowY = 'auto'; _cont.style.minHeight = '0'; }
-    var _dash = document.getElementById('sec-dashboard');
-    if (_dash) { _dash.style.display = 'flex'; _dash.style.flexDirection = 'column'; _dash.style.height = '100%'; }
+    if (_cont) _cont.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
   } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
