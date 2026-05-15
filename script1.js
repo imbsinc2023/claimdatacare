@@ -1,3 +1,12 @@
+// Global error trap — catches JS errors that break nav/render functions
+window.onerror = function(msg, src, line, col, err) {
+  console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('[CDC PROMISE ERROR]', e.reason);
+});
+
 function toggleUserMenu(e) {
   if (e) e.stopPropagation();
   var menu = document.getElementById('tn-user-menu');
@@ -158,23 +167,20 @@ function renderTransmitLog() {
 }
 
 function go(page) {
-// Remove any orphaned dynamic overlays that may block clicks
-try {
-  document.querySelectorAll('body > div').forEach(function(el) {
-    if (el.id === 'toasts' || el.id === 'root' || el.id === 'tn-drawer') return;
-    var s = el.style;
-    if (s.position === 'fixed' && (s.inset === '0px' || s.inset === '0') && !el.classList.contains('modal-overlay')) {
-      el.remove();
-    }
-  });
-} catch(_) {}
 console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | session='+JSON.stringify(getSession()?{email:getSession().email,pid:getSession().activeBillingProviderId}:null));
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-document.querySelectorAll('.section').forEach(e=>{e.style.display='';e.classList.remove('active');});
+document.querySelectorAll('.section').forEach(e=>{e.style.display='none';e.classList.remove('active');});
+console.log('[CDC] sections hidden:', document.querySelectorAll('.section').length);
 const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
-const sec = document.getElementById('sec-'+page); if(sec) sec.classList.add('active');
+const sec = document.getElementById('sec-'+page); if(sec){sec.style.display='flex';sec.classList.add('active');}
+console.log('[CDC] section shown:', page, 'exists:', !!sec, 'computed display:', sec?getComputedStyle(sec).display:'N/A');
+// Debug: count how many sections still have display !== 'none'
+setTimeout(function(){
+  var _v = [].slice.call(document.querySelectorAll('.section')).filter(function(s){return s.style.display!=='none'&&getComputedStyle(s).display!=='none';});
+  if(_v.length>1) console.log('[CDC] WARNING: visible sections >1:', _v.map(function(s){return s.id;}));
+}, 50);
 try { setActiveTopNav(page); } catch(_) {}
 const _tbt = document.getElementById('tb-title');
 if(_tbt) _tbt.textContent = PAGE_TITLES[page] || page;
@@ -232,6 +238,22 @@ account: renderAccountPage,
       };
 if(renders[page]) {
   requestAnimationFrame(function() {
+    // Guarantee activeProviderId before any render runs
+    if (!activeProviderId) {
+      try {
+        var _db0 = getDB();
+        var _s0 = getSession();
+        var _sid = _s0 && (_s0.activeBillingProviderId || _s0.providerId);
+        var _vp = (_sid && (_db0.providers||[]).find(function(p){return p.id===_sid;})) || (_db0.providers||[])[0];
+        if (_vp) {
+          activeProviderId = _vp.id;
+          console.log('[CDC] go(): derived activeProviderId='+activeProviderId+' before render of '+page);
+        } else {
+          console.warn('[CDC] go(): NO providers in DB yet — render may show empty. providers='+(_db0.providers||[]).length);
+        }
+      } catch(e) {}
+    }
+    console.log('[CDC] go(): rendering page='+page+' | activeProviderId='+activeProviderId);
     renders[page]();
     updateBadges();
     setTimeout(_renderLucideIcons, 20);
@@ -244,30 +266,27 @@ if(renders[page]) {
 
 
 function _injectCriticalCSS() {
-  var existing = document.getElementById('cdc-critical-css');
-  if (existing) existing.remove();
-  var s = document.createElement('style');
-  s.id = 'cdc-critical-css';
-  s.textContent = [
-    'html,body{height:100%;margin:0;padding:0}',
-    '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}',
-    '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}',
-    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}',
-    '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:visible}',
-    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}',
-    '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}',
-    '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}',
-    '.tn-group{position:relative;display:inline-flex}',
-    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:190px;z-index:99999;padding:4px;white-space:nowrap}',
-    '.tn-group.open .tn-dropdown{display:block}',
-    '.tn-drawer{display:none!important}',
-    '.overlay,.modal-overlay{display:none}',
-    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}',
-    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}',
-    '.page-body{flex:1;overflow-y:auto;min-height:0}',
-    '.section{display:none;flex-direction:column;height:100%;overflow:hidden}',
-    '.section.active{display:flex}',
-  ].join('');
+  var ex = document.getElementById('cdc-css'); if (ex) ex.remove();
+  var s = document.createElement('style'); s.id = 'cdc-css';
+  s.textContent =
+    'html,body{height:100%;margin:0;padding:0}' +
+    '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}' +
+    '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}' +
+    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}' +
+    '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:visible}' +
+    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}' +
+    '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}' +
+    '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}' +
+    '.tn-group{position:relative;display:inline-flex}' +
+    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:190px;z-index:99999;padding:4px}' +
+    '.tn-group.open .tn-dropdown{display:block}' +
+    '.tn-drawer{display:none!important;position:fixed!important;inset:0;z-index:5000}' +
+    '.overlay,.modal-overlay{display:none}' +
+    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
+    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}' +
+    '.page-body{flex:1;overflow-y:auto;min-height:0}' +
+    '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
+    '.section.active{display:flex}';
   document.head.appendChild(s);
 }
 
@@ -275,60 +294,82 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  // Inject shell via DOM to avoid browser parser truncation on large HTML
-  (function() {
-    var _root = document.getElementById('root');
-    var _full = getAppShellHTML();
-    // Split at tn-drawer to avoid parser issues with drawer content
-    var _drawerIdx = _full.indexOf('<div class="tn-drawer"');
-    var _drawerEnd = _full.indexOf('<div class="main"');
-    if (_drawerIdx > 0 && _drawerEnd > _drawerIdx) {
-      var _top = _full.slice(0, _drawerIdx);           // header + input
-      var _drawer = _full.slice(_drawerIdx, _drawerEnd); // tn-drawer
-      var _rest = _full.slice(_drawerEnd);              // main + all sections
-      // Inject top (header) into app-shell
-      _root.innerHTML = _top + _rest + '</div>';
-      // Append drawer separately via createElement to avoid parser issues
-      var _tmp = document.createElement('div');
-      _tmp.innerHTML = _drawer;
-      var _shell = _root.querySelector('.app-shell');
-      if (_shell && _tmp.firstChild) {
-        _shell.insertBefore(_tmp.firstChild, _shell.querySelector('.main'));
-      }
-    } else {
-      console.log('[CDC INJECT] full length:', _full.length, 'has main:', _full.indexOf('<div class="main"'), 'chars 15500-15700:', _full.slice(15500,15700));
-      _root.innerHTML = _full;
-      console.log('[CDC INJECT] root children after:', [..._root.children].map(function(e){return e.tagName+'.'+e.className.slice(0,20);}));
-      var _ms = _root.querySelector('.main');
-      console.log('[CDC INJECT] .main found:', !!_ms, 'children:', _ms ? [..._ms.children].length : 0);
-    }
-  })();
+  document.getElementById('root').innerHTML = getAppShellHTML();
+  try { _closeAllOverlays(); } catch(e) {}
   try {
+    // Resolve name: check users cache first for first+last
     var _uname = session.name || session.email || username || 'User';
-    var _np = _uname.trim().split(/\s+/);
-    var _ini = (_np.length >= 2) ? (_np[0][0]+_np[_np.length-1][0]).toUpperCase() : _uname.trim().slice(0,2).toUpperCase();
-    var _fn = _np[0] || _uname;
-    var el;
-    el = document.getElementById('tn-user-name'); if(el){el.textContent=_fn; el.title=_uname;}
-    el = document.getElementById('tn-avatar-initials'); if(el) el.textContent=_ini;
-    el = document.getElementById('tn-avatar-initials2'); if(el) el.textContent=_ini;
-    el = document.getElementById('tn-menu-name'); if(el) el.textContent=_uname;
-    el = document.getElementById('tn-menu-email'); if(el) el.textContent=session.email||'';
-    el = document.getElementById('tn-menu-role'); if(el) el.style.display='none';
-    el = document.getElementById('tn-menu-login-time'); if(el) el.textContent='Logged in '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    try {
+      var _allU = (typeof getUsers === 'function') ? getUsers() : (_usersCache||[]);
+      var _matchU = _allU.find(function(u){ return (u.email||'').toLowerCase() === (session.email||'').toLowerCase(); });
+      if (_matchU) {
+        var _fn2 = (((_matchU.first||'') + ' ' + (_matchU.last||'')).trim()) || _matchU.name || _uname;
+        if (_fn2 && !_fn2.includes('@')) _uname = _fn2;
+      }
+    } catch(e){}
+    // Initials from name words (max 2 chars)
+    var _nameParts = _uname.trim().split(/\s+/);
+    var _initials = (_nameParts.length >= 2)
+      ? (_nameParts[0][0] + _nameParts[_nameParts.length-1][0]).toUpperCase()
+      : (_uname.trim().slice(0,2).toUpperCase());
+    // Chip shows first name only
+    var _firstName = _nameParts[0] || _uname;
+    var _tn = document.getElementById('tn-user-name');
+    if (_tn) { _tn.textContent = _firstName; _tn.title = _uname; }
+    var _av1 = document.getElementById('tn-avatar-initials');
+    var _av2 = document.getElementById('tn-avatar-initials2');
+    if (_av1) _av1.textContent = _initials;
+    if (_av2) _av2.textContent = _initials;
+    // Dropdown info
+    var _mn = document.getElementById('tn-menu-name');
+    var _me = document.getElementById('tn-menu-email');
+    var _mr = document.getElementById('tn-menu-role');
+    var _mp = document.getElementById('tn-menu-prov');
+    var _mt = document.getElementById('tn-menu-login-time');
+    if (_mn) _mn.textContent = _uname;
+    if (_me) _me.textContent = session.email || '';
+    if (_mr) _mr.style.display = 'none'; // hide role
+    if (_mt) _mt.textContent = 'Logged in ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    if (_mp) {
+      try {
+        var _db2 = getDB();
+        var _prov2 = (_db2.providers||[]).find(function(p){ return p.id===activeProviderId; });
+        _mp.textContent = _prov2 ? (_prov2.name||'') : '';
+      } catch(e) {}
+    }
   } catch(e) {}
   setTimeout(_initTnHover, 100);
   setTimeout(function(){ _initNavIcons(); _renderLucideIcons(); }, 150);
   updateAdminUI();
   try { initServices(); } catch(e) {}
   applyTheme();
-  if (!_adminUser && session.role === 'Super Admin') _adminUser = {email:session.email, uid:session.id};
-  setTimeout(function(){ setFbStatus('','green'); updateAdminUI(); }, 0);
+  if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
+  setTimeout(function(){ setFbStatus('', 'green'); updateAdminUI(); }, 0);
   go('dashboard');
+  // Immediately render dashboard with cached localStorage data
   try { _afterLoad(); } catch(e) {}
+  // Note: Firestore load is handled by DOMContentLoaded caller — no duplicate load here
 }
 
 
+
+// ── RUNTIME DIAGNOSTIC: shows in UI when data is missing ────────
+function _cdcDiag() {
+  var db = typeof _localDB !== 'undefined' ? _localDB : null;
+  var sess = getSession();
+  var lines = [
+    'activeProviderId: ' + (activeProviderId || 'NULL'),
+    'session: ' + (sess ? sess.email + ' | role: ' + sess.role : 'NONE'),
+    'providers: ' + (db&&db.providers?db.providers.length:0),
+    'patients: '  + (db&&db.patients?db.patients.length:0),
+    'claims: '    + (db&&db.claims?db.claims.length:0),
+    'appointments: '+(db&&db.appointments?db.appointments.length:0),
+    'notes: '     + (db&&db.notes?db.notes.length:0),
+    'fbReady: '   + (typeof _fbReady !== 'undefined' ? _fbReady : '?'),
+    'cache: '     + (localStorage.getItem('cdc_cache_v2') ? 'YES ('+Math.round((localStorage.getItem('cdc_cache_v2')||'').length/1024)+'KB)' : 'NONE'),
+  ];
+  return lines.join('\n');
+}
 
 function renderDashboard(){
 if (typeof window._dashRt === 'undefined') window._dashRt = 0;
@@ -406,6 +447,7 @@ document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn
 
 function renderPatients(){
   var db = getDB();
+  console.log('[CDC] renderPatients: activeProviderId='+activeProviderId+' | total patients='+db.patients.length+' | matching='+db.patients.filter(function(p){return p.providerId===activeProviderId;}).length);
   var q = (v('pat-q')||'').toLowerCase();
   var list = db.patients.filter(function(p){ return p.providerId===activeProviderId; });
   if (q) list = list.filter(function(p){
@@ -1779,6 +1821,95 @@ return `<div class="app-shell">
 </header>
 
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
+
+<div class="tn-drawer" id="tn-drawer" style="display:none;position:fixed;inset:0;z-index:5000">
+<div class="tn-drawer-backdrop" onclick="closeTnDrawer()"></div>
+<div class="tn-drawer-panel">
+<div class="tn-drawer-header">
+<div style="display:flex;align-items:center;gap:8px">
+<img src="favicon.svg" id="nav-logo-drawer" class="nav-favicon" width="18" height="18" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">
+<strong>ClaimDataCare</strong>
+</div>
+<button class="btn btn-ghost btn-sm" onclick="closeTnDrawer()" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:8px">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"><line x1="200" y1="56" x2="56" y2="200"/><line x1="56" y1="56" x2="200" y2="200"/></svg>
+</button>
+</div>
+<div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Active Provider</div>
+<select id="prov-sel-mob" onchange="switchProvider(this.value);closeTnDrawer()" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text);font-size:13px"></select>
+</div>
+<div class="tn-drawer-item" onclick="go('dashboard');closeTnDrawer()"><i data-lucide="layout-dashboard" class="lci"></i>Home</div>
+<div class="tn-drawer-item" onclick="go('appointments');closeTnDrawer()"><i data-lucide="calendar-days" class="lci"></i>Schedule</div>
+<div class="tn-drawer-item" onclick="go('patients');closeTnDrawer()"><i data-lucide="users" class="lci"></i>Patients</div>
+<div class="tn-drawer-group" id="mob-grp-billing">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-billing')"><i data-lucide="receipt" class="lci"></i>Billing <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('claims');closeTnDrawer()">Claims</div>
+<div class="tn-drawer-sub-item" onclick="go('validate');closeTnDrawer()">Validate Claims</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-ehr">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-ehr')"><i data-lucide="stethoscope" class="lci"></i>EHR <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('notes');closeTnDrawer()">Encounters</div>
+<div class="tn-drawer-sub-item" onclick="go('services');closeTnDrawer()">Services / CPT</div>
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-cm" style="display:none">
+      <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-cm')"><i data-lucide="briefcase" class="lci"></i>Case Management <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="tn-drawer-sub">
+      <div class="tn-drawer-sub-item" onclick="go('cm-dashboard');closeTnDrawer()">Dashboard</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-intake');closeTnDrawer()">Intake / Referrals</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-clients');closeTnDrawer()">Clients</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-workers');closeTnDrawer()">Case Workers</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-assessments');closeTnDrawer()">Assessments</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-plans');closeTnDrawer()">Care Plans</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-encounters');closeTnDrawer()">Encounters / Notes</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-tasks');closeTnDrawer()">Tasks &amp; Follow-Ups</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-authorizations');closeTnDrawer()">Authorizations</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-referrals');closeTnDrawer()">Referrals &amp; Resources</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-supervisor');closeTnDrawer()">Supervisor Review</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-billing');closeTnDrawer()">Billing Readiness</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-reports');closeTnDrawer()">Reports</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-discharge');closeTnDrawer()">Discharge</div>
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-config">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-config')"><i data-lucide="settings" class="lci"></i>Settings <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('facilities');closeTnDrawer()">Facilities</div>
+<div class="tn-drawer-sub-item" onclick="go('rendering');closeTnDrawer()">Rendering Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('referring');closeTnDrawer()">Referring Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('provider-info');closeTnDrawer()">Provider Information</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-admin" style="display:none">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-admin')"><i data-lucide="shield-check" class="lci"></i>Admin <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('admin-providers');closeTnDrawer()">Billing Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('servicegroups');closeTnDrawer()">Service Groups</div>
+<div class="tn-drawer-sub-item" onclick="go('export');closeTnDrawer()">Export / Submit</div>
+<div class="tn-drawer-sub-item" onclick="go('account');closeTnDrawer()">Users &amp; Account</div>
+<div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
+<div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
+<div class="tn-drawer-sub-sep"></div>
+<div class="tn-drawer-sub-item" onclick="exportBackup();closeTnDrawer()">Backup Data</div>
+<div class="tn-drawer-sub-item" onclick="triggerRestore()">Restore Data</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-intake" style="display:none">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-intake')"><i data-lucide="clipboard-pen" class="lci"></i>Intake <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('intake-clients');closeTnDrawer()">Clients</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-forms');closeTnDrawer()">Forms</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-eval');closeTnDrawer()">Evaluations</div>
+</div>
+</div>
+<div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto;display:flex;gap:8px">
+<button class="btn btn-danger btn-sm" style="flex:1" onclick="doLogout()">Sign Out</button>
+</div>
+</div>
+</div>
 
 <div class="main">
 <div class="content">
@@ -5134,6 +5265,7 @@ return getDB().serviceGroups.filter(g => g.providerId === activeProviderId);
 
 function renderServiceGroups() {
 const groups = getScopedServiceGroups();
+console.log('[CDC] renderServiceGroups: activeProviderId='+activeProviderId+' | total SGs='+getDB().serviceGroups.length+' | scoped='+groups.length);
 const el = document.getElementById('sg-list');
 if (!el) return;
 if (!groups.length) {
@@ -6674,7 +6806,6 @@ setSession(session);
 }
 
 // Rebuild UI
-try { document.getElementById('root').innerHTML = getAppShellHTML(); } catch(_) {}
 try { initServices(); } catch(_) {}
 try { rebuildProvSel(); } catch(_) {}
 try { updateAdminUI(); } catch(_) {}
@@ -7950,7 +8081,6 @@ function doLogout() {
         '<button id="confirm-logout-btn" style="padding:9px 18px;border:none;border-radius:8px;background:var(--red,#dc2626);cursor:pointer;font-size:13px;font-weight:600;color:white">Sign Out</button>' +
       '</div>' +
     '</div>';
-  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
   document.body.appendChild(overlay);
   document.getElementById('logout-cancel-btn').onclick = function() { overlay.remove(); };
   document.getElementById('confirm-logout-btn').onclick = function() {
@@ -8430,7 +8560,6 @@ function show2FAScreen(user, onSuccess) {
     '</div>' +
     '</div>';
 
-  overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); } };
   document.body.appendChild(overlay);
   setTimeout(function(){ document.getElementById('tfa-code')?.focus(); }, 100);
 
@@ -13439,6 +13568,7 @@ const el = document.getElementById('notes-list');
 if (!el) return;
 const db = getDB();
 const notes = getNotes().filter(n=>n.providerId===activeProviderId);
+console.log('[CDC] renderNotes: activeProviderId='+activeProviderId+' | total notes='+getNotes().length+' | matching='+notes.length);
 _populateNoteFilters(db, notes);
 if (!notes.length) {
 el.innerHTML='<div class="empty"><div class="empty-ico"></div><h3>No encounters yet</h3><p>Encounters are automatically created when claims are generated.</p></div>';
@@ -14752,6 +14882,7 @@ const el = document.getElementById('appt-list');
 if (!el) return;
 const db = getDB();
 const appts = getAppts().filter(a => a.providerId === activeProviderId);
+console.log('[CDC] renderAppointments: activeProviderId='+activeProviderId+' | total appts='+getAppts().length+' | matching='+appts.length);
 
 // Populate provider filter once
 const provSel = document.getElementById('appt-filter-prov');
@@ -14775,7 +14906,26 @@ return ka > kb ? -1 : 1;
 });
 if (rendF) list = list.filter(a => a.renderingId === rendF);
 if (statusF) list = list.filter(a => a.status === statusF);
-if (dateF) list = list.filter(a => a.date === dateF);
+// Date range filter — dateF is a range keyword OR an exact ISO date (set by day-strip clicks)
+if (dateF && dateF !== 'all') {
+  const _today = new Date();
+  const _todayStr = _today.toISOString().split('T')[0];
+  if (dateF === 'today') {
+    list = list.filter(a => a.date === _todayStr);
+  } else if (dateF === 'week') {
+    const _wStart = new Date(_today); _wStart.setDate(_today.getDate() - _today.getDay());
+    const _wEnd   = new Date(_wStart); _wEnd.setDate(_wStart.getDate() + 6);
+    const _wS = _wStart.toISOString().split('T')[0];
+    const _wE = _wEnd.toISOString().split('T')[0];
+    list = list.filter(a => a.date >= _wS && a.date <= _wE);
+  } else if (dateF === 'month') {
+    const _mPrefix = _todayStr.slice(0, 7); // "YYYY-MM"
+    list = list.filter(a => (a.date||'').startsWith(_mPrefix));
+  } else {
+    // Exact ISO date set by day-strip click
+    list = list.filter(a => a.date === dateF);
+  }
+}
 
 _renderDayStrip(appts);
 
@@ -15935,24 +16085,9 @@ document.getElementById(id)?.classList.toggle('open');
 
 // Close dropdowns when clicking outside nav
 document.addEventListener('click', e => {
-  if (!e.target.closest?.('.tn-group') && !e.target.closest?.('#tn-nav')) {
-    closeTnDropdown();
-  }
-});
-
-// Escape key: close any blocking dynamic overlay
-document.addEventListener('keydown', function(e) {
-  if (e.key !== 'Escape') return;
-  // Remove dynamic overlays (created by doLogout, confirm dialogs, etc.)
-  document.querySelectorAll('body > div[style*="position:fixed"]').forEach(function(el) {
-    if (el.id === 'toasts' || el.id === 'tn-drawer') return;
-    el.remove();
-  });
-  closeTnDropdown();
-  // Close static modal-overlay / overlay elements
-  document.querySelectorAll('.modal-overlay.open, .overlay.open').forEach(function(el) {
-    el.classList.remove('open');
-  });
+if (!e.target.closest?.('.tn-group') && !e.target.closest?.('#tn-nav')) {
+closeTnDropdown();
+}
 });
 
 // Active state
@@ -18386,11 +18521,9 @@ _patchPDF();
 // CASE MANAGEMENT (TCM) MODULE
 // ???????????????????????????????????????????????????????????????????????
 const CM_KEY = 'cdc_cm_data_v1';
-function getCMData() {
-  try {
-    var r = localStorage.getItem(CM_KEY);
-    if (r) return JSON.parse(r);
-  } catch(e) {}
+
+// CM empty template
+function _cmEmpty() {
   return {
     clients:[], workers:[], plans:[], notes:[], billing:[],
     referrals:[], eligibility:[], assessments:[], tasks:[],
@@ -18398,8 +18531,55 @@ function getCMData() {
     discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
   };
 }
+
+// getCMData -- reads from _localDB.cm (Firestore-backed).
+// Falls back to legacy CM_KEY localStorage on first run and auto-migrates.
+function getCMData() {
+  // Primary: in-memory _localDB.cm (populated from Firestore on login)
+  if (_localDB && _localDB.cm && Object.keys(_localDB.cm).length > 0) {
+    return _localDB.cm;
+  }
+  // Migration: if old CM_KEY data exists in localStorage, adopt it
+  try {
+    var r = localStorage.getItem(CM_KEY);
+    if (r) {
+      var parsed = JSON.parse(r);
+      if (parsed && typeof parsed === 'object') {
+        if (!_localDB) _localDB = {};
+        _localDB.cm = Object.assign(_cmEmpty(), parsed);
+        // Kick off async Firestore write so it propagates to other devices
+        _saveCMToFirestore(_localDB.cm);
+        // Clear old key so migration only happens once
+        try { localStorage.removeItem(CM_KEY); } catch(e) {}
+        console.log('[CDC] CM data migrated from localStorage to Firestore');
+        return _localDB.cm;
+      }
+    }
+  } catch(e) {}
+  // No data anywhere -- return empty and initialize in _localDB
+  if (!_localDB) _localDB = {};
+  if (!_localDB.cm) _localDB.cm = _cmEmpty();
+  return _localDB.cm;
+}
+
+// saveCMData -- writes to _localDB.cm and syncs to Firestore
 function saveCMData(d) {
-  try { localStorage.setItem(CM_KEY, JSON.stringify(d)); } catch(e) {}
+  if (!_localDB) _localDB = {};
+  _localDB.cm = d;
+  // Save full cache so offline reload includes updated CM data
+  try { _saveCache(_localDB); } catch(e) {}
+  // Async sync to Firestore
+  _saveCMToFirestore(d);
+}
+
+// Async Firestore write for CM data (stored as a single meta document)
+function _saveCMToFirestore(d) {
+  if (!_fbReady || !_db || !d) return;
+  try {
+    _db.collection('meta').doc('cmData').set(d).catch(function(e){
+      console.warn('[CDC] CM Firestore write failed:', e.message);
+    });
+  } catch(e) {}
 }
 function _cmId() { return 'cm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
 function _cmDateStr(d) {
@@ -21090,12 +21270,13 @@ async function loadFromFirestore() {
 
   // ── Load critical collections first (providers, patients, claims) ──
   try {
-    const [providers, patients, claims, configDoc2, usersDoc] = await Promise.all([
+    const [providers, patients, claims, configDoc2, usersDoc, cmDoc] = await Promise.all([
       _fsReadCollection('providers'),
       _fsReadCollection('patients'),
       _fsReadCollection('claims'),
       _db.collection('meta').doc('config').get(),
       _db.collection('meta').doc('users').get(),
+      _db.collection('meta').doc('cmData').get(),
     ]);
 
     // Show data immediately — don't wait for the rest
@@ -21107,6 +21288,27 @@ async function loadFromFirestore() {
     if (usersDoc.exists) {
       _usersCache = usersDoc.data().list || [];
       try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
+    }
+
+    // Load CM data from Firestore (merged with empty template to ensure all keys exist)
+    if (cmDoc.exists) {
+      _localDB.cm = Object.assign(_cmEmpty(), cmDoc.data());
+      console.log('[CDC] CM data loaded from Firestore: ' + (_localDB.cm.clients||[]).length + ' clients');
+    } else {
+      // Check if there is legacy data in localStorage to migrate
+      try {
+        var _cmLegacy = localStorage.getItem(CM_KEY);
+        if (_cmLegacy) {
+          var _cmParsed = JSON.parse(_cmLegacy);
+          if (_cmParsed && typeof _cmParsed === 'object') {
+            _localDB.cm = Object.assign(_cmEmpty(), _cmParsed);
+            _saveCMToFirestore(_localDB.cm);
+            try { localStorage.removeItem(CM_KEY); } catch(e) {}
+            console.log('[CDC] CM data migrated from localStorage to Firestore on load');
+          }
+        }
+      } catch(e) {}
+      if (!_localDB.cm) _localDB.cm = _cmEmpty();
     }
 
     setFbStatus('', 'green');
@@ -21149,6 +21351,7 @@ async function loadFromFirestore() {
       facilities, rendering, referring, services, serviceGroups,
       appointments, notes, invoicingIssuers, invoicingClients, invoices,
       insurances, intakeClients, intakeForms, intakeSubmissions, evaluations,
+      eobBatches, eobUnmatched,
       claimLogsSnap, claimEOBSnap
     ] = await Promise.all([
       _fsReadCollection('facilities'),
@@ -21166,6 +21369,8 @@ async function loadFromFirestore() {
       _fsReadCollection('intakeForms'),
       _fsReadCollection('intakeSubmissions'),
       _fsReadCollection('evaluations'),
+      _fsReadCollection('eobBatches'),
+      _fsReadCollection('eobUnmatched'),
       _db.collection('claimLogs').get(),
       _db.collection('claimEOB').get(),
     ]);
@@ -21180,6 +21385,7 @@ async function loadFromFirestore() {
       appointments, notes, claimLogs, claimEOB,
       invoicingIssuers, invoicingClients, invoices, insurances,
       intakeClients, intakeForms, intakeSubmissions, evaluations,
+      eobBatches, eobUnmatched,
     });
 
     _saveCache(_localDB);
@@ -21199,9 +21405,19 @@ providers:[], facilities:[], rendering:[], referring:[],
 patients:[], claims:[], services:[], serviceGroups:[],
 appointments:[], notes:[], claimLogs:{}, claimEOB:{},
 invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[],
-intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[]
+intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[],
+eobBatches:[], eobUnmatched:[],
+cm: null  // CM data stored as a sub-object; null means not yet loaded
 };
-return Object.assign(empty, db || {});
+const merged = Object.assign(empty, db || {});
+// Ensure cm sub-keys exist if cm is present
+if (merged.cm) merged.cm = Object.assign({
+  clients:[], workers:[], plans:[], notes:[], billing:[],
+  referrals:[], eligibility:[], assessments:[], tasks:[],
+  authorizations:[], communityReferrals:[], encounters:[],
+  discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
+}, merged.cm);
+return merged;
 }
 
 // ?? setDB: mutate state and sync changed collection to Firestore ?????????????
@@ -21252,7 +21468,8 @@ var _syncColls = [
 'providers','facilities','rendering','referring',
 'patients','claims','services','serviceGroups',
 'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances',
-'intakeClients','intakeForms','intakeSubmissions','evaluations'
+'intakeClients','intakeForms','intakeSubmissions','evaluations',
+'eobBatches','eobUnmatched'
 ];
 
 for (var _ci = 0; _ci < _syncColls.length; _ci++) {
