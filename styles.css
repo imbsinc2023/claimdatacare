@@ -4,9 +4,9 @@ body, button, input, select, textarea, .modal, .topnav, .section,
 .tn-drawer, .tn-menu, h1, h2, h3, h4, h5, h6, p, span, label, div,
 th, td, li, a, .btn, .slabel, .field, .fg, table,
 .ptc-banner-title, .ptc-banner-meta-item { font-family: var(--font) !important; }
-html,body{height:100%;margin:0;padding:0;overflow:hidden;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
+html,body{height:100%;margin:0;padding:0;background:var(--bg);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;color:var(--text);-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4,h5,h6,p{margin:0;padding:0}
-#root{position:fixed;inset:0;display:flex;flex-direction:column}
+#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
 :root{
 --bg:#f5f4ed;--bg2:#faf9f5;--bg3:#e8e6dc;--surface:#faf9f5;
 --border:#f0eee6;--border2:#e8e6dc;
