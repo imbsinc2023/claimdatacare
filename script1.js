@@ -175,6 +175,21 @@ document.querySelectorAll('.section').forEach(e=>{e.style.display='none';e.class
 console.log('[CDC] sections hidden:', document.querySelectorAll('.section').length);
 const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
 const sec = document.getElementById('sec-'+page); if(sec){sec.style.display='flex';sec.classList.add('active');}
+// Force .main to fill available height
+var _main = document.querySelector('.main');
+if (_main) {
+  var _shell = document.querySelector('.app-shell');
+  var _nav = document.getElementById('topnav');
+  var _navH = _nav ? _nav.offsetHeight : 44;
+  var _shellH = _shell ? _shell.offsetHeight : window.innerHeight;
+  _main.style.height = (_shellH - _navH) + 'px';
+  _main.style.maxHeight = (_shellH - _navH) + 'px';
+  _main.style.flex = '1';
+  _main.style.overflow = 'hidden';
+  _main.style.display = 'flex';
+  _main.style.flexDirection = 'column';
+  _main.style.minHeight = '0';
+}
 console.log('[CDC] section shown:', page, 'exists:', !!sec, 'computed display:', sec?getComputedStyle(sec).display:'N/A');
 // Debug: count how many sections still have display !== 'none'
 setTimeout(function(){
@@ -294,14 +309,7 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  // Use <template> to bypass HTML5 adoption rules that move elements out of app-shell
-  (function() {
-    var _tpl = document.createElement('template');
-    _tpl.innerHTML = getAppShellHTML();
-    var _root = document.getElementById('root');
-    _root.innerHTML = '';
-    _root.appendChild(_tpl.content.cloneNode(true));
-  })();
+  document.getElementById('root').innerHTML = getAppShellHTML();
   try { _closeAllOverlays(); } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
