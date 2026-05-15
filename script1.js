@@ -294,75 +294,36 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  // Inject shell, then fix DOM — browser moves .main outside .app-shell
-  (function() {
-    var _root = document.getElementById('root');
-    _root.innerHTML = getAppShellHTML();
-    var _shell = _root.querySelector('.app-shell');
-    var _main = _root.querySelector('.main');
-    // If browser placed .main outside .app-shell, move it back
-    if (_shell && _main && _main.parentElement !== _shell) {
-      _shell.appendChild(_main);
-    }
-    if (_shell) _shell.style.cssText = 'display:flex;flex-direction:column;height:100%;width:100%;overflow:hidden';
-    if (_main) _main.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
-    var _cnt = _root.querySelector('.content');
-    if (_cnt) _cnt.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0';
-  })();
-  try { _closeAllOverlays(); } catch(e) {}
+  var _sh = document.getElementById('app-shell');
+  if (_sh) {
+    _sh.style.display = 'flex';
+    _sh.style.flexDirection = 'column';
+    _sh.style.height = '100%';
+    _sh.style.overflow = 'hidden';
+    _sh.style.width = '100%';
+  }
+  var _ls = document.getElementById('cdc-login-screen');
+  if (_ls) _ls.remove();
   try {
-    // Resolve name: check users cache first for first+last
-    var _uname = session.name || session.email || username || 'User';
-    try {
-      var _allU = (typeof getUsers === 'function') ? getUsers() : (_usersCache||[]);
-      var _matchU = _allU.find(function(u){ return (u.email||'').toLowerCase() === (session.email||'').toLowerCase(); });
-      if (_matchU) {
-        var _fn2 = (((_matchU.first||'') + ' ' + (_matchU.last||'')).trim()) || _matchU.name || _uname;
-        if (_fn2 && !_fn2.includes('@')) _uname = _fn2;
-      }
-    } catch(e){}
-    // Initials from name words (max 2 chars)
-    var _nameParts = _uname.trim().split(/\s+/);
-    var _initials = (_nameParts.length >= 2)
-      ? (_nameParts[0][0] + _nameParts[_nameParts.length-1][0]).toUpperCase()
-      : (_uname.trim().slice(0,2).toUpperCase());
-    // Chip shows first name only
-    var _firstName = _nameParts[0] || _uname;
-    var _tn = document.getElementById('tn-user-name');
-    if (_tn) { _tn.textContent = _firstName; _tn.title = _uname; }
-    var _av1 = document.getElementById('tn-avatar-initials');
-    var _av2 = document.getElementById('tn-avatar-initials2');
-    if (_av1) _av1.textContent = _initials;
-    if (_av2) _av2.textContent = _initials;
-    // Dropdown info
-    var _mn = document.getElementById('tn-menu-name');
-    var _me = document.getElementById('tn-menu-email');
-    var _mr = document.getElementById('tn-menu-role');
-    var _mp = document.getElementById('tn-menu-prov');
-    var _mt = document.getElementById('tn-menu-login-time');
-    if (_mn) _mn.textContent = _uname;
-    if (_me) _me.textContent = session.email || '';
-    if (_mr) _mr.style.display = 'none'; // hide role
-    if (_mt) _mt.textContent = 'Logged in ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    if (_mp) {
-      try {
-        var _db2 = getDB();
-        var _prov2 = (_db2.providers||[]).find(function(p){ return p.id===activeProviderId; });
-        _mp.textContent = _prov2 ? (_prov2.name||'') : '';
-      } catch(e) {}
-    }
-  } catch(e) {}
+    var _u = (session.name||session.email||username||'User').trim();
+    var _p = _u.split(/\s+/);
+    var _i = _p.length>=2 ? (_p[0][0]+_p[_p.length-1][0]).toUpperCase() : _u.slice(0,2).toUpperCase();
+    var e;
+    e=document.getElementById('tn-user-name'); if(e) e.textContent=_p[0]||_u;
+    e=document.getElementById('tn-avatar-initials'); if(e) e.textContent=_i;
+    e=document.getElementById('tn-avatar-initials2'); if(e) e.textContent=_i;
+    e=document.getElementById('tn-menu-name'); if(e) e.textContent=_u;
+    e=document.getElementById('tn-menu-email'); if(e) e.textContent=session.email||'';
+  } catch(e2) {}
   setTimeout(_initTnHover, 100);
   setTimeout(function(){ _initNavIcons(); _renderLucideIcons(); }, 150);
   updateAdminUI();
   try { initServices(); } catch(e) {}
   applyTheme();
-  if (!_adminUser && session.role === 'Super Admin') _adminUser = { email: session.email, uid: session.id };
-  setTimeout(function(){ setFbStatus('', 'green'); updateAdminUI(); }, 0);
+  if (!_adminUser && session.role==='Super Admin') _adminUser={email:session.email,uid:session.id};
+  setTimeout(function(){ setFbStatus('','green'); updateAdminUI(); }, 0);
   go('dashboard');
-  // Immediately render dashboard with cached localStorage data
   try { _afterLoad(); } catch(e) {}
-  // Note: Firestore load is handled by DOMContentLoaded caller — no duplicate load here
 }
 
 
@@ -5567,7 +5528,10 @@ function clearSession() {
 
 // ?? Login screen ?????????????????????????????????????
 function renderLoginScreen() {
-document.getElementById('root').innerHTML = `
+var _sh=document.getElementById('app-shell'); if(_sh) _sh.style.display='none';
+  var _old=document.getElementById('cdc-login-screen'); if(_old) _old.remove();
+  var _d=document.createElement('div'); _d.id='cdc-login-screen'; _d.style.cssText='position:fixed;inset:0;z-index:50000'; document.body.appendChild(_d);
+  _d.innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
 background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);padding:20px">
 
