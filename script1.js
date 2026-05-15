@@ -169,19 +169,8 @@ function renderTransmitLog() {
 
 function go(page) {
 console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | session='+JSON.stringify(getSession()?{email:getSession().email,pid:getSession().activeBillingProviderId}:null));
-// Enforce layout on every navigation
-try {
-  var _dr = document.getElementById('tn-drawer');
-  if (_dr) _dr.style.display = 'none';
-  var _mn = document.querySelector('.main');
-  if (_mn && _mn.getBoundingClientRect().top > 100) {
-    _mn.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
-    var _ct = document.querySelector('.content');
-    if (_ct) _ct.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
-    var _sh = document.querySelector('.app-shell');
-    if (_sh) _sh.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;flex:1';
-  }
-} catch(_) {}
+// Hide drawer on every navigation
+try { var _dr=document.getElementById('tn-drawer'); if(_dr) _dr.style.display='none'; } catch(_) {}
 try { closeTnDropdown(); } catch(_) {}
 try { closeTnDrawer(); } catch(_) {}
 document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
@@ -283,7 +272,25 @@ function _injectCriticalCSS() {
   if (document.getElementById('cdc-critical-css')) return;
   var s = document.createElement('style');
   s.id = 'cdc-critical-css';
-  s.textContent = 'html,body,#root{height:100%;margin:0}.section{display:none;flex-direction:column;height:100%}.section.active{display:flex}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}.tn-drawer{display:none}.overlay{display:none}.modal-overlay{display:none}.tn-group{position:relative;display:inline-flex}.tn-dropdown{display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:9000;padding:4px;white-space:nowrap}.tn-group.open .tn-dropdown{display:block}';
+  s.textContent = [
+    'html,body,#root{height:100%;margin:0;overflow:hidden}',
+    '.app-shell{display:flex;flex-direction:column;height:100%}',
+    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}',
+    '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:visible}',
+    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}',
+    '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}',
+    '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}',
+    '.tn-group{position:relative;display:inline-flex}',
+    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:180px;z-index:99999;padding:4px;white-space:nowrap}',
+    '.tn-group.open .tn-dropdown{display:block}',
+    '.tn-drawer{display:none}',
+    '.overlay,.modal-overlay{display:none}',
+    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}',
+    '.content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg,#f8f6f0);min-height:0}',
+    '.page-body{flex:1;overflow-y:auto;min-height:0}',
+    '.section{display:none;flex-direction:column;height:100%}',
+    '.section.active{display:flex}',
+  ].join('');
   document.head.appendChild(s);
 }
 
@@ -293,20 +300,12 @@ function showApp(username) {
   if (!session) { renderLoginScreen(); return; }
   document.getElementById('root').innerHTML = getAppShellHTML();
   try { _closeAllOverlays(); } catch(e) {}
-  // Force layout via JS — ensures correct layout regardless of CSS load order
+  // Force layout via JS — belt-and-suspenders in case of CSS timing
   try {
-    var _root2 = document.getElementById('root');
-    _root2.style.cssText = 'height:100%;overflow:hidden;display:flex;flex-direction:column';
-    var _shell = document.querySelector('.app-shell');
-    if (_shell) _shell.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;flex:1';
-    var _topnav = document.getElementById('topnav');
-    if (_topnav) _topnav.style.cssText = 'height:44px;max-height:44px;min-height:44px;flex-shrink:0;display:flex;align-items:center;overflow:visible;position:relative;z-index:100;background:#141413;color:#fff';
     var _drawer = document.getElementById('tn-drawer');
-    if (_drawer) _drawer.style.cssText = 'display:none';
+    if (_drawer) _drawer.style.display = 'none';
     var _main = document.querySelector('.main');
-    if (_main) _main.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
-    var _cont = document.querySelector('.content');
-    if (_cont) _cont.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
+    if (_main) { _main.style.flex = '1'; _main.style.overflow = 'hidden'; _main.style.minHeight = '0'; }
   } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
