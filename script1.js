@@ -269,7 +269,7 @@ function _injectCriticalCSS() {
   var ex = document.getElementById('cdc-css'); if (ex) ex.remove();
   var s = document.createElement('style'); s.id = 'cdc-css';
   s.textContent =
-    'html,body{height:100%;margin:0;padding:0}' +
+    'html,body{height:100%;margin:0}' +
     '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}' +
     '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}' +
     '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}' +
@@ -285,7 +285,6 @@ function _injectCriticalCSS() {
     '.overlay.open,.modal-overlay.open{display:flex;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}' +
     '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
     '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}' +
-    '.page-body{flex:1;overflow-y:auto;min-height:0}' +
     '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
     '.section.active{display:flex}';
   document.head.appendChild(s);
@@ -1823,7 +1822,7 @@ return `<div class="app-shell">
 
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
 
-<div class="tn-drawer" id="tn-drawer" style="display:none;position:fixed;inset:0;z-index:5000">
+<div class="tn-drawer" id="tn-drawer">
 <div class="tn-drawer-backdrop" onclick="closeTnDrawer()"></div>
 <div class="tn-drawer-panel">
 <div class="tn-drawer-header">
