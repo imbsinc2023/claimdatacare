@@ -1776,8 +1776,6 @@ return `<div class="app-shell">
 
 <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="importBackup(event)">
 
->
-
 <div class="main">
 <div class="content">
 <div class="section active" id="sec-dashboard">
