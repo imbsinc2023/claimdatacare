@@ -5528,6 +5528,7 @@ function clearSession() {
 
 // ?? Login screen ?????????????????????????????????????
 function renderLoginScreen() {
+console.trace('[CDC] renderLoginScreen called');
 var _sh=document.getElementById('app-shell'); if(_sh) _sh.style.display='none';
   var _old=document.getElementById('cdc-login-screen'); if(_old) _old.remove();
   var _d=document.createElement('div'); _d.id='cdc-login-screen'; _d.style.cssText='position:fixed;inset:0;z-index:50000'; document.body.appendChild(_d);
