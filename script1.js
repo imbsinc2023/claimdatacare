@@ -273,22 +273,36 @@ function _injectCriticalCSS() {
   var s = document.createElement('style');
   s.id = 'cdc-critical-css';
   s.textContent = [
-    'html,body,#root{height:100%;margin:0;overflow:hidden}',
-    '.app-shell{display:flex;flex-direction:column;height:100%}',
-    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}',
-    '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:visible}',
-    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}',
+    /* Reset */
+    'html,body{height:100%;margin:0;padding:0}',
+    '#root{position:fixed;inset:0;display:flex;flex-direction:column}',
+    /* App shell: topnav fixed at top, main fills rest */
+    '.app-shell{display:flex;flex-direction:column;width:100%;height:100%}',
+    '.topnav{height:44px;min-height:44px;flex-shrink:0;display:flex;align-items:center;',
+    'gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;',
+    'overflow:visible;position:relative}',
+    '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:visible}',
+    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;',
+    'font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;',
+    'flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}',
     '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}',
     '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}',
+    /* Dropdowns */
     '.tn-group{position:relative;display:inline-flex}',
-    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:180px;z-index:99999;padding:4px;white-space:nowrap}',
+    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;',
+    'background:#fff;border:1px solid #e2e8f0;border-radius:8px;',
+    'box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:190px;z-index:99999;',
+    'padding:4px;white-space:nowrap}',
     '.tn-group.open .tn-dropdown{display:block}',
-    '.tn-drawer{display:none}',
+    /* Hide these by default */
+    '.tn-drawer{display:none!important}',
     '.overlay,.modal-overlay{display:none}',
+    /* Main content area */
     '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}',
-    '.content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg,#f8f6f0);min-height:0}',
+    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}',
     '.page-body{flex:1;overflow-y:auto;min-height:0}',
-    '.section{display:none;flex-direction:column;height:100%}',
+    /* Sections */
+    '.section{display:none;flex-direction:column;height:100%;overflow:hidden}',
     '.section.active{display:flex}',
   ].join('');
   document.head.appendChild(s);
