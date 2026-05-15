@@ -296,7 +296,11 @@ function showApp(username) {
         _shell.insertBefore(_tmp.firstChild, _shell.querySelector('.main'));
       }
     } else {
+      console.log('[CDC INJECT] full length:', _full.length, 'has main:', _full.indexOf('<div class="main"'), 'chars 15500-15700:', _full.slice(15500,15700));
       _root.innerHTML = _full;
+      console.log('[CDC INJECT] root children after:', [..._root.children].map(function(e){return e.tagName+'.'+e.className.slice(0,20);}));
+      var _ms = _root.querySelector('.main');
+      console.log('[CDC INJECT] .main found:', !!_ms, 'children:', _ms ? [..._ms.children].length : 0);
     }
   })();
   try {
