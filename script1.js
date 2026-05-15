@@ -275,7 +275,30 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  document.getElementById('root').innerHTML = getAppShellHTML();
+  // Inject shell via DOM to avoid browser parser truncation on large HTML
+  (function() {
+    var _root = document.getElementById('root');
+    var _full = getAppShellHTML();
+    // Split at tn-drawer to avoid parser issues with drawer content
+    var _drawerIdx = _full.indexOf('<div class="tn-drawer"');
+    var _drawerEnd = _full.indexOf('<div class="main"');
+    if (_drawerIdx > 0 && _drawerEnd > _drawerIdx) {
+      var _top = _full.slice(0, _drawerIdx);           // header + input
+      var _drawer = _full.slice(_drawerIdx, _drawerEnd); // tn-drawer
+      var _rest = _full.slice(_drawerEnd);              // main + all sections
+      // Inject top (header) into app-shell
+      _root.innerHTML = _top + _rest + '</div>';
+      // Append drawer separately via createElement to avoid parser issues
+      var _tmp = document.createElement('div');
+      _tmp.innerHTML = _drawer;
+      var _shell = _root.querySelector('.app-shell');
+      if (_shell && _tmp.firstChild) {
+        _shell.insertBefore(_tmp.firstChild, _shell.querySelector('.main'));
+      }
+    } else {
+      _root.innerHTML = _full;
+    }
+  })();
   try {
     var _uname = session.name || session.email || username || 'User';
     var _np = _uname.trim().split(/\s+/);
