@@ -175,21 +175,6 @@ document.querySelectorAll('.section').forEach(e=>{e.style.display='none';e.class
 console.log('[CDC] sections hidden:', document.querySelectorAll('.section').length);
 const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
 const sec = document.getElementById('sec-'+page); if(sec){sec.style.display='flex';sec.classList.add('active');}
-// Force .main to fill available height
-var _main = document.querySelector('.main');
-if (_main) {
-  var _shell = document.querySelector('.app-shell');
-  var _nav = document.getElementById('topnav');
-  var _navH = _nav ? _nav.offsetHeight : 44;
-  var _shellH = _shell ? _shell.offsetHeight : window.innerHeight;
-  _main.style.height = (_shellH - _navH) + 'px';
-  _main.style.maxHeight = (_shellH - _navH) + 'px';
-  _main.style.flex = '1';
-  _main.style.overflow = 'hidden';
-  _main.style.display = 'flex';
-  _main.style.flexDirection = 'column';
-  _main.style.minHeight = '0';
-}
 console.log('[CDC] section shown:', page, 'exists:', !!sec, 'computed display:', sec?getComputedStyle(sec).display:'N/A');
 // Debug: count how many sections still have display !== 'none'
 setTimeout(function(){
@@ -309,7 +294,21 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  document.getElementById('root').innerHTML = getAppShellHTML();
+  // Inject shell, then fix DOM — browser moves .main outside .app-shell
+  (function() {
+    var _root = document.getElementById('root');
+    _root.innerHTML = getAppShellHTML();
+    var _shell = _root.querySelector('.app-shell');
+    var _main = _root.querySelector('.main');
+    // If browser placed .main outside .app-shell, move it back
+    if (_shell && _main && _main.parentElement !== _shell) {
+      _shell.appendChild(_main);
+    }
+    if (_shell) _shell.style.cssText = 'display:flex;flex-direction:column;height:100%;width:100%;overflow:hidden';
+    if (_main) _main.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
+    var _cnt = _root.querySelector('.content');
+    if (_cnt) _cnt.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0';
+  })();
   try { _closeAllOverlays(); } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
