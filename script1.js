@@ -286,7 +286,35 @@ function _injectCriticalCSS() {
     '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
     '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}' +
     '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
-    '.section.active{display:flex}';
+    '.section.active{display:flex}' +
+    // Patient Chart overlay
+    '.pt-chart-overlay{position:fixed;inset:0;z-index:4000;background:var(--bg,#f5f4ed);display:flex;flex-direction:column;overflow:hidden}' +
+    '.ptc-banner{background:#141413;color:#fff;padding:0 14px;height:44px;min-height:44px;display:flex;align-items:center;gap:8px;flex-shrink:0}' +
+    '.ptc-banner-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}' +
+    '.ptc-banner-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden}' +
+    '.ptc-banner-meta-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap;color:#fff}' +
+    '.ptc-banner-meta-item .lci{width:11px;height:11px;flex-shrink:0}' +
+    '.ptc-banner-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}' +
+    '.ptc-banner-close:hover{color:#fff}' +
+    '.ptc-qa{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.7);transition:background .15s;position:relative}' +
+    '.ptc-qa:hover{background:rgba(255,255,255,.15);color:#fff}' +
+    '.ptc-qa .lci{width:14px;height:14px}' +
+    '.ptc-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:6px 14px;background:var(--bg3,#e8e6dc);border-bottom:1px solid var(--border,#e8e6dc);flex-shrink:0}' +
+    '.ptc-tab{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2,#4d4c48);background:none;border:1px solid transparent;white-space:nowrap;transition:all .15s}' +
+    '.ptc-tab:hover{background:var(--bg2,#faf9f5);color:var(--text,#141413)}' +
+    '.ptc-tab.active{background:var(--bg2,#faf9f5);color:var(--brand,#c96442);border-color:var(--border2,#e8e6dc);font-weight:700}' +
+    '.ptc-tab.danger{color:var(--red,#b53333)}' +
+    '.ptc-tab.danger.active{color:var(--red,#b53333)}' +
+    '#pt-main{flex:1;overflow-y:auto;padding:14px 16px;min-height:0}' +
+    '.ptc-panel{background:var(--bg2,#faf9f5);border:1px solid var(--border,#e8e6dc);border-radius:10px;margin-bottom:12px;overflow:hidden}' +
+    '.ptc-panel-hdr{background:var(--bg3,#e8e6dc);padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2,#4d4c48);display:flex;align-items:center;justify-content:space-between}' +
+    '.ptc-panel-body{padding:12px 14px}' +
+    '.ptc-row{display:flex;align-items:baseline;gap:4px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border,#e8e6dc)}' +
+    '.ptc-row:last-child{border-bottom:none}' +
+    '.ptc-label{font-weight:600;color:var(--text2,#4d4c48);min-width:110px;font-size:11px}' +
+    '.ptc-value{color:var(--text,#141413);font-size:12px}' +
+    '.ptc-link{font-size:11px;color:var(--brand,#c96442);text-decoration:none;font-weight:600}' +
+    '.ptc-photo-box{width:60px;height:60px;border-radius:8px;background:var(--bg3,#e8e6dc);display:flex;align-items:center;justify-content:center;flex-shrink:0}';
   document.head.appendChild(s);
 }
 
@@ -1422,6 +1450,25 @@ const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units
 mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 function onPatientChange() {
+  // Auto-fill payerid from insurances catalog if patient has payerName but no payerid
+  setTimeout(function() {
+    try {
+      var db = getDB();
+      var patId = document.getElementById('mc-pat')?.value;
+      var pat = db.patients.find(function(p){return p.id===patId;});
+      if (pat && !pat.payerid && pat.payerName) {
+        var ins = (db.insurances||[]).find(function(i){
+          return i.name && i.name.toLowerCase().trim() === pat.payerName.toLowerCase().trim() && i.payerId;
+        });
+        if (ins) {
+          setDB(function(db2){
+            var p2 = db2.patients.find(function(x){return x.id===patId;});
+            if (p2) p2.payerid = ins.payerId;
+          });
+        }
+      }
+    } catch(e) {}
+  }, 0);
 const patId = document.getElementById('mc-pat')?.value;
 if (!patId) return;
 const db = getDB();
@@ -4192,7 +4239,17 @@ if(!c.dx||!c.dx[0]) errs.push('No primary diagnosis');
 if(!c.lines||!c.lines.length) errs.push('No service lines');
 const pat=db.patients.find(x=>x.id===c.patId);
 if(!pat) errs.push('Patient not found');
-else{ if(!pat.subNum) errs.push('Patient missing Subscriber ID'); if(!pat.payerid) errs.push('Patient missing Payer ID'); if(!pat.acct) errs.push('Patient missing Account #'); }
+else{
+  if(!pat.subNum) errs.push('Patient missing Subscriber ID');
+  // Accept payerid from patient record OR from insurances catalog matched by name
+  var _hasPayerId = !!(pat.payerid) ||
+    !!(pat.payerName && (db.insurances||[]).find(function(ins){
+      return ins.name && pat.payerName &&
+        ins.name.toLowerCase().trim() === pat.payerName.toLowerCase().trim() && ins.payerId;
+    }));
+  if(!_hasPayerId) errs.push('Patient missing Payer ID');
+  if(!pat.acct) errs.push('Patient missing Account #');
+}
 (c.lines||[]).forEach((l,i)=>{ if(!l.cpt) errs.push(`Line ${i+1}: CPT empty`); if(!(parseFloat(l.charge)>0)) errs.push(`Line ${i+1}: Invalid charge`); if(!(parseInt(l.units)>0)) errs.push(`Line ${i+1}: Invalid units`); if(!l.dxPtr) errs.push(`Line ${i+1}: Dx pointer empty`); });
 const prov=db.providers.find(x=>x.id===c.providerId);
 if(!prov?.npi||prov.npi.length!==10) errs.push('Provider NPI must be 10 digits');
