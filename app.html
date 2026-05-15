@@ -218,5 +218,93 @@ html,body{height:100%;margin:0}#root{position:fixed;inset:0;display:flex;flex-di
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js" defer></script>
 <script src="script1.js"></script>
 <script src="script2.js"></script>
+<div class="tn-drawer" id="tn-drawer" style="display:none;position:fixed;inset:0;z-index:5000" style="display:none;position:fixed;inset:0;z-index:5000">
+<div class="tn-drawer-backdrop" onclick="closeTnDrawer()"></div>
+<div class="tn-drawer-panel">
+<div class="tn-drawer-header">
+<div style="display:flex;align-items:center;gap:8px">
+<img src="favicon.svg" id="nav-logo-drawer" class="nav-favicon" width="18" height="18" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">
+<strong>ClaimDataCare</strong>
+</div>
+<button class="btn btn-ghost btn-sm" onclick="closeTnDrawer()" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:8px">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"><line x1="200" y1="56" x2="56" y2="200"/><line x1="56" y1="56" x2="200" y2="200"/></svg>
+</button>
+</div>
+<div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Active Provider</div>
+<select id="prov-sel-mob" onchange="switchProvider(this.value);closeTnDrawer()" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text);font-size:13px"></select>
+</div>
+<div class="tn-drawer-item" onclick="go('dashboard');closeTnDrawer()"><i data-lucide="layout-dashboard" class="lci"></i>Home</div>
+<div class="tn-drawer-item" onclick="go('appointments');closeTnDrawer()"><i data-lucide="calendar-days" class="lci"></i>Schedule</div>
+<div class="tn-drawer-item" onclick="go('patients');closeTnDrawer()"><i data-lucide="users" class="lci"></i>Patients</div>
+<div class="tn-drawer-group" id="mob-grp-billing">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-billing')"><i data-lucide="receipt" class="lci"></i>Billing <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('claims');closeTnDrawer()">Claims</div>
+<div class="tn-drawer-sub-item" onclick="go('validate');closeTnDrawer()">Validate Claims</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-ehr">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-ehr')"><i data-lucide="stethoscope" class="lci"></i>EHR <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('notes');closeTnDrawer()">Encounters</div>
+<div class="tn-drawer-sub-item" onclick="go('services');closeTnDrawer()">Services / CPT</div>
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-cm" style="display:none">
+      <div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-cm')"><i data-lucide="briefcase" class="lci"></i>Case Management <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="tn-drawer-sub">
+      <div class="tn-drawer-sub-item" onclick="go('cm-dashboard');closeTnDrawer()">Dashboard</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-intake');closeTnDrawer()">Intake / Referrals</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-clients');closeTnDrawer()">Clients</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-workers');closeTnDrawer()">Case Workers</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-assessments');closeTnDrawer()">Assessments</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-plans');closeTnDrawer()">Care Plans</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-encounters');closeTnDrawer()">Encounters / Notes</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-tasks');closeTnDrawer()">Tasks &amp; Follow-Ups</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-authorizations');closeTnDrawer()">Authorizations</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-referrals');closeTnDrawer()">Referrals &amp; Resources</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-supervisor');closeTnDrawer()">Supervisor Review</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-billing');closeTnDrawer()">Billing Readiness</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-reports');closeTnDrawer()">Reports</div>
+      <div class="tn-drawer-sub-item" onclick="go('cm-discharge');closeTnDrawer()">Discharge</div>
+      </div>
+      </div>
+      <div class="tn-drawer-group" id="mob-grp-config">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-config')"><i data-lucide="settings" class="lci"></i>Settings <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('facilities');closeTnDrawer()">Facilities</div>
+<div class="tn-drawer-sub-item" onclick="go('rendering');closeTnDrawer()">Rendering Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('referring');closeTnDrawer()">Referring Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('provider-info');closeTnDrawer()">Provider Information</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-admin" style="display:none">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-admin')"><i data-lucide="shield-check" class="lci"></i>Admin <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('admin-providers');closeTnDrawer()">Billing Providers</div>
+<div class="tn-drawer-sub-item" onclick="go('servicegroups');closeTnDrawer()">Service Groups</div>
+<div class="tn-drawer-sub-item" onclick="go('export');closeTnDrawer()">Export / Submit</div>
+<div class="tn-drawer-sub-item" onclick="go('account');closeTnDrawer()">Users &amp; Account</div>
+<div class="tn-drawer-sub-item" onclick="go('reports');closeTnDrawer()">Reports</div>
+<div class="tn-drawer-sub-item" onclick="go('invoices');closeTnDrawer()">Invoicing</div>
+<div class="tn-drawer-sub-sep"></div>
+<div class="tn-drawer-sub-item" onclick="exportBackup();closeTnDrawer()">Backup Data</div>
+<div class="tn-drawer-sub-item" onclick="triggerRestore()">Restore Data</div>
+</div>
+</div>
+<div class="tn-drawer-group" id="mob-grp-intake" style="display:none">
+<div class="tn-drawer-group-hdr" onclick="toggleMobGrp('mob-grp-intake')"><i data-lucide="clipboard-pen" class="lci"></i>Intake <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg></div>
+<div class="tn-drawer-sub">
+<div class="tn-drawer-sub-item" onclick="go('intake-clients');closeTnDrawer()">Clients</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-forms');closeTnDrawer()">Forms</div>
+<div class="tn-drawer-sub-item" onclick="go('intake-eval');closeTnDrawer()">Evaluations</div>
+</div>
+</div>
+<div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto;display:flex;gap:8px">
+<button class="btn btn-danger btn-sm" style="flex:1" onclick="doLogout()">Sign Out</button>
+</div>
+</div>
+</div
 </body>
 </html>
