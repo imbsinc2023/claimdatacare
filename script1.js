@@ -277,7 +277,23 @@ function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
-  document.getElementById('root').innerHTML = getAppShellHTML();
+  // Inject shell in two steps to avoid browser innerHTML truncation
+  var _root = document.getElementById('root');
+  var _fullShell = getAppShellHTML();
+  var _mainIdx = _fullShell.indexOf('<div class="main"');
+  if (_mainIdx > 0) {
+    _root.innerHTML = _fullShell.slice(0, _mainIdx) + '</div>';
+    var _mainEl = document.createElement('div');
+    _mainEl.innerHTML = _fullShell.slice(_mainIdx);
+    while (_mainEl.firstChild) _root.firstElementChild ? _root.appendChild(_mainEl.firstChild) : _root.appendChild(_mainEl.firstChild);
+    // Actually simpler: just append to root directly
+    _root.innerHTML = '';
+    var _wrapper = document.createElement('div');
+    _wrapper.innerHTML = _fullShell;
+    while (_wrapper.firstChild) _root.appendChild(_wrapper.firstChild);
+  } else {
+    _root.innerHTML = _fullShell;
+  }
   try { _closeAllOverlays(); } catch(e) {}
   // Force layout via JS in case CSS is not loading
   try {
