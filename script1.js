@@ -177,7 +177,7 @@ try {
   if (_mn && _mn.getBoundingClientRect().top > 100) {
     _mn.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
     var _ct = document.querySelector('.content');
-    if (_ct) _ct.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
+    if (_ct) _ct.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
     var _sh = document.querySelector('.app-shell');
     if (_sh) _sh.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;flex:1';
   }
@@ -283,7 +283,7 @@ function _injectCriticalCSS() {
   if (document.getElementById('cdc-critical-css')) return;
   var s = document.createElement('style');
   s.id = 'cdc-critical-css';
-  s.textContent = 'html,body,#root{height:100%;margin:0}.section{display:none;flex-direction:column;height:100%}.section.active{display:flex;flex:1}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}.tn-drawer{display:none}.overlay{display:none}.modal-overlay{display:none}';
+  s.textContent = 'html,body,#root{height:100%;margin:0}.section{display:none;flex-direction:column;height:100%}.section.active{display:flex}.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}.content{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}.page-body{flex:1;overflow-y:auto;min-height:0}.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}.tn-drawer{display:none}.overlay{display:none}.modal-overlay{display:none}.tn-group{position:relative;display:inline-flex}.tn-dropdown{display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:9000;padding:4px;white-space:nowrap}.tn-group.open .tn-dropdown{display:block}';
   document.head.appendChild(s);
 }
 
@@ -306,7 +306,7 @@ function showApp(username) {
     var _main = document.querySelector('.main');
     if (_main) _main.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)';
     var _cont = document.querySelector('.content');
-    if (_cont) _cont.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
+    if (_cont) _cont.style.cssText = 'flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg)';
   } catch(e) {}
   try {
     // Resolve name: check users cache first for first+last
