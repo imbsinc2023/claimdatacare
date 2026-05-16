@@ -76,6 +76,7 @@ const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',serv
 
 
 const uid = () => 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+const sanitizeSubID = s => String(s||'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
 const v = id => { const e = document.getElementById(id); return e ? e.value.trim().toUpperCase() : ''; };
 const sv = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
 
@@ -266,55 +267,391 @@ if(renders[page]) {
 
 
 function _injectCriticalCSS() {
+  var ex = document.getElementById('cdc-critical'); if (ex) ex.remove();
+  var s = document.createElement('style'); s.id = 'cdc-critical';
+  s.textContent =
+    // Structural rules only — visual styles live in styles.css
+    '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}' +
+    '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}' +
+    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
+    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg,#f5f4ed)}' +
+    '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
+    '.section.active{display:flex}' +
+    '.overlay,.modal-overlay{display:none}' +
+    '.overlay.open,.modal-overlay.open{display:flex;position:fixed;inset:0;top:44px;z-index:9000;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.45)}' +
+    '.topnav{z-index:99998!important;position:relative}' +
+    '.pt-chart-overlay{position:fixed;inset:0;top:44px;z-index:4000;display:flex;flex-direction:column;overflow:hidden}' +
+    '.tn-drawer{display:none!important;position:fixed!important;top:44px;left:0;right:0;bottom:0;z-index:9500}' +
+    '';
+  document.head.appendChild(s);
+}
+// JS errors that break nav/render functions
+window.onerror = function(msg, src, line, col, err) {
+  console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('[CDC PROMISE ERROR]', e.reason);
+});
+
+function toggleUserMenu(e) {
+  if (e) e.stopPropagation();
+  var menu = document.getElementById('tn-user-menu');
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  // Sync language label
+  var langLabel = document.getElementById('btn-lang-label');
+  var langBtn = document.getElementById('btn-lang');
+  if (langLabel && langBtn) langLabel.textContent = langBtn.textContent || 'EN';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function closeMenu(e2) {
+        var chip = document.getElementById('tn-user-chip');
+        if (chip && !chip.contains(e2.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 10);
+  }
+}
+
+function _apStyleFonts() {
+  document.querySelectorAll('.ap-font-btn').forEach(function(b) {
+    const active = b.getAttribute('data-active') === 'true';
+    b.style.borderColor = active ? 'var(--brand)' : 'var(--border)';
+    b.style.background  = active ? 'var(--brand-bg)' : 'var(--bg2)';
+    b.style.fontWeight  = active ? '700' : '400';
+  });
+}
+
+// \u2500\u2500 Provider Selector \u2500\u2500
+function rebuildProvSel() {
+  var db = getDB();
+  var sel = document.getElementById('prov-sel');
+  if (!sel) return;
+  var session = getSession ? getSession() : {};
+  var isSA = session && session.email === SUPER_ADMIN_EMAIL;
+
+  var providers = db.providers || [];
+
+  if (!isSA && session && session.providerId) {
+    // Non-super-admin: only show their assigned provider
+    providers = providers.filter(function(p) { return p.id === session.providerId; });
+    // Lock the selector
+    sel.disabled = true;
+    sel.title = 'Contact your administrator to change provider';
+  } else {
+    sel.disabled = false;
+    sel.title = '';
+  }
+
+  sel.innerHTML = providers.map(function(p) {
+    return '<option value="' + p.id + '"' + (p.id === activeProviderId ? ' selected' : '') + '>' + p.name + '</option>';
+  }).join('');
+
+  // Auto-select the only provider if restricted
+  if (!isSA && providers.length === 1 && activeProviderId !== providers[0].id) {
+    switchProvider(providers[0].id);
+  }
+}
+function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); }
+
+
+// Auto-uppercase all manual input except email/password/.no-upper
+document.addEventListener('input', function(e) {
+  var el = e.target;
+  if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+  if (el.type === 'email' || el.type === 'password' || el.type === 'file' || el.classList.contains('no-upper')) return;
+  var start = el.selectionStart, end = el.selectionEnd;
+  var upper = el.value.toUpperCase();
+  if (el.value !== upper) { el.value = upper; el.setSelectionRange(start, end); }
+});
+
+// Patient chart links
+function ptLinkName(patId, last, first) {
+return `<a href="#" onclick="openPatientChart('${patId}');return false;" style="color:var(--brand);font-weight:600">${last||'?'}, ${first||''}</a>`;
+}
+function ptLinkAcct(patId, acct) {
+  var el = document.createElement('span');
+  el.textContent = acct || '';
+  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.style.cssText = 'cursor:pointer;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:500;border-radius:4px;padding:1px 4px;transition:background .15s';
+  el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
+  el.setAttribute('onmouseout', "this.style.background=''");
+  return el.outerHTML;
+}
+function ptLinkName(patId, last, first) {
+  var el = document.createElement('span');
+  el.textContent = (last || '?') + ', ' + (first || '');
+  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.style.cssText = 'cursor:pointer;color:var(--text);font-weight:600;font-size:13px;border-radius:4px;padding:1px 4px;transition:background .15s';
+  el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
+  el.setAttribute('onmouseout', "this.style.background=''");
+  return el.outerHTML;
+}
+
+
+function go(page) {
+console.log('[CDC] go('+page+') | activeProviderId='+activeProviderId+' | session='+JSON.stringify(getSession()?{email:getSession().email,pid:getSession().activeBillingProviderId}:null));
+try { closeTnDropdown(); } catch(_) {}
+try { closeTnDrawer(); } catch(_) {}
+document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+document.querySelectorAll('.section').forEach(e=>{e.style.display='none';e.classList.remove('active');});
+console.log('[CDC] sections hidden:', document.querySelectorAll('.section').length);
+const ni = document.getElementById('nav-'+page); if(ni) ni.classList.add('active');
+const sec = document.getElementById('sec-'+page); if(sec){sec.style.display='flex';sec.classList.add('active');}
+console.log('[CDC] section shown:', page, 'exists:', !!sec, 'computed display:', sec?getComputedStyle(sec).display:'N/A');
+// Debug: count how many sections still have display !== 'none'
+setTimeout(function(){
+  var _v = [].slice.call(document.querySelectorAll('.section')).filter(function(s){return s.style.display!=='none'&&getComputedStyle(s).display!=='none';});
+  if(_v.length>1) console.log('[CDC] WARNING: visible sections >1:', _v.map(function(s){return s.id;}));
+}, 50);
+try { setActiveTopNav(page); } catch(_) {}
+const _tbt = document.getElementById('tb-title');
+if(_tbt) _tbt.textContent = PAGE_TITLES[page] || page;
+const prov = getDB().providers.find(p=>p.id===activeProviderId);
+const tbProv = document.getElementById('tb-prov');
+if(tbProv) tbProv.textContent = page==='invoices' ? '' : (prov ? prov.name : '');
+const provSelWrap = document.getElementById('prov-sel-wrap');
+if(provSelWrap) provSelWrap.style.display = page==='invoices' ? 'none' : '';
+const renders = {
+dashboard: renderDashboard,
+claims: renderClaims,
+patients: renderPatients,
+services: renderServices,
+providers: () => { renderAdminProviders(); const b=document.getElementById('btn-add-provider'); if(b) b.style.display=isAdmin()?'':'none'; },
+facilities: renderFacilities,
+rendering: renderRendering,
+referring: renderReferring,
+eob: renderEOBPage,
+insurances: renderInsurances,
+validate: renderValidation,
+export: ()=>{ renderExportSummary(); try{loadApiConfig();}catch(_){} },
+reports: renderReports,
+'admin-providers': renderAdminProviders,
+'admin-rendering': ()=>renderRendering(true),
+'admin-referring': ()=>renderReferring(true),
+'admin-facilities':()=>renderFacilities(true),
+'admin-services': renderAdminServices,
+servicegroups: renderServiceGroups,
+account: renderAccountPage,
+      appointments: renderAppointments,
+      notes: renderNotes,
+      invoices: ()=>{ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} },
+      'cm-dashboard': renderCMDashboard,
+      'cm-intake': renderCMIntake,
+      'cm-clients': renderCMClients,
+      'cm-workers': renderCMWorkers,
+      'cm-assessments': renderCMAssessments,
+      'cm-plans': renderCMPlans,
+      'cm-encounters': renderCMEncounters,
+      'cm-tasks': renderCMTasks,
+      'cm-authorizations': renderCMAuths,
+      'cm-referrals': renderCMCommReferrals,
+      'cm-supervisor': renderCMSupervisor,
+      'cm-billing': renderCMBilling,
+      'cm-reports': renderCMReports,
+      'cm-discharge': renderCMDischarges,
+      'cm-patient-summary': renderCMPatientSummary,
+      'claim-editor': renderClaimEditor,
+      bills: renderBills,
+      'provider-info': renderProviderInfo,
+      'intake-center': renderIntakeCenter,
+      'intake-clients': renderIntakeClients,
+      'intake-forms': renderIntakeConsentForms,
+      'intake-eval': renderIntakeEvaluation,
+      };
+if(renders[page]) {
+  requestAnimationFrame(function() {
+    // Guarantee activeProviderId before any render runs
+    if (!activeProviderId) {
+      try {
+        var _db0 = getDB();
+        var _s0 = getSession();
+        var _sid = _s0 && (_s0.activeBillingProviderId || _s0.providerId);
+        var _vp = (_sid && (_db0.providers||[]).find(function(p){return p.id===_sid;})) || (_db0.providers||[])[0];
+        if (_vp) {
+          activeProviderId = _vp.id;
+          console.log('[CDC] go(): derived activeProviderId='+activeProviderId+' before render of '+page);
+        } else {
+          console.warn('[CDC] go(): NO providers in DB yet — render may show empty. providers='+(_db0.providers||[]).length);
+        }
+      } catch(e) {}
+    }
+    console.log('[CDC] go(): rendering page='+page+' | activeProviderId='+activeProviderId);
+    renders[page]();
+    updateBadges();
+    setTimeout(_renderLucideIcons, 20);
+  });
+}
+}
+
+
+
+
+
+function _injectCriticalCSS() {
   var ex = document.getElementById('cdc-css'); if (ex) ex.remove();
   var s = document.createElement('style'); s.id = 'cdc-css';
   s.textContent =
-    'html,body{height:100%;margin:0}' +
+    // === Reset & Root ===
+    'html,body{height:100%;margin:0;background:var(--bg,#f5f4ed);color:var(--text,#141413);font-family:var(--font,"DM Sans",system-ui,sans-serif)}' +
     '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}' +
     '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}' +
-    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:100;overflow:visible;position:relative}' +
+
+    // === Topnav — Near Black #141413, white text ===
+    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#141413;color:#fff;z-index:99998;overflow:visible;position:relative}' +
     '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:visible}' +
-    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}' +
+    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit;transition:background .15s,color .15s}' +
     '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}' +
     '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}' +
     '.tn-group{position:relative;display:inline-flex}' +
-    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:190px;z-index:99999;padding:4px}' +
+    // Dropdown — Ivory surface, warm borders, warm text
+    '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.08);min-width:200px;z-index:99999;padding:4px}' +
     '.tn-group.open .tn-dropdown{display:block}' +
-    '.tn-drawer{display:none!important;position:fixed!important;inset:0;z-index:5000}' +
+    '.tn-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;font-size:13px;font-weight:500;color:#4d4c48;cursor:pointer;transition:background .12s,color .12s;white-space:nowrap}' +
+    '.tn-dropdown-item:hover{background:#e8e6dc;color:#141413}' +
+    '.tn-dropdown-item .lci{width:14px;height:14px;color:#87867f;flex-shrink:0}' +
+    '.tn-dropdown-sep{height:1px;background:#f0eee6;margin:3px 6px}' +
+    '.tn-drawer{display:none!important;position:fixed!important;top:44px;left:0;right:0;bottom:0;z-index:9500}' +
+
+    // === Layout ===
     '.overlay,.modal-overlay{display:none}' +
-    '.overlay.open,.modal-overlay.open{display:flex;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}' +
+    '.overlay.open,.modal-overlay.open{display:flex;position:fixed;inset:0;top:44px;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;padding:20px}' +
     '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
-    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}' +
+    '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0;background:var(--bg,#f5f4ed)}' +
     '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
     '.section.active{display:flex}' +
-    // Patient Chart overlay
-    '.pt-chart-overlay{position:fixed;inset:0;z-index:4000;background:var(--bg,#f5f4ed);display:flex;flex-direction:column;overflow:hidden}' +
-    '.ptc-banner{background:#141413;color:#fff;padding:0 14px;height:44px;min-height:44px;display:flex;align-items:center;gap:8px;flex-shrink:0}' +
-    '.ptc-banner-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}' +
+
+    // === Patient Chart overlay — terracotta banner (#b5451b), below topnav ===
+    '.pt-chart-overlay{position:fixed;inset:0;top:44px;z-index:4000;background:var(--bg,#f5f4ed);display:flex;flex-direction:column;overflow:hidden}' +
+    '.ptc-banner{background:#b5451b;color:#fff;padding:0 14px;height:44px;min-height:44px;display:flex;align-items:center;gap:8px;flex-shrink:0}' +
+    '.ptc-banner-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}' +
     '.ptc-banner-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden}' +
     '.ptc-banner-meta-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap;color:#fff}' +
     '.ptc-banner-meta-item .lci{width:11px;height:11px;flex-shrink:0}' +
-    '.ptc-banner-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}' +
+    '.ptc-banner-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;transition:color .15s}' +
     '.ptc-banner-close:hover{color:#fff}' +
     '.ptc-qa{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.7);transition:background .15s;position:relative}' +
     '.ptc-qa:hover{background:rgba(255,255,255,.15);color:#fff}' +
     '.ptc-qa .lci{width:14px;height:14px}' +
-    '.ptc-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:6px 14px;background:var(--bg3,#e8e6dc);border-bottom:1px solid var(--border,#e8e6dc);flex-shrink:0}' +
-    '.ptc-tab{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2,#4d4c48);background:none;border:1px solid transparent;white-space:nowrap;transition:all .15s}' +
-    '.ptc-tab:hover{background:var(--bg2,#faf9f5);color:var(--text,#141413)}' +
-    '.ptc-tab.active{background:var(--bg2,#faf9f5);color:var(--brand,#c96442);border-color:var(--border2,#e8e6dc);font-weight:700}' +
+    // Tabs — Warm Sand active, parchment background
+    '.ptc-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:6px 14px;background:var(--bg3,#e8e6dc);border-bottom:1px solid var(--border2,#e8e6dc);flex-shrink:0}' +
+    '.ptc-tab{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2,#4d4c48);background:none;border:1.5px solid transparent;white-space:nowrap;transition:all .15s;font-family:inherit;letter-spacing:.01em}' +
+    '.ptc-tab:hover{background:var(--bg3,#e8e6dc);color:var(--text,#141413);border-color:var(--border2,#e8e6dc)}' +
+    '.ptc-tab.active{background:var(--brand,#c96442);color:#fff;border-color:var(--brand,#c96442);font-weight:700}' +
     '.ptc-tab.danger{color:var(--red,#b53333)}' +
-    '.ptc-tab.danger.active{color:var(--red,#b53333)}' +
-    '#pt-main{flex:1;overflow-y:auto;padding:14px 16px;min-height:0}' +
-    '.ptc-panel{background:var(--bg2,#faf9f5);border:1px solid var(--border,#e8e6dc);border-radius:10px;margin-bottom:12px;overflow:hidden}' +
+    // Chart main area
+    '#pt-main{flex:1;overflow-y:auto;padding:14px 16px;min-height:0;background:var(--bg,#f5f4ed)}' +
+    // Panels — Ivory cards with warm border
+    '.ptc-panel{background:var(--bg2,#faf9f5);border:1px solid var(--border,#f0eee6);border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}' +
     '.ptc-panel-hdr{background:var(--bg3,#e8e6dc);padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2,#4d4c48);display:flex;align-items:center;justify-content:space-between}' +
     '.ptc-panel-body{padding:12px 14px}' +
-    '.ptc-row{display:flex;align-items:baseline;gap:4px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border,#e8e6dc)}' +
+    // Row items inside panels
+    '.ptc-row{display:flex;align-items:baseline;gap:4px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border,#f0eee6)}' +
     '.ptc-row:last-child{border-bottom:none}' +
-    '.ptc-label{font-weight:600;color:var(--text2,#4d4c48);min-width:110px;font-size:11px}' +
-    '.ptc-value{color:var(--text,#141413);font-size:12px}' +
+    '.ptc-label{font-weight:700;color:var(--text3,#87867f);min-width:110px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}' +
+    '.ptc-value{color:var(--text,#141413);font-size:12.5px}' +
     '.ptc-link{font-size:11px;color:var(--brand,#c96442);text-decoration:none;font-weight:600}' +
-    '.ptc-photo-box{width:60px;height:60px;border-radius:8px;background:var(--bg3,#e8e6dc);display:flex;align-items:center;justify-content:center;flex-shrink:0}';
+
+    // === Cards ===
+    '.card{background:var(--bg2,#faf9f5);border:1px solid var(--border,#f0eee6);border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}' +
+    '.card-title{font-size:12px;font-weight:700;color:var(--text2,#4d4c48);text-transform:uppercase;letter-spacing:.06em}' +
+
+    // === Buttons — warm system ===
+    '.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2,#e8e6dc);background:var(--bg3,#e8e6dc);color:var(--text2,#4d4c48);font-family:inherit;transition:all .15s;box-shadow:0 0 0 0 transparent;white-space:nowrap}' +
+    '.btn:hover{background:#d9d7cd;border-color:#d0cec4;color:var(--text,#141413)}' +
+    '.btn-primary{background:var(--brand,#c96442);color:#faf9f5;border-color:var(--brand,#c96442)}' +
+    '.btn-primary:hover{background:var(--brand-d,#b55330);border-color:var(--brand-d,#b55330)}' +
+    '.btn-ghost{background:transparent;border-color:transparent;color:var(--text3,#87867f)}' +
+    '.btn-ghost:hover{background:var(--bg3,#e8e6dc);color:var(--text,#141413)}' +
+    '.btn-sm{padding:4px 10px;font-size:12px;border-radius:7px}' +
+    '.btn-xs{padding:3px 8px;font-size:11px;border-radius:6px}' +
+    '.btn-icon{display:inline-flex;align-items:center;justify-content:center;padding:5px;border-radius:7px;background:none;border:none;cursor:pointer;color:var(--text3,#87867f);transition:all .15s}' +
+    '.btn-icon:hover{background:var(--bg3,#e8e6dc);color:var(--text,#141413)}' +
+    '.btn-group{display:flex;align-items:center;gap:6px}' +
+
+    // === Modals ===
+    '.modal{background:var(--bg2,#faf9f5);border-radius:12px;width:100%;max-width:580px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid var(--border,#f0eee6)}' +
+    '.modal-lg{max-width:820px}' +
+    '.modal-sm{max-width:440px}' +
+    '.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border,#f0eee6);flex-shrink:0}' +
+    '.modal-t{font-size:15px;font-weight:700;color:var(--text,#141413)}' +
+    '.modal-sub{font-size:12px;color:var(--text3,#87867f);margin-top:2px}' +
+    '.modal-body{flex:1;overflow-y:auto;padding:20px}' +
+    '.modal-ftr{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border,#f0eee6);flex-shrink:0;background:var(--bg3,#e8e6dc);border-radius:0 0 12px 12px}' +
+
+    // === Forms ===
+    '.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}' +
+    'label{font-size:11px;font-weight:700;color:var(--text3,#87867f);text-transform:uppercase;letter-spacing:.04em}' +
+    'input,select,textarea{padding:8px 11px;border:1.5px solid var(--border2,#e8e6dc);border-radius:8px;background:var(--bg2,#faf9f5);color:var(--text,#141413);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s;width:100%;box-sizing:border-box}' +
+    'input:focus,select:focus,textarea:focus{border-color:var(--brand,#c96442);box-shadow:0 0 0 2px rgba(201,100,66,.12)}' +
+    '.fg{display:grid;gap:10px 14px;margin-bottom:10px}' +
+    '.g1{grid-template-columns:1fr}' +
+    '.g2{grid-template-columns:1fr 1fr}' +
+    '.g3{grid-template-columns:1fr 1fr 1fr}' +
+    '.g4{grid-template-columns:1fr 1fr 1fr 1fr}' +
+    '.g1.g1{grid-template-columns:1fr}' +
+    '.hint{font-size:11px;color:var(--text3,#87867f);margin-top:2px}' +
+    '.sep{height:1px;background:var(--border,#f0eee6);margin:14px 0}' +
+    '.slabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3,#87867f);display:flex;align-items:center;gap:6px;margin-bottom:8px}' +
+    '.slabel .lci{width:12px;height:12px}' +
+    '.req{color:var(--red,#b53333)}' +
+
+    // === Tables ===
+    '.tbl-wrap{overflow-x:auto;border:1px solid var(--border,#f0eee6);border-radius:10px;background:var(--bg2,#faf9f5)}' +
+    'table{width:100%;border-collapse:collapse;font-size:13px}' +
+    'thead tr{background:var(--bg3,#e8e6dc)}' +
+    'th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3,#87867f);white-space:nowrap;border-bottom:1px solid var(--border2,#e8e6dc)}' +
+    'td{padding:9px 12px;border-bottom:1px solid var(--border,#f0eee6);color:var(--text,#141413);vertical-align:middle}' +
+    'tbody tr:last-child td{border-bottom:none}' +
+    'tbody tr:hover td{background:var(--bg3,#e8e6dc)}' +
+
+    // === Page structure ===
+    '.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border,#f0eee6)}' +
+    '.page-hdr h1{font-size:20px;font-weight:700;color:var(--text,#141413);margin:0}' +
+    '.page-body{flex:1;overflow-y:auto;min-height:0}' +
+    '.search-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}' +
+    '.search-row input,.search-row select{padding:7px 12px;border:1.5px solid var(--border2,#e8e6dc);border-radius:8px;font-size:13px;background:var(--bg2,#faf9f5);color:var(--text,#141413)}' +
+
+    // === Status badges ===
+    '.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}' +
+    '.b-green{background:#dcfce7;color:#166534}.b-red{background:#fee2e2;color:#991b1b}.b-amber{background:#fef9c3;color:#854d0e}' +
+    '.b-blue{background:rgba(201,100,66,.1);color:var(--brand,#c96442)}.b-gray{background:var(--bg3,#e8e6dc);color:var(--text2,#4d4c48)}' +
+
+    // === Stabs (section tabs) ===
+    '.stabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px;border-bottom:2px solid var(--border,#f0eee6);padding-bottom:0}' +
+    '.stab{padding:6px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;background:none;border:none;color:var(--text3,#87867f);transition:all .15s;font-family:inherit;border-bottom:3px solid transparent;margin-bottom:-2px}' +
+    '.stab:hover{color:var(--text,#141413);background:var(--bg3,#e8e6dc)}' +
+    '.stab.active{color:var(--brand,#c96442);border-bottom-color:var(--brand,#c96442);font-weight:700}' +
+    '.nav-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:16px;padding:0 4px;border-radius:8px;font-size:10px;font-weight:700;background:var(--text3,#87867f);color:#fff}' +
+
+    // === Alerts ===
+    '.alert{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px}' +
+    '.al-info{background:var(--brand-bg);border:1px solid var(--brand-bdr);color:var(--brand,#c96442)}' +
+    '.al-warn{background:var(--amber-bg,#fef9e7);border:1px solid var(--amber-bdr,#f9e4a8);color:var(--amber,#b8860b)}' +
+    '.al-err{background:var(--red-bg,#fcefee);border:1px solid var(--red-bdr,#f5c6c0);color:var(--red,#b53333)}' +
+
+    // === Misc ===
+    '.lci{width:14px;height:14px;display:inline-block;vertical-align:middle;stroke-width:2.5px;flex-shrink:0}' +
+    '.mono{font-family:var(--mono)}' +
+    '.total-preview{padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:8px;font-size:14px;font-weight:700;color:var(--brand,#c96442);text-align:right;margin-top:10px}' +
+    '.dup-warn{padding:8px 12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;font-size:12px;color:#991b1b;margin-bottom:10px}' +
+    '.dup-warn.hidden{display:none}' +
+    '.input-row{display:flex;gap:6px;align-items:center}' +
+    '.input-row input{flex:1}' +
+    '.input-row button{flex-shrink:0}' +
+    '.cpt-scroll{max-height:180px;overflow-y:auto;border:1px solid var(--border2,#e8e6dc);border-radius:8px;background:var(--bg2,#faf9f5)}' +
+    '.date-chips{display:flex;flex-wrap:wrap;gap:4px}' +
+    '.date-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3,#e8e6dc);color:var(--text2,#4d4c48);border:1.5px solid var(--border2,#e8e6dc);transition:all .15s}' +
+    '.date-chip.on{background:var(--brand,#c96442);color:#faf9f5;border-color:var(--brand,#c96442)}' +
+    '.pt-card{background:var(--bg2,#faf9f5);border:1px solid var(--border,#f0eee6);border-radius:10px;overflow:hidden;margin-bottom:12px}' +
+    '.pt-card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3,#e8e6dc);border-bottom:1px solid var(--border2,#e8e6dc)}' +
+    '.pt-card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2,#4d4c48)}' +
+    '.pt-card-body{padding:14px}' +
+    '';
   document.head.appendChild(s);
 }
 
@@ -2875,7 +3212,7 @@ Show Paid
 <div class="fg g2">
 <div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>
 <div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>
-<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>
+<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,String()).toUpperCase()" placeholder="e.g. OSC855236601" class="mono"></div>
 <div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>
 <div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>
 <div class="field"><label>Group #</label><input id="mp-group"></div>
@@ -4291,7 +4628,7 @@ for(const [id,lbl] of required){ if(!v(id)){ toast('Required: '+lbl,'err'); retu
 const db=getDB(); const idx=parseInt(v('mp-id'));
 const isNew=idx<0||isNaN(idx);
 if(isNew){ const acct=v('mp-acct'); if(db.patients.find(p=>p.acct===acct&&p.providerId===activeProviderId)){ toast('Account # '+acct+' already exists','err'); return; } }
-const p={id:!isNew?db.patients[idx].id:uid(),providerId:activeProviderId,acct:!isNew?db.patients[idx].acct:v('mp-acct'),last:v('mp-last'),first:v('mp-first'),mid:v('mp-mid'),dob:v('mp-dob'),sex:document.getElementById('mp-sex').value,addr1:v('mp-addr1'),addr2:v('mp-addr2'),city:v('mp-city'),state:v('mp-state'),zip:v('mp-zip'),phone:v('mp-phone'),rel:document.getElementById('mp-rel').value,subLast:v('mp-insl'),subFirst:v('mp-insf'),subNum:v('mp-insnum'),subDob:v('mp-insdob'),subSex:document.getElementById('mp-inssex').value,group:v('mp-group'),plan:v('mp-plan'),payerid:v('mp-payerid'),payerName:v('mp-payername'),payerCity:v('mp-payercity'),payerState:v('mp-payerstate'),createdAt:!isNew?db.patients[idx].createdAt:Date.now()};
+const p={id:!isNew?db.patients[idx].id:uid(),providerId:activeProviderId,acct:!isNew?db.patients[idx].acct:v('mp-acct'),last:v('mp-last'),first:v('mp-first'),mid:v('mp-mid'),dob:v('mp-dob'),sex:document.getElementById('mp-sex').value,addr1:v('mp-addr1'),addr2:v('mp-addr2'),city:v('mp-city'),state:v('mp-state'),zip:v('mp-zip'),phone:v('mp-phone'),rel:document.getElementById('mp-rel').value,subLast:v('mp-insl'),subFirst:v('mp-insf'),subNum:sanitizeSubID(v('mp-insnum')),subDob:v('mp-insdob'),subSex:document.getElementById('mp-inssex').value,group:v('mp-group'),plan:v('mp-plan'),payerid:v('mp-payerid'),payerName:v('mp-payername'),payerCity:v('mp-payercity'),payerState:v('mp-payerstate'),createdAt:!isNew?db.patients[idx].createdAt:Date.now()};
 setDB(db=>{ if(!isNew) db.patients[idx]=p; else db.patients.push(p); });
 closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
 }
@@ -6882,6 +7219,7 @@ function setZelleMode(mode) {
 }
 
 function openIssuerModal(id) {
+  _ensureInvModals();
 const db = getInvDB();
 const iss = id ? db.invoicingIssuers.find(x => x.id === id) : null;
 document.getElementById('iss-title').textContent = iss ? 'Edit Billing Entity' : 'New Billing Entity';
@@ -6987,6 +7325,7 @@ db.invoicingClients.map(cli => `<tr>
 }
 
 function openClientModal(id) {
+  _ensureInvModals();
 const db = getInvDB();
 const cli = id ? db.invoicingClients.find(x => x.id === id) : null;
 document.getElementById('cli-title').textContent = cli ? 'Edit Client' : 'New Client';
@@ -7004,7 +7343,7 @@ set('cli-state', cli?.state);
 set('cli-zip', cli?.zip);
 set('cli-fee', cli?.fee);
 set('cli-notes', cli?.notes);
-openModal('modal-client');
+openModal('modal-inv-client');
 }
 
 function saveClient() {
@@ -7025,7 +7364,7 @@ const idx = db.invoicingClients.findIndex(x => x.id === existingId);
 if (idx >= 0) db.invoicingClients[idx] = cli;
 else db.invoicingClients.push(cli);
 });
-closeModal('modal-client');
+closeModal('modal-inv-client');
 renderClientsList();
 toast('Client saved ?');
 }
@@ -7515,7 +7854,17 @@ if (dow !== 0 && dow !== 6) added++; // skip Sat(6) and Sun(0)
 return d.toISOString().split('T')[0];
 }
 
+
+function _ensureInvModals() {
+  if (document.getElementById('modal-invoice')) return;
+  var div = document.createElement('div');
+  div.innerHTML = '\n<div class="overlay" id="modal-issuer">\n<div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="missuer-title">New Billing Entity</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')">&times;</button></div>\n<div class="modal-body">\n<input type="hidden" id="missuer-id">\n<div class="fg g1">\n<div class="field"><label>Entity Name *</label><input id="missuer-name" placeholder="e.g. IMBS Inc"></div>\n<div class="fg g2">\n<div class="field"><label>Contact Person</label><input id="missuer-contact" placeholder="Full name"></div>\n<div class="field"><label>Email</label><input id="missuer-email" type="email"></div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="missuer-phone" maxlength="10"></div>\n<div class="field"><label>Tax ID / EIN</label><input id="missuer-taxid" placeholder="XX-XXXXXXX"></div>\n</div>\n<div class="field"><label>Address</label><input id="missuer-addr1"></div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="missuer-city"></div>\n<div class="field"><label>State</label><input id="missuer-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="missuer-zip" maxlength="10"></div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Zelle / Payment</label><input id="missuer-zelle" placeholder="phone or email for Zelle"></div>\n<div class="field"><label>Payment Terms (days)</label><input id="missuer-terms" type="number" value="15"></div>\n</div>\n<div class="field"><label>Notes</label><input id="missuer-notes"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-issuer\')">Cancel</button><button class="btn btn-primary" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<div class="overlay" id="modal-inv-client">\n<div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="minvcli-title">New Client</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-inv-client\')">&times;</button></div>\n<div class="modal-body">\n<input type="hidden" id="minvcli-id">\n<div class="fg g1">\n<div class="field"><label>Client Name *</label><input id="minvcli-name" placeholder="Organization or person name"></div>\n<div class="fg g2">\n<div class="field"><label>Contact Person</label><input id="minvcli-contact"></div>\n<div class="field"><label>Email</label><input id="minvcli-email" type="email"></div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="minvcli-phone" maxlength="10"></div>\n<div class="field"><label>Tax ID / EIN</label><input id="minvcli-taxid" placeholder="XX-XXXXXXX"></div>\n</div>\n<div class="field"><label>Address</label><input id="minvcli-addr1"></div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="minvcli-city"></div>\n<div class="field"><label>State</label><input id="minvcli-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="minvcli-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="minvcli-notes"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-inv-client\')">Cancel</button><button class="btn btn-primary" onclick="saveInvClient()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<div class="overlay" id="modal-invoice" style="align-items:flex-start;padding:20px">\n<div class="modal modal-lg" style="max-width:780px;max-height:92vh;display:flex;flex-direction:column">\n<div class="modal-hdr" style="flex-shrink:0">\n<div><div class="modal-t" id="inv-modal-title">New Invoice</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-invoice\')">&times;</button>\n</div>\n<div class="modal-body" style="flex:1;overflow-y:auto">\n<input type="hidden" id="inv-id">\n<div class="fg g3" style="margin-bottom:12px">\n<div class="field"><label>Invoice # *</label><input id="inv-number" placeholder="INV-001"></div>\n<div class="field"><label>Date *</label><input type="date" id="inv-date"></div>\n<div class="field"><label>Due Date</label><input type="date" id="inv-due"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>\n<div class="field"><label>Client / Provider *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field">\n<label>Billing Month</label>\n<div style="display:flex;gap:6px">\n<select id="inv-month-sel" style="flex:1;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<option value="1">January</option><option value="2">February</option><option value="3">March</option>\n<option value="4">April</option><option value="5">May</option><option value="6">June</option>\n<option value="7">July</option><option value="8">August</option><option value="9">September</option>\n<option value="10">October</option><option value="11">November</option><option value="12">December</option>\n</select>\n<input type="number" id="inv-month-year" style="width:80px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px" min="2020" max="2030">\n<input type="hidden" id="inv-month">\n</div>\n</div>\n<div class="field"><label>Status</label><select id="inv-status"><option value="Draft">Draft</option><option value="Sent">Sent</option><option value="Partial">Partial</option><option value="Overdue">Overdue</option><option value="Paid">Paid</option></select></div>\n</div>\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Revenue Cycle Management</div>\n<div class="fg g3" style="margin-bottom:12px">\n<div class="field"><label>Fee % of Collections</label><input type="number" step="0.1" id="inv-fee" placeholder="e.g. 6" oninput="recalcInvoice()"></div>\n<div class="field"><label>Total Collections $</label><input type="number" step="0.01" id="inv-revenue" placeholder="0.00" oninput="recalcInvoice()"></div>\n<div class="field"><label>Minimum Base $</label><input type="number" step="0.01" id="inv-min-base" placeholder="0.00" oninput="recalcInvoice()"></div>\n</div>\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Service Lines</div>\n<div id="inv-svc-lines" style="margin-bottom:12px"></div>\n<button class="btn btn-xs" onclick="addInvSvcLine()" style="margin-bottom:12px">+ Add Line</button>\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Claim Details (optional)</div>\n<div id="inv-lines-tbl" style="margin-bottom:12px"></div>\n<button class="btn btn-xs" onclick="addInvLine()" style="margin-bottom:12px">+ Add Claim Line</button>\n<div id="inv-extras" style="margin-bottom:12px">\n<div class="fg g3">\n<div class="field"><label>Exc. Base $</label><input type="number" step="0.01" id="inv-exc-base" placeholder="0.00" oninput="recalcInvoice()"></div>\n<div class="field"><label>Exc. Months</label><input type="number" id="inv-exc-months" placeholder="0" oninput="recalcInvoice()"></div>\n</div>\n</div>\n<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div id="inv-total-preview" style="margin-top:12px;padding:12px 16px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:14px;font-weight:700;color:var(--brand);text-align:right">Total: $0.00</div>\n</div>\n<div class="modal-ftr" style="flex-shrink:0">\n<button class="btn" onclick="closeModal(\'modal-invoice\')">Cancel</button>\n<button class="btn btn-sm" onclick="printInvoicePDF ? printInvoicePDF() : toast(\'PDF not available\',\'warn\')"><i data-lucide="printer" class="lci"></i> PDF</button>\n<button class="btn btn-primary" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i> Save Invoice</button>\n</div>\n</div></div>\n';
+  while (div.firstChild) document.body.appendChild(div.firstChild);
+  setTimeout(_renderLucideIcons, 50);
+}
+
 function openInvoiceModal(id) {
+  _ensureInvModals();
 const db = getInvDB();
 const inv = id ? db.invoices.find(x => x.id === id) : null;
 document.getElementById('inv-modal-title').textContent = inv ? 'Edit Invoice' : 'New Invoice';
@@ -7843,6 +8192,18 @@ btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
 
 // Helper: after data loads, set up the UI correctly
 function _afterLoad() {
+  try {
+    setDB(function(db) {
+      (db.patients||[]).forEach(function(p) {
+        var c = sanitizeSubID(p.subNum);
+        if (c !== (p.subNum||'')) p.subNum = c;
+        (p.insurances||[]).forEach(function(ins) {
+          if (ins.policy) ins.policy = sanitizeSubID(ins.policy);
+          if (ins.memberId) ins.memberId = sanitizeSubID(ins.memberId);
+        });
+      });
+    });
+  } catch(e) {}
   const db2 = getDB();
   const sess = getSession();
   if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); return; }
@@ -10157,55 +10518,23 @@ const db = getDB();
 const prov = db.providers.find(p => p.id === activeProviderId) || {};
 
 const W=216, M=14, RX=W-M, CW=RX-M;
+const BRAND=[181,69,27], BLACK=[0,0,0], DARK=[0,0,0];
+const GRAY2=[100,100,100], BORDER=[180,180,180], BORDER_LT=[210,210,210];
 
-// ── Colors — brand ONLY for top bar, everything else black ──────
-const _BC       = getBrandColors();
-const BRAND     = _BC.primary;       // ONLY used for top bar 3px strip
-const BLACK     = [0,0,0];
-const DARK      = [0,0,0];           // same as black — all text pure black
-const GRAY1     = [80,80,80];
-const GRAY2     = [100,100,100];
-const BORDER    = [180,180,180];
-const BORDER_LT = [210,210,210];
-const WHITE     = [255,255,255];
-// Remove unused vars to avoid accidental use
-const BRAND_DK  = [0,0,0];
-const BRAND_LT  = [230,230,230];
-const ACC       = [0,0,0];
-const ROW_ALT   = [255,255,255];
-
-
-// ── Group claims by patient — one PDF per patient ─────────────
-const byPatient = new Map();
-claims.forEach(function(c) {
-  const pid = c.patId || 'unknown';
-  if (!byPatient.has(pid)) byPatient.set(pid, []);
-  byPatient.get(pid).push(c);
-});
-
-let fileCount = 0;
-byPatient.forEach(function(patClaims, patId) {
-  // Create a fresh PDF for this patient with all helpers using this doc
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
-
-  // ── Helpers (use this doc instance) ──────────────────────────────
-// ── Helpers ───────────────────────────────────────────────────────
-const fill  = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
-const stroke= (x,y,w,h,c,lw) => { doc.setDrawColor(...c); doc.setLineWidth(lw||0.3); doc.rect(x,y,w,h,'S'); };
-const hline = (x1,y,x2,c,lw) => { doc.setDrawColor(...(c||BORDER)); doc.setLineWidth(lw||0.25); doc.line(x1,y,x2,y); };
-const t = (s,x,y,o={}) => {
+const fill  = (doc,x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
+const hline = (doc,x1,y,x2,c,lw) => { doc.setDrawColor(...(c||BORDER)); doc.setLineWidth(lw||0.25); doc.line(x1,y,x2,y); };
+const t = (doc,s,x,y,o) => {
+  o=o||{};
   if (s===null||s===undefined||s==='') return;
   doc.setFont('helvetica', o.b?'bold':'normal');
   doc.setFontSize(o.sz||9);
   doc.setTextColor(...(o.c||BLACK));
   doc.text(String(s), x, y, {align:o.a||'left', maxWidth:o.mw});
 };
-const lbl  = (s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
+const lbl  = (doc,s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
 const UC   = s => String(s||'').toUpperCase();
 const $v   = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const safe = v => (v&&String(v).trim()) ? String(v).trim() : null;
-
-// Date helpers
 const _parseDateParts = ds => {
   if (!ds) return {mm:'00',dd:'00',yyyy:'0000'};
   ds = String(ds).trim();
@@ -10215,215 +10544,222 @@ const _parseDateParts = ds => {
 };
 const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
 
+// ── Page layout constants ──────────────────────────────────────
+const PAGE_H    = 279;   // letter mm
+const FOOTER_H  = 28;    // reserved at bottom of every page
+const FOOTER_Y  = PAGE_H - FOOTER_H - 6; // where footer section starts (245)
+const BODY_LIMIT = FOOTER_Y - 4;          // last y allowed before new page
+
+// ── Draw persistent footer on current page ──────────────────────
+function drawFooter(doc, claim, rend, prov) {
+  const fY = FOOTER_Y;
+  hline(doc, M, fY, RX, BORDER_LT, 0.3);
+  fill(doc, M, fY+1.5, 3, 20, DARK);
+  const rendName = rend.last
+    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+UC(rend.npi):'')
+    : UC(prov.name||'Provider');
+  t(doc, 'ELECTRONICALLY SIGNED BY:', M+6, fY+6, {sz:7, c:GRAY2});
+  t(doc, rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
+  if (rend.taxonomy) t(doc, 'TAXONOMY: '+UC(rend.taxonomy), M+6, fY+19, {sz:7, c:DARK});
+  const now=new Date();
+  const hr12=now.getHours()%12||12;
+  const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
+  const dosParts2=_parseDateParts(claim.dos);
+  const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
+  t(doc, 'GENERATED: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
+}
+
+// ── Draw watermark (QR + branding) on all pages ──────────────────
+function drawWatermark(doc) {
+  try {
+    const _w = doc.internal.pageSize.getWidth();
+    const _h = doc.internal.pageSize.getHeight();
+    const _pages = doc.internal.getNumberOfPages();
+    const _qrSize = 12;
+    const _gap = 3;
+    if (!_qrDataURL) _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
+    for (var _p = 1; _p <= _pages; _p++) {
+      doc.setPage(_p);
+      // QR code at bottom-right
+      const _qrX = _w - M - _qrSize;
+      const _qrY = _h - 6 - _qrSize;
+      if (_qrDataURL) {
+        try { doc.addImage(_qrDataURL, 'PNG', _qrX, _qrY, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
+      }
+      // Text aligned vertically to QR height, right of QR's left edge
+      const _txtX = _qrX - _gap;
+      const _midY = _qrY + _qrSize/2;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5);
+      doc.setTextColor(181, 69, 27); // terracotta
+      doc.text('Powered by', _txtX, _midY - 2, {align:'right'});
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(181, 69, 27);
+      doc.text('ClaimDataCare', _txtX, _midY + 3.5, {align:'right'});
+    }
+  } catch(e) {}
+}
+
+// ── Add new page with continuation header ────────────────────────
+function addContinuationPage(doc, prov, patName, claim) {
+  doc.addPage();
+  fill(doc, 0, 0, W, 3, BRAND);
+  t(doc, UC(prov.name||'Medical Provider'), M, 10, {b:true, sz:9, c:BLACK});
+  t(doc, 'PATIENT: '+UC(patName||'Unknown')+'  ·  PCN: '+UC(claim.pcn||''), M, 16, {sz:8, c:DARK});
+  hline(doc, M, 20, RX, BORDER_LT, 0.4);
+  return 26; // new y
+}
+
+// ── Group claims by patient ──────────────────────────────────────
+const byPatient = new Map();
+claims.forEach(function(c) {
+  const pid = c.patId || 'unknown';
+  if (!byPatient.has(pid)) byPatient.set(pid, []);
+  byPatient.get(pid).push(c);
+});
+
+let fileCount = 0;
+byPatient.forEach(function(patClaims, patId) {
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
+
+  // Only process the first claim per patient for single-claim superbill
+  // (multi-claim batch keeps one page per claim but continues lines on same claim)
   patClaims.forEach(function(claim, ci) {
-    if (ci > 0) doc.addPage();
-    try {
-  const pat  = db.patients.find(p=>p.id===claim.patId)||{};
-  const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
-  const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
-  const fac  = db.facilities.find(f=>f.id===claim.facilityId)||{};
-  const ins1 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('primary'))
-    ||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,
+    if (ci > 0) {
+      // New page for new claim within same patient PDF
+      addContinuationPage(doc, prov, '', claim);
+    }
+
+    const pat  = db.patients.find(p=>p.id===claim.patId)||{};
+    const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
+    const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
+    const fac  = db.facilities.find(f=>f.id===claim.facilityId)||{};
+    const ins1 = (pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,
        lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
-  const lines = Array.isArray(claim.lines)?claim.lines:[];
-  const dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
-  const total = claimTotal(claim);
-  let y = 0;
+    const lines = Array.isArray(claim.lines)?claim.lines:[];
+    const dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
+    const total = claimTotal(claim);
+    const patName = [safe(pat.last), safe(pat.first), safe(pat.mid)].filter(Boolean).join(', ');
+    let y = 0;
 
-  // ══ HEADER ══════════════════════════════════════════════════════
-  // Top accent bar
-  fill(0,0,W,3,BRAND);
-
-  y = 18;
-  // Provider logo
-  let _supLogoH = 30;
-  let provX = M;
-  if (prov.logo && prov.logo.length > 200) {
-    try {
-      const _ld = _fitLogo(prov.logo, 30);
-      const _fmt = _imgFmt(prov.logo);
-      doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h);
-      provX = M + _ld.w + 5;
-      _supLogoH = _ld.h;
-    } catch(e) {}
-  }
-
-  // Provider info
-  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:11, c:BLACK});
-  const npiTax = [prov.npi?'NPI: '+UC(prov.npi):null, prov.taxid?'EIN: '+UC(prov.taxid):null].filter(Boolean).join('  ·  ');
-  if (npiTax) t(npiTax, provX, y+13, {sz:9, c:DARK});
-  const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
-  if (addr) t(UC(addr), provX, y+19, {sz:9, c:DARK});
-  if (prov.phone) t('TEL: '+UC(prov.phone), provX, y+25, {sz:9, c:DARK});
-
-  // SUPERBILL title + PCN (right side)
-  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BLACK, a:'right'});
-  t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:BLACK, a:'right'});
-  const dosStr = safe(claim.dos);
-  const posStr = safe(claim.pos);
-  // Build date range from header + per-line dates
-  const allDates = [dosStr].concat((claim.lines||[]).map(function(l){return l.dos||'';}).filter(Boolean));
-  const uniqueDates = [...new Set(allDates.filter(Boolean))].sort();
-  let dosDisplay = dosStr || '';
-  if (uniqueDates.length > 1) {
-    dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
-  }
-  const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+UC(posStr):null].filter(Boolean).join('  ·  ');
-  if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
-
-  y = (prov.logo && prov.logo.length > 200) ? (18 + _supLogoH + 4) : 46;
-  hline(M, y, RX, BORDER_LT, 0.4);
-  y += 6;
-
-  // ══ PATIENT ═════════════════════════════════════════════════════
-  lbl('Patient', M, y);
-  y += 5;
-
-  // Photo (right side)
-  if (pat.photo && pat.photo.length > 100) {
-    try {
-      const fmt = pat.photo.startsWith('data:image/png')?'PNG':'JPEG';
-      doc.addImage(pat.photo, fmt, RX-20, y-4, 20, 24, undefined, 'FAST');
-    } catch(e) {}
-  }
-
-  const patName = [safe(pat.last), safe(pat.first), safe(pat.mid)].filter(Boolean).join(', ');
-  t(UC(patName||'Unknown'), M, y, {b:true, sz:10, c:DARK});
-  y += 5;
-
-  const patInfoParts = [
-    pat.dob ? 'DOB: '+_fmtDob(pat.dob) : null,
-    pat.sex ? 'SEX: '+UC(pat.sex) : null,
-    pat.acct ? 'ACCT: '+UC(pat.acct) : null,
-  ].filter(Boolean);
-  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:9, c:DARK}); y += 5; }
-
-  const patAddr = [safe(pat.addr1), safe(pat.city), safe(pat.state)].filter(Boolean).join(', ');
-  if (patAddr) { t(UC(patAddr), M, y, {sz:9, c:DARK}); y += 4; }
-
-  y += 4;
-  hline(M, y, RX, BORDER_LT, 0.25);
-  y += 5;
-
-  // ══ INSURANCE ═══════════════════════════════════════════════════
-  if (ins1) {
-    lbl('Insurance', M, y);
-    y += 5;
-
-    const ins1Parts = [
-      safe(ins1.name||ins1.insuranceName) ? UC(ins1.name||ins1.insuranceName) : null,
-      (ins1.payerId||pat.payerid) ? '(ID: '+(ins1.payerId||pat.payerid)+')' : null,
-      (ins1.policy||ins1.memberId) ? 'Member: '+(ins1.policy||ins1.memberId) : null,
-      ins1.group ? 'GROUP: '+UC(ins1.group) : null,
-    ].filter(Boolean).join('  ·  ');
-    if (ins1Parts) { t(ins1Parts, M, y, {sz:9, c:DARK}); y += 5; }
-
-    const subParts = [
-      'SUBSCRIBER: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
-      (ins1.dob||pat.dob) ? 'DOB: '+_fmtDob(ins1.dob||pat.dob) : null,
-      ins1.relation ? 'RELATION: '+UC({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
-      ins1.plan ? 'PLAN: '+UC(ins1.plan) : null,
-    ].filter(Boolean).join('  ·  ');
-    if (subParts) { t(subParts, M, y, {sz:9, c:DARK}); y += 4; }
-
-    y += 4;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
-
-  // ══ PROVIDERS ═══════════════════════════════════════════════════
-  if (rend.last || ref.last) {
-    const halfW = CW/2;
-    if (rend.last) {
-      lbl('Rendering Provider', M, y);
-      t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
-      const rendInfo = [rend.npi?'NPI: '+UC(rend.npi):null, rend.taxonomy?'TAXONOMY: '+UC(rend.taxonomy):null].filter(Boolean).join('  ·  ');
-      if (rendInfo) t(rendInfo, M, y+10, {sz:9, c:DARK});
-      const facInfo = fac.name ? 'FACILITY: '+UC(fac.name)+(fac.npi?' · NPI: '+UC(fac.npi):'') : null;
-      if (facInfo) t(facInfo, M, y+15, {sz:9, c:DARK});
+    // ══ HEADER ═════════════════════════════════════════════════
+    fill(doc, 0, 0, W, 3, BRAND);
+    y = 18;
+    let provX = M;
+    if (prov.logo && prov.logo.length > 200) {
+      try {
+        const _ld = _fitLogo(prov.logo, 30);
+        const _fmt = _imgFmt(prov.logo);
+        doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h);
+        provX = M + _ld.w + 5;
+        y = Math.max(y, 18 + _ld.h + 4);
+      } catch(e) {}
     }
-    if (ref.last) {
-      lbl('Referring Provider', M+halfW+2, y);
-      t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
-      if (ref.npi) t('NPI: '+UC(ref.npi), M+halfW+2, y+10, {sz:9, c:DARK});
+    t(doc, UC(prov.name||'Medical Provider'), provX, 25, {b:true, sz:11, c:BLACK});
+    const npiTax = [prov.npi?'NPI: '+UC(prov.npi):null, prov.taxid?'EIN: '+UC(prov.taxid):null].filter(Boolean).join('  ·  ');
+    if (npiTax) t(doc, npiTax, provX, 31, {sz:9, c:DARK});
+    const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
+    if (addr) t(doc, UC(addr), provX, 37, {sz:9, c:DARK});
+    if (prov.phone) t(doc, 'TEL: '+UC(prov.phone), provX, 43, {sz:9, c:DARK});
+
+    t(doc, 'SUPERBILL', RX, 27, {b:true, sz:22, c:BLACK, a:'right'});
+    t(doc, 'PCN: '+UC(claim.pcn||''), RX, 37, {sz:9, c:BLACK, a:'right'});
+    // Build DOS display
+    const allDates = [claim.dos].concat((lines).map(function(l){return l.dos||''}).filter(Boolean));
+    const uniqueDates = [...new Set(allDates.filter(Boolean))].sort();
+    let dosDisplay = claim.dos || '';
+    if (uniqueDates.length > 1) dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
+    const posStr = safe(claim.pos);
+    const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+UC(posStr):null].filter(Boolean).join('  ·  ');
+    if (dosPos) t(doc, dosPos, RX, 43, {sz:9, c:DARK, a:'right'});
+
+    y = prov.logo && prov.logo.length > 200 ? Math.max(50, y) : 50;
+    hline(doc, M, y, RX, BORDER_LT, 0.4);
+    y += 6;
+
+    // ══ PATIENT ════════════════════════════════════════════════
+    lbl(doc, 'Patient', M, y);
+    y += 5;
+    if (pat.photo && pat.photo.length > 100) {
+      try { doc.addImage(pat.photo, pat.photo.startsWith('data:image/png')?'PNG':'JPEG', RX-20, y-4, 20, 24, undefined, 'FAST'); } catch(e) {}
     }
-    y += (rend.last&&fac.name) ? 22 : 18;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
+    t(doc, UC(patName||'Unknown'), M, y, {b:true, sz:10, c:DARK}); y += 5;
+    const patInfoParts=[pat.dob?'DOB: '+_fmtDob(pat.dob):null,pat.sex?'SEX: '+UC(pat.sex):null,pat.acct?'ACCT: '+UC(pat.acct):null].filter(Boolean);
+    if (patInfoParts.length) { t(doc, patInfoParts.join('   ·   '), M, y, {sz:9, c:DARK}); y += 5; }
+    const patAddr=[safe(pat.addr1),safe(pat.city),safe(pat.state)].filter(Boolean).join(', ');
+    if (patAddr) { t(doc, UC(patAddr), M, y, {sz:9, c:DARK}); y += 4; }
+    y += 4; hline(doc, M, y, RX, BORDER_LT, 0.25); y += 5;
 
-  // ══ DIAGNOSES ═══════════════════════════════════════════════════
-  if (dxArr.length) {
-    lbl('Diagnoses (ICD-10)', M, y);
-    y += 5;
-    const dxCols=4, dxW=CW/dxCols;
-    dxArr.forEach((dx,di) => {
-      const col=di%dxCols, row=Math.floor(di/dxCols);
-      const ltr=String.fromCharCode(65+di);
-      t(`${ltr}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:9, c:DARK});
-    });
-    y += Math.ceil(dxArr.length/dxCols)*6+4;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
-
-  // ══ SERVICE LINES — one page per DOS if multi-date ──────────
-  lbl('Service Lines', M, y);
-  y += 4;
-  hline(M, y, RX, DARK, 0.3);
-  y += 5;
-
-  // Column header setup
-  const SL = { cptW:16, descW:90, unitW:12, uprcW:22, modsW:14, dxW:12 };
-  const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
-  const DOS_W = 24;
-  const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
-  const SL2 = {
-    cptW:  14,
-    descW: hasDosPerLine ? 56 : SL.descW,
-    unitW: SL.unitW,
-    uprcW: SL.uprcW,
-    modsW: SL.modsW,
-    dxW:   SL.dxW,
-  };
-
-  // Group lines by DOS for pagination
-  var _dosGroups = [];
-  if (hasDosPerLine) {
-    var _dosMap = {};
-    lines.forEach(function(_l) {
-      var _d = _l.dos || claim.dos || '';
-      if (!_dosMap[_d]) { _dosMap[_d] = []; _dosGroups.push({dos:_d, lines:_dosMap[_d]}); }
-      _dosMap[_d].push(_l);
-    });
-  } else {
-    _dosGroups.push({dos: claim.dos||'', lines: lines});
-  }
-
-  _dosGroups.forEach(function(_grp, _gi) {
-    if (_gi > 0) {
-      doc.addPage();
-      fill(0,0,W,3,BRAND);
-      t(UC(prov.name||'Medical Provider'), M, 10, {b:true, sz:9, c:BLACK});
-      t('DOS: '+UC(_grp.dos)+'  ·  PATIENT: '+UC(patName||'Unknown'), M, 16, {sz:8, c:DARK});
-      hline(M, 20, RX, BORDER_LT, 0.4);
-      y = 26;
+    // ══ INSURANCE ══════════════════════════════════════════════
+    if (ins1) {
+      lbl(doc, 'Insurance', M, y); y += 5;
+      const ins1Parts=[safe(ins1.name)?UC(ins1.name):null,ins1.payerId?'(ID: '+ins1.payerId+')':null,ins1.policy?'Member: '+ins1.policy:null,ins1.group?'GROUP: '+UC(ins1.group):null].filter(Boolean).join('  ·  ');
+      if (ins1Parts) { t(doc, ins1Parts, M, y, {sz:9, c:DARK}); y += 5; }
+      const subParts=['SUBSCRIBER: '+UC([safe(ins1.lname),safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),(ins1.dob||pat.dob)?'DOB: '+_fmtDob(ins1.dob||pat.dob):null,ins1.relation?'RELATION: '+UC({'18':'Self','01':'Spouse','19':'Child','G8':'Other'}[ins1.relation]||ins1.relation):null].filter(Boolean).join('  ·  ');
+      if (subParts) { t(doc, subParts, M, y, {sz:9, c:DARK}); y += 4; }
+      y += 4; hline(doc, M, y, RX, BORDER_LT, 0.25); y += 5;
     }
-    // Table header
-    if (hasDosPerLine) t('DATE', M, y, {sz:7, b:true, c:BLACK});
-    t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
-    t('DESCRIPTION', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
-    t('UNITS', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('UNIT PRICE', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-    t('MODS', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
-    t('DX', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('TOTAL', RX, y, {sz:7, b:true, c:DARK, a:'right'});
-    y += 2;
-    hline(M, y, RX, DARK, 0.15);
-    y += 5;
 
-    _grp.lines.forEach(function(l, li) {
-      const dbSvc    = (db.services||[]).find(function(s){ return s.code===l.cpt||s.cpt===l.cpt; });
+    // ══ PROVIDERS ══════════════════════════════════════════════
+    if (rend.last || ref.last) {
+      const halfW = CW/2;
+      if (rend.last) {
+        lbl(doc, 'Rendering Provider', M, y);
+        t(doc, UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
+        const rendInfo=[rend.npi?'NPI: '+UC(rend.npi):null,rend.taxonomy?'TAXONOMY: '+UC(rend.taxonomy):null].filter(Boolean).join('  ·  ');
+        if (rendInfo) t(doc, rendInfo, M, y+10, {sz:9, c:DARK});
+        if (fac.name) t(doc, 'FACILITY: '+UC(fac.name)+(fac.npi?' · NPI: '+UC(fac.npi):''), M, y+15, {sz:9, c:DARK});
+      }
+      if (ref.last) {
+        lbl(doc, 'Referring Provider', M+halfW+2, y);
+        t(doc, UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
+        if (ref.npi) t(doc, 'NPI: '+UC(ref.npi), M+halfW+2, y+10, {sz:9, c:DARK});
+      }
+      y += (rend.last&&fac.name) ? 22 : 18;
+      hline(doc, M, y, RX, BORDER_LT, 0.25); y += 5;
+    }
+
+    // ══ DIAGNOSES ══════════════════════════════════════════════
+    if (dxArr.length) {
+      lbl(doc, 'Diagnoses (ICD-10)', M, y); y += 5;
+      const dxCols=4, dxW=CW/dxCols;
+      dxArr.forEach((dx,di) => {
+        const col=di%dxCols, row=Math.floor(di/dxCols);
+        t(doc, `${String.fromCharCode(65+di)}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:9, c:DARK});
+      });
+      y += Math.ceil(dxArr.length/dxCols)*6+4;
+      hline(doc, M, y, RX, BORDER_LT, 0.25); y += 5;
+    }
+
+    // ══ SERVICE LINES — all on one flow, add page when overflow ═
+    lbl(doc, 'Service Lines', M, y); y += 4;
+    hline(doc, M, y, RX, DARK, 0.3); y += 5;
+
+    const hasDosPerLine = !!(claim.multiDate || lines.some(function(l){return !!l.dos;}));
+    const DOS_W = 24;
+    const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
+    const SL = { cptW:14, descW: hasDosPerLine ? 56 : 90, unitW:12, uprcW:22, modsW:14, dxW:12 };
+
+    // Draw column headers helper
+    function drawColHeaders(doc, y) {
+      if (hasDosPerLine) t(doc, 'DATE', M, y, {sz:7, b:true, c:BLACK});
+      t(doc, 'CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
+      t(doc, 'DESCRIPTION', CPT_X+SL.cptW, y, {sz:7, b:true, c:BLACK});
+      t(doc, 'UNITS', CPT_X+SL.cptW+SL.descW, y, {sz:7, b:true, c:DARK, a:'center'});
+      t(doc, 'UNIT PRICE', CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
+      t(doc, 'MODS', CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW+3, y, {sz:7, b:true, c:BLACK});
+      t(doc, 'DX', CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+SL.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
+      t(doc, 'TOTAL', RX, y, {sz:7, b:true, c:DARK, a:'right'});
+      return y + 2;
+    }
+
+    y = drawColHeaders(doc, y);
+    hline(doc, M, y, RX, DARK, 0.15); y += 5;
+
+    // Render all lines in one flow — no grouping by date, no subtotals
+    lines.forEach(function(l, li) {
+      const dbSvc    = (db.services||[]).find(function(s){return s.code===l.cpt||s.cpt===l.cpt;});
       const descFull = UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
       const mods     = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
       const chg      = parseFloat(l.charge)||0;
@@ -10432,144 +10768,124 @@ const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); ret
       const dxPtr    = (l.dxPtr||'A').toUpperCase();
 
       doc.setFont('helvetica','normal'); doc.setFontSize(8);
-      const descLines = doc.splitTextToSize(descFull||'', SL2.descW - 2);
+      const descLines = doc.splitTextToSize(descFull||'', SL.descW - 2);
       const rowH = Math.max(7, descLines.length * 4.5);
 
-      if (hasDosPerLine) {
-        var lineDosRaw = l.dos || claim.dos || '';
-        var lineDosShort = lineDosRaw;
-        try {
-          var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
-          if (lineDosRaw.indexOf('-')>3) {
-            lineDosShort = dp2[1]+'/'+dp2[2]+'/'+dp2[0];
-          } else {
-            lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
-          }
-        } catch(e2){}
-        if (lineDosShort) t(lineDosShort, M, y+4, {sz:9, c:DARK});
+      // Check if this row will overflow into footer — if so, add new page
+      if (y + rowH > BODY_LIMIT) {
+        drawFooter(doc, claim, rend, prov);
+        y = addContinuationPage(doc, prov, patName, claim);
+        // Re-draw column headers on new page
+        y = drawColHeaders(doc, y);
+        hline(doc, M, y, RX, DARK, 0.15); y += 5;
       }
 
-      t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
-      descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
-      t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
-      t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:9, c:DARK, a:'right'});
-      if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:9, c:DARK});
-      t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
-      t($v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
+      // DOS per line
+      if (hasDosPerLine && l.dos) {
+        var lineDos = String(l.dos);
+        try {
+          var dp2 = lineDos.split(lineDos.indexOf('-')>3?'-':'/');
+          if (lineDos.indexOf('-')>3) lineDos=dp2[1]+'/'+dp2[2]+'/'+dp2[0];
+          else lineDos=dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
+        } catch(e2){}
+        t(doc, lineDos, M, y+4, {sz:9, c:DARK});
+      }
+
+      t(doc, UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
+      descLines.forEach(function(dl, dli){ t(doc, dl, CPT_X+SL.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
+      t(doc, String(units), CPT_X+SL.cptW+SL.descW+SL.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
+      t(doc, '$'+unitPrc.toFixed(2), CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW, y+4, {sz:9, c:DARK, a:'right'});
+      if (mods) t(doc, UC(mods), CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW+3, y+4, {sz:9, c:DARK});
+      t(doc, dxPtr, CPT_X+SL.cptW+SL.descW+SL.unitW+SL.uprcW+SL.modsW+SL.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
+      t(doc, $v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
       y += rowH;
-      if (li < _grp.lines.length - 1) { hline(M, y, RX, BORDER_LT, 0.15); y += 3; }
+      if (li < lines.length - 1) { hline(doc, M, y, RX, BORDER_LT, 0.15); y += 3; }
     });
 
-    y += 4;
-    hline(M, y, RX, DARK, 0.4);
-    y += 2;
-
-    if (_dosGroups.length > 1) {
-      var _grpTotal = _grp.lines.reduce(function(s, l2) {
-        return s + (parseFloat(l2.charge)||0) * (parseInt(l2.units)||1);
-      }, 0);
-      t('SUBTOTAL — DOS '+_grp.dos, M, y+6, {b:true, sz:9, c:DARK});
-      t($v(_grpTotal), RX, y+6, {b:true, sz:10, c:DARK, a:'right'});
-      y += 12;
+    // Total row — check space
+    if (y + 14 > BODY_LIMIT) {
+      drawFooter(doc, claim, rend, prov);
+      y = addContinuationPage(doc, prov, patName, claim);
     }
-  });
+    hline(doc, M, y, RX, DARK, 0.6); y += 2;
+    t(doc, 'TOTAL CHARGES', M, y+6, {b:true, sz:10, c:BLACK});
+    t(doc, $v(total), RX, y+6, {b:true, sz:11, c:BLACK, a:'right'});
+    y += 14;
 
-  hline(M, y, RX, DARK, 0.6);
-  y += 2;
-  t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:BLACK});
-  t($v(total), RX, y+6, {b:true, sz:11, c:BLACK, a:'right'});
-  y += 14;
+    // Fixed footer on this page
+    drawFooter(doc, claim, rend, prov);
 
-  // ══ FOOTER ══════════════════════════════════════════════════════
-  const fY = 234;
-  hline(M, fY, RX, BORDER_LT, 0.3);
-  fill(M, fY+1.5, 3, 20, DARK);
-
-
-  const rendName = rend.last
-    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+UC(rend.npi):'')
-    : UC(prov.name||'Provider');
-  t('ELECTRONICALLY SIGNED BY:', M+6, fY+6, {sz:7, c:GRAY2});
-  t(rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
-  if (rend.taxonomy) t('TAXONOMY: '+UC(rend.taxonomy), M+6, fY+19, {sz:7, c:DARK});
-
-  const now=new Date();
-  const hr12=now.getHours()%12||12;
-  const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
-  const dosParts2=_parseDateParts(claim.dos);
-  const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-  t('GENERATED: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
-    } catch(pdfErr) {
-      console.error('[PDF] Error rendering claim:', claim?.pcn, pdfErr);
-      toast('PDF error: ' + pdfErr.message, 'err');
-    }
   }); // end patClaims.forEach
 
-  // Filename: LLFFMMDDYYYYMMDDYYYY.pdf
+  // Watermark on all pages
+  drawWatermark(doc);
+
+  // Save PDF
   const fp  = patClaims[0];
   const fpt = db.patients.find(function(p){return p.id===fp?.patId;})||{};
   const l2  = (fpt.last||'XX').slice(0,2).toUpperCase();
   const f2  = (fpt.first||'XX').slice(0,2).toUpperCase();
   const dp  = _parseDateParts(fpt.dob);
   const sp  = _parseDateParts(fp?.dos);
-  addPDFWatermark(doc);
   var _sbFilename = `${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`;
-  doc.save(_sbFilename);
 
-  // Auto-save superbill metadata to patient documents (lightweight — no base64)
+  // ── Save actual PDF base64 to patient Records > Superbills ──────
   try {
+    var _sbBase64 = doc.output('datauristring');
     var _sbPatId = fpt.id;
     var _sbDate = new Date().toISOString();
-    var _sbFirstClaim = (byPatient.get(_sbPatId)||[])[0]||{};
-    var _sbProv = db.providers.find(function(x){ return x.id===_sbFirstClaim.providerId; })||{};
-    var _sbRend = db.rendering.find(function(x){ return x.id===_sbFirstClaim.renderingId; })||{};
-    var _sbFac  = db.facilities.find(function(x){ return x.id===_sbFirstClaim.facilityId; })||{};
-    var _sbTotal = claimTotal(_sbFirstClaim)||'0.00';
+    var _sbFirstClaim = patClaims[0] || {};
+    var _sbProv = db.providers.find(function(x){return x.id===_sbFirstClaim.providerId;})||{};
+    var _sbRend = db.rendering.find(function(x){return x.id===_sbFirstClaim.renderingId;})||{};
+    var _sbFac  = db.facilities.find(function(x){return x.id===_sbFirstClaim.facilityId;})||{};
+    var _claimIds = patClaims.map(function(c){return c.id;});
     setDB(function(db3) {
-      var _pat = db3.patients.find(function(x){ return x.id === _sbPatId; });
+      var _pat = db3.patients.find(function(x){return x.id === _sbPatId;});
       if (_pat) {
         if (!_pat.documents) _pat.documents = [];
         if (!_pat.superbills) _pat.superbills = [];
-        var _claims = byPatient.get(_sbPatId) || [];
-        var _claimIds = _claims.map(function(c){ return c.id; });
-        var _dos = _claims[0]?.dos || '';
-        var _claim = _claims[0] || {};
-        // Deduplicate: skip if same claim already saved
-        var _already = (_pat.documents||[]).find(function(d){ return d.source==='superbill' && d.claimIds && _claimIds.length && JSON.stringify(d.claimIds.slice().sort())===JSON.stringify(_claimIds.slice().sort()); });
-        if (_already) { return; } // already exists — skip lightweight save
+        // Remove any previous superbill for same claim IDs
+        var _key = _claimIds.slice().sort().join(',');
+        _pat.documents = _pat.documents.filter(function(d){
+          if (d.source !== 'superbill') return true;
+          var _dk = (d.claimIds||[]).slice().sort().join(',');
+          return _dk !== _key;
+        });
+        _pat.superbills = _pat.superbills.filter(function(d){
+          var _dk = (d.claimIds||[]).slice().sort().join(',');
+          return _dk !== _key;
+        });
         var _sbDoc = {
           id: 'sb_' + Date.now(),
           name: _sbFilename,
           type: 'application/pdf',
           category: 'Superbills',
-          date: _dos,
+          date: _sbFirstClaim.dos || '',
           createdAt: _sbDate,
           claimIds: _claimIds,
+          claimPCN: _sbFirstClaim.pcn || '',
           source: 'superbill',
-          // Lightweight structured data (no base64 PDF)
+          data: _sbBase64,   // actual PDF base64
           providerName: _sbProv.name || '',
           providerNPI: _sbProv.npi || '',
           renderingName: ((_sbRend.first||'')+' '+(_sbRend.last||'')).trim(),
           facilityName: _sbFac.name || '',
-          dx: _claim.dx || [],
-          lines: _claim.lines || [],
-          ins1: _pat.ins1 || {},
-          totalCharge: _sbTotal,
-          claimPCN: _claim.pcn || '',
+          dx: _sbFirstClaim.dx || [],
+          lines: _sbFirstClaim.lines || [],
+          totalCharge: claimTotal(_sbFirstClaim)||'0.00',
         };
-        _pat.superbills.push(_sbDoc);
-        _pat.documents.push(_sbDoc);
+        _pat.documents.unshift(_sbDoc);
+        _pat.superbills.unshift(_sbDoc);
       }
     });
-  } catch(_sbErr) { console.warn('Superbill auto-save:', _sbErr); }
+  } catch(_sbErr) { console.warn('Superbill save:', _sbErr); }
 
+  doc.save(_sbFilename);
   fileCount++;
 }); // end byPatient.forEach
 
-toast(`${fileCount} superbill PDF${fileCount>1?'s':''} exported — one per patient`);
+toast(`${fileCount} superbill PDF${fileCount>1?'s':''} exported`);
 }
-
-
 
 // ?? Bulk Patients Actions ????????????????????????????????
 async function bulkPatientsAction(action) {
@@ -16111,6 +16427,39 @@ let _chartPatId = null;
 let _chartTabActive = 'summary';
 
 function openPatientChart(patId) {
+  // Auto-migrate legacy insurance fields into pat.insurances[] for older patients
+  try {
+    var _db0 = getDB();
+    var _p0 = _db0.patients.find(function(p){return p.id===patId;});
+    if (_p0 && (!_p0.insurances || !_p0.insurances.length) && (_p0.payerName || _p0.payerid || _p0.subNum)) {
+      setDB(function(db0) {
+        var _pm = db0.patients.find(function(p){return p.id===patId;});
+        if (_pm) {
+          if (!_pm.insurances) _pm.insurances = [];
+          _pm.insurances.push({
+            id: 'ins_' + Date.now(),
+            insType: 'Primary',
+            name: _pm.payerName || '',
+            payerId: _pm.payerid || '',
+            policy: _pm.subNum || '',
+            group: _pm.group || '',
+            plan: _pm.plan || '',
+            relation: _pm.rel || '18',
+            lname: _pm.subLast || _pm.last || '',
+            fname: _pm.subFirst || _pm.first || '',
+            dob: _pm.subDob || _pm.dob || '',
+            sex: _pm.sex || '',
+            copay: _pm.copay || '0.00',
+            deductible: _pm.deductible || '0.00',
+            coins: '0',
+            status: 'Not Verified',
+            acceptAssign: 'Accepted',
+            preAuth: false,
+          });
+        }
+      });
+    }
+  } catch(_me) {}
 _chartPatId = patId;
 _chartTabActive = 'summary';
 const existing = document.getElementById('pt-chart-overlay');
@@ -16600,23 +16949,22 @@ const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
 const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.status)).length;
 const activeStr = pat.inactive ? 'Inactive' : 'Active';
 const TABS = [
-{id:'search', label:'Search'},
-{id:'demographics',label:'Demos'},
-{id:'insurance', label:'Insurances'},
-{id:'auth', label:'Auth/Referrals'},
-{id:'contacts', label:'Contacts'},
-{id:'summary', label:'Summary'},
-{id:'appointments',label:'Schedule'},
-{id:'followup', label:'Followup'},
-{id:'documents', label:'Records'},
-{id:'encounters', label:'Encounters'},
-{id:'bills', label:'Bills'},
-{id:'communication',label:'Communication'},
-{id:'tasks', label:'Tasks'},
-{id:'pharmacies', label:'Pharmacies'},
-{id:'letter', label:'Letter'},
-{id:'careteam', label:'Care Team'},
-{id:'clinical', label:'Clinical Summary', danger:true},
+{id:'summary',      label:'Summary'},
+{id:'demographics', label:'Info'},
+{id:'insurance',    label:'Coverage'},
+{id:'auth',         label:'Auth / Referrals'},
+{id:'contacts',     label:'Contacts'},
+{id:'appointments', label:'Schedule'},
+{id:'followup',     label:'Follow-Up'},
+{id:'documents',    label:'Records'},
+{id:'encounters',   label:'Encounters'},
+{id:'bills',        label:'Bills'},
+{id:'messaging',    label:'Messaging'},
+{id:'tasks',        label:'Tasks'},
+{id:'pharmacies',   label:'Pharmacies'},
+{id:'letter',       label:'Letters'},
+{id:'careteam',     label:'Care Team'},
+{id:'clinical',     label:'Clinical Summary', danger:true},
 ];
 const tabsHTML = TABS.map(t =>
 `<div class="ptc-tab${t.danger?' danger':''}" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')">${t.label}</div>`
@@ -16738,13 +17086,14 @@ const db = getDB();
 const pat = db.patients.find(p => p.id === _chartPatId);
 if (!pat) return;
 switch (tabId) {
-case 'summary': mainEl.innerHTML = _buildSummaryTab(pat, db); break;
+case 'summary':      mainEl.innerHTML = _buildSummaryTab(pat, db); break;
 case 'demographics': mainEl.innerHTML = _buildDemoTab(pat, db); break;
-case 'insurance': mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
+case 'insurance':    mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
 case 'appointments': mainEl.innerHTML = _buildApptTab(pat, db); break;
-case 'bills': mainEl.innerHTML = _buildBillsTab(pat, db); break;
-case 'documents': mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
-case 'encounters': mainEl.innerHTML = _buildEncountersTab(pat, db); break;
+case 'bills':        mainEl.innerHTML = _buildBillsTab(pat, db); break;
+case 'documents':    mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
+case 'encounters':   mainEl.innerHTML = _buildEncountersTab(pat, db); break;
+case 'messaging':    mainEl.innerHTML = _buildMessagingTab(pat, db); break;
 default:
 mainEl.innerHTML = `<div class="ptc-panel" style="padding:30px;text-align:center;color:var(--text3)">
 <i data-lucide="construction" class="lci" style="width:30px;height:30px;margin-bottom:8px;display:block;margin-inline:auto"></i>
@@ -16753,6 +17102,18 @@ mainEl.innerHTML = `<div class="ptc-panel" style="padding:30px;text-align:center
 </div>`;
 }
 setTimeout(_renderLucideIcons, 20);
+}
+
+function _buildMessagingTab(pat, db) {
+  var notes = (db.notes||[]).filter(function(n){return n.patId===pat.id;});
+  var msgs  = (pat.messages||[]).slice().reverse();
+  return '<div class="ptc-panel"><div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between"><span>Messaging &amp; Communication</span><button class="btn btn-xs btn-primary" onclick="toast(&#39;Compose message — coming soon&#39;,&#39;info&#39;)"><i data-lucide="mail-plus" class="lci" style="width:11px;height:11px"></i> New Message</button></div><div class="ptc-panel-body">'
+    + (msgs.length ? msgs.map(function(m){return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-weight:700;color:var(--text)">'+m.subject+'</span><span style="color:var(--text3);font-size:11px">'+m.date+'</span></div><div style="color:var(--text2)">'+m.body+'</div></div>';}).join('')
+    : '<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px"><i data-lucide="message-circle" class="lci" style="width:28px;height:28px;display:block;margin:0 auto 8px;opacity:.3"></i>No messages for this patient.</div>')
+    + '</div></div>'
+    + '<div class="ptc-panel"><div class="ptc-panel-hdr">Clinical Notes</div><div class="ptc-panel-body">'
+    + (notes.length ? notes.slice(0,5).map(function(n){return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="font-weight:600;color:var(--text)">'+n.title+'</span> <span style="color:var(--text3)">— '+(n.date||n.createdAt||'')+'</span></div>';}).join('') : '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">No notes on file.</div>')
+    + '</div></div>';
 }
 
 
@@ -17181,9 +17542,9 @@ const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('seco
 
 // ?? Helpers ???????????????????????????????????????????????????
 const R = (l,v,bold=false)=>v?`
-<div style="display:grid;grid-template-columns:130px 1fr;padding:3px 0;border-bottom:1px solid #e8e6dc;font-size:12px">
-<span style="color:#87867f;font-weight:600">${l}</span>
-<span style="color:#141413;font-weight:${bold?'700':'400'}">: ${v}</span>
+<div style="display:flex;flex-direction:column;padding:4px 0 4px 0;border-bottom:1px solid #f0ede6;font-size:12px;gap:1px">
+<span style="color:#9b9890;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em">${l}</span>
+<span style="color:#141413;font-weight:${bold?'700':'500'};font-size:12.5px">${v}</span>
 </div>`:'';
 
 const insBlock = (ins, label) => !ins?'':`
@@ -17240,18 +17601,18 @@ return `
 </div>
 </div>
 <div class="ptc-panel-body" style="padding:12px 14px">
-<div style="display:grid;grid-template-columns:80px 1fr;gap:0 16px;align-items:start">
+<div style="display:flex;gap:18px;align-items:flex-start">
 
-<!-- Photo column -->
-<div style="text-align:center">
+<!-- Avatar column -->
+<div style="text-align:center;flex-shrink:0">
 <div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
-style="width:70px;height:70px;border:2px solid #e8e6dc;border-radius:8px;
-background:#f5f4ed;display:flex;align-items:center;justify-content:center;
-font-size:24px;font-weight:700;color:var(--text2);cursor:${pat.photo?'zoom-in':'default'};
-overflow:hidden;margin:0 auto">
-${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:`${initials}`}
+style="cursor:${pat.photo?'zoom-in':'default'};display:inline-block">
+${pat.photo
+  ? `<img src="${pat.photo}" style="width:70px;height:70px;border-radius:10px;object-fit:cover;display:block">`
+  : _patientAvatar(pat, 70)
+}
 </div>
-<button class="btn-icon" onclick="_openPhotoOptions('${pat.id}')" title="Add/Edit Photo" style="margin-top:4px;width:100%"><i data-lucide="camera" class="lci" style="width:14px;height:14px"></i></button>
+<button class="btn-icon" onclick="_openPhotoOptions('${pat.id}')" title="Add/Edit Photo" style="margin-top:5px;width:70px;font-size:10px"><i data-lucide="camera" class="lci" style="width:12px;height:12px"></i></button>
 </div>
 
 <!-- Details grid (3 columns) -->
@@ -17343,13 +17704,6 @@ ${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
 </div>
 </div>
 
-<!-- ?? 6. PATIENT COMMUNICATION ?? -->
-<div class="ptc-panel" style="margin-bottom:12px">
-<div class="ptc-panel-hdr">Patient Communication</div>
-<div class="ptc-panel-body" style="padding:10px 14px;font-size:12px;color:#dc2626;font-weight:600">
-No Notes for this patient.
-</div>
-</div>
 
 </div>`;
 }
@@ -17392,8 +17746,8 @@ background:transparent;
 display:flex;align-items:center;justify-content:center;
 cursor:${pat.photo?'zoom-in':'default'};flex-shrink:0">
 ${pat.photo
-? `<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`
-: _patientAvatar(pat, 90)
+  ? `<img src="${pat.photo}" style="width:90px;height:90px;border-radius:12px;object-fit:cover;display:block">`
+  : _patientAvatar(pat, 90)
 }
 </div>
 <button class="btn btn-sm" onclick="_openPhotoOptions('${pat.id}')"
@@ -17468,26 +17822,7 @@ ${fld('refPhys','Referring Physician',pat.refPhys||'')}
 ${fld('inactive','Status',pat.inactive?'inactive':'active',null,false,[['active','Active'],['inactive','Inactive']])}
 ${fld('nickname','Nick Name',pat.nickname||'')}
 </div>
-<!-- Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Primary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid','Payer ID',pat.payerid||'','text',false)}
-${fld('payername','Payer Name',pat.payerName||'')}
-${fld('subnum','Subscriber ID',pat.subNum||'','text',true)}
-${fld('sublast','Subscriber Last',pat.subLast||'')}
-${fld('subfirst','Subscriber First',pat.subFirst||'')}
-${fld('subdob','Subscriber DOB',pat.subDob||'','date')}
-${fld('group','Group #',pat.group||'')}
-${fld('plan','Plan Name',pat.plan||'')}
-${fld('rel','Relationship',pat.rel||'',null,false,[['','— Select —'],['18','Self'],['01','Spouse'],['19','Child'],['G8','Other'],['32','Mother'],['33','Father']])}
-</div>
-<!-- Secondary Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Secondary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid2','Payer ID',pat.payerid2||'','text',false)}
-${fld('payername2','Payer Name',pat.payerName2||'')}
-${fld('subnum2','Subscriber ID',pat.subNum2||'','text',false)}
-</div>
+<!-- Insurance fields moved to Coverage tab -->
 <!-- Flags -->
 <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Flags</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px">
@@ -17531,7 +17866,7 @@ email:gv('email'), prefContact:gv('prefContact'), apptReminder:gv('apptReminder'
 pcp:gv('pcp'), refPhys:gv('refPhys'), nickname:gv('nickname'),
 inactive: gv('inactive')==='inactive',
 payerid:gv('payerid'), payerName:gv('payername'),
-subNum:gv('subnum'), subLast:gv('sublast'), subFirst:gv('subfirst'),
+subNum:sanitizeSubID(gv('subnum')), subLast:gv('sublast'), subFirst:gv('subfirst'),
 subDob:gv('subdob'), group:gv('group'), plan:gv('plan'),
 rel:gv('rel'),
 payerid2:gv('payerid2'), payerName2:gv('payername2'), subNum2:gv('subnum2'),
@@ -20875,1253 +21210,99 @@ function applyTheme() {
 const DB_KEY = 'rcmpro_v3';
 const API_CFG_KEY = 'rcmpro_api_cfg';
 
-function _patientAvatar(pat, size=70) {
-const sex = (pat.sex||'').toUpperCase();
-const s = size;
-
-// Colors — system emerald palette
-// Skin tones: light face + slightly darker shadow side
-const SKIN = '#FBBF8A';
-const SKIN_SHD = '#F0A870';
-const NECK = '#FBBF8A';
-
-if (sex === 'F') {
-// Female — warm bg, dark hair, warm shirt
-const BG = '#c96442';
-const HAIR = '#141413';
-const SHRT = '#4d4c48';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#fc${s})">
-<!-- Shirt / bust -->
-<path d="M10 110 Q10 72 30 66 Q40 62 50 62 Q60 62 70 66 Q90 72 90 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="52" width="14" height="14" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair back layer -->
-<ellipse cx="50" cy="28" rx="19" ry="13" fill="${HAIR}"/>
-<!-- Hair left side — shoulder length -->
-<path d="M31 28 Q28 45 30 62 Q35 68 38 65 Q36 50 34 35 Z" fill="${HAIR}"/>
-<!-- Hair right side -->
-<path d="M69 28 Q72 45 70 62 Q65 68 62 65 Q64 50 66 35 Z" fill="${HAIR}"/>
-<!-- Hair top parting -->
-<path d="M31 25 Q50 18 69 25 Q65 20 50 18 Q35 18 31 25 Z" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-if (sex === 'M') {
-// Male — dark warm bg, dark short hair, terracotta shirt
-const BG = '#4d4c48';
-const HAIR = '#141413';
-const SHRT = '#c96442';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="mc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#mc${s})">
-<!-- Shirt / bust — wider masculine shoulders -->
-<path d="M4 110 Q4 70 26 63 Q37 58 50 58 Q63 58 74 63 Q96 70 96 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="12" rx="3" fill="${NECK}"/>
-<!-- Face — slightly squarer jaw -->
-<path d="M33 38 Q33 24 50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Q33 60 33 52 Z" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Z" fill="${SKIN_SHD}"/>
-<!-- Short hair — flat top, tight sides -->
-<path d="M33 38 Q33 22 50 20 Q67 22 67 38 Q67 26 50 24 Q33 26 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair left -->
-<path d="M33 38 Q30 35 31 28 Q35 22 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair right -->
-<path d="M67 38 Q70 35 69 28 Q65 22 67 38 Z" fill="${HAIR}"/>
-<!-- Hair top -->
-<path d="M33 32 Q50 20 67 32 Q60 22 50 21 Q40 22 33 32 Z" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-// Unknown / Other — slate bg, neutral
-const BG = '#87867f';
-const HAIR = '#4d4c48';
-const SHRT = '#3d3d3a';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="uc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#uc${s})">
-<!-- Shirt -->
-<path d="M8 110 Q8 71 28 64 Q38 59 50 59 Q62 59 72 64 Q92 71 92 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="13" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair -->
-<ellipse cx="50" cy="27" rx="19" ry="11" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-
-
-function getApiConfig() {
-  // Default worker URL if not set per provider
-  const DEFAULT_PROXY = CLEARINGHOUSE_PROXY;
-// Also reads OPENAI_KEY from localStorage if stored
-const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
-if (stored.openaiKey) return stored;
-// Return API config for the active provider
-// Primary: active provider's stored acctKey
-if (activeProviderId) {
-const db = getDB();
-const prov = db.providers.find(p => p.id === activeProviderId);
-if (prov?.acctKey) return { acctKey: prov.acctKey };
-}
-// Fallback: in-memory cache from loadFromFirestore
-if (_apiConfigCache?.acctKey) return _apiConfigCache;
-// Last resort: localStorage cache
-try {
-const cfg = JSON.parse(localStorage.getItem(API_CFG_KEY) || '{}');
-if (cfg.acctKey) return cfg;
-} catch(e) {}
-return {};
-}
-
-// ???????????????????????????????????????????????????????
-// FIREBASE — Cloud Database
-// ???????????????????????????????????????????????????????
-const FB_CONFIG = {
-  apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
-  authDomain:        "claimdatacare-451fe.firebaseapp.com",
-  projectId:         "claimdatacare-451fe",
-  storageBucket:     "claimdatacare-451fe.firebasestorage.app",
-  messagingSenderId: "1005844575427",
-  appId:             "1:1005844575427:web:eb9799d720d50e5f5e1e76"
-};
-
-let _fbApp = null;
-let claimTabFilter = 'all'; // tracks active tab in claims list
-var activeProviderId = null;  // currently selected billing provider
-let _db = null;
-let _fbReady = false;
-let _localDB = null;
-let _auth = null;
-let _adminUser = null;
-let _usersCache = null;
-let _apiConfigCache = null; // in-memory cache
-
-function initFirebase() {
-try {
-if (!firebase?.apps?.length) {
-_fbApp = firebase.initializeApp(FB_CONFIG);
-} else {
-_fbApp = firebase.app();
-}
-_db = firebase.firestore();
-_auth = firebase.auth();
-_fbReady = true;
-console.log('Firebase connected ?');
-setFbStatus('','green');
-_auth.onAuthStateChanged(user => {
-// Firebase auth state — only used for Firestore access, not UI roles
-// Admin UI is controlled exclusively by the internal session role
-_adminUser = user;
-});
-} catch(e) {
-console.warn('Firebase init failed, using localStorage:', e);
-setFbStatus('Offline','amber');
-}
-}
-
-function setFbStatus(label, color) {
-// Only show amber/red errors — hide all success/cloud states
-const el = document.getElementById('fb-status');
-if (!el) return;
-if (!label || color === 'green' || color === 'ok') { el.style.display = 'none'; return; }
-el.style.display = '';
-el.textContent = label;
-el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
-}
-
-// Synchronous local cache (for all sync callers)
-function getDB() {
-if (_localDB) { return _localDB; }
-var _cached = _loadCache();
-if (_cached) {
-_localDB = _mergeEmpty(_cached);
-console.log('[CDC] getDB: loaded from cache | providers='+(_localDB.providers||[]).length+' patients='+(_localDB.patients||[]).length+' claims='+(_localDB.claims||[]).length);
-} else {
-_localDB = { providers:[], facilities:[], rendering:[], referring:[], patients:[], claims:[], services:[], serviceGroups:[], appointments:[], notes:[], claimLogs:{}, claimEOB:{}, invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[], intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[] };
-console.log('[CDC] getDB: NO cache found, created empty DB');
-}
-return _localDB;
-}
-
-// ????????????????????????????????????????????????????????????????????????????
-// FIRESTORE PERSISTENCE LAYER v2
-// Architecture: individual documents in typed collections (not one monolithic doc)
-//
-// Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — encounter notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
-//
-// All writes go to Firestore first. localStorage is a read-time cache only.
-// ????????????????????????????????????????????????????????????????????????????
-
-// ?? Constants ???????????????????????????????????????????????????????????????
-const BATCH_SIZE = 400; // Firestore batch limit is 500 writes
-const CACHE_KEY = 'cdc_cache_v2';
-// ?? Helpers ??????????????????????????????????????????????????????????????????
-
-// Write an array of objects to a Firestore collection using batched writes
-async function _fsWriteCollection(collName, items) {
-  if (!_fbReady || !_db || !items?.length) return;
-  try {
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const chunk = items.slice(i, i + BATCH_SIZE);
-      const batch = _db.batch();
-      chunk.forEach(item => {
-        if (!item.id) return;
-        const safe = {};
-        for (const [k, v] of Object.entries(item)) {
-          if (typeof v === 'string' && v.startsWith('data:image') && v.length > 933333) {
-            try {
-              const canvas = document.createElement('canvas');
-              const img = new Image();
-              img.src = v;
-              if (img.width > 0) {
-                const ratio = Math.min(500/img.width, 500/img.height, 1);
-                canvas.width  = Math.round(img.width  * ratio);
-                canvas.height = Math.round(img.height * ratio);
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                safe[k] = canvas.toDataURL('image/jpeg', 0.7);
-              } else {
-                safe[k] = '';
-              }
-            } catch(e) { safe[k] = ''; }
-          } else {
-            safe[k] = v;
-          }
-        }
-        batch.set(_db.collection(collName).doc(String(item.id)), safe);
-      });
-      await batch.commit();
-    }
-  } catch(e) {
-    console.warn(`Firestore write failed for ${collName}:`, e.message);
-  }
-}
-
-// Read all docs from a collection
-async function _fsReadCollection(collName) {
-if (!_fbReady || !_db) return [];
-try {
-  const snap = await _db.collection(collName).get();
-  return snap.docs.map(d => d.data());
-} catch(e) {
-  console.warn(`Firestore read failed for ${collName}:`, e.message);
-  return [];
-}
-}
-
-// Delete docs from a collection that are not in the current list
-async function _fsSyncCollection(collName, items) {
-if (!_fbReady || !_db) return;
-try {
-  const existing = await _db.collection(collName).get();
-  const currentIds = new Set(items.map(i => String(i.id)));
-  const batch = _db.batch();
-  let deleteCount = 0;
-  existing.docs.forEach(doc => {
-  if (!currentIds.has(doc.id)) {
-  batch.delete(doc.ref);
-  deleteCount++;
-  }
-  });
-  if (deleteCount > 0) await batch.commit();
-  await _fsWriteCollection(collName, items);
-} catch(e) {
-  console.warn(`Firestore sync failed for ${collName}:`, e.message);
-}
-}
-
-// Write/delete a single document
-async function _fsSetDoc(collName, id, data) {
-if (!_fbReady || !_db) return;
-try {
-  await _db.collection(collName).doc(String(id)).set(data);
-} catch(e) {
-  console.warn(`Firestore setDoc failed for ${collName}/${id}:`, e.message);
-}
-}
-
-async function _fsDeleteDoc(collName, id) {
-if (!_fbReady || !_db) return;
-try {
-  await _db.collection(collName).doc(String(id)).delete();
-} catch(e) {
-  console.warn(`Firestore deleteDoc failed for ${collName}/${id}:`, e.message);
-}
-}
-
-// ?? Cache ????????????????????????????????????????????????????????????????????
-function _saveCache(db) {
-try { localStorage.setItem(CACHE_KEY, JSON.stringify(db)); } catch(e) {}
-}
-
-function _loadCache() {
-try {
-const raw = localStorage.getItem(CACHE_KEY) || '';
-return raw ? JSON.parse(raw) : null;
-} catch(e) { return null; }
-}
-
-// ?? Load all collections from Firestore ?????????????????????????????????????
-async function loadFromFirestoreWhenReady() {
-  return new Promise(function(resolve) {
-    var tries = 0;
-    function attempt() {
-      tries++;
-      if (tries > 30) { resolve(); return; } // timeout after 3s
-      if (_fbReady && _db) {
-        loadFromFirestore().then(resolve).catch(resolve);
-      } else {
-        setTimeout(attempt, 100);
-      }
-    }
-    attempt();
-  });
-}
-
-async function loadFromFirestore() {
-  if (!_fbReady || !_db) {
-    const cached = _loadCache();
-    if (cached) { _localDB = _mergeEmpty(cached); console.log('Loaded from cache (offline)'); }
-    return;
-  }
-  if (window._restoreInProgress) return;
-
-  // ── Load config first (palette/theme) so UI looks right immediately ──
-  try {
-    const configDoc = await _db.collection('meta').doc('config').get();
-    if (configDoc.exists) {
-      const cfg = configDoc.data();
-      _apiConfigCache = cfg;
-      if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
-      try { applyTheme(); } catch(e) {}
-    }
-  } catch(e) {}
-
-  setFbStatus('Syncing...', 'amber');
-
-  // ── Load critical collections first (providers, patients, claims) ──
-  try {
-    const [providers, patients, claims, configDoc2, usersDoc, cmDoc] = await Promise.all([
-      _fsReadCollection('providers'),
-      _fsReadCollection('patients'),
-      _fsReadCollection('claims'),
-      _db.collection('meta').doc('config').get(),
-      _db.collection('meta').doc('users').get(),
-      _db.collection('meta').doc('cmData').get(),
-    ]);
-
-    // Show data immediately — don't wait for the rest
-    if (!_localDB) _localDB = _mergeEmpty({});
-    _localDB.providers = providers;
-    _localDB.patients  = patients;
-    _localDB.claims    = claims;
-
-    if (usersDoc.exists) {
-      _usersCache = usersDoc.data().list || [];
-      try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
-    }
-
-    // Load CM data from Firestore (merged with empty template to ensure all keys exist)
-    if (cmDoc.exists) {
-      _localDB.cm = Object.assign(_cmEmpty(), cmDoc.data());
-      console.log('[CDC] CM data loaded from Firestore: ' + (_localDB.cm.clients||[]).length + ' clients');
-    } else {
-      // Check if there is legacy data in localStorage to migrate
-      try {
-        var _cmLegacy = localStorage.getItem(CM_KEY);
-        if (_cmLegacy) {
-          var _cmParsed = JSON.parse(_cmLegacy);
-          if (_cmParsed && typeof _cmParsed === 'object') {
-            _localDB.cm = Object.assign(_cmEmpty(), _cmParsed);
-            _saveCMToFirestore(_localDB.cm);
-            try { localStorage.removeItem(CM_KEY); } catch(e) {}
-            console.log('[CDC] CM data migrated from localStorage to Firestore on load');
-          }
-        }
-      } catch(e) {}
-      if (!_localDB.cm) _localDB.cm = _cmEmpty();
-    }
-
-    setFbStatus('', 'green');
-    console.log('Core loaded: ' + patients.length + ' patients, ' + claims.length + ' claims');
-
-    // Trigger _afterLoad-style update with core data
-    try {
-      const s = getSession();
-      if (s && providers.length) {
-        const savedId = s.activeBillingProviderId;
-        const vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
-        activeProviderId = vp.id;
-        s.activeBillingProviderId = activeProviderId;
-        setSession(s);
-        rebuildProvSel();
-      } else if (!activeProviderId && patients.length) {
-        const pIds = [...new Set(patients.map(function(p){ return p.providerId; }).filter(Boolean))];
-        if (pIds.length) activeProviderId = pIds[0];
-      }
-      try { renderDashboard(); } catch(e) {}
-      updateBadges();
-    } catch(e) {}
-
-  } catch(err) {
-    console.warn('Firestore core load failed:', err.message, err.code);
-    if (err.code === 'permission-denied') {
-      setFbStatus('Auth error', 'red');
-      console.error('PERMISSION DENIED — Check Firestore rules');
-    } else {
-      setFbStatus('Offline', 'amber');
-    }
-    const cached = _loadCache();
-    if (cached) { _localDB = _mergeEmpty(cached); }
-    return;
-  }
-
-  // ── Load secondary collections in background ──────────────────
-  try {
-    const [
-      facilities, rendering, referring, services, serviceGroups,
-      appointments, notes, invoicingIssuers, invoicingClients, invoices,
-      insurances, intakeClients, intakeForms, intakeSubmissions, evaluations,
-      eobBatches, eobUnmatched,
-      claimLogsSnap, claimEOBSnap
-    ] = await Promise.all([
-      _fsReadCollection('facilities'),
-      _fsReadCollection('rendering'),
-      _fsReadCollection('referring'),
-      _fsReadCollection('services'),
-      _fsReadCollection('serviceGroups'),
-      _fsReadCollection('appointments'),
-      _fsReadCollection('notes'),
-      _fsReadCollection('invoicingIssuers'),
-      _fsReadCollection('invoicingClients'),
-      _fsReadCollection('invoices'),
-      _fsReadCollection('insurances'),
-      _fsReadCollection('intakeClients'),
-      _fsReadCollection('intakeForms'),
-      _fsReadCollection('intakeSubmissions'),
-      _fsReadCollection('evaluations'),
-      _fsReadCollection('eobBatches'),
-      _fsReadCollection('eobUnmatched'),
-      _db.collection('claimLogs').get(),
-      _db.collection('claimEOB').get(),
-    ]);
-
-    const claimLogs = {};
-    claimLogsSnap.docs.forEach(function(d){ claimLogs[d.id] = d.data().entries||[]; });
-    const claimEOB = {};
-    claimEOBSnap.docs.forEach(function(d){ claimEOB[d.id] = d.data().entries||[]; });
-
-    Object.assign(_localDB, {
-      facilities, rendering, referring, services, serviceGroups,
-      appointments, notes, claimLogs, claimEOB,
-      invoicingIssuers, invoicingClients, invoices, insurances,
-      intakeClients, intakeForms, intakeSubmissions, evaluations,
-      eobBatches, eobUnmatched,
-    });
-
-    _saveCache(_localDB);
-    console.log('All data loaded from Firestore');
-    // Refresh dashboard with complete data
-    try { renderDashboard(); updateBadges(); } catch(e) {}
-
-  } catch(err) {
-    console.warn('Secondary Firestore load failed:', err.message);
-  }
-}
-
-// Ensure all keys exist in a db object
-function _mergeEmpty(db) {
-const empty = {
-providers:[], facilities:[], rendering:[], referring:[],
-patients:[], claims:[], services:[], serviceGroups:[],
-appointments:[], notes:[], claimLogs:{}, claimEOB:{},
-invoicingIssuers:[], invoicingClients:[], invoices:[], insurances:[],
-intakeClients:[], intakeForms:[], intakeSubmissions:[], evaluations:[],
-eobBatches:[], eobUnmatched:[],
-cm: null  // CM data stored as a sub-object; null means not yet loaded
-};
-const merged = Object.assign(empty, db || {});
-// Ensure cm sub-keys exist if cm is present
-if (merged.cm) merged.cm = Object.assign({
-  clients:[], workers:[], plans:[], notes:[], billing:[],
-  referrals:[], eligibility:[], assessments:[], tasks:[],
-  authorizations:[], communityReferrals:[], encounters:[],
-  discharges:[], cmSettings:{ billingRate:12.50, defaultCode:'T1017' }
-}, merged.cm);
-return merged;
-}
-
-// ?? setDB: mutate state and sync changed collection to Firestore ?????????????
-// Instead of writing everything, detect which collection changed and write only that
-// ????????????????????????????????????????????????????????????????????????????
-// FIRESTORE PERSISTENCE LAYER v2
-// Architecture: individual documents in typed collections (not one monolithic doc)
-//
-// Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — encounter notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
-//
-// All writes go to Firestore first. localStorage is a read-time cache only.
-// ????????????????????????????????????????????????????????????????????????????
-
-// ?? Constants ???????????????????????????????????????????????????????????????
-// USERS_KEY already defined in auth section
-
-// ?? Helpers ??????????????????????????????????????????????????????????????????
-
-// Write an array of objects to a Firestore collection using batched writes
-function setDB(fn) {
-const before = JSON.parse(JSON.stringify(getDB()));
-const db = getDB();
-fn(db);
-_localDB = db;
-_saveCache(_localDB);
-
-if (!_fbReady || !_db) return;
-
-// Detect which collections changed and sync only those
-var _syncColls = [
-'providers','facilities','rendering','referring',
-'patients','claims','services','serviceGroups',
-'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances',
-'intakeClients','intakeForms','intakeSubmissions','evaluations',
-'eobBatches','eobUnmatched'
-];
-
-for (var _ci = 0; _ci < _syncColls.length; _ci++) {
-var coll = _syncColls[_ci];
-const prev = before[coll] || [];
-const next = db[coll] || [];
-if (JSON.stringify(prev) !== JSON.stringify(next)) {
-_fsSyncCollection(coll, next).catch(e =>
-console.warn(`Firestore ${coll} sync failed:`, e.message));
-}
-}
-
-// Sync claimLogs and claimEOB
-const objColls = [['claimLogs','claimLogs'],['claimEOB','claimEOB']];
-for (const [key, coll] of objColls) {
-if (JSON.stringify(before[key]) !== JSON.stringify(db[key])) {
-const obj = db[key] || {};
-const batch = _db.batch();
-Object.entries(obj).forEach(([id, entries]) => {
-batch.set(_db.collection(coll).doc(String(id)), { entries: entries || [] });
-});
-batch.commit().catch(e => console.warn(`${coll} sync failed:`, e.message));
-}
-}
-}
-
-// ?? Per-document write helpers (called by save functions) ???????????????????
-
-async function _savePatient(patient) {
-if (!_fbReady || !_db) return;
-await _fsSetDoc('patients', patient.id, patient);
-}
-
-async function _deletePatientDoc(id) {
-if (!_fbReady || !_db) return;
-await _fsDeleteDoc('patients', id);
-}
-
-async function _saveClaim(claim) {
-if (!_fbReady || !_db) return;
-await _fsSetDoc('claims', claim.id, claim);
-}
-
-async function _deleteClaimDoc(id) {
-if (!_fbReady || !_db) return;
-await _fsDeleteDoc('claims', id);
-}
-
-// ?? Import: write directly to Firestore in batches ??????????????????????????
-async function _importCollectionToFirestore(collName, items) {
-if (!items?.length) return 0;
-let written = 0;
-for (let i = 0; i < items.length; i += BATCH_SIZE) {
-const chunk = items.slice(i, i + BATCH_SIZE);
-if (_fbReady && _db) {
-const batch = _db.batch();
-chunk.forEach(item => {
-if (!item.id) return;
-batch.set(_db.collection(collName).doc(String(item.id)), item);
-written++;
-});
-await batch.commit();
-}
-// Update in-memory immediately
-const arr = _localDB[collName] || [];
-chunk.forEach(item => {
-const idx = arr.findIndex(x => x.id === item.id);
-if (idx >= 0) arr[idx] = item; else arr.push(item);
-});
-_localDB[collName] = arr;
-}
-_saveCache(_localDB);
-return written;
-}
-
-
-
-// ???????????????????????????????????????????????????????????????
-// RECOVERED APP LAYER — utilities, routing, render functions
-// ???????????????????????????????????????????????????????????????
-
-const fmtMoney = n => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const claimTotal = c => (Array.isArray(c.lines)?c.lines:[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
-const fixCpt = s => String(s||'').trim();
-const fixUnits = s => { const u=parseInt(s||'1'); return String(u>0?u:1); };
-const fixCharge = s => parseFloat(s||'0').toFixed(2);
-const fixDxPtr = s => (s||'A').toUpperCase().replace(/[^A-H]/g,'')||'A';
-
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-
-function toast(msg, type='ok'){
-const c=document.getElementById('toasts');
-const el=document.createElement('div');
-el.className=`toast t-${type}`;
-el.innerHTML=msg;
-c.appendChild(el);
-requestAnimationFrame(()=>{el.classList.add('show');try{_renderLucideIcons();}catch(e){}});
-setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
-}
-
-function copyToClipboard(text) {
-  try { navigator.clipboard.writeText(text); } catch(e) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-}
-
-function statusBadge(s){
-const m={
-draft: '<span class="badge b-gray">Draft</span>',
-pending: '<span class="badge b-amber"><i data-lucide="clock" class="lci" style="width:11px;height:11px"></i> Pending</span>',
-submitted: '<span class="badge b-blue"><i data-lucide="send" class="lci" style="width:11px;height:11px"></i> Submitted</span>',
-accepted: '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH</span>',
-rejected: '<span class="badge b-red"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected</span>',
-on_hold: '<span class="badge b-amber"><i data-lucide="lock" class="lci" style="width:11px;height:11px"></i> On Hold</span>',
-denied: '<span class="badge b-red"><i data-lucide="ban" class="lci" style="width:11px;height:11px"></i> Denied</span>',
-partially_paid: '<span class="badge b-amber"><i data-lucide="dollar-sign" class="lci" style="width:11px;height:11px"></i> Partial</span>',
-paid: '<span class="badge b-green"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Paid</span>',
-settled: '<span class="badge b-green"><i data-lucide="check-check" class="lci" style="width:11px;height:11px"></i> Settled</span>',
-patient_balance: '<span class="badge b-amber"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i> Patient Balance</span>',
-voided: '<span class="badge b-gray"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i> Voided</span>',
-};
-return m[s]||`<span class="badge b-gray">${s}</span>`;
-}
-
-const POS_CODES = [
-['02','Telehealth - Pt Home'],['03','School'],['04','Homeless Shelter'],
-['05','Indian Health Service Freestanding Facility'],['06','Indian Health Service Provider-Based Facility'],
-['07','Tribal 638 Freestanding Facility'],['08','Tribal 638 Provider-Based Facility'],
-['09','Prison/Correctional Facility'],['10','Telehealth - Pt Non-Home'],
-['11','Office'],['12','Home'],['13','Assisted Living Facility'],
-['14','Group Home'],['15','Mobile Unit'],['16','Temporary Lodging'],
-['17','Walk-in Retail Health Clinic'],['18','Place of Employment/Worksite'],
-['19','Off Campus-Outpatient Hospital'],['20','Urgent Care Facility'],
-['21','Inpatient Hospital'],['22','On Campus-Outpatient Hospital'],
-['23','Emergency Room - Hospital'],['24','Ambulatory Surgical Center'],
-['25','Birthing Center'],['26','Military Treatment Facility'],
-['31','Skilled Nursing Facility'],['32','Nursing Facility'],
-['33','Custodial Care Facility'],['34','Hospice'],
-['41','Ambulance - Land'],['42','Ambulance - Air or Water'],
-['49','Independent Clinic'],['50','Federally Qualified Health Center'],
-['51','Inpatient Psychiatric Facility'],['52','Psychiatric Facility Partial Hospitalization'],
-['53','Community Mental Health Center'],['54','Intermediate Care Facility'],
-['55','Residential Substance Abuse Treatment Facility'],['56','Psychiatric Residential Treatment Center'],
-['57','Non-residential Substance Abuse Treatment Facility'],['58','Non-residential Opioid Treatment Facility'],
-['60','Mass Immunization Center'],['61','Comprehensive Inpatient Rehabilitation Facility'],
-['62','Comprehensive Outpatient Rehabilitation Facility'],['65','End-Stage Renal Disease Treatment Facility'],
-['71','Public Health Clinic'],['72','Rural Health Clinic'],
-['81','Independent Laboratory'],['99','Other Place of Service'],
-];
-
-function buildPOSSelect(elId, selected){
-const el=document.getElementById(elId); if(!el) return;
-el.innerHTML=POS_CODES.map(([c,d])=>`<option value="${c}" ${c===(selected||'11')?'selected':''}>${c} \u2014 ${d}</option>`).join('');
-}
-
-// \u2500\u2500 Auto Dx Pointer \u2500\u2500
-function buildAutoDxPtr(){
-const letters='ABCDEFGH'; let ptr='';
-for(let i=0;i<8;i++){
-const el=document.getElementById('mc-dx'+(i+1));
-if(el&&el.value.trim()) ptr+=letters[i];
-}
-return ptr||'A';
-}
-function syncAllDxPtrs(){
-const ptr=buildAutoDxPtr();
-tmpLines.forEach((l,i)=>{
-l.dxPtr=ptr;
-const el=document.getElementById('mc-dxptr-'+i);
-if(el) el.value=ptr;
-});
-const prev=document.getElementById('dx-ptr-preview');
-if(prev){
-const letters='ABCDEFGH'; const used=[];
-for(let i=0;i<8;i++){const el=document.getElementById('mc-dx'+(i+1));if(el&&el.value.trim()) used.push(`${letters[i]}=${el.value.trim()}`);}
-prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in diagnoses above \u2014 pointers auto-assign';
-}
-}
-
-// \u2500\u2500 DB \u2500\u2500
-
-function _loadLookups(){
-if(typeof CPT_CATALOG==='undefined'||typeof ICD10_CATALOG==='undefined') return;
-setDB(db=>{
-if(!db.cpt||!db.cpt.length) db.cpt=CPT_CATALOG;
-if(!db.icd10||!db.icd10.length) db.icd10=ICD10_CATALOG;
-if(!db.services||!db.services.length){
-db.services=CPT_CATALOG.map((c,i)=>({...c,id:'svc_'+i}));
-}
-});
-}
-
-function initServices(){
-_loadLookups();
-}
-
-// \\u2500\\u2500 Theme / Lang \\u2500\\u2500
-
-
-
-
-function _suggestUser(first, last) {
-  var f = (first||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  var l = (last||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  if (!f || !l) return '';
-  return f + '.' + l;
-}
-function _suggestUserName() {
-  if (window._nuNameEdited) return;
-  var first = document.getElementById('nu-first')?.value||'';
-  var last = document.getElementById('nu-last')?.value||'';
-  var suggested = _suggestUser(first, last);
-  var nameEl = document.getElementById('nu-name');
-  if (nameEl && suggested) nameEl.value = suggested;
-}
-
-function openAddUserModal(existingUser) {
-  // Remove any existing modal
-  var prev = document.getElementById('modal-add-user');
-  if (prev) prev.remove();
-
-  var u = existingUser || {};
-  var isEdit = !!u.id;
-
-  // Get specialties from current active provider
-  var db = getDB();
-  var prov = db.providers.find(function(p2){ return p2.id === activeProviderId; }) || {};
-  // Provider specialties — use taxonomy or a specialties array if defined
-  var provSpecialties = prov.specialties || [];
-  if (!provSpecialties.length && prov.taxonomy) {
-    provSpecialties = [prov.taxonomy];
-  }
-  // Fallback: use full specialty list if provider has none defined
-  if (!provSpecialties.length) {
-    provSpecialties = ['Family Medicine', 'Internal Medicine', 'General Practice', 'Pediatrics', 'Geriatrics', 'Obstetrics & Gynecology', 'Preventive Medicine', 'Behavioral Health', 'Psychiatry', 'Psychology', 'Clinical Social Work', 'Counseling', 'Marriage & Family Therapy', 'Substance Abuse', 'Applied Behavior Analysis (ABA)', 'Mental Health Counseling', 'Physical Therapy', 'Occupational Therapy', 'Speech Therapy', 'Rehabilitation', 'Chiropractic', 'Respiratory Therapy', 'Community Health', 'Community Mental Health', 'Federally Qualified Health Center (FQHC)', 'Rural Health Clinic', 'Public Health', 'School-Based Health', 'Home Health', 'Hospice & Palliative Care', 'Cardiology', 'Dermatology', 'Endocrinology', 'Gastroenterology', 'Hematology', 'Infectious Disease', 'Nephrology', 'Neurology', 'Oncology', 'Ophthalmology', 'Orthopedics', 'Pulmonology', 'Rheumatology', 'Urology', 'Allergy & Immunology', 'Surgery', 'Orthopedic Surgery', 'Neurosurgery', 'Plastic Surgery', 'Radiology', 'Pathology', 'Anesthesiology', 'Emergency Medicine', 'Pain Management', 'Podiatry', 'Optometry', 'Nutrition & Dietetics', 'Telehealth', 'Pharmacy', 'Laboratory', 'Dental'];
-  }
-  var userSpecs = Array.isArray(u.specialties) ? u.specialties : (u.specialty ? [u.specialty] : []);
-
-  var specsHtml = provSpecialties.map(function(s) {
-    var chk = userSpecs.indexOf(s) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
-      '<input type="checkbox" class="nu-spec-cb" value="' + s + '" ' + chk +
-      ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + s + '</label>';
-  }).join('');
-
-  // Only Super Admin user can assign Super Admin role
-  var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
-  var availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(function(r){ return r !== 'Super Admin'; });
-
-  var rolesHtml = availableRoles.map(function(r) {
-    var userRoles = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : []);
-    var chk = userRoles.indexOf(r) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
-      '<input type="checkbox" class="nu-role-cb" value="' + r + '" ' + chk +
-      ' style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0"> ' + r + '</label>';
-  }).join('');
-
-  var permsHtml = USER_PERMISSIONS.map(function(p3) {
-    var userPerms = u.permissions || [];
-    var chk = userPerms.indexOf(p3) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
-      '<input type="checkbox" class="nu-perm-cb" value="' + p3 + '" ' + chk +
-      ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + p3 + '</label>';
-  }).join('');
-
-  var inpStyle = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px';
-  var lblStyle = 'font-size:11px;font-weight:600;color:var(--text);display:block;margin-bottom:4px';
-  var secStyle = 'font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)';
-  var chkStyle = 'accent-color:var(--brand);width:15px;height:15px;cursor:pointer';
-
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-add-user';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-
-  var passPlaceholder = isEdit ? 'Leave blank to keep current password' : 'Set initial password';
-  var passValue = isEdit ? '' : '';
-
-  overlay.innerHTML =
-    '<input type="hidden" id="nu-id" value="'+(u.id||'')+'">' +
-    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)">' +
-    '<div><div style="font-size:16px;font-weight:700">'+(isEdit?'Edit User':'Add User')+'</div>' +
-    '<div style="font-size:12px;color:var(--text3)">'+(isEdit?'Modify user account details':'Create a new user account')+'</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="var m=document.getElementById(\'modal-add-user\');if(m)m.remove()">\u00d7</button></div>' +
-    '<div id="nu-alert" style="padding:0 20px;margin-top:12px"></div>' +
-    '<div style="padding:0 20px 20px;overflow-y:auto;flex:1">' +
-    '<div class="fg g2">' +
-      '<div class="field" style="margin-bottom:10px"><label>First Name <span class="req">*</span></label><input id="nu-first" class="no-upper" value="'+(u.first||'')+'" oninput="_suggestUserName()" style="'+inpStyle+'"></div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Last Name <span class="req">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" oninput="_suggestUserName()" style="'+inpStyle+'"></div>' +
-      '<div class="field" style="margin-bottom:10px">' +
-        '<label>Username <span class="req">*</span> <span style="font-weight:400;color:var(--text3)">auto-suggested, must contain .</span></label>' +
-        '<input id="nu-name" class="no-upper" value="'+(u.name||_suggestUser(u.first,u.last))+'" oninput="window._nuNameEdited=true" style="'+inpStyle+'">' +
-        '<div id="nu-name-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div>' +
-      '</div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Email <span class="req">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inpStyle+'"><div id="nu-email-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Phone <span class="req">*</span></label><input id="nu-phone" class="no-upper" value="'+(u.phone||'')+'" style="'+inpStyle+'"><div id="nu-phone-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px"></div></div>' +
-      '<div class="field" style="margin-bottom:10px"><label>Phone 2</label><input id="nu-phone2" class="no-upper" value="'+(u.phone2||'')+'" style="'+inpStyle+'"></div>' +
-    '</div>' +
-    '<div class="field" style="margin-bottom:12px">' +
-      '<label>Password</label>' +
-      '<input id="nu-pass" type="password" class="no-upper" value="'+passValue+'" placeholder="'+passPlaceholder+'" onfocus="this.select()" style="'+inpStyle+'">' +
-      '<div id="nu-pass-err" class="field-err" style="display:none;color:var(--red);font-size:11px;margin-top:2px">'+(isEdit?'':'Required for new users')+'</div>' +
-      (isEdit ? '<div style="margin-top:6px"><button class="btn btn-xs btn-ghost" onclick="sendUserVerifyEmail(\''+(u.id||'')+'\')" style="gap:5px"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i> Send activation email</button></div>' : '') +
-    '</div>' +
-    '<div style="margin-bottom:14px"><div style="'+secStyle+'">Roles</div><div>'+rolesHtml+'</div></div>' +
-    '<div style="margin-bottom:14px"><div style="'+secStyle+'">Permissions</div><div>'+permsHtml+'</div></div>' +
-    '<div style="margin-bottom:14px">' +
-      '<div style="'+secStyle+'">Settings</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:6px">' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-track-time" '+(u.trackTime?'checked':'')+' style="'+chkStyle+'"> Track Time</label>' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-pass-expire" '+(u.passExpire?'checked':'')+' style="'+chkStyle+'"> Password Expires</label>' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive" '+(u.autoInactive?'checked':'')+' style="'+chkStyle+'"> Auto Inactive</label>' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-twofa" '+(u.twoFA?'checked':'')+' style="'+chkStyle+'"> Two-Factor Auth</label>' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-inactive" '+(u.inactive?'checked':'')+' style="'+chkStyle+'"> Inactive</label>' +
-      '</div>' +
-    '</div>' +
-    '<div style="margin-bottom:14px"><div style="'+secStyle+'">Specialties</div><div id="nu-specs" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);padding:8px">'+specsHtml+'</div></div>' +
-    '</div>' +
-    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">' +
-    '<button class="btn" onclick="document.getElementById(\'modal-add-user\')&&document.getElementById(\'modal-add-user\').remove()">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveNewUser()">'+(isEdit?'Update User':'Create User')+'</button></div></div>'
-  document.body.appendChild(overlay);
-}
-
-// ── Superbill helpers ─────────────────────────────────────────────────────────
-function _sbBuildPDF(doc, pat) {
-  var _UC = function(s){ return String(s||'').toUpperCase(); };
-  var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-  var pdf = new jsPDF({ unit:'mm', format:'letter' });
-  var W = 215.9, margin = 15, y = 0;
-  var _bc = getBrandColors();
-  var _brand = _bc.primary;
-
-  // Header bar
-  pdf.setFillColor(_brand[0],_brand[1],_brand[2]);
-  pdf.rect(0, 0, W, 22, 'F');
-  pdf.setTextColor(255,255,255);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
-  pdf.text('ClaimDataCare', margin, 10);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
-  pdf.text('SUPERBILL / PATIENT RECEIPT', margin, 16);
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
-  pdf.text('CLAIMDATACARE.COM', W - margin, 16, {align:'right'});
-  pdf.setFillColor(255,255,255);
-  pdf.circle(W - margin, 14, 5, 'F');
-  y = 30;
-
-  // Provider + Patient columns
-  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('PROVIDER', margin+3, y); pdf.text('PATIENT', W/2+3, y);
-  y += 4;
-  pdf.setTextColor(30,30,30); pdf.setFontSize(9); pdf.setFont('helvetica','bold');
-  pdf.text(_UC(doc.providerName||''), margin, y);
-  pdf.text(_UC(doc.patName||(pat.last+', '+pat.first)||''), W/2+2, y);
-  y += 4;
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(80,80,80);
-  if (doc.providerNPI) pdf.text('NPI: '+_UC(doc.providerNPI), margin, y);
-  pdf.text('DOB: '+(doc.patDOB||pat.dob||''), W/2+2, y); y += 4;
-  if (doc.renderingName) pdf.text('RENDERING: '+_UC(doc.renderingName), margin, y);
-  pdf.text('MRN: '+_UC(doc.patMRN||pat.mrn||pat.acct||''), W/2+2, y); y += 4;
-  if (doc.facilityName) { pdf.text('FACILITY: '+_UC(doc.facilityName), margin, y); y += 4; }
-  pdf.text('DOS: '+_UC(doc.date||''), margin, y);
-  pdf.text('PCN: '+_UC(doc.claimPCN||''), W/2+2, y); y += 4;
-
-  // Insurance
-  var ins = doc.ins1 || pat.ins1 || {};
-  if (ins && ins.name) {
-    pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-    pdf.text('INSURANCE', margin+3, y+4); y += 7;
-    pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
-    pdf.text(_UC(ins.name||''), margin, y);
-    if (ins.memberId||ins.policy) pdf.text('MEMBER ID: '+_UC(ins.memberId||ins.policy||''), W/2+2, y);
-    y += 4;
-  }
-
-  // Divider
-  pdf.setDrawColor(226,232,240); pdf.setLineWidth(0.3);
-  pdf.line(margin, y, W-margin, y); y += 5;
-
-  // Diagnoses
-  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('DIAGNOSES', margin+3, y+4); y += 7;
-  pdf.setTextColor(30,30,30); pdf.setFontSize(8); pdf.setFont('helvetica','normal');
-  var letters = ['A','B','C','D','E','F','G','H'];
-  (doc.dx||[]).forEach(function(d,i){
-    pdf.text(letters[i]+'. '+_UC(d), margin, y); y += 4;
-  });
-  y += 2;
-
-  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('SERVICES', margin+3, y+3); y += 6;
-
-  // Services table header
-  pdf.setFillColor(248,250,252);
-  pdf.rect(margin, y-2, W-(margin*2), 7, 'F');
-  pdf.setDrawColor(226,232,240); pdf.rect(margin, y-2, W-(margin*2), 7, 'S');
-  pdf.setTextColor(100,116,139); pdf.setFontSize(7); pdf.setFont('helvetica','bold');
-  pdf.text('CPT', margin+2, y+3);
-  pdf.text('DESCRIPTION', margin+20, y+3);
-  pdf.text('MOD', margin+110, y+3);
-  pdf.text('UNITS', margin+130, y+3, {align:'center'});
-  pdf.text('CHARGE', W-margin-2, y+3, {align:'right'});
-  y += 8;
-
-  // Service lines
-  pdf.setFont('helvetica','normal'); pdf.setTextColor(30,30,30);
-  (doc.lines||[]).forEach(function(l, idx) {
-    if (y > 250) { pdf.addPage(); y = 20; }
-    var bg = idx%2===0 ? [255,255,255] : [248,250,252];
-    pdf.setFillColor(bg[0],bg[1],bg[2]);
-    pdf.rect(margin, y-3, W-(margin*2), 7, 'F');
-    pdf.setFontSize(8);
-    pdf.text(_UC(l.cpt), margin+2, y+2);
-    var desc = _UC(l.desc||'').slice(0,52);
-    pdf.text(desc, margin+20, y+2);
-    var mods = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(',');
-    if (mods) pdf.text(_UC(mods), margin+110, y+2);
-    pdf.text(String(l.units||1), margin+130, y+2, {align:'center'});
-    pdf.text('$'+parseFloat(l.charge||0).toFixed(2), W-margin-2, y+2, {align:'right'});
-    y += 7;
-  });
-
-  // Total
-  pdf.setDrawColor(226,232,240); pdf.line(margin, y, W-margin, y); y += 4;
-  pdf.setFillColor(240,253,244);
-  pdf.rect(margin, y-2, W-(margin*2), 9, 'F');
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(55,55,55);
-  pdf.text('TOTAL CHARGES', margin+2, y+4);
-  pdf.text('$'+parseFloat(doc.totalCharge||0).toFixed(2), W-margin-2, y+4, {align:'right'});
-  y += 12;
-
-  // Footer
-  if (y > 250) { pdf.addPage(); y = 20; }
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(148,163,184);
-  pdf.text('GENERATED BY CLAIMDATACARE · PCN: '+_UC(doc.claimPCN||'')+' · '+_UC(doc.date||''), W/2, y+2, {align:'center'});
-  var _qrSize = 20;
-  if (!_qrDataURL && typeof generateQRDataURL === 'function') _qrDataURL = generateQRDataURL('https://claimdatacare.com', 80);
-  if (_qrDataURL) {
-    try { pdf.addImage(_qrDataURL, 'PNG', W - margin - _qrSize, y - _qrSize, _qrSize, _qrSize, undefined, 'FAST'); } catch(e) {}
-  }
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(6); pdf.setTextColor(180,178,170);
-  pdf.text('POWERED BY', W - margin - _qrSize - 2, y - 5, {align:'right'});
-  pdf.setFont('helvetica','bold');
-  pdf.text('CLAIMDATACARE', W - margin - _qrSize - 2, y, {align:'right'});
-
-  return pdf;
-}
-
-function _sbDownloadOne(patId, idx) {
-  return _downloadOne(patId, idx);
-}
-
-function _sbDownloadSelected(patId) {
-  return _downloadSelected(patId);
-}
-
-// ── Generic document selection, download, move, delete, restore, purge ──────
-
-function _selToggleAll(checked, patId) {
-  document.querySelectorAll('.sel-chk').forEach(function(cb){ cb.checked = checked; });
-}
-
-function _getSelectedIdx(patId) {
-  return Array.from(document.querySelectorAll('.sel-chk:checked')).map(function(cb){ return parseInt(cb.dataset.idx); }).filter(function(i){ return !isNaN(i); });
-}
-
-function _downloadOne(patId, idx) {
-  var db = getDB();
-  var pat = db.patients.find(function(p){ return p.id===patId; })||{};
-  var doc = (pat.documents||[])[idx];
-  if (!doc) { toast('Document not found','err'); return; }
-  if (doc.category === 'Superbills') {
-    var pdf = _sbBuildPDF(doc, pat);
-    var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-    pdf.save(fname);
-    toast('Superbill downloaded','ok');
-  } else if (doc.data) {
-    var a = document.createElement('a');
-    a.href = doc.data;
-    a.download = doc.name || 'document';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('Document downloaded','ok');
+function _patientAvatar(pat, size) {
+  size = size || 64;
+  var sex = (pat.sex||'').toUpperCase();
+  var colors = {
+    'F': {bg:'#b5451b', fg:'#fff'},   // terracotta for female
+    'M': {bg:'#2d6a4f', fg:'#fff'},   // forest green for male
+    'O': {bg:'#6c5c2e', fg:'#fff'}    // ochre for other
+  };
+  var col = colors[sex] || {bg:'#4d4c48', fg:'#fff'};
+  var s = size;
+  // SVG sex symbol
+  var symbol = '';
+  if (sex === 'F') {
+    // Venus ♀ — circle + cross below
+    symbol = '<svg width="'+Math.round(s*.52)+'" height="'+Math.round(s*.62)+'" viewBox="0 0 26 31" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="10" r="9" stroke="'+col.fg+'" stroke-width="2.5" fill="none"/><line x1="13" y1="19" x2="13" y2="31" stroke="'+col.fg+'" stroke-width="2.5" stroke-linecap="round"/><line x1="8" y1="25" x2="18" y2="25" stroke="'+col.fg+'" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  } else if (sex === 'M') {
+    // Mars ♂ — circle + arrow top-right
+    symbol = '<svg width="'+Math.round(s*.54)+'" height="'+Math.round(s*.54)+'" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="17" r="9" stroke="'+col.fg+'" stroke-width="2.5" fill="none"/><line x1="18" y1="10" x2="27" y2="1" stroke="'+col.fg+'" stroke-width="2.5" stroke-linecap="round"/><polyline points="21,1 27,1 27,7" stroke="'+col.fg+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
   } else {
-    toast('No data to download','warn');
+    // Initials fallback
+    var f = (pat.first||'?')[0].toUpperCase();
+    var l = (pat.last||'?')[0].toUpperCase();
+    symbol = '<span style="font-size:'+Math.round(s*.38)+'px;font-weight:700;color:'+col.fg+';font-family:var(--font)">'+f+l+'</span>';
+  }
+  return '<div style="width:'+s+'px;height:'+s+'px;border-radius:'+(s<=48?'8px':'12px')+';background:'+col.bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+symbol+'</div>';
+}// Global error trap — catches JS errors that break nav/render functions
+window.onerror = function(msg, src, line, col, err) {
+  console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('[CDC PROMISE ERROR]', e.reason);
+});
+
+function toggleUserMenu(e) {
+  if (e) e.stopPropagation();
+  var menu = document.getElementById('tn-user-menu');
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  // Sync language label
+  var langLabel = document.getElementById('btn-lang-label');
+  var langBtn = document.getElementById('btn-lang');
+  if (langLabel && langBtn) langLabel.textContent = langBtn.textContent || 'EN';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function closeMenu(e2) {
+        var chip = document.getElementById('tn-user-chip');
+        if (chip && !chip.contains(e2.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 10);
   }
 }
 
-function _downloadSelected(patId) {
+function _apStyleFonts() {
+  document.querySelectorAll('.ap-font-btn').forEach(function(b) {
+    const active = b.getAttribute('data-active') === 'true';
+    b.style.borderColor = active ? 'var(--brand)' : 'var(--border)';
+    b.style.background  = active ? 'var(--brand-bg)' : 'var(--bg2)';
+    b.style.fontWeight  = active ? '700' : '400';
+  });
+}
+
+// \u2500\u2500 Provider Selector \u2500\u2500
+function rebuildProvSel() {
   var db = getDB();
-  var pat = db.patients.find(function(p){ return p.id===patId; })||{};
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) { toast('Select at least one document','warn'); return; }
-  indices.forEach(function(idx) {
-    var doc = (pat.documents||[])[idx];
-    if (!doc) return;
-    if (doc.category === 'Superbills') {
-      var pdf = _sbBuildPDF(doc, pat);
-      var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-      pdf.save(fname);
-    } else if (doc.data) {
-      var a = document.createElement('a');
-      a.href = doc.data;
-      a.download = doc.name || 'document';
-      document.body.appendChild(a); a.click(); a.remove();
-    }
-  });
-  toast(indices.length+' document'+(indices.length>1?'s':'')+' downloaded','ok');
+  var sel = document.getElementById('prov-sel');
+  if (!sel) return;
+  var session = getSession ? getSession() : {};
+  var isSA = session && session.email === SUPER_ADMIN_EMAIL;
+
+  var providers = db.providers || [];
+
+  if (!isSA && session && session.providerId) {
+    // Non-super-admin: only show their assigned provider
+    providers = providers.filter(function(p) { return p.id === session.providerId; });
+    // Lock the selector
+    sel.disabled = true;
+    sel.title = 'Contact your administrator to change provider';
+  } else {
+    sel.disabled = false;
+    sel.title = '';
+  }
+
+  sel.innerHTML = providers.map(function(p) {
+    return '<option value="' + p.id + '"' + (p.id === activeProviderId ? ' selected' : '') + '>' + p.name + '</option>';
+  }).join('');
+
+  // Auto-select the only provider if restricted
+  if (!isSA && providers.length === 1 && activeProviderId !== providers[0].id) {
+    switchProvider(providers[0].id);
+  }
 }
-
-function _deleteSelected(patId) {
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) { toast('Select at least one document','warn'); return; }
-  if (!confirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?')) return;
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if (p && p.documents) {
-      indices.forEach(function(idx){
-        if (p.documents[idx]) {
-          p.documents[idx].originalCat = p.documents[idx].originalCat || p.documents[idx].category;
-          p.documents[idx].category = 'Recycle Bin';
-          p.documents[idx].deletedAt = Date.now();
-        }
-      });
-    }
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' moved to Recycle Bin');
-}
-
-function _moveDoc(patId, idx) {
-  var db = getDB();
-  var pat = db.patients.find(function(p){ return p.id===patId; });
-  if (!pat) return;
-  var doc = (pat.documents||[])[idx];
-  if (!doc) return;
-  var allCats = [];
-  (pat.documents||[]).forEach(function(d){ if(d.category && d.category!==doc.category && d.category!=='Recycle Bin' && allCats.indexOf(d.category)<0) allCats.push(d.category); });
-  allCats.sort();
-  var catList = allCats.map(function(c,i){ return '<div onclick="_doMoveDoc(\''+patId+'\','+idx+',\''+c.replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'"><i data-lucide="folder" class="lci" style="width:14px;height:14px;color:#e07820"></i>'+c+'</div>'; }).join('');
-  if (!catList.length) { toast('No other categories available','warn'); return; }
-  var ov = document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto">'+
-    '<div style="padding:14px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border)">Move "'+(doc.name||'Document')+'" to...</div>'+
-    '<div style="padding:4px 0">'+catList+'</div>'+
-    '<div style="padding:10px 16px;border-top:1px solid var(--border)"><button class="btn btn-sm" onclick="this.closest(\'[data-movov]\').remove()" style="width:100%">Cancel</button></div></div>';
-  ov.setAttribute('data-movov','1');
-  document.body.appendChild(ov);
-  setTimeout(_renderLucideIcons,20);
-  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
-}
-
-function _doMoveDoc(patId, idx, targetCat) {
-  var ov = document.querySelector('[data-movov]');
-  if (ov) ov.remove();
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if(p && p.documents && p.documents[idx]) p.documents[idx].category = targetCat;
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast('Document moved to '+targetCat);
-}
-
-function _moveSelected(patId) {
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) { toast('Select at least one document','warn'); return; }
-  var db = getDB();
-  var pat = db.patients.find(function(p){ return p.id===patId; });
-  if (!pat) return;
-  var allCats = [];
-  (pat.documents||[]).forEach(function(d){ if(d.category && d.category!=='Recycle Bin' && allCats.indexOf(d.category)<0) allCats.push(d.category); });
-  allCats.sort();
-  var catList = allCats.map(function(c,i){ return '<div onclick="_doMoveSelected(\''+patId+'\',\''+c.replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'"><i data-lucide="folder" class="lci" style="width:14px;height:14px;color:#e07820"></i>'+c+'</div>'; }).join('');
-  if (!catList.length) { toast('No categories available','warn'); return; }
-  var ov = document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  ov.innerHTML='<div style="background:#fff;border-radius:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto">'+
-    '<div style="padding:14px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border)">Move '+indices.length+' document'+(indices.length>1?'s':'')+' to...</div>'+
-    '<div style="padding:4px 0">'+catList+'</div>'+
-    '<div style="padding:10px 16px;border-top:1px solid var(--border)"><button class="btn btn-sm" onclick="this.closest(\'[data-mmov]\').remove()" style="width:100%">Cancel</button></div></div>';
-  ov.setAttribute('data-mmov','1');
-  document.body.appendChild(ov);
-  setTimeout(_renderLucideIcons,20);
-  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
-}
-
-function _doMoveSelected(patId, targetCat) {
-  var ov = document.querySelector('[data-mmov]');
-  if (ov) ov.remove();
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) return;
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if (p && p.documents) {
-      indices.forEach(function(idx){
-        if (p.documents[idx]) p.documents[idx].category = targetCat;
-      });
-    }
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' moved to '+targetCat);
-}
-
-function _restoreDoc(patId, idx) {
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if (p && p.documents && p.documents[idx]) {
-      p.documents[idx].category = p.documents[idx].originalCat || 'External Documents';
-      delete p.documents[idx].deletedAt;
-      delete p.documents[idx].originalCat;
-    }
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast('Document restored');
-}
-
-function _restoreSelected(patId) {
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) { toast('Select at least one document','warn'); return; }
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if (p && p.documents) {
-      indices.forEach(function(idx){
-        if (p.documents[idx]) {
-          p.documents[idx].category = p.documents[idx].originalCat || 'External Documents';
-          delete p.documents[idx].deletedAt;
-          delete p.documents[idx].originalCat;
-        }
-      });
-    }
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' restored');
-}
-
-function _permDeleteDoc(patId, idx) {
-  if (!confirm('Permanently delete this document? This cannot be undone.')) return;
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if(p && p.documents && p.documents[idx]) p.documents.splice(idx,1);
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast('Document permanently deleted');
-}
-
-function _permDeleteSelected(patId) {
-  var indices = _getSelectedIdx(patId);
-  if (!indices.length) { toast('Select at least one document','warn'); return; }
-  if (!confirm('Permanently delete '+indices.length+' selected document'+(indices.length>1?'s':'')+'? This cannot be undone.')) return;
-  setDB(function(db){
-    var p = db.patients.find(function(x){ return x.id===patId; });
-    if (p && p.documents) {
-      // Sort descending so splice doesn't shift indices
-      indices.sort(function(a,b){ return b-a; }).forEach(function(idx){
-        if (p.documents[idx]) p.documents.splice(idx,1);
-      });
-    }
-  });
-  var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
-  var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
-  setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' permanently deleted');
-}
-
-function _purgeOldTrash() {
-  var now = Date.now();
-  var THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-  setDB(function(db2){
-    (db2.patients||[]).forEach(function(pat){
-      if (!pat.documents) return;
-      pat.documents = pat.documents.filter(function(d){
-        if (d.category === 'Recycle Bin' && d.deletedAt && (now - d.deletedAt) >= THIRTY_DAYS) return false;
-        return true;
-      });
-    });
-  });
-}
-
-function getAuditLogs() {
-  try {
-    var key = 'cdc_audit_' + (activeProviderId||'g');
-    return JSON.parse(localStorage.getItem(key)||'[]');
-  } catch(e) { return []; }
-}
-
-
