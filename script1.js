@@ -16055,6 +16055,27 @@ let _chartPatId = null;
 let _chartTabActive = 'summary';
 
 function openPatientChart(patId) {
+  try {
+    var _db0 = getDB();
+    var _p0 = _db0.patients.find(function(p){return p.id===patId;});
+    if (_p0 && (!_p0.insurances || !_p0.insurances.length) && (_p0.payerName||_p0.payerid||_p0.subNum)) {
+      setDB(function(db0) {
+        var _pm = db0.patients.find(function(p){return p.id===patId;});
+        if (_pm && (!_pm.insurances||!_pm.insurances.length)) {
+          _pm.insurances = [{
+            id:'ins_'+Date.now(), insType:'Primary',
+            name:_pm.payerName||'', payerId:_pm.payerid||'',
+            policy:_pm.subNum||'', group:_pm.group||'', plan:_pm.plan||'',
+            relation:_pm.rel||'18',
+            lname:_pm.subLast||_pm.last||'', fname:_pm.subFirst||_pm.first||'',
+            dob:_pm.subDob||_pm.dob||'', sex:_pm.sex||'',
+            copay:_pm.copay||'0.00', deductible:_pm.deductible||'0.00',
+            coins:'0', status:'Not Verified', acceptAssign:'Accepted', preAuth:false,
+          }];
+        }
+      });
+    }
+  } catch(_me) {}
 _chartPatId = patId;
 _chartTabActive = 'summary';
 const existing = document.getElementById('pt-chart-overlay');
@@ -16544,23 +16565,22 @@ const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
 const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.status)).length;
 const activeStr = pat.inactive ? 'Inactive' : 'Active';
 const TABS = [
-{id:'search', label:'Search'},
-{id:'demographics',label:'Demos'},
-{id:'insurance', label:'Insurances'},
-{id:'auth', label:'Auth/Referrals'},
-{id:'contacts', label:'Contacts'},
-{id:'summary', label:'Summary'},
-{id:'appointments',label:'Schedule'},
-{id:'followup', label:'Followup'},
-{id:'documents', label:'Records'},
-{id:'encounters', label:'Encounters'},
-{id:'bills', label:'Bills'},
-{id:'communication',label:'Communication'},
-{id:'tasks', label:'Tasks'},
-{id:'pharmacies', label:'Pharmacies'},
-{id:'letter', label:'Letter'},
-{id:'careteam', label:'Care Team'},
-{id:'clinical', label:'Clinical Summary', danger:true},
+{id:'summary',      label:'Summary'},
+{id:'demographics', label:'Info'},
+{id:'insurance',    label:'Coverage'},
+{id:'auth',         label:'Auth / Referrals'},
+{id:'contacts',     label:'Contacts'},
+{id:'appointments', label:'Schedule'},
+{id:'followup',     label:'Follow-Up'},
+{id:'documents',    label:'Records'},
+{id:'encounters',   label:'Encounters'},
+{id:'bills',        label:'Bills'},
+{id:'messaging',    label:'Messaging'},
+{id:'tasks',        label:'Tasks'},
+{id:'pharmacies',   label:'Pharmacies'},
+{id:'letter',       label:'Letters'},
+{id:'careteam',     label:'Care Team'},
+{id:'clinical',     label:'Clinical Summary', danger:true},
 ];
 const tabsHTML = TABS.map(t =>
 `<div class="ptc-tab${t.danger?' danger':''}" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')">${t.label}</div>`
@@ -16682,13 +16702,14 @@ const db = getDB();
 const pat = db.patients.find(p => p.id === _chartPatId);
 if (!pat) return;
 switch (tabId) {
-case 'summary': mainEl.innerHTML = _buildSummaryTab(pat, db); break;
+case 'summary':      mainEl.innerHTML = _buildSummaryTab(pat, db); break;
 case 'demographics': mainEl.innerHTML = _buildDemoTab(pat, db); break;
-case 'insurance': mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
+case 'insurance':    mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
 case 'appointments': mainEl.innerHTML = _buildApptTab(pat, db); break;
-case 'bills': mainEl.innerHTML = _buildBillsTab(pat, db); break;
-case 'documents': mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
-case 'encounters': mainEl.innerHTML = _buildEncountersTab(pat, db); break;
+case 'bills':        mainEl.innerHTML = _buildBillsTab(pat, db); break;
+case 'documents':    mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
+case 'encounters':   mainEl.innerHTML = _buildEncountersTab(pat, db); break;
+case 'messaging':    mainEl.innerHTML = '<div class="ptc-panel"><div class="ptc-panel-hdr">Messaging &amp; Communication</div><div class="ptc-panel-body" style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No messages for this patient.</div></div>'; break;
 default:
 mainEl.innerHTML = `<div class="ptc-panel" style="padding:30px;text-align:center;color:var(--text3)">
 <i data-lucide="construction" class="lci" style="width:30px;height:30px;margin-bottom:8px;display:block;margin-inline:auto"></i>
@@ -17125,9 +17146,9 @@ const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('seco
 
 // ?? Helpers ???????????????????????????????????????????????????
 const R = (l,v,bold=false)=>v?`
-<div style="display:grid;grid-template-columns:130px 1fr;padding:3px 0;border-bottom:1px solid #e8e6dc;font-size:12px">
-<span style="color:#87867f;font-weight:600">${l}</span>
-<span style="color:#141413;font-weight:${bold?'700':'400'}">: ${v}</span>
+<div style="display:flex;flex-direction:column;padding:4px 0;border-bottom:1px solid #f0eee6">
+<span style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.04em">${l}</span>
+<span style="font-size:12.5px;font-weight:${bold?'700':'500'};color:#141413">${v}</span>
 </div>`:'';
 
 const insBlock = (ins, label) => !ins?'':`
@@ -17184,18 +17205,14 @@ return `
 </div>
 </div>
 <div class="ptc-panel-body" style="padding:12px 14px">
-<div style="display:grid;grid-template-columns:80px 1fr;gap:0 16px;align-items:start">
+<div style="display:flex;gap:16px;align-items:flex-start">
 
-<!-- Photo column -->
-<div style="text-align:center">
-<div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
-style="width:70px;height:70px;border:2px solid #e8e6dc;border-radius:8px;
-background:#f5f4ed;display:flex;align-items:center;justify-content:center;
-font-size:24px;font-weight:700;color:var(--text2);cursor:${pat.photo?'zoom-in':'default'};
-overflow:hidden;margin:0 auto">
-${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:`${initials}`}
+<!-- Avatar column -->
+<div style="text-align:center;flex-shrink:0">
+<div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}" style="display:inline-block;cursor:${pat.photo?'zoom-in':'default'}">
+${pat.photo?`<img src="${pat.photo}" style="width:70px;height:70px;border-radius:10px;object-fit:cover;display:block">`:`<div style="width:70px;height:70px;border-radius:10px;background:${pat.sex==='F'?'#b5451b':pat.sex==='M'?'#2d6a4f':'#4d4c48'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${pat.sex==='F'?'<svg width="36" height="43" viewBox="0 0 26 31" fill="none"><circle cx="13" cy="10" r="9" stroke="#fff" stroke-width="2.5" fill="none"/><line x1="13" y1="19" x2="13" y2="31" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="8" y1="25" x2="18" y2="25" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>':pat.sex==='M'?'<svg width="38" height="38" viewBox="0 0 28 28" fill="none"><circle cx="11" cy="17" r="9" stroke="#fff" stroke-width="2.5" fill="none"/><line x1="18" y1="10" x2="27" y2="1" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><polyline points="21,1 27,1 27,7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>':'<span style=\'font-size:26px;font-weight:700;color:#fff\'>${initials}</span>'}</div>`}
 </div>
-<button class="btn-icon" onclick="_openPhotoOptions('${pat.id}')" title="Add/Edit Photo" style="margin-top:4px;width:100%"><i data-lucide="camera" class="lci" style="width:14px;height:14px"></i></button>
+<button class="btn-icon" onclick="_openPhotoOptions('${pat.id}')" title="Photo" style="margin-top:4px;font-size:10px;width:70px"><i data-lucide="camera" class="lci" style="width:12px;height:12px"></i></button>
 </div>
 
 <!-- Details grid (3 columns) -->
@@ -17287,13 +17304,6 @@ ${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
 </div>
 </div>
 
-<!-- ?? 6. PATIENT COMMUNICATION ?? -->
-<div class="ptc-panel" style="margin-bottom:12px">
-<div class="ptc-panel-hdr">Patient Communication</div>
-<div class="ptc-panel-body" style="padding:10px 14px;font-size:12px;color:#dc2626;font-weight:600">
-No Notes for this patient.
-</div>
-</div>
 
 </div>`;
 }
@@ -17412,26 +17422,7 @@ ${fld('refPhys','Referring Physician',pat.refPhys||'')}
 ${fld('inactive','Status',pat.inactive?'inactive':'active',null,false,[['active','Active'],['inactive','Inactive']])}
 ${fld('nickname','Nick Name',pat.nickname||'')}
 </div>
-<!-- Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Primary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid','Payer ID',pat.payerid||'','text',false)}
-${fld('payername','Payer Name',pat.payerName||'')}
-${fld('subnum','Subscriber ID',pat.subNum||'','text',true)}
-${fld('sublast','Subscriber Last',pat.subLast||'')}
-${fld('subfirst','Subscriber First',pat.subFirst||'')}
-${fld('subdob','Subscriber DOB',pat.subDob||'','date')}
-${fld('group','Group #',pat.group||'')}
-${fld('plan','Plan Name',pat.plan||'')}
-${fld('rel','Relationship',pat.rel||'',null,false,[['','— Select —'],['18','Self'],['01','Spouse'],['19','Child'],['G8','Other'],['32','Mother'],['33','Father']])}
-</div>
-<!-- Secondary Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Secondary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid2','Payer ID',pat.payerid2||'','text',false)}
-${fld('payername2','Payer Name',pat.payerName2||'')}
-${fld('subnum2','Subscriber ID',pat.subNum2||'','text',false)}
-</div>
+<!-- Insurance fields moved to Coverage tab -->
 <!-- Flags -->
 <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Flags</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px">
