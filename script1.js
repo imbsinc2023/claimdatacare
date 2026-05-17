@@ -10111,430 +10111,292 @@ if (!window.jspdf) { toast('PDF library loading...','warn'); return; }
 const {jsPDF} = window.jspdf;
 const db = getDB();
 const prov = db.providers.find(p => p.id === activeProviderId) || {};
+const W=216, M=14, RX=W-M, CW=RX-M, PAGE_H=279;
+const LINES_MAX = 6;    // max service lines per page
+const FOOTER_Y  = 245;  // footer always at this Y
+const BRAND=[201,100,66], TERRA=[181,69,27], BLACK=[0,0,0], GRAY2=[100,100,100], BLT=[210,210,210];
 
-const W=216, M=14, RX=W-M, CW=RX-M;
-
-// ── Colors — brand ONLY for top bar, everything else black ──────
-const _BC       = getBrandColors();
-const BRAND     = _BC.primary;       // ONLY used for top bar 3px strip
-const BLACK     = [0,0,0];
-const DARK      = [0,0,0];           // same as black — all text pure black
-const GRAY1     = [80,80,80];
-const GRAY2     = [100,100,100];
-const BORDER    = [180,180,180];
-const BORDER_LT = [210,210,210];
-const WHITE     = [255,255,255];
-// Remove unused vars to avoid accidental use
-const BRAND_DK  = [0,0,0];
-const BRAND_LT  = [230,230,230];
-const ACC       = [0,0,0];
-const ROW_ALT   = [255,255,255];
-
-
-// ── Group claims by patient — one PDF per patient ─────────────
-const byPatient = new Map();
-claims.forEach(function(c) {
-  const pid = c.patId || 'unknown';
-  if (!byPatient.has(pid)) byPatient.set(pid, []);
-  byPatient.get(pid).push(c);
-});
-
-let fileCount = 0;
-byPatient.forEach(function(patClaims, patId) {
-  // Create a fresh PDF for this patient with all helpers using this doc
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'letter'});
-
-  // ── Helpers (use this doc instance) ──────────────────────────────
-// ── Helpers ───────────────────────────────────────────────────────
-const fill  = (x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
-const stroke= (x,y,w,h,c,lw) => { doc.setDrawColor(...c); doc.setLineWidth(lw||0.3); doc.rect(x,y,w,h,'S'); };
-const hline = (x1,y,x2,c,lw) => { doc.setDrawColor(...(c||BORDER)); doc.setLineWidth(lw||0.25); doc.line(x1,y,x2,y); };
-const t = (s,x,y,o={}) => {
+const fill  = (doc,x,y,w,h,c) => { doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
+const hline = (doc,x1,y,x2,c,lw) => { doc.setDrawColor(...(c||BLT)); doc.setLineWidth(lw||0.25); doc.line(x1,y,x2,y); };
+const t = (doc,s,x,y,o={}) => {
   if (s===null||s===undefined||s==='') return;
-  doc.setFont('helvetica', o.b?'bold':'normal');
-  doc.setFontSize(o.sz||9);
-  doc.setTextColor(...(o.c||BLACK));
-  doc.text(String(s), x, y, {align:o.a||'left', maxWidth:o.mw});
+  doc.setFont('helvetica',o.b?'bold':'normal'); doc.setFontSize(o.sz||9);
+  doc.setTextColor(...(o.c||BLACK)); doc.text(String(s),x,y,{align:o.a||'left',maxWidth:o.mw});
 };
-const lbl  = (s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
-const UC   = s => String(s||'').toUpperCase();
-const $v   = n => '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-const safe = v => (v&&String(v).trim()) ? String(v).trim() : null;
-
-// Date helpers
-const _parseDateParts = ds => {
+const lbl = (doc,s,x,y) => { doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY2); doc.text(s.toUpperCase(),x,y,{charSpace:0.3}); };
+const UC = s => String(s||'').toUpperCase();
+const $v = n => '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const safe = v => (v&&String(v).trim())?String(v).trim():null;
+const parseDOS = ds => {
   if (!ds) return {mm:'00',dd:'00',yyyy:'0000'};
   ds = String(ds).trim();
-  if (ds.includes('/')) { const pt=ds.split('/'); return {mm:pt[0].padStart(2,'0'),dd:(pt[1]||'').padStart(2,'0'),yyyy:pt[2]||''}; }
-  if (ds.includes('-')) { const pt=ds.split('-'); if(pt[0].length===4) return {mm:pt[1].padStart(2,'0'),dd:pt[2].padStart(2,'0'),yyyy:pt[0]}; return {mm:pt[0].padStart(2,'0'),dd:(pt[1]||'').padStart(2,'0'),yyyy:pt[2]||''}; }
+  if (ds.includes('/')) { const p=ds.split('/'); return {mm:p[0].padStart(2,'0'),dd:(p[1]||'').padStart(2,'0'),yyyy:p[2]||''}; }
+  if (ds.includes('-')) { const p=ds.split('-'); if(p[0].length===4) return {mm:p[1].padStart(2,'0'),dd:p[2].padStart(2,'0'),yyyy:p[0]}; return {mm:p[0].padStart(2,'0'),dd:(p[1]||'').padStart(2,'0'),yyyy:p[2]||''}; }
   return {mm:'00',dd:'00',yyyy:'0000'};
 };
-const _fmtDob = dob => { if(!dob) return null; const p=_parseDateParts(dob); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
+const fmtDob = d => { if(!d) return null; const p=parseDOS(d); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
+const fmtDOS = d => { if(!d) return ''; const p=parseDOS(d); return `${p.mm}/${p.dd}/${p.yyyy}`; };
 
-  patClaims.forEach(function(claim, ci) {
-    if (ci > 0) doc.addPage();
-    try {
-  const pat  = db.patients.find(p=>p.id===claim.patId)||{};
-  const rend = db.rendering.find(r=>r.id===claim.renderingId)||{};
-  const ref  = db.referring.find(r=>r.id===claim.referringId)||{};
-  const fac  = db.facilities.find(f=>f.id===claim.facilityId)||{};
-  const ins1 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('primary'))
-    ||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,
-       lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
-  const lines = Array.isArray(claim.lines)?claim.lines:[];
-  const dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
-  const total = claimTotal(claim);
-  let y = 0;
-
-  // ══ HEADER ══════════════════════════════════════════════════════
-  // Top accent bar
-  fill(0,0,W,3,BRAND);
-
-  y = 18;
-  // Provider logo
-  let _supLogoH = 30;
-  let provX = M;
-  if (prov.logo && prov.logo.length > 200) {
-    try {
-      const _ld = _fitLogo(prov.logo, 30);
-      const _fmt = _imgFmt(prov.logo);
-      doc.addImage(prov.logo, _fmt, M, y, _ld.w, _ld.h);
-      provX = M + _ld.w + 5;
-      _supLogoH = _ld.h;
-    } catch(e) {}
-  }
-
-  // Provider info
-  t(UC(prov.name||'Medical Provider'), provX, y+7, {b:true, sz:11, c:BLACK});
-  const npiTax = [prov.npi?'NPI: '+UC(prov.npi):null, prov.taxid?'EIN: '+UC(prov.taxid):null].filter(Boolean).join('  ·  ');
-  if (npiTax) t(npiTax, provX, y+13, {sz:9, c:DARK});
-  const addr = [prov.addr1, prov.city, prov.state, prov.zip].filter(Boolean).join(', ');
-  if (addr) t(UC(addr), provX, y+19, {sz:9, c:DARK});
-  if (prov.phone) t('TEL: '+UC(prov.phone), provX, y+25, {sz:9, c:DARK});
-
-  // SUPERBILL title + PCN (right side)
-  t('SUPERBILL', RX, y+9, {b:true, sz:22, c:BLACK, a:'right'});
-  t('PCN: '+UC(claim.pcn||''), RX, y+19, {b:true, sz:9, c:BLACK, a:'right'});
-  const dosStr = safe(claim.dos);
-  const posStr = safe(claim.pos);
-  // Build date range from header + per-line dates
-  const allDates = [dosStr].concat((claim.lines||[]).map(function(l){return l.dos||'';}).filter(Boolean));
-  const uniqueDates = [...new Set(allDates.filter(Boolean))].sort();
-  let dosDisplay = dosStr || '';
-  if (uniqueDates.length > 1) {
-    dosDisplay = uniqueDates[0] + ' – ' + uniqueDates[uniqueDates.length-1];
-  }
-  const dosPos = [dosDisplay?'DOS: '+dosDisplay:null, posStr?'POS: '+UC(posStr):null].filter(Boolean).join('  ·  ');
-  if (dosPos) t(dosPos, RX, y+25, {sz:9, c:DARK, a:'right'});
-
-  y = (prov.logo && prov.logo.length > 200) ? (18 + _supLogoH + 4) : 46;
-  hline(M, y, RX, BORDER_LT, 0.4);
-  y += 6;
-
-  // ══ PATIENT ═════════════════════════════════════════════════════
-  lbl('Patient', M, y);
-  y += 5;
-
-  // Photo (right side)
-  if (pat.photo && pat.photo.length > 100) {
-    try {
-      const fmt = pat.photo.startsWith('data:image/png')?'PNG':'JPEG';
-      doc.addImage(pat.photo, fmt, RX-20, y-4, 20, 24, undefined, 'FAST');
-    } catch(e) {}
-  }
-
-  const patName = [safe(pat.last), safe(pat.first), safe(pat.mid)].filter(Boolean).join(', ');
-  t(UC(patName||'Unknown'), M, y, {b:true, sz:10, c:DARK});
-  y += 5;
-
-  const patInfoParts = [
-    pat.dob ? 'DOB: '+_fmtDob(pat.dob) : null,
-    pat.sex ? 'SEX: '+UC(pat.sex) : null,
-    pat.acct ? 'ACCT: '+UC(pat.acct) : null,
-  ].filter(Boolean);
-  if (patInfoParts.length) { t(patInfoParts.join('   ·   '), M, y, {sz:9, c:DARK}); y += 5; }
-
-  const patAddr = [safe(pat.addr1), safe(pat.city), safe(pat.state)].filter(Boolean).join(', ');
-  if (patAddr) { t(UC(patAddr), M, y, {sz:9, c:DARK}); y += 4; }
-
-  y += 4;
-  hline(M, y, RX, BORDER_LT, 0.25);
-  y += 5;
-
-  // ══ INSURANCE ═══════════════════════════════════════════════════
-  if (ins1) {
-    lbl('Insurance', M, y);
-    y += 5;
-
-    const ins1Parts = [
-      safe(ins1.name||ins1.insuranceName) ? UC(ins1.name||ins1.insuranceName) : null,
-      (ins1.payerId||pat.payerid) ? '(ID: '+(ins1.payerId||pat.payerid)+')' : null,
-      (ins1.policy||ins1.memberId) ? 'Member: '+(ins1.policy||ins1.memberId) : null,
-      ins1.group ? 'GROUP: '+UC(ins1.group) : null,
-    ].filter(Boolean).join('  ·  ');
-    if (ins1Parts) { t(ins1Parts, M, y, {sz:9, c:DARK}); y += 5; }
-
-    const subParts = [
-      'SUBSCRIBER: '+UC([safe(ins1.lname||ins1.subscriberName), safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),
-      (ins1.dob||pat.dob) ? 'DOB: '+_fmtDob(ins1.dob||pat.dob) : null,
-      ins1.relation ? 'RELATION: '+UC({'18':'Self','01':'Spouse','19':'Child','20':'Employee','39':'Organ Donor','40':'Cadaver Donor','53':'Life Partner','G8':'Other'}[ins1.relation]||ins1.relation) : null,
-      ins1.plan ? 'PLAN: '+UC(ins1.plan) : null,
-    ].filter(Boolean).join('  ·  ');
-    if (subParts) { t(subParts, M, y, {sz:9, c:DARK}); y += 4; }
-
-    y += 4;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
-
-  // ══ PROVIDERS ═══════════════════════════════════════════════════
-  if (rend.last || ref.last) {
-    const halfW = CW/2;
-    if (rend.last) {
-      lbl('Rendering Provider', M, y);
-      t(UC(`${rend.last||''}, ${rend.first||''}`), M, y+5, {b:true, sz:9, c:DARK});
-      const rendInfo = [rend.npi?'NPI: '+UC(rend.npi):null, rend.taxonomy?'TAXONOMY: '+UC(rend.taxonomy):null].filter(Boolean).join('  ·  ');
-      if (rendInfo) t(rendInfo, M, y+10, {sz:9, c:DARK});
-      const facInfo = fac.name ? 'FACILITY: '+UC(fac.name)+(fac.npi?' · NPI: '+UC(fac.npi):'') : null;
-      if (facInfo) t(facInfo, M, y+15, {sz:9, c:DARK});
-    }
-    if (ref.last) {
-      lbl('Referring Provider', M+halfW+2, y);
-      t(UC(`${ref.last||''}, ${ref.first||''}`), M+halfW+2, y+5, {sz:9, c:DARK});
-      if (ref.npi) t('NPI: '+UC(ref.npi), M+halfW+2, y+10, {sz:9, c:DARK});
-    }
-    y += (rend.last&&fac.name) ? 22 : 18;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
-
-  // ══ DIAGNOSES ═══════════════════════════════════════════════════
-  if (dxArr.length) {
-    lbl('Diagnoses (ICD-10)', M, y);
-    y += 5;
-    const dxCols=4, dxW=CW/dxCols;
-    dxArr.forEach((dx,di) => {
-      const col=di%dxCols, row=Math.floor(di/dxCols);
-      const ltr=String.fromCharCode(65+di);
-      t(`${ltr}. ${UC(dx)}`, M+col*dxW, y+row*6, {sz:9, c:DARK});
-    });
-    y += Math.ceil(dxArr.length/dxCols)*6+4;
-    hline(M, y, RX, BORDER_LT, 0.25);
-    y += 5;
-  }
-
-  // ══ SERVICE LINES — one page per DOS if multi-date ──────────
-  lbl('Service Lines', M, y);
-  y += 4;
-  hline(M, y, RX, DARK, 0.3);
-  y += 5;
-
-  // Column header setup
-  const SL = { cptW:16, descW:90, unitW:12, uprcW:22, modsW:14, dxW:12 };
-  const hasDosPerLine = !!(claim.multiDate || (lines.some && lines.some(function(l){return !!l.dos;})));
-  const DOS_W = 24;
-  const CPT_X = M + (hasDosPerLine ? DOS_W : 0);
-  const SL2 = {
-    cptW:  14,
-    descW: hasDosPerLine ? 56 : SL.descW,
-    unitW: SL.unitW,
-    uprcW: SL.uprcW,
-    modsW: SL.modsW,
-    dxW:   SL.dxW,
-  };
-
-  // Group lines by DOS for pagination
-  var _dosGroups = [];
-  if (hasDosPerLine) {
-    var _dosMap = {};
-    lines.forEach(function(_l) {
-      var _d = _l.dos || claim.dos || '';
-      if (!_dosMap[_d]) { _dosMap[_d] = []; _dosGroups.push({dos:_d, lines:_dosMap[_d]}); }
-      _dosMap[_d].push(_l);
-    });
-  } else {
-    _dosGroups.push({dos: claim.dos||'', lines: lines});
-  }
-
-  _dosGroups.forEach(function(_grp, _gi) {
-    if (_gi > 0) {
-      doc.addPage();
-      fill(0,0,W,3,BRAND);
-      t(UC(prov.name||'Medical Provider'), M, 10, {b:true, sz:9, c:BLACK});
-      t('DOS: '+UC(_grp.dos)+'  ·  PATIENT: '+UC(patName||'Unknown'), M, 16, {sz:8, c:DARK});
-      hline(M, 20, RX, BORDER_LT, 0.4);
-      y = 26;
-    }
-    // Table header
-    if (hasDosPerLine) t('DATE', M, y, {sz:7, b:true, c:BLACK});
-    t('CPT', CPT_X, y, {sz:7, b:true, c:BLACK});
-    t('DESCRIPTION', CPT_X+SL2.cptW, y, {sz:7, b:true, c:BLACK});
-    t('UNITS', CPT_X+SL2.cptW+SL2.descW, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('UNIT PRICE', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y, {sz:7, b:true, c:DARK, a:'right'});
-    t('MODS', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y, {sz:7, b:true, c:BLACK});
-    t('DX', CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y, {sz:7, b:true, c:DARK, a:'center'});
-    t('TOTAL', RX, y, {sz:7, b:true, c:DARK, a:'right'});
-    y += 2;
-    hline(M, y, RX, DARK, 0.15);
-    y += 5;
-
-    _grp.lines.forEach(function(l, li) {
-      const dbSvc    = (db.services||[]).find(function(s){ return s.code===l.cpt||s.cpt===l.cpt; });
-      const descFull = UC(l.desc||dbSvc?.description||dbSvc?.desc||'');
-      const mods     = [l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
-      const chg      = parseFloat(l.charge)||0;
-      const units    = parseInt(l.units||1)||1;
-      const unitPrc  = units > 1 ? chg/units : chg;
-      const dxPtr    = (l.dxPtr||'A').toUpperCase();
-
-      doc.setFont('helvetica','normal'); doc.setFontSize(8);
-      const descLines = doc.splitTextToSize(descFull||'', SL2.descW - 2);
-      const rowH = Math.max(7, descLines.length * 4.5);
-
-      if (hasDosPerLine) {
-        var lineDosRaw = l.dos || claim.dos || '';
-        var lineDosShort = lineDosRaw;
-        try {
-          var dp2 = String(lineDosRaw).split(lineDosRaw.indexOf('-')>3 ? '-' : '/');
-          if (lineDosRaw.indexOf('-')>3) {
-            lineDosShort = dp2[1]+'/'+dp2[2]+'/'+dp2[0];
-          } else {
-            lineDosShort = dp2[0].padStart(2,'0')+'/'+dp2[1].padStart(2,'0')+'/'+(dp2[2]||'');
-          }
-        } catch(e2){}
-        if (lineDosShort) t(lineDosShort, M, y+4, {sz:9, c:DARK});
-      }
-
-      t(UC(l.cpt||''), CPT_X, y+4, {sz:9, b:true, c:BLACK});
-      descLines.forEach(function(dl, dli){ t(dl, CPT_X+SL2.cptW, y+4+dli*4.5, {sz:9, c:DARK}); });
-      t(String(units), CPT_X+SL2.cptW+SL2.descW+SL2.unitW/2, y+4, {sz:9, c:DARK, a:'center'});
-      t('$'+unitPrc.toFixed(2), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW, y+4, {sz:9, c:DARK, a:'right'});
-      if (mods) t(UC(mods), CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+3, y+4, {sz:9, c:DARK});
-      t(dxPtr, CPT_X+SL2.cptW+SL2.descW+SL2.unitW+SL2.uprcW+SL2.modsW+SL2.dxW/2+2, y+4, {sz:9, c:DARK, a:'center'});
-      t($v(chg), RX, y+4, {sz:9, c:DARK, a:'right'});
-      y += rowH;
-      if (li < _grp.lines.length - 1) { hline(M, y, RX, BORDER_LT, 0.15); y += 3; }
-    });
-
-    y += 4;
-    hline(M, y, RX, DARK, 0.4);
-    y += 2;
-
-    if (_dosGroups.length > 1) {
-      var _grpTotal = _grp.lines.reduce(function(s, l2) {
-        return s + (parseFloat(l2.charge)||0) * (parseInt(l2.units)||1);
-      }, 0);
-      t('SUBTOTAL — DOS '+_grp.dos, M, y+6, {b:true, sz:9, c:DARK});
-      t($v(_grpTotal), RX, y+6, {b:true, sz:10, c:DARK, a:'right'});
-      y += 12;
-    }
-  });
-
-  hline(M, y, RX, DARK, 0.6);
-  y += 2;
-  t('TOTAL CHARGES', M, y+6, {b:true, sz:10, c:BLACK});
-  t($v(total), RX, y+6, {b:true, sz:11, c:BLACK, a:'right'});
-  y += 14;
-
-  // ══ FOOTER ══════════════════════════════════════════════════════
-  const fY = 234;
-  hline(M, fY, RX, BORDER_LT, 0.3);
-  fill(M, fY+1.5, 3, 20, DARK);
-
-
-  const rendName = rend.last
-    ? UC(`${rend.last}, ${rend.first||''}`)+(rend.npi?' — NPI: '+UC(rend.npi):'')
-    : UC(prov.name||'Provider');
-  t('ELECTRONICALLY SIGNED BY:', M+6, fY+6, {sz:7, c:GRAY2});
-  t(rendName, M+6, fY+13, {b:true, sz:8.5, c:BLACK});
-  if (rend.taxonomy) t('TAXONOMY: '+UC(rend.taxonomy), M+6, fY+19, {sz:7, c:DARK});
-
-  const now=new Date();
-  const hr12=now.getHours()%12||12;
-  const expTime=`${String(hr12).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} ${now.getHours()>=12?'PM':'AM'}`;
-  const dosParts2=_parseDateParts(claim.dos);
-  const dosDateStr=`${parseInt(dosParts2.mm)}/${parseInt(dosParts2.dd)}/${dosParts2.yyyy}`;
-  t('GENERATED: '+dosDateStr+', '+expTime, RX, fY+13, {sz:7, c:DARK, a:'right'});
-    } catch(pdfErr) {
-      console.error('[PDF] Error rendering claim:', claim?.pcn, pdfErr);
-      toast('PDF error: ' + pdfErr.message, 'err');
-    }
-  }); // end patClaims.forEach
-
-  // Filename: LLFFMMDDYYYYMMDDYYYY.pdf
-  const fp  = patClaims[0];
-  const fpt = db.patients.find(function(p){return p.id===fp?.patId;})||{};
-  const l2  = (fpt.last||'XX').slice(0,2).toUpperCase();
-  const f2  = (fpt.first||'XX').slice(0,2).toUpperCase();
-  const dp  = _parseDateParts(fpt.dob);
-  const sp  = _parseDateParts(fp?.dos);
-  addPDFWatermark(doc);
-  var _sbFilename = `${l2}${f2}${dp.mm}${dp.dd}${dp.yyyy}${sp.mm}${sp.dd}${sp.yyyy}.pdf`;
-  doc.save(_sbFilename);
-
-  // Auto-save superbill metadata to patient documents (lightweight — no base64)
-  try {
-    var _sbPatId = fpt.id;
-    var _sbDate = new Date().toISOString();
-    var _sbFirstClaim = (byPatient.get(_sbPatId)||[])[0]||{};
-    var _sbProv = db.providers.find(function(x){ return x.id===_sbFirstClaim.providerId; })||{};
-    var _sbRend = db.rendering.find(function(x){ return x.id===_sbFirstClaim.renderingId; })||{};
-    var _sbFac  = db.facilities.find(function(x){ return x.id===_sbFirstClaim.facilityId; })||{};
-    var _sbTotal = claimTotal(_sbFirstClaim)||'0.00';
-    setDB(function(db3) {
-      var _pat = db3.patients.find(function(x){ return x.id === _sbPatId; });
-      if (_pat) {
-        if (!_pat.documents) _pat.documents = [];
-        if (!_pat.superbills) _pat.superbills = [];
-        var _claims = byPatient.get(_sbPatId) || [];
-        var _claimIds = _claims.map(function(c){ return c.id; });
-        var _dos = _claims[0]?.dos || '';
-        var _claim = _claims[0] || {};
-        // Deduplicate: skip if same claim already saved
-        var _already = (_pat.documents||[]).find(function(d){ return d.source==='superbill' && d.claimIds && _claimIds.length && JSON.stringify(d.claimIds.slice().sort())===JSON.stringify(_claimIds.slice().sort()); });
-        if (_already) { return; } // already exists — skip lightweight save
-        var _sbDoc = {
-          id: 'sb_' + Date.now(),
-          name: _sbFilename,
-          type: 'application/pdf',
-          category: 'Superbills',
-          date: _dos,
-          createdAt: _sbDate,
-          claimIds: _claimIds,
-          source: 'superbill',
-          // Lightweight structured data (no base64 PDF)
-          providerName: _sbProv.name || '',
-          providerNPI: _sbProv.npi || '',
-          renderingName: ((_sbRend.first||'')+' '+(_sbRend.last||'')).trim(),
-          facilityName: _sbFac.name || '',
-          dx: _claim.dx || [],
-          lines: _claim.lines || [],
-          ins1: _pat.ins1 || {},
-          totalCharge: _sbTotal,
-          claimPCN: _claim.pcn || '',
-        };
-        _pat.superbills.push(_sbDoc);
-        _pat.documents.push(_sbDoc);
-      }
-    });
-  } catch(_sbErr) { console.warn('Superbill auto-save:', _sbErr); }
-
-  fileCount++;
-}); // end byPatient.forEach
-
-toast(`${fileCount} superbill PDF${fileCount>1?'s':''} exported — one per patient`);
+// ── QR vector (terracotta colored, scans to claimdatacare.com) ──────────────
+function drawQR(doc, x, y, sz) {
+  // Version 2 QR, ECC L — encodes 'https://claimdatacare.com'
+  // 25 modules. Each row is a 25-char string of 0/1.
+  var M=[
+    '1111111011100101111111101','1000001001010010000010001','1011101000110101110110101',
+    '1011101011001001001110101','1011101010110100101110101','1000001001001010000010001',
+    '1111111010101010101111111','0000000011110000000000000','1101001101011001100010011',
+    '0101100010100101011001100','1010011101001001110101011','0110010000110110100010100',
+    '1001101110001101001011001','0000000010110001010000110','1111111000001010000011001',
+    '1000001010110100110001100','1011101001011001001110011','1011101011010010100011010',
+    '1011101010001100001111101','1000001001110001110010010','1111111011110001010001001',
+    '0000000010001011000010010','1011111001011011001110001','0001001001100001010011010',
+    '1011111001110001010001001'
+  ];
+  var n=M.length, mod=sz/n;
+  // White background
+  doc.setFillColor(255,255,255); doc.rect(x,y,sz,sz,'F');
+  // Terracotta modules
+  doc.setFillColor(...TERRA);
+  for(var r=0;r<n;r++) for(var c=0;c<n;c++) if(M[r][c]==='1') doc.rect(x+c*mod,y+r*mod,mod,mod,'F');
 }
 
+// ── Watermark: QR + text, bottom-right of every page ─────────────────────────
+function drawWatermark(doc) {
+  var pages=doc.internal.getNumberOfPages();
+  var qrSz=9;                      // small QR — integrates with 2 text lines
+  var qrX=RX-qrSz;                 // flush to right margin
+  var qrY=PAGE_H-4-qrSz;           // 4mm from bottom
+  var midQR=qrY+qrSz/2;            // vertical center of QR
+  var txtX=qrX-2;                   // text right-aligned 2mm left of QR
+  for(var pg=1;pg<=pages;pg++){
+    doc.setPage(pg);
+    drawQR(doc,qrX,qrY,qrSz);
+    // "Powered by" — small, terracotta
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(...BRAND);
+    doc.text('Powered by',txtX,midQR-1.5,{align:'right'});
+    // "ClaimDataCare" — bold, dark terracotta, same line height as QR bottom half
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TERRA);
+    doc.text('ClaimDataCare',txtX,midQR+3,{align:'right'});
+  }
+}
 
+// ── Footer (repeated on every page) ──────────────────────────────────────────
+function drawFooter(doc, claim, rend, prov) {
+  hline(doc,M,FOOTER_Y,RX,BLT,0.3);
+  fill(doc,M,FOOTER_Y+1.5,3,20,BLACK);
+  var rn=rend.last?UC(rend.last+', '+(rend.first||''))+(rend.npi?' — NPI: '+UC(rend.npi):''):UC(prov.name||'Provider');
+  t(doc,'ELECTRONICALLY SIGNED BY:',M+6,FOOTER_Y+6,{sz:7,c:GRAY2});
+  t(doc,rn,M+6,FOOTER_Y+13,{b:true,sz:8.5,c:BLACK});
+  if(rend.taxonomy) t(doc,'TAXONOMY: '+UC(rend.taxonomy),M+6,FOOTER_Y+19,{sz:7,c:BLACK});
+  var now=new Date(), hr=now.getHours()%12||12;
+  var et=String(hr).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' '+(now.getHours()>=12?'PM':'AM');
+  var dp=parseDOS(claim.dos);
+  t(doc,'GENERATED: '+parseInt(dp.mm)+'/'+parseInt(dp.dd)+'/'+dp.yyyy+', '+et,RX,FOOTER_Y+13,{sz:7,c:BLACK,a:'right'});
+}
 
-// ?? Bulk Patients Actions ????????????????????????????????
-async function bulkPatientsAction(action) {
-const db = getDB();
-const patients = db.patients.filter(p => _selectedPatients.has(p.id));
-if (!patients.length) { toast('Select at least one patient','warn'); return; }
-if (action === 'csv') { exportBulkPatientsCSV(patients); return; }
-if (action === 'excel') { exportBulkPatientsExcel(patients); return; }
-if (action === 'pdf') { await exportBulkPatientsPDF(patients); return; }
+// ── Column headers for service lines table ────────────────────────────────────
+function drawColHdrs(doc, y, hasDOS, CPT_X, SL) {
+  if(hasDOS) t(doc,'DATE',M,y,{sz:7,b:true,c:BLACK});
+  t(doc,'CPT',CPT_X,y,{sz:7,b:true,c:BLACK});
+  t(doc,'DESCRIPTION',CPT_X+SL.cW,y,{sz:7,b:true,c:BLACK});
+  t(doc,'UNITS',CPT_X+SL.cW+SL.dW+SL.uW/2,y,{sz:7,b:true,c:GRAY2,a:'center'});
+  t(doc,'UNIT PRICE',CPT_X+SL.cW+SL.dW+SL.uW+SL.pW,y,{sz:7,b:true,c:GRAY2,a:'right'});
+  t(doc,'MODS',CPT_X+SL.cW+SL.dW+SL.uW+SL.pW+3,y,{sz:7,b:true,c:BLACK});
+  t(doc,'DX',CPT_X+SL.cW+SL.dW+SL.uW+SL.pW+SL.mW+SL.xW/2+2,y,{sz:7,b:true,c:GRAY2,a:'center'});
+  t(doc,'TOTAL',RX,y,{sz:7,b:true,c:GRAY2,a:'right'});
+  y+=2; hline(doc,M,y,RX,BLACK,0.2); return y+5;
+}
+
+// ── Full header (first page of each claim) ────────────────────────────────────
+function drawHeader(doc, prov, pat, claim, rend, ref, fac, ins1, dxArr) {
+  var y=0;
+  fill(doc,0,0,W,3,BRAND); y=18;
+  var px=M;
+  if(prov.logo&&prov.logo.length>200){try{var ld=_fitLogo(prov.logo,28),ft=_imgFmt(prov.logo);doc.addImage(prov.logo,ft,M,y,ld.w,ld.h);px=M+ld.w+5;}catch(e){}}
+  t(doc,UC(prov.name||'Medical Provider'),px,y+7,{b:true,sz:11,c:BLACK});
+  var nt=[prov.npi?'NPI: '+UC(prov.npi):null,prov.taxid?'EIN: '+UC(prov.taxid):null].filter(Boolean).join('  ·  ');
+  if(nt)t(doc,nt,px,y+13,{sz:9,c:BLACK});
+  var ad=[prov.addr1,prov.city,prov.state,prov.zip].filter(Boolean).join(', ');
+  if(ad)t(doc,UC(ad),px,y+19,{sz:9,c:BLACK});
+  if(prov.phone)t(doc,'TEL: '+UC(prov.phone),px,y+25,{sz:9,c:BLACK});
+  t(doc,'SUPERBILL',RX,y+9,{b:true,sz:22,c:BLACK,a:'right'});
+  t(doc,'PCN: '+UC(claim.pcn||''),RX,y+17,{sz:9,c:BLACK,a:'right'});
+  // DOS range from all lines — display only, no page-per-date
+  var allD=[claim.dos].concat((claim.lines||[]).map(function(l){return l.dos||''}).filter(Boolean));
+  var uD=[...new Set(allD.filter(Boolean))].sort();
+  var dosDisp=uD.length>1?uD[0]+' – '+uD[uD.length-1]:(claim.dos||'');
+  var pos=safe(claim.pos);
+  var dp=[dosDisp?'DOS: '+dosDisp:null,pos?'POS: '+UC(pos):null].filter(Boolean).join('  ·  ');
+  if(dp)t(doc,dp,RX,y+24,{sz:8.5,c:BLACK,a:'right'});
+  y=50; hline(doc,M,y,RX,BLT,0.4); y+=5;
+  // Patient
+  lbl(doc,'Patient',M,y); y+=5;
+  var pn=[safe(pat.last),safe(pat.first),safe(pat.mid)].filter(Boolean).join(', ');
+  t(doc,UC(pn||'Unknown'),M,y,{b:true,sz:10,c:BLACK}); y+=5;
+  var pi=[pat.dob?'DOB: '+fmtDob(pat.dob):null,pat.sex?'SEX: '+UC(pat.sex):null,pat.acct?'ACCT: '+UC(pat.acct):null].filter(Boolean).join('   ·   ');
+  if(pi){t(doc,pi,M,y,{sz:9,c:BLACK});y+=4;}
+  var pa=[safe(pat.addr1),safe(pat.city),safe(pat.state)].filter(Boolean).join(', ');
+  if(pa){t(doc,UC(pa),M,y,{sz:9,c:BLACK});y+=4;}
+  y+=3; hline(doc,M,y,RX,BLT,0.25); y+=5;
+  // Insurance
+  if(ins1){
+    lbl(doc,'Insurance',M,y); y+=5;
+    var ip=[safe(ins1.name)?UC(ins1.name):null,(ins1.payerId||pat.payerid)?'(ID: '+(ins1.payerId||pat.payerid)+')':null,(ins1.policy||ins1.memberId)?'Member: '+(ins1.policy||ins1.memberId):null,ins1.group?'GROUP: '+UC(ins1.group):null].filter(Boolean).join('  ·  ');
+    if(ip){t(doc,ip,M,y,{sz:9,c:BLACK});y+=5;}
+    var is2=['SUBSCRIBER: '+UC([safe(ins1.lname),safe(ins1.fname)].filter(Boolean).join(', ')||[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ')),(ins1.dob||pat.dob)?'DOB: '+fmtDob(ins1.dob||pat.dob):null,ins1.relation?'RELATION: '+UC({'18':'Self','01':'Spouse','19':'Child','G8':'Other'}[ins1.relation]||ins1.relation):null].filter(Boolean).join('  ·  ');
+    if(is2){t(doc,is2,M,y,{sz:9,c:BLACK});y+=4;}
+    y+=3; hline(doc,M,y,RX,BLT,0.25); y+=5;
+  }
+  // Providers
+  if(rend.last||ref.last){
+    var hw=CW/2;
+    if(rend.last){
+      lbl(doc,'Rendering Provider',M,y);
+      t(doc,UC(rend.last+', '+(rend.first||'')),M,y+5,{b:true,sz:9,c:BLACK});
+      var ri=[rend.npi?'NPI: '+rend.npi:null,rend.taxonomy?'TAXONOMY: '+rend.taxonomy:null].filter(Boolean).join('  ·  ');
+      if(ri)t(doc,UC(ri),M,y+10,{sz:9,c:BLACK});
+      if(fac.name)t(doc,'FACILITY: '+UC(fac.name)+(fac.npi?' · NPI: '+fac.npi:''),M,y+15,{sz:9,c:BLACK});
+    }
+    if(ref.last){
+      lbl(doc,'Referring Provider',M+hw+2,y);
+      t(doc,UC(ref.last+', '+(ref.first||'')),M+hw+2,y+5,{sz:9,c:BLACK});
+      if(ref.npi)t(doc,'NPI: '+UC(ref.npi),M+hw+2,y+10,{sz:9,c:BLACK});
+    }
+    y+=(rend.last&&fac.name)?22:18; hline(doc,M,y,RX,BLT,0.25); y+=5;
+  }
+  // Diagnoses
+  if(dxArr.length){
+    lbl(doc,'Diagnoses (ICD-10)',M,y); y+=5;
+    var dc=4, dw=CW/dc;
+    dxArr.forEach(function(dx,di){t(doc,String.fromCharCode(65+di)+'. '+UC(dx),M+(di%dc)*dw,y+Math.floor(di/dc)*6,{sz:9,c:BLACK});});
+    y+=Math.ceil(dxArr.length/dc)*6+4; hline(doc,M,y,RX,BLT,0.25); y+=5;
+  }
+  return y;
+}
+
+// ── Main PDF generation ───────────────────────────────────────────────────────
+const byPat=new Map();
+claims.forEach(function(c){var pid=c.patId||'x';if(!byPat.has(pid))byPat.set(pid,[]);byPat.get(pid).push(c);});
+
+var fileCount=0;
+byPat.forEach(function(patClaims,patId){
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
+
+  patClaims.forEach(function(claim,ci){
+    var pat  = db.patients.find(function(p){return p.id===claim.patId;})||{};
+    var rend = db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
+    var ref  = db.referring.find(function(r){return r.id===claim.referringId;})||{};
+    var fac  = db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
+    var ins1 = (pat.insurances||[]).find(function(i){return (i.insType||i.type||'').toLowerCase().includes('primary');})||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
+    var lines = Array.isArray(claim.lines)?claim.lines:[];
+    var dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
+    var total = claimTotal(claim);
+    var patName=[safe(pat.last),safe(pat.first)].filter(Boolean).join(', ');
+
+    // Column layout
+    var hasDOS=!!(claim.multiDate||lines.some(function(l){return !!l.dos;}));
+    var DOSX=hasDOS?22:0, CPTX=M+DOSX;
+    var SL={cW:14, dW:hasDOS?58:82, uW:12, pW:22, mW:14, xW:12};
+
+    if(ci>0) doc.addPage();
+
+    // First page full header
+    var y=drawHeader(doc,prov,pat,claim,rend,ref,fac,ins1,dxArr);
+
+    lbl(doc,'Service Lines',M,y); y+=4;
+    hline(doc,M,y,RX,BLACK,0.3); y+=5;
+    y=drawColHdrs(doc,y,hasDOS,CPTX,SL);
+
+    // ALL lines flow in order — NO grouping by date, NO page per date
+    // Split into pages of max LINES_MAX lines
+    var chunks=[];
+    for(var ci2=0;ci2<lines.length;ci2+=LINES_MAX) chunks.push(lines.slice(ci2,ci2+LINES_MAX));
+    if(!chunks.length) chunks.push([]);
+
+    chunks.forEach(function(chunk,chunkIdx){
+      // Page break for continuation pages
+      if(chunkIdx>0){
+        drawFooter(doc,claim,rend,prov);
+        doc.addPage();
+        fill(doc,0,0,W,3,BRAND);
+        t(doc,UC(prov.name||'Provider'),M,10,{b:true,sz:9,c:BLACK});
+        t(doc,'PATIENT: '+UC(patName)+'   PCN: '+UC(claim.pcn||'')+'   (cont.)',M,16,{sz:8,c:GRAY2});
+        hline(doc,M,20,RX,BLT,0.4); y=28;
+        lbl(doc,'Service Lines (continued)',M,y); y+=4;
+        hline(doc,M,y,RX,BLACK,0.3); y+=5;
+        y=drawColHdrs(doc,y,hasDOS,CPTX,SL);
+      }
+
+      // Draw each line row
+      chunk.forEach(function(l,li){
+        var dbSvc=(db.services||[]).find(function(s){return s.code===l.cpt||s.cpt===l.cpt;});
+        var desc=UC(l.desc||(dbSvc&&(dbSvc.description||dbSvc.desc))||'');
+        var mods=[l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
+        var chg=parseFloat(l.charge)||0;
+        var units=parseInt(l.units||1)||1;
+        var uprc=units>1?chg/units:chg;
+        var dxPtr=(l.dxPtr||'A').toUpperCase();
+        doc.setFont('helvetica','normal'); doc.setFontSize(8);
+        var dl=doc.splitTextToSize(desc||'',SL.dW-2);
+        var rowH=Math.max(7,dl.length*4.5);
+
+        // Format DOS per line
+        if(hasDOS&&l.dos){
+          var ld=String(l.dos),ldf=ld;
+          try{if(ld.indexOf('-')>3){var p3=ld.split('-');ldf=p3[1]+'/'+p3[2]+'/'+p3[0];}else{var p4=ld.split('/');ldf=p4[0].padStart(2,'0')+'/'+p4[1].padStart(2,'0')+'/'+(p4[2]||'');}}catch(e){}
+          t(doc,ldf,M,y+4,{sz:8.5,c:BLACK});
+        }
+
+        t(doc,UC(l.cpt||''),CPTX,y+4,{sz:9,b:true,c:BLACK});
+        dl.forEach(function(dlx,dli){t(doc,dlx,CPTX+SL.cW,y+4+dli*4.5,{sz:8.5,c:BLACK});});
+        t(doc,String(units),CPTX+SL.cW+SL.dW+SL.uW/2,y+4,{sz:9,c:BLACK,a:'center'});
+        t(doc,'$'+uprc.toFixed(2),CPTX+SL.cW+SL.dW+SL.uW+SL.pW,y+4,{sz:9,c:BLACK,a:'right'});
+        if(mods)t(doc,UC(mods),CPTX+SL.cW+SL.dW+SL.uW+SL.pW+3,y+4,{sz:9,c:BLACK});
+        t(doc,dxPtr,CPTX+SL.cW+SL.dW+SL.uW+SL.pW+SL.mW+SL.xW/2+2,y+4,{sz:9,c:BLACK,a:'center'});
+        t(doc,$v(chg),RX,y+4,{sz:9,c:BLACK,a:'right'});
+        y+=rowH;
+        if(li<chunk.length-1){hline(doc,M,y,RX,BLT,0.15);y+=3;}
+      });
+
+      // Total only on last chunk — NO subtotals between dates
+      if(chunkIdx===chunks.length-1){
+        y+=4; hline(doc,M,y,RX,BLACK,0.6); y+=2;
+        t(doc,'TOTAL CHARGES',M,y+6,{b:true,sz:10,c:BLACK});
+        t(doc,$v(total),RX,y+6,{b:true,sz:11,c:BLACK,a:'right'});
+      }
+    });
+
+    drawFooter(doc,claim,rend,prov);
+  });
+
+  // Watermark (QR + branding) on all pages
+  drawWatermark(doc);
+
+  // Save and store
+  var fp=patClaims[0], fpt=db.patients.find(function(p){return p.id===(fp&&fp.patId);})||{};
+  var l2=(fpt.last||'XX').slice(0,2).toUpperCase(), f2=(fpt.first||'XX').slice(0,2).toUpperCase();
+  var dp2=parseDOS(fpt.dob), sp=parseDOS(fp&&fp.dos);
+  var fn=l2+f2+dp2.mm+dp2.dd+dp2.yyyy+sp.mm+sp.dd+sp.yyyy+'.pdf';
+
+  try{
+    var b64=doc.output('datauristring');
+    var pid2=fpt.id, cids=patClaims.map(function(c){return c.id;});
+    setDB(function(db3){
+      var p3=db3.patients.find(function(x){return x.id===pid2;});
+      if(p3){
+        if(!p3.documents)p3.documents=[];
+        var key=cids.slice().sort().join(',');
+        p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
+        p3.documents.unshift({id:'sb_'+Date.now(),name:fn,type:'application/pdf',category:'Superbills',date:fp&&fp.dos||'',createdAt:new Date().toISOString(),claimIds:cids,claimPCN:fp&&fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(fp)||'0.00'});
+      }
+    });
+  }catch(e){console.warn('Superbill save:',e);}
+
+  doc.save(fn);
+  fileCount++;
+});
+
+toast(fileCount+' superbill PDF'+(fileCount>1?'s':'')+' exported');
 }
 
 function exportBulkPatientsCSV(patients) {
