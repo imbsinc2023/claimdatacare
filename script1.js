@@ -77,6 +77,7 @@ const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',serv
 
 const uid = () => 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 const sanitizeSubID = s => String(s||'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+var _adminUser = null;
 const v = id => { const e = document.getElementById(id); return e ? e.value.trim().toUpperCase() : ''; };
 const sv = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
 
