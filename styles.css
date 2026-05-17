@@ -326,7 +326,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
    Patient Chart — ptc-* components
    ============================================= */
 .pt-chart-overlay{background:var(--bg,#f5f4ed)}
-.ptc-banner{background:#b5451b;color:#fff;padding:0 14px;height:44px;min-height:44px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ptc-banner{background:#b5451b;color:#fff;padding:0 10px;height:34px;min-height:34px;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .ptc-banner-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
 .ptc-banner-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden}
 .ptc-banner-meta-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap;color:#fff}
