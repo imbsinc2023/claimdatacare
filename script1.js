@@ -202,6 +202,7 @@ eob: renderEOBPage,
 insurances: renderInsurances,
 validate: renderValidation,
 export: ()=>{ renderExportSummary(); try{loadApiConfig();}catch(_){} },
+  medicaid: ()=>{ renderMedicaid(); },
 reports: renderReports,
 'admin-providers': renderAdminProviders,
 'admin-rendering': ()=>renderRendering(true),
@@ -361,6 +362,103 @@ function _cdcDiag() {
   ];
   return lines.join('\n');
 }
+
+function pushClaimsToExtension() {
+  var db = getDB();
+  var pending = (db.claims||[]).filter(function(c){ return c.providerId===activeProviderId && c.status==='pending' && !c.medicaidSubmitted; });
+  if (!pending.length) { toast('No pending claims to send','warn'); return; }
+  var payload = pending.map(function(c) {
+    var pat = (db.patients||[]).find(function(p){return p.id===c.patId;})||{};
+    var rend = (db.rendering||[]).find(function(r){return r.id===c.renderingId;})||{};
+    var dates = [c.dos].concat((c.lines||[]).map(function(l){return l.dos||''}).filter(Boolean));
+    var uDates = [...new Set(dates.filter(Boolean))].sort();
+    return {pcn:c.pcn,dos:c.dos,dosRange:uDates.length>1?uDates[0]+' - '+uDates[uDates.length-1]:(c.dos||''),acct:pat.acct||'',medicaidId:pat.subNum||'',patSubNum:pat.subNum||'',patLast:pat.last||'',patFirst:pat.first||'',patDob:pat.dob||'',dx:(c.dx||[]).filter(Boolean),lines:c.lines||[],renderingNPI:rend.npi||'117416500',multiDate:c.multiDate||false};
+  });
+  localStorage.setItem('cdc_extension_claims', JSON.stringify(payload));
+  localStorage.setItem('cdc_extension_status', '{}');
+  try { if (typeof chrome!=='undefined'&&chrome.storage&&chrome.storage.local) { chrome.storage.local.set({cdc_medicaid_claims:payload,cdc_medicaid_status:{}}); } } catch(e) {}
+  toast(payload.length+' claims ready ✓ Open the CDC extension in Chrome', 'ok');
+}
+
+function renderMedicaid() {
+  var db = getDB();
+  var prov = db.providers.find(function(p){return p.id===activeProviderId;})||{};
+  var session = getSession();
+  var adminEmail = (db.users||[]).find(function(u){return u.role==='Super Admin';})?.email || session?.email || '';
+  var pending = (db.claims||[]).filter(function(c){ return c.providerId===activeProviderId && c.status==='pending' && !c.medicaidSubmitted; });
+  var el = document.getElementById('medicaid-content');
+  if (!el) return;
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'
+  +'<div class="card">'
+  +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
+  +'<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center"><i data-lucide="key" class="lci" style="width:18px;height:18px;color:var(--brand)"></i></div>'
+  +'<div><div style="font-size:13px;font-weight:700">Medicaid Credentials</div><div style="font-size:11px;color:var(--text3)">Stored per provider</div></div>'
+  +'</div>'
+  +'<div class="fg g1">'
+  +'<div class="field"><label>Portal Username</label><input id="med-user" class="no-upper" value="'+(prov.medicaidUser||'')+'" placeholder="Medicaid login"></div>'
+  +'<div class="field"><label>Portal Password</label><input id="med-pass" type="password" value="'+(prov.medicaidPass||'')+'" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>'
+  +'</div>'
+  +'<button class="btn btn-primary btn-sm" onclick="saveMedicaidCredentials()"><i data-lucide="save" class="lci"></i> Save Credentials</button>'
+  +'</div>'
+
+  +'<div class="card">'
+  +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
+  +'<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center"><i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i></div>'
+  +'<div><div style="font-size:13px;font-weight:700">Chrome Extension</div><div style="font-size:11px;color:var(--text3)">'+pending.length+' claims ready to transmit</div></div>'
+  +'</div>'
+  +'<div style="padding:10px 14px;background:var(--bg3);border-radius:8px;margin-bottom:14px;font-size:12px">'
+  +'<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Pending claims:</span><strong style="color:var(--brand)">'+pending.length+'</strong></div>'
+  +'<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Total charges:</span><strong>$'+pending.reduce(function(s,c){return s+claimTotal(c);},0).toFixed(2)+'</strong></div>'
+  +'<div style="display:flex;justify-content:space-between"><span>Admin email:</span><strong>'+adminEmail+'</strong></div>'
+  +'</div>'
+  +'<div style="display:flex;flex-direction:column;gap:8px">'
+  +'<button class="btn btn-primary" onclick="pushClaimsToExtension()" '+(pending.length===0?'disabled':'')+'><i data-lucide="download" class="lci"></i> Send to Chrome Extension</button>'
+  +'<button class="btn btn-sm" onclick="go(\"claims\")"><i data-lucide="file-text" class="lci"></i> Review Claims First</button>'
+  +'</div>'
+  +'</div>'
+  +'</div>'
+
+  +'<div style="padding:14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:10px;margin-bottom:16px;font-size:12px;color:var(--text2)">'
+  +'<div style="font-weight:700;color:var(--brand);margin-bottom:8px;font-size:13px"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> How to use the Chrome Extension</div>'
+  +'<ol style="padding-left:18px;line-height:2.2">'
+  +'<li>Download and install the <strong>CDC Medicaid Extension</strong> in Chrome</li>'
+  +'<li>Create your claims in <strong>Quick Batch</strong> (status: Pending)</li>'
+  +'<li>Come here and click <strong>Send to Chrome Extension</strong></li>'
+  +'<li>Open the extension icon in Chrome &rarr; it shows your claims</li>'
+  +'<li>Open the <a href="https://portal.flmmis.com" target="_blank" style="color:var(--brand)">FL Medicaid portal</a>, log in, solve CAPTCHA</li>'
+  +'<li>Click <strong>&rsaquo; Start Transmission</strong> in the extension</li>'
+  +'<li>Watch it fill everything automatically &mdash; one claim at a time</li>'
+  +'</ol>'
+  +'</div>'
+
+  +'<div class="card">'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+  +'<div class="card-title">Pending Claims Preview</div>'
+  +'<span class="badge b-amber">'+pending.length+' pending</span>'
+  +'</div>'
+  +(pending.length===0
+    ? '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No pending claims. Create via Quick Batch first.</div>'
+    : '<div class="tbl-wrap"><table><thead><tr><th>Patient</th><th>Medicaid ID</th><th>PCN</th><th>DOS</th><th>CPT</th><th>Charges</th></tr></thead><tbody>'
+    + pending.map(function(c){
+        var pat=(db.patients||[]).find(function(p){return p.id===c.patId;})||{};
+        return '<tr><td style="font-weight:600">'+(pat.last||'')+', '+(pat.first||'')+'</td><td class="mono">'+(pat.subNum||'—')+'</td><td class="mono">'+(c.pcn||'')+'</td><td>'+(c.dos||'')+'</td><td class="mono">'+((c.lines||[]).map(function(l){return l.cpt;}).join(', '))+'</td><td><strong>$'+claimTotal(c).toFixed(2)+'</strong></td></tr>';
+      }).join('')
+    + '</tbody></table></div>'
+  )
+  +'</div>';
+
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function saveMedicaidCredentials() {
+  var user = document.getElementById('med-user')?.value?.trim();
+  var pass = document.getElementById('med-pass')?.value;
+  if (!user||!pass) { toast('Fill username and password','err'); return; }
+  setDB(function(db){ var p=db.providers.find(function(x){return x.id===activeProviderId;}); if(p){p.medicaidUser=user;p.medicaidPass=pass;} });
+  toast('Credentials saved ✓','ok');
+}
+
 
 function renderDashboard(){
 if (typeof window._dashRt === 'undefined') window._dashRt = 0;
@@ -1703,6 +1801,7 @@ return `<div class="app-shell">
 <div class="tn-dd-item" id="tnd-admin-providers" onclick="go('admin-providers');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>
 <div class="tn-dd-item" id="tnd-servicegroups" onclick="go('servicegroups');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>
 <div class="tn-dd-item" id="tnd-export" onclick="go('export');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>
+<div class="tn-dd-item" id="tnd-medicaid" onclick="go('medicaid');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>FL Medicaid Transmit</span></div>
 <div class="tn-dd-item" onclick="go('account');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>
 <div class="tn-dd-item" onclick="go('reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
 <div class="tn-dd-sep"></div>
@@ -2631,6 +2730,20 @@ Show Paid
 
 <div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go('cm-clients')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>
 
+<div class="section" id="sec-medicaid">
+<div class="page-hdr">
+<div>
+<h1 style="display:flex;align-items:center;gap:10px">
+<i data-lucide="shield-check" class="lci" style="width:22px;height:22px;color:var(--brand)"></i>
+FL Medicaid Transmission
+</h1>
+<div style="font-size:12px;color:var(--text3);margin-top:2px">Automated claim submission to Florida Medicaid portal</div>
+</div>
+</div>
+<div class="page-body" id="medicaid-body">
+<div id="medicaid-content"></div>
+</div>
+</div>
 <div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>
 
 <!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->
@@ -7833,7 +7946,7 @@ function _afterLoad() {
     var _curPage = _curActive.id.replace('sec-', '');
     try {
       var _invoicesRender = function(){ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} };
-      var _renderFn = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,invoices:_invoicesRender,'cm-dashboard':renderCMDashboard,'cm-clients':renderCMClients,'cm-intake':renderCMIntake,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation})[_curPage];
+      var _renderFn = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,invoices:_invoicesRender,'cm-dashboard':renderCMDashboard,'cm-clients':renderCMClients,'cm-intake':renderCMIntake,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation,medicaid:renderMedicaid})[_curPage];
       if (_renderFn) { _renderFn(); updateBadges(); }
     } catch(e) {}
   }
@@ -10137,44 +10250,48 @@ const parseDOS = ds => {
 const fmtDob = d => { if(!d) return null; const p=parseDOS(d); return `${parseInt(p.mm)}/${parseInt(p.dd)}/${p.yyyy}`; };
 const fmtDOS = d => { if(!d) return ''; const p=parseDOS(d); return `${p.mm}/${p.dd}/${p.yyyy}`; };
 
-// ── QR vector (terracotta colored, scans to claimdatacare.com) ──────────────
-function drawQR(doc, x, y, sz) {
-  // Version 2 QR, ECC L — encodes 'https://claimdatacare.com'
-  // 25 modules. Each row is a 25-char string of 0/1.
-  var M=[
-    '1111111011100101111111101','1000001001010010000010001','1011101000110101110110101',
-    '1011101011001001001110101','1011101010110100101110101','1000001001001010000010001',
-    '1111111010101010101111111','0000000011110000000000000','1101001101011001100010011',
-    '0101100010100101011001100','1010011101001001110101011','0110010000110110100010100',
-    '1001101110001101001011001','0000000010110001010000110','1111111000001010000011001',
-    '1000001010110100110001100','1011101001011001001110011','1011101011010010100011010',
-    '1011101010001100001111101','1000001001110001110010010','1111111011110001010001001',
-    '0000000010001011000010010','1011111001011011001110001','0001001001100001010011010',
-    '1011111001110001010001001'
-  ];
-  var n=M.length, mod=sz/n;
-  // White background
-  doc.setFillColor(255,255,255); doc.rect(x,y,sz,sz,'F');
-  // Terracotta modules
-  doc.setFillColor(...TERRA);
-  for(var r=0;r<n;r++) for(var c=0;c<n;c++) if(M[r][c]==='1') doc.rect(x+c*mod,y+r*mod,mod,mod,'F');
+// ── QR: fetch from Google Charts API once, draw as image ────────────────────
+var _cdcQRcache = null;
+
+function _fetchQRthenPDF(callback) {
+  // Google Charts QR API — reliable, free, no key needed
+  var url = 'https://chart.googleapis.com/chart?cht=qr&chs=120x120&chl=https%3A%2F%2Fclaimdatacare.com&choe=UTF-8';
+  if (_cdcQRcache) { callback(_cdcQRcache); return; }
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    try {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 120;
+      var ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0, 120, 120);
+      _cdcQRcache = cv.toDataURL('image/png');
+    } catch(e) { _cdcQRcache = null; }
+    callback(_cdcQRcache);
+  };
+  img.onerror = function() { callback(null); };
+  img.src = url;
 }
 
+
 // ── Watermark: QR + text, bottom-right of every page ─────────────────────────
-function drawWatermark(doc) {
+function drawWatermark(doc, qrDataURL) {
   var pages=doc.internal.getNumberOfPages();
-  var qrSz=9;                      // small QR — integrates with 2 text lines
-  var qrX=RX-qrSz;                 // flush to right margin
-  var qrY=PAGE_H-4-qrSz;           // 4mm from bottom
-  var midQR=qrY+qrSz/2;            // vertical center of QR
-  var txtX=qrX-2;                   // text right-aligned 2mm left of QR
+  var qrSz=9, qrX=RX-qrSz, qrY=PAGE_H-4-qrSz;
+  var midQR=qrY+qrSz/2, txtX=qrX-2;
   for(var pg=1;pg<=pages;pg++){
     doc.setPage(pg);
-    drawQR(doc,qrX,qrY,qrSz);
-    // "Powered by" — small, terracotta
+    if(qrDataURL){
+      try{ doc.addImage(qrDataURL,'PNG',qrX,qrY,qrSz,qrSz,undefined,'FAST'); }catch(e){}
+    } else {
+      // Fallback box if QR unavailable
+      doc.setFillColor(240,238,230); doc.rect(qrX,qrY,qrSz,qrSz,'F');
+      doc.setDrawColor(181,69,27); doc.setLineWidth(0.4); doc.rect(qrX,qrY,qrSz,qrSz,'S');
+      doc.setFont('helvetica','bold'); doc.setFontSize(4); doc.setTextColor(181,69,27);
+      doc.text('CDC',qrX+qrSz/2,qrY+qrSz/2,{align:'center'});
+    }
     doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(...BRAND);
     doc.text('Powered by',txtX,midQR-1.5,{align:'right'});
-    // "ClaimDataCare" — bold, dark terracotta, same line height as QR bottom half
     doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TERRA);
     doc.text('ClaimDataCare',txtX,midQR+3,{align:'right'});
   }
@@ -10275,6 +10392,7 @@ function drawHeader(doc, prov, pat, claim, rend, ref, fac, ins1, dxArr) {
 }
 
 // ── Main PDF generation ───────────────────────────────────────────────────────
+var _pendingDocs=[];
 const byPat=new Map();
 claims.forEach(function(c){var pid=c.patId||'x';if(!byPat.has(pid))byPat.set(pid,[]);byPat.get(pid).push(c);});
 
@@ -10369,34 +10487,39 @@ byPat.forEach(function(patClaims,patId){
     drawFooter(doc,claim,rend,prov);
   });
 
-  // Watermark (QR + branding) on all pages
-  drawWatermark(doc);
+  // Watermark applied after QR fetch (see callback below)
+  _pendingDocs.push({doc:doc, fn:fn, pid2:pid2, cids:cids, fp:fp});
 
   // Save and store
   var fp=patClaims[0], fpt=db.patients.find(function(p){return p.id===(fp&&fp.patId);})||{};
   var l2=(fpt.last||'XX').slice(0,2).toUpperCase(), f2=(fpt.first||'XX').slice(0,2).toUpperCase();
   var dp2=parseDOS(fpt.dob), sp=parseDOS(fp&&fp.dos);
   var fn=l2+f2+dp2.mm+dp2.dd+dp2.yyyy+sp.mm+sp.dd+sp.yyyy+'.pdf';
-
-  try{
-    var b64=doc.output('datauristring');
-    var pid2=fpt.id, cids=patClaims.map(function(c){return c.id;});
-    setDB(function(db3){
-      var p3=db3.patients.find(function(x){return x.id===pid2;});
-      if(p3){
-        if(!p3.documents)p3.documents=[];
-        var key=cids.slice().sort().join(',');
-        p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
-        p3.documents.unshift({id:'sb_'+Date.now(),name:fn,type:'application/pdf',category:'Superbills',date:fp&&fp.dos||'',createdAt:new Date().toISOString(),claimIds:cids,claimPCN:fp&&fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(fp)||'0.00'});
-      }
-    });
-  }catch(e){console.warn('Superbill save:',e);}
-
-  doc.save(fn);
+  var pid2=fpt.id, cids=patClaims.map(function(c){return c.id;});
+  _pendingDocs.push({doc:doc,fn:fn,pid2:pid2,cids:cids,fp:fp});
   fileCount++;
 });
 
-toast(fileCount+' superbill PDF'+(fileCount>1?'s':'')+' exported');
+// Fetch QR once then finalize all docs
+_fetchQRthenPDF(function(qrDataURL) {
+  _pendingDocs.forEach(function(pd) {
+    drawWatermark(pd.doc, qrDataURL);
+    try{
+      var b64=pd.doc.output('datauristring');
+      setDB(function(db3){
+        var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
+        if(p3){
+          if(!p3.documents)p3.documents=[];
+          var key=pd.cids.slice().sort().join(',');
+          p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
+          p3.documents.unshift({id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(pd.fp)||'0.00'});
+        }
+      });
+    }catch(e){console.warn('Superbill save:',e);}
+    pd.doc.save(pd.fn);
+  });
+  toast(fileCount+' superbill PDF'+(fileCount>1?'s':'')+' exported');
+});
 }
 
 function exportBulkPatientsCSV(patients) {
