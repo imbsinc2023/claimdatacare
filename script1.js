@@ -1811,7 +1811,7 @@ return `<div class="app-shell">
 <div class="tn-dd-item" id="tnd-admin-providers" onclick="go('admin-providers');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>
 <div class="tn-dd-item" id="tnd-servicegroups" onclick="go('servicegroups');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>
 <div class="tn-dd-item" id="tnd-export" onclick="go('export');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>
-<div class="tn-dd-item" id="tnd-medicaid" onclick="go('medicaid');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>FL Medicaid Transmit</span></div>
+<div class="tn-dd-item" id="tnd-medicaid" onclick="go('medicaid');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Medicaid</span></div>
 <div class="tn-dd-item" onclick="go('account');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>
 <div class="tn-dd-item" onclick="go('reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
 <div class="tn-dd-sep"></div>
@@ -6256,7 +6256,7 @@ const dxArr = asgn.dx ? asgn.dx.split(',').map(d=>d.trim()).filter(Boolean) : []
 
 const dateChips = (stRef.dates || []).map((d, di) => `
 <span class="dchip ${d.on ? 'on' : ''}"
-onclick="_sgBatchState['${pid}'].dates[${di}].on=!_sgBatchState['${pid}'].dates[${di}].on;this.classList.toggle('on');updateBatchPreview()">
+onclick="_toggleSGDate('${pid}',${di},this)">
 ${d.label}
 </span>`).join('');
 
@@ -8432,6 +8432,13 @@ toast('Provider info updated ?');
 }
 
 // ?? SG DATE TOGGLE ????????????????????????????????????????????????????????????
+function _toggleSGDate(pid, di, el) {
+  if (!_sgBatchState[pid]) return;
+  _sgBatchState[pid].dates[di].on = !_sgBatchState[pid].dates[di].on;
+  el.classList.toggle('on');
+  updateBatchPreview();
+}
+
 function toggleAllSGPatDates(patientId, on) {
 const st=_sgBatchState[patientId]; if(!st) return;
 st.dates.forEach(d=>d.on=on);
