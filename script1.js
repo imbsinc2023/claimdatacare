@@ -526,7 +526,8 @@ function _injectMissingModals() {
 function pushClaimsToExtension() {
   var db = getDB();
   var pending = (db.claims||[]).filter(function(c){ return c.providerId===activeProviderId && c.status==='pending' && !c.medicaidSubmitted; });
-  if (!pending.length) { toast('No pending claims to send','warn'); return; }
+  console.log('[Medicaid] pending claims:', pending.length, 'total claims:', (db.claims||[]).length, 'providerId:', activeProviderId);
+  if (!pending.length) { toast('No pending claims — create claims with status Pending first','warn'); return; }
   var payload = pending.map(function(c) {
     var pat = (db.patients||[]).find(function(p){return p.id===c.patId;})||{};
     var rend = (db.rendering||[]).find(function(r){return r.id===c.renderingId;})||{};
