@@ -490,6 +490,19 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
 
+  // Inject toast CSS if missing
+  if (!document.getElementById('cdc-toast-css')) {
+    var _tcss = document.createElement('style');
+    _tcss.id = 'cdc-toast-css';
+    _tcss.textContent = '#toasts{position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none}'
+      + '.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;color:#fff;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:auto;max-width:340px;box-shadow:0 4px 16px rgba(0,0,0,.18)}'
+      + '.toast.show{opacity:1;transform:translateY(0)}'
+      + '.toast.t-ok{background:#2d6a4f}'
+      + '.toast.t-err{background:#b53333}'
+      + '.toast.t-warn{background:#b8860b}';
+    document.head.appendChild(_tcss);
+  }
+
   // Inject toasts container if missing
   if (!document.getElementById('toasts')) {
     var _t = document.createElement('div');
@@ -546,7 +559,14 @@ function pushClaimsToExtension() {
   localStorage.setItem('cdc_extension_claims', JSON.stringify(payload));
   localStorage.setItem('cdc_extension_status', '{}');
   try { if (typeof chrome!=='undefined'&&chrome.storage&&chrome.storage.local) { chrome.storage.local.set({cdc_medicaid_claims:payload,cdc_medicaid_status:{}}); } } catch(e) {}
-  toast(payload.length+' claims ready ✓ Open the CDC extension in Chrome', 'ok');
+  // Change claim status to extension_queued
+  setDB(function(db2){
+    pending.forEach(function(pc){
+      var cl=(db2.claims||[]).find(function(x){return x.id===pc.id;});
+      if(cl){ cl.status='extension_queued'; cl.medicaidQueuedAt=new Date().toISOString(); }
+    });
+  });
+  toast(payload.length+' claim(s) queued for Medicaid ✓', 'ok');
 }
 
 function renderMedicaid() {
