@@ -490,6 +490,18 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
 
+  // Inject sec-medicaid into content if missing
+  if (!document.getElementById('sec-medicaid')) {
+    var _content = document.querySelector('.content');
+    if (_content) {
+      var _secMed = document.createElement('div');
+      _secMed.className = 'section';
+      _secMed.id = 'sec-medicaid';
+      _secMed.innerHTML = '<div class="page-hdr"><div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="shield-check" class="lci" style="width:22px;height:22px;color:var(--brand)"></i>FL Medicaid Transmission</h1></div></div><div class="page-body"><div id="medicaid-content"></div></div>';
+      _content.appendChild(_secMed);
+    }
+  }
+
   // Inject Medicaid nav item if missing
   var _adminDD = document.getElementById('tn-dd-admin');
   if (_adminDD && !document.getElementById('tnd-medicaid')) {
