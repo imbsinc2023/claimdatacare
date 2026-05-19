@@ -401,45 +401,71 @@ function _injectMissingModals() {
   );
 
   _mk('modal-invoice',
-    '<div class="modal modal-lg" style="max-width:840px;display:flex;flex-direction:column;max-height:94vh">' +
-    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh">' +
+    '<div class="modal-hdr" style="flex-shrink:0">' +
+    '<div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
+    '<button class="btn btn-ghost btn-sm" title="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
+    '</div>' +
     '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
     '<input type="hidden" id="inv-id">' +
-    '<div class="fg g3" style="margin-bottom:14px">' +
+
+    '<!-- Row 1: Entity / Client / Number -->' +
+    '<div class="fg g3" style="margin-bottom:12px">' +
     '<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
-    '<div class="field"><label>Client *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
-    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono"></div>' +
-    '</div><div class="fg g4" style="margin-bottom:14px">' +
-    '<div class="field"><label>Period</label><div style="display:flex;gap:6px">' +
-    '<select id="inv-month-sel" style="flex:1;padding:6px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+    '<div class="field"><label>Client / Provider *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
+    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto"></div>' +
+    '</div>' +
+
+    '<!-- Row 2: Period / Date / Due / Status -->' +
+    '<div class="fg g4" style="margin-bottom:12px">' +
+    '<div class="field"><label>Billing Period</label>' +
+    '<div style="display:flex;gap:5px">' +
+    '<select id="inv-month-sel" style="flex:1;padding:6px 8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
     '<option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>' +
-    '<input type="number" id="inv-month-year" min="2020" max="2035" style="width:75px;padding:6px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
-    '<input type="hidden" id="inv-month"></div></div>' +
-    '<div class="field"><label>Date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
-    '<div class="field"><label>Due</label><input type="date" id="inv-due"></div>' +
+    '<input type="number" id="inv-month-year" min="2020" max="2035" style="width:68px;padding:6px 4px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text);text-align:center" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+    '<input type="hidden" id="inv-month">' +
+    '</div></div>' +
+    '<div class="field"><label>Invoice Date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
+    '<div class="field"><label>Due Date</label><input type="date" id="inv-due"></div>' +
     '<div class="field"><label>Status</label><select id="inv-status"><option>Draft</option><option>Sent</option><option>Partial</option><option>Overdue</option><option>Paid</option></select></div>' +
-    '</div><div class="sep"></div>' +
-    '<div class="fg g4" style="margin-bottom:14px">' +
-    '<div class="field"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Min Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Revenue $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc Months</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" readonly style="background:var(--bg3)"></div>' +
-    '</div><div id="inv-calc-preview" style="padding:12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px"></div>' +
+    '</div>' +
+
     '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-    '<span class="slabel" style="margin:0">Service Lines</span><button class="btn btn-xs" onclick="addInvSvcLine()">+ Add</button></div>' +
-    '<div id="inv-svc-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-    '<span class="slabel" style="margin:0">Payments</span><button class="btn btn-xs" onclick="addInvPayLine()">+ Add</button></div>' +
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">Billing Structure</div>' +
+
+    '<!-- Row 3: Fee structure -->' +
+    '<div class="fg g4" style="margin-bottom:10px">' +
+    '<div class="field"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Min Revenue Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Revenue Collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exception Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" readonly style="background:var(--bg3);color:var(--text3)"></div>' +
+    '</div>' +
+
+    '<div id="inv-calc-preview" style="padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px;min-height:32px"></div>' +
+
+    '<div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Service Lines</span>' +
+    '<button class="btn-icon" title="Add service line" onclick="addInvSvcLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
+    '</div>' +
+    '<div id="inv-svc-lines" style="margin-bottom:14px"></div>' +
+
+    '<div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Payment Details</span>' +
+    '<button class="btn-icon" title="Add payment" onclick="addInvPayLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
+    '</div>' +
     '<div id="inv-lines" style="margin-bottom:14px"></div>' +
-    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical"></textarea></div>' +
-    '</div><div class="modal-ftr" style="flex-shrink:0">' +
+
+    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text)"></textarea></div>' +
+    '</div>' +
+
+    '<div class="modal-ftr" style="flex-shrink:0">' +
     '<button class="btn" onclick="closeModal(\'modal-invoice\')">Cancel</button>' +
-    '<button class="btn btn-sm" onclick="previewInvoicePDF(_currentInvId||\'preview\')"><i data-lucide="eye" class="lci"></i> Preview</button>' +
-    '<button class="btn btn-primary" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i> Save</button>' +
+    '<button class="btn btn-sm" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="display:flex;align-items:center;gap:6px"><i data-lucide="eye" class="lci" style="width:14px;height:14px"></i> Preview</button>' +
+    '<button class="btn btn-primary" onclick="saveInvoice()" style="display:flex;align-items:center;gap:6px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save</button>' +
     '</div></div>'
   );
 
@@ -463,6 +489,23 @@ function _injectMissingModals() {
     '<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-sg-patients\')">Cancel</button>' +
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
+
+  // Inject Medicaid nav item if missing
+  var _adminDD = document.getElementById('tn-dd-admin');
+  if (_adminDD && !document.getElementById('tnd-medicaid')) {
+    var _exportItem = document.getElementById('tnd-export');
+    var _medItem = document.createElement('div');
+    _medItem.className = 'tn-dd-item';
+    _medItem.id = 'tnd-medicaid';
+    _medItem.setAttribute('onclick', "go('medicaid');closeTnDropdown()");
+    _medItem.innerHTML = '<i data-lucide="shield-check" class="lci"></i><span>Medicaid</span>';
+    if (_exportItem && _exportItem.nextSibling) {
+      _adminDD.insertBefore(_medItem, _exportItem.nextSibling);
+    } else {
+      _adminDD.appendChild(_medItem);
+    }
+    setTimeout(_renderLucideIcons, 50);
+  }
 
   setTimeout(_renderLucideIcons, 50);
 }
@@ -6228,17 +6271,25 @@ function _openPDFPreview(dataUri, options) {
 }
 
 function previewInvoicePDF(invId) {
-  const doc = _buildInvoicePDF(invId);
-  if (!doc) { toast('Save the invoice first','warn'); return; }
-  const inv = getInvDB().invoices.find(x => x.id === invId);
+  // If called from modal, use the current modal state
+  var targetId = invId === 'preview' ? _currentInvId : invId;
+  if (!targetId) {
+    // Auto-save then preview
+    saveInvoice();
+    targetId = _currentInvId;
+  }
+  const doc = _buildInvoicePDF(targetId);
+  if (!doc) { toast('Save the invoice first, then preview','warn'); return; }
+  const inv = getInvDB().invoices.find(x => x.id === targetId);
   try {
     const pdfData = doc.output('datauristring');
     _openPDFPreview(pdfData, {
-      title: 'Invoice ' + (inv ? inv.number || (inv.patientName||'') : ''),
+      title: 'Invoice ' + (inv ? inv.number || '' : ''),
       downloadName: 'invoice_' + (inv ? inv.number||'draft' : 'draft') + '.pdf'
     });
   } catch(e) {
-    toast('Preview failed — try downloading instead','err');
+    toast('Preview failed: ' + e.message,'err');
+    console.error('Preview error:', e);
   }
 }
 
@@ -6610,6 +6661,12 @@ function addInvSvcLine() {
 if (_invSvcLines.length >= 4) return;
 _invSvcLines.push({ desc: '', amount: '' });
 renderInvSvcLines();
+}
+
+function addInvPayLine() {
+  if (!_invLines) _invLines = [];
+  _invLines.push({ date: new Date().toISOString().split('T')[0], desc: '', amount: '' });
+  renderInvLines();
 }
 
 
