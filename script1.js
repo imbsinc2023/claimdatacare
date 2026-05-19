@@ -341,6 +341,7 @@ function showApp(username) {
   setTimeout(function(){setFbStatus('','green');updateAdminUI();},0);
   go('dashboard');
   try{_afterLoad();}catch(e){}
+  try{_injectMissingModals();}catch(e){}
 }
 
 
@@ -362,6 +363,110 @@ function _cdcDiag() {
   ];
   return lines.join('\n');
 }
+
+function _injectMissingModals() {
+  function _mk(id, html) {
+    if (document.getElementById(id)) return;
+    var w = document.createElement('div');
+    w.className = 'overlay';
+    w.id = id;
+    w.innerHTML = html;
+    document.body.appendChild(w);
+  }
+
+  _mk('modal-sg',
+    '<div class="modal modal-lg" style="max-width:860px;display:flex;flex-direction:column;max-height:94vh">' +
+    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t" id="sg-title">Service Group</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
+    '<div class="fg g3" style="margin-bottom:14px">' +
+    '<div class="field"><label>Group Name *</label><input id="sg-name" placeholder="e.g. ABA Therapy"></div>' +
+    '<div class="field"><label>Rendering Provider</label><select id="sg-rend"></select></div>' +
+    '<div class="field"><label>Facility</label><select id="sg-fac"></select></div>' +
+    '<div class="field"><label>Status</label><select id="sg-status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>' +
+    '</div><div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+    '<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> CPT Lines</span>' +
+    '<div class="btn-group"><button class="btn btn-sm" onclick="addSGLine()">+ Add Line</button>' +
+    '<button class="btn btn-sm" onclick="openSGCatalog()">From Catalog</button></div></div>' +
+    '<div id="sg-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+    '<span class="slabel" style="margin:0"><i data-lucide="users" class="lci"></i> Patients</span>' +
+    '<button class="btn btn-sm" onclick="openSGPatientModal()">+ Add Patient</button></div>' +
+    '<div id="sg-patients-list"></div></div>' +
+    '<div class="modal-ftr" style="flex-shrink:0">' +
+    '<button class="btn" onclick="closeModal(\'modal-sg\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveSG()"><i data-lucide="save" class="lci"></i> Save Group</button>' +
+    '</div></div>'
+  );
+
+  _mk('modal-invoice',
+    '<div class="modal modal-lg" style="max-width:840px;display:flex;flex-direction:column;max-height:94vh">' +
+    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
+    '<input type="hidden" id="inv-id">' +
+    '<div class="fg g3" style="margin-bottom:14px">' +
+    '<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
+    '<div class="field"><label>Client *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
+    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono"></div>' +
+    '</div><div class="fg g4" style="margin-bottom:14px">' +
+    '<div class="field"><label>Period</label><div style="display:flex;gap:6px">' +
+    '<select id="inv-month-sel" style="flex:1;padding:6px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+    '<option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>' +
+    '<input type="number" id="inv-month-year" min="2020" max="2035" style="width:75px;padding:6px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+    '<input type="hidden" id="inv-month"></div></div>' +
+    '<div class="field"><label>Date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
+    '<div class="field"><label>Due</label><input type="date" id="inv-due"></div>' +
+    '<div class="field"><label>Status</label><select id="inv-status"><option>Draft</option><option>Sent</option><option>Partial</option><option>Overdue</option><option>Paid</option></select></div>' +
+    '</div><div class="sep"></div>' +
+    '<div class="fg g4" style="margin-bottom:14px">' +
+    '<div class="field"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Min Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Revenue $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc Months</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" readonly style="background:var(--bg3)"></div>' +
+    '</div><div id="inv-calc-preview" style="padding:12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px"></div>' +
+    '<div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+    '<span class="slabel" style="margin:0">Service Lines</span><button class="btn btn-xs" onclick="addInvSvcLine()">+ Add</button></div>' +
+    '<div id="inv-svc-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+    '<span class="slabel" style="margin:0">Payments</span><button class="btn btn-xs" onclick="addInvPayLine()">+ Add</button></div>' +
+    '<div id="inv-lines" style="margin-bottom:14px"></div>' +
+    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical"></textarea></div>' +
+    '</div><div class="modal-ftr" style="flex-shrink:0">' +
+    '<button class="btn" onclick="closeModal(\'modal-invoice\')">Cancel</button>' +
+    '<button class="btn btn-sm" onclick="previewInvoicePDF(_currentInvId||\'preview\')"><i data-lucide="eye" class="lci"></i> Preview</button>' +
+    '<button class="btn btn-primary" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i> Save</button>' +
+    '</div></div>'
+  );
+
+  _mk('modal-sg-catalog',
+    '<div class="modal modal-sm"><div class="modal-hdr"><div><div class="modal-t">Add from Catalog</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeSGCatalog()"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body"><div class="field" style="margin-bottom:8px"><input id="sgcat-q" placeholder="Search CPT..." oninput="renderSGCatalog()"></div>' +
+    '<div class="cpt-scroll" id="sgcat-list" style="max-height:300px"></div></div>' +
+    '<div class="modal-ftr"><button class="btn" onclick="closeSGCatalog()">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="addSGCatalogLines()">Add Selected</button></div></div>'
+  );
+
+  _mk('modal-sg-patients',
+    '<div class="modal modal-sm"><div class="modal-hdr"><div><div class="modal-t">Add Patient to Group</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg-patients\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body"><div class="fg g1">' +
+    '<div class="field"><label>Patient *</label><select id="sgpat-patient"><option value="">— Select —</option></select></div>' +
+    '<div class="fg g2"><div class="field"><label>Rendering</label><select id="sgpat-rend"><option value="">— Group default —</option></select></div>' +
+    '<div class="field"><label>Referring</label><select id="sgpat-ref"><option value="">— None —</option></select></div></div>' +
+    '<div class="field"><label>Notes</label><input id="sgpat-notes" placeholder="Optional"></div></div></div>' +
+    '<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-sg-patients\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
+  );
+
+  setTimeout(_renderLucideIcons, 50);
+}
+
 
 function pushClaimsToExtension() {
   var db = getDB();
@@ -1811,6 +1916,7 @@ return `<div class="app-shell">
 <div class="tn-dd-item" id="tnd-admin-providers" onclick="go('admin-providers');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>
 <div class="tn-dd-item" id="tnd-servicegroups" onclick="go('servicegroups');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>
 <div class="tn-dd-item" id="tnd-export" onclick="go('export');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>
+<div class="tn-dd-item" id="tnd-medicaid" onclick="go('medicaid');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Medicaid</span></div>
 <div class="tn-dd-item" id="tnd-medicaid" onclick="go('medicaid');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Medicaid</span></div>
 <div class="tn-dd-item" onclick="go('account');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>
 <div class="tn-dd-item" onclick="go('reports');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div>
