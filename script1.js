@@ -490,6 +490,14 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
 
+  // Inject toasts container if missing
+  if (!document.getElementById('toasts')) {
+    var _t = document.createElement('div');
+    _t.id = 'toasts';
+    _t.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+    document.body.appendChild(_t);
+  }
+
   // Inject sec-medicaid into content if missing
   if (!document.getElementById('sec-medicaid')) {
     var _content = document.querySelector('.content');
