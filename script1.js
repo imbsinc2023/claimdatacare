@@ -793,7 +793,9 @@ function renderPatients(){
       + '<td style="font-size:12px;color:var(--text2)">' + (p.plan||'\u2014') + '</td>'
       + '<td style="font-size:12px;color:var(--text2)">' + (p.rel||'') + '</td>'
       + '<td style="font-size:12px;color:var(--text2);text-align:center">' + cnt + '</td>'
-      + '<td><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button></td>'
+      + '<td style="display:flex;gap:4px;align-items:center"><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
+      + (_currentUser && _currentUser.role === 'Super Admin' ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
+      + '</td>'
       + '</tr>';
   }).join('');
 
@@ -1689,6 +1691,20 @@ if(ts) ts.textContent=`${mine.length} claims \u00b7 $${fmtMoney(total)}`;
 
 
 
+
+function deletePatientConfirm(patId) {
+  const db = getDB();
+  const pat = db.patients.find(p => p.id === patId);
+  if (!pat) return;
+  const name = (pat.last||'') + ', ' + (pat.first||'');
+  if (!confirm('DELETE patient: ' + name + '\n\nThis will also delete all claims for this patient. This action CANNOT be undone.\n\nAre you sure?')) return;
+  setDB(db2 => {
+    db2.patients = (db2.patients||[]).filter(p => p.id !== patId);
+    db2.claims   = (db2.claims||[]).filter(c => c.patId !== patId);
+  });
+  toast('Patient deleted','ok');
+  renderPatients();
+}
 
 function openPatientModal(idx) {
 const db = getDB();
@@ -7964,7 +7980,8 @@ function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
 const U = s => String(s||'').toUpperCase();
-const INP = (val, ph, idx2, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+idx2+'[\''+field+'\']=this.value.toUpperCase()">';
+const INP = (val, ph, idx2, field) => { const v=U(val).replace(/"/g,'&quot;'); return '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+v+'" placeholder="'+ph+'" oninput="_invSetter('+idx2+',\''+field+'\',this.value)">'; };
+function _invSetter(i,k,v){if(_invLines&&_invLines[i]){_invLines[i][k]=v.toUpperCase();}}
 const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
@@ -16672,26 +16689,22 @@ const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
 const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.status)).length;
 const activeStr = pat.inactive ? 'Inactive' : 'Active';
 const TABS = [
-{id:'search', label:'Search'},
-{id:'demographics',label:'Demos'},
-{id:'insurance', label:'Insurances'},
-{id:'auth', label:'Auth/Referrals'},
-{id:'contacts', label:'Contacts'},
-{id:'summary', label:'Summary'},
-{id:'appointments',label:'Schedule'},
-{id:'followup', label:'Followup'},
-{id:'documents', label:'Records'},
-{id:'encounters', label:'Encounters'},
-{id:'bills', label:'Bills'},
-{id:'communication',label:'Communication'},
-{id:'tasks', label:'Tasks'},
-{id:'pharmacies', label:'Pharmacies'},
-{id:'letter', label:'Letter'},
-{id:'careteam', label:'Care Team'},
-{id:'clinical', label:'Clinical Summary', danger:true},
+{id:'summary',       label:'Summary',        icon:'layout-dashboard'},
+{id:'demographics',  label:'Demos',          icon:'user'},
+{id:'insurance',     label:'Coverage',       icon:'shield-check'},
+{id:'auth',          label:'Auth/Referrals', icon:'share-2'},
+{id:'contacts',      label:'Contacts',       icon:'contact'},
+{id:'appointments',  label:'Schedule',       icon:'calendar-days'},
+{id:'followup',      label:'Followup',       icon:'clock'},
+{id:'documents',     label:'Records',        icon:'folder-open'},
+{id:'encounters',    label:'Encounters',     icon:'stethoscope'},
+{id:'bills',         label:'Bills',          icon:'receipt'},
+{id:'communication', label:'Messaging',      icon:'message-circle'},
+{id:'pharmacies',    label:'Pharmacies',     icon:'pill'},
+{id:'letter',        label:'Forms',          icon:'file-text'},
 ];
 const tabsHTML = TABS.map(t =>
-`<div class="ptc-tab${t.danger?' danger':''}" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')">${t.label}</div>`
+`<div class="ptc-tab" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')"><i data-lucide="${t.icon}" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>${t.label}</div>`
 ).join('');
 
 return `
@@ -16769,7 +16782,7 @@ Patient Details
 </div>
 <div style="flex:1">
 <div style="font-weight:700;font-size:13px;color:#064e3b">${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid:''}</div>
-<div style="font-size:11px;color:#87867f;margin:2px 0">File # ${pat.acct||''}</div>
+<div style="font-size:11px;color:#87867f;margin:2px 0">Chart # ${pat.acct||''}</div>
 <div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#b53333':'#4d4c48'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
 <div style="font-size:11px;color:#4d4c48">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
 <div style="font-size:11px;color:#4d4c48">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
@@ -17453,7 +17466,7 @@ return `<div class="pt-card">
 <button class="btn btn-sm" onclick="_renderChartTab('summary')">Cancel</button>
 </div>
 </div>
-<div class="pt-card-body" style="overflow-y:auto;max-height:calc(100vh - 200px)">
+<div class="pt-card-body" style="overflow-y:auto;max-height:calc(100vh - 180px)">
 <!-- Photo Section -->
 <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:var(--r-md)">
 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
@@ -20952,18 +20965,15 @@ const first = (pat.first||'').trim();
 const last  = (pat.last||'').trim();
 const initials = ((first[0]||'') + (last[0]||'')).toUpperCase() || '?';
 const sex = (pat.sex||'').toUpperCase();
-// Color palette based on sex
 const bg   = sex==='F' ? '#c96442' : sex==='M' ? '#2d6a4f' : '#4d4c48';
 const s = size;
 const fs = Math.round(s * 0.38);
-const r = Math.round(s * 0.18);
+const r  = Math.round(s * 0.18);
 return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${s}" height="${s}" rx="${r}" fill="${bg}"/>
 <text x="${s/2}" y="${s/2}" dominant-baseline="central" text-anchor="middle"
   font-family="'DM Sans','Inter',system-ui,sans-serif" font-size="${fs}" font-weight="700" fill="#fff" letter-spacing="1">
-${initials}
-</text>
-</svg>`;
+${initials}</text></svg>`;
 }
 
 
