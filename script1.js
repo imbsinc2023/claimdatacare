@@ -7964,7 +7964,7 @@ function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
 const U = s => String(s||'').toUpperCase();
-const INP = (val, ph, i, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+i+'][''+field+'']=this.value.toUpperCase()">';
+const INP = (val, ph, idx2, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+idx2+'][\'' +field+ '\']=this.value.toUpperCase()">';
 const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
