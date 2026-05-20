@@ -322,81 +322,68 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 }
 
 
-/* =============================================
-   Patient Chart — ptc-* components
-   ============================================= */
-.pt-chart-overlay{background:var(--bg,#f5f4ed)}
-.ptc-banner{background:#b5451b;color:#fff;padding:0 10px;height:34px;min-height:34px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.ptc-banner-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
-.ptc-banner-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden}
-.ptc-banner-meta-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap;color:#fff}
-.ptc-banner-meta-item .lci{width:11px;height:11px;flex-shrink:0}
-.ptc-banner-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;transition:color .15s}
-.ptc-banner-close:hover{color:#fff}
-.ptc-qa{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.7);transition:background .15s;position:relative}
-.ptc-qa:hover{background:rgba(255,255,255,.15);color:#fff}
-.ptc-qa .lci{width:14px;height:14px}
-.ptc-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:6px 14px;background:var(--bg3);border-bottom:1px solid var(--border2);flex-shrink:0}
-.ptc-tab{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);background:none;border:1px solid transparent;white-space:nowrap;transition:all .15s;font-family:inherit}
-.ptc-tab:hover{background:var(--bg2);color:var(--text)}
-.ptc-tab.active{background:var(--bg2);color:var(--brand);border-color:var(--border2);font-weight:700}
-.ptc-tab.danger{color:var(--red)}
-#pt-main{flex:1;overflow-y:auto;padding:14px 16px;min-height:0;background:var(--bg)}
-.ptc-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
-.ptc-panel-hdr{background:var(--bg3);padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);display:flex;align-items:center;justify-content:space-between}
-.ptc-panel-body{padding:12px 14px}
-.ptc-row{display:flex;align-items:baseline;gap:4px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)}
-.ptc-row:last-child{border-bottom:none}
-.ptc-label{font-weight:700;color:var(--text3);min-width:110px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
-.ptc-value{color:var(--text);font-size:12.5px}
-.ptc-link{font-size:11px;color:var(--brand);text-decoration:none;font-weight:600}
-.ptc-aging-table th,.ptc-aging-table td{padding:6px 10px;text-align:right;font-size:12px;border-bottom:1px solid var(--border)}
-.ptc-aging-table th:first-child,.ptc-aging-table td:first-child{text-align:left}
-.ptc-aging-table thead{background:var(--bg3)}
-.ptc-aging-table tfoot td{font-weight:700;background:var(--bg3)}
 
-/* =============================================
-   Modal — full component overrides
-   ============================================= */
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);max-height:90vh;display:flex;flex-direction:column;width:90vw;max-width:680px;overflow:hidden}
-.modal-lg{max-width:820px}
-.modal-sm{max-width:440px}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
-.modal-t{font-size:15px;font-weight:700;color:var(--text)}
-.modal-sub{font-size:12px;color:var(--text3);margin-top:2px}
-.modal-body{flex:1;overflow-y:auto;padding:18px}
-.modal-ftr{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg3);border-radius:0 0 var(--r-lg) var(--r-lg)}
+/* ── Patient Chart — updated tab bar ──────────────────────────────────────── */
+.ptc-tabs {
+  background: #1b4332;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  flex-shrink: 0;
+}
+.ptc-tabs::-webkit-scrollbar { display: none; }
+.ptc-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.6);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color .12s, background .12s, border-color .12s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.ptc-tab:hover { color: #fff; background: rgba(255,255,255,.08); }
+.ptc-tab.active { color: #fff; border-bottom-color: #c96442; background: rgba(255,255,255,.1); }
+.ptc-tab.danger { color: rgba(252,165,165,.7); }
+.ptc-tab.danger.active { color: #fca5a5; border-bottom-color: #fca5a5; }
 
-/* =============================================
-   Forms — extended
-   ============================================= */
-.sep{height:1px;background:var(--border);margin:14px 0}
-.slabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.req{color:var(--red)}
-.hint{font-size:11px;color:var(--text3);margin-top:2px}
-.fg.g1{grid-template-columns:1fr}
-.fg.g2{grid-template-columns:1fr 1fr}
-.fg.g3{grid-template-columns:1fr 1fr 1fr}
-.fg.g4{grid-template-columns:1fr 1fr 1fr 1fr}
-.fg.g1,.fg.g2,.fg.g3,.fg.g4{display:grid;gap:10px 14px;margin-bottom:10px}
-.total-preview{padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:14px;font-weight:700;color:var(--brand);text-align:right;margin-top:10px}
-.dup-warn{padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-bdr);border-radius:var(--r);font-size:12px;color:var(--red);margin-bottom:10px}
-.dup-warn.hidden{display:none}
-.input-row{display:flex;gap:6px;align-items:center}
-.input-row input{flex:1}
-
-/* =============================================
-   CPT / Date chips
-   ============================================= */
-.cpt-scroll{max-height:180px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2)}
-.date-chips{display:flex;flex-wrap:wrap;gap:4px}
-.date-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border2);transition:all .15s}
-.date-chip.on{background:var(--brand);color:#faf9f5;border-color:var(--brand)}
-
-/* =============================================
-   Patient card (chart demographics edit)
-   ============================================= */
-.pt-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-bottom:12px}
-.pt-card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border2)}
-.pt-card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2)}
-.pt-card-body{padding:14px}
+/* ── ptc-qa tooltip ──────────────────────────────────────────────────────── */
+.ptc-qa {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: rgba(255,255,255,.75);
+  transition: background .12s, color .12s;
+}
+.ptc-qa:hover { background: rgba(255,255,255,.14); color: #fff; }
+.ptc-qa::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #141413;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 9999;
+}
+.ptc-qa:hover::after { opacity: 1; }

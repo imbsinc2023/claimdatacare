@@ -1697,7 +1697,7 @@ if (idx >= 0) {
 const pat = db.patients[idx];
 if (!pat) { toast('Patient not found', 'err'); return; }
 openPatientChart(pat.id);
-setTimeout(() => _renderChartTab('demographics'), 100);
+setTimeout(() => _renderChartTab('summary'), 100);
 } else {
 // NEW PATIENT — create a blank record then open chart to Demographics
 if (!activeProviderId) { toast('Select a billing provider first', 'warn'); return; }
@@ -1719,7 +1719,7 @@ const maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
 newPat.acct = String(maxAcct + 1);
 setDB(db2 => { db2.patients.push(newPat); });
 openPatientChart(newPat.id);
-setTimeout(() => _renderChartTab('demographics'), 100);
+setTimeout(() => _renderChartTab('summary'), 100);
 }
 }
 
@@ -7964,7 +7964,7 @@ function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
 const U = s => String(s||'').toUpperCase();
-const INP = (val, ph, idx2, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+idx2+'][\'' +field+ '\']=this.value.toUpperCase()">';
+const INP = (val, ph, idx2, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+idx2+'[\''+field+'\']=this.value.toUpperCase()">';
 const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
@@ -16769,7 +16769,7 @@ Patient Details
 </div>
 <div style="flex:1">
 <div style="font-weight:700;font-size:13px;color:#064e3b">${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid:''}</div>
-<div style="font-size:11px;color:#87867f;margin:2px 0">Chart # ${pat.acct||''}</div>
+<div style="font-size:11px;color:#87867f;margin:2px 0">File # ${pat.acct||''}</div>
 <div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#b53333':'#4d4c48'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
 <div style="font-size:11px;color:#4d4c48">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
 <div style="font-size:11px;color:#4d4c48">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
@@ -17453,7 +17453,7 @@ return `<div class="pt-card">
 <button class="btn btn-sm" onclick="_renderChartTab('summary')">Cancel</button>
 </div>
 </div>
-<div class="pt-card-body">
+<div class="pt-card-body" style="overflow-y:auto;max-height:calc(100vh - 200px)">
 <!-- Photo Section -->
 <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:var(--r-md)">
 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
@@ -20948,94 +20948,23 @@ const DB_KEY = 'rcmpro_v3';
 const API_CFG_KEY = 'rcmpro_api_cfg';
 
 function _patientAvatar(pat, size=70) {
+const first = (pat.first||'').trim();
+const last  = (pat.last||'').trim();
+const initials = ((first[0]||'') + (last[0]||'')).toUpperCase() || '?';
 const sex = (pat.sex||'').toUpperCase();
+// Color palette based on sex
+const bg   = sex==='F' ? '#c96442' : sex==='M' ? '#2d6a4f' : '#4d4c48';
 const s = size;
-
-// Colors — system emerald palette
-// Skin tones: light face + slightly darker shadow side
-const SKIN = '#FBBF8A';
-const SKIN_SHD = '#F0A870';
-const NECK = '#FBBF8A';
-
-if (sex === 'F') {
-// Female — warm bg, dark hair, warm shirt
-const BG = '#c96442';
-const HAIR = '#141413';
-const SHRT = '#4d4c48';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="fc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#fc${s})">
-<!-- Shirt / bust -->
-<path d="M10 110 Q10 72 30 66 Q40 62 50 62 Q60 62 70 66 Q90 72 90 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="52" width="14" height="14" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair back layer -->
-<ellipse cx="50" cy="28" rx="19" ry="13" fill="${HAIR}"/>
-<!-- Hair left side — shoulder length -->
-<path d="M31 28 Q28 45 30 62 Q35 68 38 65 Q36 50 34 35 Z" fill="${HAIR}"/>
-<!-- Hair right side -->
-<path d="M69 28 Q72 45 70 62 Q65 68 62 65 Q64 50 66 35 Z" fill="${HAIR}"/>
-<!-- Hair top parting -->
-<path d="M31 25 Q50 18 69 25 Q65 20 50 18 Q35 18 31 25 Z" fill="${HAIR}"/>
-</g>
+const fs = Math.round(s * 0.38);
+const r = Math.round(s * 0.18);
+return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+<rect width="${s}" height="${s}" rx="${r}" fill="${bg}"/>
+<text x="${s/2}" y="${s/2}" dominant-baseline="central" text-anchor="middle"
+  font-family="'DM Sans','Inter',system-ui,sans-serif" font-size="${fs}" font-weight="700" fill="#fff" letter-spacing="1">
+${initials}
+</text>
 </svg>`;
 }
-
-if (sex === 'M') {
-// Male — dark warm bg, dark short hair, terracotta shirt
-const BG = '#4d4c48';
-const HAIR = '#141413';
-const SHRT = '#c96442';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="mc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#mc${s})">
-<!-- Shirt / bust — wider masculine shoulders -->
-<path d="M4 110 Q4 70 26 63 Q37 58 50 58 Q63 58 74 63 Q96 70 96 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="12" rx="3" fill="${NECK}"/>
-<!-- Face — slightly squarer jaw -->
-<path d="M33 38 Q33 24 50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Q33 60 33 52 Z" fill="${SKIN}"/>
-<!-- Face shadow right half -->
-<path d="M50 22 Q67 24 67 38 L67 52 Q67 60 50 62 Z" fill="${SKIN_SHD}"/>
-<!-- Short hair — flat top, tight sides -->
-<path d="M33 38 Q33 22 50 20 Q67 22 67 38 Q67 26 50 24 Q33 26 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair left -->
-<path d="M33 38 Q30 35 31 28 Q35 22 33 38 Z" fill="${HAIR}"/>
-<!-- Side hair right -->
-<path d="M67 38 Q70 35 69 28 Q65 22 67 38 Z" fill="${HAIR}"/>
-<!-- Hair top -->
-<path d="M33 32 Q50 20 67 32 Q60 22 50 21 Q40 22 33 32 Z" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
-// Unknown / Other — slate bg, neutral
-const BG = '#87867f';
-const HAIR = '#4d4c48';
-const SHRT = '#3d3d3a';
-return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-<rect width="100" height="100" rx="50" fill="${BG}"/>
-<clipPath id="uc${s}"><rect width="100" height="100" rx="50"/></clipPath>
-<g clip-path="url(#uc${s})">
-<!-- Shirt -->
-<path d="M8 110 Q8 71 28 64 Q38 59 50 59 Q62 59 72 64 Q92 71 92 110 Z" fill="${SHRT}"/>
-<!-- Neck -->
-<rect x="43" y="51" width="14" height="13" rx="3" fill="${NECK}"/>
-<!-- Face -->
-<ellipse cx="50" cy="40" rx="17" ry="19" fill="${SKIN}"/>
-<path d="M50 21 Q67 21 67 40 Q67 59 50 59 Z" fill="${SKIN_SHD}"/>
-<!-- Hair -->
-<ellipse cx="50" cy="27" rx="19" ry="11" fill="${HAIR}"/>
-</g>
-</svg>`;
-}
-
 
 
 function getApiConfig() {
