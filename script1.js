@@ -413,7 +413,7 @@ function _injectMissingModals() {
     '<div class="fg g3" style="margin-bottom:12px">' +
     '<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
     '<div class="field"><label>Client / Provider *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
-    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto"></div>' +
+    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed" title="Auto-generated"></div>' +
     '</div>' +
 
     '<!-- Row 2: Period / Date / Due / Status -->' +
@@ -439,7 +439,7 @@ function _injectMissingModals() {
     '<div class="field"><label>Min Revenue Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
     '<div class="field"><label>Revenue Collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
     '<div class="field"><label>Exception Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()"></div>' +
+    '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()" style="border-bottom:1px solid var(--border2)"></div>' +
     '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" readonly style="background:var(--bg3);color:var(--text3)"></div>' +
     '</div>' +
 
@@ -453,19 +453,40 @@ function _injectMissingModals() {
     '<div id="inv-svc-lines" style="margin-bottom:14px"></div>' +
 
     '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">' +
     '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Payment Details</span>' +
-    '<button class="btn-icon" title="Add payment" onclick="addInvPayLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
+    '<div style="display:flex;gap:6px">' +
+    '<button class="btn-icon" id="inv-paste-btn" title="Paste from Excel" onclick="togglePasteArea()" style="color:var(--brand)"><i data-lucide="clipboard-paste" class="lci" style="width:14px;height:14px"></i></button>' +
+    '<label class="btn-icon" title="Upload file" style="color:var(--brand);cursor:pointer"><i data-lucide="upload" class="lci" style="width:14px;height:14px"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
+    '<button class="btn-icon" title="Add row" onclick="addInvPayLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
+    '</div></div>' +
+    '<div id="inv-paste-area" style="display:none;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px">' +
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Paste from Excel — columns: PAYMENT DATE, PRODUCT, PAYMENT ID, AMOUNT, STATUS, INSURANCE, INVOICE #, INVOICE MONTH, NOTES</div>' +
+    '<textarea id="inv-paste-input" rows="4" placeholder="Paste here..." oninput="previewPastedLines()" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:11px;font-family:var(--mono);resize:vertical;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase"></textarea>' +
+    '<div id="inv-paste-preview" style="font-size:11px;margin-top:4px"></div>' +
+    '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-sm btn-primary" onclick="importPastedLines()">Import</button><button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button></div>' +
     '</div>' +
-    '<div id="inv-lines" style="margin-bottom:14px"></div>' +
+    '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px">' +
+    '<thead><tr style="border-bottom:2px solid var(--border)">' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">DATE</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PRODUCT</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PAYMENT ID</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INVOICE #</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
+    '<th style="width:28px"></th></tr></thead>' +
+    '<tbody id="inv-lines-body"></tbody></table></div>' +
 
-    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text)"></textarea></div>' +
+    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text);text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
     '</div>' +
 
     '<div class="modal-ftr" style="flex-shrink:0">' +
-    '<button class="btn" onclick="closeModal(\'modal-invoice\')">Cancel</button>' +
-    '<button class="btn btn-sm" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="display:flex;align-items:center;gap:6px"><i data-lucide="eye" class="lci" style="width:14px;height:14px"></i> Preview</button>' +
-    '<button class="btn btn-primary" onclick="saveInvoice()" style="display:flex;align-items:center;gap:6px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save</button>' +
+    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3)"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
+    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand)"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
+    '<button class="btn btn-primary btn-sm" onclick="saveInvoice()" title="Save" style="padding:6px 14px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>' +
     '</div></div>'
   );
 
@@ -6148,7 +6169,7 @@ const svcLines = inv.svcLines || [];
 svcLines.forEach(function(s, i) {
   if (!s.desc && (!s.amount || parseFloat(s.amount) === 0)) return;
   if (i % 2 === 1) fill(M+2, y-3, CW, 7, LIGHT);
-  txt(s.desc||'', M+5, y+1, { size:8.5, color:DARK });
+  txt((s.desc||'').toUpperCase(), M+5, y+1, { size:8.5, color:DARK });
   if (s.amount && parseFloat(s.amount) !== 0) txt(money(s.amount), RX-2, y+1, { size:8.5, color:DARK, align:'right' });
   y += 7;
 });
@@ -6230,7 +6251,7 @@ if (i % 2 === 1) fill(M+2, py-2, CW, 7.5, LIGHT);
 allCols.forEach(c => {
 if (c.right) { txt(money(parseFloat(l.amount)||0), c.x, py+2.5, { size:8.5, color:DARK, align:'right' }); }
 else {
-  let val = String(l[c.key]||'').slice(0, Math.max(4, Math.floor(c.w / 2.0)));
+  let val = String(l[c.key]||l.invoiceNum||'').toUpperCase().slice(0, Math.max(4, Math.floor(c.w / 2.0)));
   txt(val, c.x, py+2.5, { size:8.5, color:DARK });
 }
 });
@@ -6706,7 +6727,7 @@ renderInvSvcLines();
 
 function addInvPayLine() {
   if (!_invLines) _invLines = [];
-  _invLines.push({ date: new Date().toISOString().split('T')[0], desc: '', amount: '' });
+  _invLines.push({ date: new Date().toISOString().split('T')[0], desc: '', paymentId: '', amount: '', status: '', insurance: '', invoiceNum: '', month: '', notes: '' });
   renderInvLines();
 }
 
@@ -7903,7 +7924,7 @@ revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
 total: svcTotal, billingFee: finalFee,
 excNoteText,
 lines: JSON.parse(JSON.stringify(_invLines)),
-notes: g('inv-notes'), updatedAt: Date.now()
+notes: (g('inv-notes')||'').toUpperCase(), updatedAt: Date.now()
 };
 setDB(db => {
 if (!db.invoices) db.invoices = [];
@@ -7942,139 +7963,28 @@ function _invSortBy(key) {
 function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
-// Sort if key is set
-if (_invSortKey) {
-  const sorted = _invLines.slice().sort(function(a, b) {
-    var va = String(a[_invSortKey]||'').toLowerCase();
-    var vb = String(b[_invSortKey]||'').toLowerCase();
-    if (_invSortKey === 'amount') {
-      va = parseFloat(a.amount||0);
-      vb = parseFloat(b.amount||0);
-      return _invSortDir === 'asc' ? va - vb : vb - va;
-    }
-    if (_invSortKey === 'date') {
-      va = a.date||'';
-      vb = b.date||'';
-    }
-    if (va < vb) return _invSortDir === 'asc' ? -1 : 1;
-    if (va > vb) return _invSortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-  _invLines = sorted;
-}
+const U = s => String(s||'').toUpperCase();
+const INP = (val, ph, i, field) => '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+U(val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" oninput="_invLines['+i+'][''+field+'']=this.value.toUpperCase()">';
+const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
-tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">No lines. Click "+ Add Line" or paste from Excel.</td></tr>';
-return;
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
+  return;
 }
-tbody.innerHTML = _invLines.map((l, i) => `<tr style="border-bottom:1px solid var(--border)">
-<td style="padding:4px;width:13%"><input class="mono" style="width:100%;min-width:90px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" type="date" value="${l.date||''}" oninput="_invLines[${i}].date=this.value"></td>
-<td style="padding:4px;width:22%"><input style="width:100%;min-width:100px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.desc||''}" placeholder="ACH Deposit" oninput="_invLines[${i}].desc=this.value"></td>
-<td style="padding:4px;width:15%"><input class="mono" style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.paymentId||''}" placeholder="ID/Check#" oninput="_invLines[${i}].paymentId=this.value"></td>
-<td style="padding:4px;width:15%"><input style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.insurance||''}" placeholder="Medicare" oninput="_invLines[${i}].insurance=this.value"></td>
-<td style="padding:4px;width:13%"><input style="width:100%;min-width:80px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);box-sizing:border-box" value="${l.month||''}" placeholder="March-2026" oninput="_invLines[${i}].month=this.value"></td>
-<td style="padding:4px;width:12%"><input class="mono" style="width:100%;min-width:70px;font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" type="number" step="0.01" value="${l.amount||''}" placeholder="0.00" oninput="_invLines[${i}].amount=this.value"></td>
-<td style="padding:4px;width:40px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice(${i},1);renderInvLines()"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button></td>
-</tr>`).join('');
+tbody.innerHTML = _invLines.map((l, i) => '<tr style="border-bottom:1px solid var(--border)">'
++'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value"></td>'
++'<td style="padding:2px 3px;min-width:80px">'+INP(l.desc,'MEDICAL BILLING',i,'desc')+'</td>'
++'<td style="padding:2px 3px;min-width:65px">'+INP(l.paymentId,'ID/CHECK#',i,'paymentId')+'</td>'
++'<td style="padding:2px 3px;min-width:60px">'+AMT(l.amount,i)+'</td>'
++'<td style="padding:2px 3px;min-width:50px">'+INP(l.status,'PAID',i,'status')+'</td>'
++'<td style="padding:2px 3px;min-width:65px">'+INP(l.insurance,'MEDICARE',i,'insurance')+'</td>'
++'<td style="padding:2px 3px;min-width:60px">'+INP(l.invoiceNum||l.invoiceNumber||'','INV #',i,'invoiceNum')+'</td>'
++'<td style="padding:2px 3px;min-width:60px">'+INP(l.month,'MAY-2026',i,'month')+'</td>'
++'<td style="padding:2px 3px;min-width:65px">'+INP(l.notes,'NOTES',i,'notes')+'</td>'
++'<td style="padding:2px 3px;width:26px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice('+i+',1);renderInvLines()"><i data-lucide="x" class="lci" style="width:11px;height:11px"></i></button></td>'
++'</tr>').join('');
 setTimeout(_renderLucideIcons,10);
 }
 
-function importPaymentFile(event) {
-const file = event.target.files[0];
-if (!file) return;
-const ext = file.name.split('.').pop().toLowerCase();
-
-if (ext === 'csv') {
-const reader = new FileReader();
-reader.onload = e => { processPaymentCSV(e.target.result); };
-reader.readAsText(file);
-} else if (ext === 'xlsx' || ext === 'xls') {
-if (!window.XLSX) { toast('Excel library loading, try again','warn'); return; }
-const reader = new FileReader();
-reader.onload = e => {
-const wb = XLSX.read(e.target.result, { type:'array' });
-const ws = wb.Sheets[wb.SheetNames[0]];
-const csv = XLSX.utils.sheet_to_csv(ws);
-processPaymentCSV(csv);
-};
-reader.readAsArrayBuffer(file);
-}
-event.target.value = '';
-}
-
-function processPaymentCSV(csvText) {
-const rows = csvText.split(/\r?\n/).filter(r => r.trim());
-if (rows.length < 2) { toast('No data found in file','warn'); return; }
-
-// Parse headers — detect columns intelligently
-const sep = rows[0].includes('\t') ? '\t' : ',';
-const headers = rows[0].split(sep).map(h => h.trim().replace(/^"|"$/g,'').trim());
-
-// Map headers to known fields using fuzzy matching
-const colMap = {}; // fieldName -> columnIndex
-const matchers = {
-date: ['date','payment date','check date','post date','paid date','dos','service date','deposit date','check dt'],
-desc: ['description','product','service','type','payment type','desc','transaction','memo'],
-paymentId: ['check','check #','check number','payment id','eft','trace','reference','id','check no','check num','chk'],
-insurance: ['insurance','payer','ins','carrier','plan','company','payor'],
-month: ['month','period','invoice month','billing month'],
-amount: ['amount','total','payment','paid','check amount','net','gross','remit','$']
-};
-
-headers.forEach((h, i) => {
-const hl = h.toLowerCase();
-for (const [field, patterns] of Object.entries(matchers)) {
-if (!colMap[field] && patterns.some(p => hl.includes(p))) {
-colMap[field] = i;
-}
-}
-});
-
-// If no amount found, use last numeric-looking column
-if (colMap.amount === undefined) {
-for (let i = headers.length-1; i >= 0; i--) {
-const sample = rows[1]?.split(sep)[i]?.replace(/[$,"\s]/g,'');
-if (!isNaN(parseFloat(sample))) { colMap.amount = i; break; }
-}
-}
-
-// Parse data rows
-const imported = [];
-for (let r = 1; r < rows.length; r++) {
-const cols = rows[r].split(sep).map(c => c.trim().replace(/^"|"$/g,'').trim());
-if (cols.every(c => !c)) continue; // skip empty rows
-
-const get = (field) => {
-const idx = colMap[field];
-return idx !== undefined ? (cols[idx] || '') : '';
-};
-
-const amtRaw = get('amount').replace(/[$,\s]/g,'');
-const amt = parseFloat(amtRaw);
-if (isNaN(amt) && !get('desc') && !get('paymentId')) continue; // skip junk rows
-
-let date = get('date');
-if (date) { const d = new Date(date); if (!isNaN(d)) date = d.toISOString().split('T')[0]; }
-
-imported.push({
-date, desc: get('desc'), paymentId: get('paymentId'),
-insurance: get('insurance'), month: get('month'),
-amount: isNaN(amt) ? '' : amt.toFixed(2)
-});
-}
-
-if (!imported.length) { toast('No valid payment rows found','warn'); return; }
-
-// Store raw headers for display
-_invImportedHeaders = headers;
-_invImportedRows = rows.slice(1).filter(r=>r.trim()).map(r =>
-r.split(sep).map(c=>c.trim().replace(/^"|"$/g,'').trim())
-);
-
-imported.forEach(p => _invLines.push(p));
-renderInvLines();
-togglePasteArea();
-toast(`? ${imported.length} payment(s) imported from file`);
-}
 
 let _invImportedHeaders = [];
 let _invImportedRows = [];
