@@ -322,3 +322,134 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 }
 
 
+
+/* ── Patient Chart Overlay ─────────────────────────────────────────────────── */
+.pt-chart-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,.5);
+  display: flex; align-items: stretch; justify-content: center;
+  padding: 0;
+}
+.pt-chart-overlay > div,
+.pt-chart-card {
+  background: var(--bg2);
+  width: 100%; max-width: 1200px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+/* Banner */
+.ptc-banner {
+  background: #141413;
+  color: #fff;
+  display: flex; align-items: center;
+  padding: 0 12px;
+  height: 44px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.ptc-banner-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: rgba(255,255,255,.5);
+  white-space: nowrap; flex-shrink: 0;
+}
+.ptc-banner-meta {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0; overflow: hidden;
+}
+.ptc-banner-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.85);
+  white-space: nowrap;
+}
+.ptc-banner-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.6); font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
+}
+.ptc-banner-close:hover { background: rgba(255,255,255,.12); color: #fff; }
+/* Tabs */
+.ptc-tabs {
+  background: #1b4332;
+  display: flex; align-items: stretch;
+  overflow-x: auto; flex-shrink: 0;
+  scrollbar-width: none;
+  border-bottom: 2px solid rgba(0,0,0,.15);
+}
+.ptc-tabs::-webkit-scrollbar { display: none; }
+.ptc-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 8px 12px;
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,.55);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .12s, border-color .12s, background .12s;
+  user-select: none;
+}
+.ptc-tab:hover { color: #fff; background: rgba(255,255,255,.07); }
+.ptc-tab.active { color: #fff; border-bottom-color: #c96442; }
+.ptc-tab.danger { color: rgba(252,165,165,.65); }
+.ptc-tab.danger.active { color: #fca5a5; border-bottom-color: #fca5a5; }
+/* Body */
+#pt-main {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+}
+/* Sidebar panels */
+.ptc-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden; margin-bottom: 12px;
+}
+.ptc-panel-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text3);
+}
+.ptc-panel-body { padding: 10px 12px; }
+.ptc-row {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 3px 0; font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ptc-row:last-child { border-bottom: none; }
+.ptc-label { color: var(--text3); font-weight: 600; white-space: nowrap; }
+.ptc-value { color: var(--text); }
+.ptc-link { color: var(--brand); font-size: 11px; cursor: pointer; }
+.ptc-link:hover { text-decoration: underline; }
+.ptc-photo-box {
+  width: 60px; height: 60px;
+  border-radius: var(--r);
+  overflow: hidden; flex-shrink: 0;
+  background: var(--bg3);
+}
+/* Quick actions */
+.ptc-qa {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px;
+  cursor: pointer; color: rgba(255,255,255,.7);
+  transition: background .12s, color .12s; position: relative;
+}
+.ptc-qa:hover { background: rgba(255,255,255,.12); color: #fff; }
+.ptc-qa::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 5px); left: 50%;
+  transform: translateX(-50%);
+  background: #141413; color: #fff;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+  padding: 3px 7px; border-radius: 4px;
+  pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 9999;
+}
+.ptc-qa:hover::after { opacity: 1; }
+/* Card inside overlay */
+.pt-card-body {
+  overflow-y: auto;
+}
