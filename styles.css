@@ -117,7 +117,8 @@ tr.selected td{background:var(--brand-bg)}
 .btn-ghost{border-color:transparent;background:transparent;color:var(--text2)}
 .btn-ghost:hover{background:var(--bg3);color:var(--text)}
 .btn-group{display:flex;align-items:center;gap:6px}
-.btn-icon{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center}
+.btn-icon{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+.btn-icon[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#141413;color:#fff;font-size:10px;font-weight:600;white-space:nowrap;padding:3px 8px;border-radius:4px;pointer-events:none;z-index:9999;}
 
 /* Forms */
 .field{display:flex;flex-direction:column;gap:3px}
