@@ -700,55 +700,44 @@ const total=claims.reduce((s,c)=>s+claimTotal(c),0);
 const pending=claims.filter(c=>c.status==='pending').length;
 const accepted=claims.filter(c=>c.status==='accepted').length;
 const sub=document.getElementById('dash-sub'); if(sub) sub.textContent=prov.name||'';
-const rejected=claims.filter(c=>c.status==='rejected'||c.status==='denied').length;
-const submitted=claims.filter(c=>c.status==='submitted').length;
-const pctAccepted = claims.length ? Math.round(accepted/claims.length*100) : 0;
-const pctPending  = claims.length ? Math.round(pending/claims.length*100) : 0;
 document.getElementById('dash-stats').innerHTML=`
-<div class="dash-card" onclick="go('claims')" style="cursor:pointer">
-  <div class="dash-card-hdr">
-    <div class="dash-card-icon" style="background:#fdf3ee"><i data-lucide="file-text" class="lci" style="width:20px;height:20px;color:#c96442"></i></div>
-    <span class="dash-card-label">TOTAL CLAIMS</span>
-  </div>
-  <div class="dash-card-metric" style="color:#c96442">${claims.length}</div>
-  <div class="dash-card-sub">
-    <span style="color:#6ee7b7"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> ${accepted} Accepted</span>
-    <span style="color:#fbbf24"><i data-lucide="clock" class="lci" style="width:11px;height:11px"></i> ${pending} Pending</span>
-  </div>
-  <div class="dash-card-bar">
-    <div style="width:${pctAccepted}%;background:#6ee7b7;height:4px;border-radius:2px"></div>
-  </div>
-  <div class="dash-card-pct">${pctAccepted}% resolved</div>
+<div class="stat" onclick="go('claims')" style="cursor:pointer">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div style="width:36px;height:36px;border-radius:10px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center">
+<i data-lucide="file-text" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
 </div>
-<div class="dash-card" style="cursor:default">
-  <div class="dash-card-hdr">
-    <div class="dash-card-icon" style="background:#f0fdf4"><i data-lucide="dollar-sign" class="lci" style="width:20px;height:20px;color:#16a34a"></i></div>
-    <span class="dash-card-label">TOTAL CHARGES</span>
-  </div>
-  <div class="dash-card-metric" style="color:#16a34a">$${fmtMoney(total)}</div>
-  <div class="dash-card-sub"><span style="color:#87867f">Billed across all claims</span></div>
-  <div class="dash-card-bar"><div style="width:100%;background:#6ee7b7;height:4px;border-radius:2px"></div></div>
-  <div class="dash-card-pct">—</div>
+<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
 </div>
-<div class="dash-card" onclick="go('claims')" style="cursor:pointer">
-  <div class="dash-card-hdr">
-    <div class="dash-card-icon" style="background:#fffbeb"><i data-lucide="clock" class="lci" style="width:20px;height:20px;color:#d97706"></i></div>
-    <span class="dash-card-label">PENDING</span>
-  </div>
-  <div class="dash-card-metric" style="color:#d97706">${pending}</div>
-  <div class="dash-card-sub"><span style="color:#87867f">Awaiting clearinghouse</span></div>
-  <div class="dash-card-bar"><div style="width:${pctPending}%;background:#fbbf24;height:4px;border-radius:2px"></div></div>
-  <div class="dash-card-pct">${pctPending}% of total</div>
+<div class="stat-v" style="color:var(--brand)">${claims.length}</div>
+<div class="stat-l">Total Claims</div>
 </div>
-<div class="dash-card" onclick="go('claims')" style="cursor:pointer">
-  <div class="dash-card-hdr">
-    <div class="dash-card-icon" style="background:#fff1f2"><i data-lucide="alert-circle" class="lci" style="width:20px;height:20px;color:#dc2626"></i></div>
-    <span class="dash-card-label">REJECTED / DENIED</span>
-  </div>
-  <div class="dash-card-metric" style="color:#dc2626">${rejected}</div>
-  <div class="dash-card-sub"><span style="color:#87867f">Needs attention</span></div>
-  <div class="dash-card-bar"><div style="width:${claims.length?Math.round(rejected/claims.length*100):0}%;background:#fca5a5;height:4px;border-radius:2px"></div></div>
-  <div class="dash-card-pct">${claims.length?Math.round(rejected/claims.length*100):0}% of total</div>
+<div class="stat" style="cursor:default">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
+<i data-lucide="dollar-sign" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
+</div>
+</div>
+<div class="stat-v" style="color:var(--green)">$${fmtMoney(total)}</div>
+<div class="stat-l">Total Charges</div>
+</div>
+<div class="stat" onclick="go('claims')" style="cursor:pointer">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div style="width:36px;height:36px;border-radius:10px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center">
+<i data-lucide="clock" class="lci" style="width:18px;height:18px;color:var(--amber)"></i>
+</div>
+<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
+</div>
+<div class="stat-v" style="color:var(--amber)">${pending}</div>
+<div class="stat-l">Pending</div>
+</div>
+<div class="stat" style="cursor:default">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
+<i data-lucide="check-circle" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
+</div>
+</div>
+<div class="stat-v" style="color:var(--green)">${accepted}</div>
+<div class="stat-l">Accepted CH</div>
 </div>`;
 setTimeout(_renderLucideIcons, 20);
 const re=document.getElementById('dash-recent');
@@ -8630,6 +8619,111 @@ const CLEARINGHOUSE_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
 
 // ── Email Service ─────────────────────────────────────────────────
 var EMAIL_WORKER_URL = 'https://email-service.imbsinc2023.workers.dev';
+
+// ── Intake Forms: Send signing link ───────────────────────────────────────
+async function icSendForms(clientId, formIds) {
+  if (!_db) { toast('Firebase not ready','warn'); return; }
+  const db2 = getDB();
+  const ic = (_localDB.intakeClients || []).find(c => c.id === clientId);
+  if (!ic) { toast('Client not found','warn'); return; }
+
+  const toEmail = ic.guardianEmail || ic.email || '';
+  if (!toEmail) { toast('No email address found for this client','warn'); return; }
+
+  // Gather form templates
+  const allForms = _localDB.intakeForms || [];
+  const selectedForms = formIds && formIds.length
+    ? allForms.filter(f => formIds.includes(f.id))
+    : allForms.filter(f => f.active !== false);
+
+  if (!selectedForms.length) { toast('No active forms to send','warn'); return; }
+
+  // Generate token
+  const token = 'ic_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+  const signUrl = 'https://claimdatacare.com/sign?token=' + token;
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  // Get provider name
+  const sess = getSession();
+  const prov = (db2.providers || []).find(p => p.id === (sess.providerId || activeProviderId)) || {};
+
+  // Save token to Firestore
+  try {
+    await _db.collection('signTokens').doc(token).set({
+      token,
+      clientId,
+      clientFirst: ic.first || '',
+      clientLast: ic.last || '',
+      clientDob: ic.dob || '',
+      guardianName: ic.guardianName || (ic.guardianFirst ? ic.guardianFirst + ' ' + ic.guardianLast : ''),
+      guardianPhone: ic.guardianPhone || ic.phone || '',
+      guardianEmail: toEmail,
+      providerName: prov.name || 'Your Provider',
+      forms: selectedForms.map(f => ({
+        id: f.id,
+        name: f.name || 'Consent Form',
+        type: f.type || 'Consent',
+        content: f.content || f.body || '',
+      })),
+      sentAt: firebase.firestore.Timestamp.now(),
+      expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+      signedAt: null,
+    });
+  } catch(e) {
+    toast('Error saving token: ' + e.message, 'err');
+    return;
+  }
+
+  // Update client status
+  _localDB.intakeClients = (_localDB.intakeClients || []).map(c =>
+    c.id === clientId ? {...c, status: 'Forms Sent', formsSentAt: new Date().toISOString()} : c
+  );
+  saveLocalDB();
+
+  // Send email
+  const guardianName = ic.guardianName || ic.guardianFirst || 'Parent/Guardian';
+  const clientName = (ic.first || '') + ' ' + (ic.last || '');
+  const provName = prov.name || 'Your Provider';
+  const html = [
+    '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f8f6f0;padding:20px">',
+    '<div style="background:#c96442;padding:20px 28px;border-radius:10px 10px 0 0">',
+    '<div style="font-size:18px;font-weight:700;color:#fff;letter-spacing:.02em">ClaimDataCare</div>',
+    '<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">Secure Document Signing</div>',
+    '</div>',
+    '<div style="background:#fff;padding:28px;border:1px solid #e4e1d8;border-top:none;border-radius:0 0 10px 10px">',
+    '<p style="font-size:15px;font-weight:600;color:#141413;margin:0 0 8px">Hello ' + guardianName + ',</p>',
+    '<p style="font-size:14px;color:#4d4c48;line-height:1.6;margin:0 0 20px">',
+    provName + ' has sent you <strong>' + selectedForms.length + ' consent form' + (selectedForms.length > 1 ? 's' : '') + '</strong>',
+    ' for <strong>' + clientName.trim() + '</strong> to review and sign electronically.',
+    '</p>',
+    '<div style="background:#fdf3ee;border:1px solid #f0d8cc;border-radius:8px;padding:16px;margin-bottom:20px">',
+    '<div style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Documents to Sign</div>',
+    selectedForms.map((f,i) => '<div style="font-size:13px;color:#141413;padding:4px 0;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:#c96442;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">' + (i+1) + '</span>' + (f.name || 'Consent Form') + '</div>').join(''),
+    '</div>',
+    '<div style="text-align:center;margin:24px 0">',
+    '<a href="' + signUrl + '" style="display:inline-block;background:#c96442;color:#fff;font-size:15px;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:.02em">',
+    '✍️ Review &amp; Sign Forms',
+    '</a>',
+    '</div>',
+    '<p style="font-size:12px;color:#87867f;text-align:center;line-height:1.6">',
+    'This link expires in 7 days. If you did not expect this email, please contact ' + provName + '.<br>',
+    'Or copy this link: <a href="' + signUrl + '" style="color:#c96442">' + signUrl + '</a>',
+    '</p>',
+    '</div>',
+    '<p style="font-size:11px;color:#b0aea5;text-align:center;margin-top:16px">',
+    'ClaimDataCare · Secure Electronic Signature · claimdatacare.com',
+    '</p>',
+    '</div>',
+  ].join('');
+
+  const sent = await sendEmail(toEmail, 'Action Required: Sign Intake Forms for ' + clientName.trim(), html, 'intake');
+  if (sent) {
+    toast('✓ Forms sent to ' + toEmail, 'ok');
+    if (typeof renderIntakeClients === 'function') renderIntakeClients();
+  } else {
+    toast('Email delivery failed — check email configuration', 'err');
+  }
+}
 
 async function sendEmail(to, subject, html, type) {
   try {
@@ -17300,127 +17394,130 @@ ${R('Co-Insurance(%)',ins.coins||'0')}
 </div>
 </div>`;
 
-// ── Metric helper ─────────────────────────────────────────────────────────
-const metricCard = (icon, label, value, color, sub='', bg='#fdf3ee') =>
-  `<div class="ptc-metric-card">
-    <div class="ptc-metric-icon" style="background:${bg}">
-      <i data-lucide="${icon}" class="lci" style="width:18px;height:18px;color:${color}"></i>
-    </div>
-    <div class="ptc-metric-value" style="color:${color}">${value}</div>
-    <div class="ptc-metric-label">${label}</div>
-    ${sub?`<div class="ptc-metric-sub">${sub}</div>`:''}
-  </div>`;
-
-const totalClaims = claims.length;
-const totalBilled = claims.reduce((s,c)=>s+(c.lines||[]).reduce((s2,l)=>s2+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0),0);
-const openClaims  = claims.filter(c=>['pending','submitted','draft'].includes(c.status)).length;
-const paidClaims  = claims.filter(c=>c.status==='accepted').length;
-
 return `
-<div class="ptc-summary-wrap">
+<div style="padding:0">
 
-<!-- ── TOP METRIC CARDS ─────────────────────────────────────────────── -->
-<div class="ptc-metrics-row">
-  ${metricCard('file-text','Total Claims', totalClaims, '#c96442','#fdf3ee')}
-  ${metricCard('dollar-sign','Total Billed','$'+fmtMoney(totalBilled),'#16a34a','#f0fdf4')}
-  ${metricCard('check-circle','Accepted', paidClaims,'#16a34a','#f0fdf4')}
-  ${metricCard('clock','Open Claims', openClaims,'#d97706','#fffbeb')}
-  ${metricCard('calendar-days','Next Appt.', future[0]?fmtD(future[0].date):'—','#7c3aed','#f5f3ff')}
+<!-- ?? 1. PATIENT DETAILS (full width) ?? -->
+<div class="ptc-panel" style="margin-bottom:12px">
+<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">
+<span>Patient Details</span>
+<div style="display:flex;gap:12px">
+<button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="View History"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i></button>
+<button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="Edit Demographics"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
+</div>
+</div>
+<div class="ptc-panel-body" style="padding:12px 14px">
+<div style="display:grid;grid-template-columns:80px 1fr;gap:0 16px;align-items:start">
+
+<!-- Photo column -->
+<div style="text-align:center">
+<div id="pt-photo-box-${pat.id}" onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
+style="width:70px;height:70px;border:2px solid #e8e6dc;border-radius:8px;
+background:#f5f4ed;display:flex;align-items:center;justify-content:center;
+font-size:24px;font-weight:700;color:var(--text2);cursor:${pat.photo?'zoom-in':'default'};
+overflow:hidden;margin:0 auto">
+${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:`${initials}`}
+</div>
+<button class="btn-icon" onclick="_openPhotoOptions('${pat.id}')" title="Add/Edit Photo" style="margin-top:4px;width:100%"><i data-lucide="camera" class="lci" style="width:14px;height:14px"></i></button>
 </div>
 
-<!-- ── TWO-COLUMN LAYOUT ─────────────────────────────────────────────── -->
-<div class="ptc-summary-cols">
+<!-- Details grid (3 columns) -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">
+<div>
+${R('Chart#',pat.acct||'',true)}
+${R('Name (L,F,M)',`${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()} ${pat.mid?pat.mid.toUpperCase():''}`,true)}
+${R('Nick Name',pat.nickname||'')}
+${R('Address',pat.addr1||'')}
+${pat.addr2?R('',pat.addr2):''}
+${R('',`${pat.city||''}, ${pat.state||''} - ${pat.zip||''}`)}
+${R('Sexual Orient.',pat.sexualOrient||'')}
+${R('Status',pat.inactive?'Inactive':'Active')}
+${R('Mobile',pat.phone2||'')}
+</div>
+<div>
+${R('E-Mail',pat.email||'')}
+${R('Pref.Contact',pat.prefContact||'')}
+${R('DOB',_fmtDob(pat.dob))}
+${R('Sex',gender)}
+${R('Pref.lang.',pat.prefLang||'')}
+${R('Contact 1',pat.phone?'('+pat.phone.slice(0,3)+') '+pat.phone.slice(3,6)+'-'+pat.phone.slice(6):'')}
+</div>
+<div>
+${R('Ethnicity',pat.ethnicity||'Declined to specify')}
+${R('Race',pat.race||'Declined to Specify')}
+${R('Marital Status',pat.maritalStatus||'')}
+${R('GenderIdentity',pat.genderIdentity||'')}
+${R('Ref.Phys.',ref.last?ref.last+', '+ref.first:'')}
+${R('Code Status',pat.codeStatus||'')}
+${R('Special Group',pat.specialGroup||'')}
+</div>
+</div>
+</div>
+</div>
+</div>
 
-  <!-- LEFT column -->
-  <div style="display:flex;flex-direction:column;gap:12px">
+<!-- ?? 2. PRIMARY INSURANCE ?? -->
+${insBlock(ins1,'Patient Primary Insurance Details')}
 
-    <!-- PATIENT INFO CARD -->
-    <div class="ptc-panel">
-      <div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">
-        <span><i data-lucide="user" class="lci" style="width:13px;height:13px;margin-right:5px"></i>Patient Details</span>
-        <button class="btn-icon" onclick="_renderChartTab('demographics')" title="Edit Demographics"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
-      </div>
-      <div style="display:flex;gap:14px;padding:12px 14px;align-items:flex-start">
-        <div style="width:64px;height:64px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg3)">
-          ${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(pat,64)}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px">${(pat.last||'').toUpperCase()}, ${pat.first||''}</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">File #${pat.acct||''} &nbsp;·&nbsp; ${age} yrs &nbsp;·&nbsp; ${gender} &nbsp;·&nbsp; <span style="color:${pat.inactive?'#dc2626':'#16a34a'};font-weight:600">${pat.inactive?'Inactive':'Active'}</span></div>
-          <div class="ptc-info-grid">
-            ${R('DOB',_fmtDob(pat.dob))}${R('Phone',pat.phone?'('+pat.phone.slice(0,3)+') '+pat.phone.slice(3,6)+'-'+pat.phone.slice(6):'')}
-            ${R('Email',pat.email||'')}${R('Address',pat.addr1||'')}
-            ${R('City/State',pat.city?(pat.city+', '+pat.state+' '+pat.zip):'')  }${R('Race',pat.race||'')}
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- ?? 3. SECONDARY INSURANCE ?? -->
+${insBlock(ins2,'Patient Secondary Insurance Details')}
 
-    <!-- A/R AGING CARD -->
-    <div class="ptc-panel">
-      <div class="ptc-panel-hdr"><i data-lucide="trending-up" class="lci" style="width:13px;height:13px;margin-right:5px"></i>A/R Aging</div>
-      <div style="overflow-x:auto">
-        <table class="ptc-aging-table" style="width:100%">
-          <thead><tr>
-            <th style="text-align:left;padding:6px 10px">Category</th>
-            <th>0–30</th><th>31–60</th><th>61–90</th><th>91–120</th><th>120+</th><th>Total</th>
-          </tr></thead>
-          <tbody>
-            <tr><td style="text-align:left;padding:5px 10px;font-weight:600;font-size:12px">Patient</td>${patA.map(v=>cell(v)).join('')}${cell(totPat)}</tr>
-            <tr><td style="text-align:left;padding:5px 10px;font-weight:600;font-size:12px">Insurance</td>${insA.map(v=>cell(v)).join('')}${cell(totIns)}</tr>
-          </tbody>
-          <tfoot><tr><td style="text-align:left;padding:5px 10px;font-weight:700;font-size:12px">Total</td>${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}</tr></tfoot>
-        </table>
-        <div style="display:flex;justify-content:flex-end;gap:20px;padding:5px 12px;font-size:11px;font-weight:700;border-top:1px solid var(--border)">
-          <span>Unapplied: ${$v(0)}</span>
-          <span style="color:${totAll>0?'#dc2626':'#87867f'}">Net A/R: ${$v(totAll)}</span>
-        </div>
-      </div>
-    </div>
+<!-- ?? 4. BILLING A/R AGING ?? -->
+<div class="ptc-panel" style="margin-bottom:12px">
+<div class="ptc-panel-hdr">Billing Statement</div>
+<div style="overflow-x:auto">
+<table class="ptc-aging-table" style="width:100%">
+<thead>
+<tr>
+<th style="text-align:left;padding:6px 10px">A/R Aging (days)</th>
+<th>0-30</th><th>31-60</th><th>61-90</th><th>91-120</th><th>Over 120</th><th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;padding:6px 10px;font-weight:600">Patient Aging</td>
+${patA.map(v=>cell(v)).join('')}${cell(totPat)}
+</tr>
+<tr>
+<td style="text-align:left;padding:6px 10px;font-weight:600">Insurance Aging</td>
+${insA.map(v=>cell(v)).join('')}${cell(totIns)}
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="text-align:left;padding:6px 10px;font-weight:700">Total</td>
+${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
+</tr>
+</tfoot>
+</table>
+<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #e8e6dc">
+<span>Unapplied Patient Payments: ${$v(0)}</span>
+<span style="color:${totAll>0?'#dc2626':'#87867f'}">Net A/R: ${$v(totAll)}</span>
+</div>
+</div>
+</div>
 
-    <!-- SCHEDULE CARD -->
-    <div class="ptc-panel">
-      <div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">
-        <span><i data-lucide="calendar-days" class="lci" style="width:13px;height:13px;margin-right:5px"></i>Schedule</span>
-        <button class="btn-icon" onclick="_renderChartTab('appointments')" title="View Schedule"><i data-lucide="arrow-right" class="lci" style="width:13px;height:13px"></i></button>
-      </div>
-      <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="ptc-sched-item" style="background:#f0fdf4;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Next Appointment</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">${future[0]?fmtD(future[0].date):'—'}</div>
-          ${future[0]&&future[0].schedulerName?`<div style="font-size:11px;color:var(--text3)">${future[0].schedulerName}</div>`:''}
-        </div>
-        <div class="ptc-sched-item" style="background:#f8f6f0;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Last Visit</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">${past[0]?fmtD(past[0].date):'—'}</div>
-        </div>
-      </div>
-    </div>
+<!-- ?? 5. APPOINTMENTS / VISITS ?? -->
+<div class="ptc-panel" style="margin-bottom:12px">
+<div class="ptc-panel-hdr">Schedule / Visits</div>
+<div class="ptc-panel-body" style="padding:10px 14px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 20px;font-size:12px">
+<div>${R('Next Appointment',future[0]?fmtD(future[0].date):'')}</div>
+<div>${R('Last Appointment',past[0]?fmtD(past[0].date):'')}</div>
+<div>${R('Last Visit Date',past[0]?fmtD(past[0].date):'')}</div>
+<div>${R('Next Appt. Scheduler',future[0]?future[0].schedulerName||'':'')}</div>
+</div>
+</div>
+</div>
 
-  </div><!-- /left -->
+<!-- ?? 6. PATIENT COMMUNICATION ?? -->
+<div class="ptc-panel" style="margin-bottom:12px">
+<div class="ptc-panel-hdr">Patient Communication</div>
+<div class="ptc-panel-body" style="padding:10px 14px;font-size:12px;color:#dc2626;font-weight:600">
+No Notes for this patient.
+</div>
+</div>
 
-  <!-- RIGHT column -->
-  <div style="display:flex;flex-direction:column;gap:12px">
-
-    <!-- PRIMARY INSURANCE -->
-    ${insBlock(ins1,'Primary Insurance')}
-
-    <!-- SECONDARY INSURANCE -->
-    ${insBlock(ins2,'Secondary Insurance')}
-
-    <!-- PROVIDER INFO CARD -->
-    <div class="ptc-panel">
-      <div class="ptc-panel-hdr"><i data-lucide="stethoscope" class="lci" style="width:13px;height:13px;margin-right:5px"></i>Provider</div>
-      <div style="padding:10px 14px">
-        ${R('Rendering',rend.last?rend.last+', '+rend.first:'')}
-        ${R('Referring',ref.last?ref.last+', '+ref.first:'')}
-        ${R('Provider',prov.name||'')}
-        ${R('Facility',fac.name||'')}
-      </div>
-    </div>
-
-  </div><!-- /right -->
-</div><!-- /cols -->
 </div>`;
 }
 
