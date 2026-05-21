@@ -16210,7 +16210,7 @@ if (!pat) { toast('Patient not found', 'err'); return; }
 const overlay = document.createElement('div');
 overlay.className = 'pt-chart-overlay';
 overlay.id = 'pt-chart-overlay';
-overlay.innerHTML = _buildChartShell(pat, db);
+overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildChartShell(pat, db) + '</div>';
 (document.querySelector('.app-shell') || document.body).appendChild(overlay);
 _renderChartTab('summary');
 setTimeout(_renderLucideIcons, 30);
