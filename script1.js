@@ -16708,41 +16708,18 @@ const tabsHTML = TABS.map(t =>
 ).join('');
 
 return `
-<!-- BANNER -->
+<!-- BANNER: terracotta bar with patient info + tabs inline -->
 <div class="ptc-banner">
-  <!-- Left: title + patient info -->
-  <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden">
-    <span class="ptc-banner-title">Patient File</span>
-    <div class="ptc-banner-meta">
-      <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci"></i>${pat.acct||'—'}</span>
-      <span class="ptc-banner-meta-item" style="color:${pat.inactive?'#fca5a5':'#6ee7b7'}">
-        <i data-lucide="${pat.inactive?'user-x':'user-check'}" class="lci"></i>${activeStr}
-      </span>
-      <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci"></i>${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid.toUpperCase():''}</span>
-      <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci"></i>${age} yrs</span>
-      <span class="ptc-banner-meta-item"><i data-lucide="venus-and-mars" class="lci"></i>${gender}</span>
-    </div>
-  </div>
-  <!-- Right: quick actions + close -->
-  <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-    <div style="display:flex;align-items:center;gap:1px;border-right:1px solid rgba(255,255,255,.2);padding-right:8px;margin-right:4px">
-      <span class="ptc-qa" data-tip="New Appointment"  onclick="_renderChartTab('appointments')"><i data-lucide="calendar-plus"   class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Lab Results"      onclick="_renderChartTab('encounters')"><i data-lucide="flask-conical"     class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Referrals"        onclick="_renderChartTab('auth')"><i data-lucide="share-2"                 class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Authorizations"   onclick="_renderChartTab('auth')"><i data-lucide="shield-check"            class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Prescriptions"    onclick="_renderChartTab('pharmacies')"><i data-lucide="pill"              class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Insurance"        onclick="_renderChartTab('insurance')"><i data-lucide="credit-card"        class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Records"          onclick="_renderChartTab('documents')"><i data-lucide="folder-open"        class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Tasks"            onclick="_renderChartTab('tasks')"><i data-lucide="check-square"           class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Messages"         onclick="_renderChartTab('communication')"><i data-lucide="message-circle" class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Clinical Summary" onclick="_renderChartTab('clinical')"><i data-lucide="activity"            class="lci"></i></span>
-      <span class="ptc-qa" data-tip="Bills"            onclick="_renderChartTab('bills')"><i data-lucide="receipt"                class="lci"></i></span>
-    </div>
-    <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
-  </div>
+  <span class="ptc-banner-title">PATIENT FILE</span>
+  <span class="ptc-banner-sep">|</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>File ${pat.acct||'—'}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age} yrs</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="venus-and-mars" class="lci" style="width:11px;height:11px"></i>${gender}</span>
+  <span class="ptc-banner-sep">|</span>
+  <div class="ptc-tabs-inline">${tabsHTML}</div>
+  <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
 </div>
-<!-- TABS -->
-<div class="ptc-tabs">${tabsHTML}</div>
 <!-- BODY -->
 <div style="flex:1;overflow-y:auto;padding:14px 16px" id="pt-main"></div>`;
 }

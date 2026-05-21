@@ -335,62 +335,58 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   display: flex; flex-direction: column;
   height: 100%; overflow: hidden;
 }
-/* Banner */
+/* Banner — terracotta bar with patient info + tabs inline */
 .ptc-banner {
-  background: #141413;
+  background: #c96442;
   color: #fff;
   display: flex; align-items: center;
-  padding: 0 12px;
-  height: 44px;
+  padding: 0 10px 0 14px;
+  height: 40px;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
+  overflow: hidden;
 }
 .ptc-banner-title {
-  font-size: 11px; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; color: rgba(255,255,255,.5);
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.75);
   white-space: nowrap; flex-shrink: 0;
 }
-.ptc-banner-meta {
-  display: flex; align-items: center; gap: 10px;
-  flex: 1; min-width: 0; overflow: hidden;
+.ptc-banner-sep {
+  color: rgba(255,255,255,.35); font-size: 12px;
+  flex-shrink: 0; padding: 0 2px;
 }
 .ptc-banner-meta-item {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.85);
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; color: #fff;
+  white-space: nowrap; flex-shrink: 0;
 }
 .ptc-banner-close {
-  width: 28px; height: 28px; border-radius: 6px;
-  background: none; border: none; cursor: pointer;
-  color: rgba(255,255,255,.6); font-size: 18px; line-height: 1;
+  width: 26px; height: 26px; border-radius: 5px; margin-left: 4px;
+  background: rgba(0,0,0,.15); border: none; cursor: pointer;
+  color: rgba(255,255,255,.85); font-size: 16px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
-  transition: background .12s, color .12s;
+  transition: background .12s; flex-shrink: 0;
 }
-.ptc-banner-close:hover { background: rgba(255,255,255,.12); color: #fff; }
-/* Tabs */
-.ptc-tabs {
-  background: #1b4332;
+.ptc-banner-close:hover { background: rgba(0,0,0,.3); color: #fff; }
+/* Tabs inline inside banner */
+.ptc-tabs-inline {
   display: flex; align-items: stretch;
-  overflow-x: auto; flex-shrink: 0;
-  scrollbar-width: none;
-  border-bottom: 2px solid rgba(0,0,0,.15);
+  flex: 1; overflow-x: auto; height: 100%;
+  scrollbar-width: none; gap: 0;
 }
-.ptc-tabs::-webkit-scrollbar { display: none; }
+.ptc-tabs-inline::-webkit-scrollbar { display: none; }
 .ptc-tab {
-  display: flex; align-items: center; gap: 5px;
-  padding: 8px 12px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 10px;
   font-size: 11px; font-weight: 600;
-  color: rgba(255,255,255,.55);
+  color: rgba(255,255,255,.65);
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
   border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
   transition: color .12s, border-color .12s, background .12s;
-  user-select: none;
+  user-select: none; height: 100%;
 }
-.ptc-tab:hover { color: #fff; background: rgba(255,255,255,.07); }
-.ptc-tab.active { color: #fff; border-bottom-color: #c96442; }
-.ptc-tab.danger { color: rgba(252,165,165,.65); }
-.ptc-tab.danger.active { color: #fca5a5; border-bottom-color: #fca5a5; }
+.ptc-tab:hover { color: #fff; background: rgba(0,0,0,.1); }
+.ptc-tab.active { color: #fff; border-bottom-color: rgba(255,255,255,.9); background: rgba(0,0,0,.12); }
 /* Body */
 #pt-main {
   flex: 1; overflow-y: auto; padding: 14px 16px;
