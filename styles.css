@@ -512,3 +512,104 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   grid-template-columns: 1fr 1fr;
   gap: 0;
 }
+
+/* ── Patient Chart — card/floating look for all tabs ─────────────────────── */
+/* Parchment background for the entire tab body */
+#pt-main {
+  background: #f4f2ec;
+  padding: 14px 16px;
+}
+
+/* Every ptc-panel becomes a floating card */
+.ptc-panel {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.ptc-panel-hdr {
+  background: #ffffff;
+  border-bottom: 1px solid #ede9df;
+  padding: 9px 14px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: #6b6960;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ptc-panel-body { padding: 12px 14px; }
+
+/* Metric cards use same floating style */
+.ptc-metric-card {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+}
+.ptc-metric-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  transform: translateY(-2px);
+}
+
+/* Demo form card */
+.pt-card {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+.pt-card-header {
+  background: #ffffff;
+  border-bottom: 1px solid #ede9df;
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pt-card-body { padding: 16px; }
+
+/* Tables inside panels */
+.ptc-aging-table { border-collapse: collapse; }
+.ptc-aging-table th {
+  background: #f8f6f0;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: #87867f;
+  padding: 7px 10px; text-align: right;
+  border-bottom: 1px solid #ede9df;
+}
+.ptc-aging-table td { padding: 5px 10px; font-size: 12px; }
+.ptc-aging-table tbody tr:nth-child(even) { background: #fafaf7; }
+.ptc-aging-table tfoot td { font-weight: 700; border-top: 2px solid #ede9df; background: #f8f6f0; }
+
+/* tbl-wrap inside pt-main */
+#pt-main .tbl-wrap {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e4e1d8;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  overflow: hidden;
+}
+#pt-main table th {
+  background: #f8f6f0;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: #87867f;
+  padding: 8px 12px; border-bottom: 1px solid #ede9df;
+}
+#pt-main table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid #f0ede5;
+  font-size: 12px;
+}
+#pt-main table tbody tr:hover { background: #fdfcf8; }
+
+/* Dashboard cards same floating look */
+.dash-card {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+}
+.dash-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,.1);
+  transform: translateY(-2px);
+}
