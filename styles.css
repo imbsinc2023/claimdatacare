@@ -447,3 +447,68 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 .pt-card-body {
   overflow-y: auto;
 }
+
+/* ── Dashboard Cards ──────────────────────────────────────────────────────── */
+.dash-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: box-shadow .15s, transform .15s;
+}
+.dash-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.dash-card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.dash-card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.dash-card-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  color: var(--text3); text-transform: uppercase;
+}
+.dash-card-metric { font-size: 32px; font-weight: 800; line-height: 1; }
+.dash-card-sub { display: flex; gap: 12px; font-size: 11px; font-weight: 600; flex-wrap: wrap; }
+.dash-card-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.dash-card-pct { font-size: 10px; color: var(--text3); font-weight: 600; }
+
+/* ── Patient Summary ──────────────────────────────────────────────────────── */
+.ptc-summary-wrap { padding: 0; }
+.ptc-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 900px) { .ptc-metrics-row { grid-template-columns: repeat(3, 1fr); } }
+.ptc-metric-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  transition: box-shadow .15s;
+}
+.ptc-metric-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.07); }
+.ptc-metric-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.ptc-metric-value { font-size: 22px; font-weight: 800; line-height: 1; }
+.ptc-metric-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); }
+.ptc-metric-sub { font-size: 11px; color: var(--text3); }
+
+.ptc-summary-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 800px) { .ptc-summary-cols { grid-template-columns: 1fr; } }
+
+.ptc-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
