@@ -233,6 +233,14 @@ function openIntakeClientFile(idx) {
   overlay.id = 'ic-chart-overlay';
   overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildICChartShell(client, db) + '</div>';
   (document.querySelector('.app-shell') || document.body).appendChild(overlay);
+  // Wire events via addEventListener
+  overlay.querySelectorAll('.ptc-tab[data-tabid]').forEach(function(tab) {
+    tab.addEventListener('click', function() { _renderICTab(tab.dataset.tabid); });
+  });
+  var closeBtn = document.getElementById('ic-chart-close');
+  if (closeBtn) closeBtn.addEventListener('click', function() {
+    var ov = document.getElementById('ic-chart-overlay'); if (ov) ov.remove();
+  });
   _renderICTab('summary');
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -246,7 +254,7 @@ function _buildICChartShell(c, db) {
     {id:'records',      label:'Records',      icon:'folder-open'},
   ];
   var tabsHTML = TABS.map(function(t){
-    return '<div class="ptc-tab" id="ict-tab-'+t.id+'" onclick="_renderICTab(\"'+t.id+'\")">' +
+    return '<div class="ptc-tab" id="ict-tab-'+t.id+'" data-tabid="'+t.id+'">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;pointer-events:none">' + _icTabIcon(t.icon) + '</svg>' +
       t.label + '</div>';
   }).join('');
@@ -259,7 +267,7 @@ function _buildICChartShell(c, db) {
     '<span class="ptc-banner-meta-item">' + (c.gender||'') + '</span>' +
     '<span class="ptc-banner-sep">|</span>' +
     '<div class="ptc-tabs-inline">' + tabsHTML + '</div>' +
-    '<button class="ptc-banner-close" onclick="document.getElementById(&quot;ic-chart-overlay&quot;).remove()" title="Close">&times;</button>' +
+    '<button class="ptc-banner-close" id="ic-chart-close" title="Close">&times;</button>' +
     '</div>' +
     '<div style="flex:1;overflow-y:auto;padding:14px 16px;background:#f4f2ec" id="ic-main"></div>';
 }
