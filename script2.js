@@ -104,7 +104,7 @@ function renderIntakeClients() {
           '<td style="font-size:12px">' + (c.referralSource||'—') + '</td>' +
           '<td>' + _icStatusBadge(c.status||'Pending Forms') + '</td>' +
           '<td style="white-space:nowrap"><div class="btn-group">' +
-            '<button class="btn btn-xs" onclick="icOpenClientModal(' + realIdx + ')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>' +
+            '<button class="btn btn-xs" onclick="openIntakeClientFile(' + realIdx + ')" title="Open Client File"><i data-lucide="folder-open" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icSendIntakeLink(' + realIdx + ')" title="Send Intake Forms"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icSendDemoLink(' + realIdx + ')" title="Send Demographic Intake"><i data-lucide="user-round-pen" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icViewSignedForms(' + realIdx + ')" title="View Signed Forms"><i data-lucide="file-check" class="lci" style="width:12px;height:12px"></i></button>' +
@@ -214,6 +214,250 @@ function icSaveClient() {
 }
 
 // ── Send Intake Forms ──
+// ══════════════════════════════════════════════════════════════════════════
+// INTAKE CLIENT FILE — same architecture as Patient Chart
+// ══════════════════════════════════════════════════════════════════════════
+
+var _icChartClientIdx = -1;
+var _icChartTabActive = 'summary';
+
+function openIntakeClientFile(idx) {
+  _icChartClientIdx = idx;
+  var db = getDB();
+  var client = (db.intakeClients || [])[idx];
+  if (!client) { toast('Client not found','err'); return; }
+  var existing = document.getElementById('ic-chart-overlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.className = 'pt-chart-overlay';
+  overlay.id = 'ic-chart-overlay';
+  overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildICChartShell(client, db) + '</div>';
+  (document.querySelector('.app-shell') || document.body).appendChild(overlay);
+  _renderICTab('summary');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function _buildICChartShell(c, db) {
+  var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a; })() : '—';
+  var TABS = [
+    {id:'summary',      label:'Summary',      icon:'layout-dashboard'},
+    {id:'demographics', label:'Demographics', icon:'user'},
+    {id:'coverage',     label:'Coverage',     icon:'shield-check'},
+    {id:'records',      label:'Records',      icon:'folder-open'},
+  ];
+  var tabsHTML = TABS.map(function(t){
+    return '<div class="ptc-tab" id="ict-tab-'+t.id+'" onclick="_renderICTab(\"'+t.id+'\")">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;pointer-events:none">' + _icTabIcon(t.icon) + '</svg>' +
+      t.label + '</div>';
+  }).join('');
+  return '<div class="ptc-banner">' +
+    '<span class="ptc-banner-title">CLIENT FILE</span>' +
+    '<span class="ptc-banner-sep">|</span>' +
+    '<span class="ptc-banner-meta-item">' + (c.lastName||'').toUpperCase() + ', ' + (c.firstName||'').toUpperCase() + '</span>' +
+    '<span class="ptc-banner-meta-item">' + (c.dob||'') + '</span>' +
+    (age !== '—' ? '<span class="ptc-banner-meta-item">' + age + ' yrs</span>' : '') +
+    '<span class="ptc-banner-meta-item">' + (c.gender||'') + '</span>' +
+    '<span class="ptc-banner-sep">|</span>' +
+    '<div class="ptc-tabs-inline">' + tabsHTML + '</div>' +
+    '<button class="ptc-banner-close" onclick="document.getElementById('ic-chart-overlay').remove()" title="Close">&times;</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;padding:14px 16px;background:#f4f2ec" id="ic-main"></div>';
+}
+
+function _icTabIcon(icon) {
+  var icons = {
+    'layout-dashboard': '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    'user': '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
+    'folder-open': '<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>',
+  };
+  return icons[icon] || '';
+}
+
+function _renderICTab(tabId) {
+  _icChartTabActive = tabId;
+  document.querySelectorAll('.ptc-tab[id^="ict-tab-"]').forEach(function(t){ t.classList.remove('active'); });
+  var tabEl = document.getElementById('ict-tab-' + tabId);
+  if (tabEl) tabEl.classList.add('active');
+  var main = document.getElementById('ic-main');
+  if (!main) return;
+  var db = getDB();
+  var client = (db.intakeClients || [])[_icChartClientIdx];
+  if (!client) { main.innerHTML = '<p style="color:#87867f">Client not found.</p>'; return; }
+  switch(tabId) {
+    case 'summary':      main.innerHTML = _buildICSummaryTab(client, db); break;
+    case 'demographics': main.innerHTML = _buildICDemoTab(client, db); break;
+    case 'coverage':     main.innerHTML = _buildICCoverageTab(client, db); break;
+    case 'records':      _buildICRecordsTab(client, db, main); break;
+    default: main.innerHTML = '<p style="color:#87867f">Tab not found.</p>';
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── Summary Tab ─────────────────────────────────────────────────────────────
+function _buildICSummaryTab(c, db) {
+  var R = function(l,v){ return v ? '<div style="padding:6px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#87867f;width:110px;flex-shrink:0">'+l+'</span><span style="font-size:12px;color:#141413;font-weight:600">'+v+'</span></div>' : ''; };
+  var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a+''; })() : '';
+  var ini = ((c.firstName||'?')[0]+(c.lastName||'?')[0]).toUpperCase();
+  var bg = c.gender==='Female'?'#c96442':c.gender==='Male'?'#2d6a4f':'#4d4c48';
+  var statusColor = c.status==='Signed'?'#16a34a':c.status==='Forms Sent'?'#d97706':'#87867f';
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    // LEFT
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr">Client Information</div>' +
+    '<div style="display:flex;gap:14px;padding:14px;align-items:flex-start">' +
+    '<div style="width:52px;height:52px;border-radius:50%;background:'+bg+';color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>' +
+    '<div style="flex:1">' +
+    '<div style="font-size:16px;font-weight:700;color:#141413">'+(c.lastName||'').toUpperCase()+', '+(c.firstName||'')+'</div>' +
+    '<div style="font-size:11px;color:#87867f;margin-bottom:10px">'+(age?age+' yrs · ':'')+' '+(c.gender||'') + ' · <span style="color:'+statusColor+';font-weight:700">'+(c.status||'Pending')+'</span></div>' +
+    R('DOB', c.dob||'') + R('Language', c.language||'') + R('Diagnoses', c.diagnoses||'') + R('School', c.school||'') + R('Grade', c.grade||'') +
+    '</div></div></div>' +
+    '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr">Guardian / Parent</div>' +
+    '<div style="padding:12px 14px">' +
+    R('Name', c.guardianName||'') + R('Relationship', c.guardianRel||'') + R('Phone', c.guardianPhone||'') + R('Phone 2', c.guardianPhone2||'') + R('Email', c.guardianEmail||'') + R('Address', (c.address||'')+(c.city?', '+c.city:'')) +
+    '</div></div></div>' +
+    // RIGHT
+    '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr">Insurance</div>' +
+    '<div style="padding:12px 14px">' +
+    R('Provider', c.insuranceProvider||'') + R('Member ID', c.insuranceId||'') + R('Group', c.insuranceGroup||'') +
+    '</div></div>' +
+    '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr">Emergency Contact</div>' +
+    '<div style="padding:12px 14px">' +
+    R('Name', c.emergName||'') + R('Phone', c.emergPhone||'') + R('Relationship', c.emergRel||'') +
+    '</div></div>' +
+    '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr">Clinical</div>' +
+    '<div style="padding:12px 14px">' +
+    R('ABA Provider', c.abaProvider||'') + R('PCP', c.pcp||'') + R('Referral Source', c.referralSource||'') + R('Custody', c.custody||'') +
+    '</div></div>' +
+    (c.notes ? '<div class="ptc-panel"><div class="ptc-panel-hdr">Notes</div><div style="padding:12px 14px;font-size:13px;color:#4d4c48;line-height:1.6">'+c.notes+'</div></div>' : '') +
+    '</div></div>';
+}
+
+// ── Demographics Tab ─────────────────────────────────────────────────────────
+function _buildICDemoTab(c, db) {
+  var idx = _icChartClientIdx;
+  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>'; };
+  var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
+  return '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Demographics' +
+    '<button class="btn btn-primary btn-sm" onclick="_saveICDemo()">Save Changes</button></div>' +
+    '<div class="ptc-panel-body">' +
+    '<div class="fg g2">' +
+    F('first','First Name *',c.firstName) + F('last','Last Name *',c.lastName) +
+    F('dob','Date of Birth',c.dob,'date') + S('gender','Gender',c.gender,['','Male','Female','Other']) +
+    F('language','Language',c.language) + S('status','Status',c.status,['Pending Forms','Forms Sent','Signed','Evaluation Completed','Archived']) +
+    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Guardian / Parent</div>' +
+    '<div class="fg g2">' +
+    F('g-name','Guardian Name *',c.guardianName) + F('g-rel','Relationship',c.guardianRel) +
+    F('g-phone','Phone',c.guardianPhone) + F('g-phone2','Phone 2',c.guardianPhone2) +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Email</label><input id="icd-g-email" value="'+(c.guardianEmail||'')+'" type="email" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Address</label><input id="icd-addr" value="'+(c.address||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
+    F('city','City',c.city) +
+    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Emergency Contact</div>' +
+    '<div class="fg g2">' + F('e-name','Name',c.emergName) + F('e-phone','Phone',c.emergPhone) + F('e-rel','Relationship',c.emergRel) + '</div>' +
+    '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Clinical</div>' +
+    '<div class="fg g2">' +
+    F('ins-provider','Insurance Provider',c.insuranceProvider) + F('ins-id','Insurance ID',c.insuranceId) +
+    F('ins-group','Group',c.insuranceGroup) + F('ref-source','Referral Source',c.referralSource) +
+    F('pcp','PCP',c.pcp) + F('school','School',c.school) +
+    F('grade','Grade',c.grade) + F('aba-provider','ABA Provider',c.abaProvider) +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
+    F('custody','Custody',c.custody) +
+    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
+    '</div></div>';
+}
+
+function _saveICDemo() {
+  var g = function(id){ var el=document.getElementById('icd-'+id); return el?el.value.trim():''; };
+  setDB(function(db){
+    var client = (db.intakeClients || [])[_icChartClientIdx];
+    if (!client) return;
+    client.firstName = g('first'); client.lastName = g('last');
+    client.dob = g('dob'); client.gender = g('gender'); client.language = g('language'); client.status = g('status');
+    client.guardianName = g('g-name'); client.guardianRel = g('g-rel');
+    client.guardianPhone = g('g-phone'); client.guardianPhone2 = g('g-phone2');
+    client.guardianEmail = g('g-email'); client.address = g('addr'); client.city = g('city');
+    client.emergName = g('e-name'); client.emergPhone = g('e-phone'); client.emergRel = g('e-rel');
+    client.insuranceProvider = g('ins-provider'); client.insuranceId = g('ins-id'); client.insuranceGroup = g('ins-group');
+    client.referralSource = g('ref-source'); client.pcp = g('pcp'); client.school = g('school');
+    client.grade = g('grade'); client.abaProvider = g('aba-provider'); client.diagnoses = g('dx');
+    client.custody = g('custody'); client.notes = g('notes'); client.updatedAt = Date.now();
+  });
+  toast('Client saved');
+  if (typeof renderIntakeClients === 'function') renderIntakeClients();
+}
+
+// ── Coverage Tab ─────────────────────────────────────────────────────────────
+function _buildICCoverageTab(c, db) {
+  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#87867f;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#141413;font-weight:600">'+(v||'—')+'</span></div>'; };
+  return '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Primary Insurance' +
+    '<button class="btn btn-sm" onclick="_renderICTab('demographics')">Edit</button></div>' +
+    '<div class="ptc-panel-body">' +
+    R('Provider', c.insuranceProvider) + R('Member ID', c.insuranceId) + R('Group #', c.insuranceGroup) +
+    '</div></div>';
+}
+
+// ── Records Tab ─────────────────────────────────────────────────────────────
+function _buildICRecordsTab(c, db, main) {
+  main.innerHTML = '<div class="ptc-panel">' +
+    '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">' +
+    '<span>Records — Forms (Signed Consent Documents)</span>' +
+    '<button class="btn btn-sm" onclick="_loadICRecords()">Refresh</button></div>' +
+    '<div class="ptc-panel-body" id="ic-records-body">' +
+    '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading...</div>' +
+    '</div></div>';
+  _loadICRecords();
+}
+
+async function _loadICRecords() {
+  var el = document.getElementById('ic-records-body');
+  if (!el) return;
+  var db2 = getDB();
+  var client = (db2.intakeClients || [])[_icChartClientIdx];
+  if (!client) { el.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:24px">Save the client first.</p>'; return; }
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading from Firestore...</div>';
+  try {
+    if (!_db) throw new Error('Not connected');
+    var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
+    if (snap.empty) {
+      el.innerHTML = '<div style="text-align:center;padding:40px;color:#87867f"><div style="font-size:32px;margin-bottom:12px">📄</div><div style="font-size:14px;font-weight:600">No signed forms yet</div><div style="font-size:12px;margin-top:6px">Signed consent documents will appear here</div></div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      var ts = d.signedTs || '';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f8f6f0;border-radius:10px;margin-bottom:8px;border:1px solid #e4e1d8">' +
+        '<div style="width:40px;height:40px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:700;color:#141413">' + (d.formName||'Consent Form') + '</div>' +
+        '<div style="font-size:10px;color:#87867f;margin-top:2px">Signed: ' + ts + ' &nbsp;·&nbsp; Mode: ' + (d.signatureMode||'') + '</div>' +
+        '</div>';
+      if (d.pdfData) {
+        html += '<a href="' + d.pdfData + '" download="' + (d.formName||'form').replace(/[^a-z0-9]/gi,'_') + '.pdf" ' +
+          'style="padding:6px 14px;background:#c96442;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;flex-shrink:0">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</a>';
+      }
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error loading: ' + e.message + '</p>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// End of Client File
+// ═══════════════════════════════════════════════════════════════════════════
+
 function icClientTab(tab) {
   document.getElementById('icp-info').style.display = tab === 'info' ? '' : 'none';
   document.getElementById('icp-records').style.display = tab === 'records' ? '' : 'none';
