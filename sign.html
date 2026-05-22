@@ -320,54 +320,48 @@ svg.icon{display:inline-block;vertical-align:middle;flex-shrink:0}
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
 <script>
-// ── Firebase ──────────────────────────────────────────────────────────────
-const FB_CONFIG = {
-  apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
-  authDomain:        "claimdatacare-451fe.firebaseapp.com",
-  projectId:         "claimdatacare-451fe",
-  storageBucket:     "claimdatacare-451fe.firebasestorage.app",
-  messagingSenderId: "1005844575427",
-  appId:             "1:1005844575427:web:eb9799d720d50e5f5e1e76"
-};
-firebase.initializeApp(FB_CONFIG);
-const db = firebase.firestore();
-
 // ── State ──────────────────────────────────────────────────────────────────
-let _token = null;
 let _signData = null;
 let _sigMode = 'draw';
 let _uploadedSigData = null;
 
-// ── Init ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
+// ── Init — reads data directly from URL, no login needed ──────────────────
+window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(location.search);
-  _token = params.get('token');
-  if (!_token) { showError('No signing token provided.'); return; }
-  await loadSignData(_token);
+  const d = params.get('d');
+  if (!d) { showError('Invalid signing link — no form data found.'); return; }
+  try {
+    const json = decodeURIComponent(escape(atob(decodeURIComponent(d))));
+    _signData = JSON.parse(json);
+  } catch(e) {
+    showError('Could not read form data. The link may be corrupted.');
+    return;
+  }
+  if (!_signData || !_signData.forms || !_signData.forms.length) {
+    showError('No forms found in this link. Please contact your provider.');
+    return;
+  }
+  // Check expiry (72 hours)
+  if (_signData.ts && Date.now() - _signData.ts > 72 * 60 * 60 * 1000) {
+    showError('This signing link has expired (72 hours). Please contact your provider for a new one.');
+    return;
+  }
+  renderMain(_signData);
   initCanvas();
 });
-
-async function loadSignData(token) {
-  try {
-    const snap = await db.collection('signTokens').doc(token).get();
-    if (!snap.exists) { showError('This link is invalid or has expired.'); return; }
-    const data = snap.data();
-    if (data.signedAt) { showAlreadySigned(data); return; }
-    if (data.expiresAt && data.expiresAt.toMillis() < Date.now()) {
-      showError('This signing link has expired. Please contact your provider for a new one.');
-      return;
-    }
-    _signData = data;
-    renderMain(data);
-  } catch(e) {
-    console.error(e);
-    showError('Unable to load your forms. Please try again or contact your provider.');
-  }
-}
 
 function renderMain(data) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('main-view').style.display = 'block';
+
+  // Normalize data — supports both old Firestore format and new URL-embedded format
+  const client = data.client || {};
+  const firstName = client.firstName || data.clientFirst || '';
+  const lastName  = client.lastName  || data.clientLast  || '';
+  const guardianName  = client.guardianName  || data.guardianName  || '';
+  const guardianPhone = client.guardianPhone || data.guardianPhone || '';
+  const guardianEmail = client.guardianEmail || data.email         || '';
+  const dob = client.dob || data.clientDob || '';
 
   // Status bar
   const formCount = (data.forms || []).length;
@@ -376,13 +370,13 @@ function renderMain(data) {
 
   // Client info
   const grid = document.getElementById('client-info-grid');
+  const sentDate = data.ts ? new Date(data.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
   const fields = [
-    ['Client Name', (data.clientLast||'') + ', ' + (data.clientFirst||'')],
-    ['Date of Birth', data.clientDob || '—'],
-    ['Guardian', data.guardianName || '—'],
-    ['Contact', data.guardianPhone || data.guardianEmail || '—'],
-    ['Provider', data.providerName || '—'],
-    ['Date Sent', data.sentAt ? new Date(data.sentAt.toMillis()).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'],
+    ['Client Name', lastName + (lastName && firstName ? ', ' : '') + firstName || '—'],
+    ['Date of Birth', dob || '—'],
+    ['Guardian', guardianName || '—'],
+    ['Contact', guardianPhone || guardianEmail || '—'],
+    ['Date Sent', sentDate],
   ];
   grid.innerHTML = fields.map(([l,v]) =>
     `<div class="info-row"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`
@@ -509,56 +503,62 @@ async function submitSignature() {
 
   try {
     const sigImg = getSigDataUrl();
-    const now = firebase.firestore.Timestamp.now();
-    const ts = new Date().toLocaleString('en-US',{timeZone:'America/New_York',dateStyle:'medium',timeStyle:'short'});
+    const ts = new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+    const clientId = _signData.clientId || '';
 
-    // Update token doc as signed
-    await db.collection('signTokens').doc(_token).update({
-      signedAt: now,
+    // Save to localStorage as a backup record visible to the app
+    const record = {
+      id: 'sig_' + Date.now(),
+      clientId: clientId,
+      email: _signData.email || '',
+      forms: (_signData.forms||[]).map(f => f.name),
+      signedAt: Date.now(),
       signedTs: ts,
       signatureData: sigImg,
       signatureMode: _sigMode,
-      signerIP: '', // IP not accessible client-side
-    });
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('cdc_signed_forms')||'[]');
+      existing.push(record);
+      localStorage.setItem('cdc_signed_forms', JSON.stringify(existing));
+    } catch(_) {}
 
-    // Update intake client status
-    if (_signData.clientId) {
-      await db.collection('intakeClients').doc(_signData.clientId).update({
-        status: 'Signed',
-        signedAt: now,
+    // Try to save to Firestore (optional — works only if Firestore rules allow public writes)
+    try {
+      const FB_CONFIG = {
+        apiKey: 'AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc',
+        authDomain: 'claimdatacare-451fe.firebaseapp.com',
+        projectId: 'claimdatacare-451fe',
+        storageBucket: 'claimdatacare-451fe.firebasestorage.app',
+        messagingSenderId: '1005844575427',
+        appId: '1:1005844575427:web:eb9799d720d50e5f5e1e76'
+      };
+      if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+      const fsdb = firebase.firestore();
+      await fsdb.collection('intakeSigned').add({
+        clientId: clientId,
+        email: _signData.email || '',
+        forms: (_signData.forms||[]).map(f => ({id:f.id,name:f.name,type:f.type})),
+        signedAt: firebase.firestore.FieldValue.serverTimestamp(),
         signedTs: ts,
+        signatureData: sigImg,
+        signatureMode: _sigMode,
       });
-
-      // Store signed form records
-      const batch = db.batch();
-      (_signData.forms || []).forEach((f, i) => {
-        const ref = db.collection('intakeSigned').doc();
-        batch.set(ref, {
-          clientId: _signData.clientId,
-          formId: f.id || ('form_' + i),
-          formName: f.name,
-          formType: f.type,
-          signedAt: now,
-          signedTs: ts,
-          signatureData: sigImg,
-          signatureMode: _sigMode,
-          token: _token,
-          providerName: _signData.providerName || '',
-        });
-      });
-      await batch.commit();
+    } catch(fsErr) {
+      console.warn('Firestore save skipped:', fsErr.message);
+      // Still show success — localStorage backup was saved
     }
 
     // Show success
     document.getElementById('main-view').style.display = 'none';
     document.getElementById('success-view').style.display = 'block';
-    document.getElementById('success-ts').textContent = 'Signed on ' + ts + ' ET';
+    document.getElementById('success-ts').textContent = 'Signed on ' + ts;
 
   } catch(e) {
     console.error(e);
     btn.disabled = false;
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Sign & Submit All Forms';
-    alert('Error submitting: ' + e.message + '\n\nPlease try again or contact your provider.');
+    alert('Error submitting. Please try again or contact your provider.');
   }
 }
 

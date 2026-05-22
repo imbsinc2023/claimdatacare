@@ -264,17 +264,26 @@ function icSendIntakeForms() {
   var token = btoa(c.id + '|' + email + '|' + Date.now() + '|' + Math.random().toString(36).slice(2)).replace(/[+/=]/g, function(ch){
     return ch === '+' ? '-' : ch === '/' ? '_' : '';
   });
-  var baseUrl = window.location.origin + window.location.pathname;
-  var idata = encodeURIComponent(btoa(JSON.stringify({
-    firstName: c.firstName||'', lastName: c.lastName||'', dob: c.dob||'', gender: c.gender||'',
-    guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||'',
-    guardianEmail: c.guardianEmail||'', address: c.address||'', city: c.city||'',
-    emergName: c.emergName||'', emergPhone: c.emergPhone||'', emergRel: c.emergRel||'',
-    insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||'', insuranceGroup: c.insuranceGroup||'',
-    referralSource: c.referralSource||'', pcp: c.pcp||'', school: c.school||'', grade: c.grade||'',
-    abaProvider: c.abaProvider||'', diagnoses: c.diagnoses||'', custody: c.custody||'', language: c.language||''
-  })));
-  var intakeLink = baseUrl + '?intake=' + token + '&idata=' + idata;
+
+  // Build sign.html link — all data embedded, no login needed
+  var signPayload = {
+    token: token,
+    ts: Date.now(),
+    clientId: c.id,
+    email: email,
+    client: {
+      firstName: c.firstName||'', lastName: c.lastName||'', dob: c.dob||'', gender: c.gender||'',
+      guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||'',
+      guardianEmail: email, address: c.address||'', city: c.city||'',
+      insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||''
+    },
+    forms: selectedIndices.map(function(fi){
+      var f = (db.intakeForms||[])[fi]||{};
+      return { id: f.id||('f'+fi), name: f.name||'Consent Form', type: f.type||'Consent', content: f.content||f.body||'' };
+    })
+  };
+  var signPayloadB64 = btoa(unescape(encodeURIComponent(JSON.stringify(signPayload))));
+  var intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(signPayloadB64);
 
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
