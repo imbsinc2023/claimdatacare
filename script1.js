@@ -791,18 +791,25 @@ function renderPatients(){
   });
   var rows = pageList.map(function(p) {
     var cnt = _claimCount[p.id] || 0;
+    var bg = p.sex==='F'?'#c96442':p.sex==='M'?'#2d6a4f':'#4d4c48';
+    var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
+    var isSA = (function(){ var s=getSession(); return s && s.role==='Super Admin'; })();
     return '<tr>'
-      + '<td>' + ptLinkAcct(p.id, p.acct) + '</td>'
-      + '<td>' + ptLinkName(p.id, p.last, p.first) + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.dob||'') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.subNum||'') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.payerid||'') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.payerName||'') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.plan||'\u2014') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2)">' + (p.rel||'') + '</td>'
-      + '<td style="font-size:12px;color:var(--text2);text-align:center">' + cnt + '</td>'
-      + '<td><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
-      + ((function(){ var _s=getSession(); return _s && _s.role==='Super Admin'; })() ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
+      + '<td style="font-family:var(--mono);font-size:11px;color:#87867f">' + ptLinkAcct(p.id, p.acct) + '</td>'
+      + '<td><div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>'
+      + ptLinkName(p.id, p.last, p.first)
+      + '</div></td>'
+      + '<td>' + (p.dob||'') + '</td>'
+      + '<td>' + (p.subNum||'') + '</td>'
+      + '<td>' + (p.payerid||'') + '</td>'
+      + '<td>' + (p.payerName||'') + '</td>'
+      + '<td>' + (p.plan||'\u2014') + '</td>'
+      + '<td>' + (p.rel||'') + '</td>'
+      + '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#fdf3ee':'#f8f6f0')+';color:'+(cnt>0?'#c96442':'#87867f')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'
+      + '<td><div style="display:flex;gap:4px;align-items:center">'
+      + '<button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
+      + (isSA ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
       + '</div></td>'
       + '</tr>';
   }).join('');
