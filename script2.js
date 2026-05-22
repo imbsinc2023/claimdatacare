@@ -707,23 +707,40 @@ function icSendIntakeForms() {
     })
   };
 
-  // Embed full payload in URL — no Firestore needed, no login required
-  // Remove logo from URL payload to keep URL size manageable
-  var urlPayload = JSON.parse(JSON.stringify(fullPayload));
-  delete urlPayload.provider.logo;
-  var intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(urlPayload)))));
-
-  // Also save to Firestore as backup record (non-blocking, optional)
-  if (typeof _db !== 'undefined' && _db) {
-    try {
-      _db.collection('signTokens').doc(token).set(Object.assign({}, fullPayload, {
-        expiresAt: new Date(Date.now() + 72*60*60*1000),
-        signedAt: null
-      }));
-    } catch(fsErr) {
-      console.warn('Firestore token save skipped:', fsErr);
-    }
+  // Compress payload for URL embedding — strip HTML tags from form content
+  // keeping only plain text (reduces payload 60-80%)
+  function _stripHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return (tmp.innerText || tmp.textContent || '').replace(/\s+/g,' ').trim();
   }
+  var urlPayload = {
+    token: token,
+    ts: fullPayload.ts,
+    clientId: fullPayload.clientId,
+    email: fullPayload.email,
+    client: fullPayload.client,
+    provider: {
+      name: fullPayload.provider.name || '',
+      addr1: fullPayload.provider.addr1 || '',
+      city: fullPayload.provider.city || '',
+      state: fullPayload.provider.state || '',
+      phone: fullPayload.provider.phone || '',
+      npi: fullPayload.provider.npi || ''
+      // logo excluded from URL — too large
+    },
+    forms: fullPayload.forms.map(function(f) {
+      return {
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        content: _stripHtml(f.content) // plain text only — removes all HTML tags
+      };
+    })
+  };
+  var jsonStr = JSON.stringify(urlPayload);
+  var intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+  console.log('[CDC] sign link chars:', intakeLink.length, '| payload chars:', jsonStr.length);
 
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');

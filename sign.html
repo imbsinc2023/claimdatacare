@@ -300,49 +300,20 @@ let _uploadedSig=null;
 let _canvasReady=false;
 
 // ── Init ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',async()=>{
+window.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(location.search);
-  const token=params.get('token');
   const d=params.get('d');
-
-  if(token){
-    // Load from Firestore by token
-    try{
-      if(!firebase.apps.length)firebase.initializeApp(FB_CONFIG);
-      _fsdb=firebase.firestore();
-      const snap=await _fsdb.collection('signTokens').doc(token).get();
-      if(!snap.exists){showError('This signing link is invalid or has expired.');return;}
-      _data=snap.data();
-      if(_data.signedAt){
-        document.getElementById('view-loading').style.display='none';
-        document.getElementById('view-success').style.display='block';
-        document.getElementById('success-msg').textContent='These forms have already been signed. Thank you!';
-        return;
-      }
-      if(_data.expiresAt&&(_data.expiresAt.toMillis?_data.expiresAt.toMillis():new Date(_data.expiresAt).getTime())<Date.now()){
-        showError('This signing link has expired (72 hours). Please contact your provider for a new one.');return;
-      }
-    }catch(e){
-      showError('Unable to load your forms: '+e.message+'. Please contact your provider.');return;
-    }
-  } else if(d){
-    // Load from URL parameter (fallback)
-    try{
-      _data=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(d)))));
-    }catch(e){showError('Could not read form data. The link may be corrupted.');return;}
-    if(_data.ts&&Date.now()-_data.ts>72*60*60*1000){showError('This link has expired (72 hours). Please contact your provider.');return;}
-  } else {
-    showError('Invalid signing link — no form data found.');return;
-  }
-
+  if(!d){showError('Invalid signing link. Please contact your provider for a new one.');return;}
+  try{
+    const json=decodeURIComponent(escape(atob(decodeURIComponent(d))));
+    _data=JSON.parse(json);
+  }catch(e){showError('Could not read form data. The link may be corrupted — please contact your provider.');return;}
   if(!_data||!(_data.forms||[]).length){showError('No forms found in this link. Please contact your provider.');return;}
+  if(_data.ts&&Date.now()-_data.ts>72*60*60*1000){showError('This signing link has expired (72 hours). Please contact your provider for a new one.');return;}
+
   _sigs=new Array(_data.forms.length).fill(null);
-  // Update topbar with provider name
-  var pName = (_data.provider||{}).name||'';
-  if (pName) {
-    var tb = document.getElementById('topbar-provider-name');
-    if (tb) tb.textContent = pName;
-  }
+  const pName=(_data.provider||{}).name||'';
+  if(pName){const tb=document.getElementById('topbar-provider-name');if(tb)tb.textContent=pName;}
   buildProgress();
   buildIntro();
   showStep(0);
