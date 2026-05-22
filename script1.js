@@ -801,9 +801,9 @@ function renderPatients(){
       + '<td style="font-size:12px;color:var(--text2)">' + (p.plan||'\u2014') + '</td>'
       + '<td style="font-size:12px;color:var(--text2)">' + (p.rel||'') + '</td>'
       + '<td style="font-size:12px;color:var(--text2);text-align:center">' + cnt + '</td>'
-      + '<td style="display:flex;gap:4px;align-items:center"><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
-      + (_currentUser && _currentUser.role === 'Super Admin' ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
-      + '</td>'
+      + '<td><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
+      + ((function(){ var _s=getSession(); return _s && _s.role==='Super Admin'; })() ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
+      + '</div></td>'
       + '</tr>';
   }).join('');
 
