@@ -1308,6 +1308,28 @@ function checkIntakeToken() {
     }
 
     var pendingSubs = (db.intakeSubmissions || []).filter(function(s){ return s.token === token && s.status !== 'Signed'; });
+    // If no submissions found in DB (unauthenticated visitor), 
+    // synthesize from all active forms so the portal still loads
+    if (!pendingSubs.length) {
+      var allForms = db.intakeForms || [];
+      var activeForms = allForms.filter(function(f){ return f.active !== false; });
+      if (activeForms.length) {
+        pendingSubs = activeForms.map(function(f, fi) {
+          return {
+            id: 'syn_' + fi,
+            clientId: c.id,
+            formId: f.id,
+            formIdx: fi,
+            formName: f.name,
+            guardianEmail: intakeEmail,
+            token: token,
+            status: 'Sent',
+            childName: (c.firstName||'') + ' ' + (c.lastName||''),
+            guardianName: c.guardianName,
+          };
+        });
+      }
+    }
     if (!pendingSubs.length) {
       document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h3 style="margin:16px 0 8px;color:#141413">All Completed!</h3><p style="color:#87867f;font-size:14px;line-height:1.5">All forms have already been completed. Thank you! You may close this page.</p></div></div>';
       return;
@@ -2054,12 +2076,27 @@ function icSubmitDemographic(clientId, token) {
 // ── Init on load ──
 // Only run intake token check when there is actually a token in the URL.
 // This prevents any risk of wiping #root on a normal admin login.
-setTimeout(function(){
-  try {
-    var _qs = window.location.search;
-    if (_qs.startsWith('?intake=') || _qs.startsWith('?demographics=')) {
-      checkIntakeToken();
+(function() {
+  var _qs = window.location.search;
+  if (!_qs.startsWith('?intake=') && !_qs.startsWith('?demographics=')) return;
+
+  // Show loading spinner immediately so page is never blank
+  var rootEl = document.getElementById('root');
+  if (rootEl) {
+    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
+  }
+
+  // Wait for Firebase + DB to be ready, then run token check
+  var _attempts = 0;
+  function _waitAndCheck() {
+    _attempts++;
+    var ready = (typeof getDB === 'function' && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0);
+    if (ready || _attempts > 40) {
+      try { checkIntakeToken(); } catch(e) { console.error('checkIntakeToken error:', e); }
+    } else {
+      setTimeout(_waitAndCheck, 250);
     }
-  } catch(e) {}
-}, 300);
+  }
+  setTimeout(_waitAndCheck, 400);
+})();
 

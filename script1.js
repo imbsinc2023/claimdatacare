@@ -393,7 +393,13 @@ function _injectMissingModals() {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
     '<span class="slabel" style="margin:0"><i data-lucide="users" class="lci"></i> Patients</span>' +
     '<button class="btn btn-sm" onclick="openSGPatientModal()">+ Add Patient</button></div>' +
-    '<div id="sg-patients-list"></div></div>' +
+    '<div id="sg-patients"></div>' +
+    '<!-- Inline patient search -->'+
+    '<div style="position:relative;margin-top:8px">'+
+    '<input id="sg-pat-search" placeholder="Search patients to add..." oninput="renderSGPatients()"'+
+    ' style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">'+
+    '<div id="sg-pat-results" style="display:none;position:absolute;z-index:99;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto"></div>'+
+    '</div></div>' +
     '<div class="modal-ftr" style="flex-shrink:0">' +
     '<button class="btn" onclick="closeModal(\'modal-sg\')">Cancel</button>' +
     '<button class="btn btn-primary" onclick="saveSG()"><i data-lucide="save" class="lci"></i> Save Group</button>' +
@@ -5676,23 +5682,31 @@ el.innerHTML = '<p style="font-size:12px;color:var(--text3);padding:4px 0">No pa
 } else {
 el.innerHTML = _sgForm.patients.map((asgn,i) => {
 const pat = pats.find(p => p.id === asgn.patientId) || {};
-return `<div style="background:var(--bg3);border-radius:var(--r);padding:10px;margin-bottom:8px">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-${ptLinkName(pat.id,pat.last||'?',pat.first||'?')} <span class="acct" style="font-size:11px">${pat.acct||''}</span></span>
-<button class="btn btn-xs btn-danger" onclick="_sgForm.patients.splice(${i},1);renderSGPatients()"><i data-lucide="x" class="lci"></i> Remove</button>
+return `<div style="background:#ffffff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:32px;height:32px;border-radius:50%;background:${pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48'};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      ${((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase()}
+    </div>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:var(--text)">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
+      <div style="font-size:11px;color:var(--text3)">File #${pat.acct||''} &nbsp;·&nbsp; DOB: ${pat.dob||'—'}</div>
+    </div>
+  </div>
+  <button class="btn btn-xs btn-danger" onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" style="flex-shrink:0"><i data-lucide="x" class="lci" style="width:11px;height:11px"></i> Remove</button>
 </div>
-<div class="fg g2">
-<div class="field"><label style="font-size:11px">ICD-10 Dx <span class="req">*</span></label>
-<input style="font-size:12px" value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5, Z96.641"></div>
-<div class="field"><label style="font-size:11px">Auth #</label>
-<input style="font-size:12px" value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional"></div>
-<div class="field"><label style="font-size:11px">Referring</label>
-<select style="font-size:12px" onchange="_sgForm.patients[${i}].referringId=this.value">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">ICD-10 Dx *</label>
+<input style="font-size:12px;padding:6px 8px" value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5, Z96.641"></div>
+<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Auth #</label>
+<input style="font-size:12px;padding:6px 8px" value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional"></div>
+<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Referring</label>
+<select style="font-size:12px;padding:6px 8px" onchange="_sgForm.patients[${i}].referringId=this.value">
 <option value="">— None —</option>
 ${refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('')}
 </select></div>
-<div class="field"><label style="font-size:11px">Facility Override</label>
-<select style="font-size:12px" onchange="_sgForm.patients[${i}].facilityId=this.value">
+<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Facility Override</label>
+<select style="font-size:12px;padding:6px 8px" onchange="_sgForm.patients[${i}].facilityId=this.value">
 <option value="">— Use group default —</option>
 ${facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('')}
 </select></div>
