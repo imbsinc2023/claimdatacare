@@ -5677,42 +5677,73 @@ const pats = db.patients.filter(p => p.providerId === activeProviderId);
 const refs = db.referring.filter(r => r.providerId === activeProviderId);
 const facs = db.facilities.filter(f => f.providerId === activeProviderId);
 
-if (!_sgForm.patients || !_sgForm.patients.length) {
-el.innerHTML = '<p style="font-size:12px;color:var(--text3);padding:4px 0">No patients assigned. Search below to add.</p>';
-} else {
-el.innerHTML = _sgForm.patients.map((asgn,i) => {
+// Helper: add-patient button (icon-only with tooltip)
+const _addBtn = (insertIdx) => `<div style="display:flex;justify-content:center;margin:4px 0">
+  <div style="position:relative;display:inline-flex" title="Add patient here">
+    <button onclick="_sgInsertPatient(${insertIdx})" title="Add patient here"
+      style="width:24px;height:24px;border-radius:50%;border:1.5px dashed #c96442;background:#fdf3ee;color:#c96442;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;font-size:14px;line-height:1"
+      onmouseover="this.style.background='#c96442';this.style.color='#fff'" onmouseout="this.style.background='#fdf3ee';this.style.color='#c96442'">
+      <i data-lucide="plus" class="lci" style="width:12px;height:12px;pointer-events:none"></i>
+    </button>
+  </div>
+</div>`;
+
+const cards = _sgForm.patients.map((asgn,i) => {
 const pat = pats.find(p => p.id === asgn.patientId) || {};
-return `<div style="background:#ffffff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-  <div style="display:flex;align-items:center;gap:8px">
-    <div style="width:32px;height:32px;border-radius:50%;background:${pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48'};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-      ${((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase()}
+const bg = pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48';
+const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
+const refOpts = refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
+const facOpts = facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('');
+// Field style helper
+const fld = 'display:flex;flex-direction:column;gap:2px;min-width:0';
+const lbl = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#87867f;white-space:nowrap';
+const inp = 'padding:5px 8px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;background:#fff;color:#141413;width:100%;box-sizing:border-box;min-width:0';
+return `${_addBtn(i)}
+<div style="background:#ffffff;border:1px solid #e4e1d8;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+  <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
+    <div style="width:28px;height:28px;border-radius:50%;background:${bg};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
+      <div style="font-size:10px;color:#87867f">File #${pat.acct||''} · ${pat.dob||'—'} · ${pat.sex||''}</div>
     </div>
-    <div>
-      <div style="font-weight:700;font-size:13px;color:var(--text)">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
-      <div style="font-size:11px;color:var(--text3)">File #${pat.acct||''} &nbsp;·&nbsp; DOB: ${pat.dob||'—'}</div>
+    <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove patient"
+      style="width:22px;height:22px;border-radius:50%;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s"
+      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
+      <i data-lucide="x" class="lci" style="width:10px;height:10px;pointer-events:none"></i>
+    </button>
+  </div>
+  <div style="padding:8px 10px;display:grid;grid-template-columns:2fr 1fr 1.5fr 1.5fr;gap:6px">
+    <div style="${fld}"><label style="${lbl}">ICD-10 Dx *</label>
+      <input value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5" style="${inp};font-family:var(--mono,'monospace')"></div>
+    <div style="${fld}"><label style="${lbl}">Auth #</label>
+      <input value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional" style="${inp}"></div>
+    <div style="${fld}"><label style="${lbl}">Referring</label>
+      <select onchange="_sgForm.patients[${i}].referringId=this.value" style="${inp};cursor:pointer"><option value="">— None —</option>${refOpts}</select></div>
+    <div style="${fld}"><label style="${lbl}">Facility</label>
+      <select onchange="_sgForm.patients[${i}].facilityId=this.value" style="${inp};cursor:pointer"><option value="">— Group default —</option>${facOpts}</select></div>
+    <div style="${fld};grid-column:1/-1;margin-top:2px;padding-top:6px;border-top:1px solid #f0ede5">
+      <label style="${lbl}">📅 Date Override <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c9c7c0">(leave blank to use group dates)</span></label>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
+        <input type="date" value="${asgn.dosFrom||''}" oninput="_sgForm.patients[${i}].dosFrom=this.value"
+          style="${inp};width:auto;flex:1" title="Date from">
+        <span style="font-size:11px;color:#87867f;flex-shrink:0">to</span>
+        <input type="date" value="${asgn.dosTo||''}" oninput="_sgForm.patients[${i}].dosTo=this.value"
+          style="${inp};width:auto;flex:1" title="Date to">
+      </div>
     </div>
   </div>
-  <button class="btn btn-xs btn-danger" onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" style="flex-shrink:0"><i data-lucide="x" class="lci" style="width:11px;height:11px"></i> Remove</button>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">ICD-10 Dx *</label>
-<input style="font-size:12px;padding:6px 8px" value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5, Z96.641"></div>
-<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Auth #</label>
-<input style="font-size:12px;padding:6px 8px" value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional"></div>
-<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Referring</label>
-<select style="font-size:12px;padding:6px 8px" onchange="_sgForm.patients[${i}].referringId=this.value">
-<option value="">— None —</option>
-${refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('')}
-</select></div>
-<div class="field" style="margin:0"><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Facility Override</label>
-<select style="font-size:12px;padding:6px 8px" onchange="_sgForm.patients[${i}].facilityId=this.value">
-<option value="">— Use group default —</option>
-${facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('')}
-</select></div>
-</div>
 </div>`;
 }).join('');
+
+el.innerHTML = (!_sgForm.patients||!_sgForm.patients.length)
+  ? '<p style="font-size:12px;color:var(--text3);padding:4px 0;text-align:center">No patients assigned. Use the search below to add.</p>'
+  : cards + _addBtn(_sgForm.patients.length);
+}
+
+function _sgInsertPatient(atIdx) {
+// Focus the search field and store the insert position
+const sq = document.getElementById('sg-pat-search');
+if (sq) { sq.dataset.insertIdx = atIdx; sq.focus(); sq.select(); }
 }
 
 // Inline search results
@@ -5739,15 +5770,22 @@ function addSGPatientInline(patientId) {
 if (!_sgForm) return;
 if (!_sgForm.patients) _sgForm.patients = [];
 if (_sgForm.patients.find(a => a.patientId === patientId)) {
-toast('Patient already in this group','warn'); return;
+  toast('Patient already in this group','warn'); return;
 }
-_sgForm.patients.push({ id: uid(), patientId, auth: '', referringId: '', facilityId: '', dx: '' });
 const sq = document.getElementById('sg-pat-search');
-if (sq) sq.value = '';
+const insertIdx = sq && sq.dataset.insertIdx !== undefined ? parseInt(sq.dataset.insertIdx) : _sgForm.patients.length;
+const newPat = { id: uid(), patientId, auth: '', referringId: '', facilityId: '', dx: '', dosFrom: '', dosTo: '' };
+if (!isNaN(insertIdx) && insertIdx < _sgForm.patients.length) {
+  _sgForm.patients.splice(insertIdx, 0, newPat);
+} else {
+  _sgForm.patients.push(newPat);
+}
+if (sq) { sq.value = ''; delete sq.dataset.insertIdx; }
 const resEl = document.getElementById('sg-pat-results');
 if (resEl) resEl.style.display = 'none';
 renderSGPatients();
-toast('Patient added — enter diagnosis below');
+lucide.createIcons();
+toast('Patient added — enter diagnosis');
 }
 
 function addSGPatient(patientId) {
