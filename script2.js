@@ -266,6 +266,11 @@ function icSendIntakeForms() {
   });
 
   // Build sign.html link — all data embedded, no login needed
+  // Get active provider info + logo for sign.html branding
+  var sess = typeof getSession === 'function' ? getSession() : {};
+  var provId = typeof activeProviderId !== 'undefined' ? activeProviderId : (sess.providerId||'');
+  var prov = (db.providers||[]).find(function(p){ return p.id===provId; }) || {};
+
   var signPayload = {
     token: token,
     ts: Date.now(),
@@ -276,6 +281,11 @@ function icSendIntakeForms() {
       guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||'',
       guardianEmail: email, address: c.address||'', city: c.city||'',
       insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||''
+    },
+    provider: {
+      name: prov.name||'', logo: prov.logo||'',
+      addr1: prov.addr1||'', city: prov.city||'', state: prov.state||'',
+      phone: prov.phone||'', npi: prov.npi||''
     },
     forms: selectedIndices.map(function(fi){
       var f = (db.intakeForms||[])[fi]||{};
