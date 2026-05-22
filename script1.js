@@ -396,7 +396,7 @@ function _injectMissingModals() {
     '<div id="sg-patients"></div>' +
     '<!-- Inline patient search -->'+
     '<div style="position:relative;margin-top:8px">'+
-    '<input id="sg-pat-search" placeholder="Search patients to add..." oninput="renderSGPatients()"'+
+    '<input id="sg-pat-search" placeholder="Search patients to add..." oninput="_sgUpdateSearch()"'+
     ' style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">'+
     '<div id="sg-pat-results" style="display:none;position:absolute;z-index:99;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto"></div>'+
     '</div></div>' +
@@ -5741,28 +5741,29 @@ el.innerHTML = (!_sgForm.patients||!_sgForm.patients.length)
 }
 
 function _sgInsertPatient(atIdx) {
-// Focus the search field and store the insert position
 const sq = document.getElementById('sg-pat-search');
 if (sq) { sq.dataset.insertIdx = atIdx; sq.focus(); sq.select(); }
 }
 
-// Inline search results
+function _sgUpdateSearch() {
+const db = getDB();
+const pats = db.patients.filter(p => p.providerId === activeProviderId);
 const sq = document.getElementById('sg-pat-search');
 const resEl = document.getElementById('sg-pat-results');
-if (!resEl) return;
+if (!resEl || !_sgForm) return;
 const q = (sq?.value||'').toLowerCase().trim();
 const assigned = (_sgForm.patients||[]).map(a => a.patientId);
 const matches = q.length > 0 ? pats.filter(p =>
-!assigned.includes(p.id) &&
-(p.last+' '+p.first+' '+p.acct).toLowerCase().includes(q)
+  !assigned.includes(p.id) &&
+  (p.last+' '+p.first+' '+p.acct).toLowerCase().includes(q)
 ).slice(0, 8) : [];
 resEl.style.display = matches.length > 0 ? '' : 'none';
 resEl.innerHTML = matches.map(p =>
-`<div class="cpt-item" style="cursor:pointer" onclick="addSGPatientInline('${p.id}')">
-${ptLinkAcct(p.id,p.acct)}
-<span class="cpt-name">${p.last}, ${p.first}</span>
-<span style="font-size:11px;color:var(--text3);margin-left:auto">${p.dob||''}</span>
-</div>`
+  `<div class="cpt-item" style="cursor:pointer" onclick="addSGPatientInline('${p.id}')">
+  ${ptLinkAcct(p.id,p.acct)}
+  <span class="cpt-name">${p.last}, ${p.first}</span>
+  <span style="font-size:11px;color:var(--text3);margin-left:auto">${p.dob||''}</span>
+  </div>`
 ).join('');
 }
 
