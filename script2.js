@@ -424,41 +424,153 @@ function _buildICRecordsTab(c, db, main) {
   _loadICRecords();
 }
 
+// Icon-only action button with tooltip
+function _icRecBtn(title, svgPath, onclick, style) {
+  return '<button title="'+title+'" onclick="'+onclick+'" class="icoBtn" style="'+(style||'')+'">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none">'+svgPath+'</svg>' +
+    '</button>';
+}
+
+// Preview PDF in a floating overlay
+function _icPreviewPDF(docId) {
+  var existing = document.getElementById('ic-pdf-preview-overlay');
+  if (existing) existing.remove();
+  // Find the doc data from stored map
+  var pdfData = window._icPdfDataMap && window._icPdfDataMap[docId];
+  if (!pdfData) { toast('No PDF available for preview','warn'); return; }
+  var overlay = document.createElement('div');
+  overlay.id = 'ic-pdf-preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center';
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;overflow:hidden;width:90%;max-width:860px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)';
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f8f6f0;border-bottom:1px solid #e4e1d8;flex-shrink:0';
+  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:#141413">Document Preview</span><div style="display:flex;gap:6px" id="ic-preview-actions"></div>';
+
+  var ifr = document.createElement('iframe');
+  ifr.src = pdfData; ifr.style.cssText = 'flex:1;border:none;width:100%';
+
+  modal.appendChild(hdr); modal.appendChild(ifr);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  var actions = document.getElementById('ic-preview-actions');
+  var bPrint = document.createElement('button');
+  bPrint.className = 'icoBtn'; bPrint.title = 'Print';
+  bPrint.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+  bPrint.addEventListener('click', function(){ _icPrintPDF(docId); });
+
+  var bClose = document.createElement('button');
+  bClose.className = 'icoBtn icoBtn--danger'; bClose.title = 'Close';
+  bClose.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  bClose.addEventListener('click', function(){ overlay.remove(); });
+
+  actions.appendChild(bPrint); actions.appendChild(bClose);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+}
+
+function _icPrintPDF(docId) {
+  var pdfData = window._icPdfDataMap && window._icPdfDataMap[docId];
+  if (!pdfData) return;
+  var iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = pdfData;
+  document.body.appendChild(iframe);
+  iframe.onload = function() { iframe.contentWindow.print(); setTimeout(function(){ document.body.removeChild(iframe); }, 2000); };
+}
+
+async function _icDeleteRecord(docId) {
+  if (!confirm('Delete this signed document? This cannot be undone.')) return;
+  try {
+    await _db.collection('intakeSigned').doc(docId).delete();
+    toast('Document deleted');
+    _loadICRecords();
+  } catch(e) {
+    toast('Error deleting: '+e.message,'err');
+  }
+}
+
 async function _loadICRecords() {
   var el = document.getElementById('ic-records-body');
   if (!el) return;
   var db2 = getDB();
   var client = (db2.intakeClients || [])[_icChartClientIdx];
   if (!client) { el.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:24px">Save the client first.</p>'; return; }
-  el.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading from Firestore...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading...</div>';
   try {
     if (!_db) throw new Error('Not connected');
     var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
     if (snap.empty) {
-      el.innerHTML = '<div style="text-align:center;padding:40px;color:#87867f"><div style="font-size:32px;margin-bottom:12px">📄</div><div style="font-size:14px;font-weight:600">No signed forms yet</div><div style="font-size:12px;margin-top:6px">Signed consent documents will appear here</div></div>';
+      el.innerHTML = '<div style="text-align:center;padding:40px;color:#87867f">' +
+        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e4e1d8" stroke-width="1.5" style="display:block;margin:0 auto 12px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>' +
+        '<div style="font-size:14px;font-weight:600;color:#4d4c48">No signed forms yet</div>' +
+        '<div style="font-size:12px;margin-top:4px;color:#87867f">Signed consent documents will appear here after the guardian signs</div></div>';
       return;
     }
-    var html = '';
-    snap.forEach(function(doc) {
-      var d = doc.data();
+    // Store pdf data in a map keyed by doc id for preview/print
+    window._icPdfDataMap = window._icPdfDataMap || {};
+    var rows = '';
+    snap.forEach(function(docSnap) {
+      var d = docSnap.data();
+      var docId = docSnap.id;
       var ts = d.signedTs || '';
-      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f8f6f0;border-radius:10px;margin-bottom:8px;border:1px solid #e4e1d8">' +
-        '<div style="width:40px;height:40px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
+      var fname = (d.formName||'Consent Form');
+      var ftype = (d.formType||d.type||'');
+      if (d.pdfData) window._icPdfDataMap[docId] = d.pdfData;
+      var hasPdf = !!d.pdfData;
+      // SVG paths for buttons
+      var svgDownload = '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>';
+      var svgEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      var svgPrint = '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>';
+      var svgTrash = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>';
+      rows +=
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f4f2ec">' +
+        // Icon
+        '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+        '</div>' +
+        // Info
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:700;color:#141413">' + (d.formName||'Consent Form') + '</div>' +
-        '<div style="font-size:10px;color:#87867f;margin-top:2px">Signed: ' + ts + ' &nbsp;·&nbsp; Mode: ' + (d.signatureMode||'') + '</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+fname+'</div>' +
+        '<div style="font-size:10px;color:#87867f;margin-top:2px">' +
+        (ftype?'<span style="background:#f4f2ec;border-radius:4px;padding:1px 5px;margin-right:6px;font-weight:600">'+ftype+'</span>':'')+
+        'Signed: '+ts+
+        '</div>' +
+        '</div>' +
+        // Action buttons with data attributes — wired via addEventListener below
+        '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0" data-rowid="'+docId+'">' +
+        (hasPdf ? '<button class="icoBtn" title="Preview" data-action="preview" data-docid="'+docId+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '') +
+        (hasPdf ? '<button class="icoBtn" title="Print" data-action="print" data-docid="'+docId+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' : '') +
+        (hasPdf ? '<button class="icoBtn" title="Download PDF" data-action="download" data-docid="'+docId+'" data-pdf="1" data-fname="'+(fname).replace(/[^a-z0-9]/gi,'_')+'.pdf"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>' : '') +
+        '<button class="icoBtn" title="Delete" data-action="delete" data-docid="'+docId+'" style="color:#dc2626;border-color:#fca5a5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>' +
+        '</div>' +
         '</div>';
-      if (d.pdfData) {
-        html += '<a href="' + d.pdfData + '" download="' + (d.formName||'form').replace(/[^a-z0-9]/gi,'_') + '.pdf" ' +
-          'style="padding:6px 14px;background:#c96442;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;flex-shrink:0">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</a>';
-      }
-      html += '</div>';
     });
-    el.innerHTML = html;
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'background:#fff;border-radius:10px;overflow:hidden';
+    wrapper.innerHTML = rows;
+    el.innerHTML = '';
+    el.appendChild(wrapper);
+    // Wire all action buttons
+    wrapper.querySelectorAll('[data-action]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var action = btn.dataset.action;
+        var docId = btn.dataset.docid;
+        if (action === 'preview') _icPreviewPDF(docId);
+        else if (action === 'print') _icPrintPDF(docId);
+        else if (action === 'delete') _icDeleteRecord(docId);
+        else if (action === 'download') {
+          var pdf = window._icPdfDataMap && window._icPdfDataMap[docId];
+          if (!pdf) return;
+          var a = document.createElement('a');
+          a.href = pdf; a.download = btn.dataset.fname || 'document.pdf'; a.click();
+        }
+      });
+    });
   } catch(e) {
-    el.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error loading: ' + e.message + '</p>';
+    el.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + e.message + '</p>';
   }
 }
 
