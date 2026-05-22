@@ -259,7 +259,7 @@ function _buildICChartShell(c, db) {
     '<span class="ptc-banner-meta-item">' + (c.gender||'') + '</span>' +
     '<span class="ptc-banner-sep">|</span>' +
     '<div class="ptc-tabs-inline">' + tabsHTML + '</div>' +
-    '<button class="ptc-banner-close" onclick="document.getElementById('ic-chart-overlay').remove()" title="Close">&times;</button>' +
+    '<button class="ptc-banner-close" onclick="document.getElementById(&quot;ic-chart-overlay&quot;).remove()" title="Close">&times;</button>' +
     '</div>' +
     '<div style="flex:1;overflow-y:auto;padding:14px 16px;background:#f4f2ec" id="ic-main"></div>';
 }
@@ -398,7 +398,7 @@ function _buildICCoverageTab(c, db) {
   var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#87867f;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#141413;font-weight:600">'+(v||'—')+'</span></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Primary Insurance' +
-    '<button class="btn btn-sm" onclick="_renderICTab('demographics')">Edit</button></div>' +
+    '<button class="btn btn-sm" onclick="_renderICTab(&quot;demographics&quot;)">Edit</button></div>' +
     '<div class="ptc-panel-body">' +
     R('Provider', c.insuranceProvider) + R('Member ID', c.insuranceId) + R('Group #', c.insuranceGroup) +
     '</div></div>';
