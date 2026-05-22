@@ -5618,46 +5618,38 @@ function renderSGLines() {
 const el = document.getElementById('sg-lines');
 if (!_sgForm) return;
 if (!_sgForm.lines.length) {
-el.innerHTML = '<p style="font-size:12px;color:var(--text3)">No lines. Add a CPT line below.</p>';
-return;
+  el.innerHTML = '<p style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">No CPT lines yet — click Add Line or From Catalog.</p>';
+  return;
 }
+const S = 'padding:4px 7px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;font-family:var(--mono,monospace);background:#fff;color:#141413;width:100%;box-sizing:border-box';
+const L = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#87867f;margin-bottom:2px;display:block';
 el.innerHTML = _sgForm.lines.map((l,i) => {
-const pricePerUnit = parseFloat(l.pricePerUnit || l.charge || 0);
-const units = parseInt(l.units||1);
-const total = (pricePerUnit * units).toFixed(2);
-// Keep l.charge = total (what goes to CSV Box 24F * units)
-if (_sgForm.lines[i]) _sgForm.lines[i].charge = total;
-return `
-<div class="line-item">
-<div class="line-hdr"><span class="line-num">Line ${i+1}</span><button class="btn btn-danger btn-xs" onclick="_sgForm.lines.splice(${i},1);renderSGLines()">Remove</button></div>
-<div class="fg g4">
-${_sgForm.multiDate ? `<div class="field" style="grid-column:1/-1">
-<label style="color:var(--brand);font-weight:600;font-size:11px">Date of Service <span style="font-weight:400;color:var(--text3)">(this line)</span></label>
-<input type="date" class="mono" value="${l.dos||''}" oninput="_sgForm.lines[${i}].dos=this.value" style="border-color:var(--brand)">
-</div>` : ''}
-<div class="field"><label>CPT *</label>
-<input class="mono" value="${l.cpt||''}" oninput="_sgForm.lines[${i}].cpt=this.value" placeholder="97110"></div>
-<div class="field">
-<label>Price / Unit $</label>
-<input class="mono" type="number" step="0.01" value="${pricePerUnit||''}"
-placeholder="e.g. 9.08"
-oninput="_sgForm.lines[${i}].pricePerUnit=parseFloat(this.value)||0;_sgForm.lines[${i}].charge=(( parseFloat(this.value)||0)*parseInt(_sgForm.lines[${i}].units||1)).toFixed(2);renderSGLines()">
-</div>
-<div class="field">
-<label>Units</label>
-<input class="mono" type="number" min="1" value="${units}"
-oninput="_sgForm.lines[${i}].units=this.value;_sgForm.lines[${i}].charge=((parseFloat(_sgForm.lines[${i}].pricePerUnit||0))*parseInt(this.value||1)).toFixed(2);renderSGLines()">
-</div>
-<div class="field">
-<label style="color:var(--blue,#4a4a4a);font-weight:700">Total Charge $ <span style="font-size:9px;color:var(--text3)">(auto)</span></label>
-<input class="mono" value="${total}" readonly
-style="background:var(--brand-bg,#f0f0f0);color:var(--blue,#4a4a4a);font-weight:700;font-size:13px;border-color:var(--blue,#4a4a4a)" tabindex="-1">
-</div>
-<div class="field"><label>Mod 1</label><input class="mono" value="${l.mod1||''}" oninput="_sgForm.lines[${i}].mod1=this.value" maxlength="2"></div>
-<div class="field"><label>Mod 2</label><input class="mono" value="${l.mod2||''}" oninput="_sgForm.lines[${i}].mod2=this.value" maxlength="2"></div>
-<div class="field"><label>Mod 3</label><input class="mono" value="${l.mod3||''}" oninput="_sgForm.lines[${i}].mod3=this.value" maxlength="2"></div>
-<div class="field"><label>Mod 4</label><input class="mono" value="${l.mod4||''}" oninput="_sgForm.lines[${i}].mod4=this.value" maxlength="2"></div>
-</div>
+  const ppu = parseFloat(l.pricePerUnit || l.charge || 0);
+  const units = parseInt(l.units||1);
+  const total = (ppu * units).toFixed(2);
+  if (_sgForm.lines[i]) _sgForm.lines[i].charge = total;
+  return `<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
+    <span style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em">Line ${i+1}</span>
+    <button onclick="_sgForm.lines.splice(${i},1);renderSGLines()" title="Remove line"
+      style="width:20px;height:20px;border-radius:50%;border:1px solid #fca5a5;background:transparent;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s"
+      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+      <i data-lucide="x" class="lci" style="width:10px;height:10px;pointer-events:none"></i>
+    </button>
+  </div>
+  <div style="padding:8px 10px;display:grid;grid-template-columns:80px 90px 60px 90px 50px 50px 50px 50px;gap:6px;align-items:end">
+    <div><label style="${L}">CPT *</label><input class="mono" value="${l.cpt||''}" oninput="_sgForm.lines[${i}].cpt=this.value" placeholder="97110" style="${S};font-weight:700;font-size:12px"></div>
+    <div><label style="${L}">Price/Unit $</label><input class="mono" type="number" step="0.01" value="${ppu||''}" placeholder="0.00"
+      oninput="_sgForm.lines[${i}].pricePerUnit=parseFloat(this.value)||0;_sgForm.lines[${i}].charge=((parseFloat(this.value)||0)*parseInt(_sgForm.lines[${i}].units||1)).toFixed(2);renderSGLines()" style="${S}"></div>
+    <div><label style="${L}">Units</label><input class="mono" type="number" min="1" value="${units}"
+      oninput="_sgForm.lines[${i}].units=this.value;_sgForm.lines[${i}].charge=((parseFloat(_sgForm.lines[${i}].pricePerUnit||0))*parseInt(this.value||1)).toFixed(2);renderSGLines()" style="${S}"></div>
+    <div><label style="${L};color:#2d6a4f">Total $</label><input class="mono" value="${total}" readonly
+      style="${S};background:#f0fdf4;color:#2d6a4f;font-weight:700;border-color:#bbf7d0;cursor:default" tabindex="-1"></div>
+    <div><label style="${L}">Mod 1</label><input class="mono" value="${l.mod1||''}" oninput="_sgForm.lines[${i}].mod1=this.value" maxlength="2" style="${S}"></div>
+    <div><label style="${L}">Mod 2</label><input class="mono" value="${l.mod2||''}" oninput="_sgForm.lines[${i}].mod2=this.value" maxlength="2" style="${S}"></div>
+    <div><label style="${L}">Mod 3</label><input class="mono" value="${l.mod3||''}" oninput="_sgForm.lines[${i}].mod3=this.value" maxlength="2" style="${S}"></div>
+    <div><label style="${L}">Mod 4</label><input class="mono" value="${l.mod4||''}" oninput="_sgForm.lines[${i}].mod4=this.value" maxlength="2" style="${S}"></div>
+  </div>
 </div>`;
 }).join('');
 }
@@ -5677,67 +5669,44 @@ const pats = db.patients.filter(p => p.providerId === activeProviderId);
 const refs = db.referring.filter(r => r.providerId === activeProviderId);
 const facs = db.facilities.filter(f => f.providerId === activeProviderId);
 
-// Helper: add-patient button (icon-only with tooltip)
-const _addBtn = (insertIdx) => `<div style="display:flex;justify-content:center;margin:4px 0">
-  <div style="position:relative;display:inline-flex" title="Add patient here">
-    <button onclick="_sgInsertPatient(${insertIdx})" title="Add patient here"
-      style="width:24px;height:24px;border-radius:50%;border:1.5px dashed #c96442;background:#fdf3ee;color:#c96442;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;font-size:14px;line-height:1"
-      onmouseover="this.style.background='#c96442';this.style.color='#fff'" onmouseout="this.style.background='#fdf3ee';this.style.color='#c96442'">
-      <i data-lucide="plus" class="lci" style="width:12px;height:12px;pointer-events:none"></i>
-    </button>
-  </div>
-</div>`;
-
-const cards = _sgForm.patients.map((asgn,i) => {
-const pat = pats.find(p => p.id === asgn.patientId) || {};
-const bg = pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48';
-const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
-const refOpts = refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
-const facOpts = facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('');
-// Field style helper
-const fld = 'display:flex;flex-direction:column;gap:2px;min-width:0';
-const lbl = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#87867f;white-space:nowrap';
-const inp = 'padding:5px 8px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;background:#fff;color:#141413;width:100%;box-sizing:border-box;min-width:0';
-return `${_addBtn(i)}
-<div style="background:#ffffff;border:1px solid #e4e1d8;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-  <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
-    <div style="width:28px;height:28px;border-radius:50%;background:${bg};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${ini}</div>
+if (!_sgForm.patients || !_sgForm.patients.length) {
+  el.innerHTML = '<p style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">No patients assigned. Use the search below to add.</p>';
+} else {
+  const F = 'display:flex;flex-direction:column;gap:2px;min-width:0';
+  const L = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87867f';
+  const I = 'padding:4px 7px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;background:#fff;color:#141413;width:100%;box-sizing:border-box;min-width:0';
+  el.innerHTML = _sgForm.patients.map((asgn,i) => {
+    const pat = pats.find(p => p.id === asgn.patientId) || {};
+    const bg = pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48';
+    const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
+    const refOpts = refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
+    const facOpts = facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('');
+    return `<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
+    <div style="width:26px;height:26px;border-radius:50%;background:${bg};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${ini}</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:12px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
       <div style="font-size:10px;color:#87867f">File #${pat.acct||''} · ${pat.dob||'—'} · ${pat.sex||''}</div>
     </div>
-    <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove patient"
-      style="width:22px;height:22px;border-radius:50%;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s"
-      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
-      <i data-lucide="x" class="lci" style="width:10px;height:10px;pointer-events:none"></i>
+    <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove"
+      style="width:20px;height:20px;border-radius:50%;border:1px solid #fca5a5;background:transparent;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"
+      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+      <i data-lucide="x" class="lci" style="width:9px;height:9px;pointer-events:none"></i>
     </button>
   </div>
-  <div style="padding:8px 10px;display:grid;grid-template-columns:2fr 1fr 1.5fr 1.5fr;gap:6px">
-    <div style="${fld}"><label style="${lbl}">ICD-10 Dx *</label>
-      <input value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5" style="${inp};font-family:var(--mono,'monospace')"></div>
-    <div style="${fld}"><label style="${lbl}">Auth #</label>
-      <input value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional" style="${inp}"></div>
-    <div style="${fld}"><label style="${lbl}">Referring</label>
-      <select onchange="_sgForm.patients[${i}].referringId=this.value" style="${inp};cursor:pointer"><option value="">— None —</option>${refOpts}</select></div>
-    <div style="${fld}"><label style="${lbl}">Facility</label>
-      <select onchange="_sgForm.patients[${i}].facilityId=this.value" style="${inp};cursor:pointer"><option value="">— Group default —</option>${facOpts}</select></div>
-    <div style="${fld};grid-column:1/-1;margin-top:2px;padding-top:6px;border-top:1px solid #f0ede5">
-      <label style="${lbl}">📅 Date Override <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#c9c7c0">(leave blank to use group dates)</span></label>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
-        <input type="date" value="${asgn.dosFrom||''}" oninput="_sgForm.patients[${i}].dosFrom=this.value"
-          style="${inp};width:auto;flex:1" title="Date from">
-        <span style="font-size:11px;color:#87867f;flex-shrink:0">to</span>
-        <input type="date" value="${asgn.dosTo||''}" oninput="_sgForm.patients[${i}].dosTo=this.value"
-          style="${inp};width:auto;flex:1" title="Date to">
-      </div>
-    </div>
+  <div style="padding:7px 10px;display:grid;grid-template-columns:2fr 1fr 2fr 2fr;gap:6px">
+    <div style="${F}"><label style="${L}">ICD-10 Dx *</label>
+      <input value="${(asgn.dx||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].dx=this.value.toUpperCase()" placeholder="M54.5" style="${I};font-family:var(--mono,monospace)"></div>
+    <div style="${F}"><label style="${L}">Auth #</label>
+      <input value="${(asgn.auth||'').replace(/"/g,'&quot;')}" oninput="_sgForm.patients[${i}].auth=this.value" placeholder="Optional" style="${I}"></div>
+    <div style="${F}"><label style="${L}">Referring</label>
+      <select onchange="_sgForm.patients[${i}].referringId=this.value" style="${I};cursor:pointer"><option value="">— None —</option>${refOpts}</select></div>
+    <div style="${F}"><label style="${L}">Facility</label>
+      <select onchange="_sgForm.patients[${i}].facilityId=this.value" style="${I};cursor:pointer"><option value="">— Group default —</option>${facOpts}</select></div>
   </div>
 </div>`;
-}).join('');
-
-el.innerHTML = (!_sgForm.patients||!_sgForm.patients.length)
-  ? '<p style="font-size:12px;color:var(--text3);padding:4px 0;text-align:center">No patients assigned. Use the search below to add.</p>'
-  : cards + _addBtn(_sgForm.patients.length);
+  }).join('');
+}
 }
 
 function _sgInsertPatient(atIdx) {
@@ -6556,20 +6525,23 @@ refs.map(r => `<option value="${r.id}" ${r.id===(stRef.refId||asgn.referringId||
 const facOpts = `<option value="">— Group default</option>` +
 facs.map(f => `<option value="${f.id}" ${f.id===(stRef.facId||asgn.facilityId||'')?'selected':''}>${f.name}</option>`).join('');
 
-return `<div style="border-bottom:1px solid var(--border);background:${stRef.included?'':'var(--bg3)'};transition:background .15s">
+const _bgAv = pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48';
+const _ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
+return `<div style="background:${stRef.included?'#fff':'#fafaf7'};transition:background .15s">
 <!-- Patient header row -->
-<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer"
+<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #f0ede5"
 onclick="_sgBatchState['${pid}'].included=!_sgBatchState['${pid}'].included;renderSGBatchPatients(sg)">
-<input type="checkbox" ${stRef.included?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--brand);flex-shrink:0"
+<input type="checkbox" ${stRef.included?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0"
 onclick="event.stopPropagation()"
 onchange="_sgBatchState['${pid}'].included=this.checked;renderSGBatchPatients(sg);updateBatchPreview()">
+<div style="width:26px;height:26px;border-radius:50%;background:${_bgAv};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${_ini}</div>
 <div style="flex:1;min-width:0">
-${ptLinkName(pat.id, pat.last, pat.first)}
-<span class="acct" style="margin-left:6px;font-size:11px">${pat.acct}</span>
-<span style="font-size:11px;color:var(--text3);margin-left:8px">${pat.payerName||pat.payerid||''}</span>
-${dxArr.length ? `<span style="font-size:10px;color:var(--brand);margin-left:8px">Dx: ${dxArr.slice(0,2).join(', ')}${dxArr.length>2?'...':''}</span>` : '<span style="font-size:10px;color:var(--amber);margin-left:8px"><i data-lucide="alert-triangle" class="lci" style="width:11px;height:11px;color:var(--amber)"></i> No Dx</span>'}
+  <span style="font-size:13px;font-weight:700;color:#141413">${(pat.last||'').toUpperCase()}, ${pat.first||''}</span>
+  <span style="font-size:11px;color:#87867f;margin-left:8px">File #${pat.acct}</span>
+  <span style="font-size:11px;color:#87867f;margin-left:6px">· ${pat.payerName||pat.payerid||''}</span>
+  ${dxArr.length ? `<span style="font-size:10px;color:#c96442;margin-left:8px;font-weight:600">Dx: ${dxArr.slice(0,3).join(', ')}${dxArr.length>3?'…':''}</span>` : '<span style="font-size:10px;color:#d97706;margin-left:8px;font-weight:600">No Dx — edit group</span>'}
 </div>
-<span class="badge ${stRef.included?'b-green':'b-gray'}" style="font-size:10px;flex-shrink:0">${stRef.included?'Include':'Skip'}</span>
+<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;flex-shrink:0;background:${stRef.included?'#f0fdf4':'#f8f6f0'};color:${stRef.included?'#16a34a':'#87867f'};border:1px solid ${stRef.included?'#bbf7d0':'#e4e1d8'}">${stRef.included?'INCLUDE':'SKIP'}</span>
 </div>
 
 <!-- Patient detail — shown when included -->

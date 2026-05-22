@@ -613,3 +613,35 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   box-shadow: 0 6px 20px rgba(0,0,0,.1);
   transform: translateY(-2px);
 }
+
+/* ── Quick Batch — Date Chips ─────────────────────────────────────────────── */
+.date-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.dchip {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; user-select: none;
+  border: 1.5px solid #e4e1d8;
+  background: #f8f6f0; color: #87867f;
+  transition: all .12s;
+}
+.dchip:hover { border-color: #c96442; color: #c96442; background: #fdf3ee; }
+.dchip.on {
+  background: #c96442; color: #fff;
+  border-color: #c96442;
+}
+.dchip.on:hover { background: #a84f32; border-color: #a84f32; }
+
+/* ── Quick Batch — Patient rows in SG tab ─────────────────────────────────── */
+#mb-sg-pat-rows { background: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #e4e1d8; }
+#mb-sg-pat-rows > div { border-bottom: 1px solid #f0ede5; }
+#mb-sg-pat-rows > div:last-child { border-bottom: none; }
+
+/* Patient row header */
+#mb-sg-pat-rows .pat-row-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; cursor: pointer;
+  background: #f8f6f0; transition: background .12s;
+}
+#mb-sg-pat-rows .pat-row-hdr:hover { background: #f4f2ec; }
