@@ -214,6 +214,55 @@ function icSaveClient() {
 }
 
 // ── Send Intake Forms ──
+function icClientTab(tab) {
+  document.getElementById('icp-info').style.display = tab === 'info' ? '' : 'none';
+  document.getElementById('icp-records').style.display = tab === 'records' ? '' : 'none';
+  var btnInfo = document.getElementById('ict-info');
+  var btnRec = document.getElementById('ict-records');
+  if (btnInfo) { btnInfo.style.color = tab==='info'?'#c96442':'#87867f'; btnInfo.style.borderBottomColor = tab==='info'?'#c96442':'transparent'; }
+  if (btnRec) { btnRec.style.color = tab==='records'?'#c96442':'#87867f'; btnRec.style.borderBottomColor = tab==='records'?'#c96442':'transparent'; }
+  if (tab === 'records') icLoadClientRecords();
+}
+
+async function icLoadClientRecords() {
+  var listEl = document.getElementById('ic-records-list');
+  if (!listEl) return;
+  var clientIdx = parseInt(document.getElementById('ic-client-id').value);
+  var db2 = getDB();
+  var client = (db2.intakeClients || [])[clientIdx];
+  if (!client) { listEl.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:24px">Save the client first to view records.</p>'; return; }
+  listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading from Firestore...</div>';
+  try {
+    if (!_db) throw new Error('Firestore not ready');
+    var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
+    if (snap.empty) {
+      listEl.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:32px">No signed documents yet.</p>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      var ts = d.signedTs || (d.signedAt && d.signedAt.toDate ? d.signedAt.toDate().toLocaleString() : '');
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f6f0;border-radius:8px;margin-bottom:8px;border:1px solid #e4e1d8">';
+      html += '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-size:13px;font-weight:700;color:#141413">' + (d.formName || 'Signed Document') + '</div>';
+      html += '<div style="font-size:10px;color:#87867f;margin-top:2px">Signed: ' + ts + '</div>';
+      html += '</div>';
+      if (d.pdfData) {
+        html += '<a href="' + d.pdfData + '" download="' + (d.formName||'document').replace(/[^a-z0-9]/gi,'_') + '.pdf" ';
+        html += 'style="flex-shrink:0;padding:5px 12px;background:#c96442;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
+        html += '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>';
+      }
+      html += '</div>';
+    });
+    listEl.innerHTML = html;
+  } catch(e) {
+    listEl.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + e.message + '</p>';
+  }
+}
+
 function icSendIntakeLink(idx) {
   if (!_icRequireSA()) return;
   var db = getDB();

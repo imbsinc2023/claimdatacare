@@ -124,9 +124,8 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 
 <!-- TOPBAR -->
 <header class="topbar">
-  <div class="topbar-brand">
-    <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#c96442"/><path d="M16 6L8 10v8c0 5 3.6 9.7 8 11 4.4-1.3 8-6 8-11v-8L16 6z" fill="rgba(255,255,255,.2)" stroke="white" stroke-width="1.5"/><path d="M13 16l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    ClaimDataCare
+  <div class="topbar-brand" id="topbar-provider-name" style="font-size:13px;font-weight:700">
+    Secure Intake Signing
   </div>
   <div class="topbar-right">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -281,7 +280,7 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 </div><!-- /flex -->
 
 <footer style="text-align:center;padding:20px;font-size:11px;color:var(--text3)">
-  ClaimDataCare &copy; 2025 &middot; <a href="https://claimdatacare.com" style="color:var(--brand);text-decoration:none">claimdatacare.com</a> &middot; Secure Electronic Signature
+  Secure Electronic Document Signing &mdash; Powered by ClaimDataCare
 </footer>
 
 </div>
@@ -338,6 +337,12 @@ window.addEventListener('DOMContentLoaded',async()=>{
 
   if(!_data||!(_data.forms||[]).length){showError('No forms found in this link. Please contact your provider.');return;}
   _sigs=new Array(_data.forms.length).fill(null);
+  // Update topbar with provider name
+  var pName = (_data.provider||{}).name||'';
+  if (pName) {
+    var tb = document.getElementById('topbar-provider-name');
+    if (tb) tb.textContent = pName;
+  }
   buildProgress();
   buildIntro();
   showStep(0);
