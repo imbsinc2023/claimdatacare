@@ -573,60 +573,148 @@ async function generatePDF(formIdx){
   const c=_data.client||{};
   const p=_data.provider||{};
   const sig=_sigs[formIdx];
-  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const W=doc.internal.pageSize.getWidth();
-  const M=48;
-  let y=M;
+  const H=doc.internal.pageSize.getHeight();
+  const M=50; // margin
+  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  let y=0;
 
-  // Provider header bar
-  doc.setFillColor(20,20,19);
-  doc.rect(0,0,W,56,'F');
-  doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-  doc.text(p.name||'ClaimDataCare',M,34);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(180,180,180);
-  doc.text((p.addr1||'')+(p.city?', '+p.city:'')+(p.state?' '+p.state:''),M,47);
-  y=80;
+  // ── Helper functions ───────────────────────────────────────────────────
+  const checkPage=(needed=60)=>{ if(y>H-needed){doc.addPage();y=M;} };
+  const setColor=(r,g,b)=>{ doc.setTextColor(r,g,b); };
+  const rule=(color=[228,225,216],lw=0.5)=>{
+    doc.setDrawColor(...color);doc.setLineWidth(lw);
+    doc.line(M,y,W-M,y);y+=10;
+  };
+  const sectionLabel=(txt)=>{
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+    setColor(150,148,143);
+    doc.text(txt.toUpperCase(),M,y);y+=10;
+  };
 
-  // Form title
-  doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(201,100,66);
-  doc.text((f.name||'Consent Form').toUpperCase(),M,y);y+=22;
-  doc.setDrawColor(201,100,66);doc.setLineWidth(1.5);doc.line(M,y,W-M,y);y+=14;
+  // ── Replace template vars in form content ──────────────────────────────
+  const clientName=(c.firstName||'')+' '+(c.lastName||'');
+  const guardianName=c.guardianName||'';
+  let rawContent=f.content||f.body||'';
+  rawContent=rawContent.replace(/\{\{guardianName\}\}/g,guardianName);
+  rawContent=rawContent.replace(/\{\{childName\}\}/g,clientName.trim());
+  rawContent=rawContent.replace(/\{\{date\}\}/g,today);
+  rawContent=rawContent.replace(/\{\{signature\}\}/g,'[Signed electronically]');
+  // Strip HTML tags cleanly
+  const tmp=document.createElement('div');tmp.innerHTML=rawContent;
+  const plainText=(tmp.innerText||tmp.textContent||'').replace(/
+{3,}/g,'\n\n').trim();
 
-  // Client info
-  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(135,134,127);
-  doc.text('CLIENT INFORMATION',M,y);y+=12;
-  doc.setFont('helvetica','normal');doc.setTextColor(20,20,19);
-  const info=[['Client',(c.firstName||'')+(c.lastName?' '+c.lastName:'')],['Guardian',c.guardianName||''],['DOB',c.dob||''],['Insurance',c.insuranceProvider||''],['Date',today]];
-  info.forEach(([l,v])=>{
-    doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text(l+':',M,y);
-    doc.setFont('helvetica','normal');doc.setTextColor(20,20,19);doc.text(v,M+70,y);
-    y+=13;
-  });
-  y+=8;doc.setDrawColor(228,225,216);doc.setLineWidth(.5);doc.line(M,y,W-M,y);y+=14;
+  // ══════════════════════════════════════════════════════════════════════
+  // HEADER — provider info, light background, logo if available
+  // ══════════════════════════════════════════════════════════════════════
+  // Light parchment header band
+  doc.setFillColor(248,246,240);
+  doc.rect(0,0,W,70,'F');
+  // Thin terracotta accent line at bottom of header
+  doc.setFillColor(201,100,66);
+  doc.rect(0,68,W,2,'F');
 
-  // Document content (plain text extraction)
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(77,76,72);
-  const tmp=document.createElement('div');tmp.innerHTML=f.content||'';
-  const rawText=tmp.innerText||tmp.textContent||'';
-  const lines=doc.splitTextToSize(rawText,W-M*2);
-  for(const line of lines){
-    if(y>doc.internal.pageSize.getHeight()-100){doc.addPage();y=M;}
+  let hx=M;
+  // Provider logo
+  if(p.logo){
+    try{
+      doc.addImage(p.logo,'PNG',M,10,48,48);
+      hx=M+58;
+    }catch(e){}
+  }
+  // Provider name
+  doc.setFontSize(14);doc.setFont('helvetica','bold');setColor(20,20,19);
+  doc.text(p.name||'',hx,26);
+  // Provider address / contact
+  const provAddr=[p.addr1,p.city&&p.state?p.city+', '+p.state:'',p.phone?'Tel: '+p.phone:'',p.npi?'NPI: '+p.npi:''].filter(Boolean).join('   ');
+  doc.setFontSize(8);doc.setFont('helvetica','normal');setColor(100,98,95);
+  doc.text(provAddr,hx,40);
+
+  y=90;
+
+  // ══════════════════════════════════════════════════════════════════════
+  // FORM TITLE
+  // ══════════════════════════════════════════════════════════════════════
+  doc.setFontSize(15);doc.setFont('helvetica','bold');setColor(201,100,66);
+  doc.text((f.name||'Consent Form').toUpperCase(),M,y);y+=6;
+  doc.setFillColor(201,100,66);doc.rect(M,y,W-M*2,1.5,'F');y+=16;
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DEMOGRAPHICS — 2-column card style
+  // ══════════════════════════════════════════════════════════════════════
+  sectionLabel('Demographics');
+  // Card background
+  doc.setFillColor(252,250,247);
+  doc.setDrawColor(228,225,216);doc.setLineWidth(0.5);
+  doc.roundedRect(M,y,W-M*2,70,4,4,'FD');
+  const col1=M+12, col2=M+(W-M*2)/2+6;
+  const rowH=14;
+  let ry=y+14;
+  const dField=(label,val,x,yy)=>{
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');setColor(135,134,127);
+    doc.text(label,x,yy);
+    doc.setFontSize(9.5);doc.setFont('helvetica','normal');setColor(20,20,19);
+    doc.text(val||'—',x,yy+9);
+  };
+  dField('CLIENT',(c.lastName||'').toUpperCase()+', '+(c.firstName||''),col1,ry);
+  dField('DATE OF BIRTH',c.dob||'',col2,ry);ry+=rowH+4;
+  dField('GUARDIAN',guardianName,col1,ry);
+  dField('INSURANCE',c.insuranceProvider||'',col2,ry);ry+=rowH+4;
+  dField('INSURANCE ID',c.insuranceId||'',col1,ry);
+  dField('DATE',today,col2,ry);
+  y+=78;y+=8;
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DOCUMENT CONTENT
+  // ══════════════════════════════════════════════════════════════════════
+  sectionLabel(f.type||'Consent');
+  doc.setFillColor(201,100,66);doc.rect(M,y,W-M*2,0.8,'F');y+=10;
+
+  doc.setFontSize(9.5);doc.setFont('helvetica','normal');setColor(30,30,28);
+  const contentLines=doc.splitTextToSize(plainText,W-M*2-4);
+  for(const line of contentLines){
+    checkPage(30);
     doc.text(line,M,y);y+=13;
   }
+  y+=10;
 
-  // Signature
-  if(y>doc.internal.pageSize.getHeight()-140){doc.addPage();y=M;}
-  y+=16;doc.setDrawColor(228,225,216);doc.line(M,y,W-M,y);y+=14;
-  doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(135,134,127);
-  doc.text('ELECTRONIC SIGNATURE',M,y);y+=14;
+  // ══════════════════════════════════════════════════════════════════════
+  // ELECTRONIC SIGNATURE
+  // ══════════════════════════════════════════════════════════════════════
+  checkPage(120);
+  doc.setFillColor(248,246,240);
+  doc.setDrawColor(228,225,216);doc.setLineWidth(0.5);
+  doc.roundedRect(M,y,W-M*2,90,4,4,'FD');
+  let sy=y+14;
+  doc.setFontSize(7.5);doc.setFont('helvetica','bold');setColor(135,134,127);
+  doc.text('ELECTRONIC SIGNATURE',M+12,sy);sy+=12;
   if(sig){
-    try{doc.addImage(sig,'PNG',M,y,160,48);y+=56;}catch(e){}
+    try{
+      doc.addImage(sig,'PNG',M+12,sy,140,38);
+      sy+=44;
+    }catch(e){sy+=44;}
   }
-  doc.setFont('helvetica','normal');doc.setTextColor(20,20,19);
-  doc.text(c.guardianName||'Guardian',M,y);y+=11;
-  doc.setFontSize(8);doc.setTextColor(135,134,127);
-  doc.text('Signed electronically on '+today,M,y);y+=10;
-  doc.text('ClaimDataCare Secure Signing Portal — claimdatacare.com',M,y);
+  // Signature line
+  doc.setDrawColor(20,20,19);doc.setLineWidth(0.5);
+  doc.line(M+12,sy,M+160,sy);sy+=8;
+  doc.setFontSize(9);doc.setFont('helvetica','bold');setColor(20,20,19);
+  doc.text(guardianName||clientName.trim(),M+12,sy);sy+=11;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');setColor(100,98,95);
+  doc.text('Signed electronically · '+today,M+12,sy);
+  y+=98;
+
+  // ══════════════════════════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════════════════════════
+  doc.setFillColor(248,246,240);
+  doc.rect(0,H-28,W,28,'F');
+  doc.setFillColor(201,100,66);doc.rect(0,H-28,W,1,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','normal');setColor(150,148,143);
+  const footerLeft=p.name+(p.addr1?'  ·  '+p.addr1:'')+(p.city?', '+p.city:'')+(p.state?' '+p.state:'');
+  const footerRight='Secure Electronic Signature  ·  '+today;
+  doc.text(footerLeft,M,H-13);
+  doc.text(footerRight,W-M,H-13,{align:'right'});
 
   return doc.output('datauristring');
 }
