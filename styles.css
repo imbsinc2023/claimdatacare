@@ -645,3 +645,42 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   background: #f8f6f0; transition: background .12s;
 }
 #mb-sg-pat-rows .pat-row-hdr:hover { background: #f4f2ec; }
+
+/* ── icoBtn — icon-only button with tooltip ─────────────────────────────── */
+.icoBtn {
+  position: relative;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  background: #fff;
+  color: #4d4c48;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.icoBtn svg { width: 14px; height: 14px; }
+.icoBtn:hover { background: #f4f2ec; border-color: #c96442; color: #c96442; }
+
+.icoBtn--brand { background: #c96442; border-color: #c96442; color: #fff; }
+.icoBtn--brand:hover { background: #a84f32; border-color: #a84f32; color: #fff; }
+
+.icoBtn--danger { border-color: #fca5a5; color: #dc2626; }
+.icoBtn--danger:hover { background: #fef2f2; border-color: #dc2626; }
+
+.icoBtn--sm { width: 22px; height: 22px; border-radius: 50%; }
+.icoBtn--sm svg { width: 10px; height: 10px; }
+
+/* Tooltip */
+.icoBtn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%; transform: translateX(-50%);
+  background: #141413; color: #fff;
+  font-size: 10px; font-weight: 600;
+  white-space: nowrap; padding: 3px 8px;
+  border-radius: 5px; pointer-events: none;
+  opacity: 0; transition: opacity .15s; z-index: 9999;
+}
+.icoBtn:hover::after { opacity: 1; }

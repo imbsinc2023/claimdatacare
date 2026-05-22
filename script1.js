@@ -387,12 +387,14 @@ function _injectMissingModals() {
     '</div><div class="sep"></div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
     '<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> CPT Lines</span>' +
-    '<div class="btn-group"><button class="btn btn-sm" onclick="addSGLine()">+ Add Line</button>' +
-    '<button class="btn btn-sm" onclick="openSGCatalog()">From Catalog</button></div></div>' +
+    '<div style="display:flex;gap:6px">' +
+    '<button class="icoBtn" title="Add CPT Line" onclick="addSGLine()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
+    '<button class="icoBtn" title="From Catalog" onclick="openSGCatalog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg></button>' +
+    '</div></div>' +
     '<div id="sg-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-    '<span class="slabel" style="margin:0"><i data-lucide="users" class="lci"></i> Patients</span>' +
-    '<button class="btn btn-sm" onclick="openSGPatientModal()">+ Add Patient</button></div>' +
+    '<span class="slabel" style="margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Patients</span>' +
+    '<button class="icoBtn" title="Add Patient" onclick="document.getElementById(\'sg-pat-search\').focus();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button></div>' +
     '<div id="sg-patients"></div>' +
     '<!-- Inline patient search -->'+
     '<div style="position:relative;margin-top:8px">'+
@@ -400,9 +402,9 @@ function _injectMissingModals() {
     ' style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">'+
     '<div id="sg-pat-results" style="display:none;position:absolute;z-index:99;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto"></div>'+
     '</div></div>' +
-    '<div class="modal-ftr" style="flex-shrink:0">' +
-    '<button class="btn" onclick="closeModal(\'modal-sg\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveSG()"><i data-lucide="save" class="lci"></i> Save Group</button>' +
+    '<div class="modal-ftr" style="flex-shrink:0;gap:8px">' +
+    '<button class="icoBtn" title="Cancel" onclick="closeModal(\'modal-sg\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+    '<button class="icoBtn icoBtn--brand" title="Save Group" onclick="saveSG()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg></button>' +
     '</div></div>'
   );
 
@@ -5632,9 +5634,8 @@ el.innerHTML = _sgForm.lines.map((l,i) => {
   <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
     <span style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em">Line ${i+1}</span>
     <button onclick="_sgForm.lines.splice(${i},1);renderSGLines()" title="Remove line"
-      style="width:20px;height:20px;border-radius:50%;border:1px solid #fca5a5;background:transparent;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s"
-      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
-      <i data-lucide="x" class="lci" style="width:10px;height:10px;pointer-events:none"></i>
+      class="icoBtn icoBtn--danger icoBtn--sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   <div style="padding:8px 10px;display:grid;grid-template-columns:80px 90px 60px 90px 50px 50px 50px 50px;gap:6px;align-items:end">
@@ -5688,10 +5689,9 @@ if (!_sgForm.patients || !_sgForm.patients.length) {
       <div style="font-size:12px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
       <div style="font-size:10px;color:#87867f">File #${pat.acct||''} · ${pat.dob||'—'} · ${pat.sex||''}</div>
     </div>
-    <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove"
-      style="width:20px;height:20px;border-radius:50%;border:1px solid #fca5a5;background:transparent;color:#dc2626;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"
-      onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
-      <i data-lucide="x" class="lci" style="width:9px;height:9px;pointer-events:none"></i>
+    <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove patient"
+      class="icoBtn icoBtn--danger icoBtn--sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   <div style="padding:7px 10px;display:grid;grid-template-columns:2fr 1fr 2fr 2fr;gap:6px">
