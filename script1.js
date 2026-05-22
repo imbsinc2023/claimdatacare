@@ -8759,18 +8759,30 @@ async function icSendForms(clientId, formIds) {
 
 async function sendEmail(to, subject, html, type) {
   try {
-    var url = EMAIL_WORKER_URL + '/?'
-      + 'to='      + encodeURIComponent(to)
-      + '&subject='+ encodeURIComponent(subject)
-      + '&html='   + encodeURIComponent(html)
-      + '&type='   + encodeURIComponent(type || 'noreply');
-    var res = await fetch(url);
+    // POST to support large HTML payloads (intake forms with base64 links)
+    var res = await fetch(EMAIL_WORKER_URL + '/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({to: to, subject: subject, html: html, type: type||'noreply'})
+    });
     var data = await res.json();
     console.log('[Email] sent from:', data.from, 'to:', data.to);
     return !!(data.success || data.id);
   } catch(e) {
-    console.error('[Email]', e.message);
-    return false;
+    // Fallback: GET with URL params (works for small emails)
+    try {
+      var url = EMAIL_WORKER_URL + '/?'
+        + 'to=' + encodeURIComponent(to)
+        + '&subject=' + encodeURIComponent(subject)
+        + '&html=' + encodeURIComponent(html.substring(0,6000))
+        + '&type=' + encodeURIComponent(type||'noreply');
+      var res2 = await fetch(url);
+      var data2 = await res2.json();
+      return !!(data2.success || data2.id);
+    } catch(e2) {
+      console.error('[Email]', e2.message);
+      return false;
+    }
   }
 }
 

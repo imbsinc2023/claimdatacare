@@ -271,7 +271,8 @@ function icSendIntakeForms() {
   var provId = typeof activeProviderId !== 'undefined' ? activeProviderId : (sess.providerId||'');
   var prov = (db.providers||[]).find(function(p){ return p.id===provId; }) || {};
 
-  var signPayload = {
+  // Build full payload for Firestore (includes form content)
+  var fullPayload = {
     token: token,
     ts: Date.now(),
     clientId: c.id,
@@ -292,8 +293,30 @@ function icSendIntakeForms() {
       return { id: f.id||('f'+fi), name: f.name||'Consent Form', type: f.type||'Consent', content: f.content||f.body||'' };
     })
   };
-  var signPayloadB64 = btoa(unescape(encodeURIComponent(JSON.stringify(signPayload))));
-  var intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(signPayloadB64);
+
+  // Save full payload to Firestore so sign.html can load it by token (no size limit)
+  var intakeLink = window.location.origin + '/sign.html?token=' + encodeURIComponent(token);
+  if (typeof _db !== 'undefined' && _db) {
+    try {
+      _db.collection('signTokens').doc(token).set(Object.assign({}, fullPayload, {
+        expiresAt: new Date(Date.now() + 72*60*60*1000),
+        signedAt: null
+      }));
+    } catch(fsErr) {
+      console.warn('Firestore token save skipped:', fsErr);
+      // Fallback: embed lightweight payload in URL (no form content)
+      var lightPayload = JSON.parse(JSON.stringify(fullPayload));
+      lightPayload.forms = lightPayload.forms.map(function(f){ return {id:f.id,name:f.name,type:f.type,content:''}; });
+      delete lightPayload.provider.logo; // remove logo from URL
+      intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(lightPayload)))));
+    }
+  } else {
+    // No Firestore — embed in URL without form content
+    var lightPayload2 = JSON.parse(JSON.stringify(fullPayload));
+    lightPayload2.forms = lightPayload2.forms.map(function(f){ return {id:f.id,name:f.name,type:f.type,content:''}; });
+    delete lightPayload2.provider.logo;
+    intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(lightPayload2)))));
+  }
 
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
