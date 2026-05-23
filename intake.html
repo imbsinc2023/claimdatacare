@@ -169,6 +169,7 @@ function renderFormsList(){
   }).join('');
 }
 window.addEventListener('DOMContentLoaded',renderFormsList);
+renderFormsList();
 
 function fmtPhone(el){
   var v=el.value.replace(/\D/g,'').substring(0,10);
