@@ -128,8 +128,8 @@ html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var
 <div id="toast"></div>
 
 <script>
-const EMAIL_WORKER =  + EMAIL_WORKER + ;
-const APPS_SCRIPT  =  + APPS_SCRIPT + ;
+const EMAIL_WORKER = 'https://email-service.imbsinc2023.workers.dev';
+const APPS_SCRIPT  = 'https://script.google.com/macros/s/AKfycbyCFem8OlJBZlL2-YifE-SoPn-sw6FLFPWnPZaWUIVxuQPWGysAI2QhtzJa9M-V6aI8WA/exec';
 const PROVIDER = {
   name:'Vortex Management Services Inc',
   addr1:'8500 W Flagler St, Ste 107A',city:'Miami',state:'FL',zip:'33144',
@@ -156,8 +156,10 @@ const FORMS = [
 ];
 
 // Render forms list
-(function(){
-  document.getElementById('forms-list').innerHTML = FORMS.map(function(f){
+function renderFormsList(){
+  var el=document.getElementById('forms-list');
+  if(!el||!FORMS||!FORMS.length){setTimeout(renderFormsList,100);return;}
+  el.innerHTML=FORMS.map(function(f){
     return '<div class="form-item">'
       +'<input type="checkbox" id="fc-'+f.id+'" checked>'
       +'<div class="form-item-info"><label for="fc-'+f.id+'" style="cursor:pointer">'
@@ -165,7 +167,8 @@ const FORMS = [
       +'<div class="form-item-desc">'+f.desc+'</div>'
       +'</label></div></div>';
   }).join('');
-})();
+}
+window.addEventListener('DOMContentLoaded',renderFormsList);
 
 function fmtPhone(el){
   var v=el.value.replace(/\D/g,'').substring(0,10);
@@ -281,16 +284,7 @@ function resetForm(){
   document.getElementById('c-gender').value='';
   document.getElementById('btn-send').disabled=false;
   document.getElementById('btn-send').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Forms for Signature';
-  document.getElementById('forms-list').innerHTML='';
-  (function(){
-    document.getElementById('forms-list').innerHTML = FORMS.map(function(f){
-      return '<div class="form-item"><input type="checkbox" id="fc-'+f.id+'" checked>'
-        +'<div class="form-item-info"><label for="fc-'+f.id+'" style="cursor:pointer">'
-        +'<div class="form-item-name">'+f.name+'</div>'
-        +'<div class="form-item-desc">'+f.desc+'</div>'
-        +'</label></div></div>';
-    }).join('');
-  })();
+  renderFormsList();
 }
 
 var _tt;
