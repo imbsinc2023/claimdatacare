@@ -281,8 +281,7 @@ async function sendForms(){
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({
         action:'sendEmail',
         to:gEmail,
@@ -290,7 +289,8 @@ async function sendForms(){
         html:emailHtml
       })
     });
-    // no-cors returns opaque response — assume success if no network error
+    const result=await res.json();
+    if(!result.success && !result.emailSent) throw new Error(result.error||'Email not sent');
     document.getElementById('view-form').style.display='none';
     document.getElementById('view-success').style.display='block';
     document.getElementById('success-msg').innerHTML=
