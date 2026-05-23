@@ -488,122 +488,158 @@ async function generatePDF(idx) {
   var sig = _sigs[idx];
   var W   = doc.internal.pageSize.getWidth();   // 612
   var H   = doc.internal.pageSize.getHeight();  // 792
-  var ML  = 44, MR = 44, TW = W - ML - MR;     // 524pt
+  var ML  = 48, MR = 48, TW = W - ML - MR;     // 516pt
 
-  // ── Anthropic/Claude design palette ──────────────────────────────────────
-  var NEAR_BLACK  = [20,  20,  19];   // #141413
-  var OLIVE_GRAY  = [94,  93,  89];   // #5e5d59
-  var STONE_GRAY  = [135, 134, 127];  // #87867f
-  var PARCHMENT   = [245, 244, 237];  // #f5f4ed
-  var IVORY       = [250, 249, 245];  // #faf9f5
-  var WARM_SAND   = [232, 230, 220];  // #e8e6dc
-  var BORDER_CREAM= [240, 238, 230];  // #f0eee6
-  var TERRACOTTA  = [201, 100,  66];  // #c96442
-  var DARK_SURF   = [48,  48,  46];   // #30302e
+  // ONE font, ONE color: helvetica, black
+  var BLACK  = [0, 0, 0];
+  var WHITE  = [255, 255, 255];
+  var LGRAY  = [240, 240, 240];  // card bg only
+  var DGRAY  = [40, 40, 40];     // card header bg
 
-  function rgb(a)    { doc.setTextColor(a[0],a[1],a[2]); }
-  function drw(a)    { doc.setDrawColor(a[0],a[1],a[2]); }
-  function flll(a)   { doc.setFillColor(a[0],a[1],a[2]); }
-  function sans(wt, sz) { doc.setFont('helvetica', wt||'normal'); doc.setFontSize(sz||9); }
-  function serif(sz)    { doc.setFont('times',     'normal');      doc.setFontSize(sz||11); }
+  function K()  { doc.setTextColor(0,0,0); doc.setDrawColor(0,0,0); }
+  function flll(r,g,b) { doc.setFillColor(r,g,b); }
+  function drw(r,g,b)  { doc.setDrawColor(r,g,b); }
 
-  // ── CARD with parchment bg and cream border ────────────────────────────────
-  function card(x, y, w, h, radiusPx) {
-    var r = radiusPx || 6;
-    flll(IVORY); drw(BORDER_CREAM); doc.setLineWidth(0.5);
-    doc.roundedRect(x, y, w, h, r, r, 'FD');
+  // Single font: helvetica throughout
+  function T(weight, size) {
+    doc.setFont('helvetica', weight || 'normal');
+    doc.setFontSize(size || 9);
   }
 
-  // ── CARD HEADER: near-black band, ivory text, 12px radius top ──────────────
+  // ── CARD: white bg, light border ──────────────────────────────────────────
+  function card(x, y, w, h) {
+    flll(255,255,255); drw(210,210,210);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, w, h, 4, 4, 'FD');
+  }
+
+  // ── CARD HEADER: dark bg, white text ──────────────────────────────────────
   function cardHeader(x, y, w, label) {
-    flll(DARK_SURF); drw(DARK_SURF); doc.setLineWidth(0);
-    doc.roundedRect(x, y, w, 20, 6, 6, 'FD');
-    flll(DARK_SURF); doc.rect(x, y+12, w, 8, 'F'); // cover bottom round
-    sans('bold', 6.5); rgb([250,249,245]);
-    doc.text(label.toUpperCase(), x+10, y+13.5);
+    flll(40,40,40); drw(40,40,40); doc.setLineWidth(0);
+    doc.roundedRect(x, y, w, 18, 4, 4, 'FD');
+    flll(40,40,40); doc.rect(x, y+10, w, 8, 'F');
+    T('bold', 7); doc.setTextColor(255,255,255);
+    doc.text(label.toUpperCase(), x+10, y+12);
   }
 
-  // ── FIELD: label over value ────────────────────────────────────────────────
-  function fld(label, value, x, y, maxW) {
-    sans('bold', 6); rgb(STONE_GRAY); doc.text(label, x, y);
-    sans('normal', 8.5); rgb(NEAR_BLACK);
-    if (maxW) doc.text(value||'—', x, y+9, {maxWidth: maxW});
-    else      doc.text(value||'—', x, y+9);
+  // ── FIELD: label + value, both black, proper spacing ─────────────────────
+  // Returns height consumed
+  function field(label, value, x, y, w) {
+    if (!value || value === '—') return 0;
+    T('bold', 6.5); K();
+    doc.text(label.toUpperCase(), x, y);
+    T('normal', 9); K();
+    var wrapped = doc.splitTextToSize(value, w);
+    doc.text(wrapped, x, y + 11);
+    return 11 + wrapped.length * 11; // label line + value lines
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // HEADER
   // ══════════════════════════════════════════════════════════════════════════
-  var HY = 24, LSZ = 36;
+  var y = 28;
+  var LSZ = 36;
+
   if (typeof VORTEX_LOGO !== 'undefined') {
-    try { doc.addImage(VORTEX_LOGO, 'PNG', ML, HY, LSZ, LSZ); } catch(e) {}
+    try { doc.addImage(VORTEX_LOGO, 'PNG', ML, y, LSZ, LSZ); } catch(e) {}
   }
-  var hx = ML + LSZ + 12, nY = HY + 14;
-  sans('bold', 12); rgb(NEAR_BLACK); doc.text(p.name || 'Provider', hx, nY);
-  var pp = [p.addr1,(p.city&&p.state)?p.city+','+p.state:'',p.phone||'',p.npi?'NPI '+p.npi:''].filter(Boolean);
-  sans('normal', 7); rgb(STONE_GRAY); doc.text(pp.join('  \u00b7  '), hx, nY+11);
 
-  // Terracotta accent rule
-  var rY = HY + LSZ + 8;
-  drw(TERRACOTTA); doc.setLineWidth(1.5); doc.line(ML, rY, ML+40, rY);
-  drw(BORDER_CREAM); doc.setLineWidth(0.5); doc.line(ML+42, rY, W-MR, rY);
-  var y = rY + 14;
+  var hx = ML + LSZ + 12;
+  T('bold', 12); K();
+  doc.text(p.name || '', hx, y + 14);
+
+  var parts = [p.addr1, (p.city && p.state) ? p.city + ', ' + p.state : '', p.phone || '', p.npi ? 'NPI ' + p.npi : ''].filter(Boolean);
+  T('normal', 7.5); K();
+  doc.text(parts.join('  ·  '), hx, y + 26);
+
+  y += LSZ + 14;
+  K(); doc.setLineWidth(0.75);
+  doc.line(ML, y, W - MR, y);
+  y += 16;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // FORM TITLE — Georgia serif
+  // FORM TITLE
   // ══════════════════════════════════════════════════════════════════════════
-  serif(13); rgb(NEAR_BLACK);
+  T('bold', 13); K();
   doc.text((f.name || 'Consent Form').toUpperCase(), ML, y);
-  y += 18;
+  y += 20;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PATIENT INFO CARD
+  // PATIENT INFO CARD — only show fields that have values
   // ══════════════════════════════════════════════════════════════════════════
-  var patH = 68;
-  card(ML, y, TW, patH);
+  // Build fields list: skip empty ones
+  var patientName = (cl.lastName || '') + (cl.firstName ? ', ' + cl.firstName : '');
+  var signerLabel = cl.isMinor ? 'Parent / Legal Guardian' : 'Authorized Signer';
+
+  var leftFields = [];
+  var rightFields = [];
+  if (patientName.trim()) leftFields.push(['Patient', patientName]);
+  if (cl.dob)             rightFields.push(['Date of Birth', cl.dob]);
+  if (cl.guardianName)    leftFields.push([signerLabel, cl.guardianName]);
+  if (cl.insuranceProvider) rightFields.push(['Insurance', cl.insuranceProvider]);
+  if (cl.insuranceId)     rightFields.push(['Insurance ID', cl.insuranceId]);
+
+  // Calculate card height based on actual field rows
+  var maxRows = Math.max(leftFields.length, rightFields.length);
+  var rowH = 28; // label(9) + gap(2) + value(9) + padding(8)
+  var patCardH = 20 + maxRows * rowH + 10; // header(18) + top-pad(2) + rows + bottom-pad
+
+  card(ML, y, TW, patCardH);
   cardHeader(ML, y, TW, 'Patient Information');
 
-  var col2 = ML + TW/2 + 4;
-  var ry1  = y + 26;
-  fld('PATIENT', (cl.lastName||'')+(cl.firstName?', '+cl.firstName:''), ML+10, ry1, TW/2-16);
-  fld('DATE OF BIRTH', cl.dob||'—', col2, ry1);
+  var col1x = ML + 10;
+  var col2x = ML + TW / 2 + 6;
+  var fy = y + 26; // first row y, after header
 
-  drw(BORDER_CREAM); doc.setLineWidth(0.3); doc.line(ML+8, ry1+16, ML+TW-8, ry1+16);
-
-  var ry2 = ry1 + 24;
-  var sigLbl = cl.isMinor ? 'PARENT / LEGAL GUARDIAN' : 'AUTHORIZED SIGNER';
-  fld(sigLbl, cl.guardianName||'—', ML+10, ry2, TW/2-16);
-  fld('INSURANCE', cl.insuranceProvider||'—', col2, ry2);
-  y += patH + 10;
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // CONTENT CARD
-  // ══════════════════════════════════════════════════════════════════════════
-  // Clean content
-  var raw = (f.content||'').trim().split('\n');
-  if (raw[0] && raw[0].trim().toUpperCase() === (f.name||'').trim().toUpperCase()) {
-    raw.shift(); while (raw.length && !raw[0].trim()) raw.shift();
+  var maxLen = Math.max(leftFields.length, rightFields.length);
+  for (var ri = 0; ri < maxLen; ri++) {
+    var lf = leftFields[ri];
+    var rf = rightFields[ri];
+    if (lf) { T('bold', 6.5); K(); doc.text(lf[0].toUpperCase(), col1x, fy); T('normal', 9); K(); doc.text(lf[1], col1x, fy + 10); }
+    if (rf) { T('bold', 6.5); K(); doc.text(rf[0].toUpperCase(), col2x, fy); T('normal', 9); K(); doc.text(rf[1], col2x, fy + 10); }
+    fy += rowH;
   }
-  var cutAt = raw.length;
-  var cuts = ['Patient Name:','Patient or Parent','Parent/Legal Guardian:','Signature:','Date:'];
-  raw.forEach(function(ln,i){ if(cutAt===raw.length) cuts.forEach(function(w){ if(ln.trim().indexOf(w)===0) cutAt=i; }); });
-  var clean = raw.slice(0,cutAt).join('\n').trim();
 
-  var sigCardH = 90, footH = 30;
+  y += patCardH + 10;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONTENT CARD — clean text, skip repeated title and trailing sig lines
+  // ══════════════════════════════════════════════════════════════════════════
+  var raw = (f.content || '').trim().split('\n');
+  // Remove first line if it duplicates the form title
+  if (raw[0] && raw[0].trim().toUpperCase() === (f.name || '').trim().toUpperCase()) {
+    raw.shift();
+    while (raw.length && !raw[0].trim()) raw.shift();
+  }
+  // Cut trailing signature block
+  var cutAt = raw.length;
+  ['Patient Name:', 'Patient or Parent', 'Parent/Legal', 'Signature:', 'Date:'].forEach(function(w) {
+    raw.forEach(function(ln, i) { if (cutAt === raw.length && ln.trim().indexOf(w) === 0) cutAt = i; });
+  });
+  var clean = raw.slice(0, cutAt).join('\n').trim();
+
+  // Reserve space for signature card + footer
+  var sigCardH = 96;
+  var footH    = 32;
   var cntCardH = H - y - sigCardH - footH - 14;
+
   card(ML, y, TW, cntCardH);
   cardHeader(ML, y, TW, 'Document Content');
 
-  var cx = ML+10, cy = y+26, cw = TW-20, availH = cntCardH-30;
+  // Fit text — one font (helvetica normal), black, line-height 1.55
+  var cx = ML + 10, cy = y + 28, cw = TW - 20;
+  var availH = cntCardH - 32;
   var fs = 9, lh, lines;
-  for (var s=9; s>=6.5; s-=0.25) {
-    doc.setFontSize(s); lh = s*1.60;  // generous 1.60 line height
+  for (var s = 9; s >= 6.5; s -= 0.25) {
+    doc.setFontSize(s);
+    lh = s * 1.55;
     lines = doc.splitTextToSize(clean, cw);
-    if (lines.length*lh <= availH) { fs=s; break; } fs=s;
+    if (lines.length * lh <= availH) { fs = s; break; }
+    fs = s;
   }
-  sans('normal', fs); rgb(OLIVE_GRAY); lh = fs*1.60;
+  T('normal', fs); K(); lh = fs * 1.55;
   lines = doc.splitTextToSize(clean, cw);
-  for (var li=0; li<lines.length; li++) { doc.text(lines[li], cx, cy); cy+=lh; }
+  for (var li = 0; li < lines.length; li++) { doc.text(lines[li], cx, cy); cy += lh; }
   y += cntCardH + 10;
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -613,41 +649,61 @@ async function generatePDF(idx) {
   cardHeader(ML, y, TW, 'Electronic Signature & Acknowledgment');
 
   var sy = y + 26;
-  var sigColW = TW * 0.50;
+  var halfW = TW / 2 - 10;
 
-  // Signature image
-  if (sig) { try { doc.addImage(sig,'PNG',ML+10,sy,Math.min(sigColW-16,130),32); } catch(e){} }
-  drw(WARM_SAND); doc.setLineWidth(0.6);
-  doc.line(ML+10, sy+36, ML+10+Math.min(sigColW-16,130), sy+36);
-  sans('normal',6.5); rgb(STONE_GRAY); doc.text('Signature of Authorized Signer', ML+10, sy+44);
+  // LEFT: signature image + line
+  if (sig) {
+    try { doc.addImage(sig, 'PNG', ML + 10, sy, Math.min(halfW, 130), 34); } catch(e) {}
+  }
+  K(); doc.setLineWidth(0.5);
+  doc.line(ML + 10, sy + 38, ML + 10 + Math.min(halfW, 130), sy + 38);
+  T('normal', 7); K();
+  doc.text('Signature of Authorized Signer', ML + 10, sy + 48);
 
-  // Right column
-  var rx = ML + sigColW + 10, rw2 = TW - sigColW - 16;
+  // RIGHT: signer info
+  var rx = ML + TW / 2 + 8;
 
-  // Checkbox with checkmark
-  flll([255,255,255]); drw(WARM_SAND); doc.setLineWidth(0.5);
-  doc.rect(rx, sy-1, 7, 7, 'FD');
-  drw(TERRACOTTA); doc.setLineWidth(0.9);
-  doc.line(rx+1.5, sy+2.5, rx+3, sy+4.5);
-  doc.line(rx+3,   sy+4.5, rx+6.5, sy-0.5);
+  // Checkbox + consent text
+  doc.setFillColor(255,255,255); K(); doc.setLineWidth(0.5);
+  doc.rect(rx, sy, 7, 7, 'FD');
+  // Checkmark
+  K(); doc.setLineWidth(0.9);
+  doc.line(rx + 1.5, sy + 3.5, rx + 3, sy + 5.5);
+  doc.line(rx + 3,   sy + 5.5, rx + 6.5, sy + 0.5);
 
-  sans('normal',6.5); rgb(OLIVE_GRAY);
-  var conLines = doc.splitTextToSize('I have read, understood, and agree to this document. My electronic signature is legally binding.', rw2-12);
-  doc.text(conLines, rx+10, sy+4);
+  T('normal', 7); K();
+  var clines = doc.splitTextToSize('I have read and agree to this document. My signature is legally binding.', TW / 2 - 18);
+  doc.text(clines, rx + 10, sy + 5);
 
-  var fiy = sy + 16;
-  fld('SIGNED BY',  cl.guardianName||'—', rx, fiy, rw2);
-  fld('DATE & TIME', window._signTimestamp||'—', rx, fiy+18, rw2);
-  fld('IP ADDRESS',  window._signerIP||'—', rx, fiy+36, rw2);
+  var infoY = sy + 6 + clines.length * 9 + 6;
+
+  // Signed By
+  T('bold', 6.5); K(); doc.text('SIGNED BY', rx, infoY);
+  T('normal', 9); K(); doc.text(cl.guardianName || '—', rx, infoY + 10);
+  infoY += 22;
+
+  // Timestamp
+  if (window._signTimestamp) {
+    T('bold', 6.5); K(); doc.text('DATE & TIME', rx, infoY);
+    T('normal', 8); K(); doc.text(window._signTimestamp, rx, infoY + 10);
+    infoY += 22;
+  }
+
+  // IP
+  if (window._signerIP && window._signerIP !== 'unavailable') {
+    T('bold', 6.5); K(); doc.text('IP ADDRESS', rx, infoY);
+    T('normal', 8); K(); doc.text(window._signerIP, rx, infoY + 10);
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // FOOTER
   // ══════════════════════════════════════════════════════════════════════════
   var fY = H - 18;
-  drw(BORDER_CREAM); doc.setLineWidth(0.4); doc.line(ML, fY-10, W-MR, fY-10);
-  sans('normal',6.5); rgb(STONE_GRAY);
-  doc.text(p.name||'', ML, fY);
-  doc.text('Vortex Electronic Intake System', W-MR, fY, {align:'right'});
+  K(); doc.setLineWidth(0.4);
+  doc.line(ML, fY - 10, W - MR, fY - 10);
+  T('normal', 7); K();
+  doc.text(p.name || '', ML, fY);
+  doc.text('Vortex Electronic Intake System', W - MR, fY, {align: 'right'});
 
   return doc.output('datauristring');
 }
