@@ -3,731 +3,552 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign Forms — ClaimDataCare</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Sign Forms</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --brand:#c96442;--brand-dk:#a84f32;--brand-bg:#fdf3ee;
-  --parchment:#f8f6f0;--paper:#fff;
-  --text:#141413;--text2:#4d4c48;--text3:#87867f;
-  --border:#e4e1d8;--green:#16a34a;--red:#dc2626;
-  --font:'DM Sans',system-ui,sans-serif;
-  --shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
-}
-html,body{min-height:100%;background:var(--parchment);font-family:var(--font);color:var(--text);font-size:14px}
-
-/* Topbar */
-.topbar{background:#141413;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0}
-.topbar-brand{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700}
-.topbar-right{font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:6px}
-
-/* Progress bar */
-.progress-wrap{background:#fff;border-bottom:1px solid var(--border);padding:16px 24px}
-.progress-steps{display:flex;align-items:center;gap:0;max-width:700px;margin:0 auto}
+:root{--font:'DM Sans',system-ui,sans-serif;--text:#1a1a1a;--text2:#4a4a4a;--text3:#888;--border:#e0e0e0;--bg:#f7f7f7;--brand:#1a1a1a;--r:8px}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px}
+.topbar{background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px}
+.topbar-name{font-size:14px;font-weight:700}
+.topbar-secure{font-size:11px;color:rgba(255,255,255,.5)}
+.progress-wrap{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:none}
+.progress-steps{display:flex;align-items:center;max-width:700px;margin:0 auto}
 .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
-.step-item:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
-.step-item.done::after{background:var(--brand)}
-.step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);z-index:1;transition:all .2s}
-.step-item.active .step-dot{border-color:var(--brand);background:var(--brand);color:#fff}
-.step-item.done .step-dot{border-color:var(--brand);background:var(--brand);color:#fff}
-.step-label{font-size:10px;font-weight:600;color:var(--text3);margin-top:4px;text-align:center;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.step-item.active .step-label{color:var(--brand)}
-.step-item.done .step-label{color:var(--brand)}
-
-/* Main body */
-.body{max-width:760px;margin:0 auto;padding:28px 20px;width:100%}
-
-/* Cards */
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
-.card-hdr{background:#f8f6f0;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.step-item:not(:last-child)::after{content:'';position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.step-item.done::after,.step-item.active::after{background:#1a1a1a}
+.step-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text3);z-index:1}
+.step-item.active .step-dot{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
+.step-item.done .step-dot{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
+.step-label{font-size:10px;color:var(--text3);margin-top:4px;text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step-item.active .step-label,.step-item.done .step-label{color:#1a1a1a;font-weight:600}
+.body{max-width:720px;margin:0 auto;padding:28px 20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-hdr{background:#f7f7f7;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
 .card-hdr-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
 .card-body{padding:20px 18px}
-
-/* Provider header */
-.provider-banner{background:#141413;color:#fff;border-radius:12px 12px 0 0;padding:18px 20px;display:flex;align-items:center;gap:16px;margin-bottom:0}
-.provider-logo{width:52px;height:52px;border-radius:8px;object-fit:contain;background:#fff;padding:4px;flex-shrink:0}
-.provider-logo-placeholder{width:52px;height:52px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:700;color:#fff}
-.provider-name{font-size:17px;font-weight:700}
-.provider-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
-
-/* Document viewer */
-.doc-content{padding:20px 24px;font-size:13px;line-height:1.8;color:var(--text2);background:#fff;border-radius:8px;border:1px solid var(--border)}
-.doc-content h1,.doc-content h2,.doc-content h3{color:var(--text);margin:16px 0 8px;font-size:14px;font-weight:700}
-.doc-content p{margin:8px 0}
-.doc-content ul,.doc-content ol{padding-left:20px;margin:8px 0}
-.doc-content li{margin:4px 0}
-.doc-content strong{color:var(--text);font-weight:700}
-
-/* Signature */
-.sig-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
-.sig-tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;user-select:none}
-.sig-tab.active{color:var(--brand);border-bottom-color:var(--brand)}
-.sig-canvas-wrap{position:relative;background:#fafaf7;border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
-canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
-.sig-clear-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer}
-.sig-type-wrap{font-family:'Brush Script MT',cursive;font-size:36px;min-height:70px;border-bottom:2px solid var(--text);padding:8px 0;color:var(--text);line-height:1.2}
-.sig-hint{font-size:11px;color:var(--text3);margin-top:6px;font-style:italic}
-
-/* Consent box */
-.consent-box{background:var(--brand-bg);border:1px solid #f0d8cc;border-radius:8px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;margin-top:16px}
-.consent-box input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--brand);cursor:pointer;flex-shrink:0}
-.consent-box label{font-size:12px;color:var(--text2);line-height:1.6;cursor:pointer}
-
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:all .12s}
-.btn-primary{background:var(--brand);color:#fff}
-.btn-primary:hover{background:var(--brand-dk)}
-.btn-primary:disabled{background:#c9c7c0;cursor:not-allowed}
-.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text3)}
-.btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
-.btn-lg{padding:14px 32px;font-size:15px;border-radius:10px}
-
-/* Loading */
-#view-loading{text-align:center;padding:80px 20px}
-.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Error/Success */
-#view-error,#view-success{display:none;text-align:center;padding:60px 20px}
-.big-check{width:64px;height:64px;border-radius:50%;background:#f0fdf4;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-
-/* Info grid */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
-.info-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
-.info-item:nth-child(odd){padding-right:16px}
-.info-item:nth-child(even){padding-left:16px;border-left:1px solid var(--border)}
+.info-item{padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;flex-direction:column;gap:2px}
+.info-item:nth-child(odd){padding-right:14px}
+.info-item:nth-child(even){padding-left:14px;border-left:1px solid #f0f0f0}
 .info-item:nth-last-child(-n+2){border-bottom:none}
 .info-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
 .info-value{font-size:13px;font-weight:600;color:var(--text)}
-
-/* Nav buttons */
-.nav-row{display:flex;align-items:center;justify-content:space-between;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
-
-@media(max-width:600px){
-  .info-grid{grid-template-columns:1fr}
-  .info-item:nth-child(even){padding-left:0;border-left:none}
-  .topbar{padding:0 16px}
-  .body{padding:16px 12px}
-  .progress-wrap{padding:12px 16px}
-  .step-label{display:none}
-}
+.doc-content{font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap;max-height:400px;overflow-y:auto;background:#fafafa;border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.sig-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px}
+.sig-tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none}
+.sig-tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.sig-canvas-wrap{position:relative;background:#fafafa;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
+.sig-clear{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer}
+.sig-type-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r);font-size:14px;font-family:var(--font);margin-bottom:8px}
+.sig-preview{font-family:'Brush Script MT',cursive;font-size:36px;min-height:60px;border-bottom:2px solid var(--text);padding:4px 0;color:var(--text)}
+.sig-hint{font-size:11px;color:var(--text3);margin-top:6px;font-style:italic}
+.consent-box{display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f7f7f7;border:1px solid var(--border);border-radius:var(--r);margin-top:14px;font-size:12px;color:var(--text2);line-height:1.6}
+.consent-box input{width:15px;height:15px;margin-top:2px;accent-color:#1a1a1a;flex-shrink:0;cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);font-family:var(--font);background:#fff;color:var(--text);transition:all .12s}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-primary:hover{background:#333}
+.btn-primary:disabled{background:#aaa;border-color:#aaa;cursor:not-allowed}
+.btn-lg{padding:14px 32px;font-size:15px;border-radius:10px}
+.nav-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+#view-loading{text-align:center;padding:80px 20px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:#1a1a1a;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#view-error,#view-success{display:none;text-align:center;padding:60px 20px}
+.check-circle{width:64px;height:64px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.spin-sm{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr}.info-item:nth-child(even){padding-left:0;border-left:none}.topbar{padding:0 16px}.body{padding:16px 12px}.step-label{display:none}}
 </style>
 </head>
 <body>
-
 <div style="min-height:100vh;display:flex;flex-direction:column">
 
-<!-- TOPBAR -->
 <header class="topbar">
-  <div class="topbar-brand" id="topbar-provider-name" style="font-size:13px;font-weight:700">
-    Secure Intake Signing
-  </div>
-  <div class="topbar-right">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-    Secure Document Signing
-  </div>
+  <div class="topbar-name" id="topbar-name">Secure Document Signing</div>
+  <div class="topbar-secure">Secure &amp; Confidential</div>
 </header>
 
-<!-- PROGRESS -->
-<div class="progress-wrap" id="progress-wrap" style="display:none">
+<div class="progress-wrap" id="progress-wrap">
   <div class="progress-steps" id="progress-steps"></div>
 </div>
 
-<!-- VIEWS -->
-<div style="flex:1;display:flex;flex-direction:column">
+<div style="flex:1">
 
-<div id="view-loading" class="body">
-  <div class="spinner"></div>
-  <p style="color:var(--text3);font-size:14px">Loading your forms securely...</p>
-</div>
-
-<div id="view-error" class="body">
-  <div style="font-size:40px;margin-bottom:16px">⚠️</div>
-  <h2 style="margin-bottom:8px">Link Not Valid</h2>
-  <p id="error-msg" style="color:var(--text3);max-width:400px;margin:0 auto 20px;line-height:1.6"></p>
-  <p style="font-size:12px;color:var(--text3)">Please contact your provider for a new link.</p>
-</div>
-
-<div id="view-main" style="display:none;flex:1">
-
-  <!-- STEP: client info (step 0) -->
-  <div id="step-intro" class="body" style="display:none">
-    <div class="card">
-      <div id="provider-banner" class="provider-banner">
-        <!-- filled by JS -->
-      </div>
-      <div class="card-hdr" style="border-radius:0;background:#fff">
-        <span class="card-hdr-title">Secure Intake Form Signing</span>
-        <span id="form-count-pill" style="font-size:11px;font-weight:700;background:var(--brand-bg);color:var(--brand);padding:3px 10px;border-radius:20px"></span>
-      </div>
-      <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-          Please review each document carefully and sign at the bottom. Your electronic signature is legally binding.
-        </p>
-        <div class="info-grid" id="client-info-grid"></div>
-      </div>
-    </div>
-    <div class="nav-row" style="border-top:none;padding-top:0">
-      <div></div>
-      <button class="btn btn-primary btn-lg" onclick="goStep(1)">
-        Review &amp; Sign Forms
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
+  <!-- LOADING -->
+  <div id="view-loading" class="body">
+    <div class="spinner"></div>
+    <p style="color:var(--text3)">Loading your forms...</p>
   </div>
 
-  <!-- STEP: form pages (steps 1..N) -->
-  <div id="step-form" class="body" style="display:none">
-    <div class="card">
-      <div id="form-provider-banner" class="provider-banner"></div>
-      <div class="card-hdr" style="border-radius:0;background:#fff;border-bottom:2px solid var(--brand)">
-        <span id="form-title-label" class="card-hdr-title"></span>
-        <span id="form-page-label" style="font-size:11px;color:var(--text3);font-weight:600"></span>
+  <!-- ERROR -->
+  <div id="view-error" class="body">
+    <div style="font-size:40px;margin-bottom:16px">&#9888;</div>
+    <h2 style="margin-bottom:8px">Link Not Valid</h2>
+    <p id="error-msg" style="color:var(--text3);max-width:400px;margin:0 auto 20px;line-height:1.6"></p>
+    <p style="font-size:12px;color:var(--text3)">Please contact your provider for a new signing link.</p>
+  </div>
+
+  <!-- MAIN -->
+  <div id="view-main" style="display:none;flex-direction:column;flex:1">
+
+    <!-- Step 0: Intro -->
+    <div id="step-intro" class="body" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-hdr-title">Intake Form Signing</span>
+          <span id="form-count-badge" style="font-size:11px;font-weight:700;background:#f0f0f0;color:#555;padding:3px 10px;border-radius:20px"></span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Please review each document carefully and sign. Your electronic signature is legally binding.</p>
+          <div class="info-grid" id="client-info-grid"></div>
+        </div>
       </div>
-      <div class="card-body">
-        <div id="form-doc-content" class="doc-content" style="max-height:480px;overflow-y:auto;margin-bottom:20px"></div>
-        <!-- Signature -->
-        <div style="border-top:1px solid var(--border);padding-top:20px">
-          <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:14px">Your Signature for this Document</p>
-          <div class="sig-tabs">
-            <div class="sig-tab active" onclick="setSigTab('draw',this)">Draw</div>
-            <div class="sig-tab" onclick="setSigTab('type',this)">Type</div>
-            <div class="sig-tab" onclick="setSigTab('upload',this)">Upload Image</div>
-          </div>
-          <div id="sig-draw-wrap">
-            <div class="sig-canvas-wrap">
-              <canvas id="sig-canvas"></canvas>
-              <button class="sig-clear-btn" onclick="clearCanvas()">Clear</button>
+      <div style="text-align:right">
+        <button class="btn btn-primary btn-lg" onclick="showStep(1)">
+          Start Signing
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 1..N: Form pages -->
+    <div id="step-form" class="body" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span id="form-title-label" class="card-hdr-title"></span>
+          <span id="form-page-label" style="font-size:11px;color:var(--text3);font-weight:600"></span>
+        </div>
+        <div class="card-body">
+          <div id="form-doc-content" class="doc-content" style="margin-bottom:20px"></div>
+          <div style="border-top:1px solid var(--border);padding-top:18px">
+            <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">Your Signature</p>
+            <div class="sig-tabs">
+              <div class="sig-tab active" id="tab-draw" onclick="setSigTab('draw')">Draw</div>
+              <div class="sig-tab" id="tab-type" onclick="setSigTab('type')">Type</div>
+              <div class="sig-tab" id="tab-upload" onclick="setSigTab('upload')">Upload</div>
             </div>
-            <p class="sig-hint">Draw your signature using mouse or finger</p>
+            <div id="sig-draw-wrap">
+              <div class="sig-canvas-wrap">
+                <canvas id="sig-canvas"></canvas>
+                <button class="sig-clear" onclick="clearCanvas()">Clear</button>
+              </div>
+              <p class="sig-hint">Draw your signature using mouse or finger</p>
+            </div>
+            <div id="sig-type-wrap" style="display:none">
+              <input class="sig-type-input" id="sig-type-input" placeholder="Type your full name" oninput="document.getElementById('sig-type-preview').textContent=this.value;updateNextBtn()">
+              <div class="sig-preview" id="sig-type-preview"></div>
+              <p class="sig-hint">Your typed name will serve as your signature</p>
+            </div>
+            <div id="sig-upload-wrap" style="display:none;text-align:center;padding:20px">
+              <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="handleUpload(event)">
+              <button class="btn" onclick="document.getElementById('sig-upload-input').click()">Upload Signature Image</button>
+              <div id="sig-upload-preview" style="margin-top:12px"></div>
+            </div>
+            <div class="consent-box">
+              <input type="checkbox" id="form-consent" onchange="updateNextBtn()">
+              <label for="form-consent">I have read and agree to this document. My electronic signature is legally equivalent to a handwritten signature.</label>
+            </div>
           </div>
-          <div id="sig-type-wrap" style="display:none">
-            <input id="sig-type-input" placeholder="Type your full name" oninput="document.getElementById('sig-type-preview').textContent=this.value;updateNavBtn()"
-              style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font);margin-bottom:10px">
-            <div id="sig-type-preview" class="sig-type-wrap"></div>
-            <p class="sig-hint">Your typed name will serve as your signature</p>
-          </div>
-          <div id="sig-upload-wrap" style="display:none;text-align:center;padding:20px">
-            <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="handleSigUpload(event)">
-            <button class="btn btn-ghost" onclick="document.getElementById('sig-upload-input').click()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-              Upload Signature Image
-            </button>
-            <div id="sig-upload-preview" style="margin-top:12px"></div>
-          </div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn" id="btn-back" onclick="goBack()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>
+          <span id="btn-next-label">Next</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step N+1: Submit -->
+    <div id="step-submit" class="body" style="display:none">
+      <div class="card">
+        <div class="card-hdr"><span class="card-hdr-title">Review &amp; Submit All Forms</span></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">You have reviewed and signed all documents. By submitting you confirm all signatures are yours.</p>
+          <div id="submit-summary"></div>
           <div class="consent-box">
-            <input type="checkbox" id="form-consent-check" onchange="updateNavBtn()">
-            <label for="form-consent-check">I have read and agree to the above document. My electronic signature is legally equivalent to a handwritten signature.</label>
+            <input type="checkbox" id="final-consent" onchange="document.getElementById('btn-submit').disabled=!this.checked">
+            <label for="final-consent">I confirm that I have read, understood, and signed all documents listed above.</label>
           </div>
         </div>
       </div>
-    </div>
-    <div class="nav-row">
-      <button class="btn btn-ghost" id="btn-back" onclick="goBack()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Back
-      </button>
-      <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>
-        <span id="btn-next-label">Next Document</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- STEP: final submit -->
-  <div id="step-submit" class="body" style="display:none">
-    <div class="card">
-      <div id="submit-provider-banner" class="provider-banner"></div>
-      <div class="card-hdr" style="border-radius:0;background:#fff">
-        <span class="card-hdr-title">Review &amp; Submit All Forms</span>
-      </div>
-      <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">You have reviewed all documents. By submitting, you confirm that all signatures are yours and legally binding.</p>
-        <div id="submit-summary" style="margin-bottom:16px"></div>
-        <div class="consent-box">
-          <input type="checkbox" id="final-consent" onchange="document.getElementById('btn-submit').disabled=!this.checked">
-          <label for="final-consent">I confirm that I have read, understood, and electronically signed all documents listed above. I understand this is a legally binding agreement.</label>
-        </div>
+      <div class="nav-row">
+        <button class="btn" onclick="goBack()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary btn-lg" id="btn-submit" onclick="submitAll()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Sign &amp; Submit All
+        </button>
       </div>
     </div>
-    <div class="nav-row">
-      <button class="btn btn-ghost" onclick="goBack()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Back
-      </button>
-      <button class="btn btn-primary btn-lg" id="btn-submit" onclick="submitAll()" disabled>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-        Sign &amp; Submit All
-      </button>
+
+  </div><!-- /view-main -->
+
+  <!-- SUCCESS -->
+  <div id="view-success" class="body">
+    <div class="check-circle">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
     </div>
+    <h2 style="margin-bottom:8px">All Forms Signed</h2>
+    <p id="success-msg" style="color:var(--text3);max-width:440px;margin:0 auto;line-height:1.6;font-size:13px"></p>
   </div>
-
-</div><!-- /view-main -->
-
-<div id="view-success" class="body">
-  <div class="big-check">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-  </div>
-  <h2 style="margin-bottom:8px;color:var(--text)">All Forms Signed</h2>
-  <p id="success-msg" style="color:var(--text3);max-width:440px;margin:0 auto;line-height:1.6"></p>
-</div>
 
 </div><!-- /flex -->
 
-<footer style="text-align:center;padding:20px;font-size:11px;color:var(--text3)">
-  Secure Electronic Document Signing &mdash; Powered by ClaimDataCare
+<footer style="text-align:center;padding:16px;font-size:11px;color:var(--text3)">
+  Secure Electronic Document Signing
 </footer>
-
 </div>
 
 <script>
-// ── Firebase (optional — for saving signed docs) ───────────────────────────
-// Fully standalone — no Firebase
-let _fsdb=null;
-
 // ── State ──────────────────────────────────────────────────────────────────
-let _data=null;         // decoded payload
-let _step=0;            // 0=intro, 1..N=forms, N+1=submit
-let _sigs=[];           // per-form signature data URLs
-let _sigMode='draw';
-let _uploadedSig=null;
-let _canvasReady=false;
+var _data = null;
+var _step = 0;
+var _sigs = [];
+var _sigMode = 'draw';
+var _uploadedSig = null;
 
-// ── Init ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>{
-  const params=new URLSearchParams(location.search);
-  const d=params.get('d');
-  if(!d){showError('Invalid signing link. Please contact your provider for a new one.');return;}
-  try{
-    const json=decodeURIComponent(escape(atob(decodeURIComponent(d))));
-    _data=JSON.parse(json);
-  }catch(e){showError('Could not read form data. The link may be corrupted — please contact your provider.');return;}
-  if(!_data||!(_data.forms||[]).length){showError('No forms found in this link. Please contact your provider.');return;}
-  if(_data.ts&&Date.now()-_data.ts>72*60*60*1000){showError('This signing link has expired (72 hours). Please contact your provider for a new one.');return;}
+// ── Init — reads from ?d= URL param, no Firebase needed ───────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  var params = new URLSearchParams(location.search);
+  var d = params.get('d');
+  if (!d) { showError('Invalid signing link — no form data found.'); return; }
+  try {
+    var json = decodeURIComponent(escape(atob(decodeURIComponent(d))));
+    _data = JSON.parse(json);
+  } catch(e) {
+    showError('Could not read form data. The link may be corrupted.');
+    return;
+  }
+  if (!_data || !(_data.forms || []).length) {
+    showError('No forms found in this link. Please contact your provider.');
+    return;
+  }
+  if (_data.ts && Date.now() - _data.ts > 72 * 60 * 60 * 1000) {
+    showError('This signing link has expired (72 hours). Please contact your provider for a new one.');
+    return;
+  }
+  _sigs = new Array(_data.forms.length).fill(null);
 
-  _sigs=new Array(_data.forms.length).fill(null);
-  const pName=(_data.provider||{}).name||'';
-  if(pName){const tb=document.getElementById('topbar-provider-name');if(tb)tb.textContent=pName;}
+  // Set provider name in topbar
+  var pName = (_data.provider || {}).name || '';
+  if (pName) document.getElementById('topbar-name').textContent = pName;
+
   buildProgress();
   buildIntro();
   showStep(0);
-  document.getElementById('view-loading').style.display='none';
-  document.getElementById('view-main').style.display='flex';
-  document.getElementById('view-main').style.flexDirection='column';
-  document.getElementById('progress-wrap').style.display='block';
+
+  document.getElementById('view-loading').style.display = 'none';
+  document.getElementById('view-main').style.display = 'flex';
+  document.getElementById('progress-wrap').style.display = 'block';
 });
 
-// ── Progress bar ───────────────────────────────────────────────────────────
-function buildProgress(){
-  const steps=[{label:'Overview'},..._data.forms.map(f=>({label:f.name||'Form'})),{label:'Submit'}];
-  const total=steps.length;
-  document.getElementById('progress-steps').innerHTML=steps.map((s,i)=>
-    `<div class="step-item" id="prog-${i}">
-      <div class="step-dot">${i===total-1?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>':i===0?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>':(i)}</div>
-      <div class="step-label">${esc(s.label)}</div>
-    </div>`
-  ).join('');
+// ── Progress ───────────────────────────────────────────────────────────────
+function buildProgress() {
+  var steps = [{label:'Overview'}].concat(
+    _data.forms.map(function(f){ return {label: f.name || 'Form'}; }),
+    [{label:'Submit'}]
+  );
+  document.getElementById('progress-steps').innerHTML = steps.map(function(s, i) {
+    return '<div class="step-item" id="prog-' + i + '">'
+      + '<div class="step-dot">' + (i === 0 ? '&#9432;' : i === steps.length-1 ? '&#10003;' : i) + '</div>'
+      + '<div class="step-label">' + esc(s.label) + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-function updateProgress(){
-  const total=_data.forms.length+2;
-  for(let i=0;i<total;i++){
-    const el=document.getElementById('prog-'+i);
-    if(!el)continue;
-    el.className='step-item'+(i<_step?' done':i===_step?' active':'');
+function updateProgress() {
+  var total = _data.forms.length + 2;
+  for (var i = 0; i < total; i++) {
+    var el = document.getElementById('prog-' + i);
+    if (!el) continue;
+    el.className = 'step-item' + (i < _step ? ' done' : i === _step ? ' active' : '');
   }
 }
 
-// ── Provider banner HTML ───────────────────────────────────────────────────
-function providerBannerHTML(){
-  const p=_data.provider||{};
-  const logo=p.logo?`<img src="${p.logo}" class="provider-logo" alt="logo">`:`<div class="provider-logo-placeholder">${(p.name||'C')[0]}</div>`;
-  return `${logo}<div><div class="provider-name">${esc(p.name||'ClaimDataCare')}</div><div class="provider-sub">${esc(p.addr1||'')}${p.city?', '+p.city:''} ${p.state||''}</div></div>`;
-}
-
-// ── Intro step ─────────────────────────────────────────────────────────────
-function buildIntro(){
-  const c=_data.client||{};
-  document.getElementById('provider-banner').innerHTML=providerBannerHTML();
-  document.getElementById('form-count-pill').textContent=_data.forms.length+' document'+(_data.forms.length!==1?'s':'');
-  const fields=[
-    ['Child / Client',(c.lastName||'')+(c.firstName?', '+c.firstName:'')],
-    ['Date of Birth',c.dob||'—'],
-    ['Guardian',c.guardianName||'—'],
-    ['Guardian Phone',c.guardianPhone||'—'],
-    ['Insurance',c.insuranceProvider||'—'],
-    ['Date Sent',_data.ts?new Date(_data.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'],
+// ── Intro ──────────────────────────────────────────────────────────────────
+function buildIntro() {
+  var c = _data.client || {};
+  var n = _data.forms.length;
+  document.getElementById('form-count-badge').textContent = n + ' document' + (n !== 1 ? 's' : '');
+  var fields = [
+    ['Child / Client', (c.lastName || '') + (c.firstName ? ', ' + c.firstName : '')],
+    ['Date of Birth', c.dob || '—'],
+    ['Guardian', c.guardianName || '—'],
+    ['Phone', c.guardianPhone || '—'],
+    ['Insurance', c.insuranceProvider || '—'],
+    ['Date', new Date(_data.ts).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})]
   ];
-  document.getElementById('client-info-grid').innerHTML=fields.map(([l,v])=>
-    `<div class="info-item"><div class="info-label">${l}</div><div class="info-value">${esc(v)}</div></div>`
-  ).join('');
-}
-
-// ── Form step ──────────────────────────────────────────────────────────────
-function buildFormStep(idx){
-  const f=_data.forms[idx];
-  const c=_data.client||{};
-  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  // Replace template vars
-  let content=f.content||f.body||'<p>No content available for this form.</p>';
-  content=content.replace(/\{\{guardianName\}\}/g,esc(c.guardianName||'Guardian'));
-  content=content.replace(/\{\{childName\}\}/g,esc((c.firstName||'')+(c.lastName?' '+c.lastName:'')));
-  content=content.replace(/\{\{date\}\}/g,today);
-  content=content.replace(/\{\{signature\}\}/g,'<em>[Signed electronically]</em>');
-  // Sanitize: convert raw HTML tags if content is plain text with HTML
-  document.getElementById('form-provider-banner').innerHTML=providerBannerHTML();
-  document.getElementById('form-title-label').textContent=(f.name||'Form').toUpperCase();
-  document.getElementById('form-page-label').textContent='Document '+(idx+1)+' of '+_data.forms.length;
-  document.getElementById('form-doc-content').innerHTML=content;
-  document.getElementById('form-consent-check').checked=false;
-  document.getElementById('final-consent')&&(document.getElementById('final-consent').checked=false);
-  // Reset sig
-  _sigMode='draw';
-  _uploadedSig=null;
-  document.querySelectorAll('.sig-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.getElementById('sig-draw-wrap').style.display='';
-  document.getElementById('sig-type-wrap').style.display='none';
-  document.getElementById('sig-upload-wrap').style.display='none';
-  document.getElementById('sig-type-input').value='';
-  document.getElementById('sig-type-preview').textContent='';
-  document.getElementById('sig-upload-preview').innerHTML='';
-  document.getElementById('sig-upload-input').value='';
-  setTimeout(()=>{initCanvas();},50);
-  // Next button label
-  const isLast=idx===_data.forms.length-1;
-  document.getElementById('btn-next-label').textContent=isLast?'Review & Submit':'Next Document';
-  document.getElementById('btn-back').style.display=idx===0?'none':'';
-  updateNavBtn();
-}
-
-// ── Submit step ────────────────────────────────────────────────────────────
-function buildSubmitStep(){
-  document.getElementById('submit-provider-banner').innerHTML=providerBannerHTML();
-  const list=_data.forms.map((f,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f6f0;border-radius:8px;margin-bottom:6px">
-      <div style="width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-      </div>
-      <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(f.name||'Form '+(i+1))}</span>
-      <span style="margin-left:auto;font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">${esc(f.type||'Consent')}</span>
-    </div>`
-  ).join('');
-  document.getElementById('submit-summary').innerHTML=list;
-  document.getElementById('btn-submit').disabled=true;
-  document.getElementById('final-consent').checked=false;
+  document.getElementById('client-info-grid').innerHTML = fields.map(function(f) {
+    return '<div class="info-item"><div class="info-label">' + f[0] + '</div><div class="info-value">' + esc(f[1]) + '</div></div>';
+  }).join('');
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
-function showStep(s){
-  _step=s;
+function showStep(s) {
+  _step = s;
   updateProgress();
-  document.getElementById('step-intro').style.display=s===0?'':'none';
-  document.getElementById('step-form').style.display=(s>=1&&s<=_data.forms.length)?'':'none';
-  document.getElementById('step-submit').style.display=(s===_data.forms.length+1)?'':'none';
-  if(s>=1&&s<=_data.forms.length) buildFormStep(s-1);
-  if(s===_data.forms.length+1) buildSubmitStep();
-  window.scrollTo(0,0);
+  document.getElementById('step-intro').style.display = s === 0 ? '' : 'none';
+  document.getElementById('step-form').style.display = (s >= 1 && s <= _data.forms.length) ? '' : 'none';
+  document.getElementById('step-submit').style.display = s === _data.forms.length + 1 ? '' : 'none';
+  if (s >= 1 && s <= _data.forms.length) buildFormStep(s - 1);
+  if (s === _data.forms.length + 1) buildSubmitStep();
+  window.scrollTo(0, 0);
 }
 
-function goStep(s){
-  // Collect sig before moving
-  if(_step>=1&&_step<=_data.forms.length){
-    const sig=getSigDataUrl();
-    if(!sig){alert('Please sign before continuing.');return;}
-    _sigs[_step-1]=sig;
-  }
-  showStep(s);
+function goNext() {
+  var sig = getSig();
+  if (!sig) { alert('Please sign before continuing.'); return; }
+  if (!document.getElementById('form-consent').checked) { alert('Please check the agreement box.'); return; }
+  _sigs[_step - 1] = sig;
+  showStep(_step + 1);
 }
 
-function goNext(){
-  const sig=getSigDataUrl();
-  if(!sig){alert('Please sign before continuing.');return;}
-  if(!document.getElementById('form-consent-check').checked){alert('Please check the agreement box.');return;}
-  _sigs[_step-1]=sig;
-  showStep(_step+1);
+function goBack() { showStep(_step - 1); }
+
+// ── Form step ──────────────────────────────────────────────────────────────
+function buildFormStep(idx) {
+  var f = _data.forms[idx];
+  document.getElementById('form-title-label').textContent = (f.name || 'Form').toUpperCase();
+  document.getElementById('form-page-label').textContent = 'Document ' + (idx+1) + ' of ' + _data.forms.length;
+  document.getElementById('form-doc-content').textContent = f.content || 'No content available.';
+  document.getElementById('form-consent').checked = false;
+  _sigMode = 'draw'; _uploadedSig = null;
+  document.getElementById('sig-type-input').value = '';
+  document.getElementById('sig-type-preview').textContent = '';
+  document.getElementById('sig-upload-preview').innerHTML = '';
+  document.getElementById('sig-upload-input').value = '';
+  setSigTab('draw');
+  setTimeout(initCanvas, 50);
+  var isLast = idx === _data.forms.length - 1;
+  document.getElementById('btn-next-label').textContent = isLast ? 'Review & Submit' : 'Next Document';
+  document.getElementById('btn-back').style.display = idx === 0 ? 'none' : '';
+  updateNextBtn();
 }
 
-function goBack(){
-  showStep(_step-1);
+// ── Submit step ────────────────────────────────────────────────────────────
+function buildSubmitStep() {
+  document.getElementById('submit-summary').innerHTML = _data.forms.map(function(f, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f7f7f7;border-radius:8px;margin-bottom:6px">'
+      + '<div style="width:22px;height:22px;border-radius:50%;background:#1a1a1a;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">&#10003;</div>'
+      + '<span style="font-size:13px;font-weight:600">' + esc(f.name || 'Form ' + (i+1)) + '</span>'
+      + '</div>';
+  }).join('');
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('final-consent').checked = false;
 }
 
 // ── Canvas ─────────────────────────────────────────────────────────────────
-function initCanvas(){
-  const canvas=document.getElementById('sig-canvas');
-  if(!canvas)return;
-  const W=canvas.offsetWidth||600;
-  canvas.width=W*window.devicePixelRatio;
-  canvas.height=160*window.devicePixelRatio;
-  const ctx=canvas.getContext('2d');
-  ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
-  ctx.strokeStyle='#141413';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
-  canvas._ctx=ctx;
-  let drawing=false;
-  const pos=e=>{const r=canvas.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};};
-  const start=e=>{drawing=true;ctx.beginPath();const p=pos(e);ctx.moveTo(p.x,p.y);e.preventDefault();};
-  const move=e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();updateNavBtn();e.preventDefault();};
-  const end=()=>{drawing=false;};
-  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
-  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
-  _canvasReady=true;
+function initCanvas() {
+  var canvas = document.getElementById('sig-canvas');
+  if (!canvas) return;
+  var W = canvas.offsetWidth || 600;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = 160 * window.devicePixelRatio;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  var drawing = false;
+  var pos = function(e) {
+    var r = canvas.getBoundingClientRect();
+    var s = e.touches ? e.touches[0] : e;
+    return {x: s.clientX - r.left, y: s.clientY - r.top};
+  };
+  canvas.onmousedown = function(e) { drawing=true; ctx.beginPath(); var p=pos(e); ctx.moveTo(p.x,p.y); };
+  canvas.onmousemove = function(e) { if(!drawing)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); updateNextBtn(); };
+  canvas.onmouseup = canvas.onmouseleave = function() { drawing=false; };
+  canvas.ontouchstart = function(e) { e.preventDefault(); drawing=true; ctx.beginPath(); var p=pos(e); ctx.moveTo(p.x,p.y); };
+  canvas.ontouchmove = function(e) { e.preventDefault(); if(!drawing)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); updateNextBtn(); };
+  canvas.ontouchend = function() { drawing=false; };
 }
 
-function clearCanvas(){
-  const canvas=document.getElementById('sig-canvas');
-  if(!canvas)return;
-  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-  updateNavBtn();
+function clearCanvas() {
+  var c = document.getElementById('sig-canvas');
+  c.getContext('2d').clearRect(0,0,c.width,c.height);
+  updateNextBtn();
 }
 
-function isCanvasEmpty(){
-  const canvas=document.getElementById('sig-canvas');
-  if(!canvas)return true;
-  return !canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data.some((v,i)=>i%4===3&&v>0);
+function isCanvasEmpty() {
+  var c = document.getElementById('sig-canvas');
+  return !c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(function(v,i){ return i%4===3&&v>0; });
 }
 
-function setSigTab(mode,el){
-  _sigMode=mode;
-  document.querySelectorAll('.sig-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('sig-draw-wrap').style.display=mode==='draw'?'':'none';
-  document.getElementById('sig-type-wrap').style.display=mode==='type'?'':'none';
-  document.getElementById('sig-upload-wrap').style.display=mode==='upload'?'':'none';
-  updateNavBtn();
+function setSigTab(mode) {
+  _sigMode = mode;
+  ['draw','type','upload'].forEach(function(m) {
+    document.getElementById('tab-'+m).classList.toggle('active', m===mode);
+    document.getElementById('sig-'+m+'-wrap').style.display = m===mode ? '' : 'none';
+  });
+  if (mode==='draw') setTimeout(initCanvas,50);
+  updateNextBtn();
 }
 
-function handleSigUpload(e){
-  const file=e.target.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    _uploadedSig=ev.target.result;
-    document.getElementById('sig-upload-preview').innerHTML=`<img src="${_uploadedSig}" style="max-height:90px;border:1px solid var(--border);border-radius:8px;padding:4px">`;
-    updateNavBtn();
+function handleUpload(e) {
+  var file = e.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    _uploadedSig = ev.target.result;
+    document.getElementById('sig-upload-preview').innerHTML = '<img src="'+_uploadedSig+'" style="max-height:80px;border:1px solid var(--border);border-radius:var(--r);padding:4px">';
+    updateNextBtn();
   };
   reader.readAsDataURL(file);
 }
 
-function getSigDataUrl(){
-  if(_sigMode==='draw'&&!isCanvasEmpty())return document.getElementById('sig-canvas').toDataURL('image/png');
-  if(_sigMode==='type'){
-    const txt=document.getElementById('sig-type-input').value.trim();
-    if(!txt)return null;
-    const c=document.createElement('canvas');c.width=500;c.height=110;
-    const ctx=c.getContext('2d');
-    ctx.fillStyle='#fff';ctx.fillRect(0,0,500,110);
-    ctx.fillStyle='#141413';ctx.font='55px "Brush Script MT",cursive';
-    ctx.textAlign='center';ctx.textBaseline='middle';
+function getSig() {
+  if (_sigMode==='draw' && !isCanvasEmpty()) return document.getElementById('sig-canvas').toDataURL('image/png');
+  if (_sigMode==='type') {
+    var txt = document.getElementById('sig-type-input').value.trim();
+    if (!txt) return null;
+    var c = document.createElement('canvas'); c.width=500; c.height=110;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,500,110);
+    ctx.fillStyle='#1a1a1a'; ctx.font='55px "Brush Script MT",cursive';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(txt,250,55);
     return c.toDataURL('image/png');
   }
-  if(_sigMode==='upload')return _uploadedSig||null;
+  if (_sigMode==='upload') return _uploadedSig || null;
   return null;
 }
 
-function updateNavBtn(){
-  const hasSig=getSigDataUrl()!==null;
-  const hasConsent=document.getElementById('form-consent-check')?.checked||false;
-  const btn=document.getElementById('btn-next');
-  if(btn)btn.disabled=!(hasSig&&hasConsent);
+function updateNextBtn() {
+  var hasSig = getSig() !== null;
+  var hasConsent = document.getElementById('form-consent') && document.getElementById('form-consent').checked;
+  var btn = document.getElementById('btn-next');
+  if (btn) btn.disabled = !(hasSig && hasConsent);
 }
 
 // ── PDF generation ─────────────────────────────────────────────────────────
-async function generatePDF(formIdx){
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'pt',format:'letter'});
-  const f=_data.forms[formIdx];
-  const c=_data.client||{};
-  const p=_data.provider||{};
-  const sig=_sigs[formIdx];
-  const W=doc.internal.pageSize.getWidth();
-  const H=doc.internal.pageSize.getHeight();
-  const M=50; // margin
-  const today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  let y=0;
+async function generatePDF(idx) {
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({unit:'pt',format:'letter'});
+  var f = _data.forms[idx];
+  var c = _data.client || {};
+  var p = _data.provider || {};
+  var sig = _sigs[idx];
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var M = 50;
+  var y = 0;
+  var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
-  // ── Helper functions ───────────────────────────────────────────────────
-  const checkPage=(needed=60)=>{ if(y>H-needed){doc.addPage();y=M;} };
-  const setColor=(r,g,b)=>{ doc.setTextColor(r,g,b); };
-  const rule=(color=[228,225,216],lw=0.5)=>{
-    doc.setDrawColor(...color);doc.setLineWidth(lw);
-    doc.line(M,y,W-M,y);y+=10;
-  };
-  const sectionLabel=(txt)=>{
-    doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-    setColor(150,148,143);
-    doc.text(txt.toUpperCase(),M,y);y+=10;
-  };
+  // Header
+  doc.setFillColor(245,245,245);
+  doc.rect(0,0,W,60,'F');
+  doc.setFillColor(26,26,26);
+  doc.rect(0,58,W,2,'F');
 
-  // ── Replace template vars in form content ──────────────────────────────
-  const clientName=(c.firstName||'')+' '+(c.lastName||'');
-  const guardianName=c.guardianName||'';
-  let rawContent=f.content||f.body||'';
-  rawContent=rawContent.replace(/\{\{guardianName\}\}/g,guardianName);
-  rawContent=rawContent.replace(/\{\{childName\}\}/g,clientName.trim());
-  rawContent=rawContent.replace(/\{\{date\}\}/g,today);
-  rawContent=rawContent.replace(/\{\{signature\}\}/g,'[Signed electronically]');
-  // Strip HTML tags cleanly
-  const tmp=document.createElement('div');tmp.innerHTML=rawContent;
-  const plainText=(tmp.innerText||tmp.textContent||'').replace(/
-{3,}/g,'\n\n').trim();
-
-  // ══════════════════════════════════════════════════════════════════════
-  // HEADER — provider info, light background, logo if available
-  // ══════════════════════════════════════════════════════════════════════
-  // Light parchment header band
-  doc.setFillColor(248,246,240);
-  doc.rect(0,0,W,70,'F');
-  // Thin terracotta accent line at bottom of header
-  doc.setFillColor(201,100,66);
-  doc.rect(0,68,W,2,'F');
-
-  let hx=M;
-  // Provider logo
-  if(p.logo){
-    try{
-      doc.addImage(p.logo,'PNG',M,10,48,48);
-      hx=M+58;
-    }catch(e){}
+  // Provider logo if available
+  var hx = M;
+  if (p.logo) {
+    try { doc.addImage(p.logo,'PNG',M,8,44,44); hx = M + 54; } catch(e) {}
   }
-  // Provider name
-  doc.setFontSize(14);doc.setFont('helvetica','bold');setColor(20,20,19);
-  doc.text(p.name||'',hx,26);
-  // Provider address / contact
-  const provAddr=[p.addr1,p.city&&p.state?p.city+', '+p.state:'',p.phone?'Tel: '+p.phone:'',p.npi?'NPI: '+p.npi:''].filter(Boolean).join('   ');
-  doc.setFontSize(8);doc.setFont('helvetica','normal');setColor(100,98,95);
-  doc.text(provAddr,hx,40);
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
+  doc.text(p.name || '', hx, 26);
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+  var provAddr = [p.addr1, p.city && p.state ? p.city+', '+p.state : '', p.phone ? 'Tel: '+p.phone : '', p.npi ? 'NPI: '+p.npi : ''].filter(Boolean).join('   ');
+  doc.text(provAddr, hx, 40);
+  y = 80;
 
-  y=90;
+  // Form title
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
+  doc.text((f.name || 'Consent Form').toUpperCase(), M, y); y += 5;
+  doc.setDrawColor(26,26,26); doc.setLineWidth(1); doc.line(M,y,W-M,y); y += 16;
 
-  // ══════════════════════════════════════════════════════════════════════
-  // FORM TITLE
-  // ══════════════════════════════════════════════════════════════════════
-  doc.setFontSize(15);doc.setFont('helvetica','bold');setColor(201,100,66);
-  doc.text((f.name||'Consent Form').toUpperCase(),M,y);y+=6;
-  doc.setFillColor(201,100,66);doc.rect(M,y,W-M*2,1.5,'F');y+=16;
-
-  // ══════════════════════════════════════════════════════════════════════
-  // DEMOGRAPHICS — 2-column card style
-  // ══════════════════════════════════════════════════════════════════════
-  sectionLabel('Demographics');
-  // Card background
-  doc.setFillColor(252,250,247);
-  doc.setDrawColor(228,225,216);doc.setLineWidth(0.5);
-  doc.roundedRect(M,y,W-M*2,70,4,4,'FD');
-  const col1=M+12, col2=M+(W-M*2)/2+6;
-  const rowH=14;
-  let ry=y+14;
-  const dField=(label,val,x,yy)=>{
-    doc.setFontSize(7.5);doc.setFont('helvetica','bold');setColor(135,134,127);
-    doc.text(label,x,yy);
-    doc.setFontSize(9.5);doc.setFont('helvetica','normal');setColor(20,20,19);
-    doc.text(val||'—',x,yy+9);
+  // Demographics card
+  doc.setFillColor(247,247,247);
+  doc.setDrawColor(224,224,224); doc.setLineWidth(0.5);
+  doc.roundedRect(M, y, W-M*2, 64, 4, 4, 'FD');
+  var col1 = M+12, col2 = M+(W-M*2)/2+6;
+  var ry = y+14;
+  var dField = function(lbl, val, x, yy) {
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(135,135,135);
+    doc.text(lbl, x, yy);
+    doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    doc.text(val||'—', x, yy+9);
   };
-  dField('CLIENT',(c.lastName||'').toUpperCase()+', '+(c.firstName||''),col1,ry);
-  dField('DATE OF BIRTH',c.dob||'',col2,ry);ry+=rowH+4;
-  dField('GUARDIAN',guardianName,col1,ry);
-  dField('INSURANCE',c.insuranceProvider||'',col2,ry);ry+=rowH+4;
-  dField('INSURANCE ID',c.insuranceId||'',col1,ry);
-  dField('DATE',today,col2,ry);
-  y+=78;y+=8;
+  dField('CLIENT', (c.lastName||'').toUpperCase()+', '+(c.firstName||''), col1, ry);
+  dField('DATE OF BIRTH', c.dob||'', col2, ry); ry+=18;
+  dField('GUARDIAN', c.guardianName||'', col1, ry);
+  dField('INSURANCE', c.insuranceProvider||'', col2, ry); ry+=18;
+  dField('INSURANCE ID', c.insuranceId||'', col1, ry);
+  dField('DATE', today, col2, ry);
+  y += 72; y += 10;
 
-  // ══════════════════════════════════════════════════════════════════════
-  // DOCUMENT CONTENT
-  // ══════════════════════════════════════════════════════════════════════
-  sectionLabel(f.type||'Consent');
-  doc.setFillColor(201,100,66);doc.rect(M,y,W-M*2,0.8,'F');y+=10;
-
-  doc.setFontSize(9.5);doc.setFont('helvetica','normal');setColor(30,30,28);
-  const contentLines=doc.splitTextToSize(plainText,W-M*2-4);
-  for(const line of contentLines){
-    checkPage(30);
-    doc.text(line,M,y);y+=13;
+  // Content
+  doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(50,50,50);
+  var lines = doc.splitTextToSize(f.content||'', W-M*2);
+  for (var i=0; i<lines.length; i++) {
+    if (y > H-100) { doc.addPage(); y=M; }
+    doc.text(lines[i], M, y); y+=13;
   }
   y+=10;
 
-  // ══════════════════════════════════════════════════════════════════════
-  // ELECTRONIC SIGNATURE
-  // ══════════════════════════════════════════════════════════════════════
-  checkPage(120);
-  doc.setFillColor(248,246,240);
-  doc.setDrawColor(228,225,216);doc.setLineWidth(0.5);
-  doc.roundedRect(M,y,W-M*2,90,4,4,'FD');
-  let sy=y+14;
-  doc.setFontSize(7.5);doc.setFont('helvetica','bold');setColor(135,134,127);
-  doc.text('ELECTRONIC SIGNATURE',M+12,sy);sy+=12;
-  if(sig){
-    try{
-      doc.addImage(sig,'PNG',M+12,sy,140,38);
-      sy+=44;
-    }catch(e){sy+=44;}
-  }
-  // Signature line
-  doc.setDrawColor(20,20,19);doc.setLineWidth(0.5);
-  doc.line(M+12,sy,M+160,sy);sy+=8;
-  doc.setFontSize(9);doc.setFont('helvetica','bold');setColor(20,20,19);
-  doc.text(guardianName||clientName.trim(),M+12,sy);sy+=11;
-  doc.setFontSize(8);doc.setFont('helvetica','normal');setColor(100,98,95);
-  doc.text('Signed electronically · '+today,M+12,sy);
+  // Signature
+  if (y > H-130) { doc.addPage(); y=M; }
+  doc.setFillColor(247,247,247); doc.setDrawColor(224,224,224); doc.setLineWidth(0.5);
+  doc.roundedRect(M, y, W-M*2, 90, 4, 4, 'FD');
+  var sy = y+14;
+  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(135,135,135);
+  doc.text('ELECTRONIC SIGNATURE', M+12, sy); sy+=12;
+  if (sig) { try { doc.addImage(sig,'PNG',M+12,sy,130,36); sy+=42; } catch(e){sy+=42;} }
+  doc.setDrawColor(26,26,26); doc.setLineWidth(0.5); doc.line(M+12,sy,M+160,sy); sy+=8;
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
+  doc.text(c.guardianName||'Guardian', M+12, sy); sy+=11;
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+  doc.text('Signed electronically on '+today, M+12, sy);
   y+=98;
 
-  // ══════════════════════════════════════════════════════════════════════
-  // FOOTER
-  // ══════════════════════════════════════════════════════════════════════
-  doc.setFillColor(248,246,240);
-  doc.rect(0,H-28,W,28,'F');
-  doc.setFillColor(201,100,66);doc.rect(0,H-28,W,1,'F');
-  doc.setFontSize(7);doc.setFont('helvetica','normal');setColor(150,148,143);
-  const footerLeft=p.name+(p.addr1?'  ·  '+p.addr1:'')+(p.city?', '+p.city:'')+(p.state?' '+p.state:'');
-  const footerRight='Secure Electronic Signature  ·  '+today;
-  doc.text(footerLeft,M,H-13);
-  doc.text(footerRight,W-M,H-13,{align:'right'});
+  // Footer
+  doc.setFillColor(245,245,245); doc.rect(0,H-26,W,26,'F');
+  doc.setFillColor(26,26,26); doc.rect(0,H-26,W,1,'F');
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+  doc.text(p.name||'', M, H-12);
+  doc.text('Secure Electronic Signature · '+today, W-M, H-12, {align:'right'});
 
   return doc.output('datauristring');
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────
-async function submitAll(){
-  const btn=document.getElementById('btn-submit');
-  btn.disabled=true;
-  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Saving...';
-  const ts=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+async function submitAll() {
+  var btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin-sm"></div> Saving...';
+  var ts = new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
 
-  // Generate one PDF per form
-  const pdfs=[];
-  for(let i=0;i<_data.forms.length;i++){
-    try{pdfs.push(await generatePDF(i));}catch(e){pdfs.push(null);}
+  // Generate PDFs
+  var pdfs = [];
+  for (var i=0; i<_data.forms.length; i++) {
+    try { pdfs.push(await generatePDF(i)); } catch(e) { pdfs.push(null); }
   }
 
-  // Save to localStorage — app reads this on next load
-  try{
-    const rec={
-      id:'sig_'+Date.now(),
-      token:_data.token||'',
-      clientId:_data.clientId||'',
-      email:_data.email||'',
-      signedTs:ts,
-      signedAt:Date.now(),
-      forms:_data.forms.map((f,i)=>({
-        id:f.id,name:f.name,type:f.type,
-        pdfData:pdfs[i]||null,
-        signatureData:_sigs[i]||null,
-        signatureMode:_sigMode
-      }))
+  // Save to localStorage
+  try {
+    var rec = {
+      id:'sig_'+Date.now(), clientId:_data.clientId||'', email:_data.email||'',
+      signedTs:ts, signedAt:Date.now(),
+      forms:_data.forms.map(function(f,i){ return {id:f.id,name:f.name,type:f.type,pdfData:pdfs[i]||null}; })
     };
-    const existing=JSON.parse(localStorage.getItem('cdc_signed_forms')||'[]');
+    var existing = JSON.parse(localStorage.getItem('cdc_signed_forms')||'[]');
     existing.push(rec);
-    localStorage.setItem('cdc_signed_forms',JSON.stringify(existing));
-  }catch(e){console.warn('localStorage',e.message);}
+    localStorage.setItem('cdc_signed_forms', JSON.stringify(existing));
+  } catch(e) {}
 
-  // Save PDFs to Google Drive via Apps Script
-  try{
-    const APPS_SCRIPT='https://script.google.com/macros/s/AKfycbyCFem8OlJBZlL2-YifE-SoPn-sw6FLFPWnPZaWUIVxuQPWGysAI2QhtzJa9M-V6aI8WA/exec';
-    const c=_data.client||{};
-    fetch(APPS_SCRIPT,{
+  // Save to Google Drive via Apps Script (non-blocking)
+  try {
+    var c = _data.client || {};
+    fetch('https://script.google.com/macros/s/AKfycbyCFem8OlJBZlL2-YifE-SoPn-sw6FLFPWnPZaWUIVxuQPWGysAI2QhtzJa9M-V6aI8WA/exec', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({
         action:'saveSigned',
         clientId:_data.clientId||'',
@@ -736,26 +557,28 @@ async function submitAll(){
         guardianLast:c.lastName||'',
         guardianEmail:_data.email||'',
         signedTs:ts,
-        forms:_data.forms.map((f,i)=>({id:f.id,name:f.name,type:f.type,pdfData:pdfs[i]||null}))
+        forms:_data.forms.map(function(f,i){ return {id:f.id,name:f.name,type:f.type,pdfData:pdfs[i]||null}; })
       })
     });
-  }catch(e){console.warn('Drive save skipped:',e.message);}
+  } catch(e) {}
 
   // Show success
-  document.getElementById('view-main').style.display='none';
-  document.getElementById('progress-wrap').style.display='none';
-  document.getElementById('view-success').style.display='block';
-  const name=(((_data.client||{}).firstName||'')+' '+((_data.client||{}).lastName||'')).trim();
-  document.getElementById('success-msg').textContent='Forms for '+name+' signed on '+ts+'. You may close this window.';
+  document.getElementById('view-main').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('view-success').style.display = 'block';
+  var name = ((_data.client||{}).firstName||'') + ' ' + ((_data.client||{}).lastName||'');
+  document.getElementById('success-msg').textContent = 'Forms for '+name.trim()+' signed on '+ts+'. You may close this window.';
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function showError(msg){
-  document.getElementById('view-loading').style.display='none';
-  document.getElementById('view-error').style.display='block';
-  document.getElementById('error-msg').textContent=msg;
+function showError(msg) {
+  document.getElementById('view-loading').style.display = 'none';
+  document.getElementById('view-error').style.display = 'block';
+  document.getElementById('error-msg').textContent = msg;
 }
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 </script>
 </body>
 </html>
