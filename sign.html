@@ -489,50 +489,36 @@ async function generatePDF(idx) {
   var W   = doc.internal.pageSize.getWidth();   // 612
   var H   = doc.internal.pageSize.getHeight();  // 792
   var ML  = 48, MR = 48, TW = W - ML - MR;     // 516pt
-
-  // ONE font, ONE color: helvetica, black
-  var BLACK  = [0, 0, 0];
-  var WHITE  = [255, 255, 255];
-  var LGRAY  = [240, 240, 240];  // card bg only
-  var DGRAY  = [40, 40, 40];     // card header bg
+  var PAD = 12; // inner padding from card edge to content
 
   function K()  { doc.setTextColor(0,0,0); doc.setDrawColor(0,0,0); }
   function flll(r,g,b) { doc.setFillColor(r,g,b); }
   function drw(r,g,b)  { doc.setDrawColor(r,g,b); }
-
-  // Single font: helvetica throughout
   function T(weight, size) {
     doc.setFont('helvetica', weight || 'normal');
     doc.setFontSize(size || 9);
   }
 
-  // ── CARD: white bg, light border ──────────────────────────────────────────
+  // ── CARD: white bg, light border ─────────────────────────────────────────
   function card(x, y, w, h) {
     flll(255,255,255); drw(210,210,210);
     doc.setLineWidth(0.5);
     doc.roundedRect(x, y, w, h, 4, 4, 'FD');
   }
 
-  // ── CARD HEADER: dark bg, white text ──────────────────────────────────────
+  // ── CARD HEADER: dark bg, white bold text ────────────────────────────────
+  var HDR_H = 20; // header band height
   function cardHeader(x, y, w, label) {
     flll(40,40,40); drw(40,40,40); doc.setLineWidth(0);
-    doc.roundedRect(x, y, w, 18, 4, 4, 'FD');
-    flll(40,40,40); doc.rect(x, y+10, w, 8, 'F');
-    T('bold', 7); doc.setTextColor(255,255,255);
-    doc.text(label.toUpperCase(), x+10, y+12);
+    doc.roundedRect(x, y, w, HDR_H, 4, 4, 'FD');
+    flll(40,40,40); doc.rect(x, y + HDR_H - 6, w, 6, 'F');
+    T('bold', 7.5); doc.setTextColor(255,255,255);
+    doc.text(label.toUpperCase(), x + PAD, y + 13.5);
   }
 
-  // ── FIELD: label + value, both black, proper spacing ─────────────────────
-  // Returns height consumed
-  function field(label, value, x, y, w) {
-    if (!value || value === '—') return 0;
-    T('bold', 6.5); K();
-    doc.text(label.toUpperCase(), x, y);
-    T('normal', 9); K();
-    var wrapped = doc.splitTextToSize(value, w);
-    doc.text(wrapped, x, y + 11);
-    return 11 + wrapped.length * 11; // label line + value lines
-  }
+  // ── CONTENT START Y inside card (after header + extra gap) ───────────────
+  var HDR_GAP = 14; // extra space below header band before first content line
+  function contentY(cardTop) { return cardTop + HDR_H + HDR_GAP; }
 
   // ══════════════════════════════════════════════════════════════════════════
   // HEADER
@@ -546,100 +532,125 @@ async function generatePDF(idx) {
 
   var hx = ML + LSZ + 12;
   T('bold', 12); K();
-  doc.text(p.name || '', hx, y + 14);
+  doc.text(p.name || '', hx, y + 13);
 
-  var parts = [p.addr1, (p.city && p.state) ? p.city + ', ' + p.state : '', p.phone || '', p.npi ? 'NPI ' + p.npi : ''].filter(Boolean);
+  // Address + phone + fax + NPI on one line
+  var parts = [
+    p.addr1 ? p.addr1 + (p.city ? ', ' + p.city : '') + (p.state ? ', ' + p.state : '') : '',
+    p.phone ? 'Ph: ' + p.phone : '',
+    p.fax   ? 'Fax: ' + p.fax  : '',
+    p.npi   ? 'NPI ' + p.npi   : ''
+  ].filter(Boolean);
   T('normal', 7.5); K();
-  doc.text(parts.join('  ·  '), hx, y + 26);
+  doc.text(parts.join('  ·  '), hx, y + 25);
 
-  y += LSZ + 14;
+  y += LSZ + 12;
   K(); doc.setLineWidth(0.75);
   doc.line(ML, y, W - MR, y);
-  y += 16;
+  y += 14;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // FORM TITLE
+  // FORM TITLE — bold
   // ══════════════════════════════════════════════════════════════════════════
   T('bold', 13); K();
   doc.text((f.name || 'Consent Form').toUpperCase(), ML, y);
-  y += 20;
+  y += 18;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PATIENT INFO CARD — only show fields that have values
+  // PATIENT INFO CARD
   // ══════════════════════════════════════════════════════════════════════════
-  // Build fields list: skip empty ones
   var patientName = (cl.lastName || '') + (cl.firstName ? ', ' + cl.firstName : '');
   var signerLabel = cl.isMinor ? 'Parent / Legal Guardian' : 'Authorized Signer';
 
-  var leftFields = [];
+  var leftFields  = [];
   var rightFields = [];
-  if (patientName.trim()) leftFields.push(['Patient', patientName]);
-  if (cl.dob)             rightFields.push(['Date of Birth', cl.dob]);
-  if (cl.guardianName)    leftFields.push([signerLabel, cl.guardianName]);
-  if (cl.insuranceProvider) rightFields.push(['Insurance', cl.insuranceProvider]);
-  if (cl.insuranceId)     rightFields.push(['Insurance ID', cl.insuranceId]);
+  if (patientName.trim())     leftFields.push(['Patient',      patientName]);
+  if (cl.guardianName)        leftFields.push([signerLabel,    cl.guardianName]);
+  if (cl.dob)                 rightFields.push(['Date of Birth', cl.dob]);
+  if (cl.insuranceProvider)   rightFields.push(['Insurance',   cl.insuranceProvider]);
+  if (cl.insuranceId)         rightFields.push(['Insurance ID', cl.insuranceId]);
 
-  // Calculate card height based on actual field rows
-  var maxRows = Math.max(leftFields.length, rightFields.length);
-  var rowH = 28; // label(9) + gap(2) + value(9) + padding(8)
-  var patCardH = 20 + maxRows * rowH + 10; // header(18) + top-pad(2) + rows + bottom-pad
+  var maxRows   = Math.max(leftFields.length, rightFields.length, 1);
+  var rowH      = 26; // label(8) + value(10) + gap(8)
+  var patCardH  = HDR_H + HDR_GAP + maxRows * rowH + PAD;
 
   card(ML, y, TW, patCardH);
   cardHeader(ML, y, TW, 'Patient Information');
 
-  var col1x = ML + 10;
+  var col1x = ML + PAD;
   var col2x = ML + TW / 2 + 6;
-  var fy = y + 26; // first row y, after header
+  var fy    = contentY(y);
 
-  var maxLen = Math.max(leftFields.length, rightFields.length);
-  for (var ri = 0; ri < maxLen; ri++) {
+  for (var ri = 0; ri < maxRows; ri++) {
     var lf = leftFields[ri];
     var rf = rightFields[ri];
-    if (lf) { T('bold', 6.5); K(); doc.text(lf[0].toUpperCase(), col1x, fy); T('normal', 9); K(); doc.text(lf[1], col1x, fy + 10); }
-    if (rf) { T('bold', 6.5); K(); doc.text(rf[0].toUpperCase(), col2x, fy); T('normal', 9); K(); doc.text(rf[1], col2x, fy + 10); }
+    if (lf) {
+      T('bold', 6.5); K(); doc.text(lf[0].toUpperCase(), col1x, fy);
+      T('normal', 9);  K(); doc.text(lf[1], col1x, fy + 9, {maxWidth: TW/2 - PAD*2});
+    }
+    if (rf) {
+      T('bold', 6.5); K(); doc.text(rf[0].toUpperCase(), col2x, fy);
+      T('normal', 9);  K(); doc.text(rf[1], col2x, fy + 9, {maxWidth: TW/2 - PAD*2});
+    }
     fy += rowH;
   }
 
   y += patCardH + 10;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CONTENT CARD — clean text, skip repeated title and trailing sig lines
+  // CONTENT CARD
   // ══════════════════════════════════════════════════════════════════════════
+  // Clean content: remove repeated title and trailing sig lines
   var raw = (f.content || '').trim().split('\n');
-  // Remove first line if it duplicates the form title
   if (raw[0] && raw[0].trim().toUpperCase() === (f.name || '').trim().toUpperCase()) {
     raw.shift();
     while (raw.length && !raw[0].trim()) raw.shift();
   }
-  // Cut trailing signature block
   var cutAt = raw.length;
   ['Patient Name:', 'Patient or Parent', 'Parent/Legal', 'Signature:', 'Date:'].forEach(function(w) {
-    raw.forEach(function(ln, i) { if (cutAt === raw.length && ln.trim().indexOf(w) === 0) cutAt = i; });
+    raw.forEach(function(ln, i) {
+      if (cutAt === raw.length && ln.trim().indexOf(w) === 0) cutAt = i;
+    });
   });
   var clean = raw.slice(0, cutAt).join('\n').trim();
 
-  // Reserve space for signature card + footer
-  var sigCardH = 96;
+  var sigCardH = 100;
   var footH    = 32;
   var cntCardH = H - y - sigCardH - footH - 14;
 
   card(ML, y, TW, cntCardH);
   cardHeader(ML, y, TW, 'Document Content');
 
-  // Fit text — one font (helvetica normal), black, line-height 1.55
-  var cx = ML + 10, cy = y + 28, cw = TW - 20;
-  var availH = cntCardH - 32;
+  // Fit text inside card — strict boundary: cx+cw must not exceed ML+TW-PAD
+  var cx   = ML + PAD;
+  var cy   = contentY(y);
+  var cw   = TW - PAD * 2;            // content width with padding on both sides
+  var maxY = y + cntCardH - PAD;      // bottom boundary inside card
+
   var fs = 9, lh, lines;
   for (var s = 9; s >= 6.5; s -= 0.25) {
     doc.setFontSize(s);
-    lh = s * 1.55;
+    lh    = s * 1.55;
     lines = doc.splitTextToSize(clean, cw);
-    if (lines.length * lh <= availH) { fs = s; break; }
+    if (cy + lines.length * lh <= maxY) { fs = s; break; }
     fs = s;
   }
   T('normal', fs); K(); lh = fs * 1.55;
   lines = doc.splitTextToSize(clean, cw);
-  for (var li = 0; li < lines.length; li++) { doc.text(lines[li], cx, cy); cy += lh; }
+
+  // Render with bold detection: lines that are ALL CAPS or end with ':' get bold
+  for (var li = 0; li < lines.length; li++) {
+    var ln = lines[li];
+    var isBold = ln.trim().length > 0 && (
+      /^[A-Z\s\-\/&:\.]{4,}$/.test(ln.trim()) ||   // ALL CAPS line
+      /:\s*$/.test(ln.trim())                         // ends with colon
+    );
+    T(isBold ? 'bold' : 'normal', fs); K();
+    doc.text(ln, cx, cy);
+    cy += lh;
+    if (cy > maxY) break; // never escape the card
+  }
+
   y += cntCardH + 10;
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -648,51 +659,49 @@ async function generatePDF(idx) {
   card(ML, y, TW, sigCardH);
   cardHeader(ML, y, TW, 'Electronic Signature & Acknowledgment');
 
-  var sy = y + 26;
-  var halfW = TW / 2 - 10;
+  var sy    = contentY(y);
+  var halfW = TW / 2 - PAD;
+  var rx    = ML + TW / 2 + PAD / 2;
+  var rw    = TW / 2 - PAD - 4;
 
-  // LEFT: signature image + line
+  // LEFT: signature image + underline + label — all inside left half
   if (sig) {
-    try { doc.addImage(sig, 'PNG', ML + 10, sy, Math.min(halfW, 130), 34); } catch(e) {}
+    try {
+      var sigW = Math.min(halfW - PAD, 130);
+      doc.addImage(sig, 'PNG', ML + PAD, sy, sigW, 32);
+    } catch(e) {}
   }
   K(); doc.setLineWidth(0.5);
-  doc.line(ML + 10, sy + 38, ML + 10 + Math.min(halfW, 130), sy + 38);
+  doc.line(ML + PAD, sy + 36, ML + PAD + Math.min(halfW - PAD, 130), sy + 36);
   T('normal', 7); K();
-  doc.text('Signature of Authorized Signer', ML + 10, sy + 48);
+  doc.text('Signature of Authorized Signer', ML + PAD, sy + 46);
 
-  // RIGHT: signer info
-  var rx = ML + TW / 2 + 8;
-
-  // Checkbox + consent text
+  // RIGHT: checkbox + consent text + signer info — all inside right half (rx to ML+TW-PAD)
   doc.setFillColor(255,255,255); K(); doc.setLineWidth(0.5);
   doc.rect(rx, sy, 7, 7, 'FD');
-  // Checkmark
   K(); doc.setLineWidth(0.9);
-  doc.line(rx + 1.5, sy + 3.5, rx + 3, sy + 5.5);
+  doc.line(rx + 1.5, sy + 3.5, rx + 3,   sy + 5.5);
   doc.line(rx + 3,   sy + 5.5, rx + 6.5, sy + 0.5);
 
   T('normal', 7); K();
-  var clines = doc.splitTextToSize('I have read and agree to this document. My signature is legally binding.', TW / 2 - 18);
-  doc.text(clines, rx + 10, sy + 5);
+  var ctext = doc.splitTextToSize('I have read and agree to this document. My signature is legally binding.', rw - 10);
+  doc.text(ctext, rx + 10, sy + 5);
 
-  var infoY = sy + 6 + clines.length * 9 + 6;
+  var iy = sy + 5 + ctext.length * 9 + 8;
 
-  // Signed By
-  T('bold', 6.5); K(); doc.text('SIGNED BY', rx, infoY);
-  T('normal', 9); K(); doc.text(cl.guardianName || '—', rx, infoY + 10);
-  infoY += 22;
+  T('bold', 6.5);   K(); doc.text('SIGNED BY', rx, iy);
+  T('normal', 9);   K(); doc.text(cl.guardianName || '—', rx, iy + 9);
+  iy += 22;
 
-  // Timestamp
   if (window._signTimestamp) {
-    T('bold', 6.5); K(); doc.text('DATE & TIME', rx, infoY);
-    T('normal', 8); K(); doc.text(window._signTimestamp, rx, infoY + 10);
-    infoY += 22;
+    T('bold', 6.5); K(); doc.text('DATE & TIME', rx, iy);
+    T('normal', 8); K(); doc.text(window._signTimestamp, rx, iy + 9, {maxWidth: rw});
+    iy += 22;
   }
 
-  // IP
   if (window._signerIP && window._signerIP !== 'unavailable') {
-    T('bold', 6.5); K(); doc.text('IP ADDRESS', rx, infoY);
-    T('normal', 8); K(); doc.text(window._signerIP, rx, infoY + 10);
+    T('bold', 6.5); K(); doc.text('IP ADDRESS', rx, iy);
+    T('normal', 8); K(); doc.text(window._signerIP, rx, iy + 9);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
