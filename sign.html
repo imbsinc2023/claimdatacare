@@ -7,8 +7,6 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -287,9 +285,8 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 
 <script>
 // ── Firebase (optional — for saving signed docs) ───────────────────────────
-const FB_CONFIG={apiKey:'AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc',authDomain:'claimdatacare-451fe.firebaseapp.com',projectId:'claimdatacare-451fe',storageBucket:'claimdatacare-451fe.firebasestorage.app',messagingSenderId:'1005844575427',appId:'1:1005844575427:web:eb9799d720d50e5f5e1e76'};
+// Fully standalone — no Firebase
 let _fsdb=null;
-try{if(!firebase.apps.length)firebase.initializeApp(FB_CONFIG);_fsdb=firebase.firestore();}catch(e){}
 
 // ── State ──────────────────────────────────────────────────────────────────
 let _data=null;         // decoded payload
@@ -695,50 +692,61 @@ async function submitAll(){
   const btn=document.getElementById('btn-submit');
   btn.disabled=true;
   btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg> Saving...';
-
   const ts=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
-  const today=new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
 
-  // Generate PDFs for all forms
+  // Generate one PDF per form
   const pdfs=[];
   for(let i=0;i<_data.forms.length;i++){
     try{pdfs.push(await generatePDF(i));}catch(e){pdfs.push(null);}
   }
 
-  // Save to Firestore intakeSigned collection
-  if(_fsdb){
-    try{
-      const batch=_fsdb.batch();
-      _data.forms.forEach((f,i)=>{
-        const ref=_fsdb.collection('intakeSigned').doc();
-        batch.set(ref,{
-          clientId:_data.clientId||'',
-          email:_data.email||'',
-          formName:f.name,formType:f.type,
-          signedAt:firebase.firestore.FieldValue.serverTimestamp(),
-          signedTs:ts,
-          signatureData:_sigs[i],
-          pdfData:pdfs[i],
-          providerName:(_data.provider||{}).name||'',
-        });
-      });
-      await batch.commit();
-    }catch(e){console.warn('Firestore save skipped:',e.message);}
-  }
-
-  // Save locally in case provider opens app
+  // Save to localStorage — app reads this on next load
   try{
-    const rec={id:'sig_'+Date.now(),clientId:_data.clientId||'',email:_data.email||'',forms:_data.forms.map((f,i)=>({name:f.name,pdfData:pdfs[i]})),signedTs:ts,signedAt:Date.now()};
+    const rec={
+      id:'sig_'+Date.now(),
+      token:_data.token||'',
+      clientId:_data.clientId||'',
+      email:_data.email||'',
+      signedTs:ts,
+      signedAt:Date.now(),
+      forms:_data.forms.map((f,i)=>({
+        id:f.id,name:f.name,type:f.type,
+        pdfData:pdfs[i]||null,
+        signatureData:_sigs[i]||null,
+        signatureMode:_sigMode
+      }))
+    };
     const existing=JSON.parse(localStorage.getItem('cdc_signed_forms')||'[]');
     existing.push(rec);
     localStorage.setItem('cdc_signed_forms',JSON.stringify(existing));
-  }catch(e){}
+  }catch(e){console.warn('localStorage',e.message);}
+
+  // Save PDFs to Google Drive via Apps Script
+  try{
+    const APPS_SCRIPT='https://script.google.com/macros/s/AKfycbyCFem8OlJBZlL2-YifE-SoPn-sw6FLFPWnPZaWUIVxuQPWGysAI2QhtzJa9M-V6aI8WA/exec';
+    const c=_data.client||{};
+    fetch(APPS_SCRIPT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'saveSigned',
+        clientId:_data.clientId||'',
+        guardianName:c.guardianName||'',
+        guardianFirst:c.firstName||'',
+        guardianLast:c.lastName||'',
+        guardianEmail:_data.email||'',
+        signedTs:ts,
+        forms:_data.forms.map((f,i)=>({id:f.id,name:f.name,type:f.type,pdfData:pdfs[i]||null}))
+      })
+    });
+  }catch(e){console.warn('Drive save skipped:',e.message);}
 
   // Show success
   document.getElementById('view-main').style.display='none';
   document.getElementById('progress-wrap').style.display='none';
   document.getElementById('view-success').style.display='block';
-  document.getElementById('success-msg').textContent='Your intake forms for '+(((_data.client||{}).firstName||'')+' '+((_data.client||{}).lastName||'')).trim()+' have been signed and submitted on '+ts+'. Your provider will review them shortly. You may close this window.';
+  const name=(((_data.client||{}).firstName||'')+' '+((_data.client||{}).lastName||'')).trim();
+  document.getElementById('success-msg').textContent='Forms for '+name+' signed on '+ts+'. You may close this window.';
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
