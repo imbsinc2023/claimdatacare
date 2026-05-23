@@ -307,7 +307,7 @@ function buildIntro() {
   var n = _data.forms.length;
   document.getElementById('form-count-badge').textContent = n + ' document' + (n !== 1 ? 's' : '');
   var fields = [
-    ['Child / Client', (c.lastName || '') + (c.firstName ? ', ' + c.firstName : '')],
+    ['Patient', (c.lastName || '') + (c.firstName ? ', ' + c.firstName : '')],
     ['Date of Birth', c.dob || '—'],
     ['Guardian', c.guardianName || '—'],
     ['Phone', c.guardianPhone || '—'],
@@ -468,118 +468,188 @@ function updateNextBtn() {
 // ── PDF generation ─────────────────────────────────────────────────────────
 async function generatePDF(idx) {
   var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF({unit:'pt',format:'letter'});
+  var doc = new jsPDF({unit:'pt', format:'letter'});
   var f   = _data.forms[idx];
   var cl  = _data.client || {};
   var p   = _data.provider || {};
   var sig = _sigs[idx];
   var W   = doc.internal.pageSize.getWidth();   // 612
   var H   = doc.internal.pageSize.getHeight();  // 792
-  var ML  = 52, MR = 52, TW = W - ML - MR;     // 508pt
+  var ML  = 40, MR = 40, TW = W - ML - MR;     // 532pt
 
-  function K() { doc.setTextColor(0,0,0); doc.setDrawColor(0,0,0); }
+  // Colors
+  function K()  { doc.setTextColor(0,0,0);     doc.setDrawColor(0,0,0);       }
+  function DG() { doc.setTextColor(80,80,80);  doc.setDrawColor(80,80,80);    }
+  function LG() { doc.setTextColor(120,120,120); }
+
+  // Card: draw a rounded rect box
+  function card(x, y, w, h) {
+    doc.setFillColor(250,250,250);
+    doc.setDrawColor(210,210,210);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(x, y, w, h, 3, 3, 'FD');
+  }
+
+  // Card header band
+  function cardHeader(x, y, w, label) {
+    doc.setFillColor(235,235,235);
+    doc.setDrawColor(210,210,210);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(x, y, w, 14, 3, 3, 'FD');
+    // cover bottom-round on top band
+    doc.setFillColor(235,235,235);
+    doc.rect(x, y+8, w, 6, 'F');
+    K(); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+    doc.text(label.toUpperCase(), x+6, y+10);
+  }
 
   // ── HEADER ────────────────────────────────────────────────────────────────
-  var LSZ = 36, LGAP = 10, HY = 22;
+  var LSZ = 34, LGAP = 10, HY = 20;
   if (typeof VORTEX_LOGO !== 'undefined') {
     try { doc.addImage(VORTEX_LOGO, 'PNG', ML, HY, LSZ, LSZ); } catch(e) {}
   }
   var hx = ML + LSZ + LGAP;
-  var nY = HY + LSZ * 0.40;
+  var nY = HY + LSZ * 0.38;
   K(); doc.setFontSize(12); doc.setFont('helvetica','bold');
   doc.text(p.name || 'Provider', hx, nY);
   var pp = [p.addr1, (p.city&&p.state)?p.city+', '+p.state:'', p.phone||'', p.npi?'NPI '+p.npi:''].filter(Boolean);
-  K(); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  LG(); doc.setFontSize(7); doc.setFont('helvetica','normal');
   doc.text(pp.join('  \u00b7  '), hx, nY + 11);
-  var rY = HY + LSZ + 8;
-  K(); doc.setLineWidth(0.75); doc.line(ML, rY, W-MR, rY);
-  var y = rY + 12;
+  K(); doc.setLineWidth(0.75);
+  var rY = HY + LSZ + 6;
+  doc.line(ML, rY, W-MR, rY);
+  var y = rY + 10;
 
-  // ── FORM TITLE ────────────────────────────────────────────────────────────
-  K(); doc.setFontSize(12); doc.setFont('helvetica','bold');
-  doc.text((f.name||'Consent Form').toUpperCase(), ML, y);
+  // ── FORM TITLE ─────────────────────────────────────────────────────────────
+  K(); doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text((f.name || 'Consent Form').toUpperCase(), ML, y);
   y += 14;
 
-  // ── DEMOGRAPHICS — NO separator lines, clean layout ───────────────────────
-  var cx2 = ML + TW/2 + 8, rH = 20;
-  var demoRows = [
-    ['CLIENT', (cl.lastName||'')+(cl.firstName?', '+cl.firstName:''), 'DATE OF BIRTH', cl.dob||''],
-    ['GUARDIAN', cl.guardianName||'', 'INSURANCE', cl.insuranceProvider||''],
-    ['INSURANCE ID', cl.insuranceId||'', '', '']
-  ];
-  demoRows.forEach(function(r, ri) {
-    var fy = y + ri * rH;
-    K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
-    doc.text(r[0], ML, fy);
-    if (r[2]) doc.text(r[2], cx2, fy);
-    K(); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-    doc.text(r[1]||'', ML, fy + 8);
-    if (r[3]) doc.text(r[3]||'', cx2, fy + 8);
-  });
-  y += demoRows.length * rH + 4;
-  K(); doc.setLineWidth(0.75); doc.line(ML, y, W-MR, y);
-  y += 10;
+  // ── PATIENT INFO CARD ──────────────────────────────────────────────────────
+  var cardH = 56;
+  card(ML, y, TW, cardH);
+  cardHeader(ML, y, TW, 'Patient Information');
+  var iy = y + 20;
+  var col2 = ML + TW/2 + 4;
 
-  // ── CONTENT — clean: remove repeated title + trailing metadata ───────────────
+  // Row 1: Name | DOB
+  K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
+  doc.text('PATIENT', ML+6, iy);
+  doc.text('DATE OF BIRTH', col2, iy);
+  K(); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+  var patName = (cl.lastName||'') + (cl.firstName?', '+cl.firstName:'');
+  doc.text(patName || '—', ML+6, iy+8);
+  doc.text(cl.dob || '—', col2, iy+8);
+
+  // Divider
+  doc.setLineWidth(0.2); doc.setDrawColor(210,210,210);
+  doc.line(ML+4, iy+13, ML+TW-4, iy+13);
+
+  // Row 2: Signer | Insurance
+  var iy2 = iy + 20;
+  var signerLabel = cl.isMinor ? 'PARENT / LEGAL GUARDIAN' : 'AUTHORIZED SIGNER';
+  K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
+  doc.text(signerLabel, ML+6, iy2);
+  doc.text('INSURANCE', col2, iy2);
+  K(); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+  doc.text(cl.guardianName || '—', ML+6, iy2+8);
+  doc.text(cl.insuranceProvider || '—', col2, iy2+8);
+
+  y += cardH + 8;
+
+  // ── CONTENT CARD ───────────────────────────────────────────────────────────
   var rawContent = (f.content || '').trim();
-
-  // 1. Remove repeated title (first line if it matches the form name)
-  var firstNewline = rawContent.indexOf('\n');
-  if (firstNewline > 0) {
-    var firstLine = rawContent.substring(0, firstNewline).trim().toUpperCase();
-    var formTitle = (f.name || '').trim().toUpperCase();
-    if (firstLine === formTitle) {
-      rawContent = rawContent.substring(firstNewline + 1).trim();
+  // Strip trailing Patient Name / Date / Signature lines
+  var cutWords = ['Patient Name:', 'Patient or Parent', 'Parent/Legal Guardian:', 'Signature:', 'Date:'];
+  var lines = rawContent.split('\n');
+  var cutIdx = lines.length;
+  lines.forEach(function(line, i) {
+    if (cutIdx === lines.length) {
+      cutWords.forEach(function(w) {
+        if (line.trim().indexOf(w) === 0) cutIdx = i;
+      });
     }
-  }
-
-  // 2. Strip trailing block: everything from "Patient Name:" / "Parent/Legal Guardian:" / "Date of Birth:" onward
-  var cutAt = -1;
-  var cutWords = ['Patient Name:', 'Parent/Legal Guardian:', 'Date of Birth:', 'Date:', 'Signature:'];
-  rawContent.split('\n').forEach(function(line, idx, arr) {
-    var trimmed = line.trim();
-    cutWords.forEach(function(w) {
-      if (trimmed.indexOf(w) === 0 && cutAt === -1) {
-        // find char position of this line
-        var pos = 0;
-        for (var i = 0; i < idx; i++) pos += arr[i].length + 1;
-        cutAt = pos;
-      }
-    });
   });
-  var cleanContent = (cutAt > 0 ? rawContent.substring(0, cutAt) : rawContent).trim();
+  var cleanContent = lines.slice(0, cutIdx).join('\n').trim();
 
-  // Auto-scale font to fit available space (1 page only)
-  var sigH = 68, footH = 30;
-  var avail = H - y - sigH - footH - 8;
-  var fs = 8.5, lh, lines;
-  for (var s = 8.5; s >= 6; s -= 0.25) {
+  // Calculate available space
+  var sigCardH = 80;
+  var footH    = 28;
+  var avail    = H - y - sigCardH - footH - 14;
+  var contentCardH = avail;
+
+  // Draw content card
+  card(ML, y, TW, contentCardH);
+  cardHeader(ML, y, TW, 'Document Content');
+
+  var cy = y + 20;
+  var contentAvail = contentCardH - 22;
+
+  var fs = 8.5, lh, contentLines;
+  for (var s = 8.5; s >= 6; s -= 0.2) {
     doc.setFontSize(s);
-    lh = s * 1.42;
-    lines = doc.splitTextToSize(cleanContent, TW);
-    if (lines.length * lh <= avail) { fs = s; break; }
+    lh = s * 1.38;
+    contentLines = doc.splitTextToSize(cleanContent, TW - 12);
+    if (contentLines.length * lh <= contentAvail) { fs = s; break; }
     fs = s;
   }
   doc.setFontSize(fs); doc.setFont('helvetica','normal'); K();
-  lh = fs * 1.42;
-  lines = doc.splitTextToSize(cleanContent, TW);
-  for (var li = 0; li < lines.length; li++) { doc.text(lines[li], ML, y); y += lh; }
+  lh = fs * 1.38;
+  contentLines = doc.splitTextToSize(cleanContent, TW - 12);
+  for (var li = 0; li < contentLines.length; li++) {
+    doc.text(contentLines[li], ML+6, cy);
+    cy += lh;
+  }
+  y += contentCardH + 8;
 
-  // ── SIGNATURE — raised from bottom ────────────────────────────────────────
-  var sY = H - footH - sigH - 10;
+  // ── SIGNATURE CARD ─────────────────────────────────────────────────────────
+  card(ML, y, TW, sigCardH);
+  cardHeader(ML, y, TW, 'Electronic Signature & Acknowledgment');
+
+  var sy = y + 18;
+
+  // Checkbox + consent text
+  // Draw checkbox square
+  doc.setFillColor(255,255,255);
+  doc.setDrawColor(80,80,80);
+  doc.setLineWidth(0.5);
+  doc.rect(ML+6, sy-5, 7, 7, 'FD');
+  // Checkmark inside
+  doc.setDrawColor(0,0,0); doc.setLineWidth(0.8);
+  doc.line(ML+7.5, sy-1.5, ML+9, sy+0.5);
+  doc.line(ML+9, sy+0.5, ML+12, sy-3.5);
+
+  K(); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+  doc.text('I have read and agree to this document. My electronic signature is legally binding.', ML+16, sy);
+
+  sy += 10;
+
+  // Signature image (left half)
+  var sigW = TW * 0.48;
+  if (sig) { try { doc.addImage(sig,'PNG',ML+6,sy,Math.min(sigW-10,120),28); } catch(e){} }
+
+  // Right side: signer name, timestamp, IP
+  var rx = ML + TW/2 + 6;
   K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
-  doc.text('ELECTRONIC SIGNATURE', ML, sY); sY += 9;
-  if (sig) { try { doc.addImage(sig,'PNG',ML,sY,130,34); } catch(e){} }
-  sY += 38;
-  K(); doc.setLineWidth(0.75); doc.line(ML, sY, ML+190, sY); sY += 9;
-  K(); doc.setFontSize(8.5); doc.setFont('helvetica','bold');
-  doc.text(cl.guardianName||'Authorized Signer', ML, sY);
+  doc.text('SIGNED BY', rx, sy+4);
+  K(); doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(cl.guardianName || '—', rx, sy+13);
+
+  LG(); doc.setFontSize(6); doc.setFont('helvetica','normal');
+  doc.text('Timestamp: ' + (window._signTimestamp||new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'long'})), rx, sy+22);
+  doc.text('IP: ' + (window._signerIP||'—'), rx, sy+30);
+
+  // Signature line
+  sy += 36;
+  K(); doc.setLineWidth(0.5);
+  doc.line(ML+6, sy, ML+6+sigW-10, sy);
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
-  var fY = H - 20;
-  K(); doc.setLineWidth(0.4); doc.line(ML, fY-10, W-MR, fY-10);
-  doc.setFontSize(6.5); doc.setFont('helvetica','normal'); K();
+  var fY = H - 18;
+  K(); doc.setLineWidth(0.4); doc.line(ML, fY-8, W-MR, fY-8);
+  LG(); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
   doc.text(p.name||'', ML, fY);
+  doc.text('Electronic Record \u2014 Vortex Intake System', W-MR, fY, {align:'right'});
 
   return doc.output('datauristring');
 }
@@ -589,7 +659,15 @@ async function submitAll() {
   var btn = document.getElementById('btn-submit');
   btn.disabled = true;
   btn.innerHTML = '<div class="spin-sm"></div> Signing...';
+
+  // Capture timestamp and IP for PDF
+  window._signTimestamp = new Date().toLocaleString('en-US',{dateStyle:'long',timeStyle:'long'});
   var ts = new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  try {
+    var ipRes = await fetch('https://api.ipify.org?format=json');
+    var ipData = await ipRes.json();
+    window._signerIP = ipData.ip || '—';
+  } catch(e) { window._signerIP = 'unavailable'; }
 
   // 1. Generate PDFs
   var pdfs = [];

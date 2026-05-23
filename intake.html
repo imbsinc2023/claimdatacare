@@ -61,31 +61,44 @@ html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var
 <main class="body">
 <div id="view-form">
   <div style="margin-bottom:24px">
-    <h1 style="font-size:22px;font-weight:700;margin-bottom:6px">Client Intake Forms</h1>
+    <h1 style="font-size:22px;font-weight:700;margin-bottom:6px">Patient Intake Forms</h1>
     <p style="font-size:13px;color:var(--text3);line-height:1.7">Complete the information below and select the consent forms to send for electronic signature.</p>
   </div>
 
-  <span class="slabel">Information</span>
+  <span class="slabel">Patient Information</span>
   <div class="card">
     <div class="g2">
-      <div class="field"><label>First Name <span class="req">*</span></label><input id="c-first" placeholder="Peter"></div>
-      <div class="field"><label>Last Name <span class="req">*</span></label><input id="c-last" placeholder="Pan"></div>
+      <div class="field"><label>First Name <span class="req">*</span></label><input id="c-first" placeholder="First name"></div>
+      <div class="field"><label>Last Name <span class="req">*</span></label><input id="c-last" placeholder="Last name"></div>
       <div class="field"><label>Date of Birth <span class="req">*</span></label><input id="c-dob" type="date"></div>
       <div class="field"><label>Gender</label><select id="c-gender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
       <div class="field"><label>Language</label><select id="c-lang"><option>English</option><option>Spanish</option><option>Other</option></select></div>
     </div>
   </div>
 
-  <span class="slabel">Guardian / Parent Information</span>
-  <div class="card">
+  <span class="slabel">Patient Type</span>
+  <div class="card" style="padding:16px 20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:0" id="minor-toggle-wrap">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="is-minor" style="width:18px;height:18px;accent-color:#1a1a1a;cursor:pointer" onchange="toggleMinor()">
+        This patient is a minor or I am signing on behalf of another person
+      </label>
+    </div>
+    <div id="minor-note" style="display:none;margin-top:10px;padding:10px 12px;background:#f7f7f7;border-radius:6px;font-size:12px;color:#555">
+      The patient information above refers to the person receiving care. Fill in your information below as the authorized signer.
+    </div>
+  </div>
+
+  <span class="slabel">Authorized Signer <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(if signing for another person)</span></span>
+  <div id="guardian-section" style="display:none"><div class="card">
     <div class="g2">
-      <div class="field"><label>Guardian Full Name <span class="req">*</span></label><input id="g-name" placeholder="Little Red Riding Hood"></div>
-      <div class="field"><label>Relationship</label><select id="g-rel"><option>Mother</option><option>Father</option><option>Legal Guardian</option><option>Other</option></select></div>
+      <div class="field"><label>Full Name <span class="req">*</span></label><input id="g-name" placeholder="Signer full name"></div>
+      <div class="field"><label>Relationship to Patient</label><select id="g-rel"><option>Mother</option><option>Father</option><option>Legal Guardian</option><option>Spouse</option><option>Self</option><option>Other</option></select></div>
       <div class="field"><label>Phone <span class="req">*</span></label><input id="g-phone" placeholder="(123) 456-7890" maxlength="14" oninput="fmtPhone(this)"></div>
       <div class="field"><label>Email <span class="req">*</span></label><input id="g-email" type="email" placeholder="guardian@email.com"></div>
       <div class="field span2"><label>Address</label><input id="g-addr" placeholder="123 Main St, Miami, FL 33135"></div>
     </div>
-  </div>
+  </div></div>
 
   <span class="slabel">Insurance <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></span>
   <div class="card">
@@ -129,262 +142,225 @@ const PROVIDER = {
 
 const FORMS = [
   {
-    id:'hipaa', name:'HIPAA Privacy Acknowledgment', type:'HIPAA',
-    desc:'Acknowledgment of receipt of Notice of Privacy Practices per 45 CFR §164.520',
-    content:`HIPAA PRIVACY ACKNOWLEDGMENT
+    id:'hipaa', name:'HIPAA Notice of Privacy Practices', type:'HIPAA', minorOnly:false,
+    desc:'How medical information about you may be used and disclosed',
+    content:`THIS NOTICE DESCRIBES HOW MEDICAL INFORMATION ABOUT YOU MAY BE USED AND DISCLOSED AND HOW YOU CAN GET ACCESS TO THIS INFORMATION. PLEASE REVIEW IT CAREFULLY.
 
-Practice Name: Vortex Management Services Inc
-Address: 8500 W Flagler St, Ste 107A, Miami, FL 33144
-Phone: (786) 614-5085
+This Notice of Privacy Practices describes how we may use and disclose your protected health information (PHI) to carry out treatment, payment or health care operations (TPO) and for other purposes that are permitted or required by law. It also describes your rights to access and control your protected health information.
 
-The undersigned acknowledges receipt of the Practice's Notice of Privacy Practices in accordance with the Health Insurance Portability and Accountability Act of 1996 ("HIPAA"), as amended.
+USES AND DISCLOSURES OF PROTECTED HEALTH INFORMATION
 
-I understand that the Practice may use and disclose Protected Health Information ("PHI") for purposes of treatment, payment, healthcare operations, care coordination, quality assurance activities, and other uses permitted or required by applicable federal and Florida law.
+Your protected health information may be used and disclosed by your physician, our office staff and others outside of our office who are involved in your care and treatment for the purpose of providing care services to you, in order to pay your health care bills, to support the operation of the physician's practice, and for any other use required by law.
 
-I authorize the Practice to communicate with me and/or the parent/legal guardian regarding treatment-related matters, including appointment reminders, referrals, prescription information, laboratory results, billing matters, and care coordination.
+Treatment: We will use and disclose your protected health information to provide, coordinate, or manage your health care and any related services including coordination with third parties.
 
-For minor patients, the parent/legal guardian acknowledges authority to consent to healthcare services and receipt of HIPAA-related disclosures on behalf of the minor patient.
+Payment: Your protected health information will be used, as needed, to obtain payment for your health care services including insurance eligibility and benefits, medical necessity and utilization review.
 
-I understand that:
+Healthcare Operations: We may use or disclose your protected health information in order to support the business activities of the practice including quality assessment, appointment reminders, and care coordination.
 
-  • I may request restrictions on certain disclosures of PHI
-  • I may request confidential communications
-  • I may revoke certain authorizations in writing when permitted by law
-  • The Practice reserves the right to amend its Notice of Privacy Practices
+YOUR RIGHTS
 
-This acknowledgment shall remain in effect unless revoked in writing where permitted by law.
+You have the right to inspect and copy your protected health information contained in a designated record set. You have the right to request a restriction of your protected health information. You have the right to receive confidential communications from us by alternative means or at an alternative location. You have the right to receive an accounting of certain disclosures we have made of your protected health information.
 
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Date: {{date}}
-Signature: {{signature}}`
+We are required to abide by the terms of this Notice. We may change the terms of our notice at any time. Upon your request, we will provide you with any revised Notice of Privacy Practices.
+
+COMPLAINTS
+
+You may complain to us or to the Office for Civil Rights if you believe your privacy rights have been violated. We will not retaliate against you for filing a complaint.
+
+Clinic Contact: (786) 614-5085
+
+Signature below is only an acknowledgement that you have received this Notice of Privacy Practices.`
   },
   {
-    id:'consent', name:'Consent for Treatment of a Minor', type:'Consent',
-    desc:'Authorization for medical, psychiatric, behavioral health, and therapeutic services',
+    id:'rights', name:'Patient Rights and Responsibilities', type:'Rights', minorOnly:false,
+    desc:'Your rights and responsibilities as a patient of Vortex Management Services Inc',
+    content:`CONFIDENTIALITY
+
+It is the policy of Vortex Management Services Inc to handle all patient information confidentially. We make every effort to provide our patients with an environment that is safe, private and respectful of patient needs. If you have a complaint or concern, we want to hear from you.
+
+ISSUES OF CARE
+
+Vortex Management Services Inc is committed to your participation in clinical care decisions. As a patient, you have the right to ask questions and receive answers regarding the course of clinical care recommended by any of our health providers, including discontinuing care.
+
+PATIENT RIGHTS
+
+The patient has the right to receive information from health providers and to discuss the benefits, risks, and costs of appropriate treatment alternatives. Patients are also entitled to obtain copies or summaries of their medical records, to have their questions answered, and to receive independent professional opinions.
+
+The patient has the right to make decisions regarding the health care that is recommended by his or her health provider. Accordingly, patients may accept or refuse any recommended medical treatment.
+
+The patient has the right to courtesy, respect, dignity, responsiveness, and timely attention to his or her needs, regardless of race, religion, ethnic or national origin, gender, age, sexual orientation, or disability.
+
+The patient has the right to confidentiality. The health provider should not reveal confidential communications or information without the consent of the patient, unless provided for by law or by the need to protect the welfare of the individual or the public interest.
+
+The patient has the right to continuity of health care. The health provider has an obligation to cooperate in the coordination of medically indicated care with other health providers treating the patient.
+
+PATIENT RESPONSIBILITIES
+
+Good communication is essential to a successful health provider-patient relationship. Patients have a responsibility to be honest and express their concerns clearly to their health providers.
+
+Patients have a responsibility to provide a complete medical history, including information about past illnesses, medications, hospitalizations, family history of illness and other matters relating to their present health.
+
+Patients have a responsibility to cooperate with the treatment plan. Compliance with their health provider's instructions is often essential to public and individual safety.
+
+Patients should also have an active interest in the effects of their conduct on others and refrain from behavior that places the health of others at risk.`
+  },
+  {
+    id:'office', name:'Office Policies', type:'Policies', minorOnly:false,
+    desc:'Payment, appointments, cancellations, prescriptions and office procedures',
+    content:`PAYMENTS
+
+Every patient is responsible for paying fees and any balance that is not covered by his/her insurance at the time of the appointment. If you need to make special payment arrangements, please discuss this with our office staff before the visit. A $30 fee will be charged for all returned checks. If a patient fails to make the proper restitution of any pending balance within a reasonable time, we will proceed to refer his/her account to a collection agency.
+
+PRESCRIPTION REFILLS AND PRIOR AUTHORIZATIONS
+
+An administrative fee of $25.00 will be charged to the patient's account for every pharmacy phone-in, mail away and fax-up prescription requests as a result of a patient's actions (lost prescription, failure to take new prescription to be filled on time, and missed appointments). All medication will be prescribed only if the physician feels that it is clinically appropriate.
+
+LOST OR STOLEN PRESCRIPTIONS
+
+If a script for a controlled medication is stolen or lost, the patient or guardian must make a report to the police and submit that report or its reference number to our office staff to be documented in the patient's chart, in order to receive a script replacement. The office may replace a prescription at the provider's discretion, but is limited to one prescription per year per patient.
+
+CHECK-IN TIME
+
+Appointment times are reserved for you and should start promptly. We advise you to sign on via the appointment link 10 minutes prior to your scheduled appointment time. If you arrive five minutes past your appointment time, you may have to reschedule your visit for another date.
+
+NO SHOW / LATE CANCELLATIONS
+
+Missed appointments or appointments that are not canceled with a minimum of 24 hours notice will be assessed a fee of $99.00. Insurance will not reimburse the patient for this charge. Our reminder service sends confirmation calls, emails, and texts as a courtesy only, but it is the patient's responsibility to keep track of their appointments.
+
+OTHER SERVICE CHARGES
+
+There will be a charge for the preparation and completion of reports, letters, certificates and forms related to the services provided at this office. All photocopies and requests of a patient's medical records will be charged $1.00 per page, plus an administrative fee of $10.00.
+
+AFTER HOURS AND EMERGENCIES
+
+In the event of an emergency situation, call 911 or go to the nearest Emergency Room. All phone messages left in the voice mail will be returned within 48 business hours by the office staff in the order in which they were received.
+
+DRUG TESTING
+
+I hereby agree, upon the drug/alcohol testing policy, to submit to a drug or alcohol test and to furnish a sample of my urine for analysis. I understand and agree that if I at any time refuse to submit to a drug or alcohol test under company policy, or if I otherwise fail to cooperate with the testing procedures, I will be subject to the cancellation of my appointment until said sample is produced.
+
+I hereby understand that any violation to the Office Policies of Vortex Management Services Inc may lead to my dismissal as a patient from this practice.`
+  },
+  {
+    id:'payment', name:'Agreement to Pay / Consent for Treatment', type:'Payment', minorOnly:false,
+    desc:'Financial responsibility, assignment of benefits, and consent for treatment',
+    content:`CONSENT FOR TREATMENT
+
+I hereby authorize Vortex Management Services Inc to use and/or disclose my health information to carry out my treatment, payment and healthcare operations. Treatment includes but is not limited to: the administration and performance of all treatments, the administration of any needed anesthetics, the use of prescribed medication, the performance of such procedures as may be deemed necessary or advisable in the treatment of this patient such as diagnostic procedures, the taking and utilization of cultures and of other medically accepted laboratory tests, all of which in the judgment of the attending physician or their assigned designees may be considered medically necessary or advisable.
+
+ASSIGNMENT OF BENEFITS
+
+I hereby authorize payment directly to Vortex Management Services Inc of benefits otherwise payable to me. I hereby acknowledge the release of my medical records to third party insurers or authorized persons to whom disclosure is necessary to establish or collect a fee for the services provided, such as billing and collection services, insurance payers, or for work related injury. I understand that I am financially responsible for charges not covered by my insurance.
+
+FINANCIAL RESPONSIBILITY
+
+Patient and/or guarantor are responsible for charges incurred. It is a courtesy for our office to file with your insurance; however, you are responsible for your co-pay and/or percentage which the insurance is not responsible for on the day of your visit. It is the patient's responsibility to obtain any necessary referral forms from your primary care physician when required.
+
+AGREEMENT TO PAY
+
+The undersigned accepts the fee charged as a lawful debt and promises to pay said fee including the cost of collection, attorney fees and court cost if such be necessary, waiving now and forever the right to claim exceptions under the constitution and laws of the state. If we are unable to obtain payment within a reasonable amount of time we will place your account with a collection agency which will leave you liable for any additional charges incurred.
+
+I have fully read and understand the above payment policy. I agree to forward to Vortex Management Services Inc all insurance or third party payments that I receive for services rendered to me immediately upon receipt.`
+  },
+  {
+    id:'telehealth', name:'Telemedicine Authorization', type:'Telehealth', minorOnly:false,
+    desc:'Consent to receive healthcare services through telemedicine technologies',
+    content:`TELEMEDICINE AUTHORIZATION
+
+I authorize Vortex Management Services Inc and its contracted providers to provide me with their services by using telemedicine. I understand that telemedicine is the use of electronic information and communication technologies by a healthcare provider used to deliver services to an individual when they are located at a different location or site.
+
+Vortex Management Services Inc and its contracted providers will not perform an in-person examination during the telemedicine visit. They will rely solely on the information telecommunicated.
+
+RISKS AND LIMITATIONS
+
+I understand that there are risks involved with telemedicine, including but not limited to: loss of records from failure of electronic equipment; power failure with loss of communication; connection issues. Additionally, signs and symptoms that might be detected during an in-person examination may not be detected through telemedicine.
+
+PRIVACY AND CONFIDENTIALITY
+
+I understand that the laws that protect privacy and the confidentiality of medical information, including HIPAA, also apply to telemedicine. I understand that I will be responsible for any financial obligations that apply to my telemedicine visit.
+
+RIGHT TO WITHDRAW
+
+I understand that I have the right to withdraw my consent to the use of telemedicine in the course of my care at any time, without affecting my right to future care or treatment.
+
+I have read and understood the information provided above and I consent to receiving telemedicine services.`
+  },
+  {
+    id:'consent_minor', name:'Consent for Treatment of a Minor', type:'Consent', minorOnly:true,
+    desc:'Authorization for treatment of a minor patient by parent or legal guardian',
     content:`CONSENT FOR TREATMENT OF A MINOR
 
-Practice Name: Vortex Management Services Inc
-
-I, {{guardianName}}, the undersigned parent or legal guardian of the minor patient identified below, hereby authorize and consent to the provision of medical, psychiatric, behavioral health, therapeutic, diagnostic, and related healthcare services deemed medically appropriate by the treating provider(s) at Vortex Management Services Inc.
+I, the undersigned parent or legal guardian of the minor patient identified, hereby authorize and consent to the provision of medical, psychiatric, behavioral health, therapeutic, diagnostic, and related healthcare services deemed medically appropriate by the treating provider(s) at Vortex Management Services Inc.
 
 This authorization includes, but is not limited to:
 
-  • Evaluations and assessments
-  • Behavioral health and psychiatric services
-  • Therapy and counseling services
-  • Medication management when clinically indicated
-  • Routine medical treatment and interventions
-  • Coordination of care with other healthcare providers, schools, therapists, and ancillary services as permitted by law
+  - Evaluations and assessments
+  - Behavioral health and psychiatric services
+  - Therapy and counseling services
+  - Medication management when clinically indicated
+  - Routine medical treatment and interventions
+  - Coordination of care with other healthcare providers, schools, therapists, and ancillary services as permitted by law
 
 I authorize the Practice to provide emergency evaluation and treatment deemed necessary to protect the health and safety of the minor patient until additional consent or emergency services may be obtained.
 
-I understand that no guarantee has been made regarding treatment outcomes or results.
+I understand that no guarantee has been made regarding treatment outcomes or results. I acknowledge responsibility for providing accurate medical history, insurance information, emergency contacts, and updated custody/legal documentation if applicable.
 
-I acknowledge responsibility for providing accurate medical history, insurance information, emergency contacts, and updated custody/legal documentation if applicable.
-
-This consent shall remain effective unless revoked in writing and subject to applicable legal limitations.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Relationship to Patient: {{relationship}}
-Date: {{date}}
-Signature: {{signature}}`
+This consent shall remain effective unless revoked in writing and subject to applicable legal limitations.`
   },
   {
-    id:'telehealth', name:'Telehealth Informed Consent', type:'Telehealth',
-    desc:'Informed consent for delivery of services via telehealth technologies per Florida law',
-    content:`TELEHEALTH INFORMED CONSENT
-
-Practice Name: Vortex Management Services Inc
-
-I consent to receive healthcare services through telehealth technologies, including secure audio, video, and electronic communication platforms, in accordance with applicable Florida law and HIPAA regulations.
-
-I understand that telehealth services may include medical, psychiatric, behavioral health, consultation, follow-up, and therapeutic services.
-
-I acknowledge and understand:
-
-  • Telehealth may involve risks including technical interruptions, unauthorized access, or limitations in assessment compared to in-person care
-  • Reasonable safeguards will be used to protect confidentiality and privacy
-  • Electronic communications may not be completely secure despite HIPAA-compliant measures
-  • I am responsible for participating from a private and safe location whenever possible
-
-I understand that:
-
-  • Telehealth services are voluntary and I may withdraw consent at any time
-  • Emergency or crisis situations may require referral to emergency services or local providers
-  • The Practice may contact emergency services or designated emergency contacts if safety concerns arise
-  • Prescribing limitations may apply under federal and Florida law
-
-By signing below, I confirm that I have had the opportunity to ask questions and voluntarily consent to telehealth services.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Date: {{date}}
-Emergency Contact Name/Phone: {{emergencyContact}}
-Signature: {{signature}}`
-  },
-  {
-    id:'roi', name:'Authorization for Release of Information', type:'Release',
-    desc:'HIPAA-compliant authorization for use and disclosure of Protected Health Information',
+    id:'roi', name:'Authorization for Release of Information', type:'Release', minorOnly:false,
+    desc:'HIPAA-compliant authorization to use and disclose Protected Health Information',
     content:`AUTHORIZATION FOR RELEASE OF INFORMATION
-(45 CFR §164.508 — HIPAA Compliant)
-
-Practice Name: Vortex Management Services Inc
 
 I authorize the use and/or disclosure of Protected Health Information ("PHI") relating to the patient identified below.
 
 INFORMATION TO BE RELEASED:
-  • Medical Records
-  • Psychiatric/Behavioral Health Records
-  • Treatment Plans
-  • Laboratory Results
-  • Billing Records
+  - Medical Records
+  - Psychiatric / Behavioral Health Records
+  - Treatment Plans
+  - Laboratory Results
+  - Billing Records
 
 AUTHORIZED DISCLOSURE:
-
   From: Vortex Management Services Inc
   To: Primary Care Physician, Educational Team, Insurance/Medicaid, and Authorized Treating Providers
 
 PURPOSE OF DISCLOSURE:
-  • Continuity of Care
-  • Insurance/Benefits
-  • Educational Coordination
-  • Personal Use
-
-I understand:
-
-  • This authorization is voluntary
-  • I may revoke this authorization at any time in writing, except to the extent action has already been taken
-  • Information disclosed pursuant to this authorization may no longer be protected by HIPAA if redisclosed by the recipient
-  • Certain records may include behavioral health, psychiatric, substance use, or sensitive healthcare information where applicable
-
-Unless otherwise specified, this authorization shall expire one (1) year from the date signed.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Date: {{date}}
-Signature: {{signature}}`
-  },
-  {
-    id:'financial', name:'Financial Policy & Assignment of Benefits', type:'Financial',
-    desc:'Assignment of benefits, billing authorization, payment responsibility and missed appointment policy',
-    content:`FINANCIAL POLICY & ASSIGNMENT OF BENEFITS
-
-Practice Name: Vortex Management Services Inc
-
-I authorize the Practice to bill my insurance carrier(s) for services rendered and assign payment of medical and behavioral health benefits directly to the Practice where permitted.
+  - Continuity of Care
+  - Insurance / Benefits coordination
+  - Educational coordination
+  - Personal use as requested
 
 I understand that:
+  - This authorization is voluntary
+  - I may revoke this authorization at any time in writing, except to the extent action has already been taken
+  - Information disclosed may no longer be protected by HIPAA if redisclosed by the recipient
+  - Records may include behavioral health, psychiatric, or other sensitive healthcare information
 
-  • Insurance coverage verification does not guarantee payment
-  • I am financially responsible for all copayments, deductibles, coinsurance, non-covered services, denied claims, late balances, and charges not paid by insurance
-  • Payment may be due at the time of service unless prior arrangements have been approved
-
-I authorize release of necessary medical information to insurance carriers, billing entities, and healthcare clearinghouses for claims processing and healthcare operations.
-
-MISSED APPOINTMENT POLICY:
-
-Appointments not canceled within the Practice's required notice period may be subject to a missed appointment or late cancellation fee where permitted by law and payer contract requirements.
-
-The Practice reserves the right to charge balances to the responsible party and pursue lawful collection efforts for unpaid accounts.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Date: {{date}}
-Signature: {{signature}}`
-  },
-  {
-    id:'communication', name:'Consent for Communication', type:'Communication',
-    desc:'Authorization for telephone, SMS, email and portal communications related to care and billing',
-    content:`CONSENT FOR COMMUNICATION
-
-Practice Name: Vortex Management Services Inc
-
-I authorize the Practice and its representatives to contact me and/or the parent/legal guardian using the contact information provided for purposes related to treatment, scheduling, billing, care coordination, prescription management, and healthcare operations.
-
-Authorized methods of communication may include:
-
-  • Telephone calls
-  • Voicemail messages
-  • SMS/text messaging
-  • Secure email communications
-  • Patient portal messaging
-
-I understand that electronic communications may carry privacy and security risks despite reasonable safeguards and HIPAA-compliant procedures.
-
-I consent to receive:
-
-  • Appointment reminders
-  • Follow-up communications
-  • Billing notifications
-  • Care coordination communications
-
-I understand that:
-
-  • Standard message/data rates may apply
-  • I may opt out of certain electronic communications in writing
-  • Sensitive or urgent matters should not be communicated through unsecured electronic methods
-
-For minor patients, communication may be directed to the parent/legal guardian authorized for treatment decisions.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Preferred Contact Number: {{phone}}
-Email Address: {{email}}
-Date: {{date}}
-Signature: {{signature}}`
-  },
-  {
-    id:'behavioral', name:'Behavioral Health & Psychiatric Services Consent', type:'Behavioral',
-    desc:'Informed consent for behavioral health evaluation, treatment, counseling and medication management',
-    content:`BEHAVIORAL HEALTH & PSYCHIATRIC SERVICES CONSENT
-
-Practice Name: Vortex Management Services Inc
-
-I voluntarily consent to behavioral health and/or psychiatric evaluation, treatment, counseling, psychotherapy, medication management, and related clinical services for the patient identified below.
-
-I understand that behavioral health treatment may include discussion of sensitive emotional, psychiatric, behavioral, family, trauma-related, or psychosocial matters.
-
-I acknowledge that:
-
-  • Treatment outcomes cannot be guaranteed
-  • Participation and treatment adherence may affect clinical progress
-  • Psychiatric medications may involve risks, side effects, and potential adverse reactions which will be discussed when applicable
-
-I understand that confidentiality is protected by HIPAA and applicable law; however, disclosures may occur without consent when permitted or required by law, including:
-
-  • Risk of harm to self or others
-  • Suspected abuse, neglect, or exploitation
-  • Court orders or legal requirements
-  • Mandatory reporting obligations under Florida law
-
-I understand that emergency or crisis situations may require referral to emergency services, crisis intervention resources, hospitalization, or coordination with emergency contacts.
-
-I acknowledge that I have had the opportunity to ask questions regarding treatment and consent voluntarily.
-
-Patient Name: {{childName}}
-Date of Birth: {{dob}}
-Parent/Legal Guardian: {{guardianName}}
-Date: {{date}}
-Signature: {{signature}}`
+Unless otherwise specified, this authorization shall expire one (1) year from the date signed.`
   }
 ];
 
+function isMinor() { return document.getElementById('is-minor').checked; }
+
+function toggleMinor() {
+  var minor = isMinor();
+  document.getElementById('guardian-section').style.display = minor ? '' : 'none';
+  document.getElementById('minor-note').style.display = minor ? '' : 'none';
+  renderFormsList();
+}
+
 function renderFormsList() {
+  var minor = isMinor();
   var el = document.getElementById('forms-list');
   if (!el) return;
   el.innerHTML = FORMS.map(function(f) {
-    return '<div class="form-item">'
-      + '<input type="checkbox" id="fc-' + f.id + '" checked>'
+    var show = !f.minorOnly || minor;
+    return '<div class="form-item" id="fi-' + f.id + '" style="' + (show ? '' : 'display:none') + '">'
+      + '<input type="checkbox" id="fc-' + f.id + '" ' + (show ? 'checked' : '') + '>'
       + '<div><label for="fc-' + f.id + '" style="cursor:pointer">'
-      + '<div class="form-item-name">' + f.name + '</div>'
+      + '<div class="form-item-name">' + f.name + (f.minorOnly ? ' <span style="font-size:10px;background:#f0f0f0;color:#666;padding:1px 6px;border-radius:10px;font-weight:400">Minor</span>' : '') + '</div>'
       + '<div class="form-item-desc">' + f.desc + '</div>'
       + '</label></div></div>';
   }).join('');
@@ -408,9 +384,9 @@ async function sendForms() {
 
   if(!cFirst||!cLast) return toast('Please enter first and last name','err');
   if(!cDob) return toast('Please enter date of birth','err');
-  if(!gName) return toast('Please enter guardian name','err');
-  if(!gEmail||gEmail.indexOf('@')<0) return toast('Please enter a valid guardian email','err');
-  if(!gPhone) return toast('Please enter guardian phone','err');
+  var minor = document.getElementById('is-minor').checked;
+  if(minor && !gName) return toast('Please enter the authorized signer name','err');
+  if(!gEmail||gEmail.indexOf('@')<0) return toast('Please enter a valid email','err');
 
   var selected = FORMS.filter(function(f) {
     var el = document.getElementById('fc-'+f.id);
@@ -430,7 +406,10 @@ async function sendForms() {
     client: {
       firstName:cFirst, lastName:cLast, dob:cDob,
       gender: document.getElementById('c-gender').value,
-      guardianName:gName, guardianRel: document.getElementById('g-rel').value,
+      isMinor: document.getElementById('is-minor').checked,
+      signerName: gName || (cFirst + ' ' + cLast),
+      signerRel: document.getElementById('g-rel').value,
+      guardianName: gName || (cFirst + ' ' + cLast),
       guardianPhone:gPhone, guardianEmail:gEmail,
       address: document.getElementById('g-addr').value,
       insuranceProvider: document.getElementById('ins-name').value,
