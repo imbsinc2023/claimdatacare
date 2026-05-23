@@ -7,16 +7,22 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--font:'DM Sans',system-ui,sans-serif;--text:#1a1a1a;--text3:#888;--border:#e0e0e0;--bg:#f7f7f7;--r:8px}
-html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px}
-.hdr{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
+:root{
+  --font:'Segoe UI','DM Sans',system-ui,sans-serif;
+  --text:#141413;--text3:#87867f;
+  --border:#f0eee6;--border2:#e8e6dc;
+  --bg:#f5f4ed;--surface:#faf9f5;
+  --brand:#c96442;--dark:#30302e;--r:8px
+}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px;line-height:1.6}
+.hdr{background:var(--surface);border-bottom:1px solid var(--border2);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
 .hdr-logo{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:6px;padding:2px}
 .hdr-name{font-size:15px;font-weight:700;line-height:1.2}
 .hdr-sub{font-size:11px;color:var(--text3)}
 .hdr-right{text-align:right;font-size:11px;color:var(--text3);line-height:1.8}
 .body{max-width:800px;margin:0 auto;padding:28px 20px}
-.slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);display:block;margin:24px 0 10px}
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dark);display:block;margin:24px 0 10px}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:16px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .field{display:flex;flex-direction:column;gap:4px}
@@ -26,21 +32,21 @@ html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var
 .span2{grid-column:1/-1}
 .form-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
 .form-item:last-child{border-bottom:none}
-.form-item input[type=checkbox]{width:16px;height:16px;margin-top:2px;cursor:pointer;flex-shrink:0;accent-color:#333}
+.form-item input[type=checkbox]{width:16px;height:16px;margin-top:2px;cursor:pointer;flex-shrink:0;accent-color:var(--brand)}
 .form-item-name{font-size:13px;font-weight:600}
 .form-item-desc{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5}
-.req{color:#c00}
-#btn-send{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer}
-#btn-send:hover{background:#333}
-#btn-send:disabled{background:#aaa;cursor:not-allowed}
-#btn-reset{padding:10px 22px;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer}
+.req{color:var(--brand)}
+#btn-send{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer}
+#btn-send:hover{background:#b85a3a}
+#btn-send:disabled{background:#d1cfc5;cursor:not-allowed;color:#87867f}
+#btn-reset{padding:10px 22px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer}
 #toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:none;color:#fff}
-#toast.ok{background:#1a1a1a}
+#toast.ok{background:var(--dark)}
 #toast.err{background:#c00}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 #view-success{display:none;text-align:center;padding:60px 20px}
-.check-wrap{width:72px;height:72px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.check-wrap{width:72px;height:72px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
 @media(max-width:600px){.g2,.g3{grid-template-columns:1fr}.hdr-right{display:none}.hdr{padding:0 16px}}
 </style>
 </head>
@@ -72,6 +78,8 @@ html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var
       <div class="field"><label>Last Name <span class="req">*</span></label><input id="c-last" placeholder="Last name"></div>
       <div class="field"><label>Date of Birth <span class="req">*</span></label><input id="c-dob" type="date"></div>
       <div class="field"><label>Gender</label><select id="c-gender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div class="field"><label>Email <span class="req">*</span></label><input id="c-email" type="email" placeholder="patient@email.com"></div>
+      <div class="field"><label>Phone</label><input id="c-phone" placeholder="(123) 456-7890" maxlength="14" oninput="fmtPhone(this)"></div>
       <div class="field"><label>Language</label><select id="c-lang"><option>English</option><option>Spanish</option><option>Other</option></select></div>
     </div>
   </div>
@@ -380,8 +388,14 @@ async function sendForms() {
   var cDob   = document.getElementById('c-dob').value;
   var minor  = document.getElementById('is-minor').checked;
   var gName  = document.getElementById('g-name').value.trim();
-  var gEmail = document.getElementById('g-email').value.trim();
-  var gPhone = document.getElementById('g-phone').value.trim();
+
+  // Email/phone: from patient fields when self-signing, from signer section when minor
+  var gEmail = minor
+    ? document.getElementById('g-email').value.trim()
+    : document.getElementById('c-email').value.trim();
+  var gPhone = minor
+    ? document.getElementById('g-phone').value.trim()
+    : document.getElementById('c-phone').value.trim();
 
   // If not signing for someone else, the patient signs for themselves
   var signerName = minor ? gName : (cFirst + ' ' + cLast);
@@ -490,7 +504,7 @@ async function sendForms() {
 function resetForm() {
   document.getElementById('view-form').style.display = '';
   document.getElementById('view-success').style.display = 'none';
-  ['c-first','c-last','c-dob','g-name','g-email','g-phone','g-addr','ins-name','ins-id','ins-group'].forEach(function(id){
+  ['c-first','c-last','c-dob','c-email','c-phone','g-name','g-email','g-phone','g-addr','ins-name','ins-id','ins-group'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('c-gender').value = '';

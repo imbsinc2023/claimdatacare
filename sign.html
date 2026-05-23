@@ -4,28 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sign Forms</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--font:'DM Sans',system-ui,sans-serif;--text:#1a1a1a;--text2:#4a4a4a;--text3:#888;--border:#e0e0e0;--bg:#f7f7f7;--brand:#1a1a1a;--r:8px}
-html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px}
-.topbar{background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px}
+:root{
+  --font:'Segoe UI','DM Sans',system-ui,sans-serif;
+  --serif:Georgia,'Times New Roman',serif;
+  --text:#141413;
+  --text2:#5e5d59;
+  --text3:#87867f;
+  --border:#f0eee6;
+  --border2:#e8e6dc;
+  --bg:#f5f4ed;
+  --surface:#faf9f5;
+  --brand:#c96442;
+  --dark:#30302e;
+  --r:8px
+}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px;line-height:1.6}
+.topbar{background:#141413;color:#faf9f5;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px}
 .topbar-name{font-size:14px;font-weight:700}
 .topbar-secure{font-size:11px;color:rgba(255,255,255,.5)}
-.progress-wrap{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:none}
+.progress-wrap{background:var(--surface);border-bottom:1px solid var(--border2);padding:14px 24px;display:none}
 .progress-steps{display:flex;align-items:center;max-width:700px;margin:0 auto}
 .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
 .step-item:not(:last-child)::after{content:'';position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
-.step-item.done::after,.step-item.active::after{background:#1a1a1a}
+.step-item.done::after,.step-item.active::after{background:var(--brand)}
 .step-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text3);z-index:1}
-.step-item.active .step-dot{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
-.step-item.done .step-dot{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
+.step-item.active .step-dot{border-color:var(--brand);background:var(--brand);color:#fff}
+.step-item.done .step-dot{border-color:var(--brand);background:var(--brand);color:#fff}
 .step-label{font-size:10px;color:var(--text3);margin-top:4px;text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .step-item.active .step-label,.step-item.done .step-label{color:#1a1a1a;font-weight:600}
 .body{max-width:720px;margin:0 auto;padding:28px 20px}
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.card-hdr{background:#f7f7f7;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-hdr{background:var(--bg);border-bottom:1px solid var(--border2);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
 .card-hdr-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
 .card-body{padding:20px 18px}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
@@ -35,30 +48,30 @@ html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var
 .info-item:nth-last-child(-n+2){border-bottom:none}
 .info-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
 .info-value{font-size:13px;font-weight:600;color:var(--text)}
-.doc-content{font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap;max-height:400px;overflow-y:auto;background:#fafafa;border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.doc-content{font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap;max-height:400px;overflow-y:auto;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);padding:16px}
 .sig-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px}
 .sig-tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none}
-.sig-tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
-.sig-canvas-wrap{position:relative;background:#fafafa;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+.sig-tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.sig-canvas-wrap{position:relative;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);overflow:hidden}
 canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 .sig-clear{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer}
 .sig-type-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r);font-size:14px;font-family:var(--font);margin-bottom:8px}
 .sig-preview{font-family:'Brush Script MT',cursive;font-size:36px;min-height:60px;border-bottom:2px solid var(--text);padding:4px 0;color:var(--text)}
 .sig-hint{font-size:11px;color:var(--text3);margin-top:6px;font-style:italic}
-.consent-box{display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f7f7f7;border:1px solid var(--border);border-radius:var(--r);margin-top:14px;font-size:12px;color:var(--text2);line-height:1.6}
+.consent-box{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);margin-top:14px;font-size:12px;color:var(--text2);line-height:1.6}
 .consent-box input{width:15px;height:15px;margin-top:2px;accent-color:#1a1a1a;flex-shrink:0;cursor:pointer}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);font-family:var(--font);background:#fff;color:var(--text);transition:all .12s}
 .btn:hover{background:#f5f5f5}
-.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
-.btn-primary:hover{background:#333}
-.btn-primary:disabled{background:#aaa;border-color:#aaa;cursor:not-allowed}
+.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-primary:hover{background:#b85a3a}
+.btn-primary:disabled{background:#d1cfc5;border-color:#d1cfc5;cursor:not-allowed;color:#87867f}
 .btn-lg{padding:14px 32px;font-size:15px;border-radius:10px}
 .nav-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
 #view-loading{text-align:center;padding:80px 20px}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:#1a1a1a;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 #view-error,#view-success{display:none;text-align:center;padding:60px 20px}
-.check-circle{width:64px;height:64px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.check-circle{width:64px;height:64px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
 .spin-sm{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
 @media(max-width:600px){.info-grid{grid-template-columns:1fr}.info-item:nth-child(even){padding-left:0;border-left:none}.topbar{padding:0 16px}.body{padding:16px 12px}.step-label{display:none}}
 </style>
@@ -157,7 +170,7 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 
             <!-- Preview: shown on forms 2+ -->
             <div id="sig-preview-wrap" style="display:none">
-              <div style="background:#fafafa;border:1.5px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:14px">
+              <div style="background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:14px">
                 <img id="sig-preview-img" src="" style="height:52px;display:block">
                 <div>
                   <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:3px">Signature applied</div>
@@ -475,181 +488,166 @@ async function generatePDF(idx) {
   var sig = _sigs[idx];
   var W   = doc.internal.pageSize.getWidth();   // 612
   var H   = doc.internal.pageSize.getHeight();  // 792
-  var ML  = 40, MR = 40, TW = W - ML - MR;     // 532pt
+  var ML  = 44, MR = 44, TW = W - ML - MR;     // 524pt
 
-  // Colors
-  function K()  { doc.setTextColor(0,0,0);     doc.setDrawColor(0,0,0);       }
-  function DG() { doc.setTextColor(80,80,80);  doc.setDrawColor(80,80,80);    }
-  function LG() { doc.setTextColor(120,120,120); }
+  // ── Anthropic/Claude design palette ──────────────────────────────────────
+  var NEAR_BLACK  = [20,  20,  19];   // #141413
+  var OLIVE_GRAY  = [94,  93,  89];   // #5e5d59
+  var STONE_GRAY  = [135, 134, 127];  // #87867f
+  var PARCHMENT   = [245, 244, 237];  // #f5f4ed
+  var IVORY       = [250, 249, 245];  // #faf9f5
+  var WARM_SAND   = [232, 230, 220];  // #e8e6dc
+  var BORDER_CREAM= [240, 238, 230];  // #f0eee6
+  var TERRACOTTA  = [201, 100,  66];  // #c96442
+  var DARK_SURF   = [48,  48,  46];   // #30302e
 
-  // Card: draw a rounded rect box
-  function card(x, y, w, h) {
-    doc.setFillColor(250,250,250);
-    doc.setDrawColor(210,210,210);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(x, y, w, h, 3, 3, 'FD');
+  function rgb(a)    { doc.setTextColor(a[0],a[1],a[2]); }
+  function drw(a)    { doc.setDrawColor(a[0],a[1],a[2]); }
+  function flll(a)   { doc.setFillColor(a[0],a[1],a[2]); }
+  function sans(wt, sz) { doc.setFont('helvetica', wt||'normal'); doc.setFontSize(sz||9); }
+  function serif(sz)    { doc.setFont('times',     'normal');      doc.setFontSize(sz||11); }
+
+  // ── CARD with parchment bg and cream border ────────────────────────────────
+  function card(x, y, w, h, radiusPx) {
+    var r = radiusPx || 6;
+    flll(IVORY); drw(BORDER_CREAM); doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, w, h, r, r, 'FD');
   }
 
-  // Card header band
+  // ── CARD HEADER: near-black band, ivory text, 12px radius top ──────────────
   function cardHeader(x, y, w, label) {
-    doc.setFillColor(235,235,235);
-    doc.setDrawColor(210,210,210);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(x, y, w, 14, 3, 3, 'FD');
-    // cover bottom-round on top band
-    doc.setFillColor(235,235,235);
-    doc.rect(x, y+8, w, 6, 'F');
-    K(); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-    doc.text(label.toUpperCase(), x+6, y+10);
+    flll(DARK_SURF); drw(DARK_SURF); doc.setLineWidth(0);
+    doc.roundedRect(x, y, w, 20, 6, 6, 'FD');
+    flll(DARK_SURF); doc.rect(x, y+12, w, 8, 'F'); // cover bottom round
+    sans('bold', 6.5); rgb([250,249,245]);
+    doc.text(label.toUpperCase(), x+10, y+13.5);
   }
 
-  // ── HEADER ────────────────────────────────────────────────────────────────
-  var LSZ = 34, LGAP = 10, HY = 20;
+  // ── FIELD: label over value ────────────────────────────────────────────────
+  function fld(label, value, x, y, maxW) {
+    sans('bold', 6); rgb(STONE_GRAY); doc.text(label, x, y);
+    sans('normal', 8.5); rgb(NEAR_BLACK);
+    if (maxW) doc.text(value||'—', x, y+9, {maxWidth: maxW});
+    else      doc.text(value||'—', x, y+9);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HEADER
+  // ══════════════════════════════════════════════════════════════════════════
+  var HY = 24, LSZ = 36;
   if (typeof VORTEX_LOGO !== 'undefined') {
     try { doc.addImage(VORTEX_LOGO, 'PNG', ML, HY, LSZ, LSZ); } catch(e) {}
   }
-  var hx = ML + LSZ + LGAP;
-  var nY = HY + LSZ * 0.38;
-  K(); doc.setFontSize(12); doc.setFont('helvetica','bold');
-  doc.text(p.name || 'Provider', hx, nY);
-  var pp = [p.addr1, (p.city&&p.state)?p.city+', '+p.state:'', p.phone||'', p.npi?'NPI '+p.npi:''].filter(Boolean);
-  LG(); doc.setFontSize(7); doc.setFont('helvetica','normal');
-  doc.text(pp.join('  \u00b7  '), hx, nY + 11);
-  K(); doc.setLineWidth(0.75);
-  var rY = HY + LSZ + 6;
-  doc.line(ML, rY, W-MR, rY);
-  var y = rY + 10;
+  var hx = ML + LSZ + 12, nY = HY + 14;
+  sans('bold', 12); rgb(NEAR_BLACK); doc.text(p.name || 'Provider', hx, nY);
+  var pp = [p.addr1,(p.city&&p.state)?p.city+','+p.state:'',p.phone||'',p.npi?'NPI '+p.npi:''].filter(Boolean);
+  sans('normal', 7); rgb(STONE_GRAY); doc.text(pp.join('  \u00b7  '), hx, nY+11);
 
-  // ── FORM TITLE ─────────────────────────────────────────────────────────────
-  K(); doc.setFontSize(11); doc.setFont('helvetica','bold');
+  // Terracotta accent rule
+  var rY = HY + LSZ + 8;
+  drw(TERRACOTTA); doc.setLineWidth(1.5); doc.line(ML, rY, ML+40, rY);
+  drw(BORDER_CREAM); doc.setLineWidth(0.5); doc.line(ML+42, rY, W-MR, rY);
+  var y = rY + 14;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FORM TITLE — Georgia serif
+  // ══════════════════════════════════════════════════════════════════════════
+  serif(13); rgb(NEAR_BLACK);
   doc.text((f.name || 'Consent Form').toUpperCase(), ML, y);
-  y += 14;
+  y += 18;
 
-  // ── PATIENT INFO CARD ──────────────────────────────────────────────────────
-  var cardH = 56;
-  card(ML, y, TW, cardH);
+  // ══════════════════════════════════════════════════════════════════════════
+  // PATIENT INFO CARD
+  // ══════════════════════════════════════════════════════════════════════════
+  var patH = 68;
+  card(ML, y, TW, patH);
   cardHeader(ML, y, TW, 'Patient Information');
-  var iy = y + 20;
+
   var col2 = ML + TW/2 + 4;
+  var ry1  = y + 26;
+  fld('PATIENT', (cl.lastName||'')+(cl.firstName?', '+cl.firstName:''), ML+10, ry1, TW/2-16);
+  fld('DATE OF BIRTH', cl.dob||'—', col2, ry1);
 
-  // Row 1: Name | DOB
-  K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
-  doc.text('PATIENT', ML+6, iy);
-  doc.text('DATE OF BIRTH', col2, iy);
-  K(); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-  var patName = (cl.lastName||'') + (cl.firstName?', '+cl.firstName:'');
-  doc.text(patName || '—', ML+6, iy+8);
-  doc.text(cl.dob || '—', col2, iy+8);
+  drw(BORDER_CREAM); doc.setLineWidth(0.3); doc.line(ML+8, ry1+16, ML+TW-8, ry1+16);
 
-  // Divider
-  doc.setLineWidth(0.2); doc.setDrawColor(210,210,210);
-  doc.line(ML+4, iy+13, ML+TW-4, iy+13);
+  var ry2 = ry1 + 24;
+  var sigLbl = cl.isMinor ? 'PARENT / LEGAL GUARDIAN' : 'AUTHORIZED SIGNER';
+  fld(sigLbl, cl.guardianName||'—', ML+10, ry2, TW/2-16);
+  fld('INSURANCE', cl.insuranceProvider||'—', col2, ry2);
+  y += patH + 10;
 
-  // Row 2: Signer | Insurance
-  var iy2 = iy + 20;
-  var signerLabel = cl.isMinor ? 'PARENT / LEGAL GUARDIAN' : 'AUTHORIZED SIGNER';
-  K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
-  doc.text(signerLabel, ML+6, iy2);
-  doc.text('INSURANCE', col2, iy2);
-  K(); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-  doc.text(cl.guardianName || '—', ML+6, iy2+8);
-  doc.text(cl.insuranceProvider || '—', col2, iy2+8);
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONTENT CARD
+  // ══════════════════════════════════════════════════════════════════════════
+  // Clean content
+  var raw = (f.content||'').trim().split('\n');
+  if (raw[0] && raw[0].trim().toUpperCase() === (f.name||'').trim().toUpperCase()) {
+    raw.shift(); while (raw.length && !raw[0].trim()) raw.shift();
+  }
+  var cutAt = raw.length;
+  var cuts = ['Patient Name:','Patient or Parent','Parent/Legal Guardian:','Signature:','Date:'];
+  raw.forEach(function(ln,i){ if(cutAt===raw.length) cuts.forEach(function(w){ if(ln.trim().indexOf(w)===0) cutAt=i; }); });
+  var clean = raw.slice(0,cutAt).join('\n').trim();
 
-  y += cardH + 8;
-
-  // ── CONTENT CARD ───────────────────────────────────────────────────────────
-  var rawContent = (f.content || '').trim();
-  // Strip trailing Patient Name / Date / Signature lines
-  var cutWords = ['Patient Name:', 'Patient or Parent', 'Parent/Legal Guardian:', 'Signature:', 'Date:'];
-  var lines = rawContent.split('\n');
-  var cutIdx = lines.length;
-  lines.forEach(function(line, i) {
-    if (cutIdx === lines.length) {
-      cutWords.forEach(function(w) {
-        if (line.trim().indexOf(w) === 0) cutIdx = i;
-      });
-    }
-  });
-  var cleanContent = lines.slice(0, cutIdx).join('\n').trim();
-
-  // Calculate available space
-  var sigCardH = 80;
-  var footH    = 28;
-  var avail    = H - y - sigCardH - footH - 14;
-  var contentCardH = avail;
-
-  // Draw content card
-  card(ML, y, TW, contentCardH);
+  var sigCardH = 90, footH = 30;
+  var cntCardH = H - y - sigCardH - footH - 14;
+  card(ML, y, TW, cntCardH);
   cardHeader(ML, y, TW, 'Document Content');
 
-  var cy = y + 20;
-  var contentAvail = contentCardH - 22;
-
-  var fs = 8.5, lh, contentLines;
-  for (var s = 8.5; s >= 6; s -= 0.2) {
-    doc.setFontSize(s);
-    lh = s * 1.38;
-    contentLines = doc.splitTextToSize(cleanContent, TW - 12);
-    if (contentLines.length * lh <= contentAvail) { fs = s; break; }
-    fs = s;
+  var cx = ML+10, cy = y+26, cw = TW-20, availH = cntCardH-30;
+  var fs = 9, lh, lines;
+  for (var s=9; s>=6.5; s-=0.25) {
+    doc.setFontSize(s); lh = s*1.60;  // generous 1.60 line height
+    lines = doc.splitTextToSize(clean, cw);
+    if (lines.length*lh <= availH) { fs=s; break; } fs=s;
   }
-  doc.setFontSize(fs); doc.setFont('helvetica','normal'); K();
-  lh = fs * 1.38;
-  contentLines = doc.splitTextToSize(cleanContent, TW - 12);
-  for (var li = 0; li < contentLines.length; li++) {
-    doc.text(contentLines[li], ML+6, cy);
-    cy += lh;
-  }
-  y += contentCardH + 8;
+  sans('normal', fs); rgb(OLIVE_GRAY); lh = fs*1.60;
+  lines = doc.splitTextToSize(clean, cw);
+  for (var li=0; li<lines.length; li++) { doc.text(lines[li], cx, cy); cy+=lh; }
+  y += cntCardH + 10;
 
-  // ── SIGNATURE CARD ─────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // SIGNATURE CARD
+  // ══════════════════════════════════════════════════════════════════════════
   card(ML, y, TW, sigCardH);
   cardHeader(ML, y, TW, 'Electronic Signature & Acknowledgment');
 
-  var sy = y + 18;
+  var sy = y + 26;
+  var sigColW = TW * 0.50;
 
-  // Checkbox + consent text
-  // Draw checkbox square
-  doc.setFillColor(255,255,255);
-  doc.setDrawColor(80,80,80);
-  doc.setLineWidth(0.5);
-  doc.rect(ML+6, sy-5, 7, 7, 'FD');
-  // Checkmark inside
-  doc.setDrawColor(0,0,0); doc.setLineWidth(0.8);
-  doc.line(ML+7.5, sy-1.5, ML+9, sy+0.5);
-  doc.line(ML+9, sy+0.5, ML+12, sy-3.5);
+  // Signature image
+  if (sig) { try { doc.addImage(sig,'PNG',ML+10,sy,Math.min(sigColW-16,130),32); } catch(e){} }
+  drw(WARM_SAND); doc.setLineWidth(0.6);
+  doc.line(ML+10, sy+36, ML+10+Math.min(sigColW-16,130), sy+36);
+  sans('normal',6.5); rgb(STONE_GRAY); doc.text('Signature of Authorized Signer', ML+10, sy+44);
 
-  K(); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-  doc.text('I have read and agree to this document. My electronic signature is legally binding.', ML+16, sy);
+  // Right column
+  var rx = ML + sigColW + 10, rw2 = TW - sigColW - 16;
 
-  sy += 10;
+  // Checkbox with checkmark
+  flll([255,255,255]); drw(WARM_SAND); doc.setLineWidth(0.5);
+  doc.rect(rx, sy-1, 7, 7, 'FD');
+  drw(TERRACOTTA); doc.setLineWidth(0.9);
+  doc.line(rx+1.5, sy+2.5, rx+3, sy+4.5);
+  doc.line(rx+3,   sy+4.5, rx+6.5, sy-0.5);
 
-  // Signature image (left half)
-  var sigW = TW * 0.48;
-  if (sig) { try { doc.addImage(sig,'PNG',ML+6,sy,Math.min(sigW-10,120),28); } catch(e){} }
+  sans('normal',6.5); rgb(OLIVE_GRAY);
+  var conLines = doc.splitTextToSize('I have read, understood, and agree to this document. My electronic signature is legally binding.', rw2-12);
+  doc.text(conLines, rx+10, sy+4);
 
-  // Right side: signer name, timestamp, IP
-  var rx = ML + TW/2 + 6;
-  K(); doc.setFontSize(6); doc.setFont('helvetica','bold');
-  doc.text('SIGNED BY', rx, sy+4);
-  K(); doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text(cl.guardianName || '—', rx, sy+13);
+  var fiy = sy + 16;
+  fld('SIGNED BY',  cl.guardianName||'—', rx, fiy, rw2);
+  fld('DATE & TIME', window._signTimestamp||'—', rx, fiy+18, rw2);
+  fld('IP ADDRESS',  window._signerIP||'—', rx, fiy+36, rw2);
 
-  LG(); doc.setFontSize(6); doc.setFont('helvetica','normal');
-  doc.text('Timestamp: ' + (window._signTimestamp||new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'long'})), rx, sy+22);
-  doc.text('IP: ' + (window._signerIP||'—'), rx, sy+30);
-
-  // Signature line
-  sy += 36;
-  K(); doc.setLineWidth(0.5);
-  doc.line(ML+6, sy, ML+6+sigW-10, sy);
-
-  // ── FOOTER ────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════════════════════════════
   var fY = H - 18;
-  K(); doc.setLineWidth(0.4); doc.line(ML, fY-8, W-MR, fY-8);
-  LG(); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
+  drw(BORDER_CREAM); doc.setLineWidth(0.4); doc.line(ML, fY-10, W-MR, fY-10);
+  sans('normal',6.5); rgb(STONE_GRAY);
   doc.text(p.name||'', ML, fY);
-  doc.text('Electronic Record \u2014 Vortex Intake System', W-MR, fY, {align:'right'});
+  doc.text('Vortex Electronic Intake System', W-MR, fY, {align:'right'});
 
   return doc.output('datauristring');
 }
