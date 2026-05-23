@@ -682,6 +682,8 @@ async function submitAll() {
         guardianName:c.guardianName||'',
         guardianFirst:c.firstName||'',
         guardianLast:c.lastName||'',
+        childFirst:c.firstName||'',
+        childLast:c.lastName||'',
         guardianEmail:_data.email||'',
         signedTs:ts,
         forms:_data.forms.map(function(f,i){ return {id:f.id,name:f.name,type:f.type,pdfData:pdfs[i]||null}; })

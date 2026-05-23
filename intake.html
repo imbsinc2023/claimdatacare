@@ -129,29 +129,251 @@ const PROVIDER = {
 
 const FORMS = [
   {
-    id:'hipaa', name:'HIPAA Notice of Privacy Practices', type:'HIPAA',
-    desc:'45 CFR §164.520 — Required acknowledgment of privacy rights and PHI use',
-    content:'NOTICE OF PRIVACY PRACTICES\n\nVortex Management Services Inc is required by law (45 CFR §164.520) to maintain the privacy of Protected Health Information (PHI).\n\nYOUR RIGHTS:\n- Request restrictions on PHI use (45 CFR §164.522)\n- Inspect and copy PHI (45 CFR §164.524)\n- Request amendments to PHI (45 CFR §164.526)\n- Receive an accounting of disclosures (45 CFR §164.528)\n\nWe may use PHI for treatment, payment, and operations per 45 CFR §164.506. We may disclose PHI when required by law including mandatory reporting of child abuse.\n\nCOMPLAINTS: www.hhs.gov/ocr/privacy\n\nParent/Guardian: {{guardianName}}\nDate: {{date}}\nSignature: {{signature}}'
+    id:'hipaa', name:'HIPAA Privacy Acknowledgment', type:'HIPAA',
+    desc:'Acknowledgment of receipt of Notice of Privacy Practices per 45 CFR §164.520',
+    content:`HIPAA PRIVACY ACKNOWLEDGMENT
+
+Practice Name: Vortex Management Services Inc
+Address: 8500 W Flagler St, Ste 107A, Miami, FL 33144
+Phone: (786) 614-5085
+
+The undersigned acknowledges receipt of the Practice's Notice of Privacy Practices in accordance with the Health Insurance Portability and Accountability Act of 1996 ("HIPAA"), as amended.
+
+I understand that the Practice may use and disclose Protected Health Information ("PHI") for purposes of treatment, payment, healthcare operations, care coordination, quality assurance activities, and other uses permitted or required by applicable federal and Florida law.
+
+I authorize the Practice to communicate with me and/or the parent/legal guardian regarding treatment-related matters, including appointment reminders, referrals, prescription information, laboratory results, billing matters, and care coordination.
+
+For minor patients, the parent/legal guardian acknowledges authority to consent to healthcare services and receipt of HIPAA-related disclosures on behalf of the minor patient.
+
+I understand that:
+
+  • I may request restrictions on certain disclosures of PHI
+  • I may request confidential communications
+  • I may revoke certain authorizations in writing when permitted by law
+  • The Practice reserves the right to amend its Notice of Privacy Practices
+
+This acknowledgment shall remain in effect unless revoked in writing where permitted by law.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Date: {{date}}
+Signature: {{signature}}`
   },
   {
-    id:'consent', name:'Consent for Evaluation & Treatment', type:'Consent',
-    desc:'Authorization for behavioral health evaluation and treatment services',
-    content:'CONSENT FOR EVALUATION AND TREATMENT\n\nI, {{guardianName}}, as parent/legal guardian of {{childName}}, consent to:\n\n1. EVALUATION: Comprehensive behavioral health evaluation including clinical interviews, standardized assessments, and review of records.\n2. TREATMENT: Behavioral health services including Applied Behavior Analysis (ABA), behavioral intervention, and skills training as clinically indicated.\n3. VOLUNTARY: I may withdraw consent at any time in writing.\n4. CONFIDENTIALITY: Information kept confidential per HIPAA (45 CFR Part 164) and Florida law (F.S. §491.0147).\n\nParent/Guardian: {{guardianName}}\nDate: {{date}}\nSignature: {{signature}}'
-  },
-  {
-    id:'financial', name:'Financial Responsibility Agreement', type:'Financial',
-    desc:'Assignment of benefits, billing authorization, and payment responsibilities',
-    content:'FINANCIAL RESPONSIBILITY AGREEMENT\n\nI, {{guardianName}}, as parent/legal guardian of {{childName}}, agree to:\n\n1. ASSIGNMENT OF BENEFITS: I authorize payment of insurance/Medicaid benefits directly to Vortex Management Services Inc.\n2. FINANCIAL RESPONSIBILITY: I am responsible for all charges regardless of insurance coverage.\n3. INSURANCE CHANGES: I will notify Vortex immediately of any changes in insurance or Medicaid eligibility.\n4. MEDICAID: I certify that eligibility information is accurate. False statements may constitute Medicaid fraud.\n5. OUTSTANDING BALANCES: Accounts unpaid after 90 days may be referred to collections.\n\nParent/Guardian: {{guardianName}}\nDate: {{date}}\nSignature: {{signature}}'
-  },
-  {
-    id:'release', name:'Authorization for Release of Information', type:'Release',
-    desc:'HIPAA-compliant authorization to exchange PHI with designated parties',
-    content:'AUTHORIZATION FOR RELEASE OF PHI (45 CFR §164.508)\n\nI, {{guardianName}}, as parent/legal guardian of {{childName}}, authorize Vortex Management Services Inc to release PHI including clinical records, evaluation reports, treatment plans, and billing records to:\n\n- Primary Care Physician / Pediatrician\n- School / Educational Team (per FERPA)\n- Florida Medicaid / Insurance Company\n- Other treating providers for care coordination\n\nEXPIRATION: One year from date of signature.\nRIGHT TO REVOKE: I may revoke this authorization at any time in writing.\n\nParent/Guardian: {{guardianName}}\nDate: {{date}}\nSignature: {{signature}}'
+    id:'consent', name:'Consent for Treatment of a Minor', type:'Consent',
+    desc:'Authorization for medical, psychiatric, behavioral health, and therapeutic services',
+    content:`CONSENT FOR TREATMENT OF A MINOR
+
+Practice Name: Vortex Management Services Inc
+
+I, {{guardianName}}, the undersigned parent or legal guardian of the minor patient identified below, hereby authorize and consent to the provision of medical, psychiatric, behavioral health, therapeutic, diagnostic, and related healthcare services deemed medically appropriate by the treating provider(s) at Vortex Management Services Inc.
+
+This authorization includes, but is not limited to:
+
+  • Evaluations and assessments
+  • Behavioral health and psychiatric services
+  • Therapy and counseling services
+  • Medication management when clinically indicated
+  • Routine medical treatment and interventions
+  • Coordination of care with other healthcare providers, schools, therapists, and ancillary services as permitted by law
+
+I authorize the Practice to provide emergency evaluation and treatment deemed necessary to protect the health and safety of the minor patient until additional consent or emergency services may be obtained.
+
+I understand that no guarantee has been made regarding treatment outcomes or results.
+
+I acknowledge responsibility for providing accurate medical history, insurance information, emergency contacts, and updated custody/legal documentation if applicable.
+
+This consent shall remain effective unless revoked in writing and subject to applicable legal limitations.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Relationship to Patient: {{relationship}}
+Date: {{date}}
+Signature: {{signature}}`
   },
   {
     id:'telehealth', name:'Telehealth Informed Consent', type:'Telehealth',
-    desc:'Informed consent for delivery of services via telehealth technology',
-    content:'TELEHEALTH INFORMED CONSENT\n\nI, {{guardianName}}, as parent/legal guardian of {{childName}}, consent to telehealth services by Vortex Management Services Inc:\n\n1. DEFINITION: Telehealth uses HIPAA-compliant secure video conferencing to provide behavioral health services remotely.\n2. RISKS: Technology failures, limitations in remote assessment, privacy risks in non-private settings.\n3. PRIVACY: I will conduct sessions in a private location and will not record without prior written consent.\n4. EMERGENCY: In case of emergency I will call 911 or go to the nearest emergency room.\n5. VOLUNTARY: I may withdraw consent at any time without affecting my right to in-person services.\n\nParent/Guardian: {{guardianName}}\nDate: {{date}}\nSignature: {{signature}}'
+    desc:'Informed consent for delivery of services via telehealth technologies per Florida law',
+    content:`TELEHEALTH INFORMED CONSENT
+
+Practice Name: Vortex Management Services Inc
+
+I consent to receive healthcare services through telehealth technologies, including secure audio, video, and electronic communication platforms, in accordance with applicable Florida law and HIPAA regulations.
+
+I understand that telehealth services may include medical, psychiatric, behavioral health, consultation, follow-up, and therapeutic services.
+
+I acknowledge and understand:
+
+  • Telehealth may involve risks including technical interruptions, unauthorized access, or limitations in assessment compared to in-person care
+  • Reasonable safeguards will be used to protect confidentiality and privacy
+  • Electronic communications may not be completely secure despite HIPAA-compliant measures
+  • I am responsible for participating from a private and safe location whenever possible
+
+I understand that:
+
+  • Telehealth services are voluntary and I may withdraw consent at any time
+  • Emergency or crisis situations may require referral to emergency services or local providers
+  • The Practice may contact emergency services or designated emergency contacts if safety concerns arise
+  • Prescribing limitations may apply under federal and Florida law
+
+By signing below, I confirm that I have had the opportunity to ask questions and voluntarily consent to telehealth services.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Date: {{date}}
+Emergency Contact Name/Phone: {{emergencyContact}}
+Signature: {{signature}}`
+  },
+  {
+    id:'roi', name:'Authorization for Release of Information', type:'Release',
+    desc:'HIPAA-compliant authorization for use and disclosure of Protected Health Information',
+    content:`AUTHORIZATION FOR RELEASE OF INFORMATION
+(45 CFR §164.508 — HIPAA Compliant)
+
+Practice Name: Vortex Management Services Inc
+
+I authorize the use and/or disclosure of Protected Health Information ("PHI") relating to the patient identified below.
+
+INFORMATION TO BE RELEASED:
+  • Medical Records
+  • Psychiatric/Behavioral Health Records
+  • Treatment Plans
+  • Laboratory Results
+  • Billing Records
+
+AUTHORIZED DISCLOSURE:
+
+  From: Vortex Management Services Inc
+  To: Primary Care Physician, Educational Team, Insurance/Medicaid, and Authorized Treating Providers
+
+PURPOSE OF DISCLOSURE:
+  • Continuity of Care
+  • Insurance/Benefits
+  • Educational Coordination
+  • Personal Use
+
+I understand:
+
+  • This authorization is voluntary
+  • I may revoke this authorization at any time in writing, except to the extent action has already been taken
+  • Information disclosed pursuant to this authorization may no longer be protected by HIPAA if redisclosed by the recipient
+  • Certain records may include behavioral health, psychiatric, substance use, or sensitive healthcare information where applicable
+
+Unless otherwise specified, this authorization shall expire one (1) year from the date signed.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Date: {{date}}
+Signature: {{signature}}`
+  },
+  {
+    id:'financial', name:'Financial Policy & Assignment of Benefits', type:'Financial',
+    desc:'Assignment of benefits, billing authorization, payment responsibility and missed appointment policy',
+    content:`FINANCIAL POLICY & ASSIGNMENT OF BENEFITS
+
+Practice Name: Vortex Management Services Inc
+
+I authorize the Practice to bill my insurance carrier(s) for services rendered and assign payment of medical and behavioral health benefits directly to the Practice where permitted.
+
+I understand that:
+
+  • Insurance coverage verification does not guarantee payment
+  • I am financially responsible for all copayments, deductibles, coinsurance, non-covered services, denied claims, late balances, and charges not paid by insurance
+  • Payment may be due at the time of service unless prior arrangements have been approved
+
+I authorize release of necessary medical information to insurance carriers, billing entities, and healthcare clearinghouses for claims processing and healthcare operations.
+
+MISSED APPOINTMENT POLICY:
+
+Appointments not canceled within the Practice's required notice period may be subject to a missed appointment or late cancellation fee where permitted by law and payer contract requirements.
+
+The Practice reserves the right to charge balances to the responsible party and pursue lawful collection efforts for unpaid accounts.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Date: {{date}}
+Signature: {{signature}}`
+  },
+  {
+    id:'communication', name:'Consent for Communication', type:'Communication',
+    desc:'Authorization for telephone, SMS, email and portal communications related to care and billing',
+    content:`CONSENT FOR COMMUNICATION
+
+Practice Name: Vortex Management Services Inc
+
+I authorize the Practice and its representatives to contact me and/or the parent/legal guardian using the contact information provided for purposes related to treatment, scheduling, billing, care coordination, prescription management, and healthcare operations.
+
+Authorized methods of communication may include:
+
+  • Telephone calls
+  • Voicemail messages
+  • SMS/text messaging
+  • Secure email communications
+  • Patient portal messaging
+
+I understand that electronic communications may carry privacy and security risks despite reasonable safeguards and HIPAA-compliant procedures.
+
+I consent to receive:
+
+  • Appointment reminders
+  • Follow-up communications
+  • Billing notifications
+  • Care coordination communications
+
+I understand that:
+
+  • Standard message/data rates may apply
+  • I may opt out of certain electronic communications in writing
+  • Sensitive or urgent matters should not be communicated through unsecured electronic methods
+
+For minor patients, communication may be directed to the parent/legal guardian authorized for treatment decisions.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Preferred Contact Number: {{phone}}
+Email Address: {{email}}
+Date: {{date}}
+Signature: {{signature}}`
+  },
+  {
+    id:'behavioral', name:'Behavioral Health & Psychiatric Services Consent', type:'Behavioral',
+    desc:'Informed consent for behavioral health evaluation, treatment, counseling and medication management',
+    content:`BEHAVIORAL HEALTH & PSYCHIATRIC SERVICES CONSENT
+
+Practice Name: Vortex Management Services Inc
+
+I voluntarily consent to behavioral health and/or psychiatric evaluation, treatment, counseling, psychotherapy, medication management, and related clinical services for the patient identified below.
+
+I understand that behavioral health treatment may include discussion of sensitive emotional, psychiatric, behavioral, family, trauma-related, or psychosocial matters.
+
+I acknowledge that:
+
+  • Treatment outcomes cannot be guaranteed
+  • Participation and treatment adherence may affect clinical progress
+  • Psychiatric medications may involve risks, side effects, and potential adverse reactions which will be discussed when applicable
+
+I understand that confidentiality is protected by HIPAA and applicable law; however, disclosures may occur without consent when permitted or required by law, including:
+
+  • Risk of harm to self or others
+  • Suspected abuse, neglect, or exploitation
+  • Court orders or legal requirements
+  • Mandatory reporting obligations under Florida law
+
+I understand that emergency or crisis situations may require referral to emergency services, crisis intervention resources, hospitalization, or coordination with emergency contacts.
+
+I acknowledge that I have had the opportunity to ask questions regarding treatment and consent voluntarily.
+
+Patient Name: {{childName}}
+Date of Birth: {{dob}}
+Parent/Legal Guardian: {{guardianName}}
+Date: {{date}}
+Signature: {{signature}}`
   }
 ];
 
@@ -223,6 +445,11 @@ async function sendForms() {
           .replace(/\{\{guardianName\}\}/g, gName)
           .replace(/\{\{childName\}\}/g, clientName)
           .replace(/\{\{date\}\}/g, today)
+          .replace(/\{\{dob\}\}/g, cDob || '')
+          .replace(/\{\{relationship\}\}/g, document.getElementById('g-rel').value || '')
+          .replace(/\{\{phone\}\}/g, gPhone || '')
+          .replace(/\{\{email\}\}/g, gEmail || '')
+          .replace(/\{\{emergencyContact\}\}/g, gPhone || '')
           .replace(/\{\{signature\}\}/g, '[Signed electronically]')
       };
     })
