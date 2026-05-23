@@ -378,13 +378,17 @@ async function sendForms() {
   var cFirst = document.getElementById('c-first').value.trim();
   var cLast  = document.getElementById('c-last').value.trim();
   var cDob   = document.getElementById('c-dob').value;
+  var minor  = document.getElementById('is-minor').checked;
   var gName  = document.getElementById('g-name').value.trim();
   var gEmail = document.getElementById('g-email').value.trim();
   var gPhone = document.getElementById('g-phone').value.trim();
 
+  // If not signing for someone else, the patient signs for themselves
+  var signerName = minor ? gName : (cFirst + ' ' + cLast);
+  var signerRel  = minor ? document.getElementById('g-rel').value : 'Self';
+
   if(!cFirst||!cLast) return toast('Please enter first and last name','err');
   if(!cDob) return toast('Please enter date of birth','err');
-  var minor = document.getElementById('is-minor').checked;
   if(minor && !gName) return toast('Please enter the authorized signer name','err');
   if(!gEmail||gEmail.indexOf('@')<0) return toast('Please enter a valid email','err');
 
@@ -406,10 +410,10 @@ async function sendForms() {
     client: {
       firstName:cFirst, lastName:cLast, dob:cDob,
       gender: document.getElementById('c-gender').value,
-      isMinor: document.getElementById('is-minor').checked,
-      signerName: gName || (cFirst + ' ' + cLast),
-      signerRel: document.getElementById('g-rel').value,
-      guardianName: gName || (cFirst + ' ' + cLast),
+      isMinor: minor,
+      signerName: signerName,
+      signerRel:  signerRel,
+      guardianName: signerName,
       guardianPhone:gPhone, guardianEmail:gEmail,
       address: document.getElementById('g-addr').value,
       insuranceProvider: document.getElementById('ins-name').value,
@@ -421,7 +425,7 @@ async function sendForms() {
       return {
         id:f.id, name:f.name, type:f.type,
         content: f.content
-          .replace(/\{\{guardianName\}\}/g, gName)
+          .replace(/\{\{guardianName\}\}/g, signerName)
           .replace(/\{\{childName\}\}/g, clientName)
           .replace(/\{\{date\}\}/g, today)
           .replace(/\{\{dob\}\}/g, cDob || '')
@@ -442,7 +446,7 @@ async function sendForms() {
     + '<div><div style="font-size:16px;font-weight:700">'+PROVIDER.name+'</div>'
     + '<div style="font-size:11px;color:#888">'+PROVIDER.addr1+', '+PROVIDER.city+', '+PROVIDER.state+' &middot; '+PROVIDER.phone+'</div></div></div>'
     + '<div style="padding:28px 24px">'
-    + '<p style="font-size:15px;font-weight:700;margin:0 0 8px">Hello '+gName+',</p>'
+    + '<p style="font-size:15px;font-weight:700;margin:0 0 8px">Hello '+signerName+',</p>'
     + '<p style="font-size:13px;color:#555;line-height:1.8;margin:0 0 20px">Please review and sign the consent forms for <strong>'+clientName+'</strong>.</p>'
     + '<div style="background:#f7f7f7;border-radius:8px;padding:16px;margin-bottom:24px">'
     + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:10px">Documents to Sign ('+selected.length+')</div>'
@@ -473,7 +477,7 @@ async function sendForms() {
     document.getElementById('success-msg').innerHTML =
       '<strong>Email sent to ' + gEmail + '</strong><br><br>'
       + clientName + ' — ' + selected.length + ' consent form' + (selected.length>1?'s':'') + ' sent.<br>'
-      + 'The guardian will receive a secure link to review and sign each document.<br>'
+      + (minor ? 'The authorized signer' : signerName) + ' will receive a secure link to review and sign each document.<br>'
       + 'Signed PDFs will be saved to Vortex Drive and you will be notified at <strong>' + PROVIDER.email + '</strong>.';
   } catch(e) {
     console.error(e);
