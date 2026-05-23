@@ -614,7 +614,7 @@ async function generatePDF(idx) {
   });
   var clean = raw.slice(0, cutAt).join('\n').trim();
 
-  var sigCardH = 100;
+  var sigCardH = 118;
   var footH    = 32;
   var cntCardH = H - y - sigCardH - footH - 14;
 
@@ -677,6 +677,9 @@ async function generatePDF(idx) {
   doc.text('Signature of Authorized Signer', ML + PAD, sy + 46);
 
   // RIGHT: checkbox + consent text + signer info — all inside right half (rx to ML+TW-PAD)
+  // Bottom boundary of signature card
+  var sigMaxY = y + sigCardH - PAD;
+
   doc.setFillColor(255,255,255); K(); doc.setLineWidth(0.5);
   doc.rect(rx, sy, 7, 7, 'FD');
   K(); doc.setLineWidth(0.9);
@@ -687,21 +690,23 @@ async function generatePDF(idx) {
   var ctext = doc.splitTextToSize('I have read and agree to this document. My signature is legally binding.', rw - 10);
   doc.text(ctext, rx + 10, sy + 5);
 
-  var iy = sy + 5 + ctext.length * 9 + 8;
+  var iy = sy + 5 + ctext.length * 10 + 10;
 
-  T('bold', 6.5);   K(); doc.text('SIGNED BY', rx, iy);
-  T('normal', 9);   K(); doc.text(cl.guardianName || '—', rx, iy + 9);
-  iy += 22;
-
-  if (window._signTimestamp) {
-    T('bold', 6.5); K(); doc.text('DATE & TIME', rx, iy);
-    T('normal', 8); K(); doc.text(window._signTimestamp, rx, iy + 9, {maxWidth: rw});
-    iy += 22;
+  if (iy + 18 <= sigMaxY) {
+    T('bold', 6.5);  K(); doc.text('SIGNED BY', rx, iy);
+    T('normal', 8.5); K(); doc.text(cl.guardianName || '—', rx, iy + 10, {maxWidth: rw});
+    iy += 24;
   }
 
-  if (window._signerIP && window._signerIP !== 'unavailable') {
+  if (window._signTimestamp && iy + 18 <= sigMaxY) {
+    T('bold', 6.5); K(); doc.text('DATE & TIME', rx, iy);
+    T('normal', 8); K(); doc.text(window._signTimestamp, rx, iy + 10, {maxWidth: rw});
+    iy += 24;
+  }
+
+  if (window._signerIP && window._signerIP !== 'unavailable' && iy + 18 <= sigMaxY) {
     T('bold', 6.5); K(); doc.text('IP ADDRESS', rx, iy);
-    T('normal', 8); K(); doc.text(window._signerIP, rx, iy + 9);
+    T('normal', 8); K(); doc.text(window._signerIP, rx, iy + 10, {maxWidth: rw});
   }
 
   // ══════════════════════════════════════════════════════════════════════════
