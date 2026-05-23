@@ -125,29 +125,45 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
           <div id="form-doc-content" class="doc-content" style="margin-bottom:20px"></div>
           <div style="border-top:1px solid var(--border);padding-top:18px">
             <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">Your Signature</p>
-            <div class="sig-tabs">
-              <div class="sig-tab active" id="tab-draw" onclick="setSigTab('draw')">Draw</div>
-              <div class="sig-tab" id="tab-type" onclick="setSigTab('type')">Type</div>
-              <div class="sig-tab" id="tab-upload" onclick="setSigTab('upload')">Upload</div>
-            </div>
-            <div id="sig-draw-wrap">
-              <div class="sig-canvas-wrap">
-                <canvas id="sig-canvas"></canvas>
-                <button class="sig-clear" onclick="clearCanvas()">Clear</button>
+
+            <!-- Signature EDITOR — shown only on first form -->
+            <div id="sig-editor-wrap">
+              <div class="sig-tabs">
+                <div class="sig-tab active" id="tab-draw" onclick="setSigTab('draw')">Draw</div>
+                <div class="sig-tab" id="tab-type" onclick="setSigTab('type')">Type</div>
+                <div class="sig-tab" id="tab-upload" onclick="setSigTab('upload')">Upload</div>
               </div>
-              <p class="sig-hint">Draw your signature using mouse or finger</p>
+              <div id="sig-draw-wrap">
+                <div class="sig-canvas-wrap">
+                  <canvas id="sig-canvas"></canvas>
+                  <button class="sig-clear" onclick="clearCanvas()">Clear</button>
+                </div>
+                <p class="sig-hint">Draw your signature using mouse or finger</p>
+              </div>
+              <div id="sig-type-wrap" style="display:none">
+                <input class="sig-type-input" id="sig-type-input" placeholder="Type your full name" oninput="document.getElementById('sig-type-preview').textContent=this.value;updateNextBtn()">
+                <div class="sig-preview" id="sig-type-preview"></div>
+                <p class="sig-hint">Your typed name will serve as your signature</p>
+              </div>
+              <div id="sig-upload-wrap" style="display:none;text-align:center;padding:20px">
+                <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="handleUpload(event)">
+                <button class="btn" onclick="document.getElementById('sig-upload-input').click()">Upload Signature Image</button>
+                <div id="sig-upload-preview" style="margin-top:12px"></div>
+              </div>
             </div>
-            <div id="sig-type-wrap" style="display:none">
-              <input class="sig-type-input" id="sig-type-input" placeholder="Type your full name" oninput="document.getElementById('sig-type-preview').textContent=this.value;updateNextBtn()">
-              <div class="sig-preview" id="sig-type-preview"></div>
-              <p class="sig-hint">Your typed name will serve as your signature</p>
+
+            <!-- Signature PREVIEW — shown on forms 2+ (auto-populated) -->
+            <div id="sig-preview-wrap" style="display:none">
+              <div style="background:#fafafa;border:1.5px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:14px">
+                <img id="sig-preview-img" src="" style="height:52px;display:block">
+                <div>
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:3px">Signature applied</div>
+                  <div style="font-size:12px;color:var(--text)">Your signature from the first document will be used for this form.</div>
+                </div>
+              </div>
             </div>
-            <div id="sig-upload-wrap" style="display:none;text-align:center;padding:20px">
-              <input type="file" id="sig-upload-input" accept="image/*" style="display:none" onchange="handleUpload(event)">
-              <button class="btn" onclick="document.getElementById('sig-upload-input').click()">Upload Signature Image</button>
-              <div id="sig-upload-preview" style="margin-top:12px"></div>
-            </div>
-            <div class="consent-box">
+
+            <div class="consent-box" style="margin-top:14px">
               <input type="checkbox" id="form-consent" onchange="updateNextBtn()">
               <label for="form-consent">I have read and agree to this document. My electronic signature is legally equivalent to a handwritten signature.</label>
             </div>
@@ -214,6 +230,7 @@ canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
 var _data = null;
 var _step = 0;
 var _sigs = [];
+var _masterSig = null;
 var _sigMode = 'draw';
 var _uploadedSig = null;
 
@@ -309,6 +326,11 @@ function goNext() {
   var sig = getSig();
   if (!sig) { alert('Please sign before continuing.'); return; }
   if (!document.getElementById('form-consent').checked) { alert('Please check the agreement box.'); return; }
+  // First form: capture master signature and propagate to all slots
+  if (_step === 1) {
+    _masterSig = sig;
+    for (var i = 0; i < _sigs.length; i++) _sigs[i] = _masterSig;
+  }
   _sigs[_step - 1] = sig;
   showStep(_step + 1);
 }
@@ -322,13 +344,29 @@ function buildFormStep(idx) {
   document.getElementById('form-page-label').textContent = 'Document ' + (idx+1) + ' of ' + _data.forms.length;
   document.getElementById('form-doc-content').textContent = f.content || 'No content available.';
   document.getElementById('form-consent').checked = false;
-  _sigMode = 'draw'; _uploadedSig = null;
-  document.getElementById('sig-type-input').value = '';
-  document.getElementById('sig-type-preview').textContent = '';
-  document.getElementById('sig-upload-preview').innerHTML = '';
-  document.getElementById('sig-upload-input').value = '';
-  setSigTab('draw');
-  setTimeout(initCanvas, 50);
+
+  var isFirst = idx === 0;
+  document.getElementById('sig-editor-wrap').style.display = isFirst ? '' : 'none';
+  document.getElementById('sig-preview-wrap').style.display = isFirst ? 'none' : '';
+
+  if (isFirst) {
+    // Reset editor
+    _sigMode = 'draw'; _uploadedSig = null;
+    document.getElementById('sig-type-input').value = '';
+    document.getElementById('sig-type-preview').textContent = '';
+    document.getElementById('sig-upload-preview').innerHTML = '';
+    document.getElementById('sig-upload-input').value = '';
+    setSigTab('draw');
+    setTimeout(initCanvas, 50);
+  } else {
+    // Show captured master signature as preview
+    if (_masterSig) {
+      document.getElementById('sig-preview-img').src = _masterSig;
+    }
+    // Auto-enable Next button (just needs consent checkbox)
+    updateNextBtn();
+  }
+
   var isLast = idx === _data.forms.length - 1;
   document.getElementById('btn-next-label').textContent = isLast ? 'Review & Submit' : 'Next Document';
   document.getElementById('btn-back').style.display = idx === 0 ? 'none' : '';
@@ -421,7 +459,8 @@ function getSig() {
 }
 
 function updateNextBtn() {
-  var hasSig = getSig() !== null;
+  var isPreviewMode = document.getElementById('sig-preview-wrap') && document.getElementById('sig-preview-wrap').style.display !== 'none';
+  var hasSig = isPreviewMode ? !!_masterSig : (getSig() !== null);
   var hasConsent = document.getElementById('form-consent') && document.getElementById('form-consent').checked;
   var btn = document.getElementById('btn-next');
   if (btn) btn.disabled = !(hasSig && hasConsent);
@@ -437,83 +476,157 @@ async function generatePDF(idx) {
   var sig = _sigs[idx];
   var W = doc.internal.pageSize.getWidth();
   var H = doc.internal.pageSize.getHeight();
-  var M = 50;
+  var ML = 64;        // left margin
+  var MR = 64;        // right margin
+  var TW = W - ML - MR; // text width
+  var BLACK = [0,0,0];
   var y = 0;
   var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
-  // Header
-  doc.setFillColor(245,245,245);
-  doc.rect(0,0,W,60,'F');
-  doc.setFillColor(26,26,26);
-  doc.rect(0,58,W,2,'F');
+  // ── Helper: set color ──────────────────────────────────────────────────────
+  function setBlack() {
+    doc.setTextColor(BLACK[0],BLACK[1],BLACK[2]);
+    doc.setDrawColor(BLACK[0],BLACK[1],BLACK[2]);
+  }
 
-  // Provider logo if available
-  var hx = M;
+  // ── Helper: add page if needed ─────────────────────────────────────────────
+  function checkPage(needed) {
+    if (y + needed > H - 72) { doc.addPage(); y = 72; }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HEADER — provider info
+  // ══════════════════════════════════════════════════════════════════════════
+  y = 60;
+
+  // Logo (if any)
+  var hx = ML;
   if (p.logo) {
-    try { doc.addImage(p.logo,'PNG',M,8,44,44); hx = M + 54; } catch(e) {}
+    try { doc.addImage(p.logo,'PNG', ML, 24, 40, 40); hx = ML + 52; } catch(e) {}
   }
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
-  doc.text(p.name || '', hx, 26);
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
-  var provAddr = [p.addr1, p.city && p.state ? p.city+', '+p.state : '', p.phone ? 'Tel: '+p.phone : '', p.npi ? 'NPI: '+p.npi : ''].filter(Boolean).join('   ');
-  doc.text(provAddr, hx, 40);
-  y = 80;
 
-  // Form title
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
-  doc.text((f.name || 'Consent Form').toUpperCase(), M, y); y += 5;
-  doc.setDrawColor(26,26,26); doc.setLineWidth(1); doc.line(M,y,W-M,y); y += 16;
+  // Provider name
+  setBlack();
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(p.name || 'Provider', hx, y - 14);
 
-  // Demographics card
-  doc.setFillColor(247,247,247);
-  doc.setDrawColor(224,224,224); doc.setLineWidth(0.5);
-  doc.roundedRect(M, y, W-M*2, 64, 4, 4, 'FD');
-  var col1 = M+12, col2 = M+(W-M*2)/2+6;
-  var ry = y+14;
-  var dField = function(lbl, val, x, yy) {
-    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(135,135,135);
-    doc.text(lbl, x, yy);
-    doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val||'—', x, yy+9);
-  };
-  dField('CLIENT', (c.lastName||'').toUpperCase()+', '+(c.firstName||''), col1, ry);
-  dField('DATE OF BIRTH', c.dob||'', col2, ry); ry+=18;
-  dField('GUARDIAN', c.guardianName||'', col1, ry);
-  dField('INSURANCE', c.insuranceProvider||'', col2, ry); ry+=18;
-  dField('INSURANCE ID', c.insuranceId||'', col1, ry);
-  dField('DATE', today, col2, ry);
-  y += 72; y += 10;
-
-  // Content
-  doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(50,50,50);
-  var lines = doc.splitTextToSize(f.content||'', W-M*2);
-  for (var i=0; i<lines.length; i++) {
-    if (y > H-100) { doc.addPage(); y=M; }
-    doc.text(lines[i], M, y); y+=13;
+  // Provider details — single line, small, black
+  var provParts = [p.addr1, (p.city && p.state) ? p.city+', '+p.state : '', p.phone ? p.phone : '', p.npi ? 'NPI '+p.npi : ''].filter(Boolean);
+  if (provParts.length) {
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); setBlack();
+    doc.text(provParts.join('  ·  '), hx, y);
   }
-  y+=10;
 
-  // Signature
-  if (y > H-130) { doc.addPage(); y=M; }
-  doc.setFillColor(247,247,247); doc.setDrawColor(224,224,224); doc.setLineWidth(0.5);
-  doc.roundedRect(M, y, W-M*2, 90, 4, 4, 'FD');
-  var sy = y+14;
-  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(135,135,135);
-  doc.text('ELECTRONIC SIGNATURE', M+12, sy); sy+=12;
-  if (sig) { try { doc.addImage(sig,'PNG',M+12,sy,130,36); sy+=42; } catch(e){sy+=42;} }
-  doc.setDrawColor(26,26,26); doc.setLineWidth(0.5); doc.line(M+12,sy,M+160,sy); sy+=8;
-  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
-  doc.text(c.guardianName||'Guardian', M+12, sy); sy+=11;
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
-  doc.text('Signed electronically on '+today, M+12, sy);
-  y+=98;
+  // Thin rule under header
+  y += 20;
+  setBlack();
+  doc.setLineWidth(0.75);
+  doc.line(ML, y, W - MR, y);
+  y += 36;
 
-  // Footer
-  doc.setFillColor(245,245,245); doc.rect(0,H-26,W,26,'F');
-  doc.setFillColor(26,26,26); doc.rect(0,H-26,W,1,'F');
-  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-  doc.text(p.name||'', M, H-12);
-  doc.text('Secure Electronic Signature · '+today, W-M, H-12, {align:'right'});
+  // ══════════════════════════════════════════════════════════════════════════
+  // FORM TITLE
+  // ══════════════════════════════════════════════════════════════════════════
+  setBlack();
+  doc.setFontSize(17); doc.setFont('helvetica','bold');
+  doc.text((f.name || 'Consent Form').toUpperCase(), ML, y);
+  y += 28;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DEMOGRAPHICS — two-column table, no background, clean lines
+  // ══════════════════════════════════════════════════════════════════════════
+  var col2x = ML + TW / 2 + 12;
+  var rowH = 26;
+  var fields = [
+    ['Client', (c.lastName||'') + (c.firstName ? ', '+c.firstName : ''), 'Date of Birth', c.dob||'—'],
+    ['Guardian', c.guardianName||'—', 'Insurance', c.insuranceProvider||'—'],
+    ['Insurance ID', c.insuranceId||'—', 'Date', today]
+  ];
+
+  fields.forEach(function(row, ri) {
+    var fy = y + ri * rowH;
+
+    // Label left
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); setBlack();
+    doc.text(row[0].toUpperCase(), ML, fy);
+    // Value left
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); setBlack();
+    doc.text(row[1]||'—', ML, fy + 11);
+
+    // Label right
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); setBlack();
+    doc.text(row[2].toUpperCase(), col2x, fy);
+    // Value right
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); setBlack();
+    doc.text(row[3]||'—', col2x, fy + 11);
+
+    // Thin separator line between rows (not after last)
+    if (ri < fields.length - 1) {
+      doc.setLineWidth(0.25); setBlack();
+      doc.line(ML, fy + rowH - 4, W - MR, fy + rowH - 4);
+    }
+  });
+
+  y += fields.length * rowH + 10;
+
+  // Rule after demographics
+  setBlack(); doc.setLineWidth(0.75);
+  doc.line(ML, y, W - MR, y);
+  y += 32;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DOCUMENT CONTENT
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.setFontSize(10); doc.setFont('helvetica','normal'); setBlack();
+  var lineH = 16;
+  var contentLines = doc.splitTextToSize(f.content || '', TW);
+  for (var i = 0; i < contentLines.length; i++) {
+    checkPage(lineH);
+    doc.text(contentLines[i], ML, y);
+    y += lineH;
+  }
+  y += 24;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SIGNATURE BLOCK
+  // ══════════════════════════════════════════════════════════════════════════
+  checkPage(120);
+
+  // Section label
+  setBlack(); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('ELECTRONIC SIGNATURE', ML, y);
+  y += 14;
+
+  // Signature image
+  if (sig) {
+    try { doc.addImage(sig, 'PNG', ML, y, 160, 44); } catch(e) {}
+  }
+  y += 52;
+
+  // Signature line
+  setBlack(); doc.setLineWidth(0.75);
+  doc.line(ML, y, ML + 220, y);
+  y += 13;
+
+  // Signer name
+  setBlack(); doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(c.guardianName || 'Guardian / Authorized Signer', ML, y);
+  y += 14;
+
+  // Signed date
+  setBlack(); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Signed electronically · ' + today, ML, y);
+  y += 32;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FOOTER — thin rule + provider name + page reference
+  // ══════════════════════════════════════════════════════════════════════════
+  var footerY = H - 36;
+  setBlack(); doc.setLineWidth(0.5);
+  doc.line(ML, footerY, W - MR, footerY);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); setBlack();
+  doc.text(p.name || '', ML, footerY + 14);
+  doc.text('Secure Electronic Record · ' + today, W - MR, footerY + 14, {align:'right'});
 
   return doc.output('datauristring');
 }
