@@ -476,14 +476,14 @@ function _injectMissingModals() {
     '</div>' +
     '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px">' +
     '<thead><tr style="border-bottom:2px solid var(--border)">' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">DATE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PRODUCT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PAYMENT ID</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INVOICE #</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'date\')">DATE<span class="inv-sort-ico" data-sort="date"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'desc\')">PRODUCT<span class="inv-sort-ico" data-sort="desc"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'paymentId\')">PAYMENT ID<span class="inv-sort-ico" data-sort="paymentId"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'amount\')">AMOUNT<span class="inv-sort-ico" data-sort="amount"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'status\')">STATUS<span class="inv-sort-ico" data-sort="status"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'insurance\')">INSURANCE<span class="inv-sort-ico" data-sort="insurance"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'invoiceNum\')">INVOICE #<span class="inv-sort-ico" data-sort="invoiceNum"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'month\')">INV. MONTH<span class="inv-sort-ico" data-sort="month"></span></th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
     '<th style="width:28px"></th></tr></thead>' +
     '<tbody id="inv-lines-body"></tbody></table></div>' +
@@ -8028,7 +8028,9 @@ fee: feePct, minBase: minRev, excBase, excMonths: excMths, excUsed: excUsedNew,
 revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
 total: svcTotal, billingFee: finalFee,
 excNoteText,
-lines: JSON.parse(JSON.stringify(_invLines)),
+lines: JSON.parse(JSON.stringify(_invLines.map(function(l){
+  return Object.assign({}, l, { amount: l.amount !== '' && l.amount !== undefined ? (parseFloat(String(l.amount).replace(/[$,\s]/g,''))||0).toFixed(2) : '' });
+}))),
 notes: (g('inv-notes')||'').toUpperCase(), updatedAt: Date.now()
 };
 setDB(db => {
@@ -8059,6 +8061,25 @@ let _invSortDir = 'asc';
 function _invSortBy(key) {
   if (_invSortKey === key) _invSortDir = _invSortDir === 'asc' ? 'desc' : 'asc';
   else { _invSortKey = key; _invSortDir = 'asc'; }
+  // Sort _invLines in place
+  _invLines.sort(function(a, b) {
+    let va = (a[key] || '').toString();
+    let vb = (b[key] || '').toString();
+    // Numeric sort for amount
+    if (key === 'amount') {
+      va = parseFloat(va) || 0;
+      vb = parseFloat(vb) || 0;
+      return _invSortDir === 'asc' ? va - vb : vb - va;
+    }
+    // Date sort
+    if (key === 'date') {
+      va = va ? new Date(va).getTime() : 0;
+      vb = vb ? new Date(vb).getTime() : 0;
+      return _invSortDir === 'asc' ? va - vb : vb - va;
+    }
+    // String sort
+    return _invSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
   document.querySelectorAll('.inv-sort-ico').forEach(function(el) {
     el.textContent = el.getAttribute('data-sort') === key ? (_invSortDir === 'asc' ? ' ▲' : ' ▼') : '';
   });
