@@ -476,14 +476,14 @@ function _injectMissingModals() {
     '</div>' +
     '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px">' +
     '<thead><tr style="border-bottom:2px solid var(--border)">' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'date\')">DATE<span class="inv-sort-ico" data-sort="date"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'desc\')">PRODUCT<span class="inv-sort-ico" data-sort="desc"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'paymentId\')">PAYMENT ID<span class="inv-sort-ico" data-sort="paymentId"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'amount\')">AMOUNT<span class="inv-sort-ico" data-sort="amount"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'status\')">STATUS<span class="inv-sort-ico" data-sort="status"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'insurance\')">INSURANCE<span class="inv-sort-ico" data-sort="insurance"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'invoiceNum\')">INVOICE #<span class="inv-sort-ico" data-sort="invoiceNum"></span></th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none" onclick="_invSortBy(\'month\')">INV. MONTH<span class="inv-sort-ico" data-sort="month"></span></th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">DATE</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PRODUCT</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PAYMENT ID</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INVOICE #</th>' +
+    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
     '<th style="width:28px"></th></tr></thead>' +
     '<tbody id="inv-lines-body"></tbody></table></div>' +
@@ -492,9 +492,9 @@ function _injectMissingModals() {
     '</div>' +
 
     '<div class="modal-ftr" style="flex-shrink:0">' +
-    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3)"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand)"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn btn-primary btn-sm" onclick="saveInvoice()" title="Save" style="padding:6px 14px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-invoice\')" style="display:flex;align-items:center;gap:5px"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i> Cancel</button>' +
+    '<button class="btn btn-primary btn-sm" onclick="saveInvoice()" style="display:flex;align-items:center;gap:5px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save</button>' +
+    '<button class="btn btn-sm" onclick="previewInvoicePDF(\'preview\')" style="display:flex;align-items:center;gap:5px;color:var(--brand)"><i data-lucide="eye" class="lci" style="width:14px;height:14px"></i> Preview</button>' +
     '</div></div>'
   );
 
@@ -6378,12 +6378,64 @@ function _openPDFPreview(dataUri, options) {
 }
 
 function previewInvoicePDF(invId) {
-  // If called from modal, use the current modal state
+  // If called from modal with 'preview', save state first without closing modal
   var targetId = invId === 'preview' ? _currentInvId : invId;
-  if (!targetId) {
-    // Auto-save then preview
-    saveInvoice();
-    targetId = _currentInvId;
+  if (invId === 'preview') {
+    // Save silently without closing modal or navigating away
+    const g = id => document.getElementById(id)?.value?.trim() || '';
+    const issuerId = g('inv-issuer');
+    const clientId = g('inv-client');
+    const number = g('inv-number');
+    if (!issuerId || !clientId || !number) {
+      toast('Fill in Billing Entity, Client and Invoice # before previewing','warn');
+      return;
+    }
+    const feePct = parseFloat(g('inv-fee')) || 0;
+    const minRev = parseFloat(g('inv-min-base')) || 0;
+    const excBase = parseFloat(g('inv-exc-base')) || 0;
+    const excMths = parseFloat(g('inv-exc-months')) || 0;
+    const excUsedPrev = parseFloat(g('inv-exc-used') || '0');
+    const revenue = parseFloat(g('inv-revenue')) || 0;
+    const existingId = g('inv-id');
+    const isNewInvoice = !existingId;
+    const excRemaining = excMths - excUsedPrev;
+    const excActive = excBase > 0 && excMths > 0 && excRemaining > 0;
+    const excUsedNew = (isNewInvoice && excActive) ? excUsedPrev + 1 : excUsedPrev;
+    const calcFromRev = revenue * feePct / 100;
+    let finalFee;
+    if (excActive) { finalFee = excBase * feePct / 100; }
+    else if (minRev > 0 && calcFromRev < minRev) { finalFee = minRev * feePct / 100; }
+    else { finalFee = calcFromRev; }
+    const svcTotal = _invSvcLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+    let excNoteText = '';
+    if (excBase > 0 && excMths > 0) {
+      const useIdx = isNewInvoice ? excUsedNew : excUsedPrev;
+      excNoteText = excActive
+        ? 'NOTE: Minimum Fee - Exception base $' + fmtMoney(excBase) + ', ' + useIdx + ' of ' + excMths
+        : 'Exception completed (' + excUsedPrev + ' of ' + excMths + ' months used)';
+    }
+    const inv = {
+      id: existingId || uid(), issuerId, clientId, number,
+      month: g('inv-month'), date: g('inv-date'), due: g('inv-due'),
+      status: document.getElementById('inv-status')?.value || 'Draft',
+      fee: feePct, minBase: minRev, excBase, excMonths: excMths, excUsed: excUsedNew,
+      revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
+      total: svcTotal, billingFee: finalFee, excNoteText,
+      lines: JSON.parse(JSON.stringify(_invLines.map(function(l){
+        return Object.assign({}, l, { amount: l.amount !== '' && l.amount !== undefined ? (parseFloat(String(l.amount).replace(/[$,\s]/g,''))||0).toFixed(2) : '' });
+      }))),
+      notes: (g('inv-notes')||'').toUpperCase(), updatedAt: Date.now()
+    };
+    setDB(function(db) {
+      if (!db.invoices) db.invoices = [];
+      const idx = db.invoices.findIndex(x => x.id === existingId);
+      if (idx >= 0) db.invoices[idx] = inv; else db.invoices.push(inv);
+    });
+    _currentInvId = inv.id;
+    // Update hidden id field so subsequent saves work
+    const idEl = document.getElementById('inv-id');
+    if (idEl) idEl.value = inv.id;
+    targetId = inv.id;
   }
   const doc = _buildInvoicePDF(targetId);
   if (!doc) { toast('Save the invoice first, then preview','warn'); return; }
@@ -6633,88 +6685,31 @@ function parsePastedLines(raw) {
 // Accepts tab-separated (Excel copy) or comma-separated
 const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 const result = [];
-
-// Detect if first line is a header and build a column index map
-let colMap = null;
-const knownHeaders = {
-  'payment date': 'date',
-  'date': 'date',
-  'product': 'desc',
-  'product / description': 'desc',
-  'description': 'desc',
-  'payment id': 'paymentId',
-  'payment id / check #': 'paymentId',
-  'check #': 'paymentId',
-  'amount': 'amount',
-  'status': 'status',
-  'insurance': 'insurance',
-  'insurance / payer': 'insurance',
-  'payer': 'insurance',
-  'invoice number': 'invoiceNum',
-  'invoice month': 'month',
-  'month': 'month'
-};
-
 for (const line of lines) {
-  // Detect separator: tab (Excel) or comma
-  const sep = line.includes('\t') ? '\t' : ',';
-  const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
-  const firstCol = (cols[0] || '').toLowerCase();
-
-  // Detect header row and build column map
-  if (!colMap && (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description'))) {
-    colMap = {};
-    cols.forEach((h, i) => {
-      const key = h.toLowerCase().trim();
-      if (knownHeaders[key]) colMap[knownHeaders[key]] = i;
-    });
-    continue;
-  }
-
-  // Skip non-data rows
-  if (cols.length < 2) continue;
-
-  let obj;
-  if (colMap) {
-    // Use header-based mapping
-    const get = (field) => (colMap[field] !== undefined ? cols[colMap[field]] || '' : '');
-    const rawAmt = get('amount').replace(/[$,\s]/g, '');
-    const parsedAmt = parseFloat(rawAmt);
-    obj = {
-      date:       get('date'),
-      desc:       get('desc'),
-      paymentId:  get('paymentId'),
-      insurance:  get('insurance'),
-      invoiceNum: get('invoiceNum'),
-      month:      get('month'),
-      status:     get('status'),
-      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : ''
-    };
-  } else {
-    // Fallback positional: [0]Date [1]Product [2]PaymentID [3]Amount [4]Status [5]Insurance [6]InvoiceNum [7]Month
-    const rawAmt = (cols[3] || '').replace(/[$,\s]/g, '');
-    const parsedAmt = parseFloat(rawAmt);
-    obj = {
-      date:       cols[0] || '',
-      desc:       cols[1] || '',
-      paymentId:  cols[2] || '',
-      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : '',
-      status:     cols[4] || '',
-      insurance:  cols[5] || '',
-      invoiceNum: cols[6] || '',
-      month:      cols[7] || ''
-    };
-    // If amount still not found, scan remaining cols
-    if (!obj.amount) {
-      for (let i = cols.length - 1; i >= 1; i--) {
-        const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
-        if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
-      }
-    }
-  }
-
-  if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
-  if (obj.date || obj.amount) result.push(obj);
+// Detect separator: tab (Excel) or comma
+const sep = line.includes('\t') ? '\t' : ',';
+const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
+// Skip header rows
+const firstCol = (cols[0] || '').toLowerCase();
+if (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description')) continue;
+// Need at least 2 columns to be useful
+if (cols.length < 2) continue;
+// Map columns: Date, Description, PaymentID, Insurance, Month, Amount
+// Be flexible — if only 2 cols treat as date + amount
+const obj = {
+date: cols[0] || '',
+desc: cols[1] || '',
+paymentId: cols[2] || '',
+insurance: cols[3] || '',
+month: cols[4] || '',
+amount: ''
+};
+for (let i = cols.length - 1; i >= 1; i--) {
+const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
+if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
+}
+if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
+result.push(obj);
 }
 return result;
 }
@@ -8028,9 +8023,7 @@ fee: feePct, minBase: minRev, excBase, excMonths: excMths, excUsed: excUsedNew,
 revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
 total: svcTotal, billingFee: finalFee,
 excNoteText,
-lines: JSON.parse(JSON.stringify(_invLines.map(function(l){
-  return Object.assign({}, l, { amount: l.amount !== '' && l.amount !== undefined ? (parseFloat(String(l.amount).replace(/[$,\s]/g,''))||0).toFixed(2) : '' });
-}))),
+lines: JSON.parse(JSON.stringify(_invLines)),
 notes: (g('inv-notes')||'').toUpperCase(), updatedAt: Date.now()
 };
 setDB(db => {
@@ -8041,11 +8034,10 @@ else db.invoices.push(inv);
 });
 _currentInvId = inv.id;
 closeModal('modal-invoice');
-const invTab = document.getElementById('inv-tab-invoices');
-if (invTab) invTab.click();
-else renderInvoicesList();
+setInvTab('invoices', document.getElementById('inv-stab-invoices'));
 populateInvFilters();
-toast('Invoice saved ?');
+renderInvoicesList();
+toast('Invoice saved ✓');
 }
 
 // ?? PAYMENT LINES (paste area) ???????????????????????????
@@ -8061,25 +8053,6 @@ let _invSortDir = 'asc';
 function _invSortBy(key) {
   if (_invSortKey === key) _invSortDir = _invSortDir === 'asc' ? 'desc' : 'asc';
   else { _invSortKey = key; _invSortDir = 'asc'; }
-  // Sort _invLines in place
-  _invLines.sort(function(a, b) {
-    let va = (a[key] || '').toString();
-    let vb = (b[key] || '').toString();
-    // Numeric sort for amount
-    if (key === 'amount') {
-      va = parseFloat(va) || 0;
-      vb = parseFloat(vb) || 0;
-      return _invSortDir === 'asc' ? va - vb : vb - va;
-    }
-    // Date sort
-    if (key === 'date') {
-      va = va ? new Date(va).getTime() : 0;
-      vb = vb ? new Date(vb).getTime() : 0;
-      return _invSortDir === 'asc' ? va - vb : vb - va;
-    }
-    // String sort
-    return _invSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-  });
   document.querySelectorAll('.inv-sort-ico').forEach(function(el) {
     el.textContent = el.getAttribute('data-sort') === key ? (_invSortDir === 'asc' ? ' ▲' : ' ▼') : '';
   });
