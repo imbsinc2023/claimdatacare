@@ -740,7 +740,14 @@ async function submitAll() {
   // 1. Generate PDFs
   var pdfs = [];
   for (var i=0; i<_data.forms.length; i++) {
-    try { pdfs.push(await generatePDF(i)); } catch(e) { pdfs.push(null); }
+    try {
+      var pdfData = await generatePDF(i);
+      pdfs.push(pdfData);
+      console.log('PDF', i, 'generated OK, size:', pdfData ? pdfData.length : 0);
+    } catch(e) {
+      console.error('PDF', i, 'error:', e.message, e.stack);
+      pdfs.push(null);
+    }
   }
 
   // 2. Show success immediately — do not wait for Drive
