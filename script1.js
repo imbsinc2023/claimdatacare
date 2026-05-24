@@ -6633,31 +6633,88 @@ function parsePastedLines(raw) {
 // Accepts tab-separated (Excel copy) or comma-separated
 const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 const result = [];
-for (const line of lines) {
-// Detect separator: tab (Excel) or comma
-const sep = line.includes('\t') ? '\t' : ',';
-const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
-// Skip header rows
-const firstCol = (cols[0] || '').toLowerCase();
-if (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description')) continue;
-// Need at least 2 columns to be useful
-if (cols.length < 2) continue;
-// Map columns: Date, Description, PaymentID, Insurance, Month, Amount
-// Be flexible — if only 2 cols treat as date + amount
-const obj = {
-date: cols[0] || '',
-desc: cols[1] || '',
-paymentId: cols[2] || '',
-insurance: cols[3] || '',
-month: cols[4] || '',
-amount: ''
+
+// Detect if first line is a header and build a column index map
+let colMap = null;
+const knownHeaders = {
+  'payment date': 'date',
+  'date': 'date',
+  'product': 'desc',
+  'product / description': 'desc',
+  'description': 'desc',
+  'payment id': 'paymentId',
+  'payment id / check #': 'paymentId',
+  'check #': 'paymentId',
+  'amount': 'amount',
+  'status': 'status',
+  'insurance': 'insurance',
+  'insurance / payer': 'insurance',
+  'payer': 'insurance',
+  'invoice number': 'invoiceNum',
+  'invoice month': 'month',
+  'month': 'month'
 };
-for (let i = cols.length - 1; i >= 1; i--) {
-const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
-if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
-}
-if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
-result.push(obj);
+
+for (const line of lines) {
+  // Detect separator: tab (Excel) or comma
+  const sep = line.includes('\t') ? '\t' : ',';
+  const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
+  const firstCol = (cols[0] || '').toLowerCase();
+
+  // Detect header row and build column map
+  if (!colMap && (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description'))) {
+    colMap = {};
+    cols.forEach((h, i) => {
+      const key = h.toLowerCase().trim();
+      if (knownHeaders[key]) colMap[knownHeaders[key]] = i;
+    });
+    continue;
+  }
+
+  // Skip non-data rows
+  if (cols.length < 2) continue;
+
+  let obj;
+  if (colMap) {
+    // Use header-based mapping
+    const get = (field) => (colMap[field] !== undefined ? cols[colMap[field]] || '' : '');
+    const rawAmt = get('amount').replace(/[$,\s]/g, '');
+    const parsedAmt = parseFloat(rawAmt);
+    obj = {
+      date:       get('date'),
+      desc:       get('desc'),
+      paymentId:  get('paymentId'),
+      insurance:  get('insurance'),
+      invoiceNum: get('invoiceNum'),
+      month:      get('month'),
+      status:     get('status'),
+      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : ''
+    };
+  } else {
+    // Fallback positional: [0]Date [1]Product [2]PaymentID [3]Amount [4]Status [5]Insurance [6]InvoiceNum [7]Month
+    const rawAmt = (cols[3] || '').replace(/[$,\s]/g, '');
+    const parsedAmt = parseFloat(rawAmt);
+    obj = {
+      date:       cols[0] || '',
+      desc:       cols[1] || '',
+      paymentId:  cols[2] || '',
+      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : '',
+      status:     cols[4] || '',
+      insurance:  cols[5] || '',
+      invoiceNum: cols[6] || '',
+      month:      cols[7] || ''
+    };
+    // If amount still not found, scan remaining cols
+    if (!obj.amount) {
+      for (let i = cols.length - 1; i >= 1; i--) {
+        const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
+        if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
+      }
+    }
+  }
+
+  if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
+  if (obj.date || obj.amount) result.push(obj);
 }
 return result;
 }
@@ -7991,7 +8048,7 @@ toast('Invoice saved ?');
 
 // ?? PAYMENT LINES (paste area) ???????????????????????????
 function addInvLine() {
-_invLines.push({ date:'', desc:'', paymentId:'', insurance:'', month:'', amount:'' });
+_invLines.push({ date:'', desc:'', paymentId:'', amount:'', status:'', insurance:'', invoiceNum:'', month:'', notes:'' });
 renderInvLines();
 
   try { recalcInvoice(); } catch(e) {}
