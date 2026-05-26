@@ -375,10 +375,10 @@ function _injectMissingModals() {
   }
 
   _mk('modal-sg',
-    '<div class="modal modal-lg" style="max-width:860px;display:flex;flex-direction:column;max-height:94vh;background:#fff">' +
-    '<div class="modal-hdr" style="flex-shrink:0;background:#fff"><div><div class="modal-t" id="sg-title">Service Group</div></div>' +
+    '<div class="modal modal-lg" style="max-width:860px;display:flex;flex-direction:column;max-height:94vh">' +
+    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t" id="sg-title">Service Group</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px;background:#fff">' +
+    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
     '<div class="fg g3" style="margin-bottom:14px">' +
     '<div class="field"><label>Group Name *</label><input id="sg-name" placeholder="e.g. ABA Therapy"></div>' +
     '<div class="field"><label>Rendering Provider</label><select id="sg-rend"></select></div>' +
@@ -386,42 +386,26 @@ function _injectMissingModals() {
     '<div class="field"><label>Status</label><select id="sg-status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>' +
     '</div><div class="sep"></div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-    '<span class="slabel" style="margin:0"><i data-lucide="list" class="lci" style="width:13px;height:13px;vertical-align:middle;margin-right:5px"></i> CPT Lines</span>' +
-    '<div style="display:flex;gap:8px">' +
-    '<button class="btn btn-sm" onclick="addSGLine()"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> Add Line</button>' +
-    '<button class="btn btn-sm" onclick="openSGCatalog()"><i data-lucide="clipboard-list" class="lci" style="width:13px;height:13px"></i> From Catalog</button>' +
+    '<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> CPT Lines</span>' +
+    '<div style="display:flex;gap:6px">' +
+    '<button class="icoBtn" title="Add CPT Line" onclick="addSGLine()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
+    '<button class="icoBtn" title="From Catalog" onclick="openSGCatalog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg></button>' +
     '</div></div>' +
     '<div id="sg-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
-    '<span class="slabel" style="margin:0"><i data-lucide="users" class="lci" style="width:13px;height:13px;vertical-align:middle;margin-right:5px"></i> Patients</span>' +
-    '<button class="btn btn-sm" onclick="openSGPatientSearch()"><i data-lucide="user-plus" class="lci" style="width:13px;height:13px"></i> Add Patient</button></div>' +
+    '<span class="slabel" style="margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Patients</span>' +
+    '<button class="icoBtn" title="Add Patient" onclick="document.getElementById(\'sg-pat-search\').focus();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button></div>' +
     '<div id="sg-patients"></div>' +
-    '</div>' +
-    '<div class="modal-ftr" style="flex-shrink:0;gap:16px;background:#fff">' +
-    '<button class="btn" onclick="closeModal(\'modal-sg\')"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i> Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveSG()"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save Group</button>' +
-    '</div></div>'
-  );
-
-  _mk('modal-sg-pat-search',
-    '<div class="modal modal-sm" style="max-width:520px;background:#fff">' +
-    '<div class="modal-hdr" style="background:#fff"><div><div class="modal-t">Add Patient to Group</div><div class="modal-sub">Search by name, account #, date of birth or member ID</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg-pat-search\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body" style="background:#fff">' +
-    '<div class="fg g2" style="margin-bottom:10px">' +
-    '<div class="field"><label>Search Field</label><select id="sgps-field" style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:#fff;color:var(--text)">' +
-    '<option value="name">Name (Last, First)</option>' +
-    '<option value="acct">Account #</option>' +
-    '<option value="dob">Date of Birth</option>' +
-    '<option value="member">Member ID</option>' +
-    '</select></div>' +
-    '<div class="field"><label>Search Value</label><input id="sgps-q" placeholder="Type to search..." oninput="_sgPatModalSearch()" style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:#fff;color:var(--text)"></div>' +
-    '</div>' +
-    '<div id="sgps-results" style="min-height:80px;max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:#fafafa">' +
-    '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text3)">Type to search patients</div>' +
+    '<!-- Inline patient search -->'+
+    '<div style="position:relative;margin-top:8px">'+
+    '<input id="sg-pat-search" placeholder="Search patients to add..." oninput="_sgUpdateSearch()"'+
+    ' style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">'+
+    '<div id="sg-pat-results" style="display:none;position:absolute;z-index:99;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto"></div>'+
     '</div></div>' +
-    '<div class="modal-ftr" style="gap:12px;background:#fff"><button class="btn" onclick="closeModal(\'modal-sg-pat-search\')">Close</button></div>' +
-    '</div>'
+    '<div class="modal-ftr" style="flex-shrink:0;gap:8px">' +
+    '<button class="icoBtn" title="Cancel" onclick="closeModal(\'modal-sg\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+    '<button class="icoBtn icoBtn--brand" title="Save Group" onclick="saveSG()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg></button>' +
+    '</div></div>'
   );
 
   _mk('modal-invoice',
@@ -5663,9 +5647,8 @@ el.innerHTML = _sgForm.lines.map((l,i) => {
   </div>
   <div style="padding:8px 10px;display:grid;grid-template-columns:80px 90px 60px 90px 50px 50px 50px 50px;gap:6px;align-items:end">
     <div><label style="${L}">CPT *</label><input class="mono" value="${l.cpt||''}" oninput="_sgForm.lines[${i}].cpt=this.value" placeholder="97110" style="${S};font-weight:700;font-size:12px"></div>
-    <div><label style="${L}">Price/Unit $</label><input class="mono" type="text" inputmode="decimal" value="${ppu ? ppu.toFixed(2) : ''}" placeholder="0.00"
-      onblur="var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0;this.value=v.toFixed(2);_sgForm.lines[${i}].pricePerUnit=v;_sgForm.lines[${i}].charge=(v*parseInt(_sgForm.lines[${i}].units||1)).toFixed(2);renderSGLines()"
-      oninput="_sgForm.lines[${i}].pricePerUnit=parseFloat(this.value.replace(/[^0-9.]/g,''))||0;_sgForm.lines[${i}].charge=(_sgForm.lines[${i}].pricePerUnit*parseInt(_sgForm.lines[${i}].units||1)).toFixed(2);document.querySelectorAll('#sg-lines .total-display')[${i}]&&(document.querySelectorAll('#sg-lines .total-display')[${i}].value=_sgForm.lines[${i}].charge)" style="${S}"></div>
+    <div><label style="${L}">Price/Unit $</label><input class="mono" type="number" step="0.01" value="${ppu||''}" placeholder="0.00"
+      oninput="_sgForm.lines[${i}].pricePerUnit=parseFloat(this.value)||0;_sgForm.lines[${i}].charge=((parseFloat(this.value)||0)*parseInt(_sgForm.lines[${i}].units||1)).toFixed(2);renderSGLines()" style="${S}"></div>
     <div><label style="${L}">Units</label><input class="mono" type="number" min="1" value="${units}"
       oninput="_sgForm.lines[${i}].units=this.value;_sgForm.lines[${i}].charge=((parseFloat(_sgForm.lines[${i}].pricePerUnit||0))*parseInt(this.value||1)).toFixed(2);renderSGLines()" style="${S}"></div>
     <div><label style="${L};color:#2d6a4f">Total $</label><input class="mono" value="${total}" readonly
@@ -5780,47 +5763,6 @@ if (resEl) resEl.style.display = 'none';
 renderSGPatients();
 lucide.createIcons();
 toast('Patient added — enter diagnosis');
-}
-
-function openSGPatientSearch() {
-  openModal('modal-sg-pat-search');
-  setTimeout(function() {
-    const q = document.getElementById('sgps-q');
-    if (q) { q.value = ''; q.focus(); }
-    const r = document.getElementById('sgps-results');
-    if (r) r.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text3)">Type to search patients</div>';
-  }, 80);
-}
-
-function _sgPatModalSearch() {
-  const q = (document.getElementById('sgps-q')?.value || '').toLowerCase().trim();
-  const field = document.getElementById('sgps-field')?.value || 'name';
-  const resEl = document.getElementById('sgps-results');
-  if (!resEl) return;
-  if (!q) { resEl.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text3)">Type to search patients</div>'; return; }
-  const db = getDB();
-  const existing = new Set((_sgForm?.patients || []).map(function(p){return p.patientId;}));
-  const results = (db.patients || []).filter(function(p) {
-    if (field === 'name') return ((p.last||'')+(p.first||'')).toLowerCase().includes(q) || ((p.first||'')+' '+(p.last||'')).toLowerCase().includes(q);
-    if (field === 'acct') return (p.acct||'').toLowerCase().includes(q);
-    if (field === 'dob') return (p.dob||'').toLowerCase().includes(q);
-    if (field === 'member') return (p.insnum||'').toLowerCase().includes(q);
-    return false;
-  }).slice(0, 20);
-  if (!results.length) { resEl.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text3)">No patients found</div>'; return; }
-  resEl.innerHTML = results.map(function(p) {
-    const already = existing.has(p.id);
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:'+(already?'#f0fdf4':'#fff')+'">' +
-      '<div>' +
-        '<div style="font-weight:700;font-size:13px;color:var(--text)">' + (p.last||'') + ', ' + (p.first||'') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3)">Acct: ' + (p.acct||'—') + ' &nbsp;|&nbsp; DOB: ' + (p.dob||'—') + ' &nbsp;|&nbsp; Member: ' + (p.insnum||'—') + '</div>' +
-      '</div>' +
-      (already
-        ? '<span style="font-size:11px;color:#2d6a4f;font-weight:700;padding:4px 10px;background:#dcfce7;border-radius:6px">✓ Added</span>'
-        : '<button class="btn btn-sm btn-primary" onclick="addSGPatientInline(\''+p.id+'\');_sgPatModalSearch()" style="flex-shrink:0">Add</button>'
-      ) +
-    '</div>';
-  }).join('');
 }
 
 function addSGPatient(patientId) {
@@ -18033,7 +17975,7 @@ div.id = 'pt-ins-form';
 div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px';
 
 div.innerHTML = `
-<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
+<div style="background:#fff;border:1px solid #e8e6dc;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
 
 <!-- Title bar -->
 <div style="display:flex;align-items:center;justify-content:space-between;background:#c96442;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0">
@@ -18056,8 +17998,8 @@ style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line
 
 <!-- LEFT column -->
 <div>
-${fld('pif-lname','Last Name *',iv.lname||pat.last||'','text','',true)}
-${fld('pif-fname','First Name *',iv.fname||pat.first||'','text','',true)}
+${fld('pif-lname','Last Name',iv.lname||pat.last||'','text','',true)}
+${fld('pif-fname','First Name',iv.fname||pat.first||'','text','',true)}
 ${fld('pif-mid','Middle Name',iv.mid||pat.mid||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Sex <span style="color:#b53333">*</span></label>
@@ -18069,7 +18011,7 @@ ${['Male','Female','Unknown'].map(s=>
 </label>`).join('')}
 </div>
 </div>
-${fld('pif-dob','Date Of Birth *',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
+${fld('pif-dob','Date Of Birth',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
 ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
 <div style="display:flex;align-items:flex-start;gap:0;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#b53333">*</span></label>
@@ -18090,7 +18032,7 @@ ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
   <input type="hidden" id="pif-payerid-val" value="${iv.payerId||''}">
 </div>
 </div>
-${fld('pif-policy','Policy No * (No \'-\' Please)',iv.policy||iv.memberId||'')}
+${fld('pif-policy','Policy No (No \'-\' Please)',iv.policy||iv.memberId||'','text','',true)}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Plan</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
@@ -18130,13 +18072,13 @@ style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-si
 ${['Self','Spouse','Child','Parent','Other'].map(r=>`<option value="${r}" ${(iv.relation||'Self')===r?'selected':''}>${r}</option>`).join('')}
 </select>
 </div>
-${fld('pif-addr1','Address 1 *',iv.addr1||pat.addr1||'','text','',true)}
+${fld('pif-addr1','Address 1',iv.addr1||pat.addr1||'','text','',true)}
 ${fld('pif-addr2','Address 2',iv.addr2||pat.addr2||'')}
-${fld('pif-city','City *',iv.city||pat.city||'','text','',true)}
-${fld('pif-state','State *',iv.state||pat.state||'','text','',true)}
-${fld('pif-zip','ZIP *',iv.zip||pat.zip||'','text','',true)}
+${fld('pif-city','City',iv.city||pat.city||'','text','',true)}
+${fld('pif-state','State',iv.state||pat.state||'','text','',true)}
+${fld('pif-zip','ZIP',iv.zip||pat.zip||'','text','',true)}
 ${fld('pif-email','Email ID',iv.email||pat.email||'')}
-${fld('pif-phone','Contact No 1 *',iv.phone||pat.phone||'','text','',true)}
+${fld('pif-phone','Contact No 1',iv.phone||pat.phone||'','text','',true)}
 ${fld('pif-mobile','Mobile #',iv.mobile||pat.phone2||'')}
 ${fld('pif-fax','Fax',iv.fax||'')}
 ${fld('pif-employer','Employer',iv.employer||'')}
@@ -18159,14 +18101,26 @@ ${fld('pif-eff-to','Effective To',iv.effTo||'')}
 
 </div><!-- /grid -->
 
-<!-- Footer buttons -->
-<div style="display:flex;justify-content:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
-<button class="btn btn-primary"
-onclick="_saveInsuranceForm('${patId}',${idx})">Save</button>
-<button class="btn btn-primary"
-onclick="_saveInsuranceFormAndAdd('${patId}',${idx})">Save &amp; Add another Ins</button>
-<button class="btn btn-primary"
-onclick="_saveInsuranceForm('${patId}',${idx},true)">Save &amp; Next</button>
+<!-- Footer buttons — icon-only left-aligned, tooltip on hover -->
+<div style="display:flex;justify-content:flex-start;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
+<button title="Save"
+  onclick="_saveInsuranceForm('${patId}',${idx})"
+  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
+  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+</button>
+<button title="Save &amp; Add another Insurance"
+  onclick="_saveInsuranceFormAndAdd('${patId}',${idx})"
+  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
+  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/><line x1="12" y1="5" x2="12" y2="9"/><line x1="9" y1="7" x2="15" y2="7" style="stroke-dasharray:none"/><line x1="21" y1="3" x2="21" y2="7"/><line x1="19" y1="5" x2="23" y2="5"/></svg>
+</button>
+<button title="Save &amp; Next"
+  onclick="_saveInsuranceForm('${patId}',${idx},true)"
+  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
+  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
 </div>
 </div>
 </div>`;
