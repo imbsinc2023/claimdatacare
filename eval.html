@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprehensive Diagnostic Evaluation | ClaimDataCare</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font:'Segoe UI','DM Sans',system-ui,sans-serif;
+  --text:#141413;--text3:#87867f;
+  --border:#f0eee6;--border2:#e8e6dc;
+  --bg:#f5f4ed;--surface:#faf9f5;
+  --brand:#c96442;--dark:#30302e;--r:8px;
+  --green:#2d6a4f;
+}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text);font-size:14px;line-height:1.6}
+.hdr{background:var(--surface);border-bottom:1px solid var(--border2);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.hdr-logo{width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center}
+.hdr-logo svg{width:20px;height:20px;stroke:#fff}
+.hdr-name{font-size:15px;font-weight:700}
+.hdr-sub{font-size:11px;color:var(--text3)}
+.hdr-right{text-align:right;font-size:11px;color:var(--text3);line-height:1.8}
+.hdr-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 10px;border-radius:20px}
+.badge-admin{background:rgba(45,106,79,.1);color:var(--green);border:1px solid rgba(45,106,79,.2)}
+.badge-eval{background:rgba(201,100,66,.1);color:var(--brand);border:1px solid rgba(201,100,66,.2)}
+/* Progress */
+.prog-wrap{background:var(--surface);border-bottom:1px solid var(--border2);padding:12px 32px}
+.prog-track{height:4px;background:var(--border2);border-radius:2px;max-width:800px;margin:0 auto 8px}
+.prog-fill{height:4px;background:var(--brand);border-radius:2px;transition:width .4s}
+.prog-steps{display:flex;justify-content:space-between;max-width:800px;margin:0 auto}
+.pstep{font-size:10px;color:var(--text3);text-align:center;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pstep.active{color:var(--brand);font-weight:700}
+.pstep.done{color:var(--dark);font-weight:600}
+/* Body */
+.body{max-width:820px;margin:0 auto;padding:28px 20px}
+.slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dark);display:block;margin:20px 0 10px}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:16px}
+.sec-hdr{background:var(--green);border-radius:10px 10px 0 0;padding:14px 20px;margin:-20px -20px 20px;display:flex;align-items:center;gap:12px}
+.sec-hdr svg{width:18px;height:18px;stroke:#fff;flex-shrink:0}
+.sec-hdr h3{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
+.sec-hdr p{font-size:11px;color:rgba(255,255,255,.75)}
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.span2{grid-column:1/-1}
+/* Fields */
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.field input,.field select,.field textarea{padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;font-family:var(--font);color:var(--text);background:#fff;width:100%;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#555}
+.field textarea{resize:vertical;min-height:80px}
+.field input[readonly]{background:var(--bg);color:var(--text3)}
+.req{color:var(--brand)}
+.hint{font-size:10px;color:var(--text3);margin-top:2px}
+/* Patient banner */
+.pat-banner{background:rgba(45,106,79,.06);border:1.5px solid rgba(45,106,79,.2);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.pat-avatar{width:44px;height:44px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pat-avatar svg{width:22px;height:22px;stroke:#fff}
+.pat-name{font-size:16px;font-weight:700}
+.pat-dob{font-size:12px;color:var(--text3);margin-top:2px}
+/* Age badge */
+.age-badge{display:inline-flex;align-items:center;padding:7px 12px;background:rgba(45,106,79,.08);border:1px solid rgba(45,106,79,.2);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--green);height:38px}
+/* Check grid */
+.chk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:7px;margin:8px 0}
+.chk-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;font-size:12px;background:#fff;transition:border-color .15s}
+.chk-item:hover{border-color:#888}
+.chk-item input{margin-top:2px;accent-color:var(--brand);flex-shrink:0}
+/* Scales */
+.scale-tbl{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:13px}
+.scale-tbl thead th{background:var(--dark);color:#fff;padding:7px 10px;text-align:center;font-size:11px;font-weight:700}
+.scale-tbl thead th:first-child{text-align:left}
+.scale-tbl tbody tr{border-bottom:1px solid var(--border2)}
+.scale-tbl tbody tr:nth-child(even){background:rgba(245,244,237,.5)}
+.scale-tbl td{padding:8px 10px}
+.scale-tbl td:first-child{font-weight:500;line-height:1.5;padding-right:12px}
+.scale-tbl td.opt{text-align:center}
+.ropt{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:2px solid var(--border2);background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--text3)}
+.ropt:hover{border-color:var(--brand);color:var(--brand)}
+.ropt.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text3);padding:8px 12px;background:var(--bg);border-radius:var(--r);margin-bottom:10px}
+.leg b{color:var(--text)}
+.score-line{padding:8px 12px;border-radius:var(--r);font-size:12px;font-weight:600;margin-top:6px}
+.sl-low{background:#dcfce7;color:#166534}
+.sl-mid{background:#fef9ec;color:#7a5c00}
+.sl-hi{background:#fee2e2;color:#991b1b}
+/* Nav */
+.nav-row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-top:8px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:var(--r);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-ghost{background:transparent;color:var(--text3);border:1.5px solid var(--border2)}
+.btn-ghost:hover{background:var(--border2)}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:#b85a3a}
+.btn-full{width:100%;justify-content:center;padding:14px}
+/* Sig */
+.sig-wrap{border:2px dashed var(--border2);border-radius:var(--r);background:#fff;overflow:hidden}
+.sig-wrap canvas{display:block;width:100%;cursor:crosshair;touch-action:none}
+.sig-btn{padding:6px 14px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--surface);font-size:12px;font-family:var(--font);cursor:pointer;margin-top:8px}
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:none;color:#fff}
+#toast.ok{background:var(--dark)}
+#toast.err{background:#c00}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Consent */
+.consent-box{display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(45,106,79,.04);border:1px solid rgba(45,106,79,.18);border-radius:var(--r);font-size:13px;line-height:1.7;margin-bottom:12px;cursor:pointer}
+.consent-box input{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;margin-top:2px}
+/* Success */
+#view-success{display:none;text-align:center;padding:60px 20px}
+.chk-circle{width:72px;height:72px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.alert-err{padding:10px 14px;border-radius:var(--r);font-size:12px;background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;display:none;margin-top:12px}
+/* Info preview row */
+.prev-row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.prev-row:last-child{border-bottom:none}
+.prev-lbl{color:var(--text3);width:150px;flex-shrink:0;font-size:12px}
+.prev-val{font-weight:600;flex:1}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}.hdr-right{display:none}.hdr{padding:0 16px}.prog-wrap{padding:12px 16px}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a10 10 0 100 20A10 10 0 0012 2"/><path d="M12 8v4l3 3"/>
+      </svg>
+    </div>
+    <div>
+      <div class="hdr-name">ClaimDataCare</div>
+      <div class="hdr-sub">Comprehensive Diagnostic Evaluation</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="hdr-badge" id="mode-badge"></span>
+    <div class="hdr-right">
+      <div>IMBS Inc. · ABA Evaluation</div>
+      <div>Confidential Clinical Document</div>
+    </div>
+  </div>
+</header>
+
+<!-- Progress (hidden until form starts) -->
+<div class="prog-wrap" id="prog-wrap" style="display:none">
+  <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="prog-steps" id="prog-steps"></div>
+</div>
+
+<main class="body">
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADMIN VIEW — fill patient info & send to guardian
+═══════════════════════════════════════════════════════════ -->
+<div id="view-admin" style="display:none">
+  <h1 style="font-size:22px;font-weight:700;margin-bottom:6px">Send Comprehensive Evaluation</h1>
+  <p style="font-size:13px;color:var(--text3);line-height:1.7;margin-bottom:24px">Fill in the patient information below and send a secure evaluation link to the guardian's email. All fields will be pre-loaded for the guardian to confirm and complete.</p>
+
+  <span class="slabel">Patient (Child)</span>
+  <div class="card">
+    <div class="g2">
+      <div class="field"><label>First Name <span class="req">*</span></label><input id="a-first" placeholder="First name" oninput="adminPreview()"></div>
+      <div class="field"><label>Last Name <span class="req">*</span></label><input id="a-last" placeholder="Last name" oninput="adminPreview()"></div>
+      <div class="field"><label>Date of Birth <span class="req">*</span></label><input id="a-dob" type="date" onchange="adminCalcAge();adminPreview()"></div>
+      <div class="field" style="justify-content:flex-end"><label>Calculated Age</label><div id="a-age" class="age-badge">—</div></div>
+      <div class="field"><label>Sex <span class="req">*</span></label>
+        <select id="a-sex"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Ethnicity</label>
+        <select id="a-eth"><option value="">Select...</option><option>Hispanic / Latino</option><option>Non-Hispanic White</option><option>Black / African American</option><option>Asian</option><option>Multiracial</option><option>Prefer not to say</option></select>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:12px">
+      <div class="field span2"><label>Street Address <span class="req">*</span></label><input id="a-addr" placeholder="123 SW 8th St, Miami, FL 33135"></div>
+      <div class="field"><label>School / Program</label><input id="a-school" placeholder="School name"></div>
+      <div class="field"><label>Grade Level</label><input id="a-grade" placeholder="e.g. Pre-K, 2nd Grade"></div>
+      <div class="field"><label>Primary Language</label>
+        <select id="a-lang"><option>English</option><option>Spanish</option><option>Haitian Creole</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Referring Physician</label><input id="a-ref" placeholder="Doctor or clinic"></div>
+    </div>
+  </div>
+
+  <span class="slabel">Insurance <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(the guardian will confirm and can update)</span></span>
+  <div class="card">
+    <div class="g3">
+      <div class="field"><label>Insurance Provider</label><input id="a-ins" placeholder="e.g. FL Medicaid, Wellcare"></div>
+      <div class="field"><label>Member ID</label><input id="a-insid" placeholder="Member ID"></div>
+      <div class="field"><label>Group #</label><input id="a-insgrp" placeholder="Optional"></div>
+    </div>
+  </div>
+
+  <span class="slabel">Guardian / Parent</span>
+  <div class="card">
+    <div class="g2">
+      <div class="field"><label>Full Name <span class="req">*</span></label><input id="a-gname" placeholder="Guardian full name" oninput="adminPreview()"></div>
+      <div class="field"><label>Relationship <span class="req">*</span></label>
+        <select id="a-grel"><option value="">Select...</option><option>Mother</option><option>Father</option><option>Legal Guardian</option><option>Grandmother</option><option>Grandfather</option><option>Foster Parent</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Email <span class="req">*</span></label><input id="a-gemail" type="email" placeholder="guardian@email.com" oninput="adminPreview()"><span class="hint">Evaluation link will be sent here</span></div>
+      <div class="field"><label>Phone</label><input id="a-gphone" placeholder="(305) 000-0000" maxlength="14" oninput="fmtPhone(this)"></div>
+    </div>
+  </div>
+
+  <span class="slabel">Email Preview</span>
+  <div class="card">
+    <div class="prev-row"><span class="prev-lbl">To:</span><span class="prev-val" id="prev-email">—</span></div>
+    <div class="prev-row"><span class="prev-lbl">Patient:</span><span class="prev-val" id="prev-name">—</span></div>
+    <div class="prev-row"><span class="prev-lbl">Date of Birth:</span><span class="prev-val" id="prev-dob">—</span></div>
+    <div class="prev-row"><span class="prev-lbl">Age:</span><span class="prev-val" id="prev-age">—</span></div>
+    <div class="prev-row"><span class="prev-lbl">Guardian:</span><span class="prev-val" id="prev-gname">—</span></div>
+  </div>
+
+  <div style="text-align:center;margin:8px 0 40px">
+    <button class="btn btn-primary" style="padding:14px 40px;font-size:14px" id="a-send-btn" onclick="adminSend()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+      Send Evaluation to Guardian
+    </button>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px">A secure link will be emailed to the guardian</p>
+  </div>
+
+  <div id="admin-success" style="display:none;text-align:center;padding:40px 20px">
+    <div class="chk-circle"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:10px">Sent Successfully</h2>
+    <p id="admin-success-msg" style="color:var(--text3);max-width:460px;margin:0 auto 24px;font-size:13px;line-height:1.8"></p>
+    <button class="btn btn-ghost" onclick="adminReset()">Send for Another Patient</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     GUARDIAN CONFIRM SCREEN
+═══════════════════════════════════════════════════════════ -->
+<div id="view-confirm" style="display:none">
+  <div style="text-align:center;padding:36px 20px 28px">
+    <div style="width:60px;height:60px;border-radius:50%;background:rgba(45,106,79,.1);border:1px solid rgba(45,106,79,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </div>
+    <h1 style="font-size:21px;font-weight:700;margin-bottom:8px">Comprehensive Diagnostic Evaluation</h1>
+    <p style="font-size:13px;color:var(--text3);line-height:1.8;max-width:500px;margin:0 auto 24px">Before beginning, please confirm that the information below belongs to your child. This evaluation takes approximately <strong>25–40 minutes</strong> and can be completed from your phone or computer.</p>
+  </div>
+
+  <div class="pat-banner" id="confirm-banner">
+    <div class="pat-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+    <div>
+      <div class="pat-name" id="confirm-name">Loading...</div>
+      <div class="pat-dob" id="confirm-dob"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-size:13px;line-height:1.7">
+      <input type="checkbox" id="chk-confirm" style="width:18px;height:18px;accent-color:var(--brand);flex-shrink:0;margin-top:3px">
+      <span>I confirm that <strong id="confirm-name2">the patient above</strong> is my child or the child for whom I am the legal guardian, and that I am authorized to complete this evaluation on their behalf.</span>
+    </label>
+  </div>
+
+  <button class="btn btn-primary btn-full" onclick="startEval()" style="margin-bottom:32px">
+    Begin Evaluation
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     EVALUATION FORM SECTIONS
+═══════════════════════════════════════════════════════════ -->
+<div id="view-form" style="display:none">
+
+  <!-- S1 -->
+  <div class="sec-card" data-s="1">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div><h3>Section 1 — Guardian & Child Information</h3><p>Confirm and complete patient and guardian details</p></div>
+      </div>
+      <span class="slabel">Your Information (Guardian)</span>
+      <div class="g2">
+        <div class="field"><label>Your Full Name <span class="req">*</span></label><input id="g-name" placeholder="Full name"></div>
+        <div class="field"><label>Relationship to Child <span class="req">*</span></label>
+          <select id="g-rel"><option value="">Select...</option><option>Mother</option><option>Father</option><option>Legal Guardian</option><option>Grandmother</option><option>Grandfather</option><option>Foster Parent</option><option>Other</option></select>
+        </div>
+        <div class="field"><label>Your Phone <span class="req">*</span></label><input id="g-phone" placeholder="(305) 000-0000" maxlength="14" oninput="fmtPhone(this)"></div>
+        <div class="field"><label>Your Email <span class="req">*</span></label><input id="g-email" type="email" placeholder="email@example.com"></div>
+      </div>
+      <span class="slabel" style="margin-top:18px">Child / Patient — Please Confirm</span>
+      <div class="g3">
+        <div class="field"><label>Child's Full Name <span class="req">*</span></label><input id="c-name" placeholder="Full legal name"></div>
+        <div class="field"><label>Date of Birth <span class="req">*</span></label><input id="c-dob" type="date" onchange="calcAge()"></div>
+        <div class="field"><label>Current Age</label><input id="c-age" readonly placeholder="Auto-calculated"></div>
+      </div>
+      <div class="g3" style="margin-top:12px">
+        <div class="field"><label>Sex <span class="req">*</span></label>
+          <select id="c-sex"><option>Male</option><option>Female</option><option>Other / Prefer not to say</option></select>
+        </div>
+        <div class="field"><label>Ethnicity</label>
+          <select id="c-eth"><option>Hispanic / Latino</option><option>Non-Hispanic White</option><option>Black / African American</option><option>Asian</option><option>Multiracial</option><option>Prefer not to say</option></select>
+        </div>
+        <div class="field"><label>Primary Language at Home</label>
+          <select id="c-lang"><option>English</option><option>Spanish</option><option>Haitian Creole</option><option>Other</option></select>
+        </div>
+      </div>
+      <div class="g2" style="margin-top:12px">
+        <div class="field span2"><label>Child's Address <span class="req">*</span></label><input id="c-addr" placeholder="Street, City, State, ZIP"></div>
+        <div class="field"><label>School / Program</label><input id="c-school" placeholder="School name or 'Not enrolled'"></div>
+        <div class="field"><label>Grade Level</label><input id="c-grade" placeholder="e.g. Pre-K, 2nd Grade"></div>
+      </div>
+      <span class="slabel" style="margin-top:18px">Insurance — Confirm & Update if Needed</span>
+      <div class="g3">
+        <div class="field"><label>Insurance Provider <span class="req">*</span></label><input id="ins-name" placeholder="e.g. FL Medicaid"></div>
+        <div class="field"><label>Member ID <span class="req">*</span></label><input id="ins-id" placeholder="Member ID"></div>
+        <div class="field"><label>Group #</label><input id="ins-grp" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="nav-row"><div></div>
+      <button class="btn btn-primary" onclick="nxt(1)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S2 -->
+  <div class="sec-card" data-s="2" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <div><h3>Section 2 — Developmental & Medical History</h3><p>Pregnancy, birth, milestones, and medical background</p></div>
+      </div>
+      <span class="slabel">Pregnancy & Birth</span>
+      <div class="g2">
+        <div class="field"><label>Pregnancy Complications</label>
+          <select id="preg"><option>None reported</option><option>Infections / illness</option><option>Gestational diabetes</option><option>Preeclampsia</option><option>Premature labor</option><option>Other</option></select>
+        </div>
+        <div class="field"><label>Gestational Age at Birth</label><input id="bga" placeholder="e.g. 38 weeks (full term)"></div>
+        <div class="field"><label>Birth Weight</label><input id="bwt" placeholder="e.g. 7 lbs 4 oz"></div>
+        <div class="field"><label>Delivery Type</label>
+          <select id="btype"><option>Vaginal</option><option>C-Section (planned)</option><option>C-Section (emergency)</option></select>
+        </div>
+        <div class="field"><label>NICU Stay?</label>
+          <select id="nicu"><option>No</option><option>Yes — less than 1 week</option><option>Yes — 1 to 4 weeks</option><option>Yes — more than 4 weeks</option></select>
+        </div>
+        <div class="field"><label>Apgar Score (if known)</label><input id="apgar" placeholder="e.g. 8/9"></div>
+      </div>
+      <span class="slabel">Developmental Milestones</span>
+      <div class="g2">
+        <div class="field"><label>First Words (age)</label><input id="mw" placeholder="e.g. 12 months / Not yet"></div>
+        <div class="field"><label>Two-word Phrases (age)</label><input id="mp" placeholder="e.g. 24 months / Not yet"></div>
+        <div class="field"><label>Sitting Independently</label><input id="ms" placeholder="e.g. 6 months"></div>
+        <div class="field"><label>Walking Independently</label><input id="mwk" placeholder="e.g. 12 months"></div>
+        <div class="field"><label>Toilet Training (daytime)</label><input id="mt" placeholder="e.g. 36 months / Not yet"></div>
+        <div class="field"><label>Developmental Regression?</label>
+          <select id="mreg"><option>No regression</option><option>Yes — language</option><option>Yes — social</option><option>Yes — motor</option><option>Yes — multiple areas</option></select>
+        </div>
+        <div class="field span2"><label>Describe regression (if any)</label><textarea id="mregdesc" placeholder="When and what skills were lost..."></textarea></div>
+      </div>
+      <span class="slabel">Medical History — Check all that apply</span>
+      <div class="chk-grid" id="med-grid"></div>
+      <div class="g2" style="margin-top:12px">
+        <div class="field"><label>Current Medications</label><textarea id="meds" placeholder="Name, dose, prescribing doctor..."></textarea></div>
+        <div class="field"><label>Allergies</label><textarea id="allergy" placeholder="Medications, food, environmental..."></textarea></div>
+        <div class="field"><label>Previous Diagnoses</label><textarea id="pdx" placeholder="ASD, ADHD, speech delay, etc."></textarea></div>
+        <div class="field"><label>Previous Evaluations</label><textarea id="peval" placeholder="ADOS, IQ testing, OT/PT/SLP..."></textarea></div>
+      </div>
+      <span class="slabel">Current Therapies / Services</span>
+      <div class="chk-grid" id="svc-grid"></div>
+      <div class="field" style="margin-top:12px"><label>Family History (ASD, ADHD, intellectual disability)</label><textarea id="famhx" placeholder="Any relatives with similar conditions?"></textarea></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(2)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S3 M-CHAT -->
+  <div class="sec-card" data-s="3" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <div><h3>Section 3 — Autism Screening (M-CHAT-R Adapted)</h3><p>Answer Yes or No based on your child's typical behavior</p></div>
+      </div>
+      <div class="leg"><span><b>Yes</b> = child does this</span><span><b>No</b> = child does not do this or you are unsure</span></div>
+      <div id="mchat-tbl"></div>
+      <div id="mchat-score"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(3)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S4 SNAP -->
+  <div class="sec-card" data-s="4" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div><h3>Section 4 — ADHD Screening (SNAP-IV)</h3><p>How often does each behavior occur?</p></div>
+      </div>
+      <div class="leg"><span><b>0</b> = Not at all</span><span><b>1</b> = Just a little</span><span><b>2</b> = Pretty much</span><span><b>3</b> = Very much</span></div>
+      <div id="snap-tbl"></div>
+      <div id="snap-score"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(4)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S5 ABC -->
+  <div class="sec-card" data-s="5" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div><h3>Section 5 — Aberrant Behavior Checklist (ABC)</h3><p>Rate the severity of each behavior over the past 4 weeks</p></div>
+      </div>
+      <div class="leg"><span><b>0</b> = Not a problem</span><span><b>1</b> = Slight</span><span><b>2</b> = Moderately serious</span><span><b>3</b> = Severe</span></div>
+      <div id="abc-tbl"></div>
+      <div id="abc-score"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(5)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(5)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S6 Comm/Sensory -->
+  <div class="sec-card" data-s="6" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <div><h3>Section 6 — Communication, Social & Sensory</h3><p>Current functional levels and sensory behaviors</p></div>
+      </div>
+      <span class="slabel">Communication</span>
+      <div class="g2">
+        <div class="field"><label>Current Communication Level <span class="req">*</span></label>
+          <select id="comm-lvl">
+            <option value="">Select...</option>
+            <option>Non-verbal (no words)</option><option>Emerging (1–5 words)</option>
+            <option>Limited verbal (6–20 words)</option><option>Verbal with significant support needed</option>
+            <option>Functional verbal</option><option>Age-appropriate verbal</option>
+          </select>
+        </div>
+        <div class="field"><label>Uses AAC / Alternative Communication?</label>
+          <select id="comm-aac"><option>No</option><option>PECS</option><option>Speech-generating device</option><option>Sign language</option><option>Picture cards</option><option>Other AAC</option></select>
+        </div>
+        <div class="field span2"><label>Describe your child's communication</label><textarea id="comm-desc" placeholder="How does your child express wants, needs, feelings?"></textarea></div>
+      </div>
+      <span class="slabel">Social Interaction — Check all that apply</span>
+      <div class="chk-grid" id="soc-grid"></div>
+      <div class="field" style="margin-top:10px"><label>Describe social interactions</label><textarea id="soc-desc" placeholder="Peer relationships, play, eye contact, response to name..."></textarea></div>
+      <span class="slabel">Sensory Behaviors — Check all that apply</span>
+      <div class="chk-grid" id="sen-grid"></div>
+      <div class="field" style="margin-top:10px"><label>Describe sensory behaviors</label><textarea id="sen-desc" placeholder="What triggers reactions? How does your child respond?"></textarea></div>
+      <span class="slabel">Feeding & Sleep</span>
+      <div class="g2">
+        <div class="field"><label>Feeding</label>
+          <select id="feed"><option>No concerns</option><option>Very selective / restricted diet</option><option>Texture aversions</option><option>Difficulty chewing or swallowing</option><option>Fewer than 5 accepted foods</option></select>
+        </div>
+        <div class="field"><label>Sleep</label>
+          <select id="sleep"><option>No concerns</option><option>Difficulty falling asleep</option><option>Frequent night wakings</option><option>Very early waking</option><option>Multiple sleep concerns</option></select>
+        </div>
+        <div class="field span2"><label>Feeding / Sleep details</label><textarea id="feed-desc" placeholder="Describe in more detail..."></textarea></div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(6)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(6)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S7 Vineland -->
+  <div class="sec-card" data-s="7" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <div><h3>Section 7 — Adaptive Behavior (Vineland-3 Abbreviated)</h3><p>Daily living skills across four domains</p></div>
+      </div>
+      <div class="leg"><span><b>2</b> = Usually does (without being asked)</span><span><b>1</b> = Sometimes / partially</span><span><b>0</b> = Never / no opportunity</span></div>
+      <div id="vine-tbl"></div>
+      <div id="vine-score"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(7)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(7)">Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S8 Family -->
+  <div class="sec-card" data-s="8" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <div><h3>Section 8 — Family Concerns, Priorities & Goals</h3><p>Tell us what matters most to your family</p></div>
+      </div>
+      <div class="field"><label>Primary concern — why are you seeking this evaluation? <span class="req">*</span></label><textarea id="concern" rows="4" placeholder="Describe the main behaviors or developmental concerns that brought you here..."></textarea></div>
+      <div class="g2" style="margin-top:12px">
+        <div class="field"><label>Top goals for your child</label><textarea id="goals" rows="3" placeholder="e.g. improve communication, reduce tantrums, make friends..."></textarea></div>
+        <div class="field"><label>Child's strengths & interests</label><textarea id="strengths" rows="3" placeholder="e.g. loves music, excellent memory, affectionate..."></textarea></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Describe a typical day (morning to bedtime)</label><textarea id="typday" rows="3" placeholder="Wake up, meals, activities, transitions, bedtime..."></textarea></div>
+      <div class="g2" style="margin-top:12px">
+        <div class="field"><label>Most challenging behaviors</label><textarea id="challenging" rows="3" placeholder="Tantrums, aggression, self-injury, elopement..."></textarea></div>
+        <div class="field"><label>Strategies tried (what worked / didn't work)</label><textarea id="strategies" rows="3" placeholder="Therapies, techniques, approaches tried..."></textarea></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Anything else you'd like us to know</label><textarea id="other-notes" rows="2" placeholder="Additional information for the evaluator..."></textarea></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(8)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" onclick="nxt(8)">Review & Sign <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- S9 Sign -->
+  <div class="sec-card" data-s="9" style="display:none">
+    <div class="card">
+      <div class="sec-hdr">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div><h3>Section 9 — Consent & Electronic Signature</h3><p>Authorize and sign to submit your evaluation</p></div>
+      </div>
+      <label class="consent-box">
+        <input type="checkbox" id="con-eval">
+        I authorize ClaimDataCare and affiliated clinicians to use this information for a Comprehensive Diagnostic Evaluation for ABA therapy for the child named in this form. I confirm I am the parent or legal guardian and that all information provided is accurate and complete to the best of my knowledge.
+      </label>
+      <label class="consent-box">
+        <input type="checkbox" id="con-hipaa">
+        I understand this information is protected under HIPAA and will be used solely for clinical evaluation and treatment planning purposes.
+      </label>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="field"><label>Your Full Name (as signature) <span class="req">*</span></label><input id="sig-name" placeholder="Type your full name"></div>
+        <div class="field"><label>Date <span class="req">*</span></label><input id="sig-date" type="date"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Draw your signature below:</div>
+      <div class="sig-wrap"><canvas id="sig-canvas" height="130"></canvas></div>
+      <button class="sig-btn" onclick="clearSig()">Clear Signature</button>
+      <div id="submit-err" class="alert-err"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prv(9)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitEval()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Submit Evaluation
+      </button>
+    </div>
+  </div>
+
+</div><!-- /view-form -->
+
+<!-- SUCCESS -->
+<div id="view-success">
+  <div class="chk-circle"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+  <h2 style="font-size:22px;font-weight:700;margin-bottom:10px">Evaluation Submitted</h2>
+  <p style="color:var(--text3);max-width:460px;margin:0 auto 20px;line-height:1.8;font-size:13px">Thank you. Our clinical team has received your evaluation and will contact you within 2–3 business days.</p>
+  <div style="font-size:12px;color:var(--text3);background:var(--surface);padding:12px 20px;border-radius:var(--r);display:inline-block;border:1px solid var(--border2)">Reference: <strong id="ref-id" style="color:var(--green)"></strong></div>
+</div>
+
+</main>
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// CONFIG
+// ══════════════════════════════════
+var EMAIL_WORKER = 'https://email-service.imbsinc2023.workers.dev';
+var DEST_EMAIL   = 'emdicalcontactbilling@gmail.com';
+var EVAL_URL     = 'https://claimdatacare.com/eval.html';
+var STEPS = ['Child Info','Dev. History','Autism','ADHD','Behavior','Comm/Sensory','Adaptive','Goals','Sign'];
+var TOTAL = 9;
+var curSec = 0;
+var _d = {}; // decoded payload
+// Scale answers
+var mchat={}, snap={}, abc={}, vine={};
+var sigPaint=false, sigLX=0, sigLY=0;
+
+// ══════════════════════════════════
+// SCALE DATA
+// ══════════════════════════════════
+var MCHAT=[
+  {q:'If you point at something across the room, does your child look at it?',risk:false},
+  {q:'Have you ever wondered if your child might be deaf?',risk:true},
+  {q:'Does your child play pretend or make-believe?',risk:false},
+  {q:'Does your child like climbing on things?',risk:false},
+  {q:'Does your child make unusual finger movements near his/her eyes?',risk:true},
+  {q:'Does your child point with one finger to ask for something?',risk:false},
+  {q:'Does your child point to show you something interesting?',risk:false},
+  {q:'Is your child interested in other children?',risk:false},
+  {q:'Does your child show you things by bringing them to you?',risk:false},
+  {q:'Does your child respond when you call his/her name?',risk:false},
+  {q:'When you smile at your child, does he/she smile back?',risk:false},
+  {q:'Does your child get upset by everyday sounds (vacuum, music)?',risk:true},
+  {q:'Does your child walk on their own?',risk:false},
+  {q:'Does your child look you in the eye when talking or playing?',risk:false},
+  {q:'Does your child try to copy what you do (wave, clap)?',risk:false},
+  {q:'Does your child look around to see what you are looking at?',risk:false},
+  {q:'Does your child try to get you to watch him/her?',risk:false},
+  {q:'Does your child understand when you tell him/her to do something?',risk:false},
+  {q:'If something new happens, does your child look at your face to check how you feel?',risk:false},
+  {q:'Does your child like movement activities (being swung, bounced on your knee)?',risk:false}
+];
+var SNAP_IN=['Fails to give close attention / makes careless mistakes','Difficulty sustaining attention in tasks or play','Does not seem to listen when spoken to directly','Does not follow through on instructions; fails to finish tasks','Difficulty organizing tasks and activities','Avoids tasks requiring sustained mental effort','Loses things necessary for tasks','Easily distracted by extraneous stimuli','Forgetful in daily activities'];
+var SNAP_HY=['Fidgets with hands or feet / squirms in seat','Leaves seat when remaining seated is expected','Runs about or climbs excessively in inappropriate situations','Difficulty playing or engaging in activities quietly','Is "on the go" or acts as if "driven by a motor"','Talks excessively','Blurts out answers before questions are completed','Difficulty waiting his/her turn','Interrupts or intrudes on others'];
+var ABC=[
+  {s:'I',t:'Irritability',q:'Agitates or injures self'},
+  {s:'I',t:'Irritability',q:'Screams inappropriately'},
+  {s:'I',t:'Irritability',q:'Hits others'},
+  {s:'I',t:'Irritability',q:'Has temper tantrums / outbursts'},
+  {s:'I',t:'Irritability',q:'Cries / whines excessively'},
+  {s:'SW',t:'Social Withdrawal',q:'Does not respond to others'},
+  {s:'SW',t:'Social Withdrawal',q:'Inactive; never moves unless directed'},
+  {s:'SW',t:'Social Withdrawal',q:'Withdrawn; prefers to be alone'},
+  {s:'ST',t:'Stereotypy',q:'Meaninglessly moves fingers or hands'},
+  {s:'ST',t:'Stereotypy',q:'Rocks body back and forth'},
+  {s:'ST',t:'Stereotypy',q:'Repeats words or phrases (echolalia)'},
+  {s:'ST',t:'Stereotypy',q:'Preoccupied with objects or parts of objects'},
+  {s:'H',t:'Hyperactivity',q:'Does not sit still; is hyperactive'},
+  {s:'H',t:'Hyperactivity',q:'Runs or jumps around the room'},
+  {s:'H',t:'Hyperactivity',q:'Cannot sit still during meals or activities'},
+  {s:'IS',t:'Inappropriate Speech',q:'Repeats others\' words (echolalia)'},
+  {s:'IS',t:'Inappropriate Speech',q:'Talks in odd or unusual ways'},
+  {s:'IS',t:'Inappropriate Speech',q:'Makes irrelevant or off-topic remarks'},
+];
+var VINE=[
+  {d:'Communication',q:'Says or signs "hi" or "bye"'},
+  {d:'Communication',q:'Follows a one-step verbal instruction'},
+  {d:'Communication',q:'Uses at least 50 words or signs'},
+  {d:'Communication',q:'Uses pronouns correctly (I, you, he/she)'},
+  {d:'Communication',q:'Asks "what," "where," or "who" questions'},
+  {d:'Daily Living',q:'Feeds self with spoon or fork'},
+  {d:'Daily Living',q:'Uses toilet independently (daytime)'},
+  {d:'Daily Living',q:'Dresses self (excluding buttons/zippers)'},
+  {d:'Daily Living',q:'Washes hands independently'},
+  {d:'Daily Living',q:'Helps with simple household tasks'},
+  {d:'Socialization',q:'Shows affection toward familiar people'},
+  {d:'Socialization',q:'Plays alongside other children'},
+  {d:'Socialization',q:'Initiates play with another child'},
+  {d:'Socialization',q:'Shares toys or materials when asked'},
+  {d:'Socialization',q:'Understands basic social rules (wait, take turns)'},
+  {d:'Motor',q:'Runs without falling'},
+  {d:'Motor',q:'Kicks a ball'},
+  {d:'Motor',q:'Draws a circle or copies simple shapes'},
+  {d:'Motor',q:'Manipulates small objects (beads, pegs)'},
+  {d:'Motor',q:'Cuts with scissors'},
+];
+var MED_COND=['Autism Spectrum Disorder (ASD)','ADHD','Intellectual Disability','Down Syndrome','Fragile X Syndrome','Epilepsy / Seizures','Cerebral Palsy','Hearing impairment','Vision impairment','Anxiety disorder','OCD','ODD','Sensory Processing Disorder','Speech / Language Delay','GI issues','None of the above'];
+var CURR_SVC=['ABA Therapy','Speech-Language Therapy','Occupational Therapy','Physical Therapy','Behavioral Health','Special Education','Early Intervention (0–3)','Social Skills Group','Feeding Therapy','None currently'];
+var SOCIAL=['Makes eye contact spontaneously','Responds to own name when called','Points to show interest (joint attention)','Waves goodbye','Engages in pretend play','Plays cooperatively with peers','Initiates social interaction','Understands turn-taking','Shows empathy toward others','Prefers solitary play','Imitates actions of others'];
+var SENSORY=['Oversensitive to sounds (covers ears, panics)','Undersensitive to pain','Oversensitive to touch / certain textures','Seeks deep pressure / tight hugs','Avoids certain food textures','Seeks visual stimulation (spinning objects, lights)','Oversensitive to smells','Body-rocks or spins self','Mouths non-food objects','Avoids swings / playground equipment','Walks on tiptoes','Flaps hands or finger-flicks','Oversensitive to light'];
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+window.addEventListener('DOMContentLoaded',function(){
+  var params = new URLSearchParams(location.search);
+  var mode   = params.get('mode');
+  var raw    = params.get('d');
+
+  // Decode payload if present
+  if(raw){
+    try{ _d = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(raw))))); }
+    catch(e){ console.warn('Could not decode payload',e); }
+  }
+
+  if(mode==='admin' || (!raw && !mode)){
+    // ADMIN MODE — show the send form
+    document.getElementById('mode-badge').textContent='Admin';
+    document.getElementById('mode-badge').className='hdr-badge badge-admin';
+    document.getElementById('view-admin').style.display='block';
+    adminPreview();
+  } else {
+    // GUARDIAN MODE — show confirm then evaluation
+    document.getElementById('mode-badge').textContent='Evaluation';
+    document.getElementById('mode-badge').className='hdr-badge badge-eval';
+    var p=_d.patient||{}, g=_d.guardian||{};
+    var name=((p.first||'')+' '+(p.last||'')).trim();
+    document.getElementById('confirm-name').textContent  = name||'Your child';
+    document.getElementById('confirm-name2').textContent = name||'the patient above';
+    document.getElementById('confirm-dob').textContent   = p.dob?'Date of Birth: '+fmtDOB(p.dob):'';
+    document.getElementById('view-confirm').style.display='block';
+    // Pre-fill form fields
+    sv('g-name',g.name); sv('g-rel',g.rel); sv('g-email',g.email); sv('g-phone',g.phone);
+    sv('c-name',name); sv('c-dob',p.dob);
+    sv('c-addr',[p.addr,p.city,p.zip].filter(Boolean).join(', '));
+    sv('c-school',p.school); sv('c-grade',p.grade);
+    sv('ins-name',(_d.insurance||{}).name); sv('ins-id',(_d.insurance||{}).id); sv('ins-grp',(_d.insurance||{}).group);
+    if(p.dob) calcAge();
+  }
+
+  // Common init
+  document.getElementById('sig-date').value = new Date().toISOString().split('T')[0];
+  buildChkGrid('med-grid',MED_COND);
+  buildChkGrid('svc-grid',CURR_SVC);
+  buildChkGrid('soc-grid',SOCIAL);
+  buildChkGrid('sen-grid',SENSORY);
+  buildMCHAT(); buildSNAP(); buildABC(); buildVine();
+  buildProgress();
+  initSig();
+});
+
+function sv(id,val){var e=document.getElementById(id);if(e&&val)e.value=val;}
+function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function fmtDOB(d){if(!d)return'—';var p=d.split('-');return p[1]+'/'+p[2]+'/'+p[0];}
+
+function fmtPhone(el){
+  var v=el.value.replace(/\D/g,'');
+  if(v.length>=10)v='('+v.slice(0,3)+') '+v.slice(3,6)+'-'+v.slice(6,10);
+  else if(v.length>=7)v='('+v.slice(0,3)+') '+v.slice(3,6)+'-'+v.slice(6);
+  else if(v.length>=4)v='('+v.slice(0,3)+') '+v.slice(3);
+  else if(v.length)v='('+v;
+  el.value=v;
+}
+
+function calcAge(){
+  var dob=document.getElementById('c-dob').value;
+  if(!dob)return;
+  var diff=Date.now()-new Date(dob).getTime();
+  var yrs=Math.floor(diff/(365.25*24*3600*1000));
+  var mos=Math.floor((diff%(365.25*24*3600*1000))/(30.44*24*3600*1000));
+  document.getElementById('c-age').value=yrs+' yr'+(yrs!==1?'s':'')+(mos?' '+mos+' mo':'');
+}
+
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className=t||'ok';e.style.display='block';setTimeout(function(){e.style.display='none';},3500);}
+
+// ══════════════════════════════════
+// ADMIN
+// ══════════════════════════════════
+function adminCalcAge(){
+  var dob=document.getElementById('a-dob').value;
+  var el=document.getElementById('a-age');
+  if(!dob){el.textContent='—';return;}
+  var diff=Date.now()-new Date(dob).getTime();
+  var yrs=Math.floor(diff/(365.25*24*3600*1000));
+  var mos=Math.floor((diff%(365.25*24*3600*1000))/(30.44*24*3600*1000));
+  el.textContent=yrs+' yr'+(yrs!==1?'s':'')+(mos?' '+mos+' mo':'');
+}
+function adminPreview(){
+  var f=gv('a-first'),l=gv('a-last'),dob=gv('a-dob'),ge=gv('a-gemail'),gn=gv('a-gname');
+  document.getElementById('prev-name').textContent=(f+' '+l).trim()||'—';
+  document.getElementById('prev-dob').textContent=fmtDOB(dob);
+  document.getElementById('prev-age').textContent=document.getElementById('a-age').textContent;
+  document.getElementById('prev-email').textContent=ge||'—';
+  document.getElementById('prev-gname').textContent=gn||'—';
+}
+function adminReset(){
+  ['a-first','a-last','a-dob','a-addr','a-school','a-grade','a-ref','a-ins','a-insid','a-insgrp','a-gname','a-gemail','a-gphone'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('a-age').textContent='—';
+  document.getElementById('admin-success').style.display='none';
+  document.getElementById('view-admin').querySelector('[id=a-send-btn]').style.display='';
+  adminPreview();
+}
+async function adminSend(){
+  var cFirst=gv('a-first'),cLast=gv('a-last'),cDob=gv('a-dob'),cSex=gv('a-sex'),cAddr=gv('a-addr');
+  var gName=gv('a-gname'),gRel=gv('a-grel'),gEmail=gv('a-gemail');
+  if(!cFirst||!cLast) return toast('Patient first and last name required','err');
+  if(!cDob) return toast('Date of birth required','err');
+  if(!cSex) return toast('Please select patient sex','err');
+  if(!cAddr) return toast('Patient address required','err');
+  if(!gName) return toast('Guardian name required','err');
+  if(!gRel)  return toast('Relationship required','err');
+  if(!gEmail||gEmail.indexOf('@')<0) return toast('Valid guardian email required','err');
+
+  var btn=document.getElementById('a-send-btn');
+  btn.disabled=true; btn.innerHTML='<div class="spin"></div> Sending...';
+
+  var payload={
+    patient:{first:cFirst,last:cLast,dob:cDob,sex:cSex,eth:gv('a-eth'),addr:cAddr,school:gv('a-school'),grade:gv('a-grade'),lang:gv('a-lang'),refDoc:gv('a-ref')},
+    insurance:{name:gv('a-ins'),id:gv('a-insid'),group:gv('a-insgrp')},
+    guardian:{name:gName,rel:gRel,email:gEmail,phone:gv('a-gphone')},
+    sentAt:new Date().toISOString()
+  };
+  var evalLink=EVAL_URL+'?d='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(payload)))));
+  var cName=cFirst+' '+cLast;
+  var ageEl=document.getElementById('a-age');
+  var ageStr=ageEl.textContent!=='—'?ageEl.textContent:'';
+  var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  var emailHtml=
+    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">'
+    +'<div style="background:#2d6a4f;padding:18px 24px">'
+    +'<div style="font-size:16px;font-weight:700;color:#fff">ClaimDataCare</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.75)">Comprehensive Diagnostic Evaluation Request</div>'
+    +'</div>'
+    +'<div style="padding:28px 24px">'
+    +'<p style="font-size:15px;font-weight:700;margin:0 0 6px">Hello '+gName+',</p>'
+    +'<p style="font-size:13px;color:#555;line-height:1.8;margin:0 0 20px">A <strong>Comprehensive Diagnostic Evaluation</strong> has been prepared for <strong>'+cName+'</strong>. Please complete the questionnaire using the button below. This takes approximately 25–40 minutes.</p>'
+    +'<div style="background:#f5f4ed;border-radius:10px;padding:16px 20px;margin-bottom:24px;border:1px solid #e8e6dc">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87867f;margin-bottom:12px">Please Confirm Your Child\'s Information</div>'
+    +'<table style="width:100%;font-size:13px"><tr><td style="color:#87867f;padding:4px 0;width:130px">Name</td><td style="font-weight:700">'+cName+'</td></tr>'
+    +'<tr><td style="color:#87867f;padding:4px 0">Date of Birth</td><td style="font-weight:700">'+fmtDOB(cDob)+'</td></tr>'
+    +(ageStr?'<tr><td style="color:#87867f;padding:4px 0">Age</td><td style="font-weight:700">'+ageStr+'</td></tr>':'')
+    +'</table></div>'
+    +'<div style="text-align:center;margin:24px 0">'
+    +'<a href="'+evalLink+'" style="background:#c96442;color:#fff;font-size:14px;font-weight:700;padding:14px 36px;border-radius:10px;text-decoration:none;display:inline-block">Begin Evaluation Questionnaire</a>'
+    +'</div>'
+    +'<p style="font-size:11px;color:#aaa;text-align:center">Questions? Contact us at '+DEST_EMAIL+'<br>This link is unique to your child\'s evaluation.</p>'
+    +'</div>'
+    +'<div style="padding:12px 24px;background:#f5f4ed;border-top:1px solid #e8e6dc;font-size:10px;color:#aaa;text-align:center">'
+    +'ClaimDataCare &middot; IMBS Inc. &middot; '+today+' &middot; Confidential'
+    +'</div></div>';
+
+  try{
+    var res=await fetch(EMAIL_WORKER+'/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:gEmail,subject:'Action Required: Evaluation for '+cName,html:emailHtml,type:'eval'})});
+    var data=await res.json();
+    if(!data.success&&!data.id) throw new Error(data.error||'Email failed');
+    btn.style.display='none';
+    document.getElementById('admin-success').style.display='block';
+    document.getElementById('admin-success-msg').innerHTML='<strong>Email sent to '+gEmail+'</strong><br><br>'+gName+' will receive a secure link to complete the evaluation for <strong>'+cName+'</strong>.<br>The completed report will be emailed to <strong>'+DEST_EMAIL+'</strong>.';
+  }catch(e){
+    console.error(e);
+    btn.disabled=false;
+    btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Send Evaluation to Guardian';
+    toast('Error: '+e.message,'err');
+  }
+}
+
+// ══════════════════════════════════
+// GUARDIAN CONFIRM → START
+// ══════════════════════════════════
+function startEval(){
+  if(!document.getElementById('chk-confirm').checked){toast('Please confirm the patient information to proceed.','err');return;}
+  document.getElementById('view-confirm').style.display='none';
+  document.getElementById('prog-wrap').style.display='block';
+  document.getElementById('view-form').style.display='block';
+  showSec(1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ══════════════════════════════════
+// PROGRESS
+// ══════════════════════════════════
+function buildProgress(){
+  document.getElementById('prog-steps').innerHTML=STEPS.map(function(s,i){return'<div class="pstep" id="ps'+(i+1)+'">'+s+'</div>';}).join('');
+}
+function updProg(n){
+  document.getElementById('prog-fill').style.width=Math.round(n/TOTAL*100)+'%';
+  for(var i=1;i<=TOTAL;i++){var e=document.getElementById('ps'+i);if(e)e.className='pstep'+(i<n?' done':i===n?' active':'');}
+}
+
+// ══════════════════════════════════
+// NAV
+// ══════════════════════════════════
+function showSec(n){
+  document.querySelectorAll('.sec-card').forEach(function(c){c.style.display='none';});
+  var c=document.querySelector('.sec-card[data-s="'+n+'"]');
+  if(c){c.style.display='block';curSec=n;}
+  updProg(n);
+  window.scrollTo({top:document.getElementById('prog-wrap').offsetTop-10,behavior:'smooth'});
+}
+function nxt(f){if(!valSec(f))return;showSec(f+1);}
+function prv(f){showSec(f-1);}
+
+function valSec(n){
+  var e=[];
+  if(n===1){
+    if(!gv('g-name'))  e.push('Your full name');
+    if(!gv('g-rel'))   e.push('Relationship to child');
+    if(!gv('g-phone')) e.push('Phone number');
+    if(!gv('g-email')) e.push('Email address');
+    if(!gv('c-name'))  e.push('Child\'s full name');
+    if(!gv('c-dob'))   e.push('Child\'s date of birth');
+    if(!gv('c-addr'))  e.push('Child\'s address');
+    if(!gv('ins-name')||!gv('ins-id')) e.push('Insurance provider and Member ID');
+  }
+  if(n===6&&!gv('comm-lvl')) e.push('Communication level');
+  if(n===8&&!gv('concern'))  e.push('Primary concern');
+  if(e.length){alert('Please complete:\n• '+e.join('\n• '));return false;}
+  return true;
+}
+
+// ══════════════════════════════════
+// CHECK GRIDS
+// ══════════════════════════════════
+function buildChkGrid(id,items){
+  var el=document.getElementById(id);if(!el)return;
+  el.innerHTML=items.map(function(item){return'<label class="chk-item"><input type="checkbox" value="'+escHtml(item)+'"> '+escHtml(item)+'</label>';}).join('');
+}
+function getChk(id){return[].slice.call(document.querySelectorAll('#'+id+' input:checked')).map(function(x){return x.value;});}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════
+// SCALE BUILDERS
+// ══════════════════════════════════
+function buildMCHAT(){
+  var h='<table class="scale-tbl"><thead><tr><th style="width:72%">Question</th><th>Yes</th><th>No</th></tr></thead><tbody>';
+  MCHAT.forEach(function(item,i){
+    h+='<tr><td>'+(i+1)+'. '+item.q+'</td>'
+      +'<td class="opt"><span class="ropt" data-k="'+i+'" data-v="yes" onclick="sel(this,\'mc\',\''+i+'\',\'yes\')">Y</span></td>'
+      +'<td class="opt"><span class="ropt" data-k="'+i+'" data-v="no" onclick="sel(this,\'mc\',\''+i+'\',\'no\')">N</span></td>'
+      +'</tr>';
+  });
+  document.getElementById('mchat-tbl').innerHTML=h+'</tbody></table>';
+}
+function buildSNAP(){
+  var h='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:0 0 6px">Inattention (DSM-5 Criteria A)</div>';
+  h+='<table class="scale-tbl"><thead><tr><th>Behavior</th><th>0</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
+  SNAP_IN.forEach(function(q,i){h+=sRow('sn','IN'+i,q,[0,1,2,3]);});
+  h+='</tbody></table><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:14px 0 6px">Hyperactivity / Impulsivity (DSM-5 Criteria B)</div>';
+  h+='<table class="scale-tbl"><thead><tr><th>Behavior</th><th>0</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
+  SNAP_HY.forEach(function(q,i){h+=sRow('sn','HY'+i,q,[0,1,2,3]);});
+  h+='</tbody></table>';
+  document.getElementById('snap-tbl').innerHTML=h;
+}
+function buildABC(){
+  var subs=[...new Set(ABC.map(function(x){return x.t;}))];
+  var h='';
+  subs.forEach(function(sub){
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:14px 0 6px">'+sub+'</div>';
+    h+='<table class="scale-tbl"><thead><tr><th>Behavior</th><th>0</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody>';
+    ABC.filter(function(x){return x.t===sub;}).forEach(function(item){
+      h+=sRow('ab',item.s+ABC.indexOf(item),item.q,[0,1,2,3]);
+    });
+    h+='</tbody></table>';
+  });
+  document.getElementById('abc-tbl').innerHTML=h;
+}
+function buildVine(){
+  var doms=[...new Set(VINE.map(function(x){return x.d;}))];
+  var h='';
+  doms.forEach(function(dom){
+    h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:14px 0 6px">'+dom+'</div>';
+    h+='<table class="scale-tbl"><thead><tr><th>Skill</th><th>2</th><th>1</th><th>0</th></tr></thead><tbody>';
+    VINE.filter(function(x){return x.d===dom;}).forEach(function(item,i){
+      h+=sRow('vn',dom[0]+i,item.q,[2,1,0]);
+    });
+    h+='</tbody></table>';
+  });
+  document.getElementById('vine-tbl').innerHTML=h;
+}
+function sRow(ns,key,text,vals){
+  return'<tr><td>'+text+'</td>'+vals.map(function(v){
+    return'<td class="opt"><span class="ropt" data-k="'+key+'" data-v="'+v+'" onclick="sel(this,\''+ns+'\',\''+key+'\','+v+')">'+v+'</span></td>';
+  }).join('')+'</tr>';
+}
+
+function sel(el,ns,key,val){
+  var store={mc:mchat,sn:snap,ab:abc,vn:vine}[ns];
+  document.querySelectorAll('.ropt[data-k="'+key+'"]').forEach(function(e){e.classList.remove('sel');});
+  el.classList.add('sel');
+  store[key]=val;
+  if(ns==='mc') updMC();
+  if(ns==='sn') updSN();
+  if(ns==='ab') updAB();
+  if(ns==='vn') updVN();
+}
+
+// ══════════════════════════════════
+// SCORE UPDATES
+// ══════════════════════════════════
+function updMC(){
+  var risk=0,done=Object.keys(mchat).length;
+  MCHAT.forEach(function(item,i){var a=mchat[i];if(a===undefined)return;if(item.risk?a==='yes':a==='no')risk++;});
+  var cls=risk<=2?'sl-low':risk<=7?'sl-mid':'sl-hi';
+  var msg=done<20?done+'/20 items':risk<=2?'Low Risk ('+risk+'/20)':risk<=7?'Medium Risk — referral recommended ('+risk+'/20)':'High Risk — evaluation strongly indicated ('+risk+'/20)';
+  document.getElementById('mchat-score').innerHTML=done?'<div class="score-line '+cls+'">M-CHAT-R: '+msg+'</div>':'';
+}
+function updSN(){
+  var si=SNAP_IN.reduce(function(s,_,i){return s+(snap['IN'+i]||0);},0);
+  var sh=SNAP_HY.reduce(function(s,_,i){return s+(snap['HY'+i]||0);},0);
+  var ai=(si/9).toFixed(2),ah=(sh/9).toFixed(2);
+  var cls=Math.max(ai,ah)>=2?'sl-hi':Math.max(ai,ah)>=1.5?'sl-mid':'sl-low';
+  document.getElementById('snap-score').innerHTML='<div class="score-line '+cls+'">Inattention avg: '+ai+'/3.0 &nbsp;|&nbsp; Hyperactivity avg: '+ah+'/3.0 &nbsp;(clinical cutoff: ≥2.0)</div>';
+}
+function updAB(){
+  var t={I:0,SW:0,ST:0,H:0,IS:0};
+  ABC.forEach(function(item,i){t[item.s]+=(abc[item.s+i]||0);});
+  var total=Object.values(t).reduce(function(a,b){return a+b;},0);
+  document.getElementById('abc-score').innerHTML='<div class="score-line sl-mid">ABC Total: '+total+' &nbsp;|&nbsp; Irritability: '+t.I+' &nbsp;|&nbsp; Social W: '+t.SW+' &nbsp;|&nbsp; Stereotypy: '+t.ST+' &nbsp;|&nbsp; Hyperactivity: '+t.H+' &nbsp;|&nbsp; Inapp. Speech: '+t.IS+'</div>';
+}
+function updVN(){
+  var total=0,max=VINE.length*2;
+  var doms=[...new Set(VINE.map(function(x){return x.d;}))];
+  doms.forEach(function(dom){VINE.filter(function(x){return x.d===dom;}).forEach(function(_,i){total+=vine[dom[0]+i]||0;});});
+  var pct=Math.round(total/max*100);
+  var cls=pct>=70?'sl-low':pct>=40?'sl-mid':'sl-hi';
+  document.getElementById('vine-score').innerHTML='<div class="score-line '+cls+'">Adaptive Composite: '+total+'/'+max+' ('+pct+'%)</div>';
+}
+
+// Score helpers for report
+function mcRisk(){var r=0;MCHAT.forEach(function(item,i){var a=mchat[i];if(a===undefined)return;if(item.risk?a==='yes':a==='no')r++;});var d=Object.keys(mchat).length;if(d<20)return'Incomplete ('+d+'/20)';return r<=2?'Low Risk ('+r+'/20)':r<=7?'Medium Risk ('+r+'/20)':'High Risk ('+r+'/20)';}
+function snIn(){return(SNAP_IN.reduce(function(s,_,i){return s+(snap['IN'+i]||0);},0)/9).toFixed(2)+'/3.0';}
+function snHy(){return(SNAP_HY.reduce(function(s,_,i){return s+(snap['HY'+i]||0);},0)/9).toFixed(2)+'/3.0';}
+
+// ══════════════════════════════════
+// SIGNATURE
+// ══════════════════════════════════
+function initSig(){
+  var c=document.getElementById('sig-canvas'),ctx=c.getContext('2d');
+  c.width=c.offsetWidth||720;
+  ctx.strokeStyle='#141413';ctx.lineWidth=2.5;ctx.lineCap='round';
+  function pos(e){var r=c.getBoundingClientRect(),src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*(c.width/r.width),y:(src.clientY-r.top)*(c.height/r.height)};}
+  c.addEventListener('mousedown',function(e){sigPaint=true;var p=pos(e);sigLX=p.x;sigLY=p.y;});
+  c.addEventListener('mousemove',function(e){if(!sigPaint)return;var p=pos(e);ctx.beginPath();ctx.moveTo(sigLX,sigLY);ctx.lineTo(p.x,p.y);ctx.stroke();sigLX=p.x;sigLY=p.y;});
+  c.addEventListener('mouseup',function(){sigPaint=false;});
+  c.addEventListener('touchstart',function(e){e.preventDefault();sigPaint=true;var p=pos(e);sigLX=p.x;sigLY=p.y;},{passive:false});
+  c.addEventListener('touchmove',function(e){e.preventDefault();if(!sigPaint)return;var p=pos(e);ctx.beginPath();ctx.moveTo(sigLX,sigLY);ctx.lineTo(p.x,p.y);ctx.stroke();sigLX=p.x;sigLY=p.y;},{passive:false});
+  c.addEventListener('touchend',function(){sigPaint=false;});
+}
+function clearSig(){var c=document.getElementById('sig-canvas');c.getContext('2d').clearRect(0,0,c.width,c.height);}
+function sigEmpty(){var c=document.getElementById('sig-canvas');return!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(function(v){return v!==0;});}
+
+// ══════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════
+async function submitEval(){
+  var err=document.getElementById('submit-err');
+  err.style.display='none';
+  if(!document.getElementById('con-eval').checked){err.textContent='Please check the authorization box.';err.style.display='block';return;}
+  if(!document.getElementById('con-hipaa').checked){err.textContent='Please check the HIPAA consent box.';err.style.display='block';return;}
+  if(!gv('sig-name')){err.textContent='Please type your full name as signature.';err.style.display='block';return;}
+  if(sigEmpty()){err.textContent='Please draw your signature in the box above.';err.style.display='block';return;}
+
+  var btn=document.getElementById('submit-btn');
+  btn.innerHTML='<div class="spin"></div> Submitting...';
+  btn.disabled=true;
+
+  try{
+    var pdfData=buildPDF();
+    var cName=gv('c-name')||'Unknown';
+    var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    var emailHtml=
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">'
+      +'<div style="background:#2d6a4f;padding:18px 24px"><div style="font-size:16px;font-weight:700;color:#fff">Evaluation Received — ClaimDataCare</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.75)">Comprehensive Diagnostic Evaluation for ABA Therapy</div></div>'
+      +'<div style="padding:24px"><p style="font-size:13px;color:#555;line-height:1.8;margin:0 0 16px">A completed comprehensive evaluation has been submitted. See attached PDF for full report.</p>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f;width:160px">Patient</td><td style="font-weight:700">'+cName+'</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">DOB</td><td style="font-weight:700">'+fmtDOB(gv('c-dob'))+'</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">Age</td><td style="font-weight:700">'+gv('c-age')+'</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">Guardian</td><td style="font-weight:700">'+gv('g-name')+' ('+gv('g-rel')+')</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">Insurance</td><td style="font-weight:700">'+gv('ins-name')+' — '+gv('ins-id')+'</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">M-CHAT-R Risk</td><td style="font-weight:700">'+mcRisk()+'</td></tr>'
+      +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">SNAP-IV Inattention</td><td style="font-weight:700">'+snIn()+'</td></tr>'
+      +'<tr><td style="padding:7px 0;color:#87867f">SNAP-IV Hyperactivity</td><td style="font-weight:700">'+snHy()+'</td></tr>'
+      +'</table>'
+      +'<p style="font-size:11px;color:#aaa;text-align:center">Submitted: '+today+' &middot; ClaimDataCare / IMBS Inc.</p>'
+      +'</div></div>';
+
+    var res=await fetch(EMAIL_WORKER+'/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to:DEST_EMAIL,
+        subject:'CDE Completed — '+cName+' — '+today,
+        html:emailHtml,
+        type:'eval',
+        attachment:{filename:'CDE_'+cName.replace(/\s+/g,'_')+'.pdf',content:pdfData,encoding:'base64',contentType:'application/pdf'}
+      })
+    });
+    var data=await res.json();
+    if(!data.success&&!data.id){
+      // Fallback: download locally
+      var link=document.createElement('a');
+      link.href='data:application/pdf;base64,'+pdfData;
+      link.download='CDE_'+cName.replace(/\s+/g,'_')+'.pdf';
+      link.click();
+    }
+    document.getElementById('ref-id').textContent='CDC-'+Date.now().toString(36).toUpperCase();
+    document.getElementById('view-form').style.display='none';
+    document.getElementById('prog-wrap').style.display='none';
+    document.getElementById('view-success').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){
+    console.error(e);
+    err.textContent='Submission failed: '+e.message+'. Please try again.';
+    err.style.display='block';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Submit Evaluation';
+    btn.disabled=false;
+  }
+}
+
+// ══════════════════════════════════
+// PDF GENERATION (jsPDF — same as sign.html)
+// ══════════════════════════════════
+function buildPDF(){
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:'pt',format:'letter'});
+  var W=doc.internal.pageSize.getWidth(); // 612
+  var ML=48,MR=48,TW=W-ML-MR;
+  var y=28;
+  var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  function K(){doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);}
+  function T(w,s){doc.setFont('helvetica',w||'normal');doc.setFontSize(s||9);}
+  function flll(r,g,b){doc.setFillColor(r,g,b);}
+  function drw(r,g,b){doc.setDrawColor(r,g,b);}
+  function newPage(){doc.addPage();y=28;}
+  function checkY(need){if(y+need>doc.internal.pageSize.getHeight()-40)newPage();}
+
+  function hdr1(text){
+    checkY(30);
+    flll(45,106,79);doc.rect(ML,y,TW,20,'F');
+    T('bold',11);doc.setTextColor(255,255,255);
+    doc.text(text,ML+8,y+14);K();y+=28;
+  }
+  function hdr2(text){
+    checkY(20);
+    T('bold',10);K();
+    doc.setTextColor(48,48,46);doc.text(text,ML,y+10);
+    doc.setTextColor(0,0,0);
+    doc.setDrawColor(200,200,200);doc.setLineWidth(0.5);
+    doc.line(ML,y+13,ML+TW,y+13);K();y+=20;
+  }
+  function lv(label,val){
+    checkY(14);
+    T('bold',8.5);K();doc.text(label+':',ML,y);
+    T('normal',8.5);
+    var vText=String(val||'Not provided');
+    var lines=doc.splitTextToSize(vText,TW-90);
+    doc.text(lines,ML+90,y);
+    y+=Math.max(12,lines.length*11);
+  }
+  function scaleTable(title,items,store,keyFn,vals){
+    hdr2(title);
+    var rowH=16,hH=18;
+    var colW=[TW-80,80];
+    checkY(hH+items.length*rowH+10);
+    // Header
+    flll(48,48,46);doc.rect(ML,y,TW,hH,'F');
+    T('bold',8);doc.setTextColor(255,255,255);
+    doc.text('Item',ML+4,y+12);
+    doc.text('Response',ML+TW-38,y+12);K();y+=hH;
+    items.forEach(function(item,i){
+      var k=keyFn(i);
+      var v=store[k]!==undefined?String(store[k]):'NR';
+      var rowText=typeof item==='string'?item:(item.q||item);
+      var lines=doc.splitTextToSize((i+1)+'. '+rowText,TW-90);
+      var rh=Math.max(rowH,lines.length*10+6);
+      checkY(rh);
+      if(i%2===0){flll(250,249,245);doc.rect(ML,y,TW,rh,'F');}
+      drw(220,220,220);doc.setLineWidth(0.3);doc.rect(ML,y,TW,rh);K();
+      T('normal',8);
+      doc.text(lines,ML+4,y+10);
+      T('bold',9);doc.text(v,ML+TW-32,y+rh/2+4,{align:'center'});
+      y+=rh;
+    });
+    y+=8;
+  }
+
+  // ── COVER ──────────────────────────
+  flll(45,106,79);doc.rect(0,0,W,70,'F');
+  T('bold',18);doc.setTextColor(255,255,255);
+  doc.text('ClaimDataCare',ML,42);
+  T('normal',10);
+  doc.text('Comprehensive Diagnostic Evaluation — ABA Therapy',ML,58);K();
+  y=90;
+  T('italic',9);doc.setTextColor(155,35,53);
+  doc.text('CONFIDENTIAL — For Clinical Use Only',ML,y);K();y+=14;
+  T('normal',9);doc.text('Date of Evaluation: '+today,ML,y);y+=20;
+
+  // ── S1 ─────────────────────────────
+  hdr1('SECTION 1 — PATIENT & GUARDIAN IDENTIFICATION');
+  hdr2('Patient Information');
+  lv('Full Name',gv('c-name')); lv('Date of Birth',fmtDOB(gv('c-dob'))); lv('Age',gv('c-age'));
+  lv('Sex',gv('c-sex')); lv('Ethnicity',gv('c-eth')); lv('Primary Language',gv('c-lang'));
+  lv('Address',gv('c-addr')); lv('School / Program',gv('c-school')); lv('Grade',gv('c-grade'));
+  hdr2('Insurance');
+  lv('Insurance Provider',gv('ins-name')); lv('Member ID',gv('ins-id')); lv('Group #',gv('ins-grp'));
+  hdr2('Guardian / Informant');
+  lv('Name',gv('g-name')); lv('Relationship',gv('g-rel')); lv('Phone',gv('g-phone')); lv('Email',gv('g-email'));
+
+  // ── S2 ─────────────────────────────
+  hdr1('SECTION 2 — DEVELOPMENTAL & MEDICAL HISTORY');
+  hdr2('Pregnancy & Birth');
+  lv('Complications',gv('preg')); lv('Gestational Age',gv('bga')); lv('Birth Weight',gv('bwt'));
+  lv('Delivery',gv('btype')); lv('NICU',gv('nicu')); lv('Apgar',gv('apgar'));
+  hdr2('Developmental Milestones');
+  lv('First Words',gv('mw')); lv('Two-word Phrases',gv('mp')); lv('Sitting',gv('ms'));
+  lv('Walking',gv('mwk')); lv('Toilet Training',gv('mt')); lv('Regression',gv('mreg'));
+  lv('Regression Details',gv('mregdesc'));
+  hdr2('Medical History');
+  lv('Conditions',getChk('med-grid').join('; ')||'None'); lv('Medications',gv('meds'));
+  lv('Allergies',gv('allergy')); lv('Previous Diagnoses',gv('pdx')); lv('Previous Evaluations',gv('peval'));
+  lv('Current Services',getChk('svc-grid').join('; ')||'None'); lv('Family History',gv('famhx'));
+
+  // ── S3 M-CHAT ──────────────────────
+  hdr1('SECTION 3 — M-CHAT-R AUTISM SCREENING');
+  scaleTable('Items',MCHAT,mchat,function(i){return i;},[]);
+  lv('Risk Level',mcRisk());
+
+  // ── S4 SNAP ────────────────────────
+  hdr1('SECTION 4 — SNAP-IV ADHD SCREENING');
+  scaleTable('Inattention (0–3 scale)',SNAP_IN,snap,function(i){return'IN'+i;},[]);
+  scaleTable('Hyperactivity / Impulsivity (0–3 scale)',SNAP_HY,snap,function(i){return'HY'+i;},[]);
+  lv('Inattention Mean',snIn()); lv('Hyperactivity Mean',snHy());
+
+  // ── S5 ABC ─────────────────────────
+  hdr1('SECTION 5 — ABERRANT BEHAVIOR CHECKLIST (ABC)');
+  var abcSubs=[...new Set(ABC.map(function(x){return x.t;}))];
+  abcSubs.forEach(function(sub){
+    var items=ABC.filter(function(x){return x.t===sub;});
+    scaleTable(sub,items.map(function(x){return x.q;}),abc,function(i){return items[i].s+ABC.indexOf(items[i]);},['0','1','2','3']);
+  });
+
+  // ── S6 ─────────────────────────────
+  hdr1('SECTION 6 — COMMUNICATION, SOCIAL & SENSORY');
+  lv('Communication Level',gv('comm-lvl')); lv('AAC',gv('comm-aac')); lv('Description',gv('comm-desc'));
+  lv('Social Behaviors',getChk('soc-grid').join('; ')||'None'); lv('Social Description',gv('soc-desc'));
+  lv('Sensory Behaviors',getChk('sen-grid').join('; ')||'None'); lv('Sensory Description',gv('sen-desc'));
+  lv('Feeding',gv('feed')); lv('Sleep',gv('sleep')); lv('Feeding/Sleep Details',gv('feed-desc'));
+
+  // ── S7 Vineland ────────────────────
+  hdr1('SECTION 7 — ADAPTIVE BEHAVIOR (VINELAND-3 ABBREVIATED)');
+  var doms=[...new Set(VINE.map(function(x){return x.d;}))];
+  doms.forEach(function(dom){
+    var items=VINE.filter(function(x){return x.d===dom;});
+    scaleTable(dom+' Domain',items.map(function(x){return x.q;}),vine,function(i){return dom[0]+i;},[]);
+  });
+
+  // ── S8 ─────────────────────────────
+  hdr1('SECTION 8 — FAMILY CONCERNS & GOALS');
+  lv('Primary Concern',gv('concern')); lv('Goals',gv('goals')); lv('Strengths',gv('strengths'));
+  lv('Typical Day',gv('typday')); lv('Challenging Behaviors',gv('challenging'));
+  lv('Strategies Tried',gv('strategies')); lv('Additional Notes',gv('other-notes'));
+
+  // ── S9 Sig ─────────────────────────
+  hdr1('SECTION 9 — CONSENT & ELECTRONIC SIGNATURE');
+  checkY(80);
+  T('normal',8.5);K();
+  var consent='The undersigned parent or legal guardian confirms that all information provided is accurate. By signing, they authorize ClaimDataCare and affiliated clinicians to use this evaluation for ABA therapy diagnostic purposes. This document is legally binding under the E-SIGN Act (15 U.S.C. § 7001).';
+  var cLines=doc.splitTextToSize(consent,TW);
+  doc.text(cLines,ML,y);y+=cLines.length*11+10;
+  lv('Signatory Name',gv('sig-name')); lv('Relationship',gv('g-rel')); lv('Date',fmtDOB(gv('sig-date')));
+  // Signature image
+  checkY(70);
+  var sigCanvas=document.getElementById('sig-canvas');
+  var sigDataUrl=sigCanvas.toDataURL('image/png');
+  try{
+    flll(252,252,252);drw(220,220,220);doc.setLineWidth(0.5);
+    doc.roundedRect(ML,y,TW,55,3,3,'FD');
+    doc.addImage(sigDataUrl,'PNG',ML+5,y+4,TW-10,47);
+  }catch(e){}
+  y+=65;
+  T('italic',7.5);doc.setTextColor(130,130,130);
+  doc.text('Electronic signature captured at time of submission — ClaimDataCare / IMBS Inc. — '+today,ML,y);K();
+
+  return doc.output('datauristring').split(',')[1];
+}
+</script>
+</body>
+</html>
