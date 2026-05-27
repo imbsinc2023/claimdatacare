@@ -1007,18 +1007,26 @@ async function submitEval(){
   if(sigEmpty()){err.textContent='Please draw your signature in the box above.';err.style.display='block';return;}
 
   var btn=document.getElementById('submit-btn');
-  btn.innerHTML='<div class="spin"></div> Submitting...';
+  btn.innerHTML='<div class="spin"></div> Generating report...';
   btn.disabled=true;
 
   try{
     var pdfData=buildPDF();
+    if(!pdfData) throw new Error('PDF generation failed');
+
     var cName=gv('c-name')||'Unknown';
+    var gEmail=gv('g-email')||(_d.guardian||{}).email||'';
     var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    var ts=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+
+    btn.innerHTML='<div class="spin"></div> Sending report...';
+
+    // 1. Send notification email via worker (no attachment — just summary)
     var emailHtml=
       '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">'
       +'<div style="background:#2d6a4f;padding:18px 24px"><div style="font-size:16px;font-weight:700;color:#fff">Evaluation Received — ClaimDataCare</div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,.75)">Comprehensive Diagnostic Evaluation for ABA Therapy</div></div>'
-      +'<div style="padding:24px"><p style="font-size:13px;color:#555;line-height:1.8;margin:0 0 16px">A completed comprehensive evaluation has been submitted. See attached PDF for full report.</p>'
+      +'<div style="padding:24px"><p style="font-size:13px;color:#555;line-height:1.8;margin:0 0 16px">A completed comprehensive evaluation has been submitted. <strong>The full PDF report has been saved to Google Drive.</strong></p>'
       +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">'
       +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f;width:160px">Patient</td><td style="font-weight:700">'+cName+'</td></tr>'
       +'<tr style="border-bottom:1px solid #f0eee6"><td style="padding:7px 0;color:#87867f">DOB</td><td style="font-weight:700">'+fmtDOB(gv('c-dob'))+'</td></tr>'
@@ -1032,30 +1040,46 @@ async function submitEval(){
       +'<p style="font-size:11px;color:#aaa;text-align:center">Submitted: '+today+' &middot; ClaimDataCare / IMBS Inc.</p>'
       +'</div></div>';
 
-    var res=await fetch(EMAIL_WORKER+'/',{
+    // Send notification (no attachment needed — PDF goes to Drive below)
+    fetch(EMAIL_WORKER+'/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        to:DEST_EMAIL,
-        subject:'CDE Completed — '+cName+' — '+today,
-        html:emailHtml,
-        type:'eval',
-        attachment:{filename:'CDE_'+cName.replace(/\s+/g,'_')+'.pdf',content:pdfData,encoding:'base64',contentType:'application/pdf'}
-      })
-    });
-    var data=await res.json();
-    if(!data.success&&!data.id){
-      // Fallback: download locally
-      var link=document.createElement('a');
-      link.href='data:application/pdf;base64,'+pdfData;
-      link.download='CDE_'+cName.replace(/\s+/g,'_')+'.pdf';
-      link.click();
-    }
+      body:JSON.stringify({to:DEST_EMAIL,subject:'CDE Completed — '+cName+' — '+today,html:emailHtml,type:'eval'})
+    }).catch(function(e){console.warn('Notification email error:',e.message);});
+
+    // 2. Save PDF to Google Drive — same method as sign.html
+    var drivePayload={
+      action:'saveSigned',
+      clientId:'eval_'+Date.now(),
+      guardianName:gv('g-name')||'',
+      guardianFirst:gv('g-name').split(' ')[0]||'',
+      guardianLast:gv('g-name').split(' ').slice(1).join(' ')||'',
+      childFirst:cName.split(' ')[0]||'',
+      childLast:cName.split(' ').slice(1).join(' ')||'',
+      guardianEmail:gEmail,
+      signedTs:ts,
+      forms:[{
+        id:'cde',
+        name:'Comprehensive Diagnostic Evaluation — '+cName,
+        type:'EVAL',
+        pdfData:pdfData
+      }]
+    };
+
+    var driveRes=await fetch(
+      'https://script.google.com/macros/s/AKfycbyCFem8OlJBZlL2-YifE-SoPn-sw6FLFPWnPZaWUIVxuQPWGysAI2QhtzJa9M-V6aI8WA/exec',
+      {method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(drivePayload)}
+    );
+    var driveData=await driveRes.json();
+    console.log('Drive result:',driveData);
+
+    // 3. Show success
     document.getElementById('ref-id').textContent='CDC-'+Date.now().toString(36).toUpperCase();
     document.getElementById('view-form').style.display='none';
     document.getElementById('prog-wrap').style.display='none';
     document.getElementById('view-success').style.display='block';
     window.scrollTo({top:0,behavior:'smooth'});
+
   }catch(e){
     console.error(e);
     err.textContent='Submission failed: '+e.message+'. Please try again.';
