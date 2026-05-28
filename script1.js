@@ -8305,6 +8305,79 @@ btn.textContent = 'Sign In'; btn.disabled = false;
 }
 
 
+
+// ── Auto-logout after 15 minutes of inactivity ──────────────────────────────
+(function() {
+  var IDLE_MS    = 15 * 60 * 1000;  // 15 minutes
+  var WARN_MS    = 14 * 60 * 1000;  // warn at 14 minutes (1 min before)
+  var _idleTimer = null;
+  var _warnTimer = null;
+  var _warnEl    = null;
+
+  function _resetIdleTimers() {
+    clearTimeout(_idleTimer);
+    clearTimeout(_warnTimer);
+    if (_warnEl) { _warnEl.remove(); _warnEl = null; }
+
+    // Only run if user is logged in
+    if (!_localSession || !_localSession.email) return;
+
+    _warnTimer = setTimeout(function() {
+      // Show 1-minute warning banner
+      if (_warnEl) _warnEl.remove();
+      _warnEl = document.createElement('div');
+      _warnEl.id = 'idle-warn-banner';
+      _warnEl.style.cssText = [
+        'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);',
+        'background:#b45309;color:#fff;border-radius:10px;',
+        'padding:12px 20px;font-size:13px;font-weight:600;',
+        'box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:99998;',
+        'display:flex;align-items:center;gap:12px;white-space:nowrap'
+      ].join('');
+      _warnEl.innerHTML =
+        '<i data-lucide="clock" style="width:16px;height:16px;flex-shrink:0"></i>' +
+        'Session expires in <strong id="idle-countdown" style="margin:0 4px">60</strong>s — move mouse to stay logged in' +
+        '<button onclick="window.__resetIdleTimers&&window.__resetIdleTimers()" ' +
+        'style="margin-left:8px;padding:4px 10px;border:1.5px solid rgba(255,255,255,.6);border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:12px;font-weight:700">Stay</button>';
+      document.body.appendChild(_warnEl);
+      if (typeof _renderLucideIcons === 'function') _renderLucideIcons();
+
+      // Countdown ticker
+      var secs = 60;
+      var ticker = setInterval(function() {
+        secs--;
+        var el = document.getElementById('idle-countdown');
+        if (el) el.textContent = secs;
+        if (secs <= 0) clearInterval(ticker);
+      }, 1000);
+    }, WARN_MS);
+
+    _idleTimer = setTimeout(function() {
+      if (_warnEl) { _warnEl.remove(); _warnEl = null; }
+      // Force logout without confirmation dialog
+      try {
+        var cfg = getApiConfig ? getApiConfig() : null;
+        if (cfg && cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
+      } catch(e) {}
+      _localSession = null;
+      try { localStorage.removeItem('cdc_session'); } catch(e) {}
+      try { if (_auth) _auth.signOut(); } catch(e) {}
+      window.location.reload();
+    }, IDLE_MS);
+  }
+
+  // Expose for the "Stay" button
+  window.__resetIdleTimers = function() { _resetIdleTimers(); };
+
+  // Listen for any user activity
+  ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(evt) {
+    document.addEventListener(evt, _resetIdleTimers, { passive: true });
+  });
+
+  // Start timers once page loads
+  window.addEventListener('load', _resetIdleTimers);
+})();
+
 function doLogout() {
   // Native modal confirmation — no browser alert
   var overlay = document.createElement('div');
