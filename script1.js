@@ -519,6 +519,76 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
 
+  _mk('modal-issuer',
+    '<div class="modal" style="max-width:600px;background:#fff">' +
+    '<div class="modal-hdr"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="iss-id">' +
+    '<div class="fg g2">' +
+    '<div class="field" style="grid-column:1/-1"><label>Entity Name *</label><input id="iss-name" placeholder="e.g. Integrated Medical Billing Services Inc"></div>' +
+    '<div class="field"><label>Tax ID (EIN)</label><input id="iss-taxid" placeholder="XX-XXXXXXX" maxlength="10"></div>' +
+    '<div class="field"><label>NPI</label><input id="iss-npi" placeholder="10-digit NPI" maxlength="10"></div>' +
+    '<div class="field"><label>Phone</label><input id="iss-phone" placeholder="(786) 000-0000"></div>' +
+    '<div class="field"><label>Email</label><input id="iss-email" type="email" placeholder="billing@example.com"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="iss-addr1" placeholder="Street address"></div>' +
+    '<div class="field"><label>City</label><input id="iss-city"></div>' +
+    '<div class="field"><label>State</label><input id="iss-state" maxlength="2" placeholder="FL"></div>' +
+    '<div class="field"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
+    '<div class="field"><label>Website</label><input id="iss-web" placeholder="https://"></div>' +
+    '<div class="field"><label>Fee %</label><input id="iss-fee" type="number" step="0.01" placeholder="6"></div>' +
+    '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
+    '</div>' +
+    '<div style="margin-top:10px">' +
+    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Zelle Mode</label>' +
+    '<input type="hidden" id="iss-zelle-mode" value="phone">' +
+    '<div style="display:flex;gap:6px">' +
+    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6f3eff;color:#fff">Phone</button>' +
+    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Email</button>' +
+    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Both</button>' +
+    '</div></div>' +
+    '<div style="margin-top:10px">' +
+    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Logo (optional)</label>' +
+    '<div style="display:flex;align-items:center;gap:12px">' +
+    '<div id="iss-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:#f9f9f9;flex-shrink:0"><span style="font-size:10px;color:var(--text3)">No logo</span></div>' +
+    '<div><input type="file" id="iss-logo-file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none">' +
+    '<button class="btn btn-sm" type="button" onclick="document.getElementById(\'iss-logo-file\').click()"><i data-lucide="upload" class="lci"></i> Upload</button>' +
+    '<button class="btn btn-sm btn-ghost" type="button" onclick="clearIssuerLogo()" style="margin-left:6px">Clear</button></div></div></div>' +
+    '<div style="margin-top:10px"><label>Notes</label><textarea id="iss-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
+    '</div>' +
+    '<div class="modal-ftr">' +
+    '<button class="btn btn-ghost" onclick="closeModal(\'modal-issuer\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i> Save Entity</button>' +
+    '</div></div>'
+  );
+
+  _mk('modal-client',
+    '<div class="modal" style="max-width:540px;background:#fff">' +
+    '<div class="modal-hdr"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="cli-id">' +
+    '<div class="fg g2">' +
+    '<div class="field" style="grid-column:1/-1"><label>Client Name *</label><input id="cli-name" placeholder="e.g. ABC Medical Group"></div>' +
+    '<div class="field"><label>Contact Person</label><input id="cli-contact" placeholder="Full name"></div>' +
+    '<div class="field"><label>Tax ID</label><input id="cli-taxid" placeholder="XX-XXXXXXX"></div>' +
+    '<div class="field"><label>NPI</label><input id="cli-npi" placeholder="10-digit NPI"></div>' +
+    '<div class="field"><label>Phone</label><input id="cli-phone"></div>' +
+    '<div class="field"><label>Email</label><input id="cli-email" type="email"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="cli-addr1"></div>' +
+    '<div class="field"><label>City</label><input id="cli-city"></div>' +
+    '<div class="field"><label>State</label><input id="cli-state" maxlength="2" placeholder="FL"></div>' +
+    '<div class="field"><label>ZIP</label><input id="cli-zip" maxlength="10"></div>' +
+    '<div class="field"><label>Fee %</label><input id="cli-fee" type="number" step="0.01" placeholder="6"></div>' +
+    '</div>' +
+    '<div style="margin-top:10px"><label>Notes</label><textarea id="cli-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
+    '</div>' +
+    '<div class="modal-ftr">' +
+    '<button class="btn btn-ghost" onclick="closeModal(\'modal-client\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveClient()"><i data-lucide="save" class="lci"></i> Save Client</button>' +
+    '</div></div>'
+  );
+
   // Inject toast CSS if missing
   if (!document.getElementById('cdc-toast-css')) {
     var _tcss = document.createElement('style');
@@ -7198,10 +7268,6 @@ const el=document.getElementById('inv-panel-'+t);
 if(el) el.style.display = t===tab ? '' : 'none';
 });
 
-// BUGFIX: hide the standalone inv-dashboard div when not on dashboard tab
-const invDashDiv = document.getElementById('inv-dashboard');
-if (invDashDiv) invDashDiv.style.display = tab==='dashboard' ? '' : 'none';
-
 const newBtn = document.getElementById('inv-btn-new');
 if (newBtn) newBtn.style.display = tab==='invoices' ? '' : 'none';
 
@@ -7240,9 +7306,9 @@ const zelleVal = zelleMode === 'email' ? (iss.email||'—') : zelleMode === 'bot
 '<td style="font-size:12px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+addr+'">'+addr+'</td>' +
 '<td style="font-size:12px">'+zelleVal+'</td>' +
 '<td style="font-size:12px">'+(iss.terms||'Net 30')+'</td>' +
-'<td style="text-align:right"><div style="display:flex;gap:6px;justify-content:flex-end">' +
-'<button style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid var(--border2);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);transition:all .12s" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--border2)\';this.style.color=\'var(--text)\'" onclick="openIssuerModal(\''+iss.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i> Edit</button>' +
-'<button style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid #fecaca;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#dc2626;transition:all .12s" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'#fff\'" onclick="deleteIssuer(\''+iss.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' +
+'<td><div class="btn-group" style="white-space:nowrap">' +
+'<button class="btn btn-xs" onclick="openIssuerModal(\''+iss.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:11px;height:11px"></i></button>' +
+'<button class="btn btn-xs btn-danger" onclick="deleteIssuer(\''+iss.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>' +
 '</div></td></tr>';
 }).join('') + '</tbody></table></div>';
 _renderLucideIcons();
@@ -7493,7 +7559,7 @@ el.innerHTML = `
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
 <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Dashboard for:</span>
 <select id="inv-dash-issuer" onchange="renderInvDashboard()"
-style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:#fff;color:var(--text);font-weight:600">
+style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);font-weight:600">
 <option value="">My Invoices (exclude pass-through)</option>
 ${issuers.map(s=>`<option value="${s.id}" ${s.id===issuerFilter?'selected':''}>${s.name}</option>`).join('')}
 <option value="__all__" ${issuerFilter==='__all__'?'selected':''}>All Billing Entities</option>
@@ -7508,7 +7574,7 @@ ${[
 {label:'Outstanding', val:'$'+fmtMoney(outstanding), color:outstanding>0?'var(--amber)':'var(--brand)', icon:'clock', sub:`${countOpen} open`},
 {label:'Overdue', val:countOverdue, color:countOverdue>0?'var(--red)':'var(--text2)', icon:'alert-circle', sub:'invoices'},
 ].map(c=>`
-<div style="background:#fff;border:1px solid #e8e6dc;border-radius:14px;padding:14px 16px">
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
 <i data-lucide="${c.icon}" class="lci" style="width:16px;height:16px;color:${c.color}"></i>
 <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">${c.label}</span>
