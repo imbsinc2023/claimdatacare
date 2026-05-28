@@ -741,3 +741,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   color: #87867f; font-size: 12px;
   padding: 0 4px; display: inline-flex; align-items: center;
 }
+
+/* ── Invoicing section white background ── */
+#sec-invoices .page-body { background: #fff; }
+#sec-invoices .tbl-wrap { background: #fff; }
