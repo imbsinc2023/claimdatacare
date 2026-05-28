@@ -409,7 +409,7 @@ function _injectMissingModals() {
   );
 
   _mk('modal-invoice',
-    '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh">' +
+    '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh;background:#fff">' +
     '<div class="modal-hdr" style="flex-shrink:0">' +
     '<div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
     '<button class="btn btn-ghost btn-sm" title="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
@@ -6633,31 +6633,88 @@ function parsePastedLines(raw) {
 // Accepts tab-separated (Excel copy) or comma-separated
 const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 const result = [];
-for (const line of lines) {
-// Detect separator: tab (Excel) or comma
-const sep = line.includes('\t') ? '\t' : ',';
-const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
-// Skip header rows
-const firstCol = (cols[0] || '').toLowerCase();
-if (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description')) continue;
-// Need at least 2 columns to be useful
-if (cols.length < 2) continue;
-// Map columns: Date, Description, PaymentID, Insurance, Month, Amount
-// Be flexible — if only 2 cols treat as date + amount
-const obj = {
-date: cols[0] || '',
-desc: cols[1] || '',
-paymentId: cols[2] || '',
-insurance: cols[3] || '',
-month: cols[4] || '',
-amount: ''
+
+// Detect if first line is a header and build a column index map
+let colMap = null;
+const knownHeaders = {
+  'payment date': 'date',
+  'date': 'date',
+  'product': 'desc',
+  'product / description': 'desc',
+  'description': 'desc',
+  'payment id': 'paymentId',
+  'payment id / check #': 'paymentId',
+  'check #': 'paymentId',
+  'amount': 'amount',
+  'status': 'status',
+  'insurance': 'insurance',
+  'insurance / payer': 'insurance',
+  'payer': 'insurance',
+  'invoice number': 'invoiceNum',
+  'invoice month': 'month',
+  'month': 'month'
 };
-for (let i = cols.length - 1; i >= 1; i--) {
-const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
-if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
-}
-if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
-result.push(obj);
+
+for (const line of lines) {
+  // Detect separator: tab (Excel) or comma
+  const sep = line.includes('\t') ? '\t' : ',';
+  const cols = line.split(sep).map(c => c.trim().replace(/^"|"$/g, '').trim());
+  const firstCol = (cols[0] || '').toLowerCase();
+
+  // Detect header row and build column map
+  if (!colMap && (firstCol.includes('date') || firstCol.includes('payment') || firstCol.includes('description'))) {
+    colMap = {};
+    cols.forEach((h, i) => {
+      const key = h.toLowerCase().trim();
+      if (knownHeaders[key]) colMap[knownHeaders[key]] = i;
+    });
+    continue;
+  }
+
+  // Skip non-data rows
+  if (cols.length < 2) continue;
+
+  let obj;
+  if (colMap) {
+    // Use header-based mapping
+    const get = (field) => (colMap[field] !== undefined ? cols[colMap[field]] || '' : '');
+    const rawAmt = get('amount').replace(/[$,\s]/g, '');
+    const parsedAmt = parseFloat(rawAmt);
+    obj = {
+      date:       get('date'),
+      desc:       get('desc'),
+      paymentId:  get('paymentId'),
+      insurance:  get('insurance'),
+      invoiceNum: get('invoiceNum'),
+      month:      get('month'),
+      status:     get('status'),
+      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : ''
+    };
+  } else {
+    // Fallback positional: [0]Date [1]Product [2]PaymentID [3]Amount [4]Status [5]Insurance [6]InvoiceNum [7]Month
+    const rawAmt = (cols[3] || '').replace(/[$,\s]/g, '');
+    const parsedAmt = parseFloat(rawAmt);
+    obj = {
+      date:       cols[0] || '',
+      desc:       cols[1] || '',
+      paymentId:  cols[2] || '',
+      amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : '',
+      status:     cols[4] || '',
+      insurance:  cols[5] || '',
+      invoiceNum: cols[6] || '',
+      month:      cols[7] || ''
+    };
+    // If amount still not found, scan remaining cols
+    if (!obj.amount) {
+      for (let i = cols.length - 1; i >= 1; i--) {
+        const num = parseFloat(cols[i].replace(/[$,\s]/g, ''));
+        if (!isNaN(num) && num > 0) { obj.amount = num.toFixed(2); break; }
+      }
+    }
+  }
+
+  if (obj.date) { const d = new Date(obj.date); if (!isNaN(d)) obj.date = d.toISOString().split('T')[0]; }
+  if (obj.date || obj.amount) result.push(obj);
 }
 return result;
 }
@@ -7991,7 +8048,7 @@ toast('Invoice saved ?');
 
 // ?? PAYMENT LINES (paste area) ???????????????????????????
 function addInvLine() {
-_invLines.push({ date:'', desc:'', paymentId:'', insurance:'', month:'', amount:'' });
+_invLines.push({ date:'', desc:'', paymentId:'', amount:'', status:'', insurance:'', invoiceNum:'', month:'', notes:'' });
 renderInvLines();
 
   try { recalcInvoice(); } catch(e) {}
@@ -8008,19 +8065,19 @@ function _invSortBy(key) {
   renderInvLines();
 }
 
+function _invSetter(i,k,v){if(_invLines&&_invLines[i]){_invLines[i][k]=v.toUpperCase();}}
 function renderInvLines() {
 const tbody = document.getElementById('inv-lines-body');
 if (!tbody) return;
 const U = s => String(s||'').toUpperCase();
-const INP = (val, ph, idx2, field) => { const v=U(val).replace(/"/g,'&quot;'); return '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase" value="'+v+'" placeholder="'+ph+'" oninput="_invSetter('+idx2+',\''+field+'\',this.value)">'; };
-function _invSetter(i,k,v){if(_invLines&&_invLines[i]){_invLines[i][k]=v.toUpperCase();}}
-const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
+const INP = (val, ph, idx2, field) => { const v=U(val).replace(/"/g,'&quot;'); return '<input type="text" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:#fff;color:#1a1a1a;box-sizing:border-box;text-transform:uppercase" value="'+v+'" placeholder="'+ph+'" oninput="_invSetter('+idx2+',\''+field+'\',this.value)">'; };
+const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:#fff;color:#1a1a1a;text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
   return;
 }
 tbody.innerHTML = _invLines.map((l, i) => '<tr style="border-bottom:1px solid var(--border)">'
-+'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value"></td>'
++'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:#fff;color:#1a1a1a;width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value"></td>'
 +'<td style="padding:2px 3px;min-width:80px">'+INP(l.desc,'MEDICAL BILLING',i,'desc')+'</td>'
 +'<td style="padding:2px 3px;min-width:65px">'+INP(l.paymentId,'ID/CHECK#',i,'paymentId')+'</td>'
 +'<td style="padding:2px 3px;min-width:60px">'+AMT(l.amount,i)+'</td>'
@@ -17975,7 +18032,7 @@ div.id = 'pt-ins-form';
 div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px';
 
 div.innerHTML = `
-<div style="background:#fff;border:1px solid #e8e6dc;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
+<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
 
 <!-- Title bar -->
 <div style="display:flex;align-items:center;justify-content:space-between;background:#c96442;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0">
@@ -17998,8 +18055,8 @@ style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line
 
 <!-- LEFT column -->
 <div>
-${fld('pif-lname','Last Name',iv.lname||pat.last||'','text','',true)}
-${fld('pif-fname','First Name',iv.fname||pat.first||'','text','',true)}
+${fld('pif-lname','Last Name *',iv.lname||pat.last||'','text','',true)}
+${fld('pif-fname','First Name *',iv.fname||pat.first||'','text','',true)}
 ${fld('pif-mid','Middle Name',iv.mid||pat.mid||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Sex <span style="color:#b53333">*</span></label>
@@ -18011,7 +18068,7 @@ ${['Male','Female','Unknown'].map(s=>
 </label>`).join('')}
 </div>
 </div>
-${fld('pif-dob','Date Of Birth',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
+${fld('pif-dob','Date Of Birth *',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
 ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
 <div style="display:flex;align-items:flex-start;gap:0;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#b53333">*</span></label>
@@ -18032,7 +18089,7 @@ ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
   <input type="hidden" id="pif-payerid-val" value="${iv.payerId||''}">
 </div>
 </div>
-${fld('pif-policy','Policy No (No \'-\' Please)',iv.policy||iv.memberId||'','text','',true)}
+${fld('pif-policy','Policy No * (No \'-\' Please)',iv.policy||iv.memberId||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Plan</label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
@@ -18072,13 +18129,13 @@ style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-si
 ${['Self','Spouse','Child','Parent','Other'].map(r=>`<option value="${r}" ${(iv.relation||'Self')===r?'selected':''}>${r}</option>`).join('')}
 </select>
 </div>
-${fld('pif-addr1','Address 1',iv.addr1||pat.addr1||'','text','',true)}
+${fld('pif-addr1','Address 1 *',iv.addr1||pat.addr1||'','text','',true)}
 ${fld('pif-addr2','Address 2',iv.addr2||pat.addr2||'')}
-${fld('pif-city','City',iv.city||pat.city||'','text','',true)}
-${fld('pif-state','State',iv.state||pat.state||'','text','',true)}
-${fld('pif-zip','ZIP',iv.zip||pat.zip||'','text','',true)}
+${fld('pif-city','City *',iv.city||pat.city||'','text','',true)}
+${fld('pif-state','State *',iv.state||pat.state||'','text','',true)}
+${fld('pif-zip','ZIP *',iv.zip||pat.zip||'','text','',true)}
 ${fld('pif-email','Email ID',iv.email||pat.email||'')}
-${fld('pif-phone','Contact No 1',iv.phone||pat.phone||'','text','',true)}
+${fld('pif-phone','Contact No 1 *',iv.phone||pat.phone||'','text','',true)}
 ${fld('pif-mobile','Mobile #',iv.mobile||pat.phone2||'')}
 ${fld('pif-fax','Fax',iv.fax||'')}
 ${fld('pif-employer','Employer',iv.employer||'')}
@@ -18101,26 +18158,14 @@ ${fld('pif-eff-to','Effective To',iv.effTo||'')}
 
 </div><!-- /grid -->
 
-<!-- Footer buttons — icon-only left-aligned, tooltip on hover -->
-<div style="display:flex;justify-content:flex-start;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
-<button title="Save"
-  onclick="_saveInsuranceForm('${patId}',${idx})"
-  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
-  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
-</button>
-<button title="Save &amp; Add another Insurance"
-  onclick="_saveInsuranceFormAndAdd('${patId}',${idx})"
-  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
-  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/><line x1="12" y1="5" x2="12" y2="9"/><line x1="9" y1="7" x2="15" y2="7" style="stroke-dasharray:none"/><line x1="21" y1="3" x2="21" y2="7"/><line x1="19" y1="5" x2="23" y2="5"/></svg>
-</button>
-<button title="Save &amp; Next"
-  onclick="_saveInsuranceForm('${patId}',${idx},true)"
-  style="width:36px;height:36px;border-radius:8px;background:#c96442;border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:opacity .15s;flex-shrink:0"
-  onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;pointer-events:none"><polyline points="9 18 15 12 9 6"/></svg>
-</button>
+<!-- Footer buttons -->
+<div style="display:flex;justify-content:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
+<button class="btn btn-primary"
+onclick="_saveInsuranceForm('${patId}',${idx})">Save</button>
+<button class="btn btn-primary"
+onclick="_saveInsuranceFormAndAdd('${patId}',${idx})">Save &amp; Add another Ins</button>
+<button class="btn btn-primary"
+onclick="_saveInsuranceForm('${patId}',${idx},true)">Save &amp; Next</button>
 </div>
 </div>
 </div>`;
