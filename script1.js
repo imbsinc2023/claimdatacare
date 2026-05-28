@@ -7198,9 +7198,9 @@ const el=document.getElementById('inv-panel-'+t);
 if(el) el.style.display = t===tab ? '' : 'none';
 });
 
-// Hide the always-visible inv-dashboard container when not on dashboard tab
-const invDash = document.getElementById('inv-dashboard');
-if (invDash) invDash.style.display = tab==='dashboard' ? '' : 'none';
+// BUGFIX: hide the standalone inv-dashboard div when not on dashboard tab
+const invDashDiv = document.getElementById('inv-dashboard');
+if (invDashDiv) invDashDiv.style.display = tab==='dashboard' ? '' : 'none';
 
 const newBtn = document.getElementById('inv-btn-new');
 if (newBtn) newBtn.style.display = tab==='invoices' ? '' : 'none';
@@ -7240,9 +7240,9 @@ const zelleVal = zelleMode === 'email' ? (iss.email||'—') : zelleMode === 'bot
 '<td style="font-size:12px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+addr+'">'+addr+'</td>' +
 '<td style="font-size:12px">'+zelleVal+'</td>' +
 '<td style="font-size:12px">'+(iss.terms||'Net 30')+'</td>' +
-'<td><div class="btn-group" style="white-space:nowrap">' +
-'<button class="btn btn-xs" onclick="openIssuerModal(\''+iss.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:11px;height:11px"></i></button>' +
-'<button class="btn btn-xs btn-danger" onclick="deleteIssuer(\''+iss.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>' +
+'<td style="text-align:right"><div style="display:flex;gap:6px;justify-content:flex-end">' +
+'<button style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid var(--border2);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);transition:all .12s" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--border2)\';this.style.color=\'var(--text)\'" onclick="openIssuerModal(\''+iss.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i> Edit</button>' +
+'<button style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid #fecaca;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#dc2626;transition:all .12s" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'#fff\'" onclick="deleteIssuer(\''+iss.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' +
 '</div></td></tr>';
 }).join('') + '</tbody></table></div>';
 _renderLucideIcons();
@@ -7493,7 +7493,7 @@ el.innerHTML = `
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
 <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Dashboard for:</span>
 <select id="inv-dash-issuer" onchange="renderInvDashboard()"
-style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);font-weight:600">
+style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:#fff;color:var(--text);font-weight:600">
 <option value="">My Invoices (exclude pass-through)</option>
 ${issuers.map(s=>`<option value="${s.id}" ${s.id===issuerFilter?'selected':''}>${s.name}</option>`).join('')}
 <option value="__all__" ${issuerFilter==='__all__'?'selected':''}>All Billing Entities</option>
@@ -7508,7 +7508,7 @@ ${[
 {label:'Outstanding', val:'$'+fmtMoney(outstanding), color:outstanding>0?'var(--amber)':'var(--brand)', icon:'clock', sub:`${countOpen} open`},
 {label:'Overdue', val:countOverdue, color:countOverdue>0?'var(--red)':'var(--text2)', icon:'alert-circle', sub:'invoices'},
 ].map(c=>`
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px">
+<div style="background:#fff;border:1px solid #e8e6dc;border-radius:14px;padding:14px 16px">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
 <i data-lucide="${c.icon}" class="lci" style="width:16px;height:16px;color:${c.color}"></i>
 <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">${c.label}</span>
