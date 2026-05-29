@@ -8306,76 +8306,71 @@ btn.textContent = 'Sign In'; btn.disabled = false;
 
 
 
-// ── Auto-logout after 15 minutes of inactivity ──────────────────────────────
+// ── Auto-logout: 15 min inactivity ──────────────────────────────────────────
 (function() {
-  var IDLE_MS    = 15 * 60 * 1000;  // 15 minutes
-  var WARN_MS    = 14 * 60 * 1000;  // warn at 14 minutes (1 min before)
-  var _idleTimer = null;
-  var _warnTimer = null;
-  var _warnEl    = null;
+  var IDLE_MS  = 15 * 60 * 1000;
+  var WARN_MS  = 14 * 60 * 1000;
+  var _idleT   = null;
+  var _warnT   = null;
+  var _warnEl  = null;
+  var _ticker  = null;
 
-  function _resetIdleTimers() {
-    clearTimeout(_idleTimer);
-    clearTimeout(_warnTimer);
-    if (_warnEl) { _warnEl.remove(); _warnEl = null; }
+  function _removeWarn() {
+    if (_warnEl) { try { _warnEl.remove(); } catch(e){} _warnEl = null; }
+    if (_ticker) { clearInterval(_ticker); _ticker = null; }
+  }
 
-    // Only run if user is logged in
-    if (!_localSession || !_localSession.email) return;
+  function _forceLogout() {
+    _removeWarn();
+    try {
+      var cfg = typeof getApiConfig==='function' ? getApiConfig() : null;
+      if (cfg && cfg.acctKey && typeof API_CFG_KEY!=='undefined') localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
+    } catch(e) {}
+    try {
+      var SESSION_KEY = 'rcmpro_session';
+      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    } catch(e) {}
+    try { if (typeof _auth!=='undefined' && _auth) _auth.signOut(); } catch(e) {}
+    window.location.reload();
+  }
 
-    _warnTimer = setTimeout(function() {
-      // Show 1-minute warning banner
-      if (_warnEl) _warnEl.remove();
+  function _reset() {
+    clearTimeout(_idleT);
+    clearTimeout(_warnT);
+    _removeWarn();
+
+    // Only arm timers when a session exists
+    try {
+      var sess = typeof getSession==='function' ? getSession() : null;
+      if (!sess || !sess.email) return;
+    } catch(e) { return; }
+
+    _warnT = setTimeout(function() {
       _warnEl = document.createElement('div');
-      _warnEl.id = 'idle-warn-banner';
-      _warnEl.style.cssText = [
-        'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);',
-        'background:#b45309;color:#fff;border-radius:10px;',
-        'padding:12px 20px;font-size:13px;font-weight:600;',
-        'box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:99998;',
-        'display:flex;align-items:center;gap:12px;white-space:nowrap'
-      ].join('');
-      _warnEl.innerHTML =
-        '<i data-lucide="clock" style="width:16px;height:16px;flex-shrink:0"></i>' +
-        'Session expires in <strong id="idle-countdown" style="margin:0 4px">60</strong>s — move mouse to stay logged in' +
-        '<button onclick="window.__resetIdleTimers&&window.__resetIdleTimers()" ' +
-        'style="margin-left:8px;padding:4px 10px;border:1.5px solid rgba(255,255,255,.6);border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:12px;font-weight:700">Stay</button>';
+      _warnEl.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:#b45309;color:#fff;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px;white-space:nowrap';
+      _warnEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Sesión expira en <strong id="idle-cd" style="margin:0 4px">60</strong>s &nbsp;<button onclick="window.__idleReset()" style="padding:4px 12px;border:1.5px solid rgba(255,255,255,.7);border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:12px;font-weight:700">Continuar</button>';
       document.body.appendChild(_warnEl);
-      if (typeof _renderLucideIcons === 'function') _renderLucideIcons();
-
-      // Countdown ticker
       var secs = 60;
-      var ticker = setInterval(function() {
+      _ticker = setInterval(function() {
         secs--;
-        var el = document.getElementById('idle-countdown');
+        var el = document.getElementById('idle-cd');
         if (el) el.textContent = secs;
-        if (secs <= 0) clearInterval(ticker);
+        if (secs <= 0) clearInterval(_ticker);
       }, 1000);
     }, WARN_MS);
 
-    _idleTimer = setTimeout(function() {
-      if (_warnEl) { _warnEl.remove(); _warnEl = null; }
-      // Force logout without confirmation dialog
-      try {
-        var cfg = getApiConfig ? getApiConfig() : null;
-        if (cfg && cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
-      } catch(e) {}
-      _localSession = null;
-      try { localStorage.removeItem('cdc_session'); } catch(e) {}
-      try { if (_auth) _auth.signOut(); } catch(e) {}
-      window.location.reload();
-    }, IDLE_MS);
+    _idleT = setTimeout(_forceLogout, IDLE_MS);
   }
 
-  // Expose for the "Stay" button
-  window.__resetIdleTimers = function() { _resetIdleTimers(); };
+  window.__idleReset = function() { _reset(); };
 
-  // Listen for any user activity
-  ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(evt) {
-    document.addEventListener(evt, _resetIdleTimers, { passive: true });
+  ['mousemove','mousedown','keydown','touchstart','scroll','click','focus'].forEach(function(e) {
+    document.addEventListener(e, _reset, { passive: true, capture: true });
   });
 
-  // Start timers once page loads
-  window.addEventListener('load', _resetIdleTimers);
+  // Start after page ready — delay so getSession() is available
+  setTimeout(_reset, 3000);
 })();
 
 function doLogout() {
