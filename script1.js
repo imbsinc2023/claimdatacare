@@ -6225,18 +6225,8 @@ let _logoH = 28;
 if (iss.logo) {
 try {
   const _ld = _fitLogo(iss.logo, 28);
-  // Strip alpha channel: render to canvas with white bg, export as JPEG
-  const _logoImg = new Image();
-  _logoImg.src = iss.logo;
-  const _cv = document.createElement('canvas');
-  _cv.width = _logoImg.naturalWidth || 128;
-  _cv.height = _logoImg.naturalHeight || 128;
-  const _cx = _cv.getContext('2d');
-  _cx.fillStyle = '#ffffff';
-  _cx.fillRect(0, 0, _cv.width, _cv.height);
-  _cx.drawImage(_logoImg, 0, 0);
-  const _jpg = _cv.toDataURL('image/jpeg', 0.92);
-  doc.addImage(_jpg, 'JPEG', M+2, M, _ld.w, _ld.h);
+  // Use PNG format explicitly — jsPDF handles transparency correctly with PNG
+  doc.addImage(iss.logo, 'PNG', M+2, M, _ld.w, _ld.h, undefined, 'FAST');
   _logoH = _ld.h;
 } catch(e) {}
 }
