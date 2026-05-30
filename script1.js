@@ -519,6 +519,76 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
   );
 
+  _mk('modal-issuer',
+    '<div class="modal" style="max-width:600px;background:#fff">' +
+    '<div class="modal-hdr"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="iss-id">' +
+    '<div class="fg g2">' +
+    '<div class="field" style="grid-column:1/-1"><label>Entity Name *</label><input id="iss-name"></div>' +
+    '<div class="field"><label>Tax ID (EIN)</label><input id="iss-taxid" maxlength="10"></div>' +
+    '<div class="field"><label>NPI</label><input id="iss-npi" maxlength="10"></div>' +
+    '<div class="field"><label>Phone</label><input id="iss-phone"></div>' +
+    '<div class="field"><label>Email</label><input id="iss-email" type="email"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="iss-addr1"></div>' +
+    '<div class="field"><label>City</label><input id="iss-city"></div>' +
+    '<div class="field"><label>State</label><input id="iss-state" maxlength="2"></div>' +
+    '<div class="field"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
+    '<div class="field"><label>Website</label><input id="iss-web"></div>' +
+    '<div class="field"><label>Fee %</label><input id="iss-fee" type="number" step="0.01"></div>' +
+    '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
+    '</div>' +
+    '<div style="margin-top:10px">' +
+    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Zelle Mode</label>' +
+    '<input type="hidden" id="iss-zelle-mode" value="phone">' +
+    '<div style="display:flex;gap:6px">' +
+    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6f3eff;color:#fff">Phone</button>' +
+    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Email</button>' +
+    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Both</button>' +
+    '</div></div>' +
+    '<div style="margin-top:10px">' +
+    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Logo</label>' +
+    '<div style="display:flex;align-items:center;gap:12px">' +
+    '<div id="iss-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:transparent;flex-shrink:0"><span style="font-size:10px;color:var(--text3)">No logo</span></div>' +
+    '<div><input type="file" id="iss-logo-file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none">' +
+    '<button class="btn btn-sm" type="button" onclick="document.getElementById(\'iss-logo-file\').click()"><i data-lucide="upload" class="lci"></i> Upload</button>' +
+    '<button class="btn btn-sm btn-ghost" type="button" onclick="clearIssuerLogo()" style="margin-left:6px">Clear</button></div></div></div>' +
+    '<div style="margin-top:10px"><label>Notes</label><textarea id="iss-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
+    '</div>' +
+    '<div class="modal-ftr">' +
+    '<button class="btn btn-ghost" onclick="closeModal(\'modal-issuer\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i> Save Entity</button>' +
+    '</div></div>'
+  );
+
+  _mk('modal-client',
+    '<div class="modal" style="max-width:540px;background:#fff">' +
+    '<div class="modal-hdr"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="cli-id">' +
+    '<div class="fg g2">' +
+    '<div class="field" style="grid-column:1/-1"><label>Client Name *</label><input id="cli-name"></div>' +
+    '<div class="field"><label>Contact Person</label><input id="cli-contact"></div>' +
+    '<div class="field"><label>Tax ID</label><input id="cli-taxid"></div>' +
+    '<div class="field"><label>NPI</label><input id="cli-npi"></div>' +
+    '<div class="field"><label>Phone</label><input id="cli-phone"></div>' +
+    '<div class="field"><label>Email</label><input id="cli-email" type="email"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="cli-addr1"></div>' +
+    '<div class="field"><label>City</label><input id="cli-city"></div>' +
+    '<div class="field"><label>State</label><input id="cli-state" maxlength="2"></div>' +
+    '<div class="field"><label>ZIP</label><input id="cli-zip" maxlength="10"></div>' +
+    '<div class="field"><label>Fee %</label><input id="cli-fee" type="number" step="0.01"></div>' +
+    '</div>' +
+    '<div style="margin-top:10px"><label>Notes</label><textarea id="cli-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
+    '</div>' +
+    '<div class="modal-ftr">' +
+    '<button class="btn btn-ghost" onclick="closeModal(\'modal-client\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="saveClient()"><i data-lucide="save" class="lci"></i> Save Client</button>' +
+    '</div></div>'
+  );
+
   // Inject toast CSS if missing
   if (!document.getElementById('cdc-toast-css')) {
     var _tcss = document.createElement('style');
