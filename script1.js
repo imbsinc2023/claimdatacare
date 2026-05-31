@@ -448,7 +448,7 @@ function _injectMissingModals() {
     '<div class="field"><label>Revenue Collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
     '<div class="field"><label>Exception Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
     '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()" style="border-bottom:1px solid var(--border2)"></div>' +
-    '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" readonly style="background:var(--bg3);color:var(--text3)"></div>' +
+    '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" min="0"></div>' +
     '</div>' +
 
     '<div id="inv-calc-preview" style="padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px;min-height:32px"></div>' +
@@ -482,7 +482,6 @@ function _injectMissingModals() {
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INVOICE #</th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
     '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
     '<th style="width:28px"></th></tr></thead>' +
@@ -491,10 +490,10 @@ function _injectMissingModals() {
     '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text);text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
     '</div>' +
 
-    '<div class="modal-ftr" style="flex-shrink:0">' +
-    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3)"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand)"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn btn-primary btn-sm" onclick="saveInvoice()" title="Save" style="padding:6px 14px"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>' +
+    '<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border2)">' +
+    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border2);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
+    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--brand);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
+    '<button class="btn-icon" title="Save Invoice" onclick="saveInvoice()" style="color:#fff;width:34px;height:34px;border-radius:8px;border:none;background:var(--brand);display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="save" class="lci" style="width:16px;height:16px"></i></button>' +
     '</div></div>'
   );
 
@@ -8149,7 +8148,7 @@ tbody.innerHTML = _invLines.map((l, i) => '<tr style="border-bottom:1px solid va
 +'<td style="padding:2px 3px;min-width:60px">'+AMT(l.amount,i)+'</td>'
 +'<td style="padding:2px 3px;min-width:50px">'+INP(l.status,'PAID',i,'status')+'</td>'
 +'<td style="padding:2px 3px;min-width:65px">'+INP(l.insurance,'MEDICARE',i,'insurance')+'</td>'
-+'<td style="padding:2px 3px;min-width:60px">'+INP(l.invoiceNum||l.invoiceNumber||'','INV #',i,'invoiceNum')+'</td>'
+
 +'<td style="padding:2px 3px;min-width:60px">'+INP(l.month,'MAY-2026',i,'month')+'</td>'
 +'<td style="padding:2px 3px;min-width:65px">'+INP(l.notes,'NOTES',i,'notes')+'</td>'
 +'<td style="padding:2px 3px;width:26px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice('+i+',1);renderInvLines()"><i data-lucide="x" class="lci" style="width:11px;height:11px"></i></button></td>'
