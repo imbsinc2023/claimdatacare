@@ -2182,52 +2182,6 @@ function openClaimModal(idx){
     go('claim-editor');
   }
 }
-sv('mc-id', idx>=0?db.claims[idx].id:'');
-document.getElementById('mc-dup').classList.add('hidden');
-document.getElementById('btn-dup-claim').style.display=idx>=0?'':'none';
-// Populate dropdowns
-const pats=db.patients.filter(p=>p.providerId===activeProviderId);
-document.getElementById('mc-pat').innerHTML='<option value="">\u2014 Select patient \u2014</option>'+pats.map(p=>`<option value="${p.id}">${ptLinkName(p.id,p.last||'?',p.first||'')} \u00b7 Acct: ${p.acct}</option>`).join('');
-const rends=db.rendering.filter(r=>r.providerId===activeProviderId);
-document.getElementById('mc-rend').innerHTML='<option value="">\u2014 Select rendering \u2014</option>'+rends.map(r=>`<option value="${r.id}">${r.last}, ${r.first} (${r.npi})</option>`).join('');
-const refs=db.referring.filter(r=>r.providerId===activeProviderId);
-document.getElementById('mc-ref').innerHTML='<option value="">\u2014 None \u2014</option>'+refs.map(r=>`<option value="${r.id}">${r.last}, ${r.first} (${r.npi})</option>`).join('');
-const facs=db.facilities.filter(f=>f.providerId===activeProviderId);
-document.getElementById('mc-fac').innerHTML='<option value="">\u2014 None \u2014</option>'+facs.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
-buildPOSSelect('mc-pos','11');
-const c=idx>=0?db.claims[idx]:null;
-if(c){
-sv('mc-pat',c.patId);
-sv('mc-acct',db.patients.find(x=>x.id===c.patId)?.acct||c.acct||'');
-sv('mc-pcn',c.pcn); sv('mc-dos',c.dos); sv('mc-pos',c.pos||'11');
-sv('mc-fac',c.facilityId||''); sv('mc-rend',c.renderingId||''); sv('mc-ref',c.referringId||'');
-sv('mc-auth',c.auth||''); sv('mc-status',c.status||'pending');
-sv('mc-emp',c.emp||'N'); sv('mc-auto',c.auto||'N');
-for(let i=0;i<8;i++) sv('mc-dx'+(i+1),c.dx[i]||'');
-tmpLines=JSON.parse(JSON.stringify(c.lines));
-} else {
-sv('mc-pat',''); sv('mc-acct',''); sv('mc-pcn',''); sv('mc-dos',today());
-sv('mc-pos','11'); sv('mc-fac','');
-if(rends.length) sv('mc-rend',rends[0].id);
-if(refs.length) sv('mc-ref',refs[0].id);
-sv('mc-auth',''); sv('mc-status','pending'); sv('mc-emp','N'); sv('mc-auto','N');
-for(let i=0;i<8;i++) sv('mc-dx'+(i+1),'');
-tmpLines=[];
-}
-document.getElementById('mc-pat').onchange = () => {
-const patId = document.getElementById('mc-pat')?.value;
-if (patId) {
-const db = getDB();
-const pat = db.patients.find(p=>p.id===patId);
-if (pat) sv('mc-acct', pat.acct||'');
-}
-};
-renderClaimLines();
-// Update total preview
-const mcTot = document.getElementById('mc-total');
-
-
-
 function saveFacility() {
 const nameVal = v('mfac-name');
 if (!nameVal || !nameVal.trim()) { toast('Facility name is required', 'err'); return; }
