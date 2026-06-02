@@ -1964,7 +1964,7 @@ return '<tr style="background:'+(isSel?'var(--brand-bg)':'')+'">'+
 '<td class="mono" style="font-weight:700">$'+fmtMoney(claimTotal(c))+'</td>'+
 '<td>'+statusBadge(c.status||'draft')+errBadge+'</td>'+
 '<td><div class="btn-group" style="gap:4px">'+
-'<button class="btn-icon sm" onclick="window._ceActiveTab=\'services\';window.location.hash=\'#claim-editor?id=\'+c.id;go(\'claim-editor\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="window._ceActiveTab=\'services\';window.location.hash=\'#claim-editor?id=\'+c.id;setTimeout(function(){go(\'claim-editor\')},0)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="openStatusModal('+oi+')" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="genSuperbill('+oi+')" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="quickDup('+oi+')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
@@ -2154,17 +2154,15 @@ if (ins) {
 function openClaimModal(idx){
   const db=getDB();
   if(idx>=0){
-    // Edit existing — open in editor
     const c=db.claims[idx];
     if(!c) return;
     window._ceActiveTab='services';
     window.location.hash='#claim-editor?id='+c.id;
-    go('claim-editor');
+    setTimeout(()=>go('claim-editor'),0);
   } else {
-    // New claim — create a draft and open in editor
     const newId=uid();
-    const pcn=buildNextPCN?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
-    const rends=db.rendering.filter(r=>r.providerId===activeProviderId);
+    const pcn=typeof buildNextPCN==='function'?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
+    const rends=(db.rendering||[]).filter(r=>r.providerId===activeProviderId);
     const newClaim={
       id:newId, providerId:activeProviderId,
       pcn:pcn, patId:'', acct:'',
@@ -2179,7 +2177,7 @@ function openClaimModal(idx){
     setDB(db2=>{ db2.claims.push(newClaim); });
     window._ceActiveTab='services';
     window.location.hash='#claim-editor?id='+newId;
-    go('claim-editor');
+    setTimeout(()=>go('claim-editor'),0);
   }
 }
 function saveFacility() {
