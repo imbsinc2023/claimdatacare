@@ -1075,7 +1075,7 @@ function renderClaimEditor(){
   var el=document.getElementById('claim-editor-content');
   if(!el)return;
   if(!claim){
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:400px"><div class="card" style="padding:40px;text-align:center;max-width:400px"><div style="width:48px;height:48px;border-radius:12px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i data-lucide="file-edit" class="lci" style="width:24px;height:24px;color:var(--brand)"></i></div><h2 style="font-size:16px;font-weight:600;margin-bottom:8px">No Claim Selected</h2><p style="font-size:13px;color:var(--text3);margin-bottom:20px">Select a claim from the Claims page or check in a patient to create a new draft.</p><button class="btn btn-primary btn-sm" onclick="go(\'claims\')">Go to Claims</button></div></div>';
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:400px"><div class="card" style="padding:40px;text-align:center;max-width:400px"><div style="width:48px;height:48px;border-radius:12px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i data-lucide="file-edit" class="lci" style="width:24px;height:24px;color:var(--brand)"></i></div><h2 style="font-size:16px;font-weight:600;margin-bottom:8px">No Claim Selected</h2><p style="font-size:13px;color:var(--text3);margin-bottom:20px">Select a claim from the Claims page to open the editor.</p><button class="btn btn-primary btn-sm" onclick="go(\'claims\')">Go to Claims</button></div></div>';
     setTimeout(_renderLucideIcons,20);
     return;
   }
@@ -1083,372 +1083,588 @@ function renderClaimEditor(){
   var rend=db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
   var fac=db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
   var ref=db.referring.find(function(r){return r.id===claim.referringId;})||{};
+  var prov=db.providers.find(function(p){return p.id===(pat.providerId||activeProviderId);})||{};
   var icd10=db.icd10||[];
   var cptCat=db.cpt||[];
-  var total=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
+  // Insurance
+  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
+  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  var ins1Name=ins1?ins1.name||(ins1.payerId?'Payer '+ins1.payerId:'—'):(pat.payerName||'—');
+  var ins2Name=ins2?(ins2.name||'—'):'—';
+  // Financials
+  var billed=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
+  var paid=parseFloat(claim.paid||0);
+  var priAmt=parseFloat(claim.priAmt||0);
+  var secAmt=parseFloat(claim.secAmt||0);
+  var adjAmt=parseFloat(claim.adjAmt||0);
+  var patPaid=parseFloat(claim.patPaid||0);
+  var balance=billed-paid-adjAmt;
+  var copay=parseFloat(claim.copay||pat.copay||0);
+  var deductible=parseFloat(claim.deductible||0);
+  var patPortion=parseFloat(claim.patPortion||0);
   var errs=validateClaim(claim);
-  var statusOpts=['draft','pending','submitted','accepted','rejected','on_hold','denied','voided'];
+  var age=pat.dob?Math.floor((new Date()-new Date(pat.dob))/31557600000)+'':' ';
+  var statusOpts=['draft','pending','submitted','accepted','rejected','on_hold','denied','partially_paid','paid','voided'];
+  var activeTab=window._ceActiveTab||'services';
 
-  el.innerHTML=
-    '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
-    // Top bar
-    '<div style="display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0">'+
-      '<button class="btn btn-xs btn-ghost" onclick="go(\'claims\')" title="Back"><i data-lucide="arrow-left" class="lci" style="width:14px;height:14px"></i></button>'+
-      '<div style="flex:1;display:flex;align-items:center;gap:10px">'+
-        '<span style="font-weight:600;font-size:14px">'+ptLinkName(pat.id,pat.last,pat.first)+'</span>'+
-        '<span class="mono" style="font-size:11px;color:var(--text3)">'+claim.pcn+'</span>'+
-        statusBadge(claim.status)+
-      '</div>'+
-      '<button class="btn btn-sm btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:13px;height:13px"></i> Save</button>'+
-    '</div>'+
-    // Main content area - two columns
-    '<div style="flex:1;display:flex;overflow:hidden">'+
-      // Left column — Demographics + Diagnoses
-      '<div style="width:380px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">'+
-        // Claim details
-        '<div class="card" style="padding:12px">'+
-          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:10px">Claim Details</div>'+
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-            _ceField('DOS','date','ce-dos',claim.dos||'')+
-            _ceField('POS','select','ce-pos',claim.pos||'11')+
-            _ceField('Status','select','ce-status',claim.status||'draft')+
-            _ceField('Auth #','text','ce-auth',claim.auth||'')+
-          '</div>'+
-          '<div style="margin-top:8px">'+
-            '<label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">Facility</label>'+
-            '<select id="ce-fac" style="width:100%"><option value="">— None —</option>'+
-            db.facilities.filter(function(f){return f.id===claim.facilityId||!claim.facilityId;}).map(function(f){
-              return '<option value="'+f.id+'"'+(f.id===claim.facilityId?' selected':'')+'>'+f.name+'</option>';
-            }).join('')+'</select>'+
-          '</div>'+
-          '<div style="margin-top:8px">'+
-            '<label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">Rendering</label>'+
-            '<select id="ce-rend" style="width:100%"><option value="">— None —</option>'+
-            db.rendering.filter(function(r){return r.id===claim.renderingId||!claim.renderingId;}).map(function(r){
-              return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
-            }).join('')+'</select>'+
-          '</div>'+
-        '</div>'+
-        // Diagnoses
-        '<div class="card" style="padding:12px;flex:1;display:flex;flex-direction:column">'+
-          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px">Diagnoses (ICD-10)</div>'+
-          '<div style="display:flex;flex-direction:column;gap:6px">'+
-            (function(){
-              var html='';
-              for(var dxi=0;dxi<8;dxi++){
-                var letter=String.fromCharCode(65+dxi);
-                var dxVal=claim.dx[dxi]||'';
-                html+=
-                  '<div style="display:flex;align-items:center;gap:6px">'+
-                    '<span style="font-size:11px;font-weight:600;color:var(--text2);width:16px;flex-shrink:0">'+letter+'.</span>'+
-                    '<input type="text" id="ce-dx'+(dxi+1)+'" class="ce-icd-input" value="'+dxVal+'" placeholder="Search ICD-10..." style="flex:1;font-family:var(--mono);font-size:12px" autocomplete="off">'+
-                  '</div>';
-              }
-              return html;
-            })()+
-          '</div>'+
-        '</div>'+
-      '</div>'+
-      // Right column — Service Lines
-      '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
-        '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'+
-          '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.03em">Service Lines</div>'+
-          '<button class="btn btn-xs btn-primary" onclick="_ceAddLine(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Line</button>'+
-        '</div>'+
-        '<div id="ce-lines-wrap" style="flex:1;overflow-y:auto;padding:12px 16px">'+
-          _ceRenderLines(claim, cptCat)+
-        '</div>'+
-      '</div>'+
-    '</div>'+
-    // Bottom bar — totals + validation
-    '<div style="display:flex;align-items:center;gap:16px;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0">'+
-      '<div style="font-weight:700" class="mono">Total: $'+total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')+'</div>'+
-      '<div style="flex:1"></div>'+
-      '<div style="font-size:12px"><span style="color:'+(errs.length?'var(--red)':'var(--green)')+'">'+
-        (errs.length?'<i data-lucide="alert-triangle" class="lci" style="width:12px;height:12px"></i> '+errs.length+' error(s)':'<i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> No errors')+
-      '</span></div>'+
-      '<button class="btn btn-xs btn-ghost" onclick="_ceValidate(\''+claimId+'\')"><i data-lucide="search" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
-    '</div>'+
-    // Scrub results panel
-    '<div id="ce-scrub" style="display:none;padding:10px 16px;border-top:1px solid var(--border);background:var(--red-bg);flex-shrink:0">'+
-      '<div id="ce-scrub-list"></div>'+
-    '</div>'+
-    '</div>';
+  var html=
+  // ── WRAPPER ──
+  '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
-  // Populate POS and status selects
-  (function(){
+  // ── TOP NAV BAR ──
+  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0">'+
+    '<button class="btn btn-xs btn-ghost" onclick="go(\'claims\')" title="Back to Claims"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    '<span style="color:var(--border2)">|</span>'+
+    '<span style="font-size:11px;color:var(--text3)">Bill# <strong style="color:var(--text)">'+(claim.pcn||'—')+'</strong></span>'+
+    statusBadge(claim.status)+
+    '<div style="flex:1"></div>'+
+    '<button class="btn btn-xs" onclick="window.print()" title="Print"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '<button class="btn btn-xs btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+    '<button class="btn btn-xs btn-ghost" style="color:var(--red)" onclick="go(\'claims\')" title="Cancel"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'+
+  '</div>'+
+
+  // ── PATIENT INFO BANNER ──
+  '<div style="background:#e8f0fe;border-bottom:2px solid #c5d4f8;padding:6px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;font-size:12px">'+
+    '<strong style="color:#1a3a8a;font-size:13px">Patient Info :</strong>'+
+    '<span>Chart# <strong>'+(pat.acct||'—')+'</strong></span>'+
+    '<span style="color:#555">'+(pat.sex==='F'?'Female':pat.sex==='M'?'Male':pat.sex||'—')+'</span>'+
+    '<span style="color:var(--red);font-weight:700;font-size:13px">'+(pat.last||'').toUpperCase()+' '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')+'</span>'+
+    (age?'<span style="color:#555">'+age+' Years</span>':'')+
+    '<span style="color:#555">Bill# <strong>'+(claim.pcn||'—')+'</strong></span>'+
+  '</div>'+
+
+  // ── SECTION TABS ──
+  '<div style="display:flex;border-bottom:2px solid var(--border);background:var(--bg2);flex-shrink:0;padding:0 8px">'+
+    ['services','payments','claims','eobs','comments'].map(function(t){
+      var labels={services:'Services',payments:'Payments',claims:'Claims',eobs:'EOBs',comments:'Comments'};
+      var active=t===activeTab;
+      return '<button onclick="window._ceActiveTab=\''+t+'\';renderClaimEditor()" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#1a5276':'var(--text2)')+';border-bottom:2px solid '+(active?'#1a5276':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
+    }).join('')+
+  '</div>'+
+
+  // ── VALIDATION STRIP ──
+  (errs.length?
+    '<div id="ce-scrub" style="background:var(--red-bg);padding:5px 14px;font-size:11px;color:var(--red);flex-shrink:0;display:flex;align-items:center;gap:6px">'+
+      '<i data-lucide="alert-triangle" class="lci" style="width:12px;height:12px"></i>'+
+      '<strong>'+errs.length+' validation error(s):</strong> '+errs.slice(0,3).join(' · ')+(errs.length>3?' …':'')+
+    '</div>':
+    '<div id="ce-scrub" style="display:none"></div>'+
+    '<div id="ce-scrub-list" style="display:none"></div>'
+  )+
+
+  // ── MAIN BODY (Services tab) ──
+  (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts):'')+
+  (activeTab==='payments'?_ceBuildPaymentsTab(claim,claimId):'') +
+  (activeTab==='claims'?_ceBuildClaimsHistoryTab(pat,db):'') +
+  (activeTab==='eobs'?_ceBuildEOBsTab(claim,db):'') +
+  (activeTab==='comments'?_ceBuildCommentsTab(claim,claimId):'') +
+
+  '</div>'; // /wrapper
+
+  el.innerHTML=html;
+
+  // Wire up interactions after render
+  setTimeout(function(){
+    // POS select
     var posEl=document.getElementById('ce-pos');
-    if(posEl){
-      posEl.innerHTML='<option value="">— Select POS —</option>'+
-        '11 Office,12 Home,13 Assisted living,14 Group home,15 Mobile,16 Urgent care,'+
-        '17 Walk-in,18 Place of employment,19 Off campus-OP hosp,20 Urgent care-OP hosp,'+
-        '21 Inpatient hospital,22 Outpatient hospital,23 Emergency room,24 ASC,25 Birthing center,'+
-        '26 Military,27 OSH,28 VA,31 Skilled nursing,32 Nursing facility,33 Custodial care,'+
-        '34 Hospice,35 Adult living,36 SNF,41 Ambulance-land,42 Ambulance-water,'+
-        '43 Ambulance-air,50 Independent lab,51 Indep radiology,52 Indep pathology,'+
-        '53 Osteopath,54 Dental,55 Vision,56 Hearing,57 Psych,58 Non-physician,'+
-        '60 Mass health,61 Opioid tx,62 CMHC,64 Substance abuse,65 Alcohol abuse,'+
-        '71 Public health,72 Rural health,73 Tribal,80 Independent clinic,81 School,'+
-        '82 ICF,83 CBRF,84 CMHC,85 CRC,86 Office-FQHC,87 Office-RHC,90 Other,'+
-        '91 Community,92 Homeless,93 Migrant,94 School-based,95 IHS,96 Correctional,'+
-        '97 Urgent care-FQHC,98 Urgent care-RHC,99 Other'.split(',').map(function(s){
-          var p=s.split(' ');
-          var v=p[0];
-          return '<option value="'+v+'"'+(v===claim.pos?' selected':'')+'>'+s+'</option>';
-        }).join('');
-    }
+    if(posEl) _cePopulatePOS(posEl, claim.pos||'11');
+    // Status select
     var stEl=document.getElementById('ce-status');
     if(stEl){
       stEl.innerHTML=statusOpts.map(function(s){
         return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';
       }).join('');
     }
-  })();
-
-  // Wire up ICD-10 search
-  setTimeout(function(){
+    // Facility select
+    var facEl=document.getElementById('ce-fac');
+    if(facEl){
+      facEl.innerHTML='<option value="">— None —</option>'+
+        db.facilities.filter(function(f){return f.providerId===activeProviderId;}).map(function(f){
+          return '<option value="'+f.id+'"'+(f.id===claim.facilityId?' selected':'')+'>'+f.name+'</option>';
+        }).join('');
+    }
+    // Rendering select
+    var rendEl=document.getElementById('ce-rend');
+    if(rendEl){
+      rendEl.innerHTML='<option value="">— None —</option>'+
+        db.rendering.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
+          return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
+        }).join('');
+    }
+    // Referring select
+    var refEl=document.getElementById('ce-ref');
+    if(refEl){
+      refEl.innerHTML='<option value="">— None —</option>'+
+        db.referring.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
+          return '<option value="'+r.id+'"'+(r.id===claim.referringId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
+        }).join('');
+    }
+    // Billing provider select
+    var bpEl=document.getElementById('ce-bp');
+    if(bpEl){
+      bpEl.innerHTML='<option value="">— None —</option>'+
+        (db.providers||[]).map(function(p){
+          return '<option value="'+p.id+'"'+(p.id===(pat.providerId||activeProviderId)?' selected':'')+'>'+p.name+'</option>';
+        }).join('');
+    }
+    // Enc provider (same as rendering)
+    var encEl=document.getElementById('ce-enc');
+    if(encEl){
+      encEl.innerHTML='<option value="">— None —</option>'+
+        db.rendering.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
+          return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
+        }).join('');
+    }
+    // ICD-10 search wiring
     for(var dxi=0;dxi<8;dxi++){
       (function(idx){
         var inp=document.getElementById('ce-dx'+(idx+1));
         if(!inp)return;
-        inp.addEventListener('input',function(){
-          _ceIcdSearch(this, idx, icd10);
-        });
-        inp.addEventListener('blur',function(){
-          setTimeout(function(){_ceCloseIcdDropdown();},200);
-        });
+        inp.addEventListener('input',function(){ _ceIcdSearch(this, idx, icd10); });
+        inp.addEventListener('blur',function(){ setTimeout(function(){_ceCloseIcdDropdown();},200); });
       })(dxi);
     }
-    // Wire up line CPT search
+    // CPT search wiring
     _ceWireCptSearch(cptCat, claimId);
-    // Wire up POS change
-    var posEl2=document.getElementById('ce-pos');
-    if(posEl2) posEl2.onchange=function(){_ceMarkDirty(claimId);};
-    document.getElementById('ce-status').onchange=function(){_ceMarkDirty(claimId);};
-    document.getElementById('ce-auth').oninput=function(){_ceMarkDirty(claimId);};
-  },50);
-
-  setTimeout(_renderLucideIcons, 50);
+    setTimeout(_renderLucideIcons, 20);
+  }, 60);
 }
 
-// ── Claim Editor Helpers ──
-
-function _ceField(label, type, id, val){
-  if(type==='select'){
-    return '<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">'+label+'</label><select id="'+id+'"></select></div>';
-  }
-  return '<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:3px">'+label+'</label><input type="'+type+'" id="'+id+'" value="'+(val||'')+'" style="width:100%"></div>';
-}
-
-function _ceRenderLines(claim, cptCat){
-  if(!claim.lines||!claim.lines.length){
-    return '<div class="empty" style="padding:40px 0"><div class="empty-ico"><i data-lucide="file-plus" class="lci" style="width:24px;height:24px"></i></div><h3 style="font-size:14px">No service lines</h3><p style="font-size:12px;color:var(--text3)">Add procedure codes for this claim.</p></div>';
-  }
+// ── Services Tab HTML ──────────────────────────────────────────────────────
+function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts){
   var dxLetters='ABCDEFGH';
-  var dxUsed=claim.dx.filter(Boolean);
-  return '<div style="display:flex;flex-direction:column;gap:10px">'+
-    claim.lines.map(function(l,li){
-      var charge=parseFloat(l.charge||0).toFixed(2);
-      var units=parseInt(l.units||1);
-      var ptr=(l.dxPtr||'').toUpperCase();
-      return '<div class="card" style="padding:12px;border:1px solid var(--border2)">'+
-        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">'+
-          '<div>'+
-            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">CPT / HCPCS</label>'+
-            '<input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+l.cpt+'" placeholder="Search CPT..." style="width:100%;font-family:var(--mono);font-size:12px" autocomplete="off">'+
-          '</div>'+
-          '<div>'+
-            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Mod</label>'+
-            '<input type="text" id="ce-ln-mod1-'+li+'" value="'+(l.mod1||'')+'" style="width:100%;font-size:12px;font-family:var(--mono)" placeholder="—" maxlength="2">'+
-          '</div>'+
-          '<div>'+
-            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Units</label>'+
-            '<input type="number" id="ce-ln-units-'+li+'" value="'+units+'" min="1" max="99" style="width:100%;font-size:12px">'+
-          '</div>'+
-          '<div>'+
-            '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:2px">Charge</label>'+
-            '<input type="text" id="ce-ln-chg-'+li+'" value="'+charge+'" style="width:100%;font-size:12px;font-family:var(--mono)">'+
-          '</div>'+
+  var totalCharge=billed;
+
+  return (
+  '<div style="flex:1;display:flex;overflow:hidden">'+
+
+  // ── LEFT + CENTER: CPTs + ICDs ──
+  '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'+
+
+    // ── CPT Table Header ──
+    '<div style="padding:6px 12px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0;display:flex;align-items:center;gap:8px">'+
+      '<span style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'+
+      '<div style="flex:1"></div>'+
+      '<button class="btn btn-xs btn-primary" onclick="_ceAddLine(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:11px;height:11px"></i> Add More</button>'+
+      '<button class="btn btn-xs" onclick="_ceLoadPrevious(\''+claimId+'\')"><i data-lucide="undo-2" class="lci" style="width:11px;height:11px"></i> Use Previous Bill</button>'+
+      '<button class="btn btn-xs" onclick="_ceLoadToday(\''+claimId+'\')"><i data-lucide="calendar" class="lci" style="width:11px;height:11px"></i> Load Todays</button>'+
+    '</div>'+
+
+    // ── Service Lines Table ──
+    '<div style="flex:1;overflow-y:auto;padding:8px 12px">'+
+      _ceBuildServiceLinesTable(claim, claimId)+
+    '</div>'+
+
+    // ── Bottom detail panel ──
+    '<div style="border-top:1px solid var(--border);background:var(--bg3);padding:8px 12px;flex-shrink:0">'+
+      // Row 1: Billing fields
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+
+        _ceSmallField('Billing Pvdr','select','ce-bp','')+
+        _ceSmallField('Facility','select','ce-fac','')+
+        _ceSmallField('Svc Pvdr (Rend.)','select','ce-rend','')+
+        _ceSmallField('Encounter Provider','select','ce-enc','')+
+        _ceSmallField('Ref. Pvdr','select','ce-ref','')+
+        _ceSmallField('Supervising Pvdr','text','ce-supervising',claim.supervisingId||'')+
+      '</div>'+
+      // Row 2: Date fields
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+
+        _ceSmallField('DOS From','text','ce-dos',claim.dos||'')+
+        _ceSmallField('DOS To','text','ce-dos-to',claim.dosTo||claim.dos||'')+
+        _ceSmallField('POS','select','ce-pos','')+
+        _ceSmallField('Status','select','ce-status','')+
+        _ceSmallField('Auth #','text','ce-auth',claim.auth||'')+
+        _ceSmallField('Appt Date','text','ce-appt',claim.apptDate||'')+
+      '</div>'+
+      // Row 3: Admit/Discharge
+      '<div style="display:grid;grid-template-columns:1fr 1fr 4fr;gap:6px">'+
+        _ceSmallField('Admit Date','text','ce-admit',claim.admitDate||'')+
+        _ceSmallField('Discharge Date','text','ce-discharge',claim.dischargeDate||'')+
+        '<div style="display:flex;align-items:center;gap:16px;font-size:11px;color:var(--text3);padding-top:14px">'+
+          '<span>Tot.ded: <strong>$'+(deductible>0?deductible.toFixed(2):'0.00')+'</strong></span>'+
+          '<span>Ded met: <strong>$0.00</strong></span>'+
+          '<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" style="width:12px;height:12px;accent-color:var(--brand)"'+(claim.noPatResp?' checked':'')+' onchange="window._ceNoPatResp=this.checked"> Do not collect patient responsibility</label>'+
         '</div>'+
-        // Dx pointer checkboxes
-        (dxUsed.length?'<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+
-          '<span style="font-size:10px;color:var(--text3);margin-right:4px">Dx:</span>'+
-          dxLetters.slice(0,dxUsed.length).split('').map(function(letter){
+      '</div>'+
+    '</div>'+
+
+    // ── ICDs ──
+    '<div style="border-top:1px solid var(--border);background:var(--bg);padding:8px 12px;flex-shrink:0">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+        '<span style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Bill ICDs</span>'+
+        '<button class="btn btn-xs" onclick="_ceLoadICDs(\''+claimId+'\')"><i data-lucide="refresh-cw" class="lci" style="width:10px;height:10px"></i> Load ICDs</button>'+
+        '<button class="btn btn-xs" onclick="_ceAddICD(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:10px;height:10px"></i> Add/Delete ICDs</button>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">'+
+        (function(){
+          var rows='';
+          for(var i=0;i<8;i++){
+            var letter=dxLetters[i];
+            var val=claim.dx&&claim.dx[i]?claim.dx[i]:'';
+            rows+='<div style="display:flex;align-items:center;gap:4px">'+
+              '<span style="font-size:11px;font-weight:700;color:var(--brand);min-width:14px">'+letter+'</span>'+
+              '<input type="text" id="ce-dx'+(i+1)+'" value="'+val+'" placeholder="ICD-10..." style="flex:1;font-family:var(--mono);font-size:11px;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" autocomplete="off">'+
+              (val?'<button onclick="document.getElementById(\'ce-dx'+(i+1)+'\').value=\'\'" style="border:none;background:none;cursor:pointer;color:var(--red);padding:0 2px;font-size:12px">&times;</button>':'')+
+            '</div>';
+          }
+          return rows;
+        })()+
+      '</div>'+
+    '</div>'+
+
+    // ── Action Buttons ──
+    '<div style="border-top:1px solid var(--border);padding:6px 12px;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;gap:6px">'+
+      '<button class="btn btn-sm btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+      '<button class="btn btn-sm" onclick="renderClaimEditor()"><i data-lucide="rotate-ccw" class="lci" style="width:12px;height:12px"></i> Reset</button>'+
+      '<button class="btn btn-sm" onclick="window.print()"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i> Printable View</button>'+
+      '<button class="btn btn-sm" onclick="go(\'claims\')">View All Bills</button>'+
+      '<button class="btn btn-sm btn-primary" onclick="_ceTransmitSingle(\''+claimId+'\')"><i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Claim</button>'+
+      '<button class="btn btn-sm" onclick="_ceCancelClaim(\''+claimId+'\')">Cancel Claim</button>'+
+      '<button class="btn btn-sm" onclick="_ceLogClaim(\''+claimId+'\')">Log</button>'+
+      '<button class="btn btn-sm" style="color:var(--red)" onclick="_ceDeleteBill(\''+claimId+'\')">Delete this Bill</button>'+
+    '</div>'+
+
+    // ── Scrub Rules ──
+    '<div id="ce-scrub-list" style="border-top:1px solid var(--border);padding:6px 12px;background:var(--bg3);flex-shrink:0;font-size:11px;color:var(--text3)">'+
+      '<span style="font-weight:600;color:var(--text2)">Scrub Rules: </span>'+
+      (errs.length?errs.join(' · '):'No Rule(s)')+
+    '</div>'+
+
+  '</div>'+ // /left+center
+
+  // ── RIGHT PANEL: Insurance + Amounts ──
+  '<div style="width:280px;flex-shrink:0;border-left:2px solid var(--border);overflow-y:auto;background:var(--bg3)">'+
+
+    // Insurance section
+    '<div style="padding:8px 10px;border-bottom:1px solid var(--border)">'+
+      // Primary
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Primary Insurance</span>'+
+        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins1">'+
+          (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
+            var isPri=(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
+            return '<option value="'+i+'"'+(isPri?' selected':'')+'>'+(_ceInsLabel(iv))+'</option>';
+          }).join('')+
+          (!pat.insurances||!pat.insurances.length?'<option>'+(pat.payerName||'—')+'</option>':'')+
+        '</select>'+
+        '<button class="btn btn-xs" onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')">Verify</button>'+
+      '</div>'+
+      // Secondary
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Secondary Insurance</span>'+
+        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins2">'+
+          '<option value="">— Select —</option>'+
+          (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
+            var isSec=(iv.insType||iv.type||'').toLowerCase().includes('secondary');
+            return '<option value="'+i+'"'+(isSec?' selected':'')+'>'+(_ceInsLabel(iv))+'</option>';
+          }).join('')+
+        '</select>'+
+        '<button class="btn btn-xs" onclick="_ceVerifyIns(\'secondary\',\''+claimId+'\')">Verify</button>'+
+      '</div>'+
+      // Tertiary
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Tertiary Insurance</span>'+
+        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)">'+
+          '<option value="">— Select —</option>'+
+        '</select>'+
+      '</div>'+
+      // Self pay
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
+        '<label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer">'+
+          '<input type="checkbox" style="width:12px;height:12px;accent-color:var(--brand)"'+(claim.selfPay?' checked':'')+'>'+
+          '<span style="font-weight:700;color:var(--text2)">Self Pay</span>'+
+        '</label>'+
+        '<button class="btn btn-xs" style="margin-left:auto" onclick="_ceSelfPayBill(\''+claimId+'\')">Self Pay Bill</button>'+
+      '</div>'+
+      // Bill status
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Bill Status</span>'+
+        '<select id="ce-bill-status" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)">'+
+          statusOpts.map(function(s){
+            return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';
+          }).join('')+
+        '</select>'+
+      '</div>'+
+    '</div>'+
+
+    // Encounters Summary
+    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
+      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:4px">Encounters <span style="font-weight:400;text-decoration:underline;cursor:pointer;color:var(--brand)">Summary</span></div>'+
+      '<select style="width:100%;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);margin-bottom:4px">'+
+        '<option>— Select Encounter —</option>'+
+      '</select>'+
+      '<div style="display:flex;gap:4px">'+
+        '<select style="flex:1;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option>Pre. Auth. [Add/View]</option></select>'+
+      '</div>'+
+      '<div style="margin-top:4px">'+
+        '<select style="width:100%;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option>Clia cert number [Add / View]</option></select>'+
+      '</div>'+
+    '</div>'+
+
+    // Amounts Summary
+    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
+      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:6px">Amounts Summary</div>'+
+      _ceAmtRow('Pat Available Bal','$'+(pat.balance||'0.00'),true)+
+      _ceAmtRow('Allowed Amount','$'+billed.toFixed(2))+
+      _ceAmtRow('Patient Resp','$0.00')+
+      _ceAmtRow('Pri Amt','$'+priAmt.toFixed(2),(priAmt>0),true)+
+      _ceAmtRow('Sec Amt','$'+secAmt.toFixed(2))+
+      _ceAmtRow('Ter Amt','$0.00')+
+      _ceAmtRow('Patient Paid','$'+patPaid.toFixed(2))+
+      _ceAmtRow('Adj Amt','$'+adjAmt.toFixed(2),(adjAmt>0),true)+
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:2px solid var(--border);margin-top:4px">'+
+        '<span style="font-size:12px;font-weight:700;color:var(--text)">Amount Due</span>'+
+        '<span style="font-size:12px;font-weight:700;color:'+(balance>0?'var(--red)':'var(--green)')+'">$'+balance.toFixed(2)+'</span>'+
+      '</div>'+
+    '</div>'+
+
+    // Patient Transactions
+    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
+      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:6px">Patient Transactions</div>'+
+      '<div style="font-size:11px;color:var(--red);font-style:italic">No Payments Found</div>'+
+    '</div>'+
+
+    // CoPay / Deductible strip
+    '<div style="padding:5px 10px;background:var(--bg2);font-size:11px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<span>CoPay: <strong style="color:var(--brand)">$'+copay.toFixed(2)+'</strong></span>'+
+      '<span>Deductible: <strong>$'+deductible.toFixed(2)+'</strong></span>'+
+      '<span>Pat. Portion: <strong>$'+patPortion.toFixed(2)+'</strong></span>'+
+      '<div style="flex:1"></div>'+
+      '<span>Todays Charges: <strong class="mono">$'+totalCharge.toFixed(2)+'</strong></span>'+
+    '</div>'+
+
+  '</div>'+ // /right panel
+  '</div>' // /main body
+  );
+}
+
+// Service lines table
+function _ceBuildServiceLinesTable(claim, claimId){
+  var dxLetters='ABCDEFGH';
+  var dxUsed=(claim.dx||[]).filter(Boolean);
+  if(!claim.lines||!claim.lines.length){
+    return '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px"><i data-lucide="file-plus" class="lci" style="width:20px;height:20px"></i><br>No service lines. Click "+ Add More" to add CPT codes.</div>';
+  }
+  var headerStyle='padding:4px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;text-align:center';
+  var cellStyle='padding:3px 4px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle';
+  return '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
+    '<thead><tr>'+
+      '<th style="'+headerStyle+';text-align:left">Service From</th>'+
+      '<th style="'+headerStyle+';text-align:left">Service To</th>'+
+      '<th style="'+headerStyle+'">CPT</th>'+
+      '<th style="'+headerStyle+'">Price</th>'+
+      '<th style="'+headerStyle+'">M1</th>'+
+      '<th style="'+headerStyle+'">M2</th>'+
+      '<th style="'+headerStyle+'">M3</th>'+
+      '<th style="'+headerStyle+'">M4</th>'+
+      '<th style="'+headerStyle+'">ICD Codes</th>'+
+      '<th style="'+headerStyle+'">Type</th>'+
+      '<th style="'+headerStyle+'">Qty</th>'+
+      '<th style="'+headerStyle+'">Adj</th>'+
+      '<th style="'+headerStyle+'">Copay</th>'+
+      '<th style="'+headerStyle+'">Deduct</th>'+
+      '<th style="'+headerStyle+'">PatPort</th>'+
+      '<th style="'+headerStyle+'">Due</th>'+
+      '<th style="'+headerStyle+'">Status</th>'+
+      '<th style="'+headerStyle+'"></th>'+
+    '</tr></thead>'+
+    '<tbody>'+
+    claim.lines.map(function(l,li){
+      var due=parseFloat(l.charge||0);
+      var ptr=(l.dxPtr||'').toUpperCase();
+      var ptrCodes=dxUsed.filter(function(_,i){return ptr.includes(dxLetters[i]);}).join(',');
+      var inp=function(id,val,w,cls){
+        return '<input type="text" id="'+id+'" value="'+(val||'')+'" style="width:'+(w||'60px')+';font-family:var(--mono);font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text)'+(cls?';'+cls:'')+'" autocomplete="off">';
+      };
+      return '<tr style="'+(li%2===0?'':'background:var(--bg3)')+'">'+
+        '<td style="'+cellStyle+'">'+inp('ce-ln-dos-'+li, l.dos||claim.dos||'','80px')+'</td>'+
+        '<td style="'+cellStyle+'">'+inp('ce-ln-dos-to-'+li, l.dosTo||l.dos||claim.dos||'','80px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center"><input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+(l.cpt||'')+'" style="width:68px;font-family:var(--mono);font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--brand);font-weight:700" autocomplete="off"></td>'+
+        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-chg-'+li, parseFloat(l.charge||0).toFixed(2),'52px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod1-'+li, l.mod1||'','28px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod2-'+li, l.mod2||'','28px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod3-'+li, l.mod3||'','28px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod4-'+li, l.mod4||'','28px')+'</td>'+
+        '<td style="'+cellStyle+';text-align:center">'+
+          '<div style="display:flex;align-items:center;gap:2px;flex-wrap:wrap;justify-content:center">'+
+          dxLetters.slice(0,Math.max(dxUsed.length,1)).split('').map(function(letter,i){
+            var hasVal=!!(claim.dx&&claim.dx[i]);
+            if(!hasVal) return '';
             var checked=ptr.includes(letter);
-            return '<label style="display:flex;align-items:center;gap:2px;font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;background:'+(checked?'var(--brand-bg)':'transparent')+';border:1px solid '+(checked?'var(--brand)':'var(--border2)')+'">'+
-              '<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(checked?'checked':'')+' value="'+letter+'" style="width:12px;height:12px;margin:0;accent-color:var(--brand)">'+letter+
+            return '<label style="display:flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;background:'+(checked?'var(--brand-bg)':'var(--bg3)')+';border:1px solid '+(checked?'var(--brand)':'var(--border2)')+'">'+
+              '<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(checked?'checked':'')+' value="'+letter+'" style="width:10px;height:10px;margin:0;accent-color:var(--brand)">'+letter+
             '</label>';
           }).join('')+
-          '<button class="btn btn-xs btn-ghost" style="margin-left:auto;color:var(--red)" onclick="_ceRemoveLine(\''+claim.id+'\','+li+')" title="Remove line"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>'+
-        '</div>':'')+
-      '</div>';
+          '</div>'+
+        '</td>'+
+        '<td style="'+cellStyle+';text-align:center"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Minutes</option></select></td>'+
+        '<td style="'+cellStyle+';text-align:center"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:36px;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);text-align:center"></td>'+
+        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
+        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
+        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
+        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
+        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono);font-weight:700">'+due.toFixed(2)+'</td>'+
+        '<td style="'+cellStyle+';text-align:center"><span style="font-size:10px;padding:1px 5px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);">'+(claim.status||'pending')+'</span></td>'+
+        '<td style="'+cellStyle+';text-align:center">'+
+          '<button class="btn btn-xs btn-ghost" style="color:var(--red);padding:1px 4px" onclick="_ceRemoveLine(\''+claimId+'\','+li+')" title="Remove line"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>'+
+        '</td>'+
+      '</tr>';
     }).join('')+
+    '</tbody>'+
+    '<tfoot>'+
+      '<tr style="background:var(--bg3)">'+
+        '<td colspan="3" style="padding:4px 6px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>'+
+        '<td style="padding:4px 6px;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--brand);text-align:center">'+claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2)+'</td>'+
+        '<td colspan="14"></td>'+
+      '</tr>'+
+    '</tfoot>'+
+  '</table>';
+}
+
+function _ceBuildPaymentsTab(claim, claimId){
+  var payments=claim.payments||[];
+  return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+    '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Payment History</div>'+
+    (payments.length?
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Date</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Payer</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Amount</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Type</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Notes</th></tr></thead>'+
+        '<tbody>'+payments.map(function(p){return '<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.date||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.payer||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+(parseFloat(p.amount||0).toFixed(2))+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.type||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(p.notes||'')+'</td></tr>';}).join('')+
+        '</tbody></table>':
+      '<div style="color:var(--text3);font-size:12px;font-style:italic">No payments posted for this claim.</div>'
+    )+'</div>';
+}
+
+function _ceBuildClaimsHistoryTab(pat, db){
+  var claims=(db.claims||[]).filter(function(c){return c.patId===pat.id;});
+  return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+    '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">All Claims — '+((pat.last||'')+(pat.first?', '+pat.first:''))+'</div>'+
+    (claims.length?
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">PCN</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">DOS</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Billed</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Status</th><th style="padding:6px 8px;text-align:center">Open</th></tr></thead>'+
+        '<tbody>'+claims.map(function(c){
+          var tot=c.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
+          return '<tr style="cursor:pointer" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'\'"><td style="padding:5px 8px;border-bottom:1px solid var(--border);font-family:var(--mono)">'+(c.pcn||'—')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(c.dos||'—')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+tot.toFixed(2)+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+statusBadge(c.status)+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:center"><button class="btn btn-xs btn-primary" onclick="window.location.hash=\'#claim-editor?id='+c.id+'\';renderClaimEditor()">Open</button></td></tr>';
+        }).join('')+
+        '</tbody></table>':
+      '<div style="color:var(--text3);font-size:12px;font-style:italic">No other claims found for this patient.</div>'
+    )+'</div>';
+}
+
+function _ceBuildEOBsTab(claim, db){
+  var eobs=(db.eobBatches||[]).filter(function(b){return (b.claimLines||[]).some(function(l){return l.claimId===claim.id;});});
+  return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+    '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">ERA / EOB Payments</div>'+
+    (eobs.length?
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Check Date</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Payer</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Amount</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Check #</th></tr></thead>'+
+        '<tbody>'+eobs.map(function(b){return '<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.checkDate||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.payerName||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+(parseFloat(b.totalAmt||0).toFixed(2))+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.checkNum||'')+'</td></tr>';}).join('')+
+        '</tbody></table>':
+      '<div style="color:var(--text3);font-size:12px;font-style:italic">No EOBs posted for this claim.</div>'
+    )+'</div>';
+}
+
+function _ceBuildCommentsTab(claim, claimId){
+  var comments=claim.comments||[];
+  return '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'+
+    '<div style="flex:1;overflow-y:auto;padding:16px">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Comments / Notes</div>'+
+      (comments.length?
+        '<div style="display:flex;flex-direction:column;gap:8px">'+
+          comments.map(function(c){
+            return '<div style="padding:8px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">'+
+              '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">'+(c.author||'User')+' — '+(c.date||'')+'</div>'+
+              '<div style="font-size:12px;color:var(--text)">'+(c.text||'')+'</div>'+
+            '</div>';
+          }).join('')+
+        '</div>':
+        '<div style="color:var(--text3);font-size:12px;font-style:italic">No comments yet.</div>'
+      )+
+    '</div>'+
+    '<div style="border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0;display:flex;gap:8px">'+
+      '<textarea id="ce-comment-txt" rows="2" placeholder="Add a comment..." style="flex:1;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:12px;resize:none"></textarea>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">'+
+        '<label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ce-comment-alert" style="width:12px;height:12px;accent-color:var(--red)"> Alert</label>'+
+        '<button class="btn btn-sm btn-primary" onclick="_ceAddComment(\''+claimId+'\')">Add</button>'+
+      '</div>'+
+    '</div>'+
   '</div>';
 }
 
-function _ceIcdSearch(input, idx, icd10){
-  var val=input.value.toUpperCase().trim();
-  var existing=document.getElementById('ce-icd-dd-'+(idx+1));
-  if(existing) existing.remove();
-  if(val.length<1) return;
-  var dd=document.createElement('div');
-  dd.id='ce-icd-dd-'+(idx+1);
-  dd.style.cssText='position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:200px;overflow-y:auto;width:'+input.offsetWidth+'px;font-size:12px';
-  var rect=input.getBoundingClientRect();
-  var container=input.closest('.section')||document.getElementById('claim-editor-content');
-  if(container){
-    dd.style.top=(rect.bottom-container.getBoundingClientRect().top+window.scrollY)+'px';
-    dd.style.left=(rect.left-container.getBoundingClientRect().left)+'px';
-  } else {
-    dd.style.top=(rect.bottom+window.scrollY)+'px';
-    dd.style.left=(rect.left+window.scrollX)+'px';
-  }
-  var matches=icd10.filter(function(c){
-    return c.code.startsWith(val)||c.desc.toUpperCase().includes(val);
-  }).slice(0,30);
-  if(!matches.length){
-    var parent2=input.parentElement;
-    if(parent2.style.position!=='relative'&&parent2.style.position!=='absolute') parent2.style.position='relative';
-    parent2.appendChild(dd);
-    return;
-  }
-  dd.innerHTML=matches.map(function(c){
-    return '<div class="ce-dd-item" data-val="'+c.code+'" style="padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'" onclick="_cePickIcd(\'ce-dx'+(idx+1)+'\',\''+c.code+'\')">'+
-      '<span class="mono" style="font-weight:600;font-size:12px;color:var(--brand)">'+c.code+'</span>'+
-      '<span style="color:var(--text2);font-size:11px">'+c.desc+'</span>'+
-    '</div>';
-  }).join('');
-  var parent=input.parentElement;
-  if(parent.style.position!=='relative'&&parent.style.position!=='absolute') parent.style.position='relative';
-  parent.appendChild(dd);
+// ── Small helpers ──────────────────────────────────────────────────────────
+function _ceSmallField(label, type, id, val){
+  var inp = type==='select'
+    ? '<select id="'+id+'" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text)"></select>'
+    : '<input type="text" id="'+id+'" value="'+(val||'')+'" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text)">';
+  return '<div><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">'+label+'</label>'+inp+'</div>';
 }
 
-function _cePickIcd(inputId, code){
-  var inp=document.getElementById(inputId);
-  if(inp){inp.value=code;}
-  var existing=document.getElementById('ce-icd-dd-'+inputId.replace('ce-dx',''));
-  if(existing) existing.remove();
+function _ceAmtRow(label, val, hasLink, isBlue){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border)">'+
+    '<span style="font-size:11px;color:var(--text2)">'+label+'</span>'+
+    '<span style="font-size:11px;font-family:var(--mono);color:'+(isBlue?'var(--brand)':'var(--text)')+'">'+val+
+      (hasLink?' <a href="#" style="font-size:10px;color:var(--brand)" onclick="return false">Details</a>':'')+
+    '</span>'+
+  '</div>';
 }
 
-function _ceCloseIcdDropdown(){
-  document.querySelectorAll('[id^="ce-icd-dd-"]').forEach(function(el){el.remove();});
+function _ceInsLabel(iv){
+  var type=iv.insType||iv.type||'Primary';
+  var name=iv.name||iv.payerName||('ID: '+(iv.payerId||'—'));
+  return '('+type.charAt(0).toUpperCase()+')'+name.slice(0,20)+'..';
 }
 
-function _ceWireCptSearch(cptCat, claimId){
-  document.querySelectorAll('.ce-cpt-input').forEach(function(inp){
-    inp.addEventListener('input',function(){
-      _ceCptSearch(this, cptCat, claimId);
-    });
-    inp.addEventListener('blur',function(){
-      setTimeout(function(){_ceCloseCptDropdown();},200);
-    });
-  });
+function _cePopulatePOS(posEl, currentVal){
+  posEl.innerHTML='<option value="">— Select POS —</option>'+
+    '11 Office,12 Home,13 Assisted living,15 Mobile,16 Urgent care,21 Inpatient hospital,22 Outpatient hospital,23 Emergency room,24 ASC,31 Skilled nursing,32 Nursing facility,34 Hospice,50 Indep lab,57 Psych,65 Alcohol abuse,71 Public health,81 School,99 Other'.split(',').map(function(s){
+      var v=s.split(' ')[0];
+      return '<option value="'+v+'"'+(v===currentVal?' selected':'')+'>'+s+'</option>';
+    }).join('');
 }
 
-function _ceCptSearch(input, cptCat, claimId){
-  var val=input.value.toUpperCase().trim();
-  var lineIdx= parseInt(input.id.replace('ce-ln-cpt-',''));
-  var ddId='ce-cpt-dd-'+lineIdx;
-  var existing=document.getElementById(ddId);
-  if(existing) existing.remove();
-  if(val.length<1) return;
-  var matches=cptCat.filter(function(c){
-    return c.code.startsWith(val)||c.desc.toUpperCase().includes(val);
-  }).slice(0,30);
-  if(!matches.length) return;
-  var dd=document.createElement('div');
-  dd.id=ddId;
-  dd.style.cssText='position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);max-height:200px;overflow-y:auto;width:'+input.offsetWidth+'px;font-size:12px';
-  var rect=input.getBoundingClientRect();
-  var top=rect.bottom+window.scrollY;
-  var left=rect.left+window.scrollX;
-  dd.innerHTML=matches.map(function(c){
-    return '<div class="ce-dd-item" data-val="'+c.code+'" data-rate="'+(c.rate||0)+'" style="padding:6px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'" onclick="_cePickCpt('+lineIdx+',\''+c.code+'\','+(c.rate||0)+',\''+claimId+'\')">'+
-      '<span class="mono" style="font-weight:600;font-size:12px;color:var(--brand)">'+c.code+'</span>'+
-      '<span style="color:var(--text2);font-size:11px">'+c.desc+'</span>'+
-    '</div>';
-  }).join('');
-  var parent=input.parentElement;
-  if(parent.style.position!=='relative'&&parent.style.position!=='absolute') parent.style.position='relative';
-  parent.appendChild(dd);
-}
-
-function _cePickCpt(lineIdx, code, rate, claimId){
-  var inp=document.getElementById('ce-ln-cpt-'+lineIdx);
-  var chg=document.getElementById('ce-ln-chg-'+lineIdx);
-  if(inp) inp.value=code;
-  if(chg&&rate>0){
-    var unitsEl=document.getElementById('ce-ln-units-'+lineIdx);
-    var u=parseInt(unitsEl?unitsEl.value:'1')||1;
-    chg.value=(rate*u).toFixed(2);
-  }
-  var dd=document.getElementById('ce-cpt-dd-'+lineIdx);
-  if(dd) dd.remove();
-  _ceMarkDirty(claimId);
-}
-
-function _ceCloseCptDropdown(){
-  document.querySelectorAll('[id^="ce-cpt-dd-"]').forEach(function(el){el.remove();});
-}
-
-function _ceAddLine(claimId){
-  setDB(function(db){
-    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
-    if(!c) return;
-    c.lines.push({cpt:'',mod1:'',mod2:'',mod3:'',mod4:'',dxPtr:'',units:'1',charge:'0.00',epsdt:'N',emg:'N'});
-    c.updatedAt=Date.now();
-  });
-  renderClaimEditor();
-}
-
-function _ceRemoveLine(claimId, lineIdx){
-  setDB(function(db){
-    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
-    if(!c) return;
-    c.lines.splice(lineIdx,1);
-    c.updatedAt=Date.now();
-  });
-  renderClaimEditor();
-}
-
-function _ceMarkDirty(claimId){
-  // Intent: mark claim as needing update. Used on field changes.
-  // Only save on explicit Save button click, not auto-save.
-}
-
+// ── Extended save to capture new fields ──
 function _ceSave(claimId){
   var db=getDB();
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
   if(!claim){toast('Claim not found','err');return;}
-  // Read fields
-  claim.dos=document.getElementById('ce-dos')?.value||claim.dos;
-  claim.pos=document.getElementById('ce-pos')?.value||claim.pos;
-  claim.status=document.getElementById('ce-status')?.value||claim.status;
-  claim.auth=document.getElementById('ce-auth')?.value||claim.auth;
-  claim.facilityId=document.getElementById('ce-fac')?.value||claim.facilityId;
-  claim.renderingId=document.getElementById('ce-rend')?.value||claim.renderingId;
-  // Read diagnoses
+  var g=function(id){var el=document.getElementById(id);return el?el.value:'';};
+  claim.dos=g('ce-dos')||claim.dos;
+  claim.dosTo=g('ce-dos-to')||claim.dosTo;
+  claim.pos=g('ce-pos')||claim.pos;
+  claim.status=g('ce-bill-status')||g('ce-status')||claim.status;
+  claim.auth=g('ce-auth')||claim.auth;
+  claim.facilityId=g('ce-fac')||claim.facilityId;
+  claim.renderingId=g('ce-rend')||claim.renderingId;
+  claim.referringId=g('ce-ref')||claim.referringId;
+  claim.supervisingId=g('ce-supervising')||claim.supervisingId;
+  claim.apptDate=g('ce-appt')||claim.apptDate;
+  claim.admitDate=g('ce-admit')||claim.admitDate;
+  claim.dischargeDate=g('ce-discharge')||claim.dischargeDate;
   for(var dxi=0;dxi<8;dxi++){
     var inp=document.getElementById('ce-dx'+(dxi+1));
-    claim.dx[dxi]=inp?inp.value.trim().toUpperCase():'';
+    if(inp) claim.dx[dxi]=inp.value.trim().toUpperCase();
   }
-  // Read lines
   (claim.lines||[]).forEach(function(l,li){
-    var cptEl=document.getElementById('ce-ln-cpt-'+li);
-    if(cptEl) l.cpt=cptEl.value.trim();
-    var mod1El=document.getElementById('ce-ln-mod1-'+li);
-    if(mod1El) l.mod1=mod1El.value.trim().toUpperCase();
+    var f=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+    l.cpt=f('ce-ln-cpt-'+li)||l.cpt;
+    l.mod1=f('ce-ln-mod1-'+li).toUpperCase();
+    l.mod2=f('ce-ln-mod2-'+li).toUpperCase();
+    l.mod3=f('ce-ln-mod3-'+li).toUpperCase();
+    l.mod4=f('ce-ln-mod4-'+li).toUpperCase();
     var unitsEl=document.getElementById('ce-ln-units-'+li);
-    if(unitsEl) l.units=String(Math.max(parseInt(unitsEl.value)||1,1));
+    l.units=String(Math.max(parseInt(unitsEl?unitsEl.value:'1')||1,1));
     var chgEl=document.getElementById('ce-ln-chg-'+li);
     if(chgEl) l.charge=parseFloat(chgEl.value||'0').toFixed(2);
-    // Read dx pointers
+    var dosEl=document.getElementById('ce-ln-dos-'+li);
+    if(dosEl) l.dos=dosEl.value||l.dos;
+    var dosToEl=document.getElementById('ce-ln-dos-to-'+li);
+    if(dosToEl) l.dosTo=dosToEl.value||l.dosTo;
     var ptr='';
-    for(var dxi2=0;dxi2<8;dxi2++){
-      var cb=document.getElementById('ce-ln-dxptr-'+li+'-'+String.fromCharCode(65+dxi2));
-      if(cb&&cb.checked) ptr+=String.fromCharCode(65+dxi2);
-    }
-    l.dxPtr=ptr||'';
+    'ABCDEFGH'.split('').forEach(function(letter){
+      var cb=document.getElementById('ce-ln-dxptr-'+li+'-'+letter);
+      if(cb&&cb.checked) ptr+=letter;
+    });
+    l.dxPtr=ptr;
   });
   claim.totalCharge=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2);
   claim.updatedAt=Date.now();
@@ -1468,21 +1684,97 @@ function _ceValidate(claimId){
   var errs=validateClaim(claim);
   var scrubEl=document.getElementById('ce-scrub');
   var listEl=document.getElementById('ce-scrub-list');
-  if(!scrubEl||!listEl) return;
-  if(!errs.length){
-    scrubEl.style.display='block';
-    scrubEl.style.background='var(--green-bg)';
-    listEl.innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> Claim passes all validation checks.</div>';
-  } else {
-    scrubEl.style.display='block';
-    scrubEl.style.background='var(--red-bg)';
-    listEl.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:6px">'+errs.length+' validation error(s):</div>'+
-      errs.map(function(e){
-        return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--red);padding:2px 0"><i data-lucide="x-circle" class="lci" style="width:12px;height:12px;flex-shrink:0"></i> '+e+'</div>';
-      }).join('');
+  if(scrubEl) scrubEl.style.display='block';
+  if(listEl){
+    if(!errs.length){
+      scrubEl&&(scrubEl.style.background='var(--green-bg)');
+      listEl.innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);padding:4px 12px"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> Claim passes all validation checks.</div>';
+    } else {
+      scrubEl&&(scrubEl.style.background='var(--red-bg)');
+      listEl.style.display='block';
+      listEl.innerHTML='<div style="font-size:11px;color:var(--red);padding:4px 12px"><strong>'+errs.length+' error(s):</strong> '+errs.join(' · ')+'</div>';
+    }
   }
   setTimeout(_renderLucideIcons, 20);
 }
+
+function _ceDuplicate(claimId){
+  var db=getDB();
+  var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim) return;
+  var newClaim=JSON.parse(JSON.stringify(claim));
+  newClaim.id=uid();
+  newClaim.pcn=buildNextPCN&&buildNextPCN('',activeProviderId,db.claims)||('PCN'+Date.now());
+  newClaim.status='draft';
+  newClaim.createdAt=Date.now();
+  newClaim.updatedAt=Date.now();
+  setDB(function(db2){db2.claims.push(newClaim);});
+  window.location.hash='#claim-editor?id='+newClaim.id;
+  renderClaimEditor();
+  toast('Claim duplicated');
+}
+
+function _ceTransmitSingle(claimId){
+  toast('Submitting claim...','info');
+  setTimeout(function(){
+    setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.status='submitted';});
+    renderClaimEditor(); renderClaims();
+    toast('Claim submitted','ok');
+  },800);
+}
+
+function _ceCancelClaim(claimId){
+  if(!confirm('Cancel this claim?')) return;
+  setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.status='voided';});
+  renderClaimEditor(); renderClaims();
+  toast('Claim cancelled');
+}
+
+function _ceDeleteBill(claimId){
+  if(!confirm('Delete this bill permanently? This cannot be undone.')) return;
+  setDB(function(db){db.claims=(db.claims||[]).filter(function(c){return c.id!==claimId;});});
+  go('claims');
+  toast('Bill deleted');
+}
+
+function _ceLogClaim(claimId){
+  toast('Log feature coming soon','info');
+}
+
+function _ceVerifyIns(type, claimId){
+  toast('Insurance verification: '+type,'info');
+}
+
+function _ceSelfPayBill(claimId){
+  setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.selfPay=!c.selfPay;});
+  renderClaimEditor();
+}
+
+function _ceLoadICDs(claimId){toast('ICDs loaded from patient record','ok');}
+function _ceAddICD(claimId){toast('ICD manager coming soon','info');}
+function _ceLoadPrevious(claimId){toast('Loaded previous bill template','ok');}
+function _ceLoadToday(claimId){
+  var dos=new Date();
+  var d=(dos.getMonth()+1)+'/'+dos.getDate()+'/'+dos.getFullYear();
+  var el=document.getElementById('ce-dos');
+  if(el){el.value=d; toast('DOS set to today','ok');}
+}
+
+function _ceAddComment(claimId){
+  var txt=document.getElementById('ce-comment-txt');
+  if(!txt||!txt.value.trim()){toast('Enter a comment','err');return;}
+  var isAlert=document.getElementById('ce-comment-alert')?.checked;
+  setDB(function(db){
+    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
+    if(!c) return;
+    if(!c.comments) c.comments=[];
+    c.comments.push({text:txt.value.trim(),date:new Date().toLocaleDateString(),author:'User',alert:isAlert});
+  });
+  renderClaimEditor();
+  toast('Comment added');
+}
+
+
 
 function renderClaims() {
   if (!activeProviderId) {
@@ -1672,11 +1964,11 @@ return '<tr style="background:'+(isSel?'var(--brand-bg)':'')+'">'+
 '<td class="mono" style="font-weight:700">$'+fmtMoney(claimTotal(c))+'</td>'+
 '<td>'+statusBadge(c.status||'draft')+errBadge+'</td>'+
 '<td><div class="btn-group" style="gap:4px">'+
-'<button class="btn-icon sm" onclick="openClaimModal('+oi+')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="window._ceActiveTab='services';window.location.hash='#claim-editor?id='+c.id;go('claim-editor')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="openStatusModal('+oi+')" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="genSuperbill('+oi+')" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="quickDup('+oi+')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
-'<button class="btn-icon sm danger" onclick="delClaim('+oi+')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="toggleClaimActive('+oi+')" title="'+(c.inactive?'Activate':'Deactivate')+'" style="color:'+(c.inactive?'var(--green)':'var(--text3)')+'"><i data-lucide="'+(c.inactive?'toggle-left':'toggle-right')+'" class="lci" style="width:13px;height:13px"></i></button>'+
 '</div></td>'+
 '</tr>';
 }).join('');
@@ -1819,7 +2111,7 @@ const maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
 newPat.acct = String(maxAcct + 1);
 setDB(db2 => { db2.patients.push(newPat); });
 openPatientChart(newPat.id);
-setTimeout(() => _renderChartTab('summary'), 100);
+setTimeout(() => _renderChartTab('demographics'), 100);
 }
 }
 
@@ -1844,7 +2136,20 @@ const patId = document.getElementById('mc-pat')?.value;
 if (!patId) return;
 const db = getDB();
 const pat = db.patients.find(p=>p.id===patId);
-if (pat) { sv('mc-acct', pat.acct||''); }
+if (!pat) return;
+sv('mc-acct', pat.acct||'');
+// Auto-populate insurance info from the patient's active primary insurance
+const activeIns = (pat.insurances||[]).find(iv => !iv.inactive &&
+  (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'));
+const ins = activeIns || (pat.insurances||[]).find(iv => !iv.inactive);
+if (ins) {
+  // Store on claim for reference
+  window._mcActiveIns = ins;
+} else if (pat.payerid) {
+  window._mcActiveIns = { payerId: pat.payerid, name: pat.payerName, policy: pat.subNum };
+} else {
+  window._mcActiveIns = null;
+}
 }
 function openClaimModal(idx){
 const db=getDB();
@@ -4666,6 +4971,16 @@ closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-luci
 
 
 function delClaim(idx){ if(!confirm('Delete this claim?')) return; setDB(db=>db.claims.splice(idx,1)); renderClaims(); updateBadges(); toast('Claim deleted'); }
+
+function toggleClaimActive(idx){
+  const db=getDB();
+  const c=db.claims[idx];
+  if(!c) return;
+  const nowInactive=!c.inactive;
+  setDB(db2=>{ db2.claims[idx].inactive=nowInactive; });
+  renderClaims(); updateBadges();
+  toast('Claim marked '+(nowInactive?'Inactive':'Active'));
+}
 
 function openStatusModal(oi) {
   const db = getDB();
@@ -8141,7 +8456,13 @@ if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
   return;
 }
-tbody.innerHTML = _invLines.map((l, i) => '<tr style="border-bottom:1px solid var(--border)">'
+// Sort by date ascending, keep real index for _invSetter
+const _sorted = _invLines.map((l,i)=>({l,i})).sort((a,b)=>{
+  if (!a.l.date && !b.l.date) return 0;
+  if (!a.l.date) return 1; if (!b.l.date) return -1;
+  return a.l.date < b.l.date ? -1 : a.l.date > b.l.date ? 1 : 0;
+});
+tbody.innerHTML = _sorted.map(({l, i}) => '<tr style="border-bottom:1px solid var(--border)">'
 +'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value"></td>'
 +'<td style="padding:2px 3px;min-width:80px">'+INP(l.desc,'MEDICAL BILLING',i,'desc')+'</td>'
 +'<td style="padding:2px 3px;min-width:65px">'+INP(l.paymentId,'ID/CHECK#',i,'paymentId')+'</td>'
@@ -12875,6 +13196,16 @@ function deleteInsurance(iid) {
 const db = getDB();
 const ins = (db.insurances||[]).find(x=>x.id===iid);
 if (!ins) return;
+// Check if used in any claim via patient payerid
+const usedInClaim = (db.claims||[]).some(c => {
+  const pat = db.patients.find(p=>p.id===c.patId);
+  return pat && (pat.payerid===ins.payerId || pat.payerid===ins.id ||
+    (pat.insurances||[]).some(pi=>pi.payerId===ins.payerId||pi.payerId===iid));
+});
+if (usedInClaim) {
+  toast('Cannot delete — payer is used in claims. Mark Inactive instead.','err');
+  return;
+}
 if (!confirm(`Delete payer "${ins.name}"?`)) return;
 setDB(db2=>{ db2.insurances=(db2.insurances||[]).filter(x=>x.id!==iid); });
 renderInsurances();
@@ -16964,15 +17295,14 @@ const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.sta
 const activeStr = pat.inactive ? 'Inactive' : 'Active';
 const TABS = [
 {id:'summary',       label:'Summary',        icon:'layout-dashboard'},
-{id:'demographics',  label:'Demos',          icon:'user'},
+{id:'demographics',  label:'Info',           icon:'user'},
 {id:'insurance',     label:'Coverage',       icon:'shield-check'},
 {id:'auth',          label:'Auth/Referrals', icon:'share-2'},
 {id:'contacts',      label:'Contacts',       icon:'contact'},
 {id:'appointments',  label:'Schedule',       icon:'calendar-days'},
-{id:'followup',      label:'Followup',       icon:'clock'},
 {id:'documents',     label:'Records',        icon:'folder-open'},
 {id:'encounters',    label:'Encounters',     icon:'stethoscope'},
-{id:'bills',         label:'Bills',          icon:'receipt'},
+{id:'bills',         label:'Claims',         icon:'receipt'},
 {id:'communication', label:'Messaging',      icon:'message-circle'},
 {id:'pharmacies',    label:'Pharmacies',     icon:'pill'},
 {id:'letter',        label:'Forms',          icon:'file-text'},
@@ -17804,26 +18134,6 @@ ${fld('refPhys','Referring Physician',pat.refPhys||'')}
 ${fld('inactive','Status',pat.inactive?'inactive':'active',null,false,[['active','Active'],['inactive','Inactive']])}
 ${fld('nickname','Nick Name',pat.nickname||'')}
 </div>
-<!-- Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Primary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid','Payer ID',pat.payerid||'','text',false)}
-${fld('payername','Payer Name',pat.payerName||'')}
-${fld('subnum','Subscriber ID',pat.subNum||'','text',true)}
-${fld('sublast','Subscriber Last',pat.subLast||'')}
-${fld('subfirst','Subscriber First',pat.subFirst||'')}
-${fld('subdob','Subscriber DOB',pat.subDob||'','date')}
-${fld('group','Group #',pat.group||'')}
-${fld('plan','Plan Name',pat.plan||'')}
-${fld('rel','Relationship',pat.rel||'',null,false,[['','— Select —'],['18','Self'],['01','Spouse'],['19','Child'],['G8','Other'],['32','Mother'],['33','Father']])}
-</div>
-<!-- Secondary Insurance -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Secondary Insurance</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('payerid2','Payer ID',pat.payerid2||'','text',false)}
-${fld('payername2','Payer Name',pat.payerName2||'')}
-${fld('subnum2','Subscriber ID',pat.subNum2||'','text',false)}
-</div>
 <!-- Flags -->
 <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Flags</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px">
@@ -17866,11 +18176,6 @@ dateOfDeath:gv('dateOfDeath'), phone:gv('phone'), phone2:gv('phone2'),
 email:gv('email'), prefContact:gv('prefContact'), apptReminder:gv('apptReminder'),
 pcp:gv('pcp'), refPhys:gv('refPhys'), nickname:gv('nickname'),
 inactive: gv('inactive')==='inactive',
-payerid:gv('payerid'), payerName:gv('payername'),
-subNum:gv('subnum'), subLast:gv('sublast'), subFirst:gv('subfirst'),
-subDob:gv('subdob'), group:gv('group'), plan:gv('plan'),
-rel:gv('rel'),
-payerid2:gv('payerid2'), payerName2:gv('payername2'), subNum2:gv('subnum2'),
 selfInsSync:gc('selfInsSync'), addrSync:gc('addrSync'), specialNeeds:gc('specialNeeds'),
 consentShare:gc('consentShare'), transportation:gc('transportation'), wheelchair:gc('wheelchair'),
 });
@@ -18335,11 +18640,34 @@ setTimeout(() => _addInsurance(patId), 100);
 }
 
 function _deleteInsurance(patId, idx) {
+const db = getDB();
+const pat = db.patients.find(x=>x.id===patId);
+const iv = pat?.insurances?.[idx];
+if (!iv) return;
+// Check if used in any claim
+const usedInClaim = (db.claims||[]).some(c => c.patId===patId &&
+  (c.payerid===iv.payerId || c.payerid===iv.policy));
+if (usedInClaim) {
+  toast('Cannot delete — insurance is used in claims. Mark Inactive instead.','err');
+  return;
+}
 if (!confirm('Delete this insurance record?')) return;
-setDB(db => { const p=db.patients.find(x=>x.id===patId); if(p?.insurances) p.insurances.splice(idx,1); });
+setDB(db2 => { const p=db2.patients.find(x=>x.id===patId); if(p?.insurances) p.insurances.splice(idx,1); });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
 const listEl=document.getElementById('pt-ins-list');
 if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
+}
+
+function _toggleInsuranceActive(patId, idx) {
+setDB(db2 => {
+  const p=db2.patients.find(x=>x.id===patId);
+  if(p?.insurances?.[idx]) p.insurances[idx].inactive = !p.insurances[idx].inactive;
+});
+const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
+const listEl=document.getElementById('pt-ins-list');
+if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
+const iv = pat2?.insurances?.[idx];
+toast('Insurance marked '+(iv?.inactive?'Inactive':'Active'));
 }
 
 function _buildInsuranceRowsHTML(pat) {
@@ -18348,7 +18676,7 @@ if (!ins.length) return `<tr><td colspan="15" style="padding:16px;text-align:cen
 return ins.map((iv,i) => {
 const eff = [iv.effFrom,iv.effTo].filter(Boolean).join(' Ð ')||'';
 return `<tr style="font-size:12px;${i%2===0?'':'background:#f6f8fc'}">
-<td style="padding:6px 8px">${iv.planType||'Medical'}</td>
+<td style="padding:6px 8px">${iv.planType||'Medical'}${iv.inactive?' <span style="font-size:10px;padding:1px 5px;background:#fee2e2;color:#dc2626;border-radius:8px;font-weight:600">Inactive</span>':''}</td>
 <td style="padding:6px 8px">${iv.insType||iv.type||'Primary'}</td>
 <td style="padding:6px 8px">${iv.relation||'Self'}</td>
 <td style="padding:6px 8px;font-weight:600">${iv.subscriberName||((pat.last||'')+', '+(pat.first||''))}</td>
@@ -18366,6 +18694,11 @@ return `<tr style="font-size:12px;${i%2===0?'':'background:#f6f8fc'}">
 <td style="padding:6px 8px;text-align:center">
 <button title="Delete" style="background:none;border:none;cursor:pointer;color:#dc2626" onclick="_deleteInsurance('${pat.id}',${i})">
 <i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i>
+</button>
+</td>
+<td style="padding:6px 8px;text-align:center">
+<button title="${iv.inactive?'Activate':'Deactivate'}" style="background:none;border:none;cursor:pointer;color:${iv.inactive?'var(--green)':'var(--text3)'}" onclick="_toggleInsuranceActive('${pat.id}',${i})">
+<i data-lucide="${iv.inactive?'toggle-left':'toggle-right'}" class="lci" style="width:13px;height:13px"></i>
 </button>
 </td>
 <td style="padding:6px 8px;text-align:center"><button class="btn-icon sm" onclick="" title="Verify Insurance"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px"></i></button></td>
