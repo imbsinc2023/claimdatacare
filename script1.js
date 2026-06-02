@@ -2152,8 +2152,36 @@ if (ins) {
 }
 }
 function openClaimModal(idx){
-const db=getDB();
-document.getElementById('mc-title').textContent=idx>=0?'Edit Claim':'New Claim';
+  const db=getDB();
+  if(idx>=0){
+    // Edit existing — open in editor
+    const c=db.claims[idx];
+    if(!c) return;
+    window._ceActiveTab='services';
+    window.location.hash='#claim-editor?id='+c.id;
+    go('claim-editor');
+  } else {
+    // New claim — create a draft and open in editor
+    const newId=uid();
+    const pcn=buildNextPCN?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
+    const rends=db.rendering.filter(r=>r.providerId===activeProviderId);
+    const newClaim={
+      id:newId, providerId:activeProviderId,
+      pcn:pcn, patId:'', acct:'',
+      dos:today(), pos:'11',
+      facilityId:'', renderingId:rends.length?rends[0].id:'',
+      referringId:'', auth:'',
+      dx:['','','','','','','',''],
+      lines:[], status:'draft',
+      emp:'N', auto:'N',
+      createdAt:Date.now(), updatedAt:Date.now()
+    };
+    setDB(db2=>{ db2.claims.push(newClaim); });
+    window._ceActiveTab='services';
+    window.location.hash='#claim-editor?id='+newId;
+    go('claim-editor');
+  }
+}
 sv('mc-id', idx>=0?db.claims[idx].id:'');
 document.getElementById('mc-dup').classList.add('hidden');
 document.getElementById('btn-dup-claim').style.display=idx>=0?'':'none';
@@ -2197,13 +2225,7 @@ if (pat) sv('mc-acct', pat.acct||'');
 renderClaimLines();
 // Update total preview
 const mcTot = document.getElementById('mc-total');
-if (mcTot) {
-const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
-mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-}
-setTimeout(syncAllDxPtrs, 60);
-openModal('modal-claim');
-}
+
 
 
 function saveFacility() {
