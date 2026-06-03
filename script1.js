@@ -1119,22 +1119,22 @@ function _renderClaimEditorInner(){
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
-  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0">'+
-    '<button class="btn btn-xs btn-ghost" onclick="go(\'claims\')" title="Back to Claims"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
-    '<span style="color:var(--border2)">|</span>'+
-    '<span style="font-size:11px;color:var(--text3)">Bill# <strong style="color:var(--text)">'+(claim.pcn||'—')+'</strong></span>'+
+  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#141413;border-bottom:2px solid #30302e;flex-shrink:0">'+
+    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    '<span style="color:#30302e">|</span>'+
+    '<span style="font-size:11px;color:#b0aea5">Bill# <strong style="color:#faf9f5">'+(claim.pcn||'—')+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
     '<button class="btn btn-xs" onclick="window.print()" title="Print"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
     '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
     '<button class="btn btn-xs btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
-    '<button class="btn btn-xs btn-ghost" style="color:var(--red)" onclick="go(\'claims\')" title="Cancel"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Cancel" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'+
   '</div>'+
 
   // ── PATIENT INFO BANNER ──
-  '<div style="background:#e8f0fe;border-bottom:2px solid #c5d4f8;padding:6px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;font-size:12px">'+
-    '<strong style="color:#1a3a8a;font-size:13px">Patient Info :</strong>'+
+  '<div style="background:#f0eee6;border-bottom:2px solid #e8e6dc;padding:6px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;font-size:12px">'+
+    '<strong style="color:#141413;font-size:13px;font-weight:700">Patient Info :</strong>'+
     '<span>Chart# <strong>'+(pat.acct||'—')+'</strong></span>'+
     '<span style="color:#555">'+(pat.sex==='F'?'Female':pat.sex==='M'?'Male':pat.sex||'—')+'</span>'+
     '<span style="color:var(--red);font-weight:700;font-size:13px">'+(pat.last||'').toUpperCase()+' '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')+'</span>'+
@@ -1147,7 +1147,7 @@ function _renderClaimEditorInner(){
     ['services','payments','claims','eobs','comments'].map(function(t){
       var labels={services:'Services',payments:'Payments',claims:'Claims',eobs:'EOBs',comments:'Comments'};
       var active=t===activeTab;
-      return '<button onclick="window._ceActiveTab=\''+t+'\';renderClaimEditor()" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#1a5276':'var(--text2)')+';border-bottom:2px solid '+(active?'#1a5276':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
+      return '<button onclick="window._ceActiveTab=\''+t+'\';renderClaimEditor()" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#c96442':'var(--text2)')+';border-bottom:3px solid '+(active?'#c96442':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
     }).join('')+
   '</div>'+
 
@@ -1341,13 +1341,13 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   '</div>'+ // /left+center
 
   // ── RIGHT PANEL: Insurance + Amounts ──
-  '<div style="width:280px;flex-shrink:0;border-left:2px solid var(--border);overflow-y:auto;background:var(--bg3)">'+
+  '<div style="width:280px;flex-shrink:0;border-left:1px solid #e8e6dc;overflow-y:auto;background:var(--bg3)">'+
 
     // Insurance section
     '<div style="padding:8px 10px;border-bottom:1px solid var(--border)">'+
       // Primary
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Primary Insurance</span>'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:#141413">Primary Insurance</span>'+
         '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins1">'+
           (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
             var isPri=(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
@@ -1359,7 +1359,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       '</div>'+
       // Secondary
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Secondary Insurance</span>'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:#141413">Secondary Insurance</span>'+
         '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins2">'+
           '<option value="">— Select —</option>'+
           (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
@@ -1371,7 +1371,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       '</div>'+
       // Tertiary
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Tertiary Insurance</span>'+
+        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text3)">Tertiary Insurance</span>'+
         '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)">'+
           '<option value="">— Select —</option>'+
         '</select>'+
@@ -1397,7 +1397,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
     // Encounters Summary
     '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:4px">Encounters <span style="font-weight:400;text-decoration:underline;cursor:pointer;color:var(--brand)">Summary</span></div>'+
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Encounters <span style="font-weight:400;text-decoration:underline;cursor:pointer;color:var(--brand)">Summary</span></div>'+
       '<select style="width:100%;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);margin-bottom:4px">'+
         '<option>— Select Encounter —</option>'+
       '</select>'+
@@ -1411,7 +1411,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
     // Amounts Summary
     '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:6px">Amounts Summary</div>'+
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Amounts Summary</div>'+
       _ceAmtRow('Pat Available Bal','$'+(pat.balance||'0.00'),true)+
       _ceAmtRow('Allowed Amount','$'+billed.toFixed(2))+
       _ceAmtRow('Patient Resp','$0.00')+
@@ -1428,12 +1428,12 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
     // Patient Transactions
     '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:700;color:#1a5276;margin-bottom:6px">Patient Transactions</div>'+
+      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Patient Transactions</div>'+
       '<div style="font-size:11px;color:var(--red);font-style:italic">No Payments Found</div>'+
     '</div>'+
 
     // CoPay / Deductible strip
-    '<div style="padding:5px 10px;background:var(--bg2);font-size:11px;display:flex;gap:8px;flex-wrap:wrap">'+
+    '<div style="padding:5px 10px;background:#f0eee6;font-size:11px;display:flex;gap:8px;flex-wrap:wrap">'+
       '<span>CoPay: <strong style="color:var(--brand)">$'+copay.toFixed(2)+'</strong></span>'+
       '<span>Deductible: <strong>$'+deductible.toFixed(2)+'</strong></span>'+
       '<span>Pat. Portion: <strong>$'+patPortion.toFixed(2)+'</strong></span>'+
@@ -1453,7 +1453,7 @@ function _ceBuildServiceLinesTable(claim, claimId){
   if(!claim.lines||!claim.lines.length){
     return '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px"><i data-lucide="file-plus" class="lci" style="width:20px;height:20px"></i><br>No service lines. Click "+ Add More" to add CPT codes.</div>';
   }
-  var headerStyle='padding:4px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;text-align:center';
+  var headerStyle='padding:4px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;background:#f5f4ed;border-bottom:1px solid #e8e6dc;white-space:nowrap;text-align:center';
   var cellStyle='padding:3px 4px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle';
   return '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
     '<thead><tr>'+
@@ -1499,7 +1499,7 @@ function _ceBuildServiceLinesTable(claim, claimId){
             var hasVal=!!(claim.dx&&claim.dx[i]);
             if(!hasVal) return '';
             var checked=ptr.includes(letter);
-            return '<label style="display:flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;background:'+(checked?'var(--brand-bg)':'var(--bg3)')+';border:1px solid '+(checked?'var(--brand)':'var(--border2)')+'">'+
+            return '<label style="display:flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;background:'+(checked?'var(--brand-bg)':'var(--bg3)')+';border:1px solid '+(checked?'#c96442':'var(--border2)')+'">'+
               '<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(checked?'checked':'')+' value="'+letter+'" style="width:10px;height:10px;margin:0;accent-color:var(--brand)">'+letter+
             '</label>';
           }).join('')+
@@ -1609,7 +1609,7 @@ function _ceSmallField(label, type, id, val){
 function _ceAmtRow(label, val, hasLink, isBlue){
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border)">'+
     '<span style="font-size:11px;color:var(--text2)">'+label+'</span>'+
-    '<span style="font-size:11px;font-family:var(--mono);color:'+(isBlue?'var(--brand)':'var(--text)')+'">'+val+
+    '<span style="font-size:11px;font-family:var(--mono);color:'+(isBlue?'#c96442':'var(--text)')+'">'+val+
       (hasLink?' <a href="#" style="font-size:10px;color:var(--brand)" onclick="return false">Details</a>':'')+
     '</span>'+
   '</div>';
