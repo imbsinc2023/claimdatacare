@@ -1078,12 +1078,14 @@ function renderClaimEditor(){
     return;
   }
   var pat=db.patients.find(function(p){return p.id===claim.patId;})||{};
-  var rend=db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
-  var fac=db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
-  var ref=db.referring.find(function(r){return r.id===claim.referringId;})||{};
-  var prov=db.providers.find(function(p){return p.id===(pat.providerId||activeProviderId);})||{};
+  var rend=(db.rendering||[]).find(function(r){return r.id===claim.renderingId;})||{};
+  var fac=(db.facilities||[]).find(function(f){return f.id===claim.facilityId;})||{};
+  var ref=(db.referring||[]).find(function(r){return r.id===claim.referringId;})||{};
+  var prov=(db.providers||[]).find(function(p){return p.id===(pat.providerId||activeProviderId);})||{};
   var icd10=db.icd10||[];
   var cptCat=db.cpt||[];
+  if(!claim.lines) claim.lines=[];
+  if(!claim.dx) claim.dx=['','','','','','','',''];
   // Insurance
   var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
   var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
