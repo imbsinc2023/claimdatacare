@@ -1962,7 +1962,7 @@ return '<tr style="background:'+(isSel?'var(--brand-bg)':'')+'">'+
 '<td class="mono" style="font-weight:700">$'+fmtMoney(claimTotal(c))+'</td>'+
 '<td>'+statusBadge(c.status||'draft')+errBadge+'</td>'+
 '<td><div class="btn-group" style="gap:4px">'+
-'<button class="btn-icon sm" onclick="window._ceActiveTab=\'services\';window._ceClaimId=\'+c.id+\';go(\'claim-editor\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="window._ceActiveTab=\'services\';window._ceClaimId=\'+c.id+\';openClaimDetail(\''+c.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="openStatusModal('+oi+')" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="genSuperbill('+oi+')" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="quickDup('+oi+')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
@@ -2151,12 +2151,12 @@ if (ins) {
 }
 function openClaimModal(idx){
   var db=getDB();
+  var claimId;
+
   if(idx>=0){
     var c=db.claims[idx];
     if(!c){toast('Claim not found','err');return;}
-    window._ceActiveTab='services';
-    window._ceClaimId=c.id;
-    go('claim-editor');
+    claimId=c.id;
   } else {
     var newId=uid();
     var pcn=typeof buildNextPCN==='function'?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
@@ -2173,12 +2173,26 @@ function openClaimModal(idx){
       createdAt:Date.now(), updatedAt:Date.now()
     };
     setDB(function(db2){ db2.claims.push(newClaim); });
-    var check=getDB().claims.find(function(c){return c.id===newId;});
-    if(!check){toast('Error creating claim','err');return;}
-    window._ceActiveTab='services';
-    window._ceClaimId=newId;
-    go('claim-editor');
+    claimId=newId;
   }
+
+  // Navigate directly — set ID then show section synchronously
+  window._ceActiveTab='services';
+  window._ceClaimId=claimId;
+  window._ceClaimIdStored=claimId;
+
+  // Hide all sections, show claim-editor
+  document.querySelectorAll('.section').forEach(function(e){
+    e.style.display='none'; e.classList.remove('active');
+  });
+  var sec=document.getElementById('sec-claim-editor');
+  if(sec){ sec.style.display='flex'; sec.classList.add('active'); }
+  try{ setActiveTopNav('claim-editor'); }catch(_){}
+  var tbt=document.getElementById('tb-title');
+  if(tbt) tbt.textContent='Claim Editor';
+
+  // Call renderClaimEditor synchronously NOW — _ceClaimId is guaranteed set
+  renderClaimEditor();
 }
 function saveFacility() {
 const nameVal = v('mfac-name');
@@ -16154,9 +16168,18 @@ return 'paid';
 
 // ?? Open Claim Detail View ??????????????????????????????????????????????
 function openClaimDetail(claimId) {
-  window._ceActiveTab = 'services';
-  window._ceClaimId = claimId;
-  go('claim-editor');
+  window._ceActiveTab='services';
+  window._ceClaimId=claimId;
+  window._ceClaimIdStored=claimId;
+  document.querySelectorAll('.section').forEach(function(e){
+    e.style.display='none'; e.classList.remove('active');
+  });
+  var sec=document.getElementById('sec-claim-editor');
+  if(sec){ sec.style.display='flex'; sec.classList.add('active'); }
+  try{ setActiveTopNav('claim-editor'); }catch(_){}
+  var tbt=document.getElementById('tb-title');
+  if(tbt) tbt.textContent='Claim Editor';
+  renderClaimEditor();
 }
 
 
