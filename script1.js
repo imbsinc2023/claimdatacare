@@ -1077,6 +1077,8 @@ function _renderClaimEditorInner(){
   var claimId = window._ceClaimIdStored || null;
   var db = getDB();
   var claim = claimId ? (db.claims||[]).find(function(c){return c.id===claimId;}) : null;
+  // Fallback for new claims not yet persisted to getDB()
+  if(!claim && window._ceCurrentClaim && window._ceCurrentClaim.id===claimId) claim=window._ceCurrentClaim;
   var el=document.getElementById('claim-editor-content');
   if(!el)return;
   if(!claim){
@@ -2160,6 +2162,7 @@ if (ins) {
 }
 function openClaimModal(idx){
   var db=getDB();
+  var provId=activeProviderId||(db.providers&&db.providers[0]?db.providers[0].id:'');
   var claimId;
 
   if(idx>=0){
@@ -2168,10 +2171,10 @@ function openClaimModal(idx){
     claimId=c.id;
   } else {
     var newId=uid();
-    var pcn=typeof buildNextPCN==='function'?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
-    var rends=(db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;});
+    var pcn=typeof buildNextPCN==='function'?buildNextPCN('',provId,db.claims):('PCN'+Date.now());
+    var rends=(db.rendering||[]).filter(function(r){return r.providerId===provId;});
     var newClaim={
-      id:newId, providerId:activeProviderId,
+      id:newId, providerId:provId,
       pcn:pcn, patId:'', acct:'',
       dos:today(), pos:'11',
       facilityId:'', renderingId:rends.length?rends[0].id:'',
@@ -2183,14 +2186,14 @@ function openClaimModal(idx){
     };
     setDB(function(db2){ db2.claims.push(newClaim); });
     claimId=newId;
+    // Store claim directly so renderClaimEditor finds it even if getDB() is stale
+    window._ceCurrentClaim=newClaim;
   }
 
-  // Navigate directly — set ID then show section synchronously
   window._ceActiveTab='services';
   window._ceClaimId=claimId;
   window._ceClaimIdStored=claimId;
 
-  // Hide all sections, show claim-editor
   document.querySelectorAll('.section').forEach(function(e){
     e.style.display='none'; e.classList.remove('active');
   });
@@ -2199,8 +2202,6 @@ function openClaimModal(idx){
   try{ setActiveTopNav('claim-editor'); }catch(_){}
   var tbt=document.getElementById('tb-title');
   if(tbt) tbt.textContent='Claim Editor';
-
-  // Call renderClaimEditor synchronously NOW — _ceClaimId is guaranteed set
   renderClaimEditor();
 }
 function saveFacility() {
