@@ -1162,7 +1162,7 @@ function _renderClaimEditorInner(){
   )+
 
   // ── MAIN BODY (Services tab) ──
-  (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts):'')+
+  (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts,errs):'')+
   (activeTab==='payments'?_ceBuildPaymentsTab(claim,claimId):'') +
   (activeTab==='claims'?_ceBuildClaimsHistoryTab(pat,db):'') +
   (activeTab==='eobs'?_ceBuildEOBsTab(claim,db):'') +
@@ -1240,7 +1240,7 @@ function _renderClaimEditorInner(){
 }
 
 // ── Services Tab HTML ──────────────────────────────────────────────────────
-function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts){
+function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts,errs){
   var dxLetters='ABCDEFGH';
   var totalCharge=billed;
 
@@ -1335,7 +1335,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     // ── Scrub Rules ──
     '<div id="ce-scrub-list" style="border-top:1px solid var(--border);padding:6px 12px;background:var(--bg3);flex-shrink:0;font-size:11px;color:var(--text3)">'+
       '<span style="font-weight:600;color:var(--text2)">Scrub Rules: </span>'+
-      (errs.length?errs.join(' · '):'No Rule(s)')+
+      (errs&&errs.length?errs.join(' · '):'No Rule(s)')+
     '</div>'+
 
   '</div>'+ // /left+center
