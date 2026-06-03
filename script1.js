@@ -1065,6 +1065,13 @@ function startNewClaim(patId, apptId, dos, apptData){
 }
 
 function renderClaimEditor(){
+  try { _renderClaimEditorInner(); }
+  catch(err){
+    var el=document.getElementById('claim-editor-content');
+    if(el) el.innerHTML='<div style="padding:40px;color:red;font-family:monospace;font-size:13px;white-space:pre-wrap"><strong>CLAIM EDITOR ERROR:</strong>\n'+err.stack+'</div>';
+  }
+}
+function _renderClaimEditorInner(){
   // Persist claimId — store when set, reuse on re-renders
   if(window._ceClaimId) window._ceClaimIdStored = window._ceClaimId;
   var claimId = window._ceClaimIdStored || null;
