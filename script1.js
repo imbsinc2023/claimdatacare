@@ -1962,7 +1962,7 @@ return '<tr style="background:'+(isSel?'var(--brand-bg)':'')+'">'+
 '<td class="mono" style="font-weight:700">$'+fmtMoney(claimTotal(c))+'</td>'+
 '<td>'+statusBadge(c.status||'draft')+errBadge+'</td>'+
 '<td><div class="btn-group" style="gap:4px">'+
-'<button class="btn-icon sm" onclick="window._ceActiveTab=\'services\';window._ceClaimId=\'+c.id+\';openClaimDetail(\''+c.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+'<button class="btn-icon sm" onclick="openClaimDetail(\''+c.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="openStatusModal('+oi+')" title="Status"><i data-lucide="refresh-cw" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="genSuperbill('+oi+')" title="PDF"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
 '<button class="btn-icon sm" onclick="quickDup('+oi+')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
