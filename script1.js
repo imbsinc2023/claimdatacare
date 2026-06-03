@@ -1065,15 +1065,11 @@ function startNewClaim(patId, apptId, dos, apptData){
 }
 
 function renderClaimEditor(){
-  var claimId=window._ceClaimId||null;
-  if(!claimId){
-    try{
-      var m=window.location.hash.match(/claim-editor[?/]*(.+)?/);
-      if(m&&m[1]) claimId=m[1].split('&')[0].replace(/^id=/,'');
-    }catch(_){}
-  }
-  var db=getDB();
-  var claim=claimId?(db.claims||[]).find(function(c){return c.id===claimId;}):null;
+  // Persist claimId — store when set, reuse on re-renders
+  if(window._ceClaimId) window._ceClaimIdStored = window._ceClaimId;
+  var claimId = window._ceClaimIdStored || null;
+  var db = getDB();
+  var claim = claimId ? (db.claims||[]).find(function(c){return c.id===claimId;}) : null;
   var el=document.getElementById('claim-editor-content');
   if(!el)return;
   if(!claim){
@@ -2154,18 +2150,18 @@ if (ins) {
 }
 }
 function openClaimModal(idx){
-  const db=getDB();
+  var db=getDB();
   if(idx>=0){
-    const c=db.claims[idx];
-    if(!c) return;
+    var c=db.claims[idx];
+    if(!c){toast('Claim not found','err');return;}
     window._ceActiveTab='services';
     window._ceClaimId=c.id;
     go('claim-editor');
   } else {
-    const newId=uid();
-    const pcn=typeof buildNextPCN==='function'?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
-    const rends=(db.rendering||[]).filter(r=>r.providerId===activeProviderId);
-    const newClaim={
+    var newId=uid();
+    var pcn=typeof buildNextPCN==='function'?buildNextPCN('',activeProviderId,db.claims):('PCN'+Date.now());
+    var rends=(db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;});
+    var newClaim={
       id:newId, providerId:activeProviderId,
       pcn:pcn, patId:'', acct:'',
       dos:today(), pos:'11',
@@ -2176,7 +2172,9 @@ function openClaimModal(idx){
       emp:'N', auto:'N',
       createdAt:Date.now(), updatedAt:Date.now()
     };
-    setDB(db2=>{ db2.claims.push(newClaim); });
+    setDB(function(db2){ db2.claims.push(newClaim); });
+    var check=getDB().claims.find(function(c){return c.id===newId;});
+    if(!check){toast('Error creating claim','err');return;}
     window._ceActiveTab='services';
     window._ceClaimId=newId;
     go('claim-editor');
