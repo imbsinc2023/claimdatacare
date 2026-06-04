@@ -864,17 +864,28 @@ function renderPatients(){
     var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
     var isSA = (function(){ var s=getSession(); return s && s.role==='Super Admin'; })();
     return '<tr>'
+    var ins = _resolvePatientInsurance(p);
+    var dispSub = p.subNum||ins.subNum||'';
+    var dispPayId = p.payerid||ins.payerId||'';
+    var dispPayer = p.payerName||ins.name||'';
+    var dispPlan = p.plan||ins.plan||'\u2014';
+    var dispRel = p.rel||ins.rel||'';
       + '<td style="font-family:var(--mono);font-size:11px;color:#87867f">' + ptLinkAcct(p.id, p.acct) + '</td>'
       + '<td><div style="display:flex;align-items:center;gap:8px">'
       + '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>'
       + ptLinkName(p.id, p.last, p.first)
       + '</div></td>'
       + '<td>' + (p.dob||'') + '</td>'
-      + '<td>' + (p.subNum||'') + '</td>'
-      + '<td>' + (p.payerid||'') + '</td>'
-      + '<td>' + (p.payerName||'') + '</td>'
-      + '<td>' + (p.plan||'\u2014') + '</td>'
-      + '<td>' + (p.rel||'') + '</td>'
+      + '<td>' + dispSub + '</td>'
+
+      + '<td>' + dispPayId + '</td>'
+
+      + '<td>' + dispPayer + '</td>'
+
+      + '<td>' + dispPlan + '</td>'
+
+      + '<td>' + dispRel + '</td>'
+
       + '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#fdf3ee':'#f8f6f0')+';color:'+(cnt>0?'#c96442':'#87867f')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'
       + '<td><div style="display:flex;gap:4px;align-items:center">'
       + '<button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
