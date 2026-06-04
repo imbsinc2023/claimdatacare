@@ -2162,8 +2162,9 @@ if (!mcTot) return;
 const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
 mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
-  // Resolve active insurance from coverage tab first, fallback to legacy fields
-  function _resolvePatientInsurance(pat) {
+
+// Resolve active insurance — checks pat.insurances[] (Coverage tab) first, falls back to legacy fields
+function _resolvePatientInsurance(pat) {
     var ins = (pat.insurances||[]).find(function(iv){
       return !iv.inactive && ((iv.insType||iv.type||'primary').toLowerCase().includes('primary'));
     }) || (pat.insurances||[]).find(function(iv){ return !iv.inactive; });
