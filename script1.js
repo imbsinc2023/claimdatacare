@@ -652,7 +652,7 @@ function pushClaimsToExtension() {
     var rend = (db.rendering||[]).find(function(r){return r.id===c.renderingId;})||{};
     var dates = [c.dos].concat((c.lines||[]).map(function(l){return l.dos||''}).filter(Boolean));
     var uDates = [...new Set(dates.filter(Boolean))].sort();
-    return {pcn:c.pcn,dos:c.dos,dosRange:uDates.length>1?uDates[0]+' - '+uDates[uDates.length-1]:(c.dos||''),acct:pat.acct||'',medicaidId:pat.subNum||'',patSubNum:pat.subNum||'',patLast:pat.last||'',patFirst:pat.first||'',patDob:pat.dob||'',dx:(c.dx||[]).filter(Boolean),lines:c.lines||[],renderingNPI:rend.npi||'117416500',multiDate:c.multiDate||false};
+    return {pcn:c.pcn,dos:c.dos,dosRange:uDates.length>1?uDates[0]+' - '+uDates[uDates.length-1]:(c.dos||''),acct:pat.acct||'',medicaidId:_resolvePatientInsurance(pat).subNum||pat.subNum||'',patSubNum:_resolvePatientInsurance(pat).subNum||pat.subNum||'',patLast:pat.last||'',patFirst:pat.first||'',patDob:pat.dob||'',dx:(c.dx||[]).filter(Boolean),lines:c.lines||[],renderingNPI:rend.npi||'117416500',multiDate:c.multiDate||false};
   });
   localStorage.setItem('cdc_extension_claims', JSON.stringify(payload));
   localStorage.setItem('cdc_extension_status', '{}');
@@ -17818,99 +17818,182 @@ _renderChartTab('summary');
 
 // ?? Insurance Tab ?????????????????????????????????????????????????????
 function _buildInsuranceTab(pat, db) {
-const ins = pat.insurances || [];
-const rows = ins.length ? ins.map((iv,i) => {
-const eff = [iv.effFrom,iv.effTo].filter(Boolean).join(' Ð ') || '';
-const typeBadge = iv.insType||iv.type||'Primary';
-const planType = iv.planType||iv.type||'Medical';
-return `<tr style="font-size:12px">
-<td style="padding:6px 8px">${planType}</td>
-<td style="padding:6px 8px">${typeBadge}</td>
-<td style="padding:6px 8px">${iv.relation||'Self'}</td>
-<td style="padding:6px 8px;font-weight:600">${iv.subscriberName||((pat.last||'')+(', ')+(pat.first||''))||''}</td>
-<td style="padding:6px 8px">${iv.name||iv.insuranceName||''}</td>
-<td style="padding:6px 8px" class="mono">${iv.payerId||''}</td>
-<td style="padding:6px 8px" class="mono">${iv.policy||iv.memberId||''}</td>
-<td style="padding:6px 8px" class="mono">${iv.group||''}</td>
-<td style="padding:6px 8px;font-size:11px">${eff}</td>
-<td style="padding:6px 8px;font-size:11px;color:var(--text3)">${iv.createdBy||''}</td>
-<td style="padding:6px 8px;font-size:11px">${iv.createdOn||''}</td>
-<td style="padding:6px 8px;text-align:center">
-<button style="background:none;border:none;cursor:pointer;color:var(--brand)" onclick="_editInsurance('${pat.id}',${i})" title="Edit">
-<i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i>
-</button>
-</td>
-<td style="padding:6px 8px;text-align:center">
-<button style="background:none;border:none;cursor:pointer;color:var(--red,#dc2626)" onclick="_deleteInsurance('${pat.id}',${i})" title="Delete">
-<i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i>
-</button>
-</td>
-<td style="padding:6px 8px;text-align:center">
-<a href="#" style="color:var(--brand);font-size:11px;font-weight:600" onclick="return false">Verify</a>
-</td>
-<td style="padding:6px 8px;text-align:center">
-<a href="#" style="color:var(--brand);font-size:11px;font-weight:600" onclick="return false">Plan</a>
-</td>
-</tr>`;
-}).join('') : `<tr><td colspan="15" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No insurance records found.</td></tr>`;
+  const ins = pat.insurances || [];
 
-return `
-<div style="padding:0">
-<!-- Controls row -->
-<div style="display:flex;align-items:center;gap:12px;padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--border)">
-<button class="btn btn-primary btn-sm" onclick="_addInsurance('${pat.id}')">Add Insurance</button>
-<!-- Toggle: Do not collect patient responsibility -->
-<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
-<div onclick="this.classList.toggle('tog-on');this.querySelector('span').style.transform=this.classList.contains('tog-on')?'translateX(18px)':'translateX(2px)';this.querySelector('div').style.background=this.classList.contains('tog-on')?'var(--brand)':'#d1d5db'"
-style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:relative;transition:background .2s;flex-shrink:0;cursor:pointer">
-<span style="position:absolute;top:2px;left:0;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(2px)"></span>
-<div style="display:none"></div>
-</div>
-<span style="font-size:12px;font-weight:500;color:var(--text2)">Do not collect patient responsibility</span>
-</label>
-<!-- Toggle: SelfPay Verified -->
-<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
-<div onclick="this.classList.toggle('tog-on');this.querySelector('span').style.transform=this.classList.contains('tog-on')?'translateX(18px)':'translateX(2px)';this.querySelector('div').style.background=this.classList.contains('tog-on')?'var(--brand)':'#d1d5db'"
-style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:relative;transition:background .2s;flex-shrink:0;cursor:pointer">
-<span style="position:absolute;top:2px;left:0;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(2px)"></span>
-<div style="display:none"></div>
-</div>
-<span style="font-size:12px;font-weight:500;color:var(--text2)">SelfPay Verified</span>
-</label>
-<div style="margin-left:auto;display:flex;gap:16px">
-<a href="#" style="color:var(--brand);font-size:12px;font-weight:700">Prepayment plans</a>
-<a href="#" style="color:var(--brand);font-size:12px;font-weight:700">Cost Estimator</a>
-</div>
-</div>
+  // Separate by type
+  const primary   = ins.filter(iv => (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'));
+  const secondary = ins.filter(iv => (iv.insType||iv.type||'').toLowerCase().includes('secondary'));
+  const tertiary  = ins.filter(iv => (iv.insType||iv.type||'').toLowerCase().includes('tertiary'));
+  const other     = ins.filter(iv => {
+    const t = (iv.insType||iv.type||'').toLowerCase();
+    return !t.includes('primary') && !t.includes('secondary') && !t.includes('tertiary');
+  });
 
-<!-- Insurances table -->
-<div style="padding:0 0 4px">
-<div style="background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:5px 10px">Insurances</div>
-<div style="overflow-x:auto">
-<table style="width:100%;border-collapse:collapse;background:var(--bg2)">
-<thead>
-<tr style="background:#e8e6dc;font-size:11px;color:#4d4c48">
-${['Policy Type','Insurance Type','Relation','Name','Insurance Company','Payer ID','Policy No','Group No','Effective Dates','Created By','Created On','Edit','Delete','',''].map(h=>
-`<th style="padding:5px 8px;text-align:left;border:1px solid #e8e6dc;white-space:nowrap">${h}</th>`
-).join('')}
-</tr>
-</thead>
-<tbody id="pt-ins-list">${rows}</tbody>
-</table>
-</div>
-</div>
+  // Colors from design system
+  const C = {
+    parchment:'#f5f4ed', ivory:'#faf9f5', nearBlack:'#141413',
+    terracotta:'#c96442', coral:'#d97757',
+    oliveGray:'#5e5d59', stoneGray:'#87867f',
+    borderCream:'#f0eee6', borderWarm:'#e8e6dc',
+    darkSurface:'#30302e', warmSand:'#e8e6dc',
+    amber:'#b07d3a', teal:'#2d6b6b', plum:'#6b3a5e'
+  };
 
-<!-- Case Insurance -->
-<div style="padding:8px 10px;margin-top:8px">
-<button class="btn btn-primary btn-sm" style="margin-bottom:8px">Add Case Insurance Information</button>
-<div style="background:#e8e6dc;font-size:12px;font-weight:700;padding:5px 10px;border:1px solid #e8e6dc">Patient Case</div>
-<div style="padding:8px 10px;font-size:12px;color:#b53333;font-weight:600">No Case Insurance Data Found</div>
-</div>
+  // Type color map
+  const typeColors = {
+    primary:   { bg:'#fdf3ee', border:'#e8b89a', badge:'#c96442', label:'#141413' },
+    secondary: { bg:'#f0f5f0', border:'#9fc4a0', badge:'#2d6b4a', label:'#141413' },
+    tertiary:  { bg:'#f0f0f8', border:'#9898c8', badge:'#4a4a9c', label:'#141413' },
+    other:     { bg:'#f5f0ee', border:'#c8a898', badge:'#6b3a2a', label:'#141413' },
+    inactive:  { bg:'#f5f4ed', border:'#d8d6ce', badge:'#87867f', label:'#87867f' },
+  };
 
-<!-- Move Next -->
-<div style="text-align:center;padding:12px">
-<a href="#" style="color:var(--brand);font-size:12px;font-weight:700">Move Next</a>
-</div>
+  function insCard(iv, idx) {
+    const tRaw = (iv.insType||iv.type||'Primary').toLowerCase();
+    const tKey  = iv.inactive ? 'inactive' : tRaw.includes('secondary') ? 'secondary' : tRaw.includes('tertiary') ? 'tertiary' : 'primary';
+    const tc    = typeColors[tKey] || typeColors.primary;
+    const typeLabel = iv.insType || iv.type || 'Primary';
+    const eff   = [iv.effFrom, iv.effTo].filter(Boolean).join(' → ') || '—';
+    const name  = iv.subscriberName || ((pat.last||'')+', '+(pat.first||''));
+
+    return `
+<div style="background:${tc.bg};border:1.5px solid ${tc.border};border-radius:12px;padding:16px 18px;position:relative;transition:box-shadow .15s;${iv.inactive?'opacity:.7':''}">
+
+  <!-- Header row -->
+  <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:${tc.badge};color:#fff">${typeLabel}</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${C.borderCream};color:${C.oliveGray};border:1px solid ${C.borderWarm}">${iv.planType||'Medical'}</span>
+        ${iv.inactive ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#fee2e2;color:#b53333;border:1px solid #fca5a5">Inactive</span>` : ''}
+      </div>
+      <div style="font-size:15px;font-weight:700;color:${C.nearBlack};margin-top:6px">${iv.name||'—'}</div>
+      <div style="font-size:12px;color:${C.stoneGray};margin-top:1px">${name}</div>
+    </div>
+    <!-- Action buttons -->
+    <div style="display:flex;gap:4px;flex-shrink:0">
+      <button onclick="_editInsurance('${pat.id}',${idx})" title="Edit"
+        style="width:30px;height:30px;border-radius:8px;border:1px solid ${C.borderWarm};background:${C.ivory};color:${C.oliveGray};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s"
+        onmouseover="this.style.background='${C.nearBlack}';this.style.color='#fff'"
+        onmouseout="this.style.background='${C.ivory}';this.style.color='${C.oliveGray}'">
+        <i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i>
+      </button>
+      <button onclick="_toggleInsuranceActive('${pat.id}',${idx})" title="${iv.inactive?'Activate':'Deactivate'}"
+        style="width:30px;height:30px;border-radius:8px;border:1px solid ${C.borderWarm};background:${C.ivory};color:${iv.inactive?'#2d6b4a':C.stoneGray};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s"
+        onmouseover="this.style.background='${iv.inactive?'#2d6b4a':'#c96442'}';this.style.color='#fff'"
+        onmouseout="this.style.background='${C.ivory}';this.style.color='${iv.inactive?'#2d6b4a':C.stoneGray}'">
+        <i data-lucide="${iv.inactive?'toggle-left':'toggle-right'}" class="lci" style="width:13px;height:13px"></i>
+      </button>
+      <button onclick="_deleteInsurance('${pat.id}',${idx})" title="Delete"
+        style="width:30px;height:30px;border-radius:8px;border:1px solid #fca5a5;background:${C.ivory};color:#b53333;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s"
+        onmouseover="this.style.background='#b53333';this.style.color='#fff'"
+        onmouseout="this.style.background='${C.ivory}';this.style.color='#b53333'">
+        <i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Data grid -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px">
+    ${_insField('Payer ID',    iv.payerId||'—',    '#3b6ea5')}
+    ${_insField('Policy No',   iv.policy||iv.memberId||'—', C.terracotta)}
+    ${_insField('Group No',    iv.group||'—',      C.oliveGray)}
+    ${_insField('Relation',    iv.relation||'Self', C.oliveGray)}
+    ${_insField('Eff. From',   iv.effFrom||'—',    C.oliveGray)}
+    ${_insField('Eff. To',     iv.effTo||'—',      C.oliveGray)}
+    ${_insField('Created By',  iv.createdBy||'—',  C.stoneGray)}
+    ${_insField('Created On',  iv.createdOn||'—',  C.stoneGray)}
+  </div>
+
+</div>`;
+  }
+
+  function _insField(label, value, color) {
+    return `<div>
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:${C.stoneGray};margin-bottom:2px">${label}</div>
+      <div style="font-size:13px;font-weight:600;color:${color};font-family:monospace">${value}</div>
+    </div>`;
+  }
+
+  // Build cards grouped by type
+  function cardSection(list, label) {
+    if (!list.length) return '';
+    return list.map((iv, i) => {
+      const globalIdx = ins.indexOf(iv);
+      return insCard(iv, globalIdx);
+    }).join('');
+  }
+
+  const hasActive = ins.some(iv => !iv.inactive);
+  const nextType  = ins.filter(iv => !iv.inactive && (iv.insType||iv.type||'Primary').toLowerCase().includes('primary')).length > 0 ? 'Secondary' : 'Primary';
+
+  return `
+<div style="padding:14px 16px;background:${C.parchment};min-height:100%">
+
+  <!-- Top bar -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <button onclick="_addInsurance('${pat.id}')"
+      style="display:flex;align-items:center;gap:6px;padding:7px 16px;background:${C.terracotta};color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s"
+      onmouseover="this.style.background='${C.coral}'"
+      onmouseout="this.style.background='${C.terracotta}'">
+      <i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> Add Insurance
+    </button>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}">
+      <div onclick="this.classList.toggle('tog-on');this.querySelector('span').style.transform=this.classList.contains('tog-on')?'translateX(18px)':'translateX(2px)';this.querySelector('div').style.background=this.classList.contains('tog-on')?'${C.terracotta}':'#d1d5db'"
+        style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:relative;flex-shrink:0;cursor:pointer;transition:background .2s">
+        <span style="position:absolute;top:2px;left:0;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(2px)"></span>
+        <div style="display:none"></div>
+      </div>
+      Do not collect patient responsibility
+    </label>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}">
+      <div onclick="this.classList.toggle('tog-on');this.querySelector('span').style.transform=this.classList.contains('tog-on')?'translateX(18px)':'translateX(2px)';this.querySelector('div').style.background=this.classList.contains('tog-on')?'#2d6b4a':'#d1d5db'"
+        style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:relative;flex-shrink:0;cursor:pointer;transition:background .2s">
+        <span style="position:absolute;top:2px;left:0;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(2px)"></span>
+        <div style="display:none"></div>
+      </div>
+      SelfPay Verified
+    </label>
+
+    <div style="margin-left:auto;display:flex;gap:12px">
+      <a href="#" style="font-size:12px;font-weight:600;color:${C.terracotta};text-decoration:none" onclick="return false">Prepayment plans</a>
+      <a href="#" style="font-size:12px;font-weight:600;color:${C.terracotta};text-decoration:none" onclick="return false">Cost Estimator</a>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  ${ins.length === 0 ? `
+  <div style="text-align:center;padding:48px 24px;background:${C.ivory};border-radius:12px;border:1.5px dashed ${C.borderWarm}">
+    <i data-lucide="shield-off" class="lci" style="width:32px;height:32px;color:${C.stoneGray};margin-bottom:12px"></i>
+    <div style="font-size:14px;font-weight:600;color:${C.oliveGray}">No insurance on file</div>
+    <div style="font-size:12px;color:${C.stoneGray};margin-top:4px">Click Add Insurance to add coverage</div>
+  </div>` : `
+  <div id="pt-ins-list" style="display:flex;flex-direction:column;gap:12px">
+    ${ins.map((iv, idx) => insCard(iv, idx)).join('')}
+  </div>`}
+
+  <!-- Patient Case section -->
+  <div style="margin-top:20px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${C.stoneGray};margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${C.borderWarm}">Patient Case</div>
+    <button onclick="_addCaseInsurance && _addCaseInsurance('${pat.id}')"
+      style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:${C.ivory};color:${C.oliveGray};border:1.5px solid ${C.borderWarm};border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all .15s"
+      onmouseover="this.style.background='${C.borderCream}'"
+      onmouseout="this.style.background='${C.ivory}'">
+      <i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> Add Case Insurance Information
+    </button>
+    <div style="font-size:12px;color:${C.stoneGray};font-style:italic">No Case Insurance Data Found</div>
+  </div>
+
+  <!-- Move Next -->
+  <div style="text-align:center;margin-top:24px">
+    <button onclick="_renderChartTab && _renderChartTab('auth')"
+      style="font-size:12px;font-weight:600;color:${C.terracotta};background:none;border:none;cursor:pointer;text-decoration:underline">
+      Move Next →
+    </button>
+  </div>
+
 </div>`;
 }
 
@@ -18225,7 +18308,8 @@ if (!p.insurances) p.insurances=[];
 // If adding new Primary, deactivate existing active primary
 if (insType === 'Primary' && (idx === null || idx < 0)) {
   p.insurances.forEach(function(x) {
-    if ((x.insType||x.type||'Primary').toLowerCase().includes('primary') && (x.status||'active') !== 'inactive') {
+    if ((x.insType||x.type||'Primary').toLowerCase().includes('primary') && !x.inactive) {
+      x.inactive = true;
       x.status = 'inactive';
       x.inactivatedAt = new Date().toISOString();
     }
@@ -18252,11 +18336,12 @@ p.insStatus = 'Not Verified';
 });
 }
 document.getElementById('pt-ins-form')?.remove();
-// Refresh insurance tab
+// Refresh full insurance tab
 const db2 = getDB();
 const pat2 = db2.patients.find(p=>p.id===patId);
-const listEl= document.getElementById('pt-ins-list');
-if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
+const mainEl2 = document.getElementById('pt-chart-main');
+if (mainEl2 && pat2) mainEl2.innerHTML = _buildInsuranceTab(pat2, db2);
+setTimeout(_renderLucideIcons, 20);
 toast('Insurance saved');
 if (goNext) _renderChartTab('appointments');
 }
@@ -18281,8 +18366,8 @@ if (usedInClaim) {
 if (!confirm('Delete this insurance record?')) return;
 setDB(db2 => { const p=db2.patients.find(x=>x.id===patId); if(p?.insurances) p.insurances.splice(idx,1); });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const listEl=document.getElementById('pt-ins-list');
-if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
+const mainEl2=document.getElementById('pt-chart-main');
+if (mainEl2 && pat2) { mainEl2.innerHTML = _buildInsuranceTab(pat2, getDB()); setTimeout(_renderLucideIcons,20); }
 }
 
 function _toggleInsuranceActive(patId, idx) {
@@ -18291,8 +18376,8 @@ setDB(db2 => {
   if(p?.insurances?.[idx]) p.insurances[idx].inactive = !p.insurances[idx].inactive;
 });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const listEl=document.getElementById('pt-ins-list');
-if (listEl && pat2) listEl.innerHTML = _buildInsuranceRowsHTML(pat2);
+const mainEl2=document.getElementById('pt-chart-main');
+if (mainEl2 && pat2) { mainEl2.innerHTML = _buildInsuranceTab(pat2, getDB()); setTimeout(_renderLucideIcons,20); }
 const iv = pat2?.insurances?.[idx];
 toast('Insurance marked '+(iv?.inactive?'Inactive':'Active'));
 }
@@ -18308,7 +18393,8 @@ return `<tr style="font-size:12px;${i%2===0?'':'background:#f6f8fc'}">
 <td style="padding:6px 8px">${iv.relation||'Self'}</td>
 <td style="padding:6px 8px;font-weight:600">${iv.subscriberName||((pat.last||'')+', '+(pat.first||''))}</td>
 <td style="padding:6px 8px">${iv.name||''}</td>
-<td style="padding:6px 8px" class="mono">${iv.policy||''}</td>
+<td style="padding:6px 8px" class="mono">${iv.payerId||''}</td>
+<td style="padding:6px 8px" class="mono">${iv.policy||iv.memberId||''}</td>
 <td style="padding:6px 8px" class="mono">${iv.group||''}</td>
 <td style="padding:6px 8px;font-size:11px">${eff}</td>
 <td style="padding:6px 8px;font-size:11px;color:var(--text3)">${iv.createdBy||''}</td>
@@ -18341,8 +18427,8 @@ const p = db.patients.find(x=>x.id===patId);
 if (p?.insurances?.[idx]) p.insurances[idx].inactive = !p.insurances[idx].inactive;
 });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const listEl=document.getElementById('pt-ins-list');
-if(listEl&&pat2) listEl.innerHTML=_renderInsuranceRows(pat2);
+const mainEl2=document.getElementById('pt-chart-main');
+if(mainEl2&&pat2){mainEl2.innerHTML=_buildInsuranceTab(pat2,getDB());setTimeout(_renderLucideIcons,20);}
 }
 
 // ?? Appointments Tab ??????????????????????????????????????????????????
