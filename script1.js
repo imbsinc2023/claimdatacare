@@ -616,7 +616,7 @@ function _injectMissingModals() {
       var _secMed = document.createElement('div');
       _secMed.className = 'section';
       _secMed.id = 'sec-medicaid';
-      _secMed.innerHTML = '<div class="page-hdr"><div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="shield-check" class="lci" style="width:22px;height:22px;color:var(--brand)"></i>FL Medicaid Transmission</h1></div></div><div class="page-body"><div id="medicaid-content"></div></div>';
+      _secMed.innerHTML = '<div class="page-hdr"><div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="shield-check" class="lci" style="width:22px;height:22px;color:var(--brand)"></i>FL Medicaid Transmission</h1></div><button class="btn btn-sm" onclick="openFixInsuranceModal()" title="Sync insurance from Coverage tab to claims"><i data-lucide="shield-alert" class="lci" style="width:13px;height:13px"></i> Fix Insurance Data</button></div><div class="page-body"><div id="medicaid-content"></div></div>';
       _content.appendChild(_secMed);
     }
   }
@@ -1246,290 +1246,306 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   var dxLetters='ABCDEFGH';
   var totalCharge=billed;
 
+  // ── CSS constants using DESIGN.md palette ──────────────────────────────
+  var S = {
+    parchment:'#f5f4ed', ivory:'#faf9f5', nearBlack:'#141413',
+    terracotta:'#c96442', coral:'#d97757', oliveGray:'#5e5d59',
+    stoneGray:'#87867f', borderCream:'#f0eee6', borderWarm:'#e8e6dc',
+    darkSurface:'#30302e', warmSilver:'#b0aea5', warmSand:'#e8e6dc',
+    charcoalWarm:'#4d4c48'
+  };
+
+  var inp = function(id,val,w,extra){
+    return '<input type="text" id="'+id+'" value="'+(val||'')+'" autocomplete="off" style="'+
+      'width:'+(w||'100%')+';font-size:11px;padding:3px 6px;'+
+      'border:1px solid '+S.borderWarm+';border-radius:4px;'+
+      'background:'+S.ivory+';color:'+S.nearBlack+';font-family:monospace;'+
+      (extra||'')+'">';
+  };
+  var sel = function(id,w,extra){
+    return '<select id="'+id+'" style="'+
+      'width:'+(w||'100%')+';font-size:11px;padding:3px 6px;'+
+      'border:1px solid '+S.borderWarm+';border-radius:4px;'+
+      'background:'+S.ivory+';color:'+S.nearBlack+';'+(extra||'')+'">';
+  };
+  var lbl = function(txt){
+    return '<div style="font-size:10px;font-weight:600;color:'+S.stoneGray+
+      ';text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">'+txt+'</div>';
+  };
+
+  // ── Service Lines Table ─────────────────────────────────────────────────
+  var theadStyle = 'padding:5px 6px;font-size:10px;font-weight:700;color:'+S.stoneGray+
+    ';text-transform:uppercase;letter-spacing:.04em;background:'+S.parchment+
+    ';border-bottom:2px solid '+S.borderWarm+';white-space:nowrap;text-align:center';
+  var tcStyle = 'padding:3px 4px;font-size:11px;border-bottom:1px solid '+S.borderCream+
+    ';vertical-align:middle;text-align:center';
+
+  var linesHtml = (claim.lines&&claim.lines.length)?
+    '<table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr>'+
+    '<th style="'+theadStyle+';text-align:left;min-width:80px">Svc From</th>'+
+    '<th style="'+theadStyle+';text-align:left;min-width:80px">Svc To</th>'+
+    '<th style="'+theadStyle+'">CPT</th>'+
+    '<th style="'+theadStyle+'">Price</th>'+
+    '<th style="'+theadStyle+'">M1</th><th style="'+theadStyle+'">M2</th>'+
+    '<th style="'+theadStyle+'">M3</th><th style="'+theadStyle+'">M4</th>'+
+    '<th style="'+theadStyle+'">ICD Codes</th>'+
+    '<th style="'+theadStyle+'">Type</th>'+
+    '<th style="'+theadStyle+'">Qty</th>'+
+    '<th style="'+theadStyle+'">Adj</th>'+
+    '<th style="'+theadStyle+'">Copay</th>'+
+    '<th style="'+theadStyle+'">Deduct</th>'+
+    '<th style="'+theadStyle+'">PatPort</th>'+
+    '<th style="'+theadStyle+'">Due</th>'+
+    '<th style="'+theadStyle+'">Status</th>'+
+    '<th style="'+theadStyle+'"></th>'+
+    '</tr></thead><tbody>'+
+    claim.lines.map(function(l,li){
+      var due = parseFloat(l.charge||0);
+      var ptr = (l.dxPtr||'').toUpperCase();
+      var dxPtrs = dxLetters.slice(0,Math.max((claim.dx||[]).filter(Boolean).length,1)).split('').map(function(letter,i){
+        if(!claim.dx||!claim.dx[i]) return '';
+        var chk = ptr.includes(letter);
+        return '<label style="display:inline-flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;border:1px solid '+(chk?S.terracotta:S.borderWarm)+';background:'+(chk?'rgba(201,100,66,.08)':S.ivory)+'">'
+          +'<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(chk?'checked':'')+' value="'+letter+'" style="width:9px;height:9px;margin:0;accent-color:'+S.terracotta+'">'+letter+'</label>';
+      }).join('');
+      var rowBg = li%2===0 ? S.ivory : S.parchment;
+      return '<tr style="background:'+rowBg+'">'
+        +'<td style="'+tcStyle+'">'+inp('ce-ln-dos-'+li,l.dos||claim.dos||'','76px')+'</td>'
+        +'<td style="'+tcStyle+'">'+inp('ce-ln-dos-to-'+li,l.dosTo||l.dos||claim.dos||'','76px')+'</td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+(l.cpt||'')+'" style="width:62px;font-size:11px;font-family:monospace;font-weight:700;color:'+S.terracotta+';padding:3px 5px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'" autocomplete="off"></td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-chg-'+li+'" value="'+parseFloat(l.charge||0).toFixed(2)+'" style="width:52px;font-size:11px;font-family:monospace;padding:3px 5px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-align:right"></td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod1-'+li+'" value="'+(l.mod1||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod2-'+li+'" value="'+(l.mod2||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod3-'+li+'" value="'+(l.mod3||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
+        +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod4-'+li+'" value="'+(l.mod4||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
+        +'<td style="'+tcStyle+'"><div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;min-width:60px">'+dxPtrs+'</div></td>'
+        +'<td style="'+tcStyle+'"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px 3px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Min</option></select></td>'
+        +'<td style="'+tcStyle+'"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:34px;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';text-align:center"></td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;font-weight:700;color:'+S.nearBlack+'">'+due.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+'"><span style="font-size:10px;padding:1px 5px;border-radius:10px;background:'+S.parchment+';border:1px solid '+S.borderWarm+';color:'+S.oliveGray+'">'+(claim.status||'draft')+'</span></td>'
+        +'<td style="'+tcStyle+'"><button onclick="_ceRemoveLine(\''+claimId+'\','+li+')" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';padding:2px 4px;font-size:13px;line-height:1" title="Remove line">×</button></td>'
+        +'</tr>';
+    }).join('')+
+    '<tr style="background:'+S.parchment+';border-top:2px solid '+S.borderWarm+'">'
+    +'<td colspan="3" style="padding:4px 6px;font-size:11px;font-weight:700;color:'+S.nearBlack+'">TOTAL</td>'
+    +'<td style="padding:4px 6px;font-family:monospace;font-weight:700;font-size:12px;color:'+S.terracotta+';text-align:right">'+totalCharge.toFixed(2)+'</td>'
+    +'<td colspan="14"></td></tr>'
+    +'</tbody></table>'
+  :
+    '<div style="text-align:center;padding:24px;color:'+S.stoneGray+';font-size:12px">No service lines — click Add More to add CPT codes.</div>';
+
+  // ── ICDs ────────────────────────────────────────────────────────────────
+  var dxGrid = '';
+  for(var i=0;i<8;i++){
+    var letter = dxLetters[i];
+    var val = (claim.dx&&claim.dx[i])?claim.dx[i]:'';
+    dxGrid += '<div style="display:flex;align-items:center;gap:5px">'
+      +'<span style="font-size:11px;font-weight:700;color:'+S.terracotta+';min-width:14px;font-family:monospace">'+letter+'</span>'
+      +'<div style="flex:1;position:relative">'
+      +'<input type="text" id="ce-dx'+(i+1)+'" value="'+val+'" placeholder="ICD-10..." autocomplete="off" '
+      +'style="width:100%;font-family:monospace;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+      +'</div>'
+      +(val?'<button onclick="document.getElementById(\'ce-dx'+(i+1)+'\').value=\'\'" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';font-size:14px;padding:0 2px;flex-shrink:0">×</button>':'')
+      +'</div>';
+  }
+
+  // ── Bottom provider fields ──────────────────────────────────────────────
+  var fieldWrap = function(label, content){
+    return '<div><div style="font-size:10px;font-weight:600;color:'+S.stoneGray+';text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">'+label+'</div>'+content+'</div>';
+  };
+  var selStyle = 'width:100%;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack;
+  var inputStyle = 'width:100%;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack;
+
   return (
-  '<div style="flex:1;display:flex;overflow:hidden">'+
+  // ── Two-column layout: left=CPTs+bottom, right=insurance panel ──────────
+  '<div style="flex:1;display:flex;overflow:hidden;background:'+S.parchment+'">'
 
-  // ── LEFT + CENTER: CPTs + ICDs ──
-  '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'+
+  // LEFT COLUMN
+  +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'
 
-    // ── CPT Table Header ──
-    '<div style="padding:6px 12px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0;display:flex;align-items:center;gap:8px">'+
-      '<span style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'+
-      '<div style="flex:1"></div>'+
-      '<button class="btn btn-xs btn-primary" onclick="_ceAddLine(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:11px;height:11px"></i> Add More</button>'+
-      '<button class="btn btn-xs" onclick="_ceLoadPrevious(\''+claimId+'\')"><i data-lucide="undo-2" class="lci" style="width:11px;height:11px"></i> Use Previous Bill</button>'+
-      '<button class="btn btn-xs" onclick="_ceLoadToday(\''+claimId+'\')"><i data-lucide="calendar" class="lci" style="width:11px;height:11px"></i> Load Todays</button>'+
-    '</div>'+
+    // CPT table header
+    +'<div style="padding:6px 10px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'
+      +'<div style="flex:1"></div>'
+      +'<button onclick="_ceAddLine(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">+ Add More</button>'
+      +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer">Use Previous Bill</button>'
+      +'<button onclick="_ceLoadToday(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer">Load Todays</button>'
+    +'</div>'
 
-    // ── Service Lines Table ──
-    '<div style="flex:1;overflow-y:auto;padding:8px 12px">'+
-      _ceBuildServiceLinesTable(claim, claimId)+
-    '</div>'+
+    // Service lines
+    +'<div style="flex:1;overflow-y:auto;background:'+S.ivory+'">'
+      +linesHtml
+    +'</div>'
 
-    // ── Bottom detail panel ──
-    '<div style="border-top:1px solid var(--border);background:var(--bg3);padding:8px 12px;flex-shrink:0">'+
-      // Row 1: Billing fields
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+
-        _ceSmallField('Billing Pvdr','select','ce-bp','')+
-        _ceSmallField('Facility','select','ce-fac','')+
-        _ceSmallField('Svc Pvdr (Rend.)','select','ce-rend','')+
-        _ceSmallField('Encounter Provider','select','ce-enc','')+
-        _ceSmallField('Ref. Pvdr','select','ce-ref','')+
-        _ceSmallField('Supervising Pvdr','text','ce-supervising',claim.supervisingId||'')+
-      '</div>'+
-      // Row 2: Date fields
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+
-        _ceSmallField('DOS From','text','ce-dos',claim.dos||'')+
-        _ceSmallField('DOS To','text','ce-dos-to',claim.dosTo||claim.dos||'')+
-        _ceSmallField('POS','select','ce-pos','')+
-        _ceSmallField('Status','select','ce-status','')+
-        _ceSmallField('Auth #','text','ce-auth',claim.auth||'')+
-        _ceSmallField('Appt Date','text','ce-appt',claim.apptDate||'')+
-      '</div>'+
-      // Row 3: Admit/Discharge
-      '<div style="display:grid;grid-template-columns:1fr 1fr 4fr;gap:6px">'+
-        _ceSmallField('Admit Date','text','ce-admit',claim.admitDate||'')+
-        _ceSmallField('Discharge Date','text','ce-discharge',claim.dischargeDate||'')+
-        '<div style="display:flex;align-items:center;gap:16px;font-size:11px;color:var(--text3);padding-top:14px">'+
-          '<span>Tot.ded: <strong>$'+(deductible>0?deductible.toFixed(2):'0.00')+'</strong></span>'+
-          '<span>Ded met: <strong>$0.00</strong></span>'+
-          '<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" style="width:12px;height:12px;accent-color:var(--brand)"'+(claim.noPatResp?' checked':'')+' onchange="window._ceNoPatResp=this.checked"> Do not collect patient responsibility</label>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
+    // Provider fields strip
+    +'<div style="border-top:1px solid '+S.borderWarm+';background:'+S.parchment+';padding:8px 10px;flex-shrink:0">'
+      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">'
+        +fieldWrap('Billing Pvdr','<select id="ce-bp" style="'+selStyle+'"></select>')
+        +fieldWrap('Facility','<select id="ce-fac" style="'+selStyle+'"></select>')
+        +fieldWrap('Svc Pvdr (Rend.)','<select id="ce-rend" style="'+selStyle+'"></select>')
+        +fieldWrap('Encounter Provider','<select id="ce-enc" style="'+selStyle+'"></select>')
+        +fieldWrap('Ref. Pvdr','<select id="ce-ref" style="'+selStyle+'"></select>')
+        +fieldWrap('Supervising Pvdr','<input type="text" id="ce-supervising" value="'+(claim.supervisingId||'')+'" style="'+inputStyle+'">')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">'
+        +fieldWrap('DOS From','<input type="text" id="ce-dos" value="'+(claim.dos||'')+'" style="'+inputStyle+'">')
+        +fieldWrap('DOS To','<input type="text" id="ce-dos-to" value="'+(claim.dosTo||claim.dos||'')+'" style="'+inputStyle+'">')
+        +fieldWrap('POS','<select id="ce-pos" style="'+selStyle+'"></select>')
+        +fieldWrap('Status','<select id="ce-status" style="'+selStyle+'"></select>')
+        +fieldWrap('Auth #','<input type="text" id="ce-auth" value="'+(claim.auth||'')+'" style="'+inputStyle+'">')
+        +fieldWrap('Appt Date','<input type="text" id="ce-appt" value="'+(claim.apptDate||'')+'" style="'+inputStyle+'">')
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:16px;font-size:11px;color:'+S.stoneGray+'">'
+        +'<span>Tot.ded: <strong style="color:'+S.nearBlack+'">$'+(deductible>0?deductible.toFixed(2):'0.00')+'</strong></span>'
+        +'<span>Ded met: <strong style="color:'+S.nearBlack+'">$0.00</strong></span>'
+        +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer">'
+          +'<input type="checkbox" style="accent-color:'+S.terracotta+'"'+(claim.noPatResp?' checked':'')+'>Do not collect patient responsibility'
+        +'</label>'
+      +'</div>'
+    +'</div>'
 
-    // ── ICDs ──
-    '<div style="border-top:1px solid var(--border);background:var(--bg);padding:8px 12px;flex-shrink:0">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
-        '<span style="font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Bill ICDs</span>'+
-        '<button class="btn btn-xs" onclick="_ceLoadICDs(\''+claimId+'\')"><i data-lucide="refresh-cw" class="lci" style="width:10px;height:10px"></i> Load ICDs</button>'+
-        '<button class="btn btn-xs" onclick="_ceAddICD(\''+claimId+'\')"><i data-lucide="plus" class="lci" style="width:10px;height:10px"></i> Add/Delete ICDs</button>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">'+
-        (function(){
-          var rows='';
-          for(var i=0;i<8;i++){
-            var letter=dxLetters[i];
-            var val=claim.dx&&claim.dx[i]?claim.dx[i]:'';
-            rows+='<div style="display:flex;align-items:center;gap:4px">'+
-              '<span style="font-size:11px;font-weight:700;color:var(--brand);min-width:14px">'+letter+'</span>'+
-              '<input type="text" id="ce-dx'+(i+1)+'" value="'+val+'" placeholder="ICD-10..." style="flex:1;font-family:var(--mono);font-size:11px;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text)" autocomplete="off">'+
-              (val?'<button onclick="document.getElementById(\'ce-dx'+(i+1)+'\').value=\'\'" style="border:none;background:none;cursor:pointer;color:var(--red);padding:0 2px;font-size:12px">&times;</button>':'')+
-            '</div>';
-          }
-          return rows;
-        })()+
-      '</div>'+
-    '</div>'+
+    // Bill ICDs
+    +'<div style="border-top:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Bill ICDs</span>'
+        +'<button onclick="_ceLoadICDs(\''+claimId+'\')" style="font-size:10px;padding:2px 8px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer">Load ICDs</button>'
+        +'<button onclick="_ceAddICD(\''+claimId+'\')" style="font-size:10px;padding:2px 8px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer">Add/Delete ICDs</button>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
+    +'</div>'
 
-    // ── Action Buttons ──
-    '<div style="border-top:1px solid var(--border);padding:6px 12px;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;gap:6px">'+
-      '<button class="btn btn-sm btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
-      '<button class="btn btn-sm" onclick="renderClaimEditor()"><i data-lucide="rotate-ccw" class="lci" style="width:12px;height:12px"></i> Reset</button>'+
-      '<button class="btn btn-sm" onclick="window.print()"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i> Printable View</button>'+
-      '<button class="btn btn-sm" onclick="go(\'claims\')">View All Bills</button>'+
-      '<button class="btn btn-sm btn-primary" onclick="_ceTransmitSingle(\''+claimId+'\')"><i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Claim</button>'+
-      '<button class="btn btn-sm" onclick="_ceCancelClaim(\''+claimId+'\')">Cancel Claim</button>'+
-      '<button class="btn btn-sm" onclick="_ceLogClaim(\''+claimId+'\')">Log</button>'+
-      '<button class="btn btn-sm" style="color:var(--red)" onclick="_ceDeleteBill(\''+claimId+'\')">Delete this Bill</button>'+
-    '</div>'+
+    // Action buttons
+    +'<div style="border-top:1px solid '+S.borderWarm+';padding:6px 10px;background:'+S.parchment+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
+      +'<button onclick="_ceSave(\''+claimId+'\')" style="padding:5px 14px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Save</button>'
+      +'<button onclick="renderClaimEditor()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Reset</button>'
+      +'<button onclick="window.print()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Printable View</button>'
+      +'<button onclick="go(\'claims\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">View All Bills</button>'
+      +'<button onclick="_ceTransmitSingle(\''+claimId+'\')" style="padding:5px 14px;background:'+S.nearBlack+';color:'+S.warmSilver+';border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Claim</button>'
+      +'<button onclick="_ceCancelClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Cancel Claim</button>'
+      +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
+      +'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:5px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete this Bill</button>'
+    +'</div>'
 
-    // ── Scrub Rules ──
-    '<div id="ce-scrub-list" style="border-top:1px solid var(--border);padding:6px 12px;background:var(--bg3);flex-shrink:0;font-size:11px;color:var(--text3)">'+
-      '<span style="font-weight:600;color:var(--text2)">Scrub Rules: </span>'+
-      (errs&&errs.length?errs.join(' · '):'No Rule(s)')+
-    '</div>'+
+    // Scrub Rules
+    +'<div style="border-top:1px solid '+S.borderCream+';padding:4px 10px;background:'+S.parchment+';flex-shrink:0;font-size:11px;color:'+S.stoneGray+'">'
+      +'<span style="font-weight:700;color:'+S.nearBlack+'">Scrub Rules: </span>'
+      +(errs&&errs.length?'<span style="color:#b53333">'+errs.join(' · ')+'</span> <button onclick="openFixInsuranceModal()" style="margin-left:8px;font-size:11px;padding:2px 8px;background:#fee2e2;color:#b53333;border:1px solid #fca5a5;border-radius:4px;cursor:pointer">Fix Insurance</button>':'No Rule(s)')
+    +'</div>'
 
-  '</div>'+ // /left+center
+  +'</div>'  // /LEFT COLUMN
 
-  // ── RIGHT PANEL: Insurance + Amounts ──
-  '<div style="width:280px;flex-shrink:0;border-left:1px solid #e8e6dc;overflow-y:auto;background:var(--bg3)">'+
+  // RIGHT PANEL
+  +'<div style="width:270px;flex-shrink:0;border-left:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column">'
 
     // Insurance section
-    '<div style="padding:8px 10px;border-bottom:1px solid var(--border)">'+
+    +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
       // Primary
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:#141413">Primary Insurance</span>'+
-        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins1">'+
-          (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
-            var isPri=(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
-            return '<option value="'+i+'"'+(isPri?' selected':'')+'>'+(_ceInsLabel(iv))+'</option>';
-          }).join('')+
-          (!pat.insurances||!pat.insurances.length?'<option>'+(pat.payerName||'—')+'</option>':'')+
-        '</select>'+
-        '<button class="btn btn-xs" onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')">Verify</button>'+
-      '</div>'+
+      +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Primary Insurance</span>'
+        +'<select id="ce-ins1" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+          +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
+            pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
+              var isPri=(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
+              return '<option value="'+i+'"'+(isPri?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
+            }).join(''):
+            '<option>'+(pat.payerName||'—')+'</option>')
+        +'</select>'
+        +'<button onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')" style="font-size:10px;padding:2px 6px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+'">Verify</button>'
+      +'</div>'
       // Secondary
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:#141413">Secondary Insurance</span>'+
-        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)" id="ce-ins2">'+
-          '<option value="">— Select —</option>'+
-          (pat.insurances||[]).filter(function(iv){return !iv.inactive;}).map(function(iv,i){
-            var isSec=(iv.insType||iv.type||'').toLowerCase().includes('secondary');
-            return '<option value="'+i+'"'+(isSec?' selected':'')+'>'+(_ceInsLabel(iv))+'</option>';
-          }).join('')+
-        '</select>'+
-        '<button class="btn btn-xs" onclick="_ceVerifyIns(\'secondary\',\''+claimId+'\')">Verify</button>'+
-      '</div>'+
+      +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Secondary Insurance</span>'
+        +'<select id="ce-ins2" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+          +'<option value="">— Select —</option>'
+          +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
+            pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
+              var isSec=(iv.insType||iv.type||'').toLowerCase().includes('secondary');
+              return '<option value="'+i+'"'+(isSec?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
+            }).join(''):
+            '')
+        +'</select>'
+        +'<button onclick="_ceVerifyIns(\'secondary\',\''+claimId+'\')" style="font-size:10px;padding:2px 6px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+'">Verify</button>'
+      +'</div>'
       // Tertiary
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text3)">Tertiary Insurance</span>'+
-        '<select style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)">'+
-          '<option value="">— Select —</option>'+
-        '</select>'+
-      '</div>'+
-      // Self pay
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer">'+
-          '<input type="checkbox" style="width:12px;height:12px;accent-color:var(--brand)"'+(claim.selfPay?' checked':'')+'>'+
-          '<span style="font-weight:700;color:var(--text2)">Self Pay</span>'+
-        '</label>'+
-        '<button class="btn btn-xs" style="margin-left:auto" onclick="_ceSelfPayBill(\''+claimId+'\')">Self Pay Bill</button>'+
-      '</div>'+
-      // Bill status
-      '<div style="display:flex;align-items:center;gap:6px">'+
-        '<span style="font-size:11px;font-weight:700;min-width:110px;color:var(--text2)">Bill Status</span>'+
-        '<select id="ce-bill-status" style="flex:1;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)">'+
-          statusOpts.map(function(s){
-            return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';
-          }).join('')+
-        '</select>'+
-      '</div>'+
-    '</div>'+
+      +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
+        +'<span style="font-size:11px;color:'+S.stoneGray+';min-width:120px">Tertiary Insurance</span>'
+        +'<select style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option>— Select —</option></select>'
+      +'</div>'
+      // Self Pay
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+        +'<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:'+S.nearBlack+'">'
+          +'<input type="checkbox" style="accent-color:'+S.terracotta+'"'+(claim.selfPay?' checked':'')+'>Self Pay'
+        +'</label>'
+        +'<button onclick="_ceSelfPayBill(\''+claimId+'\')" style="margin-left:auto;font-size:10px;padding:2px 8px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;color:'+S.charcoalWarm+'">Self Pay Bill</button>'
+      +'</div>'
+      // Bill Status
+      +'<div style="display:flex;align-items:center;gap:4px">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Bill Status</span>'
+        +'<select id="ce-bill-status" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+          +statusOpts.map(function(s){return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';}).join('')
+        +'</select>'
+      +'</div>'
+    +'</div>'
 
-    // Encounters Summary
-    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Encounters <span style="font-weight:400;text-decoration:underline;cursor:pointer;color:var(--brand)">Summary</span></div>'+
-      '<select style="width:100%;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);margin-bottom:4px">'+
-        '<option>— Select Encounter —</option>'+
-      '</select>'+
-      '<div style="display:flex;gap:4px">'+
-        '<select style="flex:1;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option>Pre. Auth. [Add/View]</option></select>'+
-      '</div>'+
-      '<div style="margin-top:4px">'+
-        '<select style="width:100%;font-size:11px;padding:3px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option>Clia cert number [Add / View]</option></select>'+
-      '</div>'+
-    '</div>'+
+    // Encounters
+    +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.nearBlack+';margin-bottom:6px">Encounters <span style="text-decoration:underline;cursor:pointer;font-weight:400;text-transform:none;color:'+S.terracotta+'">Summary</span></div>'
+      +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';margin-bottom:4px"><option>— Select Encounter —</option></select>'
+      +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';margin-bottom:4px"><option>Pre. Auth. [Add/View]</option></select>'
+      +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option>Clia cert number [Add / View]</option></select>'
+    +'</div>'
 
     // Amounts Summary
-    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Amounts Summary</div>'+
-      _ceAmtRow('Pat Available Bal','$'+(pat.balance||'0.00'),true)+
-      _ceAmtRow('Allowed Amount','$'+billed.toFixed(2))+
-      _ceAmtRow('Patient Resp','$0.00')+
-      _ceAmtRow('Pri Amt','$'+priAmt.toFixed(2),(priAmt>0),true)+
-      _ceAmtRow('Sec Amt','$'+secAmt.toFixed(2))+
-      _ceAmtRow('Ter Amt','$0.00')+
-      _ceAmtRow('Patient Paid','$'+patPaid.toFixed(2))+
-      _ceAmtRow('Adj Amt','$'+adjAmt.toFixed(2),(adjAmt>0),true)+
-      '<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:2px solid var(--border);margin-top:4px">'+
-        '<span style="font-size:12px;font-weight:700;color:var(--text)">Amount Due</span>'+
-        '<span style="font-size:12px;font-weight:700;color:'+(balance>0?'var(--red)':'var(--green)')+'">$'+balance.toFixed(2)+'</span>'+
-      '</div>'+
-    '</div>'+
+    +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.nearBlack+';margin-bottom:8px">Amounts Summary</div>'
+      +[
+        ['Pat Available Bal','$'+(pat.balance||'0.00'),true,false],
+        ['Allowed Amount','$'+billed.toFixed(2),false,false],
+        ['Patient Resp','$0.00',false,false],
+        ['Pri Amt','$'+priAmt.toFixed(2),priAmt>0,true],
+        ['Sec Amt','$'+secAmt.toFixed(2),false,false],
+        ['Ter Amt','$0.00',false,false],
+        ['Patient Paid','$'+patPaid.toFixed(2),false,false],
+        ['Adj Amt','$'+adjAmt.toFixed(2),adjAmt>0,true],
+      ].map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid '+S.borderCream+'">'
+          +'<span style="font-size:11px;color:'+S.oliveGray+'">'+r[0]+'</span>'
+          +'<span style="font-size:11px;font-family:monospace;color:'+(r[3]?S.terracotta:S.nearBlack)+'">'+r[1]
+          +(r[2]?' <a href="#" onclick="return false" style="font-size:10px;color:'+S.terracotta+'">Details</a>':'')
+          +'</span>'
+          +'</div>';
+      }).join('')
+      +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:2px solid '+S.borderWarm+';margin-top:4px">'
+        +'<span style="font-size:12px;font-weight:700;color:'+S.nearBlack+'">Amount Due</span>'
+        +'<span style="font-size:13px;font-weight:700;color:'+(balance>0?S.terracotta:'#2d7a4f')+'">$'+balance.toFixed(2)+'</span>'
+      +'</div>'
+    +'</div>'
 
     // Patient Transactions
-    '<div style="padding:6px 10px;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#141413;margin-bottom:6px">Patient Transactions</div>'+
-      '<div style="font-size:11px;color:var(--red);font-style:italic">No Payments Found</div>'+
-    '</div>'+
+    +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.nearBlack+';margin-bottom:6px">Patient Transactions</div>'
+      +'<div style="font-size:11px;color:#b53333;font-style:italic">No Payments Found</div>'
+    +'</div>'
 
-    // CoPay / Deductible strip
-    '<div style="padding:5px 10px;background:#f0eee6;font-size:11px;display:flex;gap:8px;flex-wrap:wrap">'+
-      '<span>CoPay: <strong style="color:var(--brand)">$'+copay.toFixed(2)+'</strong></span>'+
-      '<span>Deductible: <strong>$'+deductible.toFixed(2)+'</strong></span>'+
-      '<span>Pat. Portion: <strong>$'+patPortion.toFixed(2)+'</strong></span>'+
-      '<div style="flex:1"></div>'+
-      '<span>Todays Charges: <strong class="mono">$'+totalCharge.toFixed(2)+'</strong></span>'+
-    '</div>'+
+    // CoPay strip
+    +'<div style="padding:6px 10px;background:'+S.parchment+';font-size:11px;display:flex;flex-wrap:wrap;gap:8px;color:'+S.stoneGray+'">'
+      +'<span>CoPay: <strong style="color:'+S.nearBlack+'">$'+copay.toFixed(2)+'</strong></span>'
+      +'<span>Deductible: <strong style="color:'+S.nearBlack+'">$'+deductible.toFixed(2)+'</strong></span>'
+      +'<span>Pat. Portion: <strong style="color:'+S.nearBlack+'">$'+patPortion.toFixed(2)+'</strong></span>'
+      +'<div style="flex:1"></div>'
+      +'<span>Todays Charges: <strong style="color:'+S.nearBlack+';font-family:monospace">$'+totalCharge.toFixed(2)+'</strong></span>'
+    +'</div>'
 
-  '</div>'+ // /right panel
-  '</div>' // /main body
+  +'</div>' // /RIGHT PANEL
+  +'</div>' // /two-column
   );
 }
 
-// Service lines table
-function _ceBuildServiceLinesTable(claim, claimId){
-  var dxLetters='ABCDEFGH';
-  var dxUsed=(claim.dx||[]).filter(Boolean);
-  if(!claim.lines||!claim.lines.length){
-    return '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px"><i data-lucide="file-plus" class="lci" style="width:20px;height:20px"></i><br>No service lines. Click "+ Add More" to add CPT codes.</div>';
-  }
-  var headerStyle='padding:4px 6px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;background:#f5f4ed;border-bottom:1px solid #e8e6dc;white-space:nowrap;text-align:center';
-  var cellStyle='padding:3px 4px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle';
-  return '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
-    '<thead><tr>'+
-      '<th style="'+headerStyle+';text-align:left">Service From</th>'+
-      '<th style="'+headerStyle+';text-align:left">Service To</th>'+
-      '<th style="'+headerStyle+'">CPT</th>'+
-      '<th style="'+headerStyle+'">Price</th>'+
-      '<th style="'+headerStyle+'">M1</th>'+
-      '<th style="'+headerStyle+'">M2</th>'+
-      '<th style="'+headerStyle+'">M3</th>'+
-      '<th style="'+headerStyle+'">M4</th>'+
-      '<th style="'+headerStyle+'">ICD Codes</th>'+
-      '<th style="'+headerStyle+'">Type</th>'+
-      '<th style="'+headerStyle+'">Qty</th>'+
-      '<th style="'+headerStyle+'">Adj</th>'+
-      '<th style="'+headerStyle+'">Copay</th>'+
-      '<th style="'+headerStyle+'">Deduct</th>'+
-      '<th style="'+headerStyle+'">PatPort</th>'+
-      '<th style="'+headerStyle+'">Due</th>'+
-      '<th style="'+headerStyle+'">Status</th>'+
-      '<th style="'+headerStyle+'"></th>'+
-    '</tr></thead>'+
-    '<tbody>'+
-    claim.lines.map(function(l,li){
-      var due=parseFloat(l.charge||0);
-      var ptr=(l.dxPtr||'').toUpperCase();
-      var ptrCodes=dxUsed.filter(function(_,i){return ptr.includes(dxLetters[i]);}).join(',');
-      var inp=function(id,val,w,cls){
-        return '<input type="text" id="'+id+'" value="'+(val||'')+'" style="width:'+(w||'60px')+';font-family:var(--mono);font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text)'+(cls?';'+cls:'')+'" autocomplete="off">';
-      };
-      return '<tr style="'+(li%2===0?'':'background:var(--bg3)')+'">'+
-        '<td style="'+cellStyle+'">'+inp('ce-ln-dos-'+li, l.dos||claim.dos||'','80px')+'</td>'+
-        '<td style="'+cellStyle+'">'+inp('ce-ln-dos-to-'+li, l.dosTo||l.dos||claim.dos||'','80px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center"><input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+(l.cpt||'')+'" style="width:68px;font-family:var(--mono);font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--brand);font-weight:700" autocomplete="off"></td>'+
-        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-chg-'+li, parseFloat(l.charge||0).toFixed(2),'52px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod1-'+li, l.mod1||'','28px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod2-'+li, l.mod2||'','28px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod3-'+li, l.mod3||'','28px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center">'+inp('ce-ln-mod4-'+li, l.mod4||'','28px')+'</td>'+
-        '<td style="'+cellStyle+';text-align:center">'+
-          '<div style="display:flex;align-items:center;gap:2px;flex-wrap:wrap;justify-content:center">'+
-          dxLetters.slice(0,Math.max(dxUsed.length,1)).split('').map(function(letter,i){
-            var hasVal=!!(claim.dx&&claim.dx[i]);
-            if(!hasVal) return '';
-            var checked=ptr.includes(letter);
-            return '<label style="display:flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;background:'+(checked?'var(--brand-bg)':'var(--bg3)')+';border:1px solid '+(checked?'#c96442':'var(--border2)')+'">'+
-              '<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(checked?'checked':'')+' value="'+letter+'" style="width:10px;height:10px;margin:0;accent-color:var(--brand)">'+letter+
-            '</label>';
-          }).join('')+
-          '</div>'+
-        '</td>'+
-        '<td style="'+cellStyle+';text-align:center"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2)"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Minutes</option></select></td>'+
-        '<td style="'+cellStyle+';text-align:center"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:36px;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);text-align:center"></td>'+
-        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
-        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
-        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
-        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono)">0.00</td>'+
-        '<td style="'+cellStyle+';text-align:center;font-family:var(--mono);font-weight:700">'+due.toFixed(2)+'</td>'+
-        '<td style="'+cellStyle+';text-align:center"><span style="font-size:10px;padding:1px 5px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);">'+(claim.status||'pending')+'</span></td>'+
-        '<td style="'+cellStyle+';text-align:center">'+
-          '<button class="btn btn-xs btn-ghost" style="color:var(--red);padding:1px 4px" onclick="_ceRemoveLine(\''+claimId+'\','+li+')" title="Remove line"><i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i></button>'+
-        '</td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody>'+
-    '<tfoot>'+
-      '<tr style="background:var(--bg3)">'+
-        '<td colspan="3" style="padding:4px 6px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>'+
-        '<td style="padding:4px 6px;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--brand);text-align:center">'+claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2)+'</td>'+
-        '<td colspan="14"></td>'+
-      '</tr>'+
-    '</tfoot>'+
-  '</table>';
-}
 
 function _ceBuildPaymentsTab(claim, claimId){
   var payments=claim.payments||[];
@@ -2140,6 +2156,37 @@ if (!mcTot) return;
 const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
 mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
+  // Resolve active insurance from coverage tab first, fallback to legacy fields
+  function _resolvePatientInsurance(pat) {
+    var ins = (pat.insurances||[]).find(function(iv){
+      return !iv.inactive && ((iv.insType||iv.type||'primary').toLowerCase().includes('primary'));
+    }) || (pat.insurances||[]).find(function(iv){ return !iv.inactive; });
+    if (ins) {
+      return {
+        payerId:  ins.payerId  || ins.payerid  || pat.payerid  || '',
+        name:     ins.name     || ins.payerName || pat.payerName || '',
+        subNum:   ins.policy   || ins.subNum    || pat.subNum   || '',
+        subLast:  ins.subLast  || pat.subLast   || '',
+        subFirst: ins.subFirst || pat.subFirst  || '',
+        subDob:   ins.subDob   || pat.subDob    || '',
+        group:    ins.group    || ins.groupNum   || pat.group   || '',
+        plan:     ins.plan     || pat.plan       || '',
+        rel:      ins.rel      || pat.rel        || '18',
+      };
+    }
+    // Legacy fallback
+    return {
+      payerId:  pat.payerid   || '',
+      name:     pat.payerName || '',
+      subNum:   pat.subNum    || '',
+      subLast:  pat.subLast   || '',
+      subFirst: pat.subFirst  || '',
+      subDob:   pat.subDob    || '',
+      group:    pat.group     || '',
+      plan:     pat.plan      || '',
+      rel:      pat.rel       || '18',
+    };
+  }
 function onPatientChange() {
 const patId = document.getElementById('mc-pat')?.value;
 if (!patId) return;
@@ -2147,18 +2194,7 @@ const db = getDB();
 const pat = db.patients.find(p=>p.id===patId);
 if (!pat) return;
 sv('mc-acct', pat.acct||'');
-// Auto-populate insurance info from the patient's active primary insurance
-const activeIns = (pat.insurances||[]).find(iv => !iv.inactive &&
-  (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'));
-const ins = activeIns || (pat.insurances||[]).find(iv => !iv.inactive);
-if (ins) {
-  // Store on claim for reference
-  window._mcActiveIns = ins;
-} else if (pat.payerid) {
-  window._mcActiveIns = { payerId: pat.payerid, name: pat.payerName, policy: pat.subNum };
-} else {
-  window._mcActiveIns = null;
-}
+window._mcActiveIns = _resolvePatientInsurance(pat);
 }
 function openClaimModal(idx){
   var db=getDB();
@@ -4912,6 +4948,80 @@ el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,mi
 
 
 
+function fixInsuranceMigration(){
+  var db = getDB();
+  var fixed = 0;
+  var skipped = 0;
+
+  // Find all patients that have insurances[] but missing legacy payerid
+  (db.patients||[]).forEach(function(pat){
+    var ins = _resolvePatientInsurance(pat);
+    if(!ins.payerId && !pat.payerid) { skipped++; return; }
+    
+    var needsFix = !pat.payerid && ins.payerId;
+    if(!needsFix) return;
+
+    setDB(function(db2){
+      var p = db2.patients.find(function(x){ return x.id===pat.id; });
+      if(!p) return;
+      // Copy active insurance data to legacy fields
+      if(!p.payerid)    p.payerid    = ins.payerId  || '';
+      if(!p.payerName)  p.payerName  = ins.name     || '';
+      if(!p.subNum)     p.subNum     = ins.subNum   || '';
+      if(!p.subLast)    p.subLast    = ins.subLast  || '';
+      if(!p.subFirst)   p.subFirst   = ins.subFirst || '';
+      if(!p.subDob)     p.subDob     = ins.subDob   || '';
+      if(!p.group)      p.group      = ins.group    || '';
+      if(!p.plan)       p.plan       = ins.plan     || '';
+      if(!p.rel)        p.rel        = ins.rel      || '18';
+    });
+    fixed++;
+  });
+
+  toast('Fixed ' + fixed + ' patient insurance records' + (skipped?' · '+skipped+' already OK':''), 'ok');
+  renderClaims();
+}
+
+function openFixInsuranceModal(){
+  var db = getDB();
+  var affected = (db.patients||[]).filter(function(pat){
+    var ins = _resolvePatientInsurance(pat);
+    return !pat.payerid && ins.payerId;
+  });
+
+  var html = '<div style="padding:20px">'
+    + '<div style="font-size:14px;font-weight:700;margin-bottom:12px">Fix Insurance Data</div>'
+    + '<p style="font-size:13px;color:var(--text2);margin-bottom:14px">'
+    + affected.length + ' patient(s) have insurance in Coverage tab but missing legacy Payer ID field. '
+    + 'This causes validation errors on existing claims. Click Fix to sync them.</p>'
+    + '<div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px">'
+    + (affected.length ? affected.map(function(pat){
+        var ins = _resolvePatientInsurance(pat);
+        return '<div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between">'
+          + '<span><strong>' + (pat.last||'') + ', ' + (pat.first||'') + '</strong> · Acct: ' + (pat.acct||'—') + '</span>'
+          + '<span style="color:var(--text3)">Payer: ' + (ins.payerId||'—') + ' · ' + (ins.name||'—') + '</span>'
+          + '</div>';
+      }).join('') : '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">No patients need fixing — all insurance data is synced.</div>')
+    + '</div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end">'
+    + '<button class="btn" onclick="closeModal(\'modal-fix-ins\')">Cancel</button>'
+    + (affected.length ? '<button class="btn btn-primary" onclick="fixInsuranceMigration();closeModal(\'modal-fix-ins\')">Fix ' + affected.length + ' Patient(s)</button>' : '')
+    + '</div></div>';
+
+  // Create or reuse modal
+  var existing = document.getElementById('modal-fix-ins');
+  if(!existing){
+    var div = document.createElement('div');
+    div.className = 'overlay';
+    div.id = 'modal-fix-ins';
+    div.innerHTML = '<div class="modal modal-sm">' + html + '</div>';
+    document.body.appendChild(div);
+  } else {
+    existing.querySelector('.modal').innerHTML = html;
+  }
+  openModal('modal-fix-ins');
+}
+
 function validateClaim(c){
 const db=getDB(); const errs=[];
 if(!c.dos) errs.push('Date of service empty');
@@ -4920,7 +5030,7 @@ if(!c.dx||!c.dx[0]) errs.push('No primary diagnosis');
 if(!c.lines||!c.lines.length) errs.push('No service lines');
 const pat=db.patients.find(x=>x.id===c.patId);
 if(!pat) errs.push('Patient not found');
-else{ if(!pat.subNum) errs.push('Patient missing Subscriber ID'); if(!pat.payerid) errs.push('Patient missing Payer ID'); if(!pat.acct) errs.push('Patient missing Account #'); }
+else{ const ins=_resolvePatientInsurance(pat); if(!pat.subNum&&!ins.subNum) errs.push('Patient missing Subscriber ID'); if(!pat.payerid&&!ins.payerId) errs.push('Patient missing Payer ID'); if(!pat.acct) errs.push('Patient missing Account #'); }
 (c.lines||[]).forEach((l,i)=>{ if(!l.cpt) errs.push(`Line ${i+1}: CPT empty`); if(!(parseFloat(l.charge)>0)) errs.push(`Line ${i+1}: Invalid charge`); if(!(parseInt(l.units)>0)) errs.push(`Line ${i+1}: Invalid units`); if(!l.dxPtr) errs.push(`Line ${i+1}: Dx pointer empty`); });
 const prov=db.providers.find(x=>x.id===c.providerId);
 if(!prov?.npi||prov.npi.length!==10) errs.push('Provider NPI must be 10 digits');
@@ -21152,6 +21262,23 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 }
 
 // Synchronous local cache (for all sync callers)
+// Merge two arrays of records by id — keeps the record with the higher updatedAt.
+// Records present in remote but not local are added (multi-device additions).
+// Records deleted locally via _fsDeleteDoc are already gone from Firestore.
+function _mergeByUpdatedAt(local, remote) {
+  var map = {};
+  (local||[]).forEach(function(r){ if(r&&r.id) map[r.id]=r; });
+  (remote||[]).forEach(function(r){
+    if(!r||!r.id) return;
+    var existing = map[r.id];
+    if(!existing) { map[r.id]=r; return; } // new record from another device
+    var remoteTs = r.updatedAt||r.createdAt||0;
+    var localTs  = existing.updatedAt||existing.createdAt||0;
+    if(remoteTs>=localTs) map[r.id]=r; // Firestore wins on tie or newer
+  });
+  return Object.values(map);
+}
+
 function getDB() {
 if (_localDB) { return _localDB; }
 var _cached = _loadCache();
@@ -21251,17 +21378,9 @@ try {
 async function _fsSyncCollection(collName, items) {
 if (!_fbReady || !_db) return;
 try {
-  const existing = await _db.collection(collName).get();
-  const currentIds = new Set(items.map(i => String(i.id)));
-  const batch = _db.batch();
-  let deleteCount = 0;
-  existing.docs.forEach(doc => {
-  if (!currentIds.has(doc.id)) {
-  batch.delete(doc.ref);
-  deleteCount++;
-  }
-  });
-  if (deleteCount > 0) await batch.commit();
+  // SAFE MERGE: only write items that changed — never delete based on local state alone.
+  // Deletes are handled explicitly by _fsDeleteDoc (called when user deletes a record).
+  // This prevents data loss when claims are created on another device.
   await _fsWriteCollection(collName, items);
 } catch(e) {
   console.warn(`Firestore sync failed for ${collName}:`, e.message);
@@ -21348,11 +21467,11 @@ async function loadFromFirestore() {
       _db.collection('meta').doc('cmData').get(),
     ]);
 
-    // Show data immediately — don't wait for the rest
+    // Merge collections — Firestore wins per-document by updatedAt
     if (!_localDB) _localDB = _mergeEmpty({});
-    _localDB.providers = providers;
-    _localDB.patients  = patients;
-    _localDB.claims    = claims;
+    _localDB.providers = _mergeByUpdatedAt(_localDB.providers||[], providers);
+    _localDB.patients  = _mergeByUpdatedAt(_localDB.patients||[], patients);
+    _localDB.claims    = _mergeByUpdatedAt(_localDB.claims||[], claims);
 
     if (usersDoc.exists) {
       _usersCache = usersDoc.data().list || [];
