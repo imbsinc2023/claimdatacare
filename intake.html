@@ -385,14 +385,7 @@ function fmtPhone(el) {
 async function sendForms() {
   var cFirst = document.getElementById('c-first').value.trim();
   var cLast  = document.getElementById('c-last').value.trim();
-  var cDob = (function(){ var raw=document.getElementById('c-dob').value.trim(); var iso=raw.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})$/); return iso?iso[2]+'/'+iso[3]+'/'+iso[1]:raw; })();
-  // Auto-format DOB field mm/dd/yyyy
-  document.getElementById('c-dob').addEventListener('input', function(e) {
-    var v = this.value.replace(/\D/g,'');
-    if (v.length >= 3 && v.length <= 4) v = v.slice(0,2)+'/'+v.slice(2);
-    else if (v.length >= 5) v = v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8);
-    this.value = v;
-  });
+  var cDob   = document.getElementById('c-dob').value.trim();
   var minor  = document.getElementById('is-minor').checked;
   var gName  = document.getElementById('g-name').value.trim();
 
@@ -409,7 +402,7 @@ async function sendForms() {
   var signerRel  = minor ? document.getElementById('g-rel').value : 'Self';
 
   if(!cFirst||!cLast) return toast('Please enter first and last name','err');
-  if(!cDob) return toast('Please enter date of birth','err');
+  if(!cDob || cDob.length < 10) return toast('Please enter a valid date of birth (mm/dd/yyyy)','err');
   if(minor && !gName) return toast('Please enter the authorized signer name','err');
   if(!gEmail||gEmail.indexOf('@')<0) return toast('Please enter a valid email','err');
 
@@ -531,7 +524,35 @@ function toast(msg, type) {
   _tt = setTimeout(function(){ el.style.display='none'; }, 4000);
 }
 
-document.addEventListener('DOMContentLoaded', renderFormsList);
+document.addEventListener('DOMContentLoaded', function() {
+  renderFormsList();
+
+  // DOB auto-format: user types digits freely, auto-inserts slashes -> mm/dd/yyyy
+  var dobEl = document.getElementById('c-dob');
+  var prevLen = 0;
+  dobEl.addEventListener('input', function(e) {
+    var raw = this.value;
+    var cur = this.selectionStart;
+    var digits = raw.replace(/\D/g, '').slice(0, 8);
+    var formatted = '';
+    if (digits.length === 0) {
+      formatted = '';
+    } else if (digits.length <= 2) {
+      formatted = digits;
+    } else if (digits.length <= 4) {
+      formatted = digits.slice(0,2) + '/' + digits.slice(2);
+    } else {
+      formatted = digits.slice(0,2) + '/' + digits.slice(2,4) + '/' + digits.slice(4,8);
+    }
+    // If user is deleting (backspace), don't re-add slashes
+    var isDeleting = formatted.length < prevLen;
+    if (isDeleting && (formatted.endsWith('/') )) {
+      formatted = formatted.slice(0, -1);
+    }
+    this.value = formatted;
+    prevLen = formatted.length;
+  });
+});
 
 </script>
 </body>
