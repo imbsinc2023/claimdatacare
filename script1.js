@@ -16933,7 +16933,6 @@ const TABS = [
 {id:'bills',         label:'Claims',         icon:'receipt'},
 {id:'communication', label:'Messaging',      icon:'message-circle'},
 {id:'pharmacies',    label:'Pharmacies',     icon:'pill'},
-{id:'letter',        label:'Forms',          icon:'file-text'},
 ];
 const tabsHTML = TABS.map(t =>
 `<div class="ptc-tab" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')"><i data-lucide="${t.icon}" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>${t.label}</div>`
@@ -16944,10 +16943,10 @@ return `
 <div class="ptc-banner">
   <span class="ptc-banner-title">PATIENT FILE</span>
   <span class="ptc-banner-sep">|</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>File ${pat.acct||'—'}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'—'}</span>
   <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
   <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age} yrs</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="venus-and-mars" class="lci" style="width:11px;height:11px"></i>${gender}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="${pat.sex==='F'?'venus':'mars'}" class="lci" style="width:11px;height:11px"></i>${gender}</span>
   <span class="ptc-banner-sep">|</span>
   <div class="ptc-tabs-inline">${tabsHTML}</div>
   <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
@@ -17235,7 +17234,7 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<input type="file" id="doc-upload-input-'+pat.id+'" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"'
   +' style="display:none" onchange="_handleDocFiles(event,\''+pat.id+'\')">'
 
-  +'<div style="flex:1;overflow-y:auto">'+docRowsHTML+'</div>'
+  +'<div style="flex:1;overflow-y:auto">'+(!activeCat&&docs.length?_buildRecentDocsSection(docs,pat):'')+docRowsHTML+'</div>'
   +'</div></div>';
 }
 
@@ -17254,6 +17253,37 @@ if (t.includes('pdf')) return '#dc2626';
 if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#c96442';
 if (t.includes('xls')) return '#4d4c48';
 return '#87867f';
+}
+
+
+function _buildRecentDocsSection(docs, pat) {
+  var seen = {};
+  var recent = docs
+    .filter(function(d){ return !d.deletedAt; })
+    .slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); })
+    .filter(function(d){ if(!d.id||seen[d.id]) return false; seen[d.id]=true; return true; })
+    .slice(0,5);
+  if (!recent.length) return '';
+  var rows = recent.map(function(d){
+    var di = docs.indexOf(d);
+    var showView = !!d.data||(d.category==='Superbills'&&d.lines&&d.lines.length);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border)">'
+      +'<div style="width:28px;height:28px;background:'+_docTypeColor(d.type)+';border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +'<i data-lucide="'+_docTypeIcon(d.type)+'" class="lci" style="width:14px;height:14px;color:#fff"></i></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(d.name||'Untitled')+'</div>'
+      +'<div style="font-size:10px;color:var(--text3)">'+(d.category||'')+' · '+(d.date||'')+'</div>'
+      +'</div><div style="display:flex;gap:3px">'
+      +(showView?'<button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')" style="padding:3px 6px"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>':'')
+      +'<button class="btn btn-xs" onclick="_downloadOne(\''+pat.id+'\','+di+')" style="padding:3px 6px"><i data-lucide="download" class="lci" style="width:12px;height:12px"></i></button>'
+      +'</div></div>';
+  }).join('');
+  return '<div style="border-bottom:2px solid var(--border);background:var(--bg2)">'
+    +'<div style="padding:8px 14px 4px;display:flex;align-items:center;gap:6px">'
+    +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:#c96442"></i>'
+    +'<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#141413">Recently Added</span>'
+    +'<span style="font-size:10px;color:#87867f;margin-left:4px">Last '+recent.length+' uploads</span>'
+    +'</div>'+rows+'</div>';
 }
 
 function _setDocCategory(patId, cat) {
@@ -18500,12 +18530,14 @@ if (!dob) return '';
 const parts = dob.includes('/') ? dob.split('/') : dob.split('-');
 let d = dob.includes('/') && parts[2]?.length===4 ? new Date(parts[2],parts[0]-1,parts[1]) : new Date(dob);
 if (isNaN(d)) return '';
-return Math.floor((new Date()-d)/31557600000) + ' yrs';
+return Math.floor((new Date()-d)/31557600000);
 }
 function _fmtDob(dob) {
 if (!dob) return '';
 if (dob.includes('/')) return dob;
-const d = new Date(dob); if (isNaN(d)) return dob;
+// Add T12:00:00 to parse as local noon, avoiding UTC midnight timezone shift
+const d = new Date(dob + 'T12:00:00');
+if (isNaN(d)) return dob;
 return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
 }
 function _relLabel(rel) {
@@ -22224,10 +22256,20 @@ function _downloadOne(patId, idx) {
   var doc = (pat.documents||[])[idx];
   if (!doc) { toast('Document not found','err'); return; }
   if (doc.category === 'Superbills') {
-    var pdf = _sbBuildPDF(doc, pat);
-    var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-    pdf.save(fname);
-    toast('Superbill downloaded','ok');
+    if (doc.data) {
+      // Use the exact PDF that was generated and saved
+      var a = document.createElement('a');
+      a.href = doc.data;
+      a.download = doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf');
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Superbill downloaded','ok');
+    } else {
+      // Legacy: no saved data, regenerate
+      var pdf = _sbBuildPDF(doc, pat);
+      var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
+      pdf.save(fname);
+      toast('Superbill downloaded','ok');
+    }
   } else if (doc.data) {
     var a = document.createElement('a');
     a.href = doc.data;
@@ -22248,9 +22290,16 @@ function _downloadSelected(patId) {
     var doc = (pat.documents||[])[idx];
     if (!doc) return;
     if (doc.category === 'Superbills') {
-      var pdf = _sbBuildPDF(doc, pat);
-      var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-      pdf.save(fname);
+      if (doc.data) {
+        var a2 = document.createElement('a');
+        a2.href = doc.data;
+        a2.download = doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf');
+        document.body.appendChild(a2); a2.click(); a2.remove();
+      } else {
+        var pdf2 = _sbBuildPDF(doc, pat);
+        var fname2 = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
+        pdf2.save(fname2);
+      }
     } else if (doc.data) {
       var a = document.createElement('a');
       a.href = doc.data;
