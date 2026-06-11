@@ -484,8 +484,17 @@ async function sendForms() {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({to:gEmail, subject:'Action Required: Sign Intake Forms for '+clientName, html:emailHtml, type:'intake'})
     });
-    var data = await res.json();
-    if(!data.success && !data.id) throw new Error(data.error||'Email delivery failed');
+    // Accept any 2xx status — worker may return {message:'ok'}, {success:true}, or {id:...}
+    if(!res.ok) {
+      var errText = '';
+      try { var errData = await res.json(); errText = errData.error || errData.message || res.statusText; }
+      catch(e2) { errText = res.statusText; }
+      throw new Error('Email service error (' + res.status + '): ' + errText);
+    }
+    // Parse response but don't require specific fields
+    var data = {};
+    try { data = await res.json(); } catch(e2) { /* non-JSON response is fine if status is 2xx */ }
+    if(data.error) throw new Error(data.error);
 
     document.getElementById('view-form').style.display = 'none';
     document.getElementById('view-success').style.display = 'block';
