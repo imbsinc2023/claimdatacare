@@ -1041,7 +1041,7 @@ function startNewClaim(patId, apptId, dos, apptData){
   var sgAsgn=(apptData||{}).sgAsgn||{};
   var claim={
     id:uid(), providerId:activeProviderId, patId:patId,
-    acct:pat.acct||'', pcn:'CLM-'+Date.now(),
+    acct:pat.acct||'', pcn:'CLM-'+Date.now(), billNum:_generateBillNum(),
     dos:dos||appt.date||'', pos:appt.pos||'11',
     multiDate:false, facilityId:appt.facilityId||'',
     renderingId:appt.renderingId||'', referringId:sgAsgn.referringId||'',
@@ -1068,6 +1068,22 @@ function startNewClaim(patId, apptId, dos, apptData){
   claim.totalCharge=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2);
   setDB(function(db2){db2.claims.push(claim);});
   return claim.id;
+}
+
+
+// ── Bill Number generator ─────────────────────────────────────────────────
+// Format: YYMMDDHHmm + 4 random digits = 14-digit numeric, no letters
+// Guaranteed unique per session; collision probability negligible in practice
+function _generateBillNum() {
+  var now = new Date();
+  var yy  = String(now.getFullYear()).slice(-2);
+  var mm  = String(now.getMonth()+1).padStart(2,'0');
+  var dd  = String(now.getDate()).padStart(2,'0');
+  var hh  = String(now.getHours()).padStart(2,'0');
+  var mi  = String(now.getMinutes()).padStart(2,'0');
+  var ss  = String(now.getSeconds()).padStart(2,'0');
+  var rnd = String(Math.floor(Math.random()*9000)+1000); // 4 digits, never 0000
+  return yy + mm + dd + hh + mi + ss + rnd; // 14 digits total
 }
 
 function renderClaimEditor(){
@@ -1130,7 +1146,7 @@ function _renderClaimEditorInner(){
   '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#141413;border-bottom:2px solid #30302e;flex-shrink:0">'+
     '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
     '<span style="color:#30302e">|</span>'+
-    '<span style="font-size:11px;color:#b0aea5">Bill# <strong style="color:#faf9f5">'+(claim.pcn||'—')+'</strong></span>'+
+    '<span style="font-size:11px;color:#b0aea5">Bill# <strong style="color:#faf9f5">'+(claim.billNum||'—')+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
     '<button class="btn btn-xs" onclick="window.print()" title="Print"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
@@ -1143,11 +1159,11 @@ function _renderClaimEditorInner(){
   // ── PATIENT INFO BANNER ──
   '<div style="background:#f0eee6;border-bottom:2px solid #e8e6dc;padding:6px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;font-size:12px">'+
     '<strong style="color:#141413;font-size:13px;font-weight:700">Patient Info :</strong>'+
-    '<span>Chart# <strong>'+(pat.acct||'—')+'</strong></span>'+
+    '<span>File# <strong>'+(pat.acct||'—')+'</strong></span>'+
     '<span style="color:#555">'+(pat.sex==='F'?'Female':pat.sex==='M'?'Male':pat.sex||'—')+'</span>'+
     '<span style="color:var(--red);font-weight:700;font-size:13px">'+(pat.last||'').toUpperCase()+' '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')+'</span>'+
     (age?'<span style="color:#555">'+age+' Years</span>':'')+
-    '<span style="color:#555">Bill# <strong>'+(claim.pcn||'—')+'</strong></span>'+
+    '<span style="color:#555">Bill# <strong>'+(claim.billNum||'—')+'</strong></span>'+
   '</div>'+
 
   // ── SECTION TABS ──
@@ -1374,13 +1390,23 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   // LEFT COLUMN
   +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'
 
+    // CPT table header (ICDs above)
+    +'<div style="border-bottom:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Bill ICDs (Diagnoses)</span>'
+        +'<button onclick="_ceLoadICDs(\''+claimId+'\')" title="Load ICDs" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:14px" title="Load ICDs from chart"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button>'
+        +'<button onclick="_ceAddICD(\''+claimId+'\')" title="Add/Delete ICDs" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer" title="Add/Delete ICDs"><i data-lucide="list-plus" class="lci" style="width:13px;height:13px"></i></button>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
+    +'</div>'
+
     // CPT table header
     +'<div style="padding:6px 10px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
       +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'
       +'<div style="flex:1"></div>'
-      +'<button onclick="_ceAddLine(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">+ Add More</button>'
-      +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer">Use Previous Bill</button>'
-      +'<button onclick="_ceLoadToday(\''+claimId+'\')" style="font-size:11px;padding:4px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer">Load Todays</button>'
+      +'<button onclick="_ceAddLine(\''+claimId+'\')" title="Add CPT Line" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.terracotta+';color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:16px;height:16px"></i></button>'
+      +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" title="Use Previous Bill" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="history" class="lci" style="width:15px;height:15px"></i></button>'
+      +'<button onclick="_ceLoadToday(\''+claimId+'\')" title="Load Today\'s Services" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="calendar-check" class="lci" style="width:15px;height:15px"></i></button>'
     +'</div>'
 
     // Service lines
@@ -1415,15 +1441,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'</div>'
     +'</div>'
 
-    // Bill ICDs
-    +'<div style="border-top:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Bill ICDs</span>'
-        +'<button onclick="_ceLoadICDs(\''+claimId+'\')" style="font-size:10px;padding:2px 8px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer">Load ICDs</button>'
-        +'<button onclick="_ceAddICD(\''+claimId+'\')" style="font-size:10px;padding:2px 8px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer">Add/Delete ICDs</button>'
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
-    +'</div>'
+    // Bill ICDs moved to top — placeholder removed
 
     // Action buttons
     +'<div style="border-top:1px solid '+S.borderWarm+';padding:6px 10px;background:'+S.parchment+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
@@ -1446,7 +1464,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   +'</div>'  // /LEFT COLUMN
 
   // RIGHT PANEL
-  +'<div style="width:270px;flex-shrink:0;border-left:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column">'
+  +'<div style="width:270px;flex-shrink:0;border-right:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column;order:-1">'
 
     // Insurance section
     +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
@@ -1736,6 +1754,7 @@ function _ceDuplicate(claimId){
   var newClaim=JSON.parse(JSON.stringify(claim));
   newClaim.id=uid();
   newClaim.pcn=buildNextPCN&&buildNextPCN('',activeProviderId,db.claims)||('PCN'+Date.now());
+  if(!newClaim.billNum) newClaim.billNum=_generateBillNum();
   newClaim.status='draft';
   newClaim.createdAt=Date.now();
   newClaim.updatedAt=Date.now();
@@ -2215,10 +2234,11 @@ function openClaimModal(idx){
   } else {
     var newId=uid();
     var pcn=typeof buildNextPCN==='function'?buildNextPCN('',provId,db.claims):('PCN'+Date.now());
+    var billNum=_generateBillNum();
     var rends=(db.rendering||[]).filter(function(r){return r.providerId===provId;});
     var newClaim={
       id:newId, providerId:provId,
-      pcn:pcn, patId:'', acct:'',
+      pcn:pcn, billNum:billNum, patId:'', acct:'',
       dos:today(), pos:'11',
       facilityId:'', renderingId:rends.length?rends[0].id:'',
       referringId:'', auth:'',
@@ -5058,6 +5078,7 @@ const existId=v('mc-id');
 const c={
 id:existId||uid(), providerId:activeProviderId, patId, acct:pat?.acct||'',
 pcn:v('mc-pcn')||('CLM-'+Date.now()),
+    billNum:(existingClaim&&existingClaim.billNum)||_generateBillNum(),
 dos:v('mc-dos'), multiDate:_multiDateMode, pos:v('mc-pos'),
 facilityId:v('mc-fac'), renderingId:v('mc-rend'), referringId:v('mc-ref'),
 auth:v('mc-auth'), emp:v('mc-emp')||'N', auto:v('mc-auto')||'N',
@@ -12653,7 +12674,7 @@ onmouseout="this.style.background='';this.style.borderColor='var(--border)'">
 <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--brand-bg)">
 ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
 </div>
-<div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">Chart #${p.acct||''}</div></div>
+<div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">File #${p.acct||''}</div></div>
 <i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3);margin-left:auto"></i>
 </div>`).join('')}
 <button onclick="this.closest('[style]').remove()" style="width:100%;padding:10px;margin-top:6px;background:var(--bg3);border:none;border-radius:12px;font-size:13px;cursor:pointer;font-family:var(--font);color:var(--text2);font-weight:500">Cancel</button>
@@ -14104,63 +14125,243 @@ toast('Payment batch deleted and reversed');
 }
 
 // ?? ERA fetch from Clearinghouse ????????????????????????????????????????
+// ── ERA Worker URL ─────────────────────────────────────────────────────────
+var ERA_WORKER_URL = 'https://claimmd-era.imbsinc2023.workers.dev';
+
+// ── Helper: POST urlencoded to ERA worker ──────────────────────────────────
+async function _eraWorkerPost(endpoint, params) {
+  var body = Object.entries(params).map(function(kv){
+    return encodeURIComponent(kv[0])+'='+encodeURIComponent(kv[1]);
+  }).join('&');
+  var res = await fetch(ERA_WORKER_URL + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  });
+  if (!res.ok) throw new Error('ERA worker HTTP '+res.status);
+  return await res.json();
+}
+
+// ── Parse ClaimMD eradata JSON → payment lines ────────────────────────────
+// ClaimMD /eradata/ returns JSON with a "claim" array per ERA.
+// Each claim has pcn + charges[] with paid/adjustments.
+// A PCN can have MULTIPLE payments across different ERAs (primary + secondary).
+function _parseERADataClaims(eraData, eraInfo, db) {
+  var posted    = [];
+  var unmatched = [];
+  var claims    = eraData.claim || [];
+  if (!Array.isArray(claims)) claims = claims ? [claims] : [];
+
+  claims.forEach(function(c) {
+    var pcn        = (c.pcn || c.remote_claimid || '').trim().toUpperCase();
+    var totalPaid  = parseFloat(c.total_paid   || 0);
+    var statusCode = c.status_code || '';   // 1=paid, 4=denied/$0
+    var payerICN   = c.payer_icn  || '';
+    var dos        = c.from_dos   || c.thru_dos || '';
+
+    // Charge-level breakdown
+    var charges = c.charge || [];
+    if (!Array.isArray(charges)) charges = charges ? [charges] : [];
+    var chargeLines = charges.map(function(ch) {
+      var adjs = ch.adjustment || [];
+      if (!Array.isArray(adjs)) adjs = adjs ? [adjs] : [];
+      return {
+        cpt        : ch.proc_code || '',
+        charge     : parseFloat(ch.charge  || 0),
+        allowed    : parseFloat(ch.allowed || 0),
+        paid       : parseFloat(ch.paid    || 0),
+        adjustments: adjs.map(function(a) {
+          return { group:a.group, code:a.code, amount:parseFloat(a.amount||0) };
+        })
+      };
+    });
+
+    // PR group = patient responsibility; CO = contractual write-off
+    var patResp = chargeLines.reduce(function(s,cl){
+      return s + cl.adjustments.filter(function(a){return a.group==='PR';})
+                               .reduce(function(ss,a){return ss+a.amount;},0);
+    },0);
+    var adjAmt = chargeLines.reduce(function(s,cl){
+      return s + cl.adjustments.filter(function(a){return a.group==='CO';})
+                               .reduce(function(ss,a){return ss+a.amount;},0);
+    },0);
+
+    // Match PCN against local claims (tolerant of prefix variants)
+    var claim = db.claims.find(function(lc) {
+      if (lc.providerId !== activeProviderId) return false;
+      var lp = (lc.pcn||'').trim().toUpperCase();
+      return lp===pcn || lp==='PCN-'+pcn || lp==='CLM-'+pcn ||
+             pcn==='PCN-'+lp || pcn==='CLM-'+lp;
+    });
+
+    if (claim) {
+      // Idempotent: skip if this ERA was already posted to this claim
+      if ((claim.payments||[]).some(function(p){return p.eraId===eraInfo.eraid;})) return;
+      posted.push({
+        claimId    : claim.id,
+        pcn        : pcn,
+        dos        : dos || claim.dos || '',
+        amtPaid    : totalPaid.toFixed(2),
+        amtAdj     : adjAmt.toFixed(2),
+        adjCode    : 'ERA',
+        patResp    : patResp.toFixed(2),
+        eraId      : eraInfo.eraid,
+        eraCheck   : eraInfo.check_number || '',
+        payerName  : eraInfo.payer_name   || '',
+        payerId    : eraInfo.payerid       || '',
+        paidDate   : eraInfo.paid_date     || '',
+        payerICN   : payerICN,
+        statusCode : statusCode,
+        chargeLines: chargeLines
+      });
+    } else if (totalPaid > 0 || statusCode === '1') {
+      unmatched.push({
+        id        : uid(),
+        providerId: activeProviderId,
+        pcn       : pcn,
+        dos       : dos,
+        amt       : totalPaid,
+        payerName : eraInfo.payer_name || '',
+        eraId     : eraInfo.eraid,
+        source    : 'ERA',
+        createdAt : Date.now()
+      });
+    }
+  });
+
+  return { posted:posted, unmatched:unmatched };
+}
+
+// ── Main ERA fetch — called by "Fetch ERA" button ─────────────────────────
 async function fetchERAFromClearinghouse() {
-const cfg = getApiConfig();
-if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
-const alertEl = document.getElementById('eob-alert');
-if (alertEl) alertEl.innerHTML = '<div class="alert al-info">Fetching ERA data from Clearinghouse...</div>';
-toast('Fetching ERA from Clearinghouse...');
-try {
-const fd = new FormData();
-fd.append('action','sync');
-fd.append('AccountKey', cfg.acctKey);
-fd.append('ResponseID','0');
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
-const xml = await res.text();
-const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
-if (!blocks.length) {
-if (alertEl) alertEl.innerHTML = '<div class="alert al-info">No ERA data available at this time</div>';
-toast('No ERA data available'); return;
+  var cfg = getApiConfig();
+  if (!cfg.acctKey) {
+    toast('Configure your Clearinghouse Account Key first','warn');
+    go('export'); return;
+  }
+
+  var alertEl  = document.getElementById('eob-alert');
+  var setAlert = function(html){ if(alertEl) alertEl.innerHTML=html; };
+
+  setAlert('<div class="alert al-info" style="display:flex;align-items:center;gap:8px">' +
+    '<i data-lucide="loader" class="lci" style="width:14px;height:14px;animation:spin 1s linear infinite"></i>' +
+    'Contacting ClaimMD clearinghouse&hellip;</div>');
+  setTimeout(_renderLucideIcons, 50);
+
+  var db         = getDB();
+  var lastERAID  = (db.settings && db.settings.lastERAID) ? db.settings.lastERAID : '0';
+
+  // ── STEP 1: ERA list ────────────────────────────────────────────────────
+  var eraList;
+  try {
+    eraList = await _eraWorkerPost('/eralist', {
+      AccountKey : cfg.acctKey,
+      ERAID      : lastERAID,
+      NewOnly    : '0'
+    });
+  } catch(e) {
+    setAlert('<div class="alert al-error">ERA list fetch failed: '+e.message+'</div>');
+    toast('ERA fetch failed: '+e.message,'err'); return;
+  }
+
+  // Normalize response — ClaimMD returns { era:[...], last_eraid:"..." }
+  var root = eraList.result || eraList;
+  var eras = root.era || [];
+  if (!Array.isArray(eras)) eras = eras ? [eras] : [];
+
+  if (!eras.length) {
+    setAlert('<div class="alert al-info">No new ERA payments since last sync. (Last ERA ID: '+lastERAID+')</div>');
+    toast('No new ERAs'); return;
+  }
+
+  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — fetching details&hellip;</div>');
+
+  // ── STEP 2: Detail per ERA ──────────────────────────────────────────────
+  var allPosted    = [];
+  var allUnmatched = [];
+  var allBatches   = [];
+  var newLastERAID = lastERAID;
+
+  for (var i=0; i<eras.length; i++) {
+    var eraInfo = eras[i];
+    var eraid   = String(eraInfo.eraid || eraInfo.ERAID || '');
+    if (!eraid) continue;
+    if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
+
+    var eraData;
+    try {
+      eraData = await _eraWorkerPost('/eradata', {
+        AccountKey : cfg.acctKey,
+        eraid      : eraid
+      });
+    } catch(e) {
+      console.warn('[ERA] eradata failed for eraid', eraid, e.message);
+      continue;
+    }
+
+    // Normalize: eradata wraps in result{}
+    var dataRoot = eraData.result || eraData;
+    var parsed   = _parseERADataClaims(dataRoot, eraInfo, db);
+
+    allPosted    = allPosted.concat(parsed.posted);
+    allUnmatched = allUnmatched.concat(parsed.unmatched);
+
+    if (parsed.posted.length > 0) {
+      allBatches.push({
+        id        : uid(),
+        providerId: activeProviderId,
+        eraId     : eraid,
+        payerName : eraInfo.payer_name   || 'ClaimMD ERA',
+        payerId   : eraInfo.payerid       || '',
+        checkNum  : eraInfo.check_number  || ('ERA-'+eraid),
+        checkType : eraInfo.check_type    || 'eft',
+        checkDate : eraInfo.paid_date     || new Date().toLocaleDateString('en-US'),
+        checkAmt  : parseFloat(eraInfo.paid_amount || 0),
+        notes     : 'Auto-imported ERA #'+eraid,
+        source    : 'era',
+        lines     : parsed.posted,
+        createdAt : Date.now(),
+        updatedAt : Date.now()
+      });
+    }
+  }
+
+  // ── STEP 3: Post payments to claims ────────────────────────────────────
+  if (allBatches.length) {
+    allBatches.forEach(function(batch){ _postEOBToClaims(batch); });
+    setEOBBatches(function(arr){ allBatches.forEach(function(b){ arr.push(b); }); });
+  }
+
+  // ── STEP 4: Save unmatched ─────────────────────────────────────────────
+  if (allUnmatched.length) {
+    setDB(function(db2){
+      if(!db2.eobUnmatched) db2.eobUnmatched=[];
+      db2.eobUnmatched.push.apply(db2.eobUnmatched, allUnmatched);
+    });
+  }
+
+  // ── STEP 5: Save ERAID cursor ──────────────────────────────────────────
+  if (newLastERAID !== lastERAID) {
+    setDB(function(db2){
+      if(!db2.settings) db2.settings={};
+      db2.settings.lastERAID = newLastERAID;
+    });
+  }
+
+  // ── STEP 6: Render summary ─────────────────────────────────────────────
+  var totalPaid = allPosted.reduce(function(s,p){return s+parseFloat(p.amtPaid||0);},0);
+  setAlert(
+    '<div class="alert al-success" style="font-size:13px">' +
+    '<strong>'+allPosted.length+' payment(s) posted</strong> across '+allBatches.length+' ERA(s) — ' +
+    '<strong>$'+totalPaid.toFixed(2)+' total</strong>' +
+    (allUnmatched.length ? ' &nbsp;|&nbsp; <span style="color:#b35c00">'+allUnmatched.length+' unmatched PCN(s)</span>' : '') +
+    '</div>'
+  );
+  renderEOBPage();
+  updateBadges();
+  toast('ERA: '+allPosted.length+' posted, '+allUnmatched.length+' unmatched');
 }
-const db = getDB();
-const eraLines = [];
-const unmatched= [];
-blocks.forEach(b => {
-const gt = t => (b.match(new RegExp(`<${t}>(.*?)<\\/${t}>`,'s'))||[])[1]||'';
-const pcn = (gt('remote_claimid')||gt('pcn')).toUpperCase();
-const paid = parseFloat(gt('paid_amount')||gt('payment')||0);
-const adj = parseFloat(gt('adjustment')||0);
-const dos = gt('from_date')||gt('date_of_service')||'';
-const claim = db.claims.find(c=>c.pcn?.toUpperCase()===pcn && c.providerId===activeProviderId);
-if (claim && paid > 0) {
-eraLines.push({ claimId:claim.id, pcn, dos:dos||claim.dos, amtPaid:paid.toFixed(2), amtAdj:adj.toFixed(2), adjCode:'ERA', patResp:'0' });
-} else if (paid > 0) {
-unmatched.push({ id:uid(), providerId:activeProviderId, pcn, dos, amt:paid, source:'ERA', createdAt:Date.now() });
-}
-});
-if (eraLines.length) {
-const today = new Date().toLocaleDateString('en-US');
-const batch = {
-id:uid(), providerId:activeProviderId,
-payerName:'Clearinghouse ERA', payerId:'', checkNum:'ERA-'+Date.now(),
-checkDate:today, checkAmt: eraLines.reduce((s,l)=>s+parseFloat(l.amtPaid||0),0),
-notes:'Auto-imported from Clearinghouse ERA', source:'era',
-lines: eraLines, createdAt:Date.now(), updatedAt:Date.now(),
-};
-_postEOBToClaims(batch);
-setEOBBatches(arr=>arr.push(batch));
-}
-if (unmatched.length) {
-setDB(db2=>{ if(!db2.eobUnmatched) db2.eobUnmatched=[]; db2.eobUnmatched.push(...unmatched); });
-}
-if (alertEl) alertEl.innerHTML = `<div class="alert al-success">? ERA imported: ${eraLines.length} claim(s) posted, ${unmatched.length} unmatched</div>`;
-renderEOBPage(); updateBadges();
-toast(`ERA: ${eraLines.length} posted, ${unmatched.length} unmatched`);
-} catch(e) {
-if (alertEl) alertEl.innerHTML = `<div class="alert al-error">? ERA fetch failed: ${e.message}</div>`;
-toast('ERA fetch failed: '+e.message,'err');
-}
-}
+
 
 // ?? EDI 835 Upload & Parse ????????????????????????????????????????
 function handleEDI835Upload(event) {
@@ -15041,7 +15242,7 @@ function openTCMEncounter(patId) {
         <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--brand-bg)">
         ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
         </div>
-        <div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">Chart #${p.acct||''}</div></div>
+        <div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">File #${p.acct||''}</div></div>
         <i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3);margin-left:auto"></i>
       </div>`).join('')}
       <button onclick="this.closest('[style]').remove()" style="width:100%;padding:10px;margin-top:6px;background:var(--bg3);border:none;border-radius:12px;font-size:13px;cursor:pointer;font-family:var(--font);color:var(--text2);font-weight:500">Cancel</button>
@@ -16506,7 +16707,7 @@ box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div>
 <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.02em">Patient Photo</div>
-<div style="font-size:11px;color:#87867f;margin-top:2px">${pat.last||''}, ${pat.first||''} · Chart #${pat.acct||''}</div>
+<div style="font-size:11px;color:#87867f;margin-top:2px">${pat.last||''}, ${pat.first||''} · File #${pat.acct||''}</div>
 </div>
 ${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #e8e6dc">` : ''}
 </div>
@@ -16990,7 +17191,7 @@ Patient Details
 </div>
 <div style="flex:1">
 <div style="font-weight:700;font-size:13px;color:#064e3b">${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid:''}</div>
-<div style="font-size:11px;color:#87867f;margin:2px 0">Chart # ${pat.acct||''}</div>
+<div style="font-size:11px;color:#87867f;margin:2px 0">File # ${pat.acct||''}</div>
 <div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#b53333':'#4d4c48'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
 <div style="font-size:11px;color:#4d4c48">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
 <div style="font-size:11px;color:#4d4c48">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
@@ -17581,7 +17782,7 @@ ${pat.photo?`<img src="${pat.photo}" style="width:100%;height:100%;object-fit:co
 <!-- Details grid (3 columns) -->
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">
 <div>
-${R('Chart#',pat.acct||'',true)}
+${R('File#',pat.acct||'',true)}
 ${R('Name (L,F,M)',`${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()} ${pat.mid?pat.mid.toUpperCase():''}`,true)}
 ${R('Nick Name',pat.nickname||'')}
 ${R('Address',pat.addr1||'')}
@@ -17735,7 +17936,7 @@ style="width:90px;font-size:10px;justify-content:center;color:var(--red)">
 ${(pat.last||'').toUpperCase()}, ${pat.first||''} ${pat.mid||''}
 </div>
 <div style="font-size:12px;color:var(--text3);margin-bottom:8px">
-Chart #${pat.acct||''} · ${pat.inactive?'<span style="color:var(--red);font-weight:600">Inactive</span>':'<span style="color:var(--green);font-weight:600">Active</span>'}
+File #${pat.acct||''} · ${pat.inactive?'<span style="color:var(--red);font-weight:600">Inactive</span>':'<span style="color:var(--green);font-weight:600">Active</span>'}
 </div>
 <div style="font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:12px">
 ${pat.dob?`<span><span style="color:var(--text3)">DOB</span> ${_fmtDob(pat.dob)}</span>`:''}
