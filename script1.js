@@ -5728,7 +5728,7 @@ const fd = new FormData();
 fd.append('upload', 'claim');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv], { type:'text/csv' }), fname);
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', { method:'POST', body:fd });
+const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', { method:'POST', body:fd });
 const txt = await res.text();
 if (res.ok) {
 setDB(db2 => { const c = db2.claims.find(x => x.id === claim.id); if(c) c.status = 'submitted'; });
@@ -5770,7 +5770,7 @@ fd.append('action', 'sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID', '0');
 
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
+const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 
@@ -10203,7 +10203,7 @@ const fname = 'Claims_Selected_'+dateStr()+'.csv';
 try {
 const fd=new FormData(); fd.append('action','upload'); fd.append('AccountKey',cfg.acctKey);
 fd.append('File',new Blob([csv],{type:'text/csv'}),fname);
-const res=await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
+const res=await fetch('https://claimmd-proxy.imbsinc2023.workers.dev',{method:'POST',body:fd});
 const xml=await res.text();
 const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
