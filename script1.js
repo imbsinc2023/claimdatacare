@@ -773,61 +773,195 @@ const db=getDB();
 const prov=db.providers.find(p=>p.id===activeProviderId)||{};
 const claims=db.claims.filter(c=>c.providerId===activeProviderId);
 console.log('[CDC] renderDashboard: activeProviderId='+activeProviderId+' | total claims='+(db.claims||[]).length+' | matching='+claims.length+' | providers='+(db.providers||[]).length);
-const total=claims.reduce((s,c)=>s+claimTotal(c),0);
-const pending=claims.filter(c=>c.status==='pending').length;
-const accepted=claims.filter(c=>c.status==='accepted').length;
+
+// ── Financials: PAID only (real collected), not billed ───────────────────
+const totalBilled = claims.reduce((s,c)=>s+claimTotal(c),0);
+const totalPaid   = claims.reduce((s,c)=>s+parseFloat(c.paid||0),0);
+const pctCollected = totalBilled > 0 ? Math.round(totalPaid/totalBilled*100) : 0;
+const pending     = claims.filter(c=>c.status==='pending').length;
+const submitted   = claims.filter(c=>c.status==='submitted').length;
+const paidCt      = claims.filter(c=>c.status==='paid'||c.status==='partially_paid').length;
+const rejectedCt  = claims.filter(c=>c.status==='rejected'||c.status==='denied').length;
 const sub=document.getElementById('dash-sub'); if(sub) sub.textContent=prov.name||'';
-document.getElementById('dash-stats').innerHTML=`
-<div class="stat" onclick="go('claims')" style="cursor:pointer">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="file-text" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>
+
+// ── KPI CARDS ─────────────────────────────────────────────────────────────
+const C = '#c96442'; // terracotta
+const G = '#2d7a4f'; // forest green for money
+const A = '#b35c00'; // amber
+const B = '#3b6fd4'; // slate blue for submitted
+
+document.getElementById('dash-stats').innerHTML = `
+<style>
+.dash-kpi { background:#fff; border-radius:12px; border:1px solid #e8e6dc;
+  padding:18px 20px; cursor:pointer; transition:box-shadow .15s,transform .1s;
+  display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
+.dash-kpi:hover { box-shadow:0 4px 20px rgba(0,0,0,.09); transform:translateY(-1px); }
+.dash-kpi .kpi-icon { width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:4px; }
+.dash-kpi .kpi-v { font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1; }
+.dash-kpi .kpi-l { font-size:11px;font-weight:600;color:#87867f;text-transform:uppercase;letter-spacing:.06em; }
+.dash-kpi .kpi-sub { font-size:11px;color:#87867f;margin-top:2px; }
+.dash-kpi .kpi-accent { position:absolute;bottom:0;left:0;right:0;height:3px; }
+</style>
+<div class="dash-kpi" onclick="go('claims')">
+  <div class="kpi-icon" style="background:#fff5f2"><i data-lucide="file-text" class="lci" style="width:20px;height:20px;color:${C}"></i></div>
+  <div class="kpi-v" style="color:${C}">${claims.length.toLocaleString()}</div>
+  <div class="kpi-l">Total Claims</div>
+  <div class="kpi-sub">${submitted} submitted · ${pending} pending</div>
+  <div class="kpi-accent" style="background:${C}"></div>
 </div>
-<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
+<div class="dash-kpi" onclick="go('eob')">
+  <div class="kpi-icon" style="background:#f0faf5"><i data-lucide="banknote" class="lci" style="width:20px;height:20px;color:${G}"></i></div>
+  <div class="kpi-v" style="color:${G}">$${fmtMoney(totalPaid)}</div>
+  <div class="kpi-l">Total Collected</div>
+  <div class="kpi-sub">${pctCollected}% of $${fmtMoney(totalBilled)} billed · ${paidCt} paid claims</div>
+  <div class="kpi-accent" style="background:${G}"></div>
 </div>
-<div class="stat-v" style="color:var(--brand)">${claims.length}</div>
-<div class="stat-l">Total Claims</div>
+<div class="dash-kpi" onclick="go('claims')">
+  <div class="kpi-icon" style="background:#fffbf0"><i data-lucide="clock" class="lci" style="width:20px;height:20px;color:${A}"></i></div>
+  <div class="kpi-v" style="color:${A}">${pending}</div>
+  <div class="kpi-l">Pending</div>
+  <div class="kpi-sub">Awaiting submission to payer</div>
+  <div class="kpi-accent" style="background:${A}"></div>
 </div>
-<div class="stat" style="cursor:default">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="dollar-sign" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
-</div>
-</div>
-<div class="stat-v" style="color:var(--green)">$${fmtMoney(total)}</div>
-<div class="stat-l">Total Charges</div>
-</div>
-<div class="stat" onclick="go('claims')" style="cursor:pointer">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="clock" class="lci" style="width:18px;height:18px;color:var(--amber)"></i>
-</div>
-<i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>
-</div>
-<div class="stat-v" style="color:var(--amber)">${pending}</div>
-<div class="stat-l">Pending</div>
-</div>
-<div class="stat" style="cursor:default">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-<div style="width:36px;height:36px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
-<i data-lucide="check-circle" class="lci" style="width:18px;height:18px;color:var(--green)"></i>
-</div>
-</div>
-<div class="stat-v" style="color:var(--green)">${accepted}</div>
-<div class="stat-l">Accepted CH</div>
+<div class="dash-kpi" onclick="go('claims')">
+  <div class="kpi-icon" style="background:#f0f4ff"><i data-lucide="send" class="lci" style="width:20px;height:20px;color:${B}"></i></div>
+  <div class="kpi-v" style="color:${B}">${submitted}</div>
+  <div class="kpi-l">Submitted</div>
+  <div class="kpi-sub">${rejectedCt > 0 ? rejectedCt + ' rejected — action needed' : 'No rejected claims'}</div>
+  <div class="kpi-accent" style="background:${B}"></div>
 </div>`;
+
 setTimeout(_renderLucideIcons, 20);
-const re=document.getElementById('dash-recent');
-if(!claims.length){ re.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="file-text" class="lci" style="width:24px;height:24px"></i></div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`; }
-else { re.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>PCN</th><th>Patient</th><th>DOS</th><th>Total</th><th>Status</th></tr></thead><tbody>`+claims.slice(-8).reverse().map(c=>{const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'};return`<tr><td class="mono" style="font-size:11px">${c.pcn}</td><td style="font-weight:500">${ptLinkName(p.id,p.last,p.first)}</td><td style="font-size:12px">${c.dos}</td><td class="mono" style="font-weight:700">$${fmtMoney(claimTotal(c))}</td><td>${statusBadge(c.status)}</td></tr>`;}).join('')+`</tbody></table></div>`; }
-const ps={};
-claims.forEach(c=>{const p=db.patients.find(x=>x.id===c.patId);if(p){const k=p.payerName||p.payerid;ps[k]=(ps[k]||0)+claimTotal(c);}});
-document.getElementById('dash-payers').innerHTML=Object.entries(ps).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${k}</span><span class="mono" style="font-weight:700">$${fmtMoney(v)}</span></div>`).join('')||'<p style="font-size:13px;color:var(--text3)">No data</p>';
-const ss={draft:0,pending:0,submitted:0,accepted:0,rejected:0};
-claims.forEach(c=>{ss[c.status]=(ss[c.status]||0)+1;});
-document.getElementById('dash-status').innerHTML=Object.entries(ss).map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center">${statusBadge(s)}<span class="mono" style="font-weight:700">${n}</span></div>`).join('');
-const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
-document.getElementById('dash-alerts').innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s) detected. <a href="#" onclick="go('validate');return false" style="font-weight:600">View <i data-lucide="arrow-right" class="lci" style="width:11px;height:11px"></i></a></div>`:'<div></div>';
+
+// ── COLLECTION RATE GAUGE ─────────────────────────────────────────────────
+const gaugeW = 180; const gaugeR = 70;
+const circ = Math.PI * gaugeR; // half-circle
+const paidArc = circ * (pctCollected / 100);
+const unpaidArc = circ - paidArc;
+
+// ── PAYER DATA — show PAID amounts, fallback to charges ──────────────────
+const ps = {};
+const psTotal = {};
+claims.forEach(c => {
+  const p = db.patients.find(x => x.id === c.patId);
+  const paidAmt = parseFloat(c.paid || 0);
+  const billedAmt = claimTotal(c);
+  if (p) {
+    const k = p.payerName || p.payerid || '—';
+    ps[k] = (ps[k] || 0) + paidAmt;
+    psTotal[k] = (psTotal[k] || 0) + billedAmt;
+  }
+});
+const payerEntries = Object.entries(ps).sort((a,b) => b[1] - a[1]).slice(0, 8);
+const maxPayerAmt = payerEntries.length ? payerEntries[0][1] : 1;
+
+const payerBars = payerEntries.map(([k, v]) => {
+  const pct = maxPayerAmt > 0 ? Math.round(v / maxPayerAmt * 100) : 0;
+  const billed = psTotal[k] || 0;
+  const rate = billed > 0 ? Math.round(v / billed * 100) : 0;
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <span style="font-size:12px;font-weight:600;color:#141413;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</span>
+      <span style="font-size:12px;font-family:monospace;font-weight:700;color:#2d7a4f">$${fmtMoney(v)}</span>
+    </div>
+    <div style="height:6px;background:#f0eee6;border-radius:3px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#2d7a4f,#3da86a);border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)"></div>
+    </div>
+    <div style="font-size:10px;color:#87867f;margin-top:2px">${rate}% collected of $${fmtMoney(billed)} billed</div>
+  </div>`;
+}).join('');
+
+// ── STATUS DISTRIBUTION — horizontal stacked bar ──────────────────────────
+const ss = {};
+claims.forEach(c => { ss[c.status] = (ss[c.status] || 0) + 1; });
+const statusColors = {
+  draft:'#87867f', pending:'#b35c00', submitted:'#3b6fd4',
+  accepted:'#059669', rejected:'#dc2626', denied:'#dc2626',
+  on_hold:'#7c3aed', paid:'#2d7a4f', partially_paid:'#0891b2',
+  voided:'#9ca3af', partial:'#0891b2', EXTENSION_QUEUED:'#6366f1'
+};
+const statusLabels = {
+  draft:'Draft', pending:'Pending', submitted:'Submitted', accepted:'Accepted CH',
+  rejected:'Rejected', denied:'Denied', on_hold:'On Hold', paid:'Paid',
+  partially_paid:'Partial', voided:'Voided', partial:'Partial', EXTENSION_QUEUED:'Queued'
+};
+const totalClaims = claims.length || 1;
+const statusRows = Object.entries(ss)
+  .sort((a,b) => b[1] - a[1])
+  .map(([s, n]) => {
+    const pct = Math.round(n / totalClaims * 100);
+    const col = statusColors[s] || '#87867f';
+    const lbl = statusLabels[s] || s;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f5f4ed">
+      <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <span style="font-size:12px;color:#5e5d59;flex:1">${lbl}</span>
+      <div style="width:80px;height:5px;background:#f0eee6;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:3px"></div>
+      </div>
+      <span style="font-size:12px;font-family:monospace;font-weight:700;color:#141413;min-width:24px;text-align:right">${n}</span>
+    </div>`;
+  }).join('');
+
+// ── RECENT CLAIMS TABLE ───────────────────────────────────────────────────
+let recentHtml;
+if (!claims.length) {
+  recentHtml = `<div class="empty"><div class="empty-ico"><i data-lucide="file-text" class="lci" style="width:24px;height:24px"></i></div><h3>No claims yet</h3><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div>`;
+} else {
+  recentHtml = `<div class="tbl-wrap" style="margin:0">
+    <table>
+      <thead><tr>
+        <th style="font-size:10px">PCN</th>
+        <th style="font-size:10px">Patient</th>
+        <th style="font-size:10px">DOS</th>
+        <th style="font-size:10px">Billed</th>
+        <th style="font-size:10px">Paid</th>
+        <th style="font-size:10px">Status</th>
+      </tr></thead>
+      <tbody>` +
+    claims.slice(-8).reverse().map(c => {
+      const p = db.patients.find(x => x.id === c.patId) || {last:'?', first:'?'};
+      const paid = parseFloat(c.paid || 0);
+      const billed = claimTotal(c);
+      const isPaid = paid > 0;
+      return `<tr>
+        <td class="mono" style="font-size:10px;color:#87867f">${c.pcn}</td>
+        <td style="font-weight:600;font-size:12px">${ptLinkName(p.id,p.last,p.first)}</td>
+        <td style="font-size:11px;color:#5e5d59">${c.dos}</td>
+        <td class="mono" style="font-size:12px;color:#141413">$${fmtMoney(billed)}</td>
+        <td class="mono" style="font-size:12px;font-weight:700;color:${isPaid?'#2d7a4f':'#87867f'}">
+          ${isPaid ? '$'+fmtMoney(paid) : '—'}
+        </td>
+        <td>${statusBadge(c.status)}</td>
+      </tr>`;
+    }).join('') +
+    `</tbody></table></div>`;
+}
+
+// ── INJECT into page ──────────────────────────────────────────────────────
+const dashContent = document.querySelector('#sec-dashboard .page-body');
+if (dashContent) {
+  dashContent.style.background = '#f8f8f6';
+  dashContent.style.padding = '20px';
+}
+
+document.getElementById('dash-recent').innerHTML = recentHtml;
+document.getElementById('dash-payers').innerHTML = payerBars || '<p style="font-size:13px;color:#87867f">No payment data yet</p>';
+document.getElementById('dash-status').innerHTML = statusRows;
+
+// ── Card styles for the two bottom cards ────────────────────────────────
+document.querySelectorAll('#sec-dashboard .card').forEach(card => {
+  card.style.background = '#ffffff';
+  card.style.border = '1px solid #e8e6dc';
+  card.style.borderRadius = '12px';
+});
+
+const errs = claims.reduce((s,c) => s + validateClaim(c).length, 0);
+document.getElementById('dash-alerts').innerHTML = errs
+  ? `<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} validation error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review now →</a></div>`
+  : '';
+
+setTimeout(_renderLucideIcons, 30);
 }
 
 
@@ -2591,24 +2725,24 @@ return `<div class="app-shell">
 <div class="main">
 <div class="content">
 <div class="section active" id="sec-dashboard">
-<div class="page-hdr">
-  <div><h1>Dashboard</h1><div id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></div></div>
+<div class="page-hdr" style="background:#fff;border-bottom:1px solid #e8e6dc;padding:14px 20px">
+  <div><h1 style="font-size:18px;font-weight:700;color:#141413">Dashboard</h1><div id="dash-sub" style="font-size:12px;color:#87867f;margin-top:2px"></div></div>
 </div>
 <div class="page-body">
 <div id="dash-alerts" style="margin-bottom:8px"></div>
 <div id="dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
   <div class="card">
-    <div class="card-title" style="margin-bottom:10px">Recent Claims</div>
+    <div class="card-title" style="margin-bottom:12px;font-size:13px;font-weight:700;color:#141413;display:flex;align-items:center;justify-content:space-between">Recent Claims <span style="font-size:10px;font-weight:400;color:#87867f;cursor:pointer" onclick="go(&apos;claims&apos;)">View all →</span></div>
     <div id="dash-recent"></div>
   </div>
   <div style="display:flex;flex-direction:column;gap:14px">
     <div class="card">
-      <div class="card-title" style="margin-bottom:6px">By Payer</div>
+      <div class="card-title" style="margin-bottom:12px;font-size:13px;font-weight:700;color:#141413">Collected by Payer</div>
       <div id="dash-payers"></div>
     </div>
     <div class="card">
-      <div class="card-title" style="margin-bottom:6px">By Status</div>
+      <div class="card-title" style="margin-bottom:12px;font-size:13px;font-weight:700;color:#141413">Claims by Status</div>
       <div id="dash-status"></div>
   </div>
 </div>
@@ -5728,7 +5862,7 @@ const fd = new FormData();
 fd.append('upload', 'claim');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv], { type:'text/csv' }), fname);
-const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', { method:'POST', body:fd });
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', { method:'POST', body:fd });
 const txt = await res.text();
 if (res.ok) {
 setDB(db2 => { const c = db2.claims.find(x => x.id === claim.id); if(c) c.status = 'submitted'; });
@@ -5770,7 +5904,7 @@ fd.append('action', 'sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID', '0');
 
-const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', {method:'POST',body:fd});
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 
@@ -10203,7 +10337,7 @@ const fname = 'Claims_Selected_'+dateStr()+'.csv';
 try {
 const fd=new FormData(); fd.append('action','upload'); fd.append('AccountKey',cfg.acctKey);
 fd.append('File',new Blob([csv],{type:'text/csv'}),fname);
-const res=await fetch('https://claimmd-proxy.imbsinc2023.workers.dev',{method:'POST',body:fd});
+const res=await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
 const xml=await res.text();
 const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
@@ -14125,243 +14259,63 @@ toast('Payment batch deleted and reversed');
 }
 
 // ?? ERA fetch from Clearinghouse ????????????????????????????????????????
-// ── ERA Worker URL ─────────────────────────────────────────────────────────
-var ERA_WORKER_URL = 'https://claimmd-era.imbsinc2023.workers.dev';
-
-// ── Helper: POST urlencoded to ERA worker ──────────────────────────────────
-async function _eraWorkerPost(endpoint, params) {
-  var body = Object.entries(params).map(function(kv){
-    return encodeURIComponent(kv[0])+'='+encodeURIComponent(kv[1]);
-  }).join('&');
-  var res = await fetch(ERA_WORKER_URL + endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body
-  });
-  if (!res.ok) throw new Error('ERA worker HTTP '+res.status);
-  return await res.json();
-}
-
-// ── Parse ClaimMD eradata JSON → payment lines ────────────────────────────
-// ClaimMD /eradata/ returns JSON with a "claim" array per ERA.
-// Each claim has pcn + charges[] with paid/adjustments.
-// A PCN can have MULTIPLE payments across different ERAs (primary + secondary).
-function _parseERADataClaims(eraData, eraInfo, db) {
-  var posted    = [];
-  var unmatched = [];
-  var claims    = eraData.claim || [];
-  if (!Array.isArray(claims)) claims = claims ? [claims] : [];
-
-  claims.forEach(function(c) {
-    var pcn        = (c.pcn || c.remote_claimid || '').trim().toUpperCase();
-    var totalPaid  = parseFloat(c.total_paid   || 0);
-    var statusCode = c.status_code || '';   // 1=paid, 4=denied/$0
-    var payerICN   = c.payer_icn  || '';
-    var dos        = c.from_dos   || c.thru_dos || '';
-
-    // Charge-level breakdown
-    var charges = c.charge || [];
-    if (!Array.isArray(charges)) charges = charges ? [charges] : [];
-    var chargeLines = charges.map(function(ch) {
-      var adjs = ch.adjustment || [];
-      if (!Array.isArray(adjs)) adjs = adjs ? [adjs] : [];
-      return {
-        cpt        : ch.proc_code || '',
-        charge     : parseFloat(ch.charge  || 0),
-        allowed    : parseFloat(ch.allowed || 0),
-        paid       : parseFloat(ch.paid    || 0),
-        adjustments: adjs.map(function(a) {
-          return { group:a.group, code:a.code, amount:parseFloat(a.amount||0) };
-        })
-      };
-    });
-
-    // PR group = patient responsibility; CO = contractual write-off
-    var patResp = chargeLines.reduce(function(s,cl){
-      return s + cl.adjustments.filter(function(a){return a.group==='PR';})
-                               .reduce(function(ss,a){return ss+a.amount;},0);
-    },0);
-    var adjAmt = chargeLines.reduce(function(s,cl){
-      return s + cl.adjustments.filter(function(a){return a.group==='CO';})
-                               .reduce(function(ss,a){return ss+a.amount;},0);
-    },0);
-
-    // Match PCN against local claims (tolerant of prefix variants)
-    var claim = db.claims.find(function(lc) {
-      if (lc.providerId !== activeProviderId) return false;
-      var lp = (lc.pcn||'').trim().toUpperCase();
-      return lp===pcn || lp==='PCN-'+pcn || lp==='CLM-'+pcn ||
-             pcn==='PCN-'+lp || pcn==='CLM-'+lp;
-    });
-
-    if (claim) {
-      // Idempotent: skip if this ERA was already posted to this claim
-      if ((claim.payments||[]).some(function(p){return p.eraId===eraInfo.eraid;})) return;
-      posted.push({
-        claimId    : claim.id,
-        pcn        : pcn,
-        dos        : dos || claim.dos || '',
-        amtPaid    : totalPaid.toFixed(2),
-        amtAdj     : adjAmt.toFixed(2),
-        adjCode    : 'ERA',
-        patResp    : patResp.toFixed(2),
-        eraId      : eraInfo.eraid,
-        eraCheck   : eraInfo.check_number || '',
-        payerName  : eraInfo.payer_name   || '',
-        payerId    : eraInfo.payerid       || '',
-        paidDate   : eraInfo.paid_date     || '',
-        payerICN   : payerICN,
-        statusCode : statusCode,
-        chargeLines: chargeLines
-      });
-    } else if (totalPaid > 0 || statusCode === '1') {
-      unmatched.push({
-        id        : uid(),
-        providerId: activeProviderId,
-        pcn       : pcn,
-        dos       : dos,
-        amt       : totalPaid,
-        payerName : eraInfo.payer_name || '',
-        eraId     : eraInfo.eraid,
-        source    : 'ERA',
-        createdAt : Date.now()
-      });
-    }
-  });
-
-  return { posted:posted, unmatched:unmatched };
-}
-
-// ── Main ERA fetch — called by "Fetch ERA" button ─────────────────────────
 async function fetchERAFromClearinghouse() {
-  var cfg = getApiConfig();
-  if (!cfg.acctKey) {
-    toast('Configure your Clearinghouse Account Key first','warn');
-    go('export'); return;
-  }
-
-  var alertEl  = document.getElementById('eob-alert');
-  var setAlert = function(html){ if(alertEl) alertEl.innerHTML=html; };
-
-  setAlert('<div class="alert al-info" style="display:flex;align-items:center;gap:8px">' +
-    '<i data-lucide="loader" class="lci" style="width:14px;height:14px;animation:spin 1s linear infinite"></i>' +
-    'Contacting ClaimMD clearinghouse&hellip;</div>');
-  setTimeout(_renderLucideIcons, 50);
-
-  var db         = getDB();
-  var lastERAID  = (db.settings && db.settings.lastERAID) ? db.settings.lastERAID : '0';
-
-  // ── STEP 1: ERA list ────────────────────────────────────────────────────
-  var eraList;
-  try {
-    eraList = await _eraWorkerPost('/eralist', {
-      AccountKey : cfg.acctKey,
-      ERAID      : lastERAID,
-      NewOnly    : '0'
-    });
-  } catch(e) {
-    setAlert('<div class="alert al-error">ERA list fetch failed: '+e.message+'</div>');
-    toast('ERA fetch failed: '+e.message,'err'); return;
-  }
-
-  // Normalize response — ClaimMD returns { era:[...], last_eraid:"..." }
-  var root = eraList.result || eraList;
-  var eras = root.era || [];
-  if (!Array.isArray(eras)) eras = eras ? [eras] : [];
-
-  if (!eras.length) {
-    setAlert('<div class="alert al-info">No new ERA payments since last sync. (Last ERA ID: '+lastERAID+')</div>');
-    toast('No new ERAs'); return;
-  }
-
-  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — fetching details&hellip;</div>');
-
-  // ── STEP 2: Detail per ERA ──────────────────────────────────────────────
-  var allPosted    = [];
-  var allUnmatched = [];
-  var allBatches   = [];
-  var newLastERAID = lastERAID;
-
-  for (var i=0; i<eras.length; i++) {
-    var eraInfo = eras[i];
-    var eraid   = String(eraInfo.eraid || eraInfo.ERAID || '');
-    if (!eraid) continue;
-    if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
-
-    var eraData;
-    try {
-      eraData = await _eraWorkerPost('/eradata', {
-        AccountKey : cfg.acctKey,
-        eraid      : eraid
-      });
-    } catch(e) {
-      console.warn('[ERA] eradata failed for eraid', eraid, e.message);
-      continue;
-    }
-
-    // Normalize: eradata wraps in result{}
-    var dataRoot = eraData.result || eraData;
-    var parsed   = _parseERADataClaims(dataRoot, eraInfo, db);
-
-    allPosted    = allPosted.concat(parsed.posted);
-    allUnmatched = allUnmatched.concat(parsed.unmatched);
-
-    if (parsed.posted.length > 0) {
-      allBatches.push({
-        id        : uid(),
-        providerId: activeProviderId,
-        eraId     : eraid,
-        payerName : eraInfo.payer_name   || 'ClaimMD ERA',
-        payerId   : eraInfo.payerid       || '',
-        checkNum  : eraInfo.check_number  || ('ERA-'+eraid),
-        checkType : eraInfo.check_type    || 'eft',
-        checkDate : eraInfo.paid_date     || new Date().toLocaleDateString('en-US'),
-        checkAmt  : parseFloat(eraInfo.paid_amount || 0),
-        notes     : 'Auto-imported ERA #'+eraid,
-        source    : 'era',
-        lines     : parsed.posted,
-        createdAt : Date.now(),
-        updatedAt : Date.now()
-      });
-    }
-  }
-
-  // ── STEP 3: Post payments to claims ────────────────────────────────────
-  if (allBatches.length) {
-    allBatches.forEach(function(batch){ _postEOBToClaims(batch); });
-    setEOBBatches(function(arr){ allBatches.forEach(function(b){ arr.push(b); }); });
-  }
-
-  // ── STEP 4: Save unmatched ─────────────────────────────────────────────
-  if (allUnmatched.length) {
-    setDB(function(db2){
-      if(!db2.eobUnmatched) db2.eobUnmatched=[];
-      db2.eobUnmatched.push.apply(db2.eobUnmatched, allUnmatched);
-    });
-  }
-
-  // ── STEP 5: Save ERAID cursor ──────────────────────────────────────────
-  if (newLastERAID !== lastERAID) {
-    setDB(function(db2){
-      if(!db2.settings) db2.settings={};
-      db2.settings.lastERAID = newLastERAID;
-    });
-  }
-
-  // ── STEP 6: Render summary ─────────────────────────────────────────────
-  var totalPaid = allPosted.reduce(function(s,p){return s+parseFloat(p.amtPaid||0);},0);
-  setAlert(
-    '<div class="alert al-success" style="font-size:13px">' +
-    '<strong>'+allPosted.length+' payment(s) posted</strong> across '+allBatches.length+' ERA(s) — ' +
-    '<strong>$'+totalPaid.toFixed(2)+' total</strong>' +
-    (allUnmatched.length ? ' &nbsp;|&nbsp; <span style="color:#b35c00">'+allUnmatched.length+' unmatched PCN(s)</span>' : '') +
-    '</div>'
-  );
-  renderEOBPage();
-  updateBadges();
-  toast('ERA: '+allPosted.length+' posted, '+allUnmatched.length+' unmatched');
+const cfg = getApiConfig();
+if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
+const alertEl = document.getElementById('eob-alert');
+if (alertEl) alertEl.innerHTML = '<div class="alert al-info">Fetching ERA data from Clearinghouse...</div>';
+toast('Fetching ERA from Clearinghouse...');
+try {
+const fd = new FormData();
+fd.append('action','sync');
+fd.append('AccountKey', cfg.acctKey);
+fd.append('ResponseID','0');
+const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
+const xml = await res.text();
+const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
+if (!blocks.length) {
+if (alertEl) alertEl.innerHTML = '<div class="alert al-info">No ERA data available at this time</div>';
+toast('No ERA data available'); return;
 }
-
+const db = getDB();
+const eraLines = [];
+const unmatched= [];
+blocks.forEach(b => {
+const gt = t => (b.match(new RegExp(`<${t}>(.*?)<\\/${t}>`,'s'))||[])[1]||'';
+const pcn = (gt('remote_claimid')||gt('pcn')).toUpperCase();
+const paid = parseFloat(gt('paid_amount')||gt('payment')||0);
+const adj = parseFloat(gt('adjustment')||0);
+const dos = gt('from_date')||gt('date_of_service')||'';
+const claim = db.claims.find(c=>c.pcn?.toUpperCase()===pcn && c.providerId===activeProviderId);
+if (claim && paid > 0) {
+eraLines.push({ claimId:claim.id, pcn, dos:dos||claim.dos, amtPaid:paid.toFixed(2), amtAdj:adj.toFixed(2), adjCode:'ERA', patResp:'0' });
+} else if (paid > 0) {
+unmatched.push({ id:uid(), providerId:activeProviderId, pcn, dos, amt:paid, source:'ERA', createdAt:Date.now() });
+}
+});
+if (eraLines.length) {
+const today = new Date().toLocaleDateString('en-US');
+const batch = {
+id:uid(), providerId:activeProviderId,
+payerName:'Clearinghouse ERA', payerId:'', checkNum:'ERA-'+Date.now(),
+checkDate:today, checkAmt: eraLines.reduce((s,l)=>s+parseFloat(l.amtPaid||0),0),
+notes:'Auto-imported from Clearinghouse ERA', source:'era',
+lines: eraLines, createdAt:Date.now(), updatedAt:Date.now(),
+};
+_postEOBToClaims(batch);
+setEOBBatches(arr=>arr.push(batch));
+}
+if (unmatched.length) {
+setDB(db2=>{ if(!db2.eobUnmatched) db2.eobUnmatched=[]; db2.eobUnmatched.push(...unmatched); });
+}
+if (alertEl) alertEl.innerHTML = `<div class="alert al-success">? ERA imported: ${eraLines.length} claim(s) posted, ${unmatched.length} unmatched</div>`;
+renderEOBPage(); updateBadges();
+toast(`ERA: ${eraLines.length} posted, ${unmatched.length} unmatched`);
+} catch(e) {
+if (alertEl) alertEl.innerHTML = `<div class="alert al-error">? ERA fetch failed: ${e.message}</div>`;
+toast('ERA fetch failed: '+e.message,'err');
+}
+}
 
 // ?? EDI 835 Upload & Parse ????????????????????????????????????????
 function handleEDI835Upload(event) {
