@@ -158,7 +158,7 @@ function renderPatientAdmission() {
     admissions.map(function(a) {
       var pat = (db.patients || []).find(function(p){ return p.id === a.patId; }) || {};
       return '<tr><td>' + (pat.last||'?') + ', ' + (pat.first||'') + '</td><td>' + (a.admitDate||'—') + '</td><td>' + (a.status||'—') + '</td></tr>';
-    }).join('') + '</tbody></table></div>';
+    }).join('') + '</tbody></table></div>' + pgBar2;
 }
 function renderTransmitLog() {
   var el = document.getElementById('transmit-content');
@@ -1053,6 +1053,8 @@ function renderPatients(){
 }
 function _patGoPage(pi){ window._patPgIndex=pi; renderPatients(); }
 function _patSetPgSize(s){ window._patPgSize=parseInt(s)||20; window._patPgIndex=0; renderPatients(); }
+function _eobGoPage(pi){ window._eobPgIndex=pi; setEOBTab('payments',null); }
+function _eobSetPgSize(s){ window._eobPgSize=parseInt(s)||20; window._eobPgIndex=0; setEOBTab('payments',null); }
 
 // ── Claims pagination & sorting ──────────────────────────────────
 function _clmGoPage(pi){ window._clmPgIndex=pi; renderClaims(); }
@@ -1735,16 +1737,112 @@ function _ceBuildClaimsHistoryTab(pat, db){
 }
 
 function _ceBuildEOBsTab(claim, db){
-  var eobs=(db.eobBatches||[]).filter(function(b){return (b.claimLines||[]).some(function(l){return l.claimId===claim.id;});});
-  return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+  var eobEntries = (db.claimEOB||{})[claim.id] || [];
+  var billed = claimTotal(claim);
+  var totalPaid = eobEntries.reduce(function(s,e){return s+parseFloat(e.paid||0);},0);
+  var balance = Math.max(0, billed - totalPaid);
+
+  if (!eobEntries.length) {
+    return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">ERA / EOB Payments</div>'+
+      '<div style="color:var(--text3);font-size:12px;font-style:italic">No EOBs posted for this claim.</div>'+
+    '</div>';
+  }
+
+  // Summary bar
+  var summaryBar = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">'+
+    _ceEobStat('Billed','$'+fmtMoney(billed),'#141413')+
+    _ceEobStat('Total Paid','$'+fmtMoney(totalPaid),'#2d7a4f')+
+    _ceEobStat('Balance','$'+fmtMoney(balance),balance>0?'#b35c00':'#2d7a4f')+
+    _ceEobStat('Pat. Resp','$'+fmtMoney(claim.patientBalance||0),claim.patientBalance>0?'#c96442':'#87867f')+
+  '</div>';
+
+  if (claim.readyForSecondary) {
+    summaryBar += '<div style="padding:6px 10px;background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;font-size:11px;font-weight:600;color:#b45309;margin-bottom:12px">'+
+      '<i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Ready for Secondary — Secondary balance: $'+fmtMoney(claim.secondaryBalance||0)+
+    '</div>';
+  }
+  if (claim.denialReason) {
+    summaryBar += '<div style="padding:6px 10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;color:#dc2626;margin-bottom:12px">'+
+      '<i data-lucide="x-circle" class="lci" style="width:12px;height:12px"></i> Denied: '+claim.denialReason+
+    '</div>';
+  }
+
+  // EOB entries
+  var entriesHtml = eobEntries.map(function(e, idx) {
+    var isPrimary = !e.isSecondary;
+    var tag = isPrimary
+      ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#e8f5e9;color:#2d7a4f">PRIMARY</span>'
+      : '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#e3f2fd;color:#1565c0">SECONDARY</span>';
+    var denBadge = e.isDenial
+      ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#fef2f2;color:#dc2626;margin-left:4px">DENIED</span>'
+      : '';
+
+    // Charge-level table
+    var adjTable = '';
+    if ((e.adjLines||[]).length) {
+      adjTable = '<div style="margin-top:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden">'+
+        '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
+        '<thead><tr style="background:var(--bg3)">'+
+          '<th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text3)">Group</th>'+
+          '<th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text3)">Code</th>'+
+          '<th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text3)">Description</th>'+
+          '<th style="padding:4px 8px;text-align:right;font-weight:600;color:var(--text3)">Amount</th>'+
+        '</tr></thead><tbody>'+
+        e.adjLines.map(function(a){
+          var gc = a.group==='CO'?'#5e5d59':a.group==='PR'?'#c96442':'#5e5d59';
+          return '<tr style="border-top:1px solid var(--border)">'+
+            '<td style="padding:4px 8px;font-weight:700;color:'+gc+'">'+a.group+'</td>'+
+            '<td style="padding:4px 8px;font-family:monospace">'+a.group+'-'+a.code+'</td>'+
+            '<td style="padding:4px 8px;color:var(--text2)">'+a.desc+'</td>'+
+            '<td style="padding:4px 8px;text-align:right;font-family:monospace;color:'+gc+'">$'+a.amount.toFixed(2)+'</td>'+
+          '</tr>';
+        }).join('')+
+        '</tbody></table></div>';
+    }
+
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg2)">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<span style="font-size:12px;font-weight:700;color:var(--text)">'+(e.payerName||'Payer')+'</span>'+
+          tag+denBadge+
+        '</div>'+
+        '<span style="font-size:10px;color:var(--text3)">'+(e.checkDate||new Date(e.postedAt).toLocaleDateString())+'</span>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">'+
+        _ceEobMini('Check #', e.checkNum||'—')+
+        _ceEobMini('ICN', e.payerICN||'—')+
+        _ceEobMini('Billed', '$'+fmtMoney(e.billed||0))+
+        _ceEobMini('Allowed', '$'+fmtMoney(e.allowed||0))+
+        _ceEobMini('Paid', '$'+fmtMoney(e.paid||0), '#2d7a4f')+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px">'+
+        _ceEobMini('Contractual (CO)', '$'+fmtMoney(e.adj||0))+
+        _ceEobMini('Deductible', '$'+fmtMoney(e.deductible||0), e.deductible>0?'#c96442':null)+
+        _ceEobMini('Coinsurance', '$'+fmtMoney(e.coinsurance||0), e.coinsurance>0?'#c96442':null)+
+        _ceEobMini('Copay', '$'+fmtMoney(e.copay||0), e.copay>0?'#c96442':null)+
+      '</div>'+
+      adjTable+
+    '</div>';
+  }).join('');
+
+  return '<div style="flex:1;overflow-y:auto;padding:14px">'+
     '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">ERA / EOB Payments</div>'+
-    (eobs.length?
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Check Date</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Payer</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Amount</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Check #</th></tr></thead>'+
-        '<tbody>'+eobs.map(function(b){return '<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.checkDate||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.payerName||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+(parseFloat(b.totalAmt||0).toFixed(2))+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(b.checkNum||'')+'</td></tr>';}).join('')+
-        '</tbody></table>':
-      '<div style="color:var(--text3);font-size:12px;font-style:italic">No EOBs posted for this claim.</div>'
-    )+'</div>';
+    summaryBar+
+    entriesHtml+
+  '</div>';
+}
+function _ceEobStat(label, val, color) {
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:2px">'+label+'</div>'+
+    '<div style="font-size:13px;font-weight:800;font-family:var(--mono);color:'+(color||'var(--text)')+'">'+val+'</div>'+
+  '</div>';
+}
+function _ceEobMini(label, val, color) {
+  return '<div>'+
+    '<div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">'+label+'</div>'+
+    '<div style="font-size:11px;font-family:monospace;font-weight:700;color:'+(color||'var(--text)')+'">'+val+'</div>'+
+  '</div>';
 }
 
 function _ceBuildCommentsTab(claim, claimId){
@@ -12759,7 +12857,7 @@ const mnText = sections.MN.length
 ? fmt(sections.MN)
 : `Services rendered are medically necessary for the management of ${dxFull}. `+
 `Clinical findings support continued ${tpl.level.toLowerCase()} level evaluation and management. `+
-`Without treatment, patient's condition would be expected to deteriorate.`;
+`Without treatment, patient s condition would be expected to deteriorate.`;
 
 return `SUBJECTIVE
 ${fmt(sections.S) !== '' ? fmt(sections.S) : `${age}-year-old ${sex} presents for evaluation.`}
@@ -13673,11 +13771,12 @@ function printEOBBatch(batchId) {
 
   var html = '<!DOCTYPE html><html><head><title>EOB — '+b.checkNum+'</title>'+
   '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:32px;color:#141413}'+
-  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #c96442}'+
-  '.prov-block{display:flex;flex-direction:column;gap:4px}'+
-  '.prov-name{font-size:13px;font-weight:700;color:#141413;margin-top:6px}'+
-  '.prov-addr{font-size:11px;color:#5e5d59}'+
-  '.prov-npi{font-size:11px;color:#87867f}'+
+  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #c96442}'+
+  '.prov-block{display:flex;flex-direction:column;gap:3px;max-width:55%}'+
+  '.prov-block img{height:56px;max-width:200px;object-fit:contain;margin-bottom:6px}'+
+  '.prov-name{font-size:14px;font-weight:800;color:#141413;margin-top:4px;letter-spacing:-.01em}'+
+  '.prov-addr{font-size:11px;color:#5e5d59;line-height:1.5}'+
+  '.prov-npi{font-size:10px;color:#87867f}'+
   '.meta{font-size:11px;color:#5e5d59;text-align:right}'+
   '.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;background:#f5f4ed;border-radius:8px;padding:16px;margin-bottom:20px}'+
   '.info-item label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87867f;display:block;margin-bottom:3px}'+
@@ -13696,12 +13795,13 @@ function printEOBBatch(batchId) {
       (provAddr?'<div class="prov-addr">'+provAddr+'</div>':'')+
       (prov.phone?'<div class="prov-addr">Tel: '+prov.phone+'</div>':'')+
       (prov.npi?'<div class="prov-npi">NPI: '+prov.npi+'</div>':'')+
+      (prov.taxid?'<div class="prov-npi">Tax ID: '+prov.taxid+'</div>':'')+
     '</div>'+
     '<div class="meta">'+
-      '<div style="font-size:15px;font-weight:800;color:#141413;margin-bottom:4px">Explanation of Benefits</div>'+
-      '<div>Type: '+typeLbl+'</div>'+
-      '<div>Printed: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'+
-      (prov.taxid?'<div>Tax ID: '+prov.taxid+'</div>':'')+
+      '<div style="font-size:18px;font-weight:900;color:#141413;margin-bottom:6px;letter-spacing:-.01em">Explanation of Benefits</div>'+
+      '<div style="font-size:11px;color:#5e5d59">Type: '+typeLbl+'</div>'+
+      '<div style="font-size:11px;color:#5e5d59">Printed: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'+
+      '<div style="margin-top:10px;font-size:11px;font-weight:700;color:#c96442">Powered by ClaimDataCare</div>'+
     '</div>'+
   '</div>'+
   '<div class="info-grid">'+
@@ -13719,7 +13819,7 @@ function printEOBBatch(batchId) {
     '<div class="total-item"><label>Total Posted</label><span style="color:#2d7a4f">$'+posted.toFixed(2)+'</span></div>'+
     '<div class="total-item"><label>Balance</label><span style="color:'+(Math.abs(balance)<0.01?'#2d7a4f':balance<0?'#dc2626':'#b35c00')+'">$'+Math.abs(balance).toFixed(2)+'</span></div>'+
   '</div>'+
-  '<div class="footer">'+prov.name+' &mdash; Generated by ClaimDataCare &mdash; NPI: '+(prov.npi||'')+'</div>'+
+  '<div class="footer" style="text-align:right"><span style="color:#c96442;font-weight:700;font-size:11px">Powered by ClaimDataCare</span></div>'+
   '</body></html>';
 
   var w = window.open('','_blank','width=900,height=700');
@@ -13847,6 +13947,31 @@ var db = getDB();
   });
   function _thSort(col,lbl){ var active=sortCol===col; var arr=active?(sortDir==='asc'?'&#x25B2;':'&#x25BC;'):'<span style="opacity:.3">&#x25BC;</span>'; return '<th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="_eobSortBy(&quot;'+col+'&quot;)">'+lbl+' '+arr+'</th>'; }
   var theadRow = _thSort('date','Date')+_thSort('payer','Payer')+_thSort('check','Check #')+_thSort('chkdate','Check Date')+_thSort('amt','Check Amt')+_thSort('posted','Posted')+'<th>Balance</th>'+_thSort('claims','Claims')+_thSort('type','Type')+'<th>Actions</th>';
+
+  // ── Pagination ──────────────────────────────────────────────────────────
+  var pgSize  = window._eobPgSize  || 20;
+  var pgIndex = window._eobPgIndex || 0;
+  var total   = batches.length;
+  var pgCount = Math.ceil(total / pgSize) || 1;
+  if (pgIndex >= pgCount) pgIndex = 0;
+  window._eobPgIndex = pgIndex;
+  var pageBatches = batches.slice(pgIndex * pgSize, (pgIndex+1) * pgSize);
+
+  var lo2 = Math.max(0, pgIndex-3), hi2 = Math.min(pgCount-1, pgIndex+3);
+  var pgBtns2 = '';
+  if (lo2 > 0) pgBtns2 += '<button class="pg-btn" onclick="_eobGoPage(0)">1</button>'+(lo2>1?'<span class="pg-ellipsis">&hellip;</span>':'');
+  for (var pi2=lo2; pi2<=hi2; pi2++) pgBtns2 += '<button class="pg-btn'+(pi2===pgIndex?' pg-active':'')+'" onclick="_eobGoPage('+pi2+')">'+(pi2+1)+'</button>';
+  if (hi2 < pgCount-1) pgBtns2 += (hi2<pgCount-2?'<span class="pg-ellipsis">&hellip;</span>':'')+'<button class="pg-btn" onclick="_eobGoPage('+(pgCount-1)+')">'+pgCount+'</button>';
+  var pgSizeOpts2 = [20,50,100].map(function(s){ return '<option value="'+s+'"'+(s===pgSize?' selected':'')+'>'+s+' / page</option>'; }).join('');
+  var fromE = pgIndex*pgSize+1, toE = Math.min((pgIndex+1)*pgSize, total);
+  var pgBar2 = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-top:1px solid var(--border);background:var(--bg2)">'+
+    '<span style="font-size:11px;color:var(--text3)">'+fromE+'\u2013'+toE+' of '+total+' batches</span>'+
+    '<div style="display:flex;align-items:center;gap:8px">'+
+    '<div class="pg-bar">'+pgBtns2+'</div>'+
+    '<select onchange="_eobSetPgSize(this.value)" style="padding:3px 8px;border:1px solid var(--border2);border-radius:5px;font-size:11px;background:var(--bg2);color:var(--text);cursor:pointer">'+pgSizeOpts2+'</select>'+
+    '</div></div>';
+  // Use pageBatches instead of batches in the table rows
+  batches = pageBatches;
 
   return filtersHtml+
   '<div class="tbl-wrap"><table>'+
@@ -14383,50 +14508,275 @@ renderEOBPage();
 toast(`Payment batch posted — ${batch.lines.length} claim(s)`);
 }
 
+
+// ── CARC/RARC descriptions ─────────────────────────────────────────────────
+var _CARC_DESC = {
+  '1':'Deductible amount','2':'Coinsurance amount','3':'Co-payment amount',
+  '4':'The procedure code is inconsistent with the modifier used','5':'The procedure code/bill type is inconsistent with the place of service',
+  '6':'The procedure/revenue code is inconsistent with the patient age','7':'The procedure/revenue code is inconsistent with the patient gender',
+  '8':'The procedure code is inconsistent with the provider type/specialty',
+  '9':'The diagnosis is inconsistent with the patient age',
+  '10':'The diagnosis is inconsistent with the patient s gender',
+  '11':'The diagnosis is inconsistent with the procedure',
+  '12':'The diagnosis is inconsistent with the provider type',
+  '13':'The date of death precedes the date of service',
+  '14':'The date of birth follows the date of service',
+  '15':'The authorization number is missing, invalid, or does not apply to the billed services',
+  '16':'Claim/service lacks information or has submission/billing error(s)',
+  '18':'Exact duplicate claim/service','19':'Claim denied because this is a work-related injury/illness',
+  '20':'Claim denied because this injury/illness is covered by the liability carrier',
+  '21':'Claim denied because this injury/illness is the liability of the no-fault carrier',
+  '22':'This care may be covered by another payer per coordination of benefits',
+  '23':'The impact of prior payer(s) adjudication including payments and/or adjustments',
+  '24':'Charges are covered under a capitation agreement/managed care plan',
+  '26':'Expenses incurred prior to coverage','27':'Expenses incurred after coverage terminated',
+  '29':'The time limit for filing has expired','31':'Patient cannot be identified as our insured',
+  '32':'Our records indicate that this dependent is not an eligible dependent as defined',
+  '33':'Insured has no dependent coverage','34':'Insured has no coverage for newborns',
+  '35':'Lifetime benefit maximum has been reached','39':'Services denied at the time authorization/pre-certification was requested',
+  '40':'Charges do not meet qualifications for emergent/urgent care',
+  '44':'Prompt-pay discount','45':'Charge exceeds fee schedule/maximum allowable',
+  '46':'This (these) service(s) is (are) not covered','47':'This (these) diagnosis(es) is (are) not covered',
+  '49':'These are non-covered services because this is a routine exam or screening procedure',
+  '50':'These are non-covered services because this is not deemed a medical necessity',
+  '51':'These are non-covered services because this is a pre-existing condition',
+  '55':'Procedure/treatment is deemed experimental/investigational by the payer',
+  '57':'Payment denied/reduced because the payer deems the information submitted does not support this level of service',
+  '58':'Treatment was deemed by the payer to have been rendered in an inappropriate or invalid place of service',
+  '59':'Processed based on multiple surgery rules','60':'Charges for outpatient services are not covered when performed within a period of time prior to or after inpatient services',
+  '61':'Penalty for failure to obtain second surgical opinion','62':'Payment denied/reduced for absence of, or exceeded, precertification/authorization',
+  '63':'Correction to a prior claim','65':'Procedure code was incorrect',
+  '66':'Blood deductible','67':'Lifetime reserve days','68':'DRG weight error',
+  '69':'Day outlier amount','70':'Cost outlier','74':'Indirect medical education adjustment',
+  '75':'Direct medical education adjustment','76':'Disproportionate share adjustment',
+  '96':'Non-covered charge(s)','97':'The benefit for this service is included in the payment/allowance for another service',
+  '100':'Payment made to patient/insured/responsible party','109':'Claim/service not covered by this payer/contractor',
+  '110':'Billing date predates service date','119':'Benefit maximum for this time period or occurrence has been reached',
+  '125':'Submission/billing error','128':'Newborn services are covered in the mother Allowance',
+  '129':'Prior processing information appears incorrect','130':'Claim submission fee',
+  '131':'Claim specific negotiated discount','132':'Prearranged demonstration project adjustment',
+  '133':'The disposition of the claim/service is pending further review',
+  '134':'Technical fees removed from charges','135':'Interim bills cannot be processed',
+  '136':'Failure to follow prior payer s coverage determinations',
+  '137':'Regulatory surcharges, assessments, allowances or health related taxes',
+  '139':'Contracted funding agreement - Subscriber is employed by the member organization',
+  '140':'Patient/Insured health identification number and name do not match',
+  '141':'Claim spans eligible and ineligible periods of coverage',
+  '142':'Monthly Medicaid patient liability amount',
+  '143':'Portion of payment deferred','144':'Incentive adjustment',
+  '145':'Premium payment withholding','146':'Diagnosis was invalid for the date(s) of service reported',
+  '147':'Provider contracted/negotiated rate expired or not on file',
+  '148':'Information from another provider was not provided or was insufficient/incomplete',
+  '149':'Lifetime benefit maximum has been reached for this service',
+  '150':'Payer deems the information submitted does not support this level of service',
+  '151':'Payment adjusted because the payer deems the information submitted does not support this many/frequency of services',
+  '152':'Payer deems the information submitted does not support this length of service',
+  '153':'Payer deems the information submitted does not support this dosage',
+  '154':'Payer deems the information submitted does not support this days supply',
+  '155':'Patient refused the prescribed treatment/medication',
+  '157':'Service/procedure was provided as a result of an act of war',
+  '158':'Service/procedure was provided outside of the United States',
+  '159':'Service/procedure was provided as a result of terrorism',
+  '160':'Injury/illness was the result of an activity that is a benefit exclusion',
+  '161':'Provider performance bonus',
+  '163':'Attachment/other documentation referenced on the claim was not received in a timely fashion',
+  '164':'Attachment referenced on the claim was not received - claim adjusted prior to receipt',
+  '165':'Referral absent or exceeded','166':'These services were submitted after this plan s responsibility for Medicare crossover services ended',
+  '167':'This (these) diagnosis(es) is (are) not covered. At least one Remark Code must be provided',
+  '168':'Service(s) have been considered under the patient s medical plan. Benefits are not available under this dental plan',
+  '169':'Reimbursement is subject to RAC review','170':'Payment is denied when performed/billed by this type of provider',
+  '171':'Payment is denied when performed/billed by this type of provider in this type of facility',
+  '172':'Payment is adjusted when performed/billed by a provider of this specialty',
+  '173':'No payment made for this round of late charges','174':'Service is not covered when the patient refuses to designate a primary care provider',
+  '175':'Service is not covered when the patient has elected a managed care plan enrollment',
+  '176':'Contract/plan does not include benefits for this type of dental service',
+  '177':'Patient has not met the required eligibility requirements',
+  '178':'Patient has not met the required spend down requirements',
+  '179':'Patient has not met the required waiting requirements',
+  '180':'Patient has not met the required residency requirements',
+  '181':'Procedure code was invalid on the date of service',
+  '182':'Procedure modifier was invalid on the date of service',
+  '183':'The referring provider is not eligible to refer the service billed',
+  '184':'The prescribing/ordering provider is not eligible to prescribe/order the service billed',
+  '185':'The rendering provider is not eligible to render the service billed',
+  '186':'Level of care change adjustment',
+  '187':'Consumer Spending Account payments (i.e. Flexible Spending Account, Health Savings Account, Health Reimbursement Account)',
+  '188':'This product/procedure is only covered when used according to FDA recommendations',
+  '189':'Not otherwise classified or unlisted procedure code (CPT/HCPCS) was billed when there is a specific procedure code for this procedure',
+  '190':'Payment is included in the allowance for a Skilled Nursing Facility (SNF)',
+  '191':'The provider must update their enrollment record before the claim can be processed',
+  '192':'Non standard adjustment code from paper remittance',
+  '193':'Original payment decision is being maintained',
+  '194':'Anesthesia performed by the operating physician, the assistant surgeon or the resident without a teaching anesthesiologist',
+  '195':'Refund issued to an erroneous priority payer for this claim/service',
+  '196':'Claim/service denied based on the member s election of a Voluntary Medicare Supplemental Benefit as a result of the Balanced Budget Act of 1997',
+  '197':'Precertification/authorization/notification absent',
+  '198':'Precertification/authorization exceeded',
+  '199':'Revenue code and Procedure code do not match',
+  '200':'Expenses incurred during lapse in coverage',
+  '201':'Workers Compensation case settled',
+  'OA':'Other adjustments',
+  'PI':'Payer initiated reductions',
+  'PR':'Patient responsibility',
+  'CO':'Contractual obligations'
+};
+function _getCARCDesc(code) {
+  return _CARC_DESC[String(code)] || ('Adjustment code ' + code);
+}
+
 function _postEOBToClaims(batch) {
 const db = getDB();
 setDB(db2 => {
 batch.lines.forEach(l => {
 const claim = db2.claims.find(c=>c.id===l.claimId);
 if (!claim) return;
-// Store EOB on claim
 if (!db2.claimEOB) db2.claimEOB = {};
 if (!db2.claimEOB[claim.id]) db2.claimEOB[claim.id] = [];
 
-// ── Duplicate guard: block if same check# already posted to this claim ──
+// ── Duplicate guard ──────────────────────────────────────────────────────
 var checkNumNorm = (batch.checkNum||'').trim().toUpperCase();
 if (checkNumNorm) {
   var alreadyPosted = db2.claimEOB[claim.id].some(function(e) {
     return (e.checkNum||'').trim().toUpperCase() === checkNumNorm;
   });
   if (alreadyPosted) {
-    console.warn('[EOB] Skipping duplicate post — checkNum', batch.checkNum, 'already posted to claim', claim.id, '(PCN:', claim.pcn+')');
-    return; // skip this line
+    console.warn('[EOB] Skipping duplicate — checkNum', batch.checkNum, 'PCN:', claim.pcn);
+    return;
   }
 }
-db2.claimEOB[claim.id].push({
-batchId: batch.id,
-payerName: batch.payerName,
-checkNum: batch.checkNum,
-checkDate: batch.checkDate,
-paid: parseFloat(l.amtPaid||0),
-adj: parseFloat(l.amtAdj||0),
-adjCode: l.adjCode||'',
-patResp: parseFloat(l.patResp||0),
-postedAt: Date.now(),
+// ── Build adjustment lines with descriptions ────────────────────────────
+var adjLines = [];
+(l.chargeLines||[]).forEach(function(cl){
+  (cl.adjustments||[]).forEach(function(a){
+    adjLines.push({
+      group: a.group,
+      code:  String(a.code||''),
+      amount: parseFloat(a.amount||0),
+      desc:  _getCARCDesc(a.code),
+      cpt:   cl.cpt||''
+    });
+  });
 });
 
-// Update claim status
-const paid = db2.claimEOB[claim.id].reduce((s,e)=>s+parseFloat(e.paid||0),0);
-const billed = claimTotal(claim);
-const patResp = db2.claimEOB[claim.id].reduce((s,e)=>s+parseFloat(e.patResp||0),0);
+// ── Detect denial: statusCode 2=denied, or OA/CO-97/CO-96 = non-covered ──
+var isDenial = false;
+var statusCode = String(l.statusCode||'');
+if (statusCode==='2'||statusCode==='4'||statusCode==='27') isDenial = true;
+var totalPaid = parseFloat(l.amtPaid||0);
+if (!isDenial && totalPaid===0) {
+  // Check if all adjustments are CO (denial reasons) with no PR
+  var hasPR = adjLines.some(function(a){ return a.group==='PR'; });
+  var hasCO = adjLines.some(function(a){ return a.group==='CO'; });
+  if (hasCO && !hasPR) isDenial = true;
+}
 
-claim.primaryPaid = paid;
-claim.primaryPosted = true;
-claim.updatedAt = Date.now();
+// ── Patient responsibility breakdown ────────────────────────────────────
+var prLines = adjLines.filter(function(a){ return a.group==='PR'; });
+var deductible  = prLines.filter(function(a){ return a.code==='1'; }).reduce(function(s,a){return s+a.amount;},0);
+var coinsurance = prLines.filter(function(a){ return a.code==='2'; }).reduce(function(s,a){return s+a.amount;},0);
+var copay       = prLines.filter(function(a){ return a.code==='3'; }).reduce(function(s,a){return s+a.amount;},0);
+var otherPR     = prLines.filter(function(a){ return a.code!=='1'&&a.code!=='2'&&a.code!=='3'; }).reduce(function(s,a){return s+a.amount;},0);
+var totalPR = parseFloat(l.patResp||0) || (deductible+coinsurance+copay+otherPR);
+var prIsPatientResponsibility = (deductible>0||coinsurance>0||copay>0); // PR-1/2/3 = patient owes
 
-// Check if ready for secondary
-const pat = db2.patients.find(p=>p.id===claim.patId)||{};
+// ── Detect secondary insurance ───────────────────────────────────────────
+var pat = db2.patients.find(function(p){ return p.id===claim.patId; })||{};
+var coverages = pat.coverages||[];
+var hasSecondary = !!(pat.secondaryPayerId||pat.secondaryPayerName||
+  coverages.some(function(c){ return c.type==='Secondary'&&c.active!==false; }));
+// Also detect if claim already has a prior primary payment (then this IS the secondary)
+var existingEOBs = db2.claimEOB[claim.id];
+var isSecondaryPayment = existingEOBs.length > 0; // already had a primary post
+
+// ── Allowed amount ───────────────────────────────────────────────────────
+var coAdj = adjLines.filter(function(a){return a.group==='CO';}).reduce(function(s,a){return s+a.amount;},0);
+var billed = claimTotal(claim);
+var allowed = billed - coAdj;
+
+// ── Push EOB entry ───────────────────────────────────────────────────────
+db2.claimEOB[claim.id].push({
+  batchId:     batch.id,
+  eraId:       l.eraId||batch.eraId||'',
+  payerName:   batch.payerName,
+  payerId:     batch.payerId||l.payerId||'',
+  checkNum:    batch.checkNum,
+  checkDate:   batch.checkDate,
+  payerICN:    l.payerICN||'',
+  patientId:   pat.acct||pat.id||'',
+  paid:        totalPaid,
+  allowed:     allowed,
+  billed:      billed,
+  adj:         coAdj,
+  adjCode:     'CO',
+  patResp:     totalPR,
+  deductible:  deductible,
+  coinsurance: coinsurance,
+  copay:       copay,
+  otherPR:     otherPR,
+  adjLines:    adjLines,
+  isDenial:    isDenial,
+  isSecondary: isSecondaryPayment,
+  statusCode:  statusCode,
+  postedAt:    Date.now()
+});
+
+// ── Aggregate all payments on this claim ────────────────────────────────
+var allEOBs    = db2.claimEOB[claim.id];
+var totalPaidAll = allEOBs.reduce(function(s,e){return s+parseFloat(e.paid||0);},0);
+var totalPRAll   = allEOBs.reduce(function(s,e){return s+parseFloat(e.patResp||0);},0);
+
+claim.primaryPaid    = totalPaidAll;
+claim.primaryPosted  = true;
+claim.updatedAt      = Date.now();
+claim.balance        = Math.max(0, billed - totalPaidAll);
+
+if (isDenial) {
+  // Full denial — mark denied, balance = full charge
+  claim.status           = 'denied';
+  claim.readyForSecondary = false;
+  claim.patientBalance   = 0; // billing team reviews first
+  claim.denialReason     = adjLines.filter(function(a){return a.group==='CO';})
+    .map(function(a){return a.group+'-'+a.code;}).join(', ');
+} else if (isSecondaryPayment) {
+  // Secondary already posted — remaining PR is real patient responsibility
+  var afterSecondary = Math.max(0, totalPRAll - totalPaidAll + parseFloat(l.amtPaid||0));
+  if (prIsPatientResponsibility) {
+    // Deductible/copay/coinsurance from secondary = patient owes
+    claim.patientBalance   = totalPR;
+    claim.status           = totalPaidAll >= billed * 0.95 ? 'paid' : 'partially_paid';
+    claim.readyForSecondary = false;
+  } else {
+    // Secondary denied for non-PR reasons — flag for review
+    claim.status           = 'denied';
+    claim.patientBalance   = 0;
+    claim.readyForSecondary = false;
+    claim.denialReason     = 'Secondary denial: ' + adjLines.filter(function(a){return a.group==='CO';}).map(function(a){return a.group+'-'+a.code;}).join(', ');
+  }
+} else {
+  // Primary payment
+  if (totalPR > 0) {
+    if (hasSecondary) {
+      // Has secondary — PR goes to secondary queue, not patient debt
+      claim.readyForSecondary = true;
+      claim.secondaryBalance  = totalPR;
+      claim.patientBalance    = 0;
+      claim.status            = totalPaidAll > 0 ? 'partially_paid' : claim.status;
+    } else {
+      // No secondary — PR is real patient responsibility
+      claim.patientBalance    = totalPR;
+      claim.readyForSecondary = false;
+      claim.status            = totalPaidAll > 0 ? (totalPaidAll >= billed * 0.95 ? 'paid' : 'partially_paid') : claim.status;
+    }
+  } else {
+    // No patient responsibility at all
+    claim.patientBalance    = 0;
+    claim.readyForSecondary = false;
+    claim.status            = totalPaidAll >= billed * 0.95 ? 'paid' : 'partially_paid';
+  }
+}
+
+// ── Legacy compat fields ─────────────────────────────────────────────────
+const patx = pat;
 const ins2 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
 if (ins2 && patResp > 0.01) {
 claim.readyForSecondary = true;
@@ -18568,7 +18918,7 @@ const iv = idx !== null ? (pat.insurances||[])[idx]||{} : {};
 const existing = document.getElementById('pt-ins-form');
 if (existing) existing.remove();
 
-// Helper: fill patient's own demo data when Relation=Self
+// Helper: fill patient s own demo data when Relation=Self
 function _selfFill() {
 const rel = document.getElementById('pif-relation')?.value;
 if (rel !== 'Self') return;
@@ -18828,7 +19178,7 @@ if (insType === 'Primary' && (idx === null || idx < 0)) {
 if (idx !== null && idx >= 0) p.insurances[idx]={...p.insurances[idx],...entry};
 else p.insurances.push(entry);
 });
-// Also update the patient's primary insurance fields from the primary entry
+// Also update the patient s primary insurance fields from the primary entry
 if (insType==='Primary') {
 setDB(db => {
 const p = db.patients.find(x=>x.id===patId);
@@ -21793,7 +22143,7 @@ function getApiConfig() {
 const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
 if (stored.openaiKey) return stored;
 // Return API config for the active provider
-// Primary: active provider's stored acctKey
+// Primary: active provider s stored acctKey
 if (activeProviderId) {
 const db = getDB();
 const prov = db.providers.find(p => p.id === activeProviderId);
