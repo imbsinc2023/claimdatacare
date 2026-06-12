@@ -13646,14 +13646,25 @@ function printEOBBatch(batchId) {
   var balance = parseFloat(b.checkAmt||0) - posted;
   var typeLbl = b.source==='era'?'ERA':b.source==='835'?'EDI 835':'Manual EOB';
 
+  // Logo — base64 if available, else text fallback
+  var logoHtml = prov.logo
+    ? '<img src="'+prov.logo+'" style="height:52px;max-width:180px;object-fit:contain;display:block">'
+    : '<div style="font-size:22px;font-weight:900;color:#c96442;letter-spacing:-.02em">'+(prov.name||'Billing Provider')+'</div>';
+
+  // Provider address block
+  var provAddr = [prov.addr1, prov.addr2, (prov.city&&prov.state?(prov.city+', '+prov.state+(prov.zip?' '+prov.zip:'')):'')].filter(Boolean).join(' | ');
+
   var lineRows = (b.lines||[]).map(function(l) {
     var claim = db.claims.find(function(c){ return c.id===l.claimId; })||{};
-    var pat = db.patients.find(function(p){ return p.id===claim.patId; })||{};
+    var pat   = db.patients.find(function(p){ return p.id===claim.patId; })||{};
     var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'—';
+    // CPT codes from claim lines
+    var cpts = ((claim.lines)||[]).map(function(cl){ return cl.cpt||cl.code||''; }).filter(Boolean).join(', ');
     return '<tr style="border-bottom:1px solid #e8e6dc">'+
-      '<td style="padding:6px 10px;font-size:12px;font-family:monospace">'+(l.pcn||claim.pcn||'—')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px;font-family:monospace">'+(l.pcn||claim.pcn||'—')+'</td>'+
       '<td style="padding:6px 10px;font-size:12px">'+patName+'</td>'+
-      '<td style="padding:6px 10px;font-size:12px">'+(l.dos||claim.dos||'—')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px">'+(l.dos||claim.dos||'—')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#5e5d59">'+(cpts||'—')+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.amtPaid||0).toFixed(2))+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.amtAdj||0).toFixed(2))+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.patResp||0).toFixed(2))+'</td>'+
@@ -13662,8 +13673,11 @@ function printEOBBatch(batchId) {
 
   var html = '<!DOCTYPE html><html><head><title>EOB — '+b.checkNum+'</title>'+
   '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:32px;color:#141413}'+
-  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #c96442}'+
-  '.logo{font-size:20px;font-weight:800;color:#c96442}'+
+  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #c96442}'+
+  '.prov-block{display:flex;flex-direction:column;gap:4px}'+
+  '.prov-name{font-size:13px;font-weight:700;color:#141413;margin-top:6px}'+
+  '.prov-addr{font-size:11px;color:#5e5d59}'+
+  '.prov-npi{font-size:11px;color:#87867f}'+
   '.meta{font-size:11px;color:#5e5d59;text-align:right}'+
   '.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;background:#f5f4ed;border-radius:8px;padding:16px;margin-bottom:20px}'+
   '.info-item label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87867f;display:block;margin-bottom:3px}'+
@@ -13676,12 +13690,18 @@ function printEOBBatch(batchId) {
   '.footer{font-size:10px;color:#87867f;text-align:center;border-top:1px solid #e8e6dc;padding-top:12px}'+
   '@media print{.no-print{display:none}}</style></head><body>'+
   '<div class="hdr">'+
-    '<div><div class="logo">ClaimDataCare</div>'+
-    '<div style="font-size:12px;color:#5e5d59;margin-top:2px">'+(prov.name||'')+'</div></div>'+
+    '<div class="prov-block">'+
+      logoHtml+
+      '<div class="prov-name">'+(prov.name||'')+'</div>'+
+      (provAddr?'<div class="prov-addr">'+provAddr+'</div>':'')+
+      (prov.phone?'<div class="prov-addr">Tel: '+prov.phone+'</div>':'')+
+      (prov.npi?'<div class="prov-npi">NPI: '+prov.npi+'</div>':'')+
+    '</div>'+
     '<div class="meta">'+
-      '<div style="font-size:14px;font-weight:700;color:#141413">Explanation of Benefits</div>'+
-      '<div>Printed: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'+
+      '<div style="font-size:15px;font-weight:800;color:#141413;margin-bottom:4px">Explanation of Benefits</div>'+
       '<div>Type: '+typeLbl+'</div>'+
+      '<div>Printed: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'+
+      (prov.taxid?'<div>Tax ID: '+prov.taxid+'</div>':'')+
     '</div>'+
   '</div>'+
   '<div class="info-grid">'+
@@ -13691,7 +13711,7 @@ function printEOBBatch(batchId) {
     '<div class="info-item"><label>Check Amount</label><span style="color:#2d7a4f">$'+(parseFloat(b.checkAmt||0).toFixed(2))+'</span></div>'+
   '</div>'+
   '<table><thead><tr>'+
-    '<th>PCN</th><th>Patient</th><th>DOS</th>'+
+    '<th>PCN</th><th>Patient</th><th>DOS</th><th>CPT(s)</th>'+
     '<th style="text-align:right">Paid</th><th style="text-align:right">Adj (CO)</th><th style="text-align:right">Pat Resp</th>'+
   '</tr></thead><tbody>'+lineRows+'</tbody></table>'+
   '<div class="totals">'+
@@ -13804,11 +13824,33 @@ if (!batches.length) {
 }
 
 var db = getDB();
-return filtersHtml+
+  // Sort state
+  var sortCol = window._eobSortCol||'date';
+  var sortDir = window._eobSortDir||'desc';
+  function _eobSortBy(col){ if(window._eobSortCol===col){window._eobSortDir=window._eobSortDir==='asc'?'desc':'asc';}else{window._eobSortCol=col;window._eobSortDir='asc';} setEOBTab('payments',null); }
+  window._eobSortBy = _eobSortBy;
+  // Apply sort
+  var sc = sortCol; var sd = sortDir;
+  batches = batches.slice().sort(function(a,b2){
+    var av,bv;
+    if(sc==='date')    { av=a.createdAt||0;    bv=b2.createdAt||0; }
+    else if(sc==='payer')  { av=(a.payerName||'').toLowerCase(); bv=(b2.payerName||'').toLowerCase(); }
+    else if(sc==='check')  { av=(a.checkNum||'').toLowerCase();  bv=(b2.checkNum||'').toLowerCase(); }
+    else if(sc==='chkdate'){ av=a.checkDate||''; bv=b2.checkDate||''; }
+    else if(sc==='amt')    { av=parseFloat(a.checkAmt||0); bv=parseFloat(b2.checkAmt||0); }
+    else if(sc==='posted') { av=(a.lines||[]).reduce(function(s,l){return s+parseFloat(l.amtPaid||0);},0); bv=(b2.lines||[]).reduce(function(s,l){return s+parseFloat(l.amtPaid||0);},0); }
+    else if(sc==='claims') { av=(a.lines||[]).length; bv=(b2.lines||[]).length; }
+    else if(sc==='type')   { av=a.source||''; bv=b2.source||''; }
+    else { av=a.createdAt||0; bv=b2.createdAt||0; }
+    var cmp = av<bv?-1:av>bv?1:0;
+    return sd==='asc'?cmp:-cmp;
+  });
+  function _thSort(col,lbl){ var active=sortCol===col; var arr=active?(sortDir==='asc'?'&#x25B2;':'&#x25BC;'):'<span style="opacity:.3">&#x25BC;</span>'; return '<th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="_eobSortBy(&quot;'+col+'&quot;)">'+lbl+' '+arr+'</th>'; }
+  var theadRow = _thSort('date','Date')+_thSort('payer','Payer')+_thSort('check','Check #')+_thSort('chkdate','Check Date')+_thSort('amt','Check Amt')+_thSort('posted','Posted')+'<th>Balance</th>'+_thSort('claims','Claims')+_thSort('type','Type')+'<th>Actions</th>';
+
+  return filtersHtml+
   '<div class="tbl-wrap"><table>'+
-  '<thead><tr>'+
-  '<th>Date</th><th>Payer</th><th>Check #</th><th>Check Date</th>'+
-  '<th>Check Amt</th><th>Posted</th><th>Balance</th><th>Claims</th><th>Type</th><th>Actions</th>'+
+  '<thead><tr>'+theadRow+
   '</tr></thead><tbody>' +
   batches.map(function(b) {
     var posted = (b.lines||[]).reduce(function(s,l){ return s+parseFloat(l.amtPaid||0); },0);
