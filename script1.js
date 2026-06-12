@@ -5862,7 +5862,7 @@ const fd = new FormData();
 fd.append('upload', 'claim');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('File', new Blob([csv], { type:'text/csv' }), fname);
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', { method:'POST', body:fd });
+const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', { method:'POST', body:fd });
 const txt = await res.text();
 if (res.ok) {
 setDB(db2 => { const c = db2.claims.find(x => x.id === claim.id); if(c) c.status = 'submitted'; });
@@ -5904,7 +5904,7 @@ fd.append('action', 'sync');
 fd.append('AccountKey', cfg.acctKey);
 fd.append('ResponseID', '0');
 
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy', {method:'POST',body:fd});
+const res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', {method:'POST',body:fd});
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const xml = await res.text();
 
@@ -10337,7 +10337,7 @@ const fname = 'Claims_Selected_'+dateStr()+'.csv';
 try {
 const fd=new FormData(); fd.append('action','upload'); fd.append('AccountKey',cfg.acctKey);
 fd.append('File',new Blob([csv],{type:'text/csv'}),fname);
-const res=await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
+const res=await fetch('https://claimmd-proxy.imbsinc2023.workers.dev',{method:'POST',body:fd});
 const xml=await res.text();
 const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
@@ -14195,6 +14195,18 @@ if (!claim) return;
 // Store EOB on claim
 if (!db2.claimEOB) db2.claimEOB = {};
 if (!db2.claimEOB[claim.id]) db2.claimEOB[claim.id] = [];
+
+// ── Duplicate guard: block if same check# already posted to this claim ──
+var checkNumNorm = (batch.checkNum||'').trim().toUpperCase();
+if (checkNumNorm) {
+  var alreadyPosted = db2.claimEOB[claim.id].some(function(e) {
+    return (e.checkNum||'').trim().toUpperCase() === checkNumNorm;
+  });
+  if (alreadyPosted) {
+    console.warn('[EOB] Skipping duplicate post — checkNum', batch.checkNum, 'already posted to claim', claim.id, '(PCN:', claim.pcn+')');
+    return; // skip this line
+  }
+}
 db2.claimEOB[claim.id].push({
 batchId: batch.id,
 payerName: batch.payerName,
@@ -14259,63 +14271,178 @@ toast('Payment batch deleted and reversed');
 }
 
 // ?? ERA fetch from Clearinghouse ????????????????????????????????????????
+// ── ERA Worker URL ─────────────────────────────────────────────────────────
+var ERA_WORKER_URL = 'https://claimmd-era.imbsinc2023.workers.dev';
+
+async function _eraWorkerPost(endpoint, params) {
+  var body = Object.entries(params).map(function(kv){
+    return encodeURIComponent(kv[0])+'='+encodeURIComponent(kv[1]);
+  }).join('&');
+  var res = await fetch(ERA_WORKER_URL + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  });
+  if (!res.ok) throw new Error('ERA worker HTTP '+res.status);
+  return await res.json();
+}
+
+function _parseERADataClaims(eraData, eraInfo, db) {
+  var posted = [], unmatched = [];
+  var claims = eraData.claim || [];
+  if (!Array.isArray(claims)) claims = claims ? [claims] : [];
+
+  claims.forEach(function(c) {
+    var pcn        = (c.pcn || c.remote_claimid || '').trim().toUpperCase();
+    var totalPaid  = parseFloat(c.total_paid || 0);
+    var statusCode = c.status_code || '';
+    var payerICN   = c.payer_icn  || '';
+    var dos        = c.from_dos   || c.thru_dos || '';
+
+    var charges = c.charge || [];
+    if (!Array.isArray(charges)) charges = charges ? [charges] : [];
+    var chargeLines = charges.map(function(ch) {
+      var adjs = ch.adjustment || [];
+      if (!Array.isArray(adjs)) adjs = adjs ? [adjs] : [];
+      return {
+        cpt: ch.proc_code || '',
+        charge: parseFloat(ch.charge || 0),
+        allowed: parseFloat(ch.allowed || 0),
+        paid: parseFloat(ch.paid || 0),
+        adjustments: adjs.map(function(a){ return {group:a.group,code:a.code,amount:parseFloat(a.amount||0)}; })
+      };
+    });
+
+    var patResp = chargeLines.reduce(function(s,cl){
+      return s+cl.adjustments.filter(function(a){return a.group==='PR';}).reduce(function(ss,a){return ss+a.amount;},0);
+    },0);
+    var adjAmt = chargeLines.reduce(function(s,cl){
+      return s+cl.adjustments.filter(function(a){return a.group==='CO';}).reduce(function(ss,a){return ss+a.amount;},0);
+    },0);
+
+    var claim = db.claims.find(function(lc) {
+      if (lc.providerId !== activeProviderId) return false;
+      var lp = (lc.pcn||'').trim().toUpperCase();
+      return lp===pcn||lp==='PCN-'+pcn||lp==='CLM-'+pcn||pcn==='PCN-'+lp||pcn==='CLM-'+lp;
+    });
+
+    if (claim) {
+      // Layer 1: skip if same ERA already posted
+      if ((claim.payments||[]).some(function(p){return p.eraId===eraInfo.eraid;})) return;
+      // Layer 2: skip if same check number already posted to this claim
+      var chkNum = (eraInfo.check_number||'').trim().toUpperCase();
+      if (chkNum) {
+        var _db2 = getDB();
+        var _existingEOBs = (_db2.claimEOB && _db2.claimEOB[claim.id]) || [];
+        if (_existingEOBs.some(function(e){ return (e.checkNum||'').trim().toUpperCase()===chkNum; })) {
+          console.warn('[ERA] Skipping duplicate — check#', eraInfo.check_number, 'already posted to claim PCN:', claim.pcn);
+          return;
+        }
+      }
+      posted.push({
+        claimId:claim.id, pcn:pcn, dos:dos||claim.dos||'',
+        amtPaid:totalPaid.toFixed(2), amtAdj:adjAmt.toFixed(2),
+        adjCode:'ERA', patResp:patResp.toFixed(2),
+        eraId:eraInfo.eraid, eraCheck:eraInfo.check_number||'',
+        payerName:eraInfo.payer_name||'', payerId:eraInfo.payerid||'',
+        paidDate:eraInfo.paid_date||'', payerICN:payerICN,
+        statusCode:statusCode, chargeLines:chargeLines
+      });
+    } else if (totalPaid > 0 || statusCode === '1') {
+      unmatched.push({
+        id:uid(), providerId:activeProviderId, pcn:pcn, dos:dos,
+        amt:totalPaid, payerName:eraInfo.payer_name||'',
+        eraId:eraInfo.eraid, source:'ERA', createdAt:Date.now()
+      });
+    }
+  });
+  return {posted:posted, unmatched:unmatched};
+}
+
 async function fetchERAFromClearinghouse() {
-const cfg = getApiConfig();
-if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
-const alertEl = document.getElementById('eob-alert');
-if (alertEl) alertEl.innerHTML = '<div class="alert al-info">Fetching ERA data from Clearinghouse...</div>';
-toast('Fetching ERA from Clearinghouse...');
-try {
-const fd = new FormData();
-fd.append('action','sync');
-fd.append('AccountKey', cfg.acctKey);
-fd.append('ResponseID','0');
-const res = await fetch('https://us-central1-claimdatacare-451fe.cloudfunctions.net/claimmdProxy',{method:'POST',body:fd});
-const xml = await res.text();
-const blocks = [...xml.matchAll(/<claim>(.*?)<\/claim>/gs)].map(m=>m[1]);
-if (!blocks.length) {
-if (alertEl) alertEl.innerHTML = '<div class="alert al-info">No ERA data available at this time</div>';
-toast('No ERA data available'); return;
+  var cfg = getApiConfig();
+  if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
+
+  var alertEl = document.getElementById('eob-alert');
+  var setAlert = function(html){ if(alertEl) alertEl.innerHTML=html; };
+
+  setAlert('<div class="alert al-info">Contacting ClaimMD clearinghouse&hellip;</div>');
+
+  var db = getDB();
+  var lastERAID = (db.settings && db.settings.lastERAID) ? db.settings.lastERAID : '0';
+
+  var eraList;
+  try {
+    eraList = await _eraWorkerPost('/eralist', { AccountKey:cfg.acctKey, ERAID:lastERAID, NewOnly:'0' });
+  } catch(e) {
+    setAlert('<div class="alert al-error">ERA list fetch failed: '+e.message+'</div>');
+    toast('ERA fetch failed: '+e.message,'err'); return;
+  }
+
+  var root = eraList.result || eraList;
+  var eras = root.era || [];
+  if (!Array.isArray(eras)) eras = eras ? [eras] : [];
+
+  if (!eras.length) {
+    setAlert('<div class="alert al-info">No new ERA payments since last sync. (Last ERA ID: '+lastERAID+')</div>');
+    toast('No new ERAs'); return;
+  }
+
+  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — fetching details&hellip;</div>');
+
+  var allPosted=[], allUnmatched=[], allBatches=[], newLastERAID=lastERAID;
+
+  for (var i=0; i<eras.length; i++) {
+    var eraInfo = eras[i];
+    var eraid   = String(eraInfo.eraid || eraInfo.ERAID || '');
+    if (!eraid) continue;
+    if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
+
+    var eraData;
+    try {
+      eraData = await _eraWorkerPost('/eradata', { AccountKey:cfg.acctKey, eraid:eraid });
+    } catch(e) { console.warn('[ERA] eradata failed for eraid',eraid,e.message); continue; }
+
+    var dataRoot = eraData.result || eraData;
+    var parsed   = _parseERADataClaims(dataRoot, eraInfo, db);
+    allPosted    = allPosted.concat(parsed.posted);
+    allUnmatched = allUnmatched.concat(parsed.unmatched);
+
+    if (parsed.posted.length > 0) {
+      allBatches.push({
+        id:uid(), providerId:activeProviderId, eraId:eraid,
+        payerName:eraInfo.payer_name||'ClaimMD ERA', payerId:eraInfo.payerid||'',
+        checkNum:eraInfo.check_number||('ERA-'+eraid), checkType:eraInfo.check_type||'eft',
+        checkDate:eraInfo.paid_date||new Date().toLocaleDateString('en-US'),
+        checkAmt:parseFloat(eraInfo.paid_amount||0),
+        notes:'Auto-imported ERA #'+eraid, source:'era',
+        lines:parsed.posted, createdAt:Date.now(), updatedAt:Date.now()
+      });
+    }
+  }
+
+  if (allBatches.length) {
+    allBatches.forEach(function(batch){ _postEOBToClaims(batch); });
+    setEOBBatches(function(arr){ allBatches.forEach(function(b){ arr.push(b); }); });
+  }
+
+  if (allUnmatched.length) {
+    setDB(function(db2){
+      if(!db2.eobUnmatched) db2.eobUnmatched=[];
+      db2.eobUnmatched.push.apply(db2.eobUnmatched, allUnmatched);
+    });
+  }
+
+  if (newLastERAID !== lastERAID) {
+    setDB(function(db2){ if(!db2.settings) db2.settings={}; db2.settings.lastERAID=newLastERAID; });
+  }
+
+  var totalPaid = allPosted.reduce(function(s,p){return s+parseFloat(p.amtPaid||0);},0);
+  setAlert('<div class="alert al-success"><strong>'+allPosted.length+' payment(s) posted</strong> across '+allBatches.length+' ERA(s) — <strong>$'+totalPaid.toFixed(2)+'</strong>'+(allUnmatched.length?' | <span style="color:#b35c00">'+allUnmatched.length+' unmatched</span>':'')+'</div>');
+  renderEOBPage(); updateBadges();
+  toast('ERA: '+allPosted.length+' posted, '+allUnmatched.length+' unmatched');
 }
-const db = getDB();
-const eraLines = [];
-const unmatched= [];
-blocks.forEach(b => {
-const gt = t => (b.match(new RegExp(`<${t}>(.*?)<\\/${t}>`,'s'))||[])[1]||'';
-const pcn = (gt('remote_claimid')||gt('pcn')).toUpperCase();
-const paid = parseFloat(gt('paid_amount')||gt('payment')||0);
-const adj = parseFloat(gt('adjustment')||0);
-const dos = gt('from_date')||gt('date_of_service')||'';
-const claim = db.claims.find(c=>c.pcn?.toUpperCase()===pcn && c.providerId===activeProviderId);
-if (claim && paid > 0) {
-eraLines.push({ claimId:claim.id, pcn, dos:dos||claim.dos, amtPaid:paid.toFixed(2), amtAdj:adj.toFixed(2), adjCode:'ERA', patResp:'0' });
-} else if (paid > 0) {
-unmatched.push({ id:uid(), providerId:activeProviderId, pcn, dos, amt:paid, source:'ERA', createdAt:Date.now() });
-}
-});
-if (eraLines.length) {
-const today = new Date().toLocaleDateString('en-US');
-const batch = {
-id:uid(), providerId:activeProviderId,
-payerName:'Clearinghouse ERA', payerId:'', checkNum:'ERA-'+Date.now(),
-checkDate:today, checkAmt: eraLines.reduce((s,l)=>s+parseFloat(l.amtPaid||0),0),
-notes:'Auto-imported from Clearinghouse ERA', source:'era',
-lines: eraLines, createdAt:Date.now(), updatedAt:Date.now(),
-};
-_postEOBToClaims(batch);
-setEOBBatches(arr=>arr.push(batch));
-}
-if (unmatched.length) {
-setDB(db2=>{ if(!db2.eobUnmatched) db2.eobUnmatched=[]; db2.eobUnmatched.push(...unmatched); });
-}
-if (alertEl) alertEl.innerHTML = `<div class="alert al-success">? ERA imported: ${eraLines.length} claim(s) posted, ${unmatched.length} unmatched</div>`;
-renderEOBPage(); updateBadges();
-toast(`ERA: ${eraLines.length} posted, ${unmatched.length} unmatched`);
-} catch(e) {
-if (alertEl) alertEl.innerHTML = `<div class="alert al-error">? ERA fetch failed: ${e.message}</div>`;
-toast('ERA fetch failed: '+e.message,'err');
-}
-}
+
 
 // ?? EDI 835 Upload & Parse ????????????????????????????????????????
 function handleEDI835Upload(event) {
