@@ -13764,22 +13764,22 @@ var totalPosted = batches.reduce(function(s,b){
 
 var filtersHtml =
   '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">'+
-    '<input id="eob-f-q" placeholder="Search payer, check#..." value="'+q+'" oninput="setEOBTab('payments',null)"'+
+    '<input id="eob-f-q" placeholder="Search payer, check#..." value="'+q+'" oninput="setEOBTab(&quot;payments&quot;,null)"'+
       ' style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);width:200px">'+
-    '<select id="eob-f-payer" onchange="setEOBTab('payments',null)" style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+payerOptions+'</select>'+
-    '<select id="eob-f-type" onchange="setEOBTab('payments',null)" style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+
+    '<select id="eob-f-payer" onchange="setEOBTab(&quot;payments&quot;,null)" style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+payerOptions+'</select>'+
+    '<select id="eob-f-type" onchange="setEOBTab(&quot;payments&quot;,null)" style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">'+
       '<option value="">All Types</option>'+
       '<option value="era"'+(fType==='era'?' selected':'')+'>ERA</option>'+
       '<option value="835"'+(fType==='835'?' selected':'')+'>EDI 835</option>'+
       '<option value="manual"'+(fType==='manual'?' selected':'')+'>Manual</option>'+
     '</select>'+
     '<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">From'+
-      '<input id="eob-f-from" type="date" value="'+fFrom+'" onchange="setEOBTab('payments',null)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)">'+
+      '<input id="eob-f-from" type="date" value="'+fFrom+'" onchange="setEOBTab(&quot;payments&quot;,null)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)">'+
     '</label>'+
     '<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">To'+
-      '<input id="eob-f-to" type="date" value="'+fTo+'" onchange="setEOBTab('payments',null)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)">'+
+      '<input id="eob-f-to" type="date" value="'+fTo+'" onchange="setEOBTab(&quot;payments&quot;,null)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)">'+
     '</label>'+
-    '<button onclick="document.getElementById('eob-f-q').value='';document.getElementById('eob-f-payer').value='';document.getElementById('eob-f-type').value='';document.getElementById('eob-f-from').value='';document.getElementById('eob-f-to').value='';setEOBTab('payments',null)"'+
+    '<button onclick="var els=[&quot;eob-f-q&quot;,&quot;eob-f-payer&quot;,&quot;eob-f-type&quot;,&quot;eob-f-from&quot;,&quot;eob-f-to&quot;];els.forEach(function(id){document.getElementById(id).value=&quot;&quot;;});setEOBTab(&quot;payments&quot;,null)"'+
       ' style="padding:7px 10px;border:1px solid var(--border2);border-radius:6px;font-size:11px;background:var(--bg);color:var(--text3);cursor:pointer" title="Clear filters">'+
       '<i data-lucide="x" class="lci" style="width:12px;height:12px"></i>'+
     '</button>'+
@@ -13826,9 +13826,9 @@ return filtersHtml+
     '<td><span class="badge '+(b.source==='era'?'b-blue':b.source==='835'?'b-green':'b-gray')+'">'+(b.source==='era'?'ERA':b.source==='835'?'835':'Manual')+'</span></td>'+
     '<td>'+
       '<div class="btn-group" style="gap:4px">'+
-        '<button class="btn-icon sm" onclick="viewEOBBatch(''+b.id+'')" title="View Detail"><i data-lucide="eye" class="lci" style="width:13px;height:13px"></i></button>'+
-        '<button class="btn-icon sm" onclick="printEOBBatch(''+b.id+'')" title="Print EOB"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
-        '<button class="btn-icon sm danger" onclick="deleteEOBBatch(''+b.id+'')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>'+
+        '<button class="btn-icon sm" onclick="viewEOBBatch(&quot;'+b.id+'&quot;)" title="View Detail"><i data-lucide="eye" class="lci" style="width:13px;height:13px"></i></button>'+
+        '<button class="btn-icon sm" onclick="printEOBBatch(&quot;'+b.id+'&quot;)" title="Print EOB"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
+        '<button class="btn-icon sm danger" onclick="deleteEOBBatch(&quot;'+b.id+'&quot;)" title="Delete"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>'+
       '</div>'+
     '</td>'+
     '</tr>';
