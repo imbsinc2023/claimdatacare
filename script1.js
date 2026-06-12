@@ -342,9 +342,164 @@ function showApp(username) {
   go('dashboard');
   try{_afterLoad();}catch(e){}
   try{_injectMissingModals();}catch(e){}
+  try{_migrateEOBDataV2();}catch(e){console.warn('[Migration] EOB v2 failed:',e);}
 }
 
 
+
+
+// ── EOB Migration v2 ─────────────────────────────────────────────────────
+// Runs once per device. Enriches legacy claimEOB entries with adjLines,
+// allowed, isDenial, balance logic. Crosses with EOB batches for ERA detail.
+function _migrateEOBDataV2() {
+  var MIGRATION_KEY = 'cdc_eob_migv2';
+  if (localStorage.getItem(MIGRATION_KEY)) return; // already done
+
+  var db = getDB();
+  if (!db.claimEOB || !Object.keys(db.claimEOB).length) {
+    localStorage.setItem(MIGRATION_KEY, '1');
+    return; // nothing to migrate
+  }
+
+  console.log('[Migration] Starting EOB v2 migration...');
+  var migrated = 0;
+
+  setDB(function(db2) {
+    var claimEOB = db2.claimEOB || {};
+    var batches   = db2.eobBatches || [];
+    var claims    = db2.claims    || [];
+    var patients  = db2.patients  || [];
+
+    // Build batchId → batch lookup
+    var batchMap = {};
+    batches.forEach(function(b) { batchMap[b.id] = b; });
+
+    Object.keys(claimEOB).forEach(function(claimId) {
+      var entries = claimEOB[claimId];
+      if (!entries || !entries.length) return;
+
+      var claim   = claims.find(function(c){ return c.id===claimId; });
+      if (!claim) return;
+
+      var pat     = patients.find(function(p){ return p.id===claim.patId; })||{};
+      var billed  = claimTotal(claim);
+      var coverages = pat.coverages||[];
+      var hasSecondary = !!(pat.secondaryPayerId||pat.secondaryPayerName||
+        coverages.some(function(c){ return c.type==='Secondary'&&c.active!==false; }));
+
+      var totalPaidAll = 0;
+      var totalPRAll   = 0;
+      var anyDenial    = false;
+      var denialReason = '';
+
+      entries.forEach(function(e, idx) {
+        // Skip if already migrated (has adjLines)
+        if (e.adjLines && e.adjLines.length) {
+          totalPaidAll += parseFloat(e.paid||0);
+          totalPRAll   += parseFloat(e.patResp||0);
+          if (e.isDenial) { anyDenial=true; denialReason=denialReason||e.denialReason||''; }
+          return;
+        }
+
+        var paid    = parseFloat(e.paid||0);
+        var adj     = parseFloat(e.adj||0);
+        var patResp = parseFloat(e.patResp||0);
+        var allowed = billed - adj;
+        var adjLines = [];
+
+        // Try to get chargeLines from matching batch
+        var batch = batchMap[e.batchId];
+        if (batch) {
+          var batchLine = (batch.lines||[]).find(function(l){ return l.claimId===claimId; });
+          if (batchLine && batchLine.chargeLines && batchLine.chargeLines.length) {
+            batchLine.chargeLines.forEach(function(cl){
+              (cl.adjustments||[]).forEach(function(a){
+                adjLines.push({
+                  group:  a.group,
+                  code:   String(a.code||''),
+                  amount: parseFloat(a.amount||0),
+                  desc:   _getCARCDesc(a.code),
+                  cpt:    cl.cpt||''
+                });
+              });
+            });
+          }
+        }
+
+        // Fallback: synthesize from adj/patResp totals
+        if (!adjLines.length) {
+          if (adj > 0)     adjLines.push({ group:'CO', code:'45', amount:adj,     desc:_getCARCDesc('45'), cpt:'' });
+          if (patResp > 0) adjLines.push({ group:'PR', code:'2',  amount:patResp, desc:_getCARCDesc('2'),  cpt:'' });
+        }
+
+        // Detect denial
+        var isDenial = (paid===0 && adj>0 && patResp===0);
+        if (!isDenial && paid===0) {
+          var hasCO = adjLines.some(function(a){return a.group==='CO';});
+          var hasPR = adjLines.some(function(a){return a.group==='PR';});
+          if (hasCO && !hasPR) isDenial = true;
+        }
+
+        // PR breakdown
+        var deductible  = adjLines.filter(function(a){return a.group==='PR'&&a.code==='1';}).reduce(function(s,a){return s+a.amount;},0);
+        var coinsurance = adjLines.filter(function(a){return a.group==='PR'&&a.code==='2';}).reduce(function(s,a){return s+a.amount;},0);
+        var copay       = adjLines.filter(function(a){return a.group==='PR'&&a.code==='3';}).reduce(function(s,a){return s+a.amount;},0);
+
+        // Enrich the entry in place
+        entries[idx] = Object.assign({}, e, {
+          adjLines:    adjLines,
+          allowed:     allowed,
+          billed:      billed,
+          isDenial:    isDenial,
+          isSecondary: idx > 0,
+          deductible:  deductible,
+          coinsurance: coinsurance,
+          copay:       copay,
+          otherPR:     Math.max(0, patResp-deductible-coinsurance-copay),
+          patientId:   pat.acct||pat.id||''
+        });
+
+        if (isDenial) { anyDenial=true; denialReason=denialReason||(adjLines.filter(function(a){return a.group==='CO';}).map(function(a){return a.group+'-'+a.code;}).join(', ')); }
+        totalPaidAll += paid;
+        totalPRAll   += patResp;
+        migrated++;
+      });
+
+      // Re-calculate claim balance fields
+      var balance = Math.max(0, billed - totalPaidAll);
+      if (claim) {
+        claim.balance  = balance;
+        claim.primaryPaid = totalPaidAll;
+        if (anyDenial && totalPaidAll===0) {
+          claim.status           = 'denied';
+          claim.patientBalance   = 0;
+          claim.readyForSecondary = false;
+          claim.denialReason     = denialReason;
+        } else if (totalPRAll > 0 && !anyDenial) {
+          if (hasSecondary) {
+            claim.readyForSecondary = true;
+            claim.secondaryBalance  = totalPRAll;
+            claim.patientBalance    = 0;
+          } else {
+            claim.patientBalance    = totalPRAll;
+            claim.readyForSecondary = false;
+          }
+          claim.status = totalPaidAll>0 ? (totalPaidAll>=billed*0.95?'paid':'partially_paid') : claim.status;
+        } else if (totalPaidAll >= billed*0.95 && !anyDenial) {
+          claim.status          = 'paid';
+          claim.patientBalance  = 0;
+          claim.readyForSecondary = false;
+        }
+      }
+
+      db2.claimEOB[claimId] = entries;
+    });
+
+    console.log('[Migration] EOB v2 complete — enriched', migrated, 'entries');
+  });
+
+  localStorage.setItem(MIGRATION_KEY, '1');
+}
 
 // ── RUNTIME DIAGNOSTIC: shows in UI when data is missing ────────
 function _cdcDiag() {
