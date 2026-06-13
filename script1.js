@@ -3179,6 +3179,9 @@ Unmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--a
 <button class="stab" id="eob-tab-secondary" onclick="setEOBTab('secondary',this)">
 Ready for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>
 </button>
+<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab('era-pending',this)">
+<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>
+</button>
 </div>
 
 <div id="eob-alert" style="margin-bottom:12px"></div>
@@ -13868,6 +13871,8 @@ const eu = document.getElementById('eob-cnt-unmatched');
 if (eu) eu.textContent = unmatched;
 const es = document.getElementById('eob-cnt-secondary');
 if (es) es.textContent = secondary;
+const ep = document.getElementById('eob-cnt-era-pending');
+if (ep) ep.textContent = (db.eraPreviewQueue||[]).filter(x=>x.providerId===activeProviderId&&x.status!=='posted'&&x.status!=='dismissed').length;
 
 setEOBTab(_eobCurrentTab, null);
 }
@@ -13884,6 +13889,7 @@ const el = document.getElementById('eob-content');
 if (!el) return;
 
 if (tab === 'payments') el.innerHTML = renderEOBBatchList();
+  else if (tab === 'era-pending') el.innerHTML = renderERAPendingTab();
 if (tab === 'unmatched') el.innerHTML = renderEOBUnmatched();
 if (tab === 'secondary') el.innerHTML = renderEOBSecondary();
 setTimeout(_renderLucideIcons, 20);
@@ -15068,7 +15074,10 @@ async function fetchERAFromClearinghouse() {
   var alertEl = document.getElementById('eob-alert');
   var setAlert = function(html){ if(alertEl) alertEl.innerHTML=html; };
 
-  setAlert('<div class="alert al-info">Contacting ClaimMD clearinghouse&hellip;</div>');
+  setAlert('<div class="alert al-info" style="display:flex;align-items:center;gap:8px">'+
+    '<i data-lucide="loader" class="lci" style="width:14px;height:14px;animation:spin 1s linear infinite"></i>'+
+    'Fetching new ERA from ClaimMD&hellip;</div>');
+  setTimeout(_renderLucideIcons, 50);
 
   var db = getDB();
   var lastERAID = (db.settings && db.settings.lastERAID) ? db.settings.lastERAID : '0';
@@ -15139,10 +15148,220 @@ async function fetchERAFromClearinghouse() {
     setDB(function(db2){ if(!db2.settings) db2.settings={}; db2.settings.lastERAID=newLastERAID; });
   }
 
-  var totalPaid = allPosted.reduce(function(s,p){return s+parseFloat(p.amtPaid||0);},0);
-  setAlert('<div class="alert al-success"><strong>'+allPosted.length+' payment(s) posted</strong> across '+allBatches.length+' ERA(s) — <strong>$'+totalPaid.toFixed(2)+'</strong>'+(allUnmatched.length?' | <span style="color:#b35c00">'+allUnmatched.length+' unmatched</span>':'')+'</div>');
+  // ── Queue for preview — don't auto-post ──────────────────────────────
+  var today2 = new Date(); today2.setHours(0,0,0,0);
+  var previewItems = allBatches.map(function(batch) {
+    var paidDate = batch.checkDate ? new Date(batch.checkDate) : null;
+    return {
+      id:         uid(),
+      eraId:      batch.eraId,
+      providerId: activeProviderId,
+      payerName:  batch.payerName,
+      checkNum:   batch.checkNum,
+      checkDate:  batch.checkDate,
+      checkAmt:   batch.checkAmt,
+      claimCount: (batch.lines||[]).length,
+      isFuture:   paidDate && paidDate > today2,
+      fetchedAt:  Date.now(),
+      status:     'preview'
+    };
+  });
+
+  if (previewItems.length) {
+    setDB(function(db2){
+      if(!db2.eraPreviewQueue) db2.eraPreviewQueue=[];
+      previewItems.forEach(function(item){
+        var exists = db2.eraPreviewQueue.some(function(e){ return e.eraId===item.eraId; });
+        if (!exists) db2.eraPreviewQueue.push(item);
+      });
+    });
+  }
+
+  if (allUnmatched.length) {
+    setDB(function(db2){
+      if(!db2.eobUnmatched) db2.eobUnmatched=[];
+      db2.eobUnmatched.push.apply(db2.eobUnmatched, allUnmatched);
+    });
+  }
+
+  window._eraPreviewBatches = allBatches;
+  window._eraPreviewItems   = previewItems;
+
+  setAlert('');
+  if (!previewItems.length && !allUnmatched.length) {
+    setAlert('<div class="alert al-info">No new ERA payments found since last sync.</div>');
+    toast('No new ERAs'); renderEOBPage(); return;
+  }
+
+  _openERAPreviewModal(previewItems, allBatches, allUnmatched);
   renderEOBPage(); updateBadges();
-  toast('ERA: '+allPosted.length+' posted, '+allUnmatched.length+' unmatched');
+}
+
+// ── ERA Preview Modal ──────────────────────────────────────────────────────
+function _openERAPreviewModal(previewItems, allBatches, allUnmatched) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var readyNow    = previewItems.filter(function(x){ return !x.isFuture; });
+  var futureOnes  = previewItems.filter(function(x){ return x.isFuture; });
+  var totalReady  = readyNow.reduce(function(s,x){ return s+parseFloat(x.checkAmt||0); }, 0);
+  var totalFuture = futureOnes.reduce(function(s,x){ return s+parseFloat(x.checkAmt||0); }, 0);
+
+  var rows = previewItems.map(function(item) {
+    var badge = item.isFuture
+      ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#ede9fe;color:#7c3aed">FUTURE</span>'
+      : '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#f0faf5;color:#2d7a4f">READY</span>';
+    return '<tr style="border-bottom:1px solid var(--border)">'
+      +'<td style="padding:7px 8px;width:32px"><input type="checkbox" class="era-preview-cb"'+(!item.isFuture?' checked':'')+' data-eraid="'+item.eraId+'" style="width:14px;height:14px;accent-color:var(--brand)"></td>'
+      +'<td style="padding:7px 8px;font-size:12px;font-weight:600">'+item.payerName+'</td>'
+      +'<td style="padding:7px 8px;font-size:11px;font-family:monospace">'+item.checkNum+'</td>'
+      +'<td style="padding:7px 8px;font-size:11px">'+item.checkDate+'</td>'
+      +'<td style="padding:7px 8px;font-size:12px;font-family:monospace;font-weight:700;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
+      +'<td style="padding:7px 8px;text-align:center;font-size:11px">'+item.claimCount+'</td>'
+      +'<td style="padding:7px 8px">'+badge+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var unmNote = allUnmatched.length
+    ? '<div style="padding:8px 12px;background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:10px"><strong>'+allUnmatched.length+'</strong> claim(s) could not be matched — they appear in Unmatched tab.</div>'
+    : '';
+
+  var html =
+    '<div class="overlay" id="modal-era-preview" style="z-index:9999">'
+    +'<div class="modal" style="max-width:780px;width:98%;max-height:90vh;display:flex;flex-direction:column">'
+      +'<div class="modal-hdr" style="flex-shrink:0">'
+        +'<div><div class="modal-t"><i data-lucide="download-cloud" class="lci" style="width:16px;height:16px"></i> ERA Payment Preview</div>'
+        +'<div class="modal-sub">Check the payments you want to post now. Future payments are unchecked — they save to Pending ERA.</div></div>'
+        +'<button class="btn btn-ghost btn-sm" onclick="closeModal(&quot;modal-era-preview&quot;)">×</button>'
+      +'</div>'
+      +'<div class="modal-body" style="flex:1;overflow-y:auto;padding:16px">'
+        +unmNote
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">'
+          +'<div style="background:#f0faf5;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#2d7a4f;margin-bottom:3px">Ready to Post</div><div style="font-size:20px;font-weight:800;color:#2d7a4f">'+readyNow.length+'</div><div style="font-size:11px;font-family:monospace;color:#2d7a4f">$'+fmtMoney(totalReady)+'</div></div>'
+          +'<div style="background:#ede9fe;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:3px">Future</div><div style="font-size:20px;font-weight:800;color:#7c3aed">'+futureOnes.length+'</div><div style="font-size:11px;font-family:monospace;color:#7c3aed">$'+fmtMoney(totalFuture)+'</div></div>'
+          +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:3px">Total ERA</div><div style="font-size:20px;font-weight:800;color:var(--text)">'+previewItems.length+'</div></div>'
+          +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:3px">Unmatched</div><div style="font-size:20px;font-weight:800;color:'+(allUnmatched.length?'#b35c00':'var(--text3)')+'">'+allUnmatched.length+'</div></div>'
+        +'</div>'
+        +'<div class="tbl-wrap" style="margin:0"><table style="width:100%"><thead><tr style="background:var(--bg3)">'
+          +'<th style="padding:6px 8px;width:32px"><input type="checkbox" id="era-check-all" style="width:14px;height:14px;accent-color:var(--brand)" onchange="document.querySelectorAll(&quot;.era-preview-cb&quot;).forEach(function(c){c.checked=document.getElementById(&quot;era-check-all&quot;).checked})" title="Select all"></th>'
+          +'<th style="padding:6px 8px;font-size:11px">Payer</th><th style="padding:6px 8px;font-size:11px">Check #</th>'
+          +'<th style="padding:6px 8px;font-size:11px">Check Date</th><th style="padding:6px 8px;font-size:11px">Amount</th>'
+          +'<th style="padding:6px 8px;font-size:11px;text-align:center">Claims</th><th style="padding:6px 8px;font-size:11px">Status</th>'
+        +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'</div>'
+      +'<div class="modal-ftr" style="flex-shrink:0;justify-content:space-between">'
+        +'<button class="btn" onclick="closeModal(&quot;modal-era-preview&quot;);setEOBTab(&quot;era-pending&quot;,null)">Save All to Pending</button>'
+        +'<button class="btn btn-primary" onclick="_eraPreviewPostSelected()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> Post Selected</button>'
+      +'</div>'
+    +'</div></div>';
+
+  var existing = document.getElementById('modal-era-preview');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+  setTimeout(_renderLucideIcons, 50);
+}
+
+function _eraPreviewPostSelected() {
+  var checked = Array.from(document.querySelectorAll('.era-preview-cb:checked'))
+    .map(function(cb){ return cb.getAttribute('data-eraid'); });
+  if (!checked.length) { toast('Select at least one ERA to post','warn'); return; }
+  var batches = (window._eraPreviewBatches||[]).filter(function(b){ return checked.indexOf(b.eraId)>=0; });
+  var posted = 0;
+  batches.forEach(function(batch){
+    _postEOBToClaims(batch);
+    setEOBBatches(function(arr){ arr.push(batch); });
+    posted += (batch.lines||[]).length;
+  });
+  setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(checked.indexOf(x.eraId)>=0) x.status='posted'; }); });
+  closeModal('modal-era-preview');
+  toast(posted+' payment(s) posted from '+batches.length+' ERA(s)');
+  renderEOBPage(); updateBadges();
+}
+
+function renderERAPendingTab() {
+  var db = getDB();
+  var items = (db.eraPreviewQueue||[]).filter(function(x){
+    return x.providerId===activeProviderId && x.status!=='posted' && x.status!=='dismissed';
+  }).sort(function(a,b){ return new Date(a.checkDate)-new Date(b.checkDate); });
+
+  if (!items.length) {
+    return '<div class="empty"><div class="empty-ico"><i data-lucide="clock" class="lci" style="width:32px;height:32px;color:var(--text3)"></i></div>'
+      +'<h3>No pending ERA payments</h3>'
+      +'<p style="font-size:12px;color:var(--text3)">Click Fetch ERA to pull new payments from ClaimMD.</p></div>';
+  }
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var rows = items.map(function(item) {
+    var paidDate = item.checkDate ? new Date(item.checkDate) : null;
+    var isFuture = paidDate && paidDate > today;
+    var daysUntil = paidDate ? Math.ceil((paidDate-today)/(1000*60*60*24)) : null;
+    var dateBadge = isFuture
+      ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#ede9fe;color:#7c3aed">In '+daysUntil+' day'+(daysUntil!==1?'s':'')+'</span>'
+      : '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#fff8e1;color:#b45309">PAST DUE</span>';
+    return '<tr style="border-bottom:1px solid var(--border)">'
+      +'<td style="padding:7px 10px;font-size:12px;font-weight:600">'+item.payerName+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace">'+item.checkNum+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px">'+item.checkDate+'</td>'
+      +'<td style="padding:7px 10px">'+dateBadge+'</td>'
+      +'<td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-size:11px">'+item.claimCount+'</td>'
+      +'<td style="padding:7px 10px"><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-xs btn-primary" onclick="_eraPostSinglePending(&quot;'+item.eraId+'&quot;)"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> Post</button>'
+        +'<button class="btn btn-xs" onclick="_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'
+      +'</div></td>'
+      +'</tr>';
+  }).join('');
+
+  var totalAmt = items.reduce(function(s,x){ return s+parseFloat(x.checkAmt||0); }, 0);
+  return '<div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      +'<div style="font-size:12px;color:var(--text3)"><strong>'+items.length+'</strong> pending — <strong style="color:#2d7a4f">$'+fmtMoney(totalAmt)+'</strong></div>'
+      +'<button class="btn btn-primary btn-sm" onclick="_eraPostAllPending()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> Post All Ready</button>'
+    +'</div>'
+    +'<div class="tbl-wrap" style="margin:0"><table><thead><tr>'
+      +'<th>Payer</th><th>Check #</th><th>Check Date</th><th>Status</th><th>Amount</th><th style="text-align:center">Claims</th><th>Actions</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function _eraPostSinglePending(eraId) {
+  var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
+  if (!batch) { toast('Batch data not found — re-fetch ERA','warn'); return; }
+  _postEOBToClaims(batch);
+  setEOBBatches(function(arr){ arr.push(batch); });
+  setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='posted'; }); });
+  toast('ERA #'+eraId+' posted');
+  renderEOBPage(); setEOBTab('era-pending', null);
+}
+
+function _eraPostAllPending() {
+  var db = getDB();
+  var today = new Date(); today.setHours(0,0,0,0);
+  var items = (db.eraPreviewQueue||[]).filter(function(x){
+    if(x.providerId!==activeProviderId||x.status==='posted'||x.status==='dismissed') return false;
+    var d = x.checkDate ? new Date(x.checkDate) : null;
+    return !d || d <= today;
+  });
+  if (!items.length) { toast('No ERA payments ready to post today','warn'); return; }
+  var posted = 0;
+  items.forEach(function(item){
+    var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===item.eraId; });
+    if (!batch) return;
+    _postEOBToClaims(batch);
+    setEOBBatches(function(arr){ arr.push(batch); });
+    posted++;
+  });
+  setDB(function(db2){
+    var t = new Date(); t.setHours(0,0,0,0);
+    (db2.eraPreviewQueue||[]).forEach(function(x){
+      var d = x.checkDate ? new Date(x.checkDate) : null;
+      if(x.providerId===activeProviderId&&x.status!=='posted'&&x.status!=='dismissed'&&(!d||d<=t)) x.status='posted';
+    });
+  });
+  toast(posted+' ERA(s) posted');
+  renderEOBPage(); setEOBTab('payments', null);
+}
+
+function _eraDismissPending(eraId) {
+  setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='dismissed'; }); });
+  setEOBTab('era-pending', null); renderEOBPage();
 }
 
 
