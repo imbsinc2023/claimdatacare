@@ -3158,7 +3158,7 @@ Claims are validated, transmitted and marked <strong>Submitted</strong> automati
 <i data-lucide="pen-line" class="lci"></i> Manual EOB
 </button>
 <button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">
-<i data-lucide="download-cloud" class="lci"></i> Fetch ERA
+<i data-lucide="download-cloud" class="lci"></i> Import Payments
 </button>
 <button class="btn btn-primary btn-sm" onclick="document.getElementById('era-835-input').click()">
 <i data-lucide="upload" class="lci"></i> Upload EDI 835
@@ -14080,7 +14080,7 @@ if (!batches.length) {
   '<h3>No payment batches yet</h3>'+
   '<div class="btn-group" style="justify-content:center;margin-top:10px">'+
   '<button class="btn btn-primary btn-sm" onclick="openEOBPostingModal()"><i data-lucide="pen-line" class="lci"></i> Manual EOB</button>'+
-  '<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()"><i data-lucide="download-cloud" class="lci"></i> Fetch ERA</button>'+
+  '<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()"><i data-lucide="download-cloud" class="lci"></i> Import Payments</button>'+
   '</div></div>';
 }
 
@@ -15185,16 +15185,19 @@ async function fetchERAFromClearinghouse() {
   }
 
   window._eraPreviewBatches = allBatches;
-  window._eraPreviewItems   = previewItems;
 
   setAlert('');
   if (!previewItems.length && !allUnmatched.length) {
-    setAlert('<div class="alert al-info">No new ERA payments found since last sync.</div>');
+    setAlert('<div class="alert al-info">No new ERA payments found since last sync. (Last ERA: '+lastERAID+')</div>');
     toast('No new ERAs'); renderEOBPage(); return;
   }
 
-  _openERAPreviewModal(previewItems, allBatches, allUnmatched);
+  var totalItems = previewItems.length;
+  var futureCount = previewItems.filter(function(x){return x.isFuture;}).length;
+  toast('ERA imported: '+totalItems+' payment'+(totalItems!==1?'s':'')+' ('+(totalItems-futureCount)+' ready, '+futureCount+' future)');
   renderEOBPage(); updateBadges();
+  // Auto-navigate to Pending ERA tab
+  setEOBTab('era-pending', document.getElementById('eob-tab-era-pending'));
 }
 
 // ── ERA Preview Modal ──────────────────────────────────────────────────────
@@ -15278,47 +15281,301 @@ function _eraPreviewPostSelected() {
 
 function renderERAPendingTab() {
   var db = getDB();
-  var items = (db.eraPreviewQueue||[]).filter(function(x){
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  // Pending items (not yet posted)
+  var pendingItems = (db.eraPreviewQueue||[]).filter(function(x){
     return x.providerId===activeProviderId && x.status!=='posted' && x.status!=='dismissed';
   }).sort(function(a,b){ return new Date(a.checkDate)-new Date(b.checkDate); });
 
-  if (!items.length) {
-    return '<div class="empty"><div class="empty-ico"><i data-lucide="clock" class="lci" style="width:32px;height:32px;color:var(--text3)"></i></div>'
-      +'<h3>No pending ERA payments</h3>'
-      +'<p style="font-size:12px;color:var(--text3)">Click Fetch ERA to pull new payments from ClaimMD.</p></div>';
+  // Already posted batches (show at bottom with POSTED badge)
+  var postedItems = (db.eraPreviewQueue||[]).filter(function(x){
+    return x.providerId===activeProviderId && x.status==='posted';
+  }).sort(function(a,b){ return b.fetchedAt - a.fetchedAt; }).slice(0, 20);
+
+  if (!pendingItems.length && !postedItems.length) {
+    return '<div class="empty">'
+      +'<div class="empty-ico"><i data-lucide="download-cloud" class="lci" style="width:32px;height:32px;color:var(--text3)"></i></div>'
+      +'<h3>No ERA payments yet</h3>'
+      +'<p style="font-size:12px;color:var(--text3)">Click <strong>Import Payments</strong> to pull from ClaimMD.</p>'
+      +'<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="fetchERAFromClearinghouse()">'
+        +'<i data-lucide="download-cloud" class="lci" style="width:13px;height:13px"></i> Import Payments'
+      +'</button></div>';
   }
 
-  var today = new Date(); today.setHours(0,0,0,0);
-  var rows = items.map(function(item) {
+  function makeRow(item, isPosted) {
     var paidDate = item.checkDate ? new Date(item.checkDate) : null;
-    var isFuture = paidDate && paidDate > today;
-    var daysUntil = paidDate ? Math.ceil((paidDate-today)/(1000*60*60*24)) : null;
-    var dateBadge = isFuture
-      ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#ede9fe;color:#7c3aed">In '+daysUntil+' day'+(daysUntil!==1?'s':'')+'</span>'
-      : '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#fff8e1;color:#b45309">PAST DUE</span>';
-    return '<tr style="border-bottom:1px solid var(--border)">'
-      +'<td style="padding:7px 10px;font-size:12px;font-weight:600">'+item.payerName+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace">'+item.checkNum+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px">'+item.checkDate+'</td>'
-      +'<td style="padding:7px 10px">'+dateBadge+'</td>'
-      +'<td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
-      +'<td style="padding:7px 10px;text-align:center;font-size:11px">'+item.claimCount+'</td>'
-      +'<td style="padding:7px 10px"><div style="display:flex;gap:4px">'
-        +'<button class="btn btn-xs btn-primary" onclick="_eraPostSinglePending(&quot;'+item.eraId+'&quot;)"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> Post</button>'
-        +'<button class="btn btn-xs" onclick="_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'
-      +'</div></td>'
+    var isFuture = !isPosted && paidDate && paidDate > today;
+    var daysUntil = paidDate ? Math.ceil((paidDate - today)/(1000*60*60*24)) : null;
+
+    var badge = isPosted
+      ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#f0faf5;color:#2d7a4f">✓ POSTED</span>'
+      : isFuture
+        ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#ede9fe;color:#7c3aed">In '+daysUntil+' day'+(daysUntil!==1?'s':'')+'</span>'
+        : '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#fff3e0;color:#b35c00">READY</span>';
+
+    var actions = isPosted
+      ? '<span style="font-size:11px;color:#87867f">Posted</span>'
+      : '<div style="display:flex;gap:4px">'
+          +'<button class="btn btn-xs btn-primary" onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" title="View & Post">'
+            +'<i data-lucide="eye" class="lci" style="width:12px;height:12px"></i> Review'
+          +'</button>'
+          +'<button class="btn btn-xs" onclick="_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss">'
+            +'<i data-lucide="x" class="lci" style="width:12px;height:12px"></i>'
+          +'</button>'
+        +'</div>';
+
+    return '<tr style="border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'" '
+      +'onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" '
+      +'style="cursor:pointer;border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'">'
+      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text)">'+item.payerName+'</td>'
+      +'<td style="padding:8px 10px;font-size:11px;font-family:monospace;color:var(--text2)">'+item.checkNum+'</td>'
+      +'<td style="padding:8px 10px;font-size:11px;color:var(--text2)">'+item.checkDate+'</td>'
+      +'<td style="padding:8px 10px">'+badge+'</td>'
+      +'<td style="padding:8px 10px;font-size:13px;font-family:monospace;font-weight:800;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;font-size:12px;color:var(--text2)">'+item.claimCount+'</td>'
+      +'<td style="padding:8px 10px" onclick="event.stopPropagation()">'+actions+'</td>'
+      +'</tr>';
+  }
+
+  var totalPending = pendingItems.reduce(function(s,x){return s+parseFloat(x.checkAmt||0);},0);
+  var readyNow = pendingItems.filter(function(x){
+    var d = x.checkDate ? new Date(x.checkDate) : null;
+    return !d || d <= today;
+  });
+
+  var html = '';
+
+  // Summary bar
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">'
+    +'<div style="display:flex;gap:12px;align-items:center">'
+      +'<div style="font-size:12px;color:var(--text2)">'
+        +'<strong style="font-size:15px;color:var(--text)">'+pendingItems.length+'</strong> pending'
+        +' &nbsp;·&nbsp; <strong style="color:#2d7a4f">$'+fmtMoney(totalPending)+'</strong>'
+        +(readyNow.length ? ' &nbsp;·&nbsp; <strong style="color:#b35c00">'+readyNow.length+' ready now</strong>' : '')
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px">'
+      +(readyNow.length ? '<button class="btn btn-primary btn-sm" onclick="_eraPostAllPending()">'
+        +'<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> Post All Ready'
+        +'</button>' : '')
+    +'</div>'
+  +'</div>';
+
+  // Main table
+  html += '<div class="tbl-wrap" style="margin:0">'
+    +'<table style="width:100%"><thead><tr>'
+      +'<th style="font-size:11px">Payer</th>'
+      +'<th style="font-size:11px">Check / EFT #</th>'
+      +'<th style="font-size:11px">Check Date</th>'
+      +'<th style="font-size:11px">Status</th>'
+      +'<th style="font-size:11px">Amount</th>'
+      +'<th style="font-size:11px;text-align:center">Claims</th>'
+      +'<th style="font-size:11px">Actions</th>'
+    +'</tr></thead><tbody>';
+
+  if (pendingItems.length) {
+    html += pendingItems.map(function(item){ return makeRow(item, false); }).join('');
+  }
+  if (postedItems.length) {
+    html += '<tr><td colspan="7" style="padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);background:var(--bg3)">Recently Posted</td></tr>';
+    html += postedItems.map(function(item){ return makeRow(item, true); }).join('');
+  }
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+
+// ── ERA Payment Detail Floating Panel ─────────────────────────────────────
+function _eraOpenPaymentDetail(eraId) {
+  var db = getDB();
+  var item = (db.eraPreviewQueue||[]).find(function(x){ return x.eraId===eraId; });
+  var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
+
+  if (!item) { toast('ERA not found — please re-import','warn'); return; }
+
+  // Build claim rows from batch lines (or from db if already posted)
+  var lines = batch ? (batch.lines||[]) : [];
+  var isPosted = item.status === 'posted';
+
+  var claimRows = lines.map(function(l, idx) {
+    var claim = db.claims.find(function(c){ return c.id===l.claimId; })||{};
+    var pat   = db.patients.find(function(p){ return p.id===claim.patId; })||{};
+    var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'—';
+    var cpts  = ((claim.lines)||[]).map(function(cl){ return cl.cpt||cl.code||''; }).filter(Boolean).join(', ');
+    var billed = claimTotal(claim)||parseFloat(l.amtPaid||0);
+    var coAdj = parseFloat(l.amtAdj||0);
+    var paid  = parseFloat(l.amtPaid||0);
+    var pr    = parseFloat(l.patResp||0);
+    var alw   = billed - coAdj;
+    // Adj lines for this claim
+    var adjLines = (l.chargeLines||[]).flatMap ? (l.chargeLines||[]).flatMap(function(cl){
+      return (cl.adjustments||[]).map(function(a){ return a.group+'-'+a.code+': $'+parseFloat(a.amount||0).toFixed(2); });
+    }) : [];
+
+    var alreadyPosted = !!(db.claimEOB && db.claimEOB[claim.id] &&
+      db.claimEOB[claim.id].some(function(e){ return e.eraId===eraId; }));
+
+    var rowBg = alreadyPosted ? 'background:#f0faf5' : '';
+    var postBtn = alreadyPosted
+      ? '<span style="font-size:10px;color:#2d7a4f;font-weight:700">✓ Posted</span>'
+      : '<button class="btn btn-xs btn-primary" onclick="_eraPostSingleLine(&quot;'+eraId+'&quot;,'+idx+')" style="white-space:nowrap">'
+          +'<i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Post'
+        +'</button>';
+
+    return '<tr style="border-bottom:1px solid var(--border);'+rowBg+';cursor:default">'
+      +'<td style="padding:7px 10px">'
+        +'<div style="font-size:11px;font-family:monospace;font-weight:700;color:var(--brand);cursor:pointer" '
+          +'onclick="go(&quot;claim-editor&quot;);openClaimDetail(&quot;'+claim.id+'&quot;)" '
+          +'title="Open claim">'+( claim.pcn||l.pcn||'—')+'</div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+(claim.billNum||'')+'</div>'
+      +'</td>'
+      +'<td style="padding:7px 10px;font-size:12px">'+patName+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+(l.dos||claim.dos||'—')+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+( cpts||'—')+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right">$'+billed.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#5e5d59">$'+alw.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;text-align:right;color:#2d7a4f">$'+paid.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#c96442">$'+coAdj.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#b35c00">$'+pr.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:10px;color:var(--text3)">'+adjLines.join('<br>')+'</td>'
+      +'<td style="padding:7px 10px" onclick="event.stopPropagation()">'+postBtn+'</td>'
       +'</tr>';
   }).join('');
 
-  var totalAmt = items.reduce(function(s,x){ return s+parseFloat(x.checkAmt||0); }, 0);
-  return '<div>'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-      +'<div style="font-size:12px;color:var(--text3)"><strong>'+items.length+'</strong> pending — <strong style="color:#2d7a4f">$'+fmtMoney(totalAmt)+'</strong></div>'
-      +'<button class="btn btn-primary btn-sm" onclick="_eraPostAllPending()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> Post All Ready</button>'
-    +'</div>'
-    +'<div class="tbl-wrap" style="margin:0"><table><thead><tr>'
-      +'<th>Payer</th><th>Check #</th><th>Check Date</th><th>Status</th><th>Amount</th><th style="text-align:center">Claims</th><th>Actions</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  var totalBilled = lines.reduce(function(s,l){ return s+claimTotal(db.claims.find(function(c){return c.id===l.claimId;})||{}); }, 0)||parseFloat(item.checkAmt||0);
+  var totalPaid   = lines.reduce(function(s,l){ return s+parseFloat(l.amtPaid||0); }, 0);
+  var totalAdj    = lines.reduce(function(s,l){ return s+parseFloat(l.amtAdj||0); }, 0);
+  var totalPR     = lines.reduce(function(s,l){ return s+parseFloat(l.patResp||0); }, 0);
+
+  var allPostedAlready = lines.length > 0 && lines.every(function(l){
+    return !!(db.claimEOB && db.claimEOB[l.claimId] &&
+      db.claimEOB[l.claimId].some(function(e){ return e.eraId===eraId; }));
+  });
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var paidDate = item.checkDate ? new Date(item.checkDate) : null;
+  var isFuture = paidDate && paidDate > today;
+
+  var statusBanner = isPosted
+    ? '<div style="padding:8px 14px;background:#f0faf5;border-bottom:1px solid #bbf7d0;font-size:12px;font-weight:600;color:#2d7a4f">'
+        +'<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> All payments posted</div>'
+    : isFuture
+      ? '<div style="padding:8px 14px;background:#ede9fe;border-bottom:1px solid #ddd6fe;font-size:12px;font-weight:600;color:#7c3aed">'
+          +'<i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Future payment — expected '+item.checkDate+'</div>'
+      : '';
+
+  var modalHtml =
+    '<div class="overlay" id="modal-era-detail" style="z-index:9998">'
+    +'<div class="modal" style="max-width:1100px;width:99%;max-height:92vh;display:flex;flex-direction:column">'
+
+      // Header
+      +'<div class="modal-hdr" style="flex-shrink:0;background:var(--bg3)">'
+        +'<div style="flex:1">'
+          +'<div class="modal-t" style="display:flex;align-items:center;gap:10px">'
+            +'<i data-lucide="file-text" class="lci" style="width:16px;height:16px;color:var(--brand)"></i>'
+            +item.payerName
+            +(isPosted?'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#f0faf5;color:#2d7a4f">POSTED</span>':'')
+          +'</div>'
+          +'<div class="modal-sub">ERA #'+eraId+' &nbsp;·&nbsp; Check '+item.checkNum+' &nbsp;·&nbsp; '+item.checkDate+'</div>'
+        +'</div>'
+        +'<button class="btn btn-ghost btn-sm" onclick="closeModal(&quot;modal-era-detail&quot;)">×</button>'
+      +'</div>'
+
+      // Status banner
+      +statusBanner
+
+      // Check info grid
+      +'<div style="flex-shrink:0;display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1px solid var(--border)">'
+        +['Payer|'+item.payerName, 'Check / EFT #|'+item.checkNum, 'Check Date|'+item.checkDate,
+          'Check Amount|$'+fmtMoney(item.checkAmt), 'Claims|'+lines.length]
+          .map(function(kv){ var p=kv.split('|'); return '<div style="padding:10px 14px;border-right:1px solid var(--border)">'
+            +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:3px">'+p[0]+'</div>'
+            +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+p[1]+'</div>'
+          +'</div>'; }).join('')
+      +'</div>'
+
+      // Totals summary
+      +'<div style="flex-shrink:0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:2px solid var(--border);background:var(--bg2)">'
+        +[['Total Billed','$'+fmtMoney(totalBilled),'var(--text)'],
+          ['Allowed','$'+fmtMoney(totalBilled-totalAdj),'var(--text)'],
+          ['Total Paid','$'+fmtMoney(totalPaid),'#2d7a4f'],
+          ['Pat Resp','$'+fmtMoney(totalPR),'#c96442']]
+          .map(function(item){ return '<div style="padding:8px 14px;border-right:1px solid var(--border)">'
+            +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:2px">'+item[0]+'</div>'
+            +'<div style="font-size:15px;font-weight:800;font-family:monospace;color:'+item[2]+'">'+item[1]+'</div>'
+          +'</div>'; }).join('')
+      +'</div>'
+
+      // Claims table
+      +'<div style="flex:1;overflow:auto">'
+        +'<table style="width:100%;border-collapse:collapse">'
+        +'<thead style="position:sticky;top:0;z-index:1"><tr style="background:var(--bg3)">'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:left">PCN / Bill#</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:left">Patient</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:left">DOS</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:left">CPT(s)</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right">Billed</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right">Allowed</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right;color:#2d7a4f">Paid</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right">CO Adj</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right;color:#c96442">Pat Resp</th>'
+          +'<th style="padding:7px 10px;font-size:10px">Remark Codes</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:center">Action</th>'
+        +'</tr></thead>'
+        +'<tbody>'+( claimRows || '<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No claim details available — batch data may not be loaded. Please re-import.</td></tr>')+'</tbody>'
+        +'</table>'
+      +'</div>'
+
+      // Footer
+      +'<div class="modal-ftr" style="flex-shrink:0;justify-content:space-between">'
+        +'<button class="btn" onclick="closeModal(&quot;modal-era-detail&quot;)">Close</button>'
+        +(isPosted||allPostedAlready ? ''
+          : '<button class="btn btn-primary" onclick="_eraPostAllFromDetail(&quot;'+eraId+'&quot;)">'
+              +'<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> Post All Claims in This Payment'
+            +'</button>')
+      +'</div>'
+
+    +'</div></div>';
+
+  var ex = document.getElementById('modal-era-detail');
+  if (ex) ex.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  setTimeout(_renderLucideIcons, 50);
+}
+
+// Post a single claim line from the detail modal
+function _eraPostSingleLine(eraId, lineIdx) {
+  var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
+  if (!batch) { toast('Batch data not found — re-import','warn'); return; }
+  var singleLineBatch = Object.assign({}, batch, { lines: [batch.lines[lineIdx]] });
+  _postEOBToClaims(singleLineBatch);
+  // Check if all lines are now posted, if so mark item as posted
+  var db = getDB();
+  var allDone = batch.lines.every(function(l){
+    return !!(db.claimEOB && db.claimEOB[l.claimId] &&
+      db.claimEOB[l.claimId].some(function(e){ return e.eraId===eraId; }));
+  });
+  if (allDone) {
+    setEOBBatches(function(arr){ arr.push(batch); });
+    setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='posted'; }); });
+  }
+  toast('Claim posted');
+  _eraOpenPaymentDetail(eraId); // refresh modal
+  renderEOBPage();
+}
+
+// Post all claims from the detail modal
+function _eraPostAllFromDetail(eraId) {
+  var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
+  if (!batch) { toast('Batch data not found — re-import','warn'); return; }
+  _postEOBToClaims(batch);
+  setEOBBatches(function(arr){ arr.push(batch); });
+  setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='posted'; }); });
+  closeModal('modal-era-detail');
+  toast((batch.lines||[]).length+' claim(s) posted from ERA #'+eraId);
+  renderEOBPage(); updateBadges(); setEOBTab('era-pending', null);
 }
 
 function _eraPostSinglePending(eraId) {
