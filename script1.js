@@ -18,6 +18,8 @@ function toggleUserMenu(e) {
   var langBtn = document.getElementById('btn-lang');
   if (langLabel && langBtn) langLabel.textContent = langBtn.textContent || 'EN';
   if (!isOpen) {
+    // Render specialty switcher when menu opens
+    if (typeof _renderSpecialtySwitch === 'function') _renderSpecialtySwitch();
     setTimeout(function() {
       document.addEventListener('click', function closeMenu(e2) {
         var chip = document.getElementById('tn-user-chip');
@@ -69,7 +71,7 @@ function rebuildProvSel() {
     switchProvider(providers[0].id);
   }
 }
-function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); }
+function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }
 
 // \u2500\u2500 Navigation \u2500\u2500
 const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',services:'Services / CPT',export:'Export / Submit',providers:'Providers',facilities:'Facilities',rendering:'Rendering',referring:'Referring',validate:'Validate',reports:'Reports'};
@@ -2942,6 +2944,9 @@ return `<div class="app-shell">
     </div>
   </div>
 
+  <!-- Specialty switcher (shown when user has 2+ specialties) -->
+  <div id="tn-user-specialty-section" style="display:none"></div>
+
   <!-- Action buttons grid -->
   <div style="padding:12px;display:grid;grid-template-columns:1fr;gap:8px;
     border-bottom:1px solid var(--border)">
@@ -4146,79 +4151,16 @@ Account Key
 </div>
 
 <div id="mprov-specialties-section">
-<!-- Specialties -->
+<!-- Specialties — editable list -->
 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Specialties</div>
 <div class="field" style="grid-column:1/-1">
-<label>Provider Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">(select all that apply — used for user assignment)</span></label>
-<div id="mprov-specialties-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;padding:10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg)">
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Family Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Family Medicine</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Internal Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Internal Medicine</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="General Practice" style="accent-color:var(--brand);width:13px;height:13px"> General Practice</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pediatrics" style="accent-color:var(--brand);width:13px;height:13px"> Pediatrics</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Geriatrics" style="accent-color:var(--brand);width:13px;height:13px"> Geriatrics</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Obstetrics & Gynecology" style="accent-color:var(--brand);width:13px;height:13px"> Obstetrics & Gynecology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Preventive Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Preventive Medicine</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Behavioral Health" style="accent-color:var(--brand);width:13px;height:13px"> Behavioral Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Psychiatry" style="accent-color:var(--brand);width:13px;height:13px"> Psychiatry</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Psychology" style="accent-color:var(--brand);width:13px;height:13px"> Psychology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Clinical Social Work" style="accent-color:var(--brand);width:13px;height:13px"> Clinical Social Work</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Counseling" style="accent-color:var(--brand);width:13px;height:13px"> Counseling</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Marriage & Family Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Marriage & Family Therapy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Substance Abuse" style="accent-color:var(--brand);width:13px;height:13px"> Substance Abuse</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Applied Behavior Analysis (ABA)" style="accent-color:var(--brand);width:13px;height:13px"> Applied Behavior Analysis (ABA)</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Mental Health Counseling" style="accent-color:var(--brand);width:13px;height:13px"> Mental Health Counseling</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Physical Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Physical Therapy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Occupational Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Occupational Therapy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Speech Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Speech Therapy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Rehabilitation" style="accent-color:var(--brand);width:13px;height:13px"> Rehabilitation</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Chiropractic" style="accent-color:var(--brand);width:13px;height:13px"> Chiropractic</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Respiratory Therapy" style="accent-color:var(--brand);width:13px;height:13px"> Respiratory Therapy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Community Health" style="accent-color:var(--brand);width:13px;height:13px"> Community Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Community Mental Health" style="accent-color:var(--brand);width:13px;height:13px"> Community Mental Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Federally Qualified Health Center (FQHC)" style="accent-color:var(--brand);width:13px;height:13px"> Federally Qualified Health Center (FQHC)</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Rural Health Clinic" style="accent-color:var(--brand);width:13px;height:13px"> Rural Health Clinic</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Public Health" style="accent-color:var(--brand);width:13px;height:13px"> Public Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="School-Based Health" style="accent-color:var(--brand);width:13px;height:13px"> School-Based Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Home Health" style="accent-color:var(--brand);width:13px;height:13px"> Home Health</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Hospice & Palliative Care" style="accent-color:var(--brand);width:13px;height:13px"> Hospice & Palliative Care</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Cardiology" style="accent-color:var(--brand);width:13px;height:13px"> Cardiology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Dermatology" style="accent-color:var(--brand);width:13px;height:13px"> Dermatology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Endocrinology" style="accent-color:var(--brand);width:13px;height:13px"> Endocrinology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Gastroenterology" style="accent-color:var(--brand);width:13px;height:13px"> Gastroenterology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Hematology" style="accent-color:var(--brand);width:13px;height:13px"> Hematology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Infectious Disease" style="accent-color:var(--brand);width:13px;height:13px"> Infectious Disease</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Nephrology" style="accent-color:var(--brand);width:13px;height:13px"> Nephrology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Neurology" style="accent-color:var(--brand);width:13px;height:13px"> Neurology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Oncology" style="accent-color:var(--brand);width:13px;height:13px"> Oncology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Ophthalmology" style="accent-color:var(--brand);width:13px;height:13px"> Ophthalmology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Orthopedics" style="accent-color:var(--brand);width:13px;height:13px"> Orthopedics</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pulmonology" style="accent-color:var(--brand);width:13px;height:13px"> Pulmonology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Rheumatology" style="accent-color:var(--brand);width:13px;height:13px"> Rheumatology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Urology" style="accent-color:var(--brand);width:13px;height:13px"> Urology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Allergy & Immunology" style="accent-color:var(--brand);width:13px;height:13px"> Allergy & Immunology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Surgery" style="accent-color:var(--brand);width:13px;height:13px"> Surgery</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Orthopedic Surgery" style="accent-color:var(--brand);width:13px;height:13px"> Orthopedic Surgery</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Neurosurgery" style="accent-color:var(--brand);width:13px;height:13px"> Neurosurgery</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Plastic Surgery" style="accent-color:var(--brand);width:13px;height:13px"> Plastic Surgery</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Radiology" style="accent-color:var(--brand);width:13px;height:13px"> Radiology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pathology" style="accent-color:var(--brand);width:13px;height:13px"> Pathology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Anesthesiology" style="accent-color:var(--brand);width:13px;height:13px"> Anesthesiology</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Emergency Medicine" style="accent-color:var(--brand);width:13px;height:13px"> Emergency Medicine</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pain Management" style="accent-color:var(--brand);width:13px;height:13px"> Pain Management</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Podiatry" style="accent-color:var(--brand);width:13px;height:13px"> Podiatry</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Optometry" style="accent-color:var(--brand);width:13px;height:13px"> Optometry</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Nutrition & Dietetics" style="accent-color:var(--brand);width:13px;height:13px"> Nutrition & Dietetics</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Telehealth" style="accent-color:var(--brand);width:13px;height:13px"> Telehealth</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Pharmacy" style="accent-color:var(--brand);width:13px;height:13px"> Pharmacy</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Laboratory" style="accent-color:var(--brand);width:13px;height:13px"> Laboratory</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" class="mprov-spec-cb" value="Dental" style="accent-color:var(--brand);width:13px;height:13px"> Dental</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;grid-column:1/-1;border-top:1px solid var(--border);margin-top:6px;padding-top:10px">
-  <input type="checkbox" id="mprov-spec-other-cb" class="mprov-spec-cb" value="__other__" style="accent-color:var(--brand);width:13px;height:13px" onchange="document.getElementById('mprov-spec-other-wrap').style.display=this.checked?'':'none'"> Other (specify):
-  <div id="mprov-spec-other-wrap" style="display:none;flex:1;margin-left:4px">
-    <input id="mprov-spec-other-input" placeholder="Type specialty name..." style="width:100%;padding:5px 8px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box"
-    oninput="if(this.value.trim())document.getElementById('mprov-spec-other-cb').value=this.value.trim()">
-  </div>
-</label>
+<label style="margin-bottom:6px;display:block">Practice Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">— configure each specialty's taxonomy and visible menus</span></label>
+<div id="mprov-spec-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+<button class="btn btn-sm" onclick="_mprovAddSpecialty()" type="button" style="display:flex;align-items:center;gap:5px">
+<i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Specialty
+</button>
+</div>
+
 </div>
 </div>
 </div>
@@ -9083,6 +9025,7 @@ function _afterLoad() {
     go('dashboard');
     try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
     setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
+    setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
   } else {
     // Re-render current page so it picks up the freshly loaded Firestore data
     var _curPage = _curActive.id.replace('sec-', '');
@@ -9363,12 +9306,9 @@ const titleEl=document.getElementById('mprov-title'); if(titleEl) titleEl.textCo
 sv('mprov-id',p?p.id:''); sv('mprov-name',p?.name||''); sv('mprov-npi',p?.npi||''); sv('mprov-taxid',p?.taxid||'');
 sv('mprov-taxonomy',p?.taxonomy||''); sv('mprov-addr1',p?.addr1||''); sv('mprov-addr2',p?.addr2||'');
 sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');
-  // Restore specialty checkboxes
+  // Render specialty list
   setTimeout(function(){
-    var provSpecs = (p && p.specialties) ? p.specialties : [];
-    document.querySelectorAll('.mprov-spec-cb').forEach(function(cb){
-      cb.checked = provSpecs.indexOf(cb.value) >= 0;
-    });
+    _mprovRenderSpecialties((p && p.specialtyDefs) ? p.specialtyDefs : []);
   }, 50);
 const taxEl=document.getElementById('mprov-taxtype'); if(taxEl) taxEl.value=p?.taxType||'E';
 const typeEl=document.getElementById('mprov-type'); if(typeEl) typeEl.value=p?.providerType||'Organization';
@@ -9445,6 +9385,16 @@ if (!isSA || !isFromAdmin) {
 const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
 if(dupNPI){toast('NPI '+npi+' already registered to '+dupNPI.name,'err');return;}
 const newAcctKey = document.getElementById('mprov-acctkey')?.value?.trim() || '';
+// Collect specialtyDefs from editable list
+var specialtyDefs = [];
+document.querySelectorAll('.mprov-spec-row').forEach(function(row){
+  var name2 = (row.querySelector('.mprov-spec-name')||{}).value||'';
+  var taxonomy2 = (row.querySelector('.mprov-spec-taxonomy')||{}).value||'';
+  if (!name2.trim()) return;
+  var menus = [];
+  row.querySelectorAll('.mprov-spec-menu-cb:checked').forEach(function(cb){ menus.push(cb.value); });
+  specialtyDefs.push({ id: row.dataset.specId || uid(), name: name2.trim(), taxonomy: taxonomy2.trim(), menus: menus });
+});
 const p={
 id:existingId||uid(), name, npi, taxid,
 taxType:document.getElementById('mprov-taxtype')?.value||'E',
@@ -9453,6 +9403,8 @@ taxonomy:v('mprov-taxonomy'), status:document.getElementById('mprov-status')?.va
 addr1:v('mprov-addr1'), addr2:v('mprov-addr2'), city:v('mprov-city'), state:v('mprov-state'), zip:v('mprov-zip'), phone:v('mprov-phone'), email:v('mprov-email')||'',
 acctKey: newAcctKey || (db.providers.find(x=>x.id===existingId)?.acctKey||''),
 logo: _provLogoB64 || (db.providers.find(x=>x.id===existingId)?.logo||''),
+specialtyDefs: specialtyDefs,
+specialties: specialtyDefs.map(function(s){ return s.name; }),
 createdAt:isNew?Date.now():(db.providers.find(x=>x.id===existingId)?.createdAt||Date.now())
 };
 setDB(db=>{if(!isNew){const idx=db.providers.findIndex(x=>x.id===existingId);if(idx>=0)db.providers[idx]=p;}else db.providers.push(p);});
@@ -15308,6 +15260,193 @@ function _eraPreviewPostSelected() {
   renderEOBPage(); updateBadges();
 }
 
+
+
+// ── Specialty System ──────────────────────────────────────────────────────────
+
+var _SPEC_MENU_DEFS = [
+    {label:'Home', id:'tnav-dashboard', group:'tnav-dashboard'},
+    {label:'Schedule', id:'tnav-appointments', group:'tnav-appointments'},
+    {label:'Patients', id:'tnav-patients', group:'tnav-patients'},
+    {label:'Billing (Claims/ERA)', id:'tng-billing', group:'tng-billing'},
+    {label:'EHR / Encounters', id:'tng-ehr', group:'tng-ehr'},
+    {label:'Case Management', id:'tng-cm', group:'tng-cm'},
+    {label:'Settings', id:'tng-config', group:'tng-config'},
+    {label:'Admin', id:'tng-admin', group:'tng-admin'},
+    {label:'Invoicing', id:'tnd-invoices', group:'tnd-invoices'},
+    {label:'Reports', id:'tnd-reports', group:'tnd-reports'},
+    {label:'Service Groups', id:'tnd-servicegroups', group:'tnd-servicegroups'},
+    {label:'Export / Submit', id:'tnd-export', group:'tnd-export'}
+  ];
+
+// Render editable specialty rows inside Billing Provider modal
+function _mprovRenderSpecialties(defs) {
+  var container = document.getElementById('mprov-spec-list');
+  if (!container) return;
+  container.innerHTML = '';
+  (defs || []).forEach(function(sd) {
+    container.appendChild(_mprovBuildSpecRow(sd));
+  });
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function _mprovBuildSpecRow(sd) {
+  sd = sd || {};
+  var specId = sd.id || uid();
+  var div = document.createElement('div');
+  div.className = 'mprov-spec-row';
+  div.dataset.specId = specId;
+  div.style.cssText = 'border:1.5px solid var(--border2);border-radius:10px;padding:12px 14px;background:var(--bg3);display:flex;flex-direction:column;gap:8px';
+
+  // Header row: name + taxonomy + delete
+  var headerMenuHtml = _SPEC_MENU_DEFS.map(function(m) {
+    var chk = (sd.menus || []).indexOf(m.id) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;white-space:nowrap">' +
+      '<input type="checkbox" class="mprov-spec-menu-cb" value="' + m.id + '" ' + chk +
+      ' style="accent-color:var(--brand);width:13px;height:13px"> ' + m.label + '</label>';
+  }).join('');
+
+  div.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">' +
+      '<div class="field" style="margin:0">' +
+        '<label style="font-size:11px;font-weight:600;color:var(--text3)">Specialty Name *</label>' +
+        '<input class="mprov-spec-name" value="' + (sd.name||'') + '" placeholder="e.g. Applied Behavior Analysis"' +
+        ' style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px">' +
+      '</div>' +
+      '<div class="field" style="margin:0">' +
+        '<label style="font-size:11px;font-weight:600;color:var(--text3)">Taxonomy Code</label>' +
+        '<input class="mprov-spec-taxonomy" value="' + (sd.taxonomy||'') + '" placeholder="e.g. 103G00000X" maxlength="10"' +
+        ' style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px;font-family:monospace">' +
+      '</div>' +
+      '<button type="button" onclick="this.closest(\'.mprov-spec-row\').remove()" ' +
+        'style="padding:7px 10px;border:1.5px solid var(--red,#dc2626);border-radius:var(--r);background:transparent;color:var(--red,#dc2626);cursor:pointer;font-size:12px;height:36px">' +
+        '<i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i>' +
+      '</button>' +
+    '</div>' +
+    '<div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Visible Menus</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">' + headerMenuHtml + '</div>' +
+    '</div>';
+
+  setTimeout(_renderLucideIcons, 20);
+  return div;
+}
+
+function _mprovAddSpecialty() {
+  var container = document.getElementById('mprov-spec-list');
+  if (!container) return;
+  container.appendChild(_mprovBuildSpecRow({}));
+  setTimeout(_renderLucideIcons, 20);
+}
+
+// ── Active Specialty Runtime ──────────────────────────────────────────────────
+
+// Get active specialty for current user (from db.users)
+function getActiveSpecialty() {
+  var sess = getSession();
+  if (!sess) return null;
+  if (sess.role === 'Super Admin') return null; // SA sees all
+  var db = getDB();
+  var user = (db.users||[]).find(function(u){ return u.email === sess.email; });
+  return user ? (user.activeSpecialty || null) : null;
+}
+
+// Switch specialty — persists to db.users
+function switchSpecialty(specName) {
+  var sess = getSession();
+  if (!sess) return;
+  setDB(function(db2){
+    var user = (db2.users||[]).find(function(u){ return u.email === sess.email; });
+    if (user) user.activeSpecialty = specName;
+  });
+  // Update session
+  sess.activeSpecialty = specName;
+  setSession(sess);
+  toast('Switched to ' + specName, 'ok');
+  applyActiveSpecialty();
+  toggleUserMenu();
+}
+
+// Apply visibility rules based on active specialty
+function applyActiveSpecialty() {
+  var sess = getSession();
+  if (!sess || sess.role === 'Super Admin') {
+    // SA — show all
+    _SPEC_MENU_DEFS.forEach(function(m){
+      var el = document.getElementById(m.group);
+      if (el) el.style.display = '';
+    });
+    return;
+  }
+
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
+  var specDefs = prov.specialtyDefs || [];
+  if (!specDefs.length) return; // No specialties configured — show all
+
+  var activeSpecName = getActiveSpecialty();
+  var activeDef = specDefs.find(function(sd){ return sd.name === activeSpecName; });
+  if (!activeDef) {
+    // Default to first specialty
+    activeDef = specDefs[0];
+    if (activeDef) switchSpecialty(activeDef.name);
+    return;
+  }
+
+  var allowedMenus = activeDef.menus || [];
+  _SPEC_MENU_DEFS.forEach(function(m){
+    var el = document.getElementById(m.group);
+    if (!el) return;
+    el.style.display = allowedMenus.indexOf(m.id) >= 0 ? '' : 'none';
+  });
+
+  // Update active taxonomy on provider (runtime only — not saved to db)
+  window._activeSpecialty = activeDef;
+}
+
+// Render the Change Specialty button in user menu
+function _renderSpecialtySwitch() {
+  var container = document.getElementById('tn-user-specialty-section');
+  if (!container) return;
+
+  var sess = getSession();
+  if (!sess || sess.role === 'Super Admin') { container.style.display = 'none'; return; }
+
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
+  var specDefs = prov.specialtyDefs || [];
+  var userSpecs = Array.isArray(sess.specialties) ? sess.specialties : [];
+  // Also check db user
+  var dbUser = (db.users||[]).find(function(u){ return u.email === sess.email; });
+  if (dbUser && dbUser.specialties) userSpecs = dbUser.specialties;
+
+  // Only show if user has 2+ specialties assigned
+  var eligibleSpecs = specDefs.filter(function(sd){ return userSpecs.indexOf(sd.name) >= 0; });
+  if (eligibleSpecs.length < 2) { container.style.display = 'none'; return; }
+
+  var activeSpecName = getActiveSpecialty() || eligibleSpecs[0].name;
+  container.style.display = '';
+  container.innerHTML =
+    '<div style="padding:10px 12px;border-bottom:1px solid var(--border)">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Active Specialty</div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px">' +
+        eligibleSpecs.map(function(sd){
+          var isActive = sd.name === activeSpecName;
+          return '<button onclick="switchSpecialty(&quot;' + sd.name.replace(/"/g,'&quot;') + '&quot;)" type="button"' +
+            ' style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:' +
+            (isActive ? '2px solid var(--brand)' : '1px solid var(--border2)') +
+            ';border-radius:10px;background:' + (isActive ? 'var(--brand-bg)' : 'var(--bg3)') +
+            ';cursor:pointer;text-align:left;width:100%">' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:' + (isActive ? 'var(--brand)' : 'var(--border2)') + ';flex-shrink:0"></div>' +
+            '<div style="min-width:0"><div style="font-size:12px;font-weight:' + (isActive?'700':'600') + ';color:var(--text)">' + sd.name + '</div>' +
+            (sd.taxonomy ? '<div style="font-size:10px;color:var(--text3);font-family:monospace">' + sd.taxonomy + '</div>' : '') +
+            '</div>' +
+            (isActive ? '<div style="margin-left:auto;font-size:9px;font-weight:700;color:var(--brand);background:var(--brand-bg);padding:2px 7px;border-radius:10px">ACTIVE</div>' : '') +
+            '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+}
 
 function _recreateClaimFromERA(eraId) {
   var db = getDB();
@@ -23567,26 +23706,27 @@ function openAddUserModal(existingUser) {
   var u = existingUser || {};
   var isEdit = !!u.id;
 
-  // Get specialties from current active provider
+  // Get specialtyDefs from current active provider
   var db = getDB();
   var prov = db.providers.find(function(p2){ return p2.id === activeProviderId; }) || {};
-  // Provider specialties — use taxonomy or a specialties array if defined
-  var provSpecialties = prov.specialties || [];
-  if (!provSpecialties.length && prov.taxonomy) {
-    provSpecialties = [prov.taxonomy];
-  }
-  // Fallback: use full specialty list if provider has none defined
-  if (!provSpecialties.length) {
-    provSpecialties = ['Family Medicine', 'Internal Medicine', 'General Practice', 'Pediatrics', 'Geriatrics', 'Obstetrics & Gynecology', 'Preventive Medicine', 'Behavioral Health', 'Psychiatry', 'Psychology', 'Clinical Social Work', 'Counseling', 'Marriage & Family Therapy', 'Substance Abuse', 'Applied Behavior Analysis (ABA)', 'Mental Health Counseling', 'Physical Therapy', 'Occupational Therapy', 'Speech Therapy', 'Rehabilitation', 'Chiropractic', 'Respiratory Therapy', 'Community Health', 'Community Mental Health', 'Federally Qualified Health Center (FQHC)', 'Rural Health Clinic', 'Public Health', 'School-Based Health', 'Home Health', 'Hospice & Palliative Care', 'Cardiology', 'Dermatology', 'Endocrinology', 'Gastroenterology', 'Hematology', 'Infectious Disease', 'Nephrology', 'Neurology', 'Oncology', 'Ophthalmology', 'Orthopedics', 'Pulmonology', 'Rheumatology', 'Urology', 'Allergy & Immunology', 'Surgery', 'Orthopedic Surgery', 'Neurosurgery', 'Plastic Surgery', 'Radiology', 'Pathology', 'Anesthesiology', 'Emergency Medicine', 'Pain Management', 'Podiatry', 'Optometry', 'Nutrition & Dietetics', 'Telehealth', 'Pharmacy', 'Laboratory', 'Dental'];
+  var provSpecDefs = (prov.specialtyDefs && prov.specialtyDefs.length) ? prov.specialtyDefs : [];
+  // Legacy fallback: if old specialties array exists but no defs
+  if (!provSpecDefs.length && prov.specialties && prov.specialties.length) {
+    provSpecDefs = prov.specialties.map(function(s){ return { id: s, name: s, taxonomy: '', menus: [] }; });
   }
   var userSpecs = Array.isArray(u.specialties) ? u.specialties : (u.specialty ? [u.specialty] : []);
 
-  var specsHtml = provSpecialties.map(function(s) {
-    var chk = userSpecs.indexOf(s) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:4px 0">' +
-      '<input type="checkbox" class="nu-spec-cb" value="' + s + '" ' + chk +
-      ' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> ' + s + '</label>';
-  }).join('');
+  var specsHtml = provSpecDefs.length
+    ? provSpecDefs.map(function(sd) {
+        var chk = userSpecs.indexOf(sd.name) >= 0 ? 'checked' : '';
+        return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg3)">' +
+          '<input type="checkbox" class="nu-spec-cb" value="' + sd.name + '" ' + chk +
+          ' style="accent-color:var(--brand);width:15px;height:15px;flex-shrink:0">' +
+          '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + sd.name + '</div>' +
+          (sd.taxonomy ? '<div style="font-size:10px;color:var(--text3);font-family:monospace">' + sd.taxonomy + '</div>' : '') +
+          '</div></label>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text3);padding:8px">No specialties configured for this provider. Add them in Admin → Billing Providers.</div>';
 
   // Only Super Admin user can assign Super Admin role
   var session = getSession ? getSession() : {};
