@@ -286,7 +286,7 @@ function _injectCriticalCSS() {
     '.tn-drawer{display:none!important;position:fixed!important;inset:0;z-index:5000}' +
     '.overlay,.modal-overlay{display:none}' +
     '.overlay.open,.modal-overlay.open{display:flex;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}' +
-    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}' +
+    '.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;position:relative}' +
     '.content{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}' +
     '.section{display:none;flex-direction:column;height:100%;overflow:hidden}' +
     '.section.active{display:flex}';
@@ -18300,9 +18300,10 @@ if (!pat) { toast('Patient not found', 'err'); return; }
 const overlay = document.createElement('div');
 overlay.className = 'pt-chart-overlay';
 overlay.id = 'pt-chart-overlay';
-overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;overflow:hidden;background:var(--bg,#f5f4ed)';
+overlay.style.cssText = 'position:absolute;inset:0;z-index:500;overflow:hidden;background:var(--bg,#f5f4ed)';
+
 overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildChartShell(pat, db) + '</div>';
-(document.querySelector('.app-shell') || document.body).appendChild(overlay);
+(document.querySelector('.main') || document.querySelector('.app-shell') || document.body).appendChild(overlay);
 _renderChartTab('summary');
 setTimeout(_renderLucideIcons, 30);
 }
@@ -23733,8 +23734,7 @@ function closeModal(id){ var el=document.getElementById(id); if(el){el.classList
 function openModal(id) {
   var el=document.getElementById(id); if(!el) return;
   el.classList.add('open');
-  // Boost z-index when patient chart is open so modals appear above it
-  el.style.zIndex = document.getElementById('pt-chart-overlay') ? '3000' : '';
+  el.style.zIndex = '';
 }
 
 function toast(msg, type='ok'){
