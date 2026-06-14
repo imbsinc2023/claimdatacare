@@ -18143,6 +18143,7 @@ if (!pat) { toast('Patient not found', 'err'); return; }
 const overlay = document.createElement('div');
 overlay.className = 'pt-chart-overlay';
 overlay.id = 'pt-chart-overlay';
+overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;overflow:hidden;background:var(--bg,#f5f4ed)';
 overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildChartShell(pat, db) + '</div>';
 (document.querySelector('.app-shell') || document.body).appendChild(overlay);
 _renderChartTab('summary');
@@ -23571,8 +23572,13 @@ const fixUnits = s => { const u=parseInt(s||'1'); return String(u>0?u:1); };
 const fixCharge = s => parseFloat(s||'0').toFixed(2);
 const fixDxPtr = s => (s||'A').toUpperCase().replace(/[^A-H]/g,'')||'A';
 
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ var el=document.getElementById(id); if(el){el.classList.remove('open');el.style.zIndex='';} }
+function openModal(id) {
+  var el=document.getElementById(id); if(!el) return;
+  el.classList.add('open');
+  // Boost z-index when patient chart is open so modals appear above it
+  el.style.zIndex = document.getElementById('pt-chart-overlay') ? '3000' : '';
+}
 
 function toast(msg, type='ok'){
 const c=document.getElementById('toasts');
