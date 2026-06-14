@@ -1756,6 +1756,8 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
   +'</div>'  // /LEFT COLUMN
 
+  // CPT PAD — center column between left and right
+  +'<div id="ce-cpt-pad" style="width:196px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';border-right:1px solid '+S.borderWarm+';background:'+S.parchment+';display:flex;flex-direction:column;overflow:hidden">'    +'<div style="padding:6px 8px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';display:flex;align-items:center;gap:4px;flex-shrink:0">'      +'<span style="font-size:10px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em;flex:1">CPT Pad</span>'      +'<i data-lucide="pill" class="lci" style="width:12px;height:12px;color:'+S.terracotta+'"></i>'    +'</div>'    +'<div style="padding:5px 6px;border-bottom:1px solid '+S.borderWarm+';flex-shrink:0">'      +'<input id="ce-cpt-search" type="text" placeholder="Search CPT..." autocomplete="off" '        +'oninput="_cePadSearch(this.value)" '        +'style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'    +'</div>'    +'<div id="ce-cpt-pad-list" style="flex:1;overflow-y:auto"></div>'  +'</div>'
   // RIGHT PANEL
   +'<div style="width:270px;flex-shrink:0;border-right:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column;order:-1">'
 
@@ -2058,6 +2060,161 @@ function _cePopulatePOS(posEl, currentVal){
       var v=s.split(' ')[0];
       return '<option value="'+v+'"'+(v===currentVal?' selected':'')+'>'+s+'</option>';
     }).join('');
+}
+
+
+// ── CPT Pad helpers ───────────────────────────────────────────────────────
+
+function _cePadInit(claimId) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(cl){ return cl.id===claimId; });
+  if (!claim) return;
+  // Gather CPTs from linked encounter notes (match by patId + DOS)
+  var encounterCpts = [];
+  var notes = (db.notes||[]).filter(function(n){
+    return n.patId === claim.patId;
+  });
+  notes.forEach(function(n){
+    (n.cpts||n.services||[]).forEach(function(cptCode){
+      var code = typeof cptCode === 'string' ? cptCode : (cptCode.code||cptCode.cpt||'');
+      if (code && !encounterCpts.includes(code)) encounterCpts.push(code);
+    });
+  });
+  window._cePadCatalog = db.services||[];
+  window._cePadClaimId = claimId;
+  var svcMap = {};
+  (db.services||[]).forEach(function(s){ svcMap[s.code||s.cpt||''] = s; });
+  _cePadRender(encounterCpts, svcMap, '');
+}
+
+function _cePadRender(encounterCpts, svcMap, query) {
+  var container = document.getElementById('ce-cpt-pad-list');
+  if (!container) return;
+  var catalog = window._cePadCatalog || [];
+  var q = (query||'').toLowerCase().trim();
+  var filtered = q
+    ? catalog.filter(function(s){
+        return (s.code||'').toLowerCase().includes(q) ||
+               (s.desc||s.description||'').toLowerCase().includes(q);
+      }).slice(0,25)
+    : catalog.slice(0,30);
+  var html = '';
+  if (encounterCpts && encounterCpts.length && !q) {
+    html += '<div style="padding:3px 8px 2px;font-size:9px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em;background:#f5f4ed;border-bottom:1px solid #e8e6dc">From Encounter</div>';
+    encounterCpts.forEach(function(code){
+      var svc = svcMap ? svcMap[code] : null;
+      var price = svc ? parseFloat(svc.rate||svc.price||0).toFixed(2) : '0.00';
+      var desc = svc ? (svc.desc||svc.description||'') : '';
+      html += _cePadItem(code, desc, price, true);
+    });
+    html += '<div style="height:1px;background:#e8e6dc;margin:3px 0"></div>';
+    html += '<div style="padding:3px 8px 2px;font-size:9px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em;background:#f5f4ed;border-bottom:1px solid #e8e6dc">Catalog</div>';
+  }
+  if (filtered.length) {
+    filtered.forEach(function(s){
+      var code = s.code||s.cpt||'';
+      var price = parseFloat(s.rate||s.price||0).toFixed(2);
+      var desc = s.desc||s.description||'';
+      html += _cePadItem(code, desc, price, false);
+    });
+  } else if (q) {
+    html += '<div style="padding:12px 8px;text-align:center;font-size:11px;color:#87867f;font-style:italic">No CPTs found</div>';
+  }
+  container.innerHTML = html || '<div style="padding:8px;font-size:11px;color:#87867f;text-align:center;font-style:italic">No CPTs in catalog</div>';
+}
+
+function _cePadItem(code, desc, price, isEncounter) {
+  return '<div onclick="_cePadAddCpt(\''+code+'\',\''+price+'\')" '+
+    'style="display:flex;align-items:center;gap:5px;padding:5px 8px;cursor:pointer;border-bottom:1px solid #e8e6dc" '+
+    'onmouseover="this.style.background=\'#f5f4ed\'" onmouseout="this.style.background=\'\'">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:11px;font-weight:700;color:'+(isEncounter?'#c96442':'#141413')+';font-family:monospace">'+code+'</div>'+
+        (desc?'<div style="font-size:9px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+desc+'</div>':'')+
+      '</div>'+
+      '<div style="font-size:10px;font-family:monospace;color:#5e5d59;flex-shrink:0">$'+price+'</div>'+
+    '</div>';
+}
+
+function _cePadSearch(q) {
+  var svcMap = {};
+  var catalog = window._cePadCatalog || [];
+  catalog.forEach(function(s){ svcMap[s.code||s.cpt||''] = s; });
+  _cePadRender([], svcMap, q);
+}
+
+function _cePadAddCpt(code, price) {
+  var claimId = window._cePadClaimId;
+  if (!claimId || !code) return;
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){ return c.id===claimId; });
+  if (!claim) return;
+  var pf = parseFloat(price)||0;
+  if (pf === 0) {
+    var svc = (db.services||[]).find(function(s){ return (s.code||s.cpt||'').toUpperCase()===code.toUpperCase(); });
+    pf = svc ? parseFloat(svc.rate||svc.price||0) : 0;
+  }
+  if (!claim.lines) claim.lines = [];
+  claim.lines.push({ cpt:code.toUpperCase(), charge:pf.toFixed(2), units:'1', mod1:'', mod2:'', mod3:'', mod4:'', dos:claim.dos||'', dosTo:claim.dosTo||claim.dos||'', dxPtr:'A', type:'Units' });
+  claim.totalCharge = claim.lines.reduce(function(s,l){ return s+parseFloat(l.charge||0); },0).toFixed(2);
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
+  toast('CPT '+code+' added','ok');
+}
+
+// ── CPT auto-fill price from catalog on blur ──────────────────────────────
+
+function _ceWireAutoFillCpt(cptCat, claimId) {
+  var inputs = document.querySelectorAll('.ce-cpt-input');
+  inputs.forEach(function(inp) {
+    inp.addEventListener('blur', function() {
+      var code = this.value.trim().toUpperCase();
+      if (!code) return;
+      var db = getDB();
+      var svc = (db.services||[]).find(function(s){ return (s.code||s.cpt||'').toUpperCase()===code; });
+      if (!svc) return;
+      var li = parseInt(this.id.replace('ce-ln-cpt-',''));
+      if (isNaN(li)) return;
+      var chgEl = document.getElementById('ce-ln-chg-'+li);
+      if (chgEl && (parseFloat(chgEl.value)||0) === 0) {
+        chgEl.value = parseFloat(svc.rate||svc.price||0).toFixed(2);
+      }
+    });
+    inp.addEventListener('input', function() {
+      var code = this.value.trim();
+      if (code.length >= 3) {
+        var padSearch = document.getElementById('ce-cpt-search');
+        if (padSearch) { padSearch.value = code; _cePadSearch(code); }
+      }
+    });
+  });
+  _cePadInit(claimId);
+}
+
+// ── Remove a service line ─────────────────────────────────────────────────
+
+function _ceRemoveLine(claimId, lineIdx) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){ return c.id===claimId; });
+  if (!claim || !claim.lines) return;
+  claim.lines.splice(lineIdx, 1);
+  claim.totalCharge = claim.lines.reduce(function(s,l){ return s+parseFloat(l.charge||0); },0).toFixed(2);
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
+}
+
+// ── Add empty line ────────────────────────────────────────────────────────
+
+function _ceAddLine(claimId) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){ return c.id===claimId; });
+  if (!claim) return;
+  if (!claim.lines) claim.lines = [];
+  claim.lines.push({ cpt:'', charge:'0.00', units:'1', mod1:'', mod2:'', mod3:'', mod4:'', dos:claim.dos||'', dosTo:claim.dosTo||claim.dos||'', dxPtr:'A', type:'Units' });
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
 }
 
 // ── Extended save to capture new fields ──
