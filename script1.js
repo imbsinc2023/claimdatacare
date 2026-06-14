@@ -13863,7 +13863,7 @@ const batches = getEOBBatches().filter(b => b.providerId === activeProviderId);
 const claims = db.claims.filter(c => c.providerId === activeProviderId);
 
 // Count badges
-const unmatched = (db.eobUnmatched||[]).filter(u=>u.providerId===activeProviderId).length;
+const unmatched = (db.eraPreviewQueue||[]).filter(u=>u.providerId===activeProviderId&&u.matched===false&&u.status!=='dismissed'&&u.status!=='recreated').length;
 const secondary = claims.filter(c=>c.readyForSecondary).length;
 const el = document.getElementById('eob-cnt-payments');
 if (el) el.textContent = batches.length;
@@ -15060,7 +15060,17 @@ function _parseERADataClaims(eraData, eraInfo, db) {
       unmatched.push({
         id:uid(), providerId:activeProviderId, pcn:pcn, dos:dos,
         amt:totalPaid, payerName:eraInfo.payer_name||'',
-        eraId:eraInfo.eraid, source:'ERA', createdAt:Date.now()
+        payerId:eraInfo.payerid||'',
+        eraId:eraInfo.eraid, source:'ERA', createdAt:Date.now(),
+        matched:false,
+        claimData:{
+          pcn:pcn, dos:dos,
+          payerName:eraInfo.payer_name||'', payerId:eraInfo.payerid||'',
+          memberId:c.member_id||'', statusCode:statusCode,
+          totalPaid:totalPaid, chargeLines:chargeLines,
+          eraId:eraInfo.eraid, checkNumber:eraInfo.check_number||'',
+          paidDate:eraInfo.paid_date||''
+        }
       });
     }
   });
@@ -15080,7 +15090,8 @@ async function fetchERAFromClearinghouse() {
   setTimeout(_renderLucideIcons, 50);
 
   var db = getDB();
-  var lastERAID = (db.settings && db.settings.lastERAID) ? db.settings.lastERAID : '0';
+  var cursorKey = 'lastERAID_' + activeProviderId;
+  var lastERAID = (db.settings && db.settings[cursorKey]) ? db.settings[cursorKey] : '0';
 
   var eraList;
   try {
@@ -15099,7 +15110,8 @@ async function fetchERAFromClearinghouse() {
     toast('No new ERAs'); return;
   }
 
-  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — fetching details&hellip;</div>');
+  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) on list — fetching details&hellip;</div>');
+  var eraDataCount = 0;
 
   var allPosted=[], allUnmatched=[], allBatches=[], newLastERAID=lastERAID;
 
@@ -15115,6 +15127,7 @@ async function fetchERAFromClearinghouse() {
     } catch(e) { console.warn('[ERA] eradata failed for eraid',eraid,e.message); continue; }
 
     var dataRoot = eraData.result || eraData;
+    eraDataCount++;
     var parsed   = _parseERADataClaims(dataRoot, eraInfo, db);
     allPosted    = allPosted.concat(parsed.posted);
     allUnmatched = allUnmatched.concat(parsed.unmatched);
@@ -15145,7 +15158,7 @@ async function fetchERAFromClearinghouse() {
   }
 
   if (newLastERAID !== lastERAID) {
-    setDB(function(db2){ if(!db2.settings) db2.settings={}; db2.settings.lastERAID=newLastERAID; });
+    setDB(function(db2){ if(!db2.settings) db2.settings={}; db2.settings[cursorKey]=newLastERAID; });
   }
 
   // ── Queue for preview — don't auto-post ──────────────────────────────
@@ -15167,20 +15180,35 @@ async function fetchERAFromClearinghouse() {
     };
   });
 
-  if (previewItems.length) {
+  if (previewItems.length || allUnmatched.length) {
     setDB(function(db2){
       if(!db2.eraPreviewQueue) db2.eraPreviewQueue=[];
+      // Add matched ERA preview items
       previewItems.forEach(function(item){
         var exists = db2.eraPreviewQueue.some(function(e){ return e.eraId===item.eraId; });
         if (!exists) db2.eraPreviewQueue.push(item);
       });
-    });
-  }
-
-  if (allUnmatched.length) {
-    setDB(function(db2){
-      if(!db2.eobUnmatched) db2.eobUnmatched=[];
-      db2.eobUnmatched.push.apply(db2.eobUnmatched, allUnmatched);
+      // Add unmatched as NO_MATCH items in the same queue
+      allUnmatched.forEach(function(um){
+        var exists = db2.eraPreviewQueue.some(function(e){ return e.id===um.id; });
+        if (!exists) {
+          db2.eraPreviewQueue.push({
+            id:um.id,
+            eraId:um.eraId,
+            providerId:um.providerId,
+            payerName:um.payerName,
+            checkNum:um.claimData ? (um.claimData.checkNumber||um.eraId) : um.eraId,
+            checkDate:um.claimData ? (um.claimData.paidDate||'') : '',
+            checkAmt:um.amt,
+            claimCount:0,
+            fetchedAt:Date.now(),
+            status:'preview',
+            matched:false,
+            claimData:um.claimData||null,
+            pcn:um.pcn, dos:um.dos
+          });
+        }
+      });
     });
   }
 
@@ -15194,7 +15222,8 @@ async function fetchERAFromClearinghouse() {
 
   var totalItems = previewItems.length;
   var futureCount = previewItems.filter(function(x){return x.isFuture;}).length;
-  toast('ERA imported: '+totalItems+' payment'+(totalItems!==1?'s':'')+' ('+(totalItems-futureCount)+' ready, '+futureCount+' future)');
+  var unmatchedCount = allUnmatched.length;
+  toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+' ');
   renderEOBPage(); updateBadges();
   // Auto-navigate to Pending ERA tab
   setEOBTab('era-pending', document.getElementById('eob-tab-era-pending'));
@@ -15279,6 +15308,62 @@ function _eraPreviewPostSelected() {
   renderEOBPage(); updateBadges();
 }
 
+
+function _recreateClaimFromERA(eraId) {
+  var db = getDB();
+  var item = (db.eraPreviewQueue||[]).find(function(x){ return (x.eraId===eraId||x.id===eraId) && x.matched===false; });
+  if (!item || !item.claimData) { toast('No claim data available for recreation','warn'); return; }
+  var cd = item.claimData;
+
+  // Try to find patient by memberId
+  var pat = null;
+  if (cd.memberId) {
+    pat = (db.patients||[]).find(function(p){
+      var ins = _resolvePatientInsurance(p);
+      return (ins.subNum||p.insnum||'').trim().toUpperCase() === cd.memberId.trim().toUpperCase();
+    });
+  }
+
+  var newClaim = {
+    id: uid(),
+    providerId: activeProviderId,
+    pcn: cd.pcn || ('ERA-'+eraId),
+    patId: pat ? pat.id : '',
+    dos: cd.dos || '',
+    payerid: cd.payerId || '',
+    payerName: cd.payerName || '',
+    lines: (cd.chargeLines||[]).map(function(cl){
+      return {
+        cpt: cl.cpt||'',
+        charge: (cl.charge||0).toFixed(2),
+        units: '1',
+        mod1:'', mod2:'', mod3:'', mod4:'',
+        dxPtrs:'1'
+      };
+    }),
+    dx1: '', dx2:'', dx3:'', dx4:'',
+    status: 'submitted',
+    eraRecreated: true,
+    eraId: eraId,
+    notes: 'Recreated from ERA #'+eraId+' — PCN: '+cd.pcn,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  setDB(function(db2){
+    if(!db2.claims) db2.claims=[];
+    db2.claims.push(newClaim);
+    // Mark ERA item as recreated
+    (db2.eraPreviewQueue||[]).forEach(function(x){
+      if(x.eraId===eraId||x.id===eraId) x.status='recreated';
+    });
+  });
+
+  toast('Claim recreated from ERA — open Claims to review','ok');
+  updateBadges();
+  renderEOBPage();
+  setEOBTab('era-pending', null);
+}
 function renderERAPendingTab() {
   var db = getDB();
   var today = new Date(); today.setHours(0,0,0,0);
@@ -15308,29 +15393,45 @@ function renderERAPendingTab() {
     var isFuture = !isPosted && paidDate && paidDate > today;
     var daysUntil = paidDate ? Math.ceil((paidDate - today)/(1000*60*60*24)) : null;
 
+    var isNoMatch = item.matched === false;
     var badge = isPosted
       ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#f0faf5;color:#2d7a4f">✓ POSTED</span>'
-      : isFuture
-        ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#ede9fe;color:#7c3aed">In '+daysUntil+' day'+(daysUntil!==1?'s':'')+'</span>'
-        : '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#fff3e0;color:#b35c00">READY</span>';
+      : item.status === 'recreated'
+        ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#f5f4ed;color:#5e5d59">RECREATED</span>'
+        : isNoMatch
+          ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#fee2e2;color:#b91c1c">NO MATCH</span>'
+          : isFuture
+            ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#ede9fe;color:#7c3aed">In '+daysUntil+' day'+(daysUntil!==1?'s':'')+'</span>'
+            : '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:#fff3e0;color:#b35c00">READY</span>';
 
     var actions = isPosted
       ? '<span style="font-size:11px;color:#87867f">Posted</span>'
-      : '<div style="display:flex;gap:4px">'
-          +'<button class="btn btn-xs btn-primary" onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" title="View & Post">'
-            +'<i data-lucide="eye" class="lci" style="width:12px;height:12px"></i> Review'
-          +'</button>'
-          +'<button class="btn btn-xs" onclick="_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss">'
-            +'<i data-lucide="x" class="lci" style="width:12px;height:12px"></i>'
-          +'</button>'
-        +'</div>';
+      : item.status === 'recreated'
+        ? '<span style="font-size:11px;color:#87867f">Recreated</span>'
+        : isNoMatch
+          ? '<div style="display:flex;gap:4px">'
+              +'<button class="btn btn-xs" style="background:var(--brand);color:#fff;border:none" onclick="event.stopPropagation();_recreateClaimFromERA(&quot;'+item.eraId+'&quot;)" title="Recreate Claim from ERA data">'
+                +'<i data-lucide="refresh-cw" class="lci" style="width:11px;height:11px"></i> Recreate'
+              +'</button>'
+              +'<button class="btn btn-xs" onclick="event.stopPropagation();_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss">'
+                +'<i data-lucide="x" class="lci" style="width:12px;height:12px"></i>'
+              +'</button>'
+            +'</div>'
+          : '<div style="display:flex;gap:4px">'
+              +'<button class="btn btn-xs btn-primary" onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" title="View & Post">'
+                +'<i data-lucide="eye" class="lci" style="width:12px;height:12px"></i> Review'
+              +'</button>'
+              +'<button class="btn btn-xs" onclick="_eraDismissPending(&quot;'+item.eraId+'&quot;)" title="Dismiss">'
+                +'<i data-lucide="x" class="lci" style="width:12px;height:12px"></i>'
+              +'</button>'
+            +'</div>';
 
     return '<tr style="border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'" '
       +'onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" '
       +'style="cursor:pointer;border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'">'
-      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text)">'+item.payerName+'</td>'
+      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text)">'+item.payerName+(isNoMatch&&item.pcn?'<div style="font-size:10px;font-family:monospace;color:var(--text3);margin-top:2px">PCN: '+item.pcn+'</div>':'')+'</td>'
       +'<td style="padding:8px 10px;font-size:11px;font-family:monospace;color:var(--text2)">'+item.checkNum+'</td>'
-      +'<td style="padding:8px 10px;font-size:11px;color:var(--text2)">'+item.checkDate+'</td>'
+      +'<td style="padding:8px 10px;font-size:11px;color:var(--text2)">'+item.checkDate||item.dos||''+'</td>'
       +'<td style="padding:8px 10px">'+badge+'</td>'
       +'<td style="padding:8px 10px;font-size:13px;font-family:monospace;font-weight:800;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
       +'<td style="padding:8px 10px;text-align:center;font-size:12px;color:var(--text2)">'+item.claimCount+'</td>'
