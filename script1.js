@@ -1394,7 +1394,10 @@ function _renderClaimEditorInner(){
   var claim = claimId ? (db.claims||[]).find(function(c){return c.id===claimId;}) : null;
   // Fallback for new claims not yet persisted to getDB()
   if(!claim && window._ceCurrentClaim && window._ceCurrentClaim.id===claimId) claim=window._ceCurrentClaim;
-  var el=document.getElementById('claim-editor-content');
+  // Use float panel container when opened from patient file
+  var el = (window._ceFloatMode && document.getElementById('claim-editor-content-float'))
+    ? document.getElementById('claim-editor-content-float')
+    : document.getElementById('claim-editor-content');
   if(!el)return;
   if(!claim){
     el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:400px"><div class="card" style="padding:40px;text-align:center;max-width:400px"><div style="width:48px;height:48px;border-radius:12px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i data-lucide="file-edit" class="lci" style="width:24px;height:24px;color:var(--brand)"></i></div><h2 style="font-size:16px;font-weight:600;margin-bottom:8px">No Claim Selected</h2><p style="font-size:13px;color:var(--text3);margin-bottom:20px">Select a claim from the Claims page to open the editor.</p><button class="btn btn-primary btn-sm" onclick="go(\'claims\')">Go to Claims</button></div></div>';
@@ -18152,17 +18155,78 @@ return 'paid';
 
 // ?? Open Claim Detail View ??????????????????????????????????????????????
 function openClaimDetail(claimId) {
-  window._ceActiveTab='services';
-  window._ceClaimId=claimId;
-  window._ceClaimIdStored=claimId;
-  document.querySelectorAll('.section').forEach(function(e){
-    e.style.display='none'; e.classList.remove('active');
+  window._ceActiveTab = 'services';
+  window._ceClaimId = claimId;
+  window._ceClaimIdStored = claimId;
+
+  var ptOverlay = document.getElementById('pt-chart-overlay');
+  if (ptOverlay) {
+    var existing = document.getElementById('ce-float-panel');
+    if (existing) existing.remove();
+
+    var panel = document.createElement('div');
+    panel.id = 'ce-float-panel';
+    panel.style.cssText = 'position:absolute;inset:0;z-index:600;background:#f5f4ed;display:flex;flex-direction:column;overflow:hidden';
+
+    window._ceCloseFloatPanel = function() {
+      var p = document.getElementById('ce-float-panel');
+      if (p) p.remove();
+      window._ceFloatMode = false;
+    };
+
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'height:36px;flex-shrink:0;background:#141413;display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0';
+
+    var backBtn = document.createElement('button');
+    backBtn.textContent = '← Back to Patient';
+    backBtn.style.cssText = 'background:none;border:none;color:#fff;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px';
+    backBtn.onclick = window._ceCloseFloatPanel;
+
+    var sep = document.createElement('span');
+    sep.textContent = '|';
+    sep.style.cssText = 'color:rgba(255,255,255,.3);margin:0 6px';
+
+    var title = document.createElement('span');
+    title.textContent = 'Claim Editor';
+    title.style.cssText = 'color:#fff;font-size:12px;font-weight:600';
+
+    var spacer = document.createElement('div');
+    spacer.style.flex = '1';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;line-height:1;padding:0 6px';
+    closeBtn.onclick = window._ceCloseFloatPanel;
+
+    hdr.appendChild(backBtn);
+    hdr.appendChild(sep);
+    hdr.appendChild(title);
+    hdr.appendChild(spacer);
+    hdr.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.id = 'claim-editor-content-float';
+    body.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
+
+    panel.appendChild(hdr);
+    panel.appendChild(body);
+    ptOverlay.appendChild(panel);
+
+    window._ceFloatMode = true;
+    renderClaimEditor();
+    return;
+  }
+
+  // Normal mode
+  window._ceFloatMode = false;
+  document.querySelectorAll('.section').forEach(function(e) {
+    e.style.display = 'none'; e.classList.remove('active');
   });
-  var sec=document.getElementById('sec-claim-editor');
-  if(sec){ sec.style.display='flex'; sec.classList.add('active'); }
-  try{ setActiveTopNav('claim-editor'); }catch(_){}
-  var tbt=document.getElementById('tb-title');
-  if(tbt) tbt.textContent='Claim Editor';
+  var sec = document.getElementById('sec-claim-editor');
+  if (sec) { sec.style.display = 'flex'; sec.classList.add('active'); }
+  try { setActiveTopNav('claim-editor'); } catch(_) {}
+  var tbt = document.getElementById('tb-title');
+  if (tbt) tbt.textContent = 'Claim Editor';
   renderClaimEditor();
 }
 
