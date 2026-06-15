@@ -2270,13 +2270,20 @@ function _doExportPatientPDF(pat, db) {
   var totAll=totIns+totPat;
 
   // Chart area: top=360  bottom=700  (140pt bars)
-  var CHART_TOP=360, BAR_BOTTOM=620, BAR_H=BAR_BOTTOM-CHART_TOP;
-  var AXIS_X=76;  // left edge of bars (right of y-axis labels)
-  var AXIS_W=540-AXIS_X+36;  // = 500pt wide
+  // Chart dimensions: narrower, with room for x-axis labels
+  var CHART_LEFT=36, CHART_RIGHT=516;  // narrower: 480pt wide
+  var CHART_WIDTH=CHART_RIGHT-CHART_LEFT;
+  var AXIS_X=CHART_LEFT+46;  // left edge of bars (after y-axis labels)
+  var AXIS_W=CHART_WIDTH-46;  // bar area width
+  var X_LABEL_H=14;           // height reserved for x-axis labels
+  var CHART_TOP=360;
+  var BAR_H=620-CHART_TOP-X_LABEL_H;  // bars height (not counting label area)
+  var BAR_BOTTOM=CHART_TOP+BAR_H;     // baseline of bars
+  var CHART_TOTAL_H=BAR_H+X_LABEL_H; // total chart height including labels
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
 
-  // Chart bg
-  sf(IVY); doc.rect(36,CHART_TOP,540,BAR_H,'F');
+  // Chart bg (includes x-label area)
+  sf(IVY); doc.rect(CHART_LEFT,CHART_TOP,CHART_WIDTH,CHART_TOTAL_H,'F');
 
   // Y-axis grid (5 lines)
   var maxVal=1;
@@ -2284,7 +2291,7 @@ function _doExportPatientPDF(pat, db) {
   for(var gi=0;gi<=4;gi++){
     var gv=maxVal*(4-gi)/4;
     var gy=CHART_TOP+(gi/4)*BAR_H;
-    sd(BD); doc.setLineWidth(0.15); doc.line(AXIS_X,gy,576,gy);
+    sd(BD); doc.setLineWidth(0.15); doc.line(AXIS_X,gy,CHART_RIGHT-2,gy);
     doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
     var gl=gv>=1000?'$'+(gv/1000).toFixed(1)+'k':'$'+Math.round(gv);
     doc.text(gl, AXIS_X-3, gy+2.5, {align:'right'});
@@ -2306,15 +2313,15 @@ function _doExportPatientPDF(pat, db) {
       if(iH>14){doc.setFont('helvetica','bold');doc.setFontSize(6);sc(WHT);doc.text($v(insA[bi3]),gx+bW+4+bW/2,BAR_BOTTOM-iH+10,{align:'center'});}
     }
     doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(GR);
-    doc.text(lbls[bi3], gx+bW+2, BAR_BOTTOM+11, {align:'center'});
+    doc.text(lbls[bi3], gx+bW+2, BAR_BOTTOM+10, {align:'center'});
   }
 
   // Legend top-right
-  sf(TC); doc.rect(480,CHART_TOP+6,8,5,'F');
-  sf(GR); doc.rect(522,CHART_TOP+6,8,5,'F');
+  sf(TC); doc.rect(CHART_RIGHT-100,CHART_TOP+6,8,5,'F');
+  sf(GR); doc.rect(CHART_RIGHT-58,CHART_TOP+6,8,5,'F');
   doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(NK);
-  doc.text('Patient',   491, CHART_TOP+11);
-  doc.text('Insurance', 533, CHART_TOP+11);
+  doc.text('Patient',   CHART_RIGHT-89, CHART_TOP+11);
+  doc.text('Insurance', CHART_RIGHT-47, CHART_TOP+11);
 
   // ── SUMMARY STRIP  y=714..740 ────────────────────────────────────────────
   var SY=628;
@@ -2322,13 +2329,13 @@ function _doExportPatientPDF(pat, db) {
   sd(BD);  doc.setLineWidth(0.3); doc.rect(36,SY,540,26,'S');
   var sumItems=[{l:'Patient A/R',v:totPat,c:TC},{l:'Insurance A/R',v:totIns,c:GR},{l:'Net A/R',v:totAll,c:RED}];
   sumItems.forEach(function(si,i){
-    var sx=36+i*180;
+    var sx=CHART_LEFT+i*sW3;
     doc.setFont('helvetica','normal'); doc.setFontSize(7);
     doc.setTextColor(si.c[0],si.c[1],si.c[2]);
-    doc.text(si.l, sx+90, SY+9, {align:'center'});
+    doc.text(si.l, sx+sW3/2, SY+9, {align:'center'});
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    doc.text($v(si.v), sx+90, SY+22, {align:'center'});
-    if(i<2){sd(BD);doc.setLineWidth(0.3);doc.line(sx+180,SY,sx+180,SY+26);}
+    doc.text($v(si.v), sx+sW3/2, SY+22, {align:'center'});
+    if(i<2){sd(BD);doc.setLineWidth(0.3);doc.line(sx+sW3,SY,sx+sW3,SY+26);}
   });
 
   // ── FOOTER  y=766..792 ───────────────────────────────────────────────────
