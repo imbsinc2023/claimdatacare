@@ -2179,7 +2179,8 @@ function _doExportPatientPDF(pat, db) {
   // ── HEADER ───────────────────────────────────────────────────────────────
   sf(WHT); doc.rect(0,0,W,100,'F');
   // Logo on RIGHT side
-  if(prov.logo){try{doc.addImage(prov.logo,'PNG',576-54,12,54,54);}catch(e){}}
+  var ly=18; // top of header content
+  if(prov.logo){try{doc.addImage(prov.logo,'PNG',522,ly,54,54);}catch(e){}}
   var tx=36; // text always starts at left margin
   doc.setFont('helvetica','bold'); doc.setFontSize(13); sc(NK);
   doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+16);
