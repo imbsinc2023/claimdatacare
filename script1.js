@@ -2087,187 +2087,223 @@ function _exportPatientPDF(patId) {
 function _doExportPatientPDF(pat, db) {
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
-  var W = doc.internal.pageSize.getWidth();
-  var H = doc.internal.pageSize.getHeight();
-  var ML = 40, MR = 40;           // left / right margin
-  var CW = W - ML - MR;           // content width
+  var W = doc.internal.pageSize.getWidth();   // 612
+  var H = doc.internal.pageSize.getHeight();  // 792
+  var ML = 44, MR = 44;
+  var CW = W - ML - MR;
   var y  = 0;
 
-  // ── Color palette ────────────────────────────────────────────────────────
-  var TC  = [201,100,66];          // terracotta
-  var NK  = [20,20,19];            // near-black
-  var GR  = [94,93,89];            // olive-gray
-  var LG  = [135,134,127];         // stone-gray
-  var BG  = [245,244,237];         // parchment
-  var BG2 = [240,238,230];         // border-warm
-  var BD  = [232,230,220];         // border
-  var IVY = [250,249,245];         // ivory
-  var RED = [185,28,28];           // red for amounts
+  // Palette
+  var NK  = [20,20,19];
+  var GR  = [94,93,89];
+  var LG  = [135,134,127];
+  var BG2 = [240,238,230];
+  var BD  = [224,222,214];
+  var IVY = [250,249,245];
+  var RED = [185,28,28];
+  var TC  = [201,100,66];
+  var WHT = [255,255,255];
 
   var age    = _calcAge(pat.dob);
   var gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
   var today  = new Date();
   var dateStr = today.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+  var prov   = db.providers.find(function(p){ return p.id===pat.providerId; })||{};
+  var ref    = db.referring.find(function(r){ return r.id===pat.referringId; })||{};
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  var fmtPhone = function(p) {
+    if (!p||p.length<10) return p||'';
+    return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6);
+  };
   var $v = function(n) {
     return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   };
-  var fmtPhone = function(p) {
-    if (!p || p.length < 10) return p||'';
-    return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6);
-  };
   function checkPage(need) {
-    if (y + (need||30) > H - 50) { doc.addPage(); y = 50; }
+    if (y+(need||30) > H-50) { doc.addPage(); y=50; }
+  }
+  function setColor(rgb) { doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
+  function setFill(rgb)  { doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
+  function setDraw(rgb)  { doc.setDrawColor(rgb[0],rgb[1],rgb[2]); }
+
+  // ── HEADER: white background, logo left, patient name right ──────────────
+  // White top area
+  setFill(WHT);
+  doc.rect(0, 0, W, 90, 'F');
+
+  // Logo or provider name — left side
+  var logoLoaded = false;
+  if (prov.logo) {
+    try {
+      // Try to draw logo image (base64)
+      doc.addImage(prov.logo, 'PNG', ML, 12, 60, 60);
+      logoLoaded = true;
+      // Provider name beside logo
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(13);
+      setColor(NK);
+      doc.text((prov.name||'').toUpperCase(), ML+68, 30);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.5);
+      setColor(GR);
+      var provLine2 = [prov.addr1, prov.addr2].filter(Boolean).join(', ');
+      var provLine3 = [prov.city, prov.state?(prov.state+(prov.zip?' '+prov.zip:'')):null].filter(Boolean).join(', ');
+      if (provLine2) { doc.text(provLine2, ML+68, 43); }
+      if (provLine3) { doc.text(provLine3, ML+68, provLine2?55:43); }
+      if (prov.phone) { doc.text('Tel: '+fmtPhone(prov.phone), ML+68, provLine3?67:55); }
+    } catch(e) { logoLoaded = false; }
+  }
+  if (!logoLoaded) {
+    // No logo — just text block
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    setColor(NK);
+    doc.text((prov.name||'ClaimDataCare').toUpperCase(), ML, 30);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.5);
+    setColor(GR);
+    var pl2 = [prov.addr1, prov.addr2].filter(Boolean).join('  |  ');
+    var pl3 = [prov.city, prov.state?(prov.state+(prov.zip?' '+prov.zip:'')):null].filter(Boolean).join(', ');
+    var hy = 44;
+    if (pl2) { doc.text(pl2, ML, hy); hy+=13; }
+    if (pl3) { doc.text(pl3, ML, hy); hy+=13; }
+    if (prov.phone) doc.text('Tel: '+fmtPhone(prov.phone), ML, hy);
   }
 
-  // ── HEADER ────────────────────────────────────────────────────────────────
-  // Terracotta top bar
-  doc.setFillColor(TC[0],TC[1],TC[2]);
-  doc.rect(0, 0, W, 70, 'F');
+  // Thin divider line in middle (vertical)
+  setDraw(BD);
+  doc.setLineWidth(0.5);
+  doc.line(W/2, 10, W/2, 80);
 
-  // Practice logo area (left)
-  var prov = db.providers.find(function(p){ return p.id===pat.providerId; })||{};
-  doc.setTextColor(255,255,255);
+  // Right side: Patient info block
+  var rx = W - MR;
   doc.setFont('helvetica','bold');
-  doc.setFontSize(15);
-  doc.text((prov.name||'ClaimDataCare').toUpperCase(), ML, 28);
+  doc.setFontSize(13);
+  setColor(NK);
+  var fullName = (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid.toUpperCase():'');
+  doc.text(fullName, rx, 28, {align:'right'});
   doc.setFont('helvetica','normal');
   doc.setFontSize(8.5);
-  var provAddr = [prov.addr1, prov.city?(prov.city+', '+(prov.state||'')+(prov.zip?' '+prov.zip:'')):null].filter(Boolean).join('  |  ');
-  if (provAddr) doc.text(provAddr, ML, 40);
-  if (prov.phone) doc.text('Tel: '+fmtPhone(prov.phone), ML, 52);
+  setColor(GR);
+  doc.text('File# '+(pat.acct||'—')+'   |   '+age+' yrs   |   '+gender, rx, 42, {align:'right'});
+  doc.text('DOB: '+(_fmtDob(pat.dob)||'—'), rx, 55, {align:'right'});
+  doc.text('Printed: '+dateStr, rx, 68, {align:'right'});
 
-  // Patient quick info (right)
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text((pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), W-MR, 24, {align:'right'});
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8.5);
-  doc.text('File# '+( pat.acct||'—')+'   |   '+age+' yrs   |   '+gender, W-MR, 36, {align:'right'});
-  doc.text('DOB: '+(_fmtDob(pat.dob)||'—'), W-MR, 48, {align:'right'});
-  doc.text('Printed: '+dateStr, W-MR, 60, {align:'right'});
+  // Bottom border of header
+  setFill(BD);
+  doc.rect(0, 88, W, 1.5, 'F');
 
-  // Sub-bar: document title
-  doc.setFillColor(BG2[0],BG2[1],BG2[2]);
-  doc.rect(0, 70, W, 22, 'F');
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(8);
-  doc.setTextColor(GR[0],GR[1],GR[2]);
-  doc.text('PATIENT CHART SUMMARY — CONFIDENTIAL', ML, 84);
-  doc.text('ClaimDataCare EHR/Billing', W-MR, 84, {align:'right'});
+  y = 104;
 
-  y = 106;
-
-  // ── CARD helper ───────────────────────────────────────────────────────────
-  // Draws a card header and returns; body rows are drawn by caller
-  function cardHeader(title, iconLabel) {
+  // ── Card helpers ──────────────────────────────────────────────────────────
+  function cardHeader(title) {
     checkPage(50);
-    // Card shadow strip
-    doc.setFillColor(BD[0],BD[1],BD[2]);
-    doc.roundedRect(ML, y, CW, 18, 3, 3, 'F');
-    // Card header fill
-    doc.setFillColor(BG2[0],BG2[1],BG2[2]);
-    doc.roundedRect(ML, y, CW, 17, 3, 3, 'F');
-    // Left accent bar
-    doc.setFillColor(TC[0],TC[1],TC[2]);
-    doc.rect(ML, y, 4, 17, 'F');
+    // Full-width card header bar
+    setFill(BG2);
+    doc.roundedRect(ML, y, CW, 18, 2, 2, 'F');
+    // Left accent
+    setFill(TC);
+    doc.rect(ML, y, 4, 18, 'F');
     doc.setFont('helvetica','bold');
-    doc.setFontSize(8);
-    doc.setTextColor(GR[0],GR[1],GR[2]);
-    doc.text(title.toUpperCase(), ML+12, y+11);
+    doc.setFontSize(7.5);
+    setColor(GR);
+    doc.text(title.toUpperCase(), ML+10, y+12);
     y += 22;
   }
 
-  // Card field row: label + value side by side
+  // Single field row: label left, value right of label column
+  // labelX=ML+8, valueX=ML+8+140
+  var LPAD = 8;
+  var VCOL = 145; // x offset for value from ML
+
   function field(label, value, opts) {
     if (value===null||value===undefined||value==='') return;
     opts = opts||{};
-    checkPage(18);
-    var lx = ML+8;
-    var vx = ML+8+140;
-    var vw = CW - 148;
+    checkPage(15);
+    var lx = ML+LPAD;
+    var vx = ML+VCOL;
+    var vw = CW - VCOL - 8;
+    // Label
     doc.setFont('helvetica','normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(LG[0],LG[1],LG[2]);
+    doc.setFontSize(8);
+    setColor(LG);
     doc.text(label, lx, y);
+    // Value
     doc.setFont('helvetica', opts.bold?'bold':'normal');
-    doc.setTextColor(opts.red?RED[0]:NK[0], opts.red?RED[1]:NK[1], opts.red?RED[2]:NK[2]);
-    // Word-wrap long values
+    setColor(opts.red?RED:NK);
     var lines = doc.splitTextToSize(String(value), vw);
     doc.text(lines, vx, y);
-    y += Math.max(14, lines.length * 12);
+    y += Math.max(13, lines.length*12);
     // Thin separator
-    doc.setDrawColor(BD[0],BD[1],BD[2]);
-    doc.setLineWidth(0.25);
-    doc.line(ML+8, y-1, ML+CW-8, y-1);
+    setDraw(BD);
+    doc.setLineWidth(0.2);
+    doc.line(ML+LPAD, y-1, ML+CW-LPAD, y-1);
   }
 
-  // Two-column layout inside a card
-  function twoColFields(left, right) {
+  // Two-column layout: fields split into left/right halves
+  function twoCol(leftFields, rightFields) {
     var startY = y;
-    var halfW  = CW/2 - 10;
+    var halfCW = (CW-20)/2;
+
     // Left column
-    var origML = ML; var origCW = CW;
-    CW = halfW;
-    left.forEach(function(f){ if(f) field(f[0], f[1], f[2]||{}); });
-    var leftEndY = y;
+    var savedML=ML, savedCW=CW, savedVCOL=VCOL;
+    CW=halfCW; VCOL=Math.min(130,halfCW*0.55);
+    leftFields.forEach(function(f){ if(f&&f[1]) field(f[0],f[1],f[2]); });
+    var leftEnd=y;
+
     // Right column
-    y = startY;
-    ML = origML + halfW + 20;
-    CW = halfW;
-    right.forEach(function(f){ if(f) field(f[0], f[1], f[2]||{}); });
-    var rightEndY = y;
-    ML = origML;
-    CW = origCW;
-    y = Math.max(leftEndY, rightEndY) + 4;
+    y=startY;
+    ML=savedML+halfCW+20; CW=halfCW; VCOL=Math.min(130,halfCW*0.55);
+    rightFields.forEach(function(f){ if(f&&f[1]) field(f[0],f[1],f[2]); });
+    var rightEnd=y;
+
+    ML=savedML; CW=savedCW; VCOL=savedVCOL;
+    y=Math.max(leftEnd,rightEnd)+6;
   }
 
-  // Card closing gap
-  function cardEnd() { y += 10; }
+  function cardEnd() { y+=12; }
 
   // ── 1. PATIENT DETAILS ────────────────────────────────────────────────────
   cardHeader('Patient Details');
-  var ref = db.referring.find(function(r){ return r.id===pat.referringId; })||{};
-  twoColFields(
+  twoCol(
     [
-      ['File #',       pat.acct||'',                                            {bold:true}],
-      ['Name (L,F,M)', ((pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')).trim(), {bold:true}],
+      ['File #',        pat.acct||'',      {bold:true}],
+      ['Name (L,F,M)',  (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), {bold:true}],
       ['Date of Birth', _fmtDob(pat.dob)||''],
-      ['Sex',          gender],
-      ['Address',      pat.addr1||''],
-      ['',             pat.addr2||''],
-      ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).trim()],
-      ['Status',       pat.inactive?'Inactive':'Active', {bold:true}],
+      ['Sex',           gender],
+      ['Address',       pat.addr1||''],
+      ['',              pat.addr2||''],
+      ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').replace(/\s+$/,'')],
+      ['Status',        pat.inactive?'Inactive':'Active', {bold:true}],
     ],
     [
-      ['Phone',        fmtPhone(pat.phone)],
-      ['Mobile',       fmtPhone(pat.phone2)],
-      ['Email',        pat.email||''],
-      ['Ethnicity',    pat.ethnicity||''],
-      ['Race',         pat.race||''],
-      ['Marital',      pat.maritalStatus||''],
-      ['Ref. Physician', ref.last?(ref.last+', '+ref.first):''],
-      ['Provider',     prov.name||''],
+      ['Phone',         fmtPhone(pat.phone)],
+      ['Mobile',        fmtPhone(pat.phone2)],
+      ['Email',         pat.email||''],
+      ['Ethnicity',     pat.ethnicity||''],
+      ['Race',          pat.race||''],
+      ['Marital',       pat.maritalStatus||''],
+      ['Ref. Physician',ref.last?(ref.last+', '+ref.first):''],
+      ['Provider',      prov.name||''],
     ]
   );
   cardEnd();
 
-  // ── 2. PRIMARY INSURANCE ──────────────────────────────────────────────────
+  // ── 2. INSURANCE ──────────────────────────────────────────────────────────
   var allIns = pat.insurances||[];
   var ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
     ||(pat.payerName?{
-        name:pat.payerName, payerId:pat.payerid, policy:pat.subNum,
-        group:pat.groupNum, relation:pat.relation||'Self',
-        copay:pat.copay, deductible:pat.deductible, lname:pat.last, fname:pat.first,
-        dob:pat.dob, addr1:pat.addr1, city:pat.city, zip:pat.zip, phone:pat.phone
+        name:pat.payerName, payerId:pat.payerid,
+        policy:pat.subNum, group:pat.groupNum,
+        relation:pat.relation||'Self',
+        copay:pat.copay, deductible:pat.deductible,
+        lname:pat.last, fname:pat.first, dob:pat.dob
       }:null);
 
   if (ins1) {
     cardHeader('Primary Insurance');
-    twoColFields(
+    twoCol(
       [
-        ['Insurance Name', ins1.name||ins1.insuranceName||'',    {bold:true}],
+        ['Insurance Name', ins1.name||ins1.insuranceName||'', {bold:true}],
         ['Payor ID',       ins1.payerId||pat.payerid||''],
         ['Policy No.',     ins1.policy||ins1.memberId||''],
         ['Group No.',      ins1.group||''],
@@ -2277,14 +2313,14 @@ function _doExportPatientPDF(pat, db) {
         ['Pre Auth.',      ins1.preAuth?'Yes':'No'],
       ],
       [
-        ['Subscriber Name',(ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||'')],
-        ['Subscriber DOB', _fmtDob(ins1.dob||pat.dob)||''],
-        ['Co-Pay',         '$'+parseFloat(ins1.copay||0).toFixed(2), {bold:true}],
-        ['Deductible',     '$'+parseFloat(ins1.deductible||0).toFixed(2), {bold:true}],
-        ['Co-Ins (%)',     ins1.coins||'0'],
-        ['Eff. Date',      ins1.effFrom||''],
-        ['Verified On',    ins1.verifiedOn||''],
-        ['Status',         ins1.status||'Not Verified'],
+        ['Subscriber',    (ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||'')],
+        ['Subscriber DOB',_fmtDob(ins1.dob||pat.dob)||''],
+        ['Co-Pay',        '$'+parseFloat(ins1.copay||0).toFixed(2), {bold:true}],
+        ['Deductible',    '$'+parseFloat(ins1.deductible||0).toFixed(2), {bold:true}],
+        ['Co-Ins (%)',    String(ins1.coins||'0')],
+        ['Eff. Date',     ins1.effFrom||''],
+        ['Verified On',   ins1.verifiedOn||''],
+        ['Status',        ins1.status||'Not Verified'],
       ]
     );
     cardEnd();
@@ -2293,7 +2329,7 @@ function _doExportPatientPDF(pat, db) {
   var ins2 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('secondary'); });
   if (ins2) {
     cardHeader('Secondary Insurance');
-    twoColFields(
+    twoCol(
       [
         ['Insurance Name', ins2.name||ins2.insuranceName||'', {bold:true}],
         ['Payor ID',       ins2.payerId||''],
@@ -2302,7 +2338,7 @@ function _doExportPatientPDF(pat, db) {
         ['Relation',       ins2.relation||'Self'],
       ],
       [
-        ['Co-Pay',     '$'+parseFloat(ins2.copay||0).toFixed(2),      {bold:true}],
+        ['Co-Pay',     '$'+parseFloat(ins2.copay||0).toFixed(2), {bold:true}],
         ['Deductible', '$'+parseFloat(ins2.deductible||0).toFixed(2), {bold:true}],
         ['Status',     ins2.status||'Not Verified'],
       ]
@@ -2311,126 +2347,209 @@ function _doExportPatientPDF(pat, db) {
   }
 
   // ── 3. A/R AGING ─────────────────────────────────────────────────────────
-  // FIX: charge = l.charge only, NOT * units (charge already represents total)
   cardHeader('Billing Statement — A/R Aging');
   var eobMap = _localDB.claimEOB||{};
   var bkts = [30,60,90,120,Infinity];
   var insA=[0,0,0,0,0], patA=[0,0,0,0,0];
   (db.claims||[]).filter(function(cl){ return cl.patId===pat.id; }).forEach(function(cl){
-    var dos = null;
+    var dos=null;
     if (cl.dos) {
-      var dp = cl.dos.includes('/')?cl.dos.split('/'):null;
-      dos = dp ? new Date(parseInt(dp[2]),parseInt(dp[0])-1,parseInt(dp[1])) : new Date(cl.dos);
+      if (cl.dos.includes('/')) {
+        var dp=cl.dos.split('/');
+        dos=new Date(parseInt(dp[2]),parseInt(dp[0])-1,parseInt(dp[1]));
+      } else { dos=new Date(cl.dos); }
     }
-    var days = dos ? Math.floor((today-dos)/86400000) : 0;
-    var bi = bkts.findIndex(function(b){ return days<=b; });
-    if (bi<0) bi=4;
-    // charge is per-line total already; do NOT multiply by units
-    var billed = (cl.lines||[]).reduce(function(s,l){ return s+(parseFloat(l.charge)||0); },0);
-    var paid   = (eobMap[cl.id]||[]).reduce(function(s,p){ return s+(parseFloat(p.paid)||0); },0);
-    var bal = billed - paid;
-    if (bal > 0) {
-      if (['accepted','submitted'].includes(cl.status)) insA[bi] += bal;
-      else patA[bi] += bal;
-    }
+    var days=dos?Math.floor((today-dos)/86400000):0;
+    var bi=bkts.findIndex(function(b){return days<=b;}); if(bi<0)bi=4;
+    // charge is already the line total — do NOT multiply by units
+    var billed=(cl.lines||[]).reduce(function(s,l){return s+(parseFloat(l.charge)||0);},0);
+    var paid=(eobMap[cl.id]||[]).reduce(function(s,p){return s+(parseFloat(p.paid)||0);},0);
+    var bal=billed-paid;
+    if(bal>0){ if(['accepted','submitted'].includes(cl.status)) insA[bi]+=bal; else patA[bi]+=bal; }
   });
-  var totIns = insA.reduce(function(a,b){return a+b;},0);
-  var totPat = patA.reduce(function(a,b){return a+b;},0);
-  var totAll = totIns + totPat;
+  var totIns=insA.reduce(function(a,b){return a+b;},0);
+  var totPat=patA.reduce(function(a,b){return a+b;},0);
+  var totAll=totIns+totPat;
 
-  checkPage(80);
-  // Table header
-  var cols  = ['0-30','31-60','61-90','91-120','Over 120','Total'];
-  var labelW = 110;
-  var colW3  = (CW - labelW) / 6;
-  var tx = ML+8;
+  checkPage(90);
+  var ageLabelW = 100;
+  var ageCols   = ['0-30','31-60','61-90','91-120','Over 120','Total'];
+  var ageColW   = (CW-ageLabelW)/6;
+  var atx = ML+LPAD;
 
-  doc.setFillColor(BG2[0],BG2[1],BG2[2]);
-  doc.rect(ML+8, y, CW-16, 16, 'F');
+  // Table header row
+  setFill(BG2);
+  doc.rect(ML+LPAD, y, CW-LPAD*2, 15, 'F');
   doc.setFont('helvetica','bold');
-  doc.setFontSize(8);
-  doc.setTextColor(LG[0],LG[1],LG[2]);
-  doc.text('A/R Aging (days)', tx+4, y+11);
-  cols.forEach(function(h,i){
-    doc.text(h, tx+labelW+(i+0.5)*colW3, y+11, {align:'center'});
+  doc.setFontSize(7.5);
+  setColor(LG);
+  doc.text('A/R Aging (days)', atx+2, y+10);
+  ageCols.forEach(function(h,i){
+    doc.text(h, atx+ageLabelW+(i+0.5)*ageColW, y+10, {align:'center'});
   });
-  y += 18;
+  y+=17;
 
   // Data rows
   [
     {label:'Patient Aging',   arr:patA, tot:totPat},
     {label:'Insurance Aging', arr:insA, tot:totIns}
-  ].forEach(function(rd, ri) {
-    if (ri%2===1) {
-      doc.setFillColor(IVY[0],IVY[1],IVY[2]);
-      doc.rect(ML+8, y, CW-16, 16, 'F');
-    }
+  ].forEach(function(rd,ri){
+    if(ri%2===1){ setFill(IVY); doc.rect(ML+LPAD, y, CW-LPAD*2, 15, 'F'); }
     doc.setFont('helvetica','bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(NK[0],NK[1],NK[2]);
-    doc.text(rd.label, tx+4, y+11);
+    setColor(NK);
+    doc.text(rd.label, atx+2, y+10);
     rd.arr.forEach(function(v,i){
       doc.setFont('helvetica','normal');
-      var col = v>0 ? RED : LG;
-      doc.setTextColor(col[0],col[1],col[2]);
-      doc.text($v(v), tx+labelW+(i+0.5)*colW3, y+11, {align:'center'});
+      setColor(v>0?RED:LG);
+      doc.text($v(v), atx+ageLabelW+(i+0.5)*ageColW, y+10, {align:'center'});
     });
     doc.setFont('helvetica','bold');
-    var tc2 = rd.tot>0?RED:LG;
-    doc.setTextColor(tc2[0],tc2[1],tc2[2]);
-    doc.text($v(rd.tot), tx+labelW+5.5*colW3, y+11, {align:'center'});
-    doc.setDrawColor(BD[0],BD[1],BD[2]);
-    doc.setLineWidth(0.25);
-    doc.line(ML+8, y+16, ML+CW-8, y+16);
-    y += 17;
+    setColor(rd.tot>0?RED:LG);
+    doc.text($v(rd.tot), atx+ageLabelW+5.5*ageColW, y+10, {align:'center'});
+    setDraw(BD); doc.setLineWidth(0.2);
+    doc.line(ML+LPAD, y+15, ML+CW-LPAD, y+15);
+    y+=16;
   });
 
   // Total row
-  doc.setFillColor(TC[0],TC[1],TC[2]);
-  doc.setGState && doc.setGState(doc.GState({opacity:0.1}));
-  doc.rect(ML+8, y, CW-16, 18, 'F');
-  doc.setGState && doc.setGState(doc.GState({opacity:1}));
-  doc.setFillColor(249,243,240);
-  doc.rect(ML+8, y, CW-16, 18, 'F');
+  setFill([249,243,240]);
+  doc.rect(ML+LPAD, y, CW-LPAD*2, 18, 'F');
   doc.setFont('helvetica','bold');
   doc.setFontSize(9);
-  doc.setTextColor(NK[0],NK[1],NK[2]);
-  doc.text('Total', tx+4, y+12);
-  var totC = totAll>0?TC:LG;
-  doc.setTextColor(totC[0],totC[1],totC[2]);
-  doc.text($v(totAll), tx+CW-20, y+12, {align:'right'});
-  var unap = 0;
+  setColor(NK);
+  doc.text('Total', atx+2, y+12);
   doc.setFont('helvetica','normal');
   doc.setFontSize(7.5);
-  doc.setTextColor(LG[0],LG[1],LG[2]);
-  doc.text('Unapplied Patient Payments: $0.00', tx+labelW, y+12);
+  setColor(LG);
+  doc.text('Unapplied Patient Payments: $0.00', atx+ageLabelW+0.5*ageColW, y+12);
   doc.setFont('helvetica','bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(TC[0],TC[1],TC[2]);
-  doc.text('Net A/R: '+$v(totAll), tx+CW-20, y+24, {align:'right'});
-  y += 32;
+  doc.setFontSize(9);
+  setColor(totAll>0?TC:LG);
+  doc.text($v(totAll), atx+CW-LPAD*3, y+12, {align:'right'});
+  y+=22;
+  // Net A/R
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  setColor(TC);
+  doc.text('Net A/R: '+$v(totAll), atx+CW-LPAD*3, y, {align:'right'});
+  y+=16;
   cardEnd();
 
-  // ── FOOTER on every page ─────────────────────────────────────────────────
-  var pageCount = doc.internal.getNumberOfPages();
-  for (var pi=1; pi<=pageCount; pi++) {
+  // ── FOOTER ────────────────────────────────────────────────────────────────
+  var pgCount=doc.internal.getNumberOfPages();
+  for(var pi=1;pi<=pgCount;pi++){
     doc.setPage(pi);
-    doc.setFillColor(BG2[0],BG2[1],BG2[2]);
-    doc.rect(0, H-28, W, 28, 'F');
-    doc.setDrawColor(BD[0],BD[1],BD[2]);
-    doc.setLineWidth(0.5);
-    doc.line(0, H-28, W, H-28);
+    setFill(BG2);
+    doc.rect(0, H-26, W, 26, 'F');
+    setDraw(BD); doc.setLineWidth(0.4);
+    doc.line(0, H-26, W, H-26);
     doc.setFont('helvetica','normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(LG[0],LG[1],LG[2]);
-    doc.text('ClaimDataCare EHR/Billing  —  CONFIDENTIAL  —  '+dateStr, ML, H-12);
-    doc.text('Page '+pi+' of '+pageCount, W-MR, H-12, {align:'right'});
+    doc.setFontSize(7);
+    setColor(LG);
+    doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY', ML, H-10);
+    doc.text('Page '+pi+' of '+pgCount+'  |  '+dateStr, W-MR, H-10, {align:'right'});
   }
 
-  var fname = ((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+today.toISOString().slice(0,10)+'.pdf')
+  var fname=((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+today.toISOString().slice(0,10)+'.pdf')
     .toLowerCase().replace(/\s+/g,'-');
   doc.save(fname);
   toast('PDF exported','ok');
+}
+
+// ── A/R Aging Drilldown Modal ────────────────────────────────────────────
+function _ptcShowAgingDrilldown(claimIds) {
+  if (!claimIds || !claimIds.length) return;
+  var db = getDB();
+  var eobMap = _localDB.claimEOB||{};
+  var claims = (db.claims||[]).filter(function(c){ return claimIds.includes(c.id); });
+
+  // Remove existing drilldown
+  var existing = document.getElementById('ptc-aging-drilldown');
+  if (existing) existing.remove();
+
+  var S = {
+    terracotta:'#c96442', nearBlack:'#141413', parchment:'#f5f4ed',
+    ivory:'#faf9f5', borderWarm:'#e8e6dc', stoneGray:'#87867f',
+    oliveGray:'#5e5d59', red:'#dc2626'
+  };
+
+  var statusBadgeColor = function(s) {
+    var map = {
+      draft:'#87867f',pending:'#d97757',submitted:'#2563eb',
+      accepted:'#16a34a',rejected:'#dc2626',denied:'#dc2626',
+      paid:'#16a34a',on_hold:'#d97757',voided:'#87867f'
+    };
+    return map[s]||'#87867f';
+  };
+
+  var rows = claims.map(function(cl) {
+    var pat = (db.patients||[]).find(function(p){ return p.id===cl.patId; })||{};
+    var billed = (cl.lines||[]).reduce(function(s,l){ return s+(parseFloat(l.charge)||0); },0);
+    var paid   = (eobMap[cl.id]||[]).reduce(function(s,p){ return s+(parseFloat(p.paid)||0); },0);
+    var bal    = billed - paid;
+    var dos    = cl.dos||'—';
+    var $v2    = function(n){ return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); };
+    return '<tr style="cursor:pointer;border-bottom:1px solid '+S.borderWarm+'" '
+      + 'onclick="document.getElementById(\'ptc-aging-drilldown\').remove();openClaimDetail(\''+cl.id+'\');" '
+      + 'onmouseover="this.style.background=\''+S.parchment+'\'" onmouseout="this.style.background=\'\'">'
+      + '<td style="padding:7px 10px;font-size:12px;color:'+S.nearBlack+';font-weight:600">'+(cl.pcn||cl.id.slice(-6))+'</td>'
+      + '<td style="padding:7px 10px;font-size:12px;color:'+S.nearBlack+'">'+(pat.last||'?')+', '+(pat.first||'?')+'</td>'
+      + '<td style="padding:7px 10px;font-size:12px;color:'+S.stoneGray+'">'+dos+'</td>'
+      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:'+S.nearBlack+'">'+$v2(billed)+'</td>'
+      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:#16a34a">'+$v2(paid)+'</td>'
+      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:'+S.red+';font-weight:700">'+$v2(bal)+'</td>'
+      + '<td style="padding:7px 10px"><span style="font-size:10px;font-weight:700;color:'+statusBadgeColor(cl.status)+';text-transform:uppercase;background:'+statusBadgeColor(cl.status)+'22;padding:2px 6px;border-radius:4px">'+( cl.status||'').replace('_',' ')+'</span></td>'
+      + '<td style="padding:7px 10px;text-align:center"><button onclick="event.stopPropagation();document.getElementById(\'ptc-aging-drilldown\').remove();openClaimDetail(\''+cl.id+'\');" style="background:'+S.terracotta+';color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-weight:600">Open</button></td>'
+      + '</tr>';
+  }).join('');
+
+  var totalBal = claims.reduce(function(s,cl){
+    var b=(cl.lines||[]).reduce(function(s2,l){return s2+(parseFloat(l.charge)||0);},0);
+    var p=(eobMap[cl.id]||[]).reduce(function(s2,p2){return s2+(parseFloat(p2.paid)||0);},0);
+    return s+b-p;
+  },0);
+  var $v3=function(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
+
+  var panel = document.createElement('div');
+  panel.id = 'ptc-aging-drilldown';
+  panel.style.cssText = 'position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,19,.45);padding:16px';
+  panel.innerHTML =
+    '<div style="background:'+S.ivory+';border-radius:12px;width:100%;max-width:860px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)">'
+    // Header
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:'+S.parchment+';border-bottom:1px solid '+S.borderWarm+';flex-shrink:0">'
+      + '<div>'
+        + '<div style="font-size:13px;font-weight:700;color:'+S.nearBlack+'">Claims — A/R Aging Detail</div>'
+        + '<div style="font-size:11px;color:'+S.stoneGray+';margin-top:2px">'+claims.length+' claim'+(claims.length!==1?'s':'')+' &nbsp;|&nbsp; Balance: <strong style="color:'+S.red+'">'+$v3(totalBal)+'</strong></div>'
+      + '</div>'
+      + '<button onclick="document.getElementById(\'ptc-aging-drilldown\').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:'+S.stoneGray+';line-height:1;padding:0 4px">&times;</button>'
+    + '</div>'
+    // Table
+    + '<div style="overflow-y:auto;flex:1">'
+      + '<table style="width:100%;border-collapse:collapse">'
+        + '<thead><tr style="background:'+S.parchment+';border-bottom:2px solid '+S.borderWarm+'">'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">PCN</th>'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Patient</th>'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">DOS</th>'
+          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Billed</th>'
+          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Paid</th>'
+          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Balance</th>'
+          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Status</th>'
+          + '<th style="padding:8px 10px;width:60px"></th>'
+        + '</tr></thead>'
+        + '<tbody>'+rows+'</tbody>'
+      + '</table>'
+    + '</div>'
+    // Footer
+    + '<div style="padding:10px 18px;background:'+S.parchment+';border-top:1px solid '+S.borderWarm+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
+      + '<span style="font-size:11px;color:'+S.stoneGray+'">Click any row to open the claim editor</span>'
+      + '<button onclick="document.getElementById(\'ptc-aging-drilldown\').remove()" style="padding:6px 16px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Close</button>'
+    + '</div>'
+  + '</div>';
+
+  // Close on backdrop click
+  panel.addEventListener('click', function(e){ if(e.target===panel) panel.remove(); });
+  document.body.appendChild(panel);
 }
 
 // ── CPT Pad helpers ───────────────────────────────────────────────────────
@@ -19769,7 +19888,7 @@ claims.forEach(c=>{
 const dos = c.dos?new Date(c.dos.includes('/')?c.dos.split('/').reverse().join('-'):c.dos):null;
 const days = dos?Math.floor((today-dos)/86400000):0;
 const bi = Math.max(0, bkts.findIndex(b=>days<=b));
-const billed= (c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
+const billed= (c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0); // charge is already line total
 const paid = (eobMap[c.id]||[]).reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
 const bal = billed-paid;
 if(bal>0){ if(['accepted','submitted'].includes(c.status)) insA[bi]+=bal; else patA[bi]+=bal; }
@@ -19778,7 +19897,27 @@ const totIns = insA.reduce((a,b)=>a+b,0);
 const totPat = patA.reduce((a,b)=>a+b,0);
 const totAll = totIns+totPat;
 const $v = n=>'$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-const cell = v=>`<td style="text-align:right;font-family:var(--mono);color:${v>0?'#dc2626':'#87867f'}">${$v(v)}</td>`;
+// Build claim IDs for each bucket (for drilldown)
+const patClaimIds = [[],[],[],[],[]];
+const insClaimIds = [[],[],[],[],[]];
+claims.forEach(c=>{
+  const dos = c.dos?new Date(c.dos.includes('/')?c.dos.split('/').reverse().join('-'):c.dos):null;
+  const days = dos?Math.floor((today-dos)/86400000):0;
+  const bi = Math.max(0, [30,60,90,120,Infinity].findIndex(b=>days<=b));
+  const billed2=(c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
+  const paid2=(eobMap[c.id]||[]).reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+  if(billed2-paid2>0){
+    if(['accepted','submitted'].includes(c.status)) insClaimIds[bi].push(c.id);
+    else patClaimIds[bi].push(c.id);
+  }
+});
+const cell = function(v, claimIds) {
+  if (claimIds && claimIds.length > 0 && v > 0) {
+    var idsJson = JSON.stringify(claimIds);
+    return '<td style="text-align:right;font-family:var(--mono);color:#dc2626;cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="_ptcShowAgingDrilldown(' + idsJson + ')">' + $v(v) + '</td>';
+  }
+  return '<td style="text-align:right;font-family:var(--mono);color:' + (v>0?'#dc2626':'#87867f') + '">' + $v(v) + '</td>';
+};
 
 // ?? Appointments ?????????????????????????????????????????????
 const past = appts.filter(a=>a.date<=today.toISOString().slice(0,10)).sort((a,b)=>b.date.localeCompare(a.date));
@@ -19924,17 +20063,17 @@ ${insBlock(ins2,'Patient Secondary Insurance Details')}
 <tbody>
 <tr>
 <td style="text-align:left;padding:6px 10px;font-weight:600">Patient Aging</td>
-${patA.map(v=>cell(v)).join('')}${cell(totPat)}
+${patA.map((v,i)=>cell(v,patClaimIds[i])).join('')}${cell(totPat,patClaimIds.flat())}
 </tr>
 <tr>
 <td style="text-align:left;padding:6px 10px;font-weight:600">Insurance Aging</td>
-${insA.map(v=>cell(v)).join('')}${cell(totIns)}
+${insA.map((v,i)=>cell(v,insClaimIds[i])).join('')}${cell(totIns,insClaimIds.flat())}
 </tr>
 </tbody>
 <tfoot>
 <tr>
 <td style="text-align:left;padding:6px 10px;font-weight:700">Total</td>
-${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i])).join('')}${cell(totAll)}
+${[0,1,2,3,4].map(i=>cell(patA[i]+insA[i],[...patClaimIds[i],...insClaimIds[i]])).join('')}${cell(totAll,[...patClaimIds.flat(),...insClaimIds.flat()])}
 </tr>
 </tfoot>
 </table>
