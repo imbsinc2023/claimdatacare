@@ -2066,6 +2066,232 @@ function _cePopulatePOS(posEl, currentVal){
 }
 
 
+
+// ── Patient PDF Export ────────────────────────────────────────────────────
+function _exportPatientPDF(patId) {
+  var db = getDB();
+  var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
+  if (!pat) { toast('Patient not found','err'); return; }
+
+  // Load jsPDF if not loaded
+  if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = function() { _doExportPatientPDF(pat, db); };
+    document.head.appendChild(script);
+  } else {
+    _doExportPatientPDF(pat, db);
+  }
+}
+
+function _doExportPatientPDF(pat, db) {
+  var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
+
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var margin = 40;
+  var y = 0;
+  var terracotta = [201,100,66];
+  var nearBlack = [20,20,19];
+  var gray = [135,134,127];
+  var borderGray = [224,222,214];
+  var ivory = [250,249,245];
+
+  // ── Header bar ──────────────────────────────────────────────────────────
+  doc.setFillColor(201,100,66);
+  doc.rect(0,0,W,48,F);
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text('PATIENT FILE', margin, 30);
+  doc.setFontSize(10);
+  doc.setFont('helvetica','normal');
+  var age = _calcAge(pat.dob);
+  var gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
+  doc.text([
+    'File# ' + (pat.acct||'—'),
+    (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase(),
+    age + ' yrs  |  ' + gender
+  ].join('   '), margin, 42);
+  doc.setTextColor(255,255,255);
+  var dateStr = new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+  doc.text('Printed: ' + dateStr, W-margin, 30, {align:'right'});
+  y = 68;
+
+  // ── Section helper ───────────────────────────────────────────────────────
+  var F = 'F';
+  function sectionHeader(title) {
+    if (y > H - 80) { doc.addPage(); y = 40; }
+    doc.setFillColor(240,238,230);
+    doc.rect(margin, y, W-margin*2, 18, 'F');
+    doc.setTextColor(nearBlack[0],nearBlack[1],nearBlack[2]);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text(title.toUpperCase(), margin+8, y+12);
+    y += 24;
+  }
+
+  function row(label, value, bold) {
+    if (!value) return;
+    if (y > H - 40) { doc.addPage(); y = 40; }
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(gray[0],gray[1],gray[2]);
+    doc.text(label, margin+8, y);
+    doc.setTextColor(nearBlack[0],nearBlack[1],nearBlack[2]);
+    doc.setFont('helvetica', bold?'bold':'normal');
+    doc.text(String(value), margin+130, y);
+    y += 14;
+    // thin separator
+    doc.setDrawColor(borderGray[0],borderGray[1],borderGray[2]);
+    doc.setLineWidth(0.3);
+    doc.line(margin+8, y-2, W-margin, y-2);
+  }
+
+  function twoCol(rows1, rows2) {
+    var startY = y;
+    var colW = (W - margin*2 - 20) / 2;
+    // left col
+    rows1.forEach(function(r){ row(r[0], r[1], r[2]); });
+    var leftEnd = y;
+    y = startY;
+    // right col — offset by colW
+    var origMargin = margin;
+    margin = margin + colW + 20;
+    rows2.forEach(function(r){ row(r[0], r[1], r[2]); });
+    margin = origMargin;
+    y = Math.max(leftEnd, y) + 6;
+  }
+
+  var ref = db.referring.find(function(r){ return r.id===pat.referringId; })||{};
+  var prov = db.providers.find(function(p){ return p.id===pat.providerId; })||{};
+
+  // ── 1. Patient Details ───────────────────────────────────────────────────
+  sectionHeader('Patient Details');
+  var fmtPhone = function(p){ return p?'('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6):''; };
+  row('File #', pat.acct||'', true);
+  row('Name (L,F,M)', ((pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')).trim(), true);
+  row('Date of Birth', _fmtDob(pat.dob));
+  row('Sex', gender);
+  row('Address', [pat.addr1, pat.addr2].filter(Boolean).join(', '));
+  row('City/State/ZIP', ((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).trim());
+  row('Phone', fmtPhone(pat.phone));
+  row('Mobile', fmtPhone(pat.phone2));
+  row('Email', pat.email||'');
+  row('Ethnicity', pat.ethnicity||'');
+  row('Race', pat.race||'');
+  row('Status', pat.inactive?'Inactive':'Active', true);
+  row('Ref. Physician', ref.last?(ref.last+', '+ref.first):'');
+  row('Provider', prov.name||'');
+  y += 8;
+
+  // ── 2. Primary Insurance ─────────────────────────────────────────────────
+  var allIns = pat.insurances||[];
+  var ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
+    ||(pat.payerName?{name:pat.payerName,policy:pat.subNum,group:pat.groupNum,relation:pat.relation||'Self',copay:pat.copay,deductible:pat.deductible}:null);
+  if (ins1) {
+    sectionHeader('Primary Insurance');
+    row('Insurance Name', ins1.name||ins1.insuranceName||'', true);
+    row('Payor ID', ins1.payerId||pat.payerid||'');
+    row('Policy No.', ins1.policy||ins1.memberId||'');
+    row('Group No.', ins1.group||'');
+    row('Relation', ins1.relation||'Self');
+    row('Co-Pay', '$'+(ins1.copay||'0.00'), true);
+    row('Deductible', '$'+(ins1.deductible||'0.00'), true);
+    row('Status', ins1.status||'Not Verified');
+    y += 8;
+  }
+
+  var ins2 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('secondary'); });
+  if (ins2) {
+    sectionHeader('Secondary Insurance');
+    row('Insurance Name', ins2.name||ins2.insuranceName||'', true);
+    row('Payor ID', ins2.payerId||'');
+    row('Policy No.', ins2.policy||ins2.memberId||'');
+    row('Group No.', ins2.group||'');
+    row('Relation', ins2.relation||'Self');
+    row('Co-Pay', '$'+(ins2.copay||'0.00'), true);
+    row('Deductible', '$'+(ins2.deductible||'0.00'), true);
+    y += 8;
+  }
+
+  // ── 3. A/R Aging ─────────────────────────────────────────────────────────
+  sectionHeader('Billing Statement — A/R Aging');
+  var eobMap = _localDB.claimEOB||{};
+  var today2 = new Date();
+  var bkts = [30,60,90,120,Infinity];
+  var insA=[0,0,0,0,0], patA=[0,0,0,0,0];
+  (db.claims||[]).filter(function(cl){ return cl.patId===pat.id; }).forEach(function(cl){
+    var dos = cl.dos?new Date(cl.dos.includes('/')?cl.dos.split('/').reverse().join('-'):cl.dos):null;
+    var days = dos?Math.floor((today2-dos)/86400000):0;
+    var bi = Math.max(0,bkts.findIndex(function(b){ return days<=b; }));
+    var billed = (cl.lines||[]).reduce(function(s,l){ return s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1); },0);
+    var paid = (eobMap[cl.id]||[]).reduce(function(s,p){ return s+(parseFloat(p.paid)||0); },0);
+    var bal = billed-paid;
+    if(bal>0){ if(['accepted','submitted'].includes(cl.status)) insA[bi]+=bal; else patA[bi]+=bal; }
+  });
+  var totIns=insA.reduce(function(a,b){return a+b;},0);
+  var totPat=patA.reduce(function(a,b){return a+b;},0);
+  var $v=function(n){ return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); };
+  var cols = ['0-30','31-60','61-90','91-120','Over 120','Total'];
+  var colW2 = (W-margin*2-80)/6;
+  // header row
+  doc.setFillColor(240,238,230);
+  doc.rect(margin, y, W-margin*2, 16, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(gray[0],gray[1],gray[2]);
+  doc.text('A/R Aging (days)', margin+6, y+11);
+  cols.forEach(function(h,i){ doc.text(h, margin+80+i*colW2+colW2/2, y+11, {align:'center'}); });
+  y += 18;
+  // data rows
+  [['Patient Aging', patA, totPat],['Insurance Aging', insA, totIns]].forEach(function(rowDef){
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(nearBlack[0],nearBlack[1],nearBlack[2]);
+    doc.text(rowDef[0], margin+6, y+10);
+    rowDef[1].forEach(function(v,i){
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(v>0?220:gray[0], v>0?38:gray[1], v>0?38:gray[2]);
+      doc.text($v(v), margin+80+i*colW2+colW2/2, y+10, {align:'center'});
+    });
+    doc.setTextColor(nearBlack[0],nearBlack[1],nearBlack[2]);
+    doc.setFont('helvetica','bold');
+    doc.text($v(rowDef[2]), margin+80+5*colW2+colW2/2, y+10, {align:'center'});
+    doc.setDrawColor(borderGray[0],borderGray[1],borderGray[2]);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y+14, W-margin, y+14);
+    y += 16;
+  });
+  // Total row
+  var totAll = totIns+totPat;
+  doc.setFillColor(250,245,242);
+  doc.rect(margin, y, W-margin*2, 16, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(nearBlack[0],nearBlack[1],nearBlack[2]);
+  doc.text('Total', margin+6, y+11);
+  doc.setTextColor(totAll>0?201:gray[0], totAll>0?100:gray[1], totAll>0?66:gray[2]);
+  doc.text($v(totAll), W-margin-10, y+11, {align:'right'});
+  y += 24;
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  var pageCount = doc.internal.getNumberOfPages();
+  for (var i=1; i<=pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(180,178,172);
+    doc.setFont('helvetica','normal');
+    doc.text('ClaimDataCare — CONFIDENTIAL', margin, H-20);
+    doc.text('Page '+i+' of '+pageCount, W-margin, H-20, {align:'right'});
+  }
+
+  var fname = ((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+new Date().toISOString().slice(0,10)+'.pdf').toLowerCase().replace(/\s/g,'-');
+  doc.save(fname);
+  toast('PDF exported','ok');
+}
+
 // ── CPT Pad helpers ───────────────────────────────────────────────────────
 
 function _cePadInit(claimId) {
@@ -18872,6 +19098,7 @@ return `
   <span class="ptc-banner-meta-item"><i data-lucide="${pat.sex==='F'?'venus':'mars'}" class="lci" style="width:11px;height:11px"></i>${gender}</span>
   <span class="ptc-banner-sep">|</span>
   <div class="ptc-tabs-inline">${tabsHTML}</div>
+  <button onclick="_exportPatientPDF('${pat.id}')" title="Export Patient PDF" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="file-down" class="lci" style="width:14px;height:14px;pointer-events:none"></i></button>
   <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
 </div>
 <!-- BODY -->
@@ -19428,21 +19655,21 @@ const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('seco
 
 // ?? Helpers ???????????????????????????????????????????????????
 const R = (l,v,bold=false)=>v?`
-<div style="display:grid;grid-template-columns:130px 1fr;padding:3px 0;border-bottom:1px solid #e8e6dc;font-size:12px">
-<span style="color:#87867f;font-weight:600">${l}</span>
-<span style="color:#141413;font-weight:${bold?'700':'400'}">: ${v}</span>
+<div style="display:grid;grid-template-columns:130px 1fr;padding:4px 0;border-bottom:1px solid #f0eee6;font-size:11.5px;align-items:baseline">
+<span style="color:#87867f;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">${l}</span>
+<span style="color:${bold?'#141413':'#3d3c38'};font-weight:${bold?'700':'400'}">${v}</span>
 </div>`:'';
 
 const insBlock = (ins, label) => !ins?'':`
-<div class="ptc-panel" style="margin-bottom:12px">
-<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">
-<span>${label}</span>
-<div style="display:flex;gap:10px">
+<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc">
+<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#c96442"></i>${label}</span>
+<div style="display:flex;gap:8px">
 <button class="btn-icon sm" onclick="_renderChartTab('insurance')" title="Verify Insurance"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px"></i></button>
 <button class="btn-icon sm" onclick="_renderChartTab('insurance')" title="Edit Insurance"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
 </div>
 </div>
-<div class="ptc-panel-body" style="padding:10px 14px">
+<div style="padding:12px 14px">
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">
 <div>
 ${R('Name',(ins.lname||pat.last)+', '+(ins.fname||pat.first))}
@@ -19478,10 +19705,10 @@ return `
 <div style="padding:0">
 
 <!-- ?? 1. PATIENT DETAILS (full width) ?? -->
-<div class="ptc-panel" style="margin-bottom:12px">
-<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">
-<span>Patient Details</span>
-<div style="display:flex;gap:12px">
+<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc">
+<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#c96442"></i>Patient Details</span>
+<div style="display:flex;gap:8px">
 <button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="View History"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i></button>
 <button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="Edit Demographics"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
 </div>
@@ -19543,8 +19770,8 @@ ${insBlock(ins1,'Patient Primary Insurance Details')}
 ${insBlock(ins2,'Patient Secondary Insurance Details')}
 
 <!-- ?? 4. BILLING A/R AGING ?? -->
-<div class="ptc-panel" style="margin-bottom:12px">
-<div class="ptc-panel-hdr">Billing Statement</div>
+<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+<div style="padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#c96442"></i>Billing Statement</div>
 <div style="overflow-x:auto">
 <table class="ptc-aging-table" style="width:100%">
 <thead>
