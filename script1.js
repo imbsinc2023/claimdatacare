@@ -2202,12 +2202,12 @@ function _doExportPatientPDF(pat, db) {
   var C1=36, C2=216, C3=396;
   var R1=126, R2=149, R3=172, R4=195;
 
-  F('File #',        pat.acct||'',        C1, R1, {bold:true,size:10});
-  F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {bold:true,size:10,w:170});
+  F('File #',        pat.acct||'',        C1, R1, {size:9});
+  F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {size:9,w:170});
   F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1);
 
   F('Sex',           gender, C1, R2);
-  F('Phone',         fmtP(pat.phone||''), C2, R2, {bold:true, size:10});
+  F('Phone',         fmtP(pat.phone||''), C2, R2, {size:9});
   F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2);
 
   F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
@@ -2231,7 +2231,7 @@ function _doExportPatientPDF(pat, db) {
   var I1=240, I2=263, I3=286, I4=309;
 
   if(ins1){
-    F('Insurance Name', ins1.name||ins1.insuranceName||'', C1, I1, {bold:true,size:10,w:170});
+    F('Insurance Name', ins1.name||ins1.insuranceName||'', C1, I1, {size:9,w:170});
     F('Payor ID',       ins1.payerId||pat.payerid||'',     C2, I1);
     F('Policy No.',     ins1.policy||ins1.memberId||'',    C3, I1);
 
@@ -2277,7 +2277,7 @@ function _doExportPatientPDF(pat, db) {
   var AXIS_W=CHART_WIDTH-46;  // bar area width
   var X_LABEL_H=14;           // height reserved for x-axis labels
   var CHART_TOP=360;
-  var BAR_H=620-CHART_TOP-X_LABEL_H;  // bars height (not counting label area)
+  var BAR_H=120;                       // bar area height (shorter chart)
   var BAR_BOTTOM=CHART_TOP+BAR_H;     // baseline of bars
   var CHART_TOTAL_H=BAR_H+X_LABEL_H; // total chart height including labels
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
