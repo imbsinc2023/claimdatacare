@@ -2086,12 +2086,14 @@ function _exportPatientPDF(patId) {
 
 function _doExportPatientPDF(pat, db) {
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+
+  // ── Everything fits in ONE letter page ───────────────────────────────────
+  // We use a tighter layout: 3-column grid for details, small chart at bottom
   var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
-  var W = doc.internal.pageSize.getWidth();
-  var H = doc.internal.pageSize.getHeight();
-  var ML = 48, MR = 48;
+  var W = doc.internal.pageSize.getWidth();   // 612
+  var H = doc.internal.pageSize.getHeight();  // 792
+  var ML = 36, MR = 36;
   var CW = W - ML - MR;
-  var y  = 0;
 
   // Palette
   var NK  = [20,20,19];
@@ -2118,172 +2120,139 @@ function _doExportPatientPDF(pat, db) {
   var $v = function(n) {
     return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   };
-  function checkPage(need) {
-    if (y+(need||30) > H-50) { doc.addPage(); y=60; }
-  }
   function sc(rgb){ doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
   function sf(rgb){ doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
   function sd(rgb){ doc.setDrawColor(rgb[0],rgb[1],rgb[2]); }
 
-  // ── HEADER: logo + provider info only, no patient data ───────────────────
-  var headerH = 0;
-  sf(WHT); doc.rect(0,0,W,120,'F');
-
-  // Logo left
-  var lx = ML, ly = 28;
+  // ── HEADER ────────────────────────────────────────────────────────────────
+  sf(WHT); doc.rect(0,0,W,75,'F');
+  var lx = ML, ly = 14;
   var logoW = 0;
   if (prov.logo) {
-    try {
-      doc.addImage(prov.logo,'PNG',lx,ly,64,64);
-      logoW = 72;
-    } catch(e){ logoW=0; }
+    try { doc.addImage(prov.logo,'PNG',lx,ly,52,52); logoW=58; } catch(e){}
   }
-  var tx = lx + logoW;
-  doc.setFont('helvetica','bold'); doc.setFontSize(14); sc(NK);
-  doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+18);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); sc(GR);
-  var hy = ly+32;
-  var pl2 = [prov.addr1, prov.addr2].filter(Boolean).join(', ');
-  var pl3 = [prov.city, (prov.state||'')+(prov.zip?' '+prov.zip:'')].filter(Boolean).join(', ');
-  if (pl2){ doc.text(pl2, tx, hy); hy+=13; }
-  if (pl3){ doc.text(pl3, tx, hy); hy+=13; }
-  if (prov.phone){ doc.text('Tel: '+fmtPhone(prov.phone), tx, hy); hy+=13; }
+  var tx = lx+logoW;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); sc(NK);
+  doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+14);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); sc(GR);
+  var hy=ly+26;
+  var pl2=[prov.addr1,prov.addr2].filter(Boolean).join(', ');
+  var pl3=[prov.city,(prov.state||'')+(prov.zip?' '+prov.zip:'')].filter(Boolean).join(', ');
+  if(pl2){doc.text(pl2,tx,hy);hy+=11;}
+  if(pl3){doc.text(pl3,tx,hy);hy+=11;}
+  if(prov.phone){doc.text('Tel: '+fmtPhone(prov.phone),tx,hy);}
+  sf(BD); doc.rect(0,75,W,1,'F');
+  var y = 84;
 
-  headerH = Math.max(hy, ly+72) + 16;
-
-  // Bottom border of header
-  sf(BD); doc.rect(0, headerH, W, 1, 'F');
-  y = headerH + 22;
-
-  // ── Card helpers (no separator lines, just spacing) ───────────────────────
-  function cardHeader(title) {
-    checkPage(50);
-    sf(BG2); doc.roundedRect(ML, y, CW, 18, 2, 2, 'F');
-    sf(TC);  doc.rect(ML, y, 4, 18, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); sc(GR);
-    doc.text(title.toUpperCase(), ML+10, y+12);
-    y += 24;
+  // ── Section header bar ────────────────────────────────────────────────────
+  function secBar(title, sy) {
+    sf(BG2); doc.rect(ML, sy, CW, 14, 'F');
+    sf(TC);  doc.rect(ML, sy, 3, 14, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); sc(GR);
+    doc.text(title.toUpperCase(), ML+7, sy+10);
+    return sy+18;
   }
 
-  // Two-column field grid — labels above values, no lines between
-  // leftFields / rightFields: array of [label, value, {bold, red}]
-  function twoCol(leftFields, rightFields) {
-    var startY = y;
-    var halfW  = (CW - 16) / 2;
-    var ROW_H  = 18; // height per field: label+value stacked
-    var LABEL_H = 9;
-    var VAL_H   = 12;
-
-    function drawCol(fields, ox) {
-      var cy = startY;
-      fields.forEach(function(f) {
-        if (!f || !f[1]) return;
-        var opts = f[2]||{};
-        // Label
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); sc(LG);
-        doc.text(f[0], ox, cy+LABEL_H);
-        // Value — slightly larger, bold if needed
-        doc.setFont('helvetica', opts.bold?'bold':'normal');
-        doc.setFontSize(9);
-        sc(opts.red ? RED : NK);
-        var lines = doc.splitTextToSize(String(f[1]), halfW - 8);
-        doc.text(lines, ox, cy+LABEL_H+VAL_H);
-        cy += ROW_H + (lines.length-1)*9 + 6;
-      });
-      return cy;
-    }
-
-    var leftEnd  = drawCol(leftFields,  ML + 4);
-    var rightEnd = drawCol(rightFields, ML + halfW + 20);
-    y = Math.max(leftEnd, rightEnd) + 10;
+  // ── Field helper: label tiny gray above, value below ─────────────────────
+  // Renders into a column; returns new y after this field
+  function fld(label, value, x, fy, colW, opts) {
+    if (!value) return fy;
+    opts = opts||{};
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
+    doc.text(label, x, fy);
+    doc.setFont('helvetica', opts.bold?'bold':'normal');
+    doc.setFontSize(8); sc(opts.red?RED:NK);
+    var lines = doc.splitTextToSize(String(value), colW-4);
+    doc.text(lines, x, fy+9);
+    return fy + 9 + lines.length*8 + 5;
   }
 
-  function cardEnd() { y += 14; }
+  // ── Render N-column grid of fields ────────────────────────────────────────
+  // fields = [ [label, value, opts?], ... ]  ncols = 2 or 3
+  function fieldGrid(fields, ncols, startY) {
+    var colW = CW / ncols;
+    var maxY = startY;
+    var col  = 0, cx = ML;
+    var colY = [];
+    for(var i=0;i<ncols;i++) colY.push(startY);
 
-  // ── 1. PATIENT DETAILS ────────────────────────────────────────────────────
-  cardHeader('Patient Details');
-  twoCol(
-    [
-      ['File #',        pat.acct||'',      {bold:true}],
-      ['Name (L,F,M)',  (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), {bold:true}],
-      ['Date of Birth', _fmtDob(pat.dob)||''],
-      ['Sex',           gender],
-      ['Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', ')],
-      ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim()],
-      ['Status',        pat.inactive?'Inactive':'Active', {bold:true}],
-    ],
-    [
-      ['Phone',         fmtPhone(pat.phone)],
-      ['Mobile',        fmtPhone(pat.phone2)],
-      ['Email',         pat.email||''],
-      ['Ethnicity',     pat.ethnicity||''],
-      ['Race',          pat.race||''],
-      ['Provider',      prov.name||''],
-      ['Ref. Physician',ref.last?(ref.last+', '+ref.first):''],
-    ]
-  );
-  cardEnd();
+    fields.forEach(function(f) {
+      if (!f) { col=(col+1)%ncols; cx=ML+col*colW; return; }
+      var ny = fld(f[0], f[1]||'', cx, colY[col], colW, f[2]);
+      colY[col]=ny;
+      if(ny>maxY) maxY=ny;
+      col=(col+1)%ncols;
+      cx=ML+col*colW;
+    });
+    return Math.max.apply(null, colY)+2;
+  }
 
-  // ── 2. PRIMARY INSURANCE ──────────────────────────────────────────────────
+  // ── 1. PATIENT DETAILS (3 columns) ───────────────────────────────────────
+  y = secBar('Patient Details', y);
+  y = fieldGrid([
+    ['File #',        pat.acct||'',      {bold:true}],
+    ['Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), {bold:true}],
+    ['Date of Birth', _fmtDob(pat.dob)||''],
+    ['Sex',           gender],
+    ['Status',        pat.inactive?'Inactive':'Active', {bold:true}],
+    ['Phone',         fmtPhone(pat.phone)],
+    ['Mobile',        fmtPhone(pat.phone2)],
+    ['Email',         pat.email||''],
+    ['Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', ')],
+    ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim()],
+    ['Ethnicity',     pat.ethnicity||''],
+    ['Race',          pat.race||''],
+    ['Provider',      prov.name||''],
+    ['Ref. Physician',ref.last?(ref.last+', '+ref.first):''],
+    null, // spacer
+  ], 3, y);
+  y += 8;
+
+  // ── 2. PRIMARY INSURANCE (3 columns) ─────────────────────────────────────
   var allIns = pat.insurances||[];
-  var ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
-    ||(pat.payerName?{
-        name:pat.payerName, payerId:pat.payerid,
-        policy:pat.subNum, group:pat.groupNum,
-        relation:pat.relation||'Self',
-        copay:pat.copay, deductible:pat.deductible,
-        lname:pat.last, fname:pat.first, dob:pat.dob
-      }:null);
+  var ins1 = allIns.find(function(i){return (i.insType||i.type||'').toLowerCase().includes('primary');})
+    ||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,
+        group:pat.groupNum,relation:pat.relation||'Self',copay:pat.copay,
+        deductible:pat.deductible,lname:pat.last,fname:pat.first,dob:pat.dob}:null);
 
-  if (ins1) {
-    cardHeader('Primary Insurance');
-    twoCol(
-      [
-        ['Insurance Name', ins1.name||ins1.insuranceName||'', {bold:true}],
-        ['Payor ID',       ins1.payerId||pat.payerid||''],
-        ['Policy No.',     ins1.policy||ins1.memberId||''],
-        ['Group No.',      ins1.group||''],
-        ['Relation',       ins1.relation||'Self'],
-        ['Accept Assign.', ins1.acceptAssign||'Accepted'],
-        ['Pre Auth.',      ins1.preAuth?'Yes':'No'],
-      ],
-      [
-        ['Subscriber',    (ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||'')],
-        ['Subscriber DOB',_fmtDob(ins1.dob||pat.dob)||''],
-        ['Co-Pay',        '$'+parseFloat(ins1.copay||0).toFixed(2), {bold:true}],
-        ['Deductible',    '$'+parseFloat(ins1.deductible||0).toFixed(2), {bold:true}],
-        ['Co-Ins (%)',    String(ins1.coins||'0')],
-        ['Status',        ins1.status||'Not Verified'],
-      ]
-    );
-    cardEnd();
+  if(ins1){
+    y = secBar('Primary Insurance', y);
+    y = fieldGrid([
+      ['Insurance Name', ins1.name||ins1.insuranceName||'', {bold:true}],
+      ['Payor ID',       ins1.payerId||pat.payerid||''],
+      ['Policy No.',     ins1.policy||ins1.memberId||''],
+      ['Group No.',      ins1.group||''],
+      ['Relation',       ins1.relation||'Self'],
+      ['Plan',           ins1.plan||''],
+      ['Subscriber',    (ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||'')],
+      ['Sub. DOB',       _fmtDob(ins1.dob||pat.dob)||''],
+      ['Accept Assign.', ins1.acceptAssign||'Accepted'],
+      ['Co-Pay',         '$'+parseFloat(ins1.copay||0).toFixed(2), {bold:true}],
+      ['Deductible',     '$'+parseFloat(ins1.deductible||0).toFixed(2), {bold:true}],
+      ['Status',         ins1.status||'Not Verified'],
+    ], 3, y);
+    y += 8;
   }
 
-  var ins2 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('secondary'); });
-  if (ins2) {
-    cardHeader('Secondary Insurance');
-    twoCol(
-      [
-        ['Insurance Name', ins2.name||ins2.insuranceName||'', {bold:true}],
-        ['Payor ID',       ins2.payerId||''],
-        ['Policy No.',     ins2.policy||ins2.memberId||''],
-        ['Relation',       ins2.relation||'Self'],
-      ],
-      [
-        ['Co-Pay',     '$'+parseFloat(ins2.copay||0).toFixed(2), {bold:true}],
-        ['Deductible', '$'+parseFloat(ins2.deductible||0).toFixed(2), {bold:true}],
-        ['Status',     ins2.status||'Not Verified'],
-      ]
-    );
-    cardEnd();
+  var ins2 = allIns.find(function(i){return (i.insType||i.type||'').toLowerCase().includes('secondary');});
+  if(ins2){
+    y = secBar('Secondary Insurance', y);
+    y = fieldGrid([
+      ['Insurance Name', ins2.name||ins2.insuranceName||'', {bold:true}],
+      ['Payor ID',       ins2.payerId||''],
+      ['Policy No.',     ins2.policy||ins2.memberId||''],
+      ['Co-Pay',         '$'+parseFloat(ins2.copay||0).toFixed(2), {bold:true}],
+      ['Deductible',     '$'+parseFloat(ins2.deductible||0).toFixed(2), {bold:true}],
+      ['Status',         ins2.status||'Not Verified'],
+    ], 3, y);
+    y += 8;
   }
 
-  // ── 3. A/R AGING — BAR CHART ──────────────────────────────────────────────
-  cardHeader('Aging');
+  // ── 3. AGING BAR CHART ───────────────────────────────────────────────────
   var eobMap = _localDB.claimEOB||{};
   var bkts = [30,60,90,120,Infinity];
   var insA=[0,0,0,0,0], patA=[0,0,0,0,0];
-  (db.claims||[]).filter(function(cl){ return cl.patId===pat.id; }).forEach(function(cl){
+  (db.claims||[]).filter(function(cl){return cl.patId===pat.id;}).forEach(function(cl){
     var dos=null;
     if(cl.dos){
       if(cl.dos.includes('/')){var dp=cl.dos.split('/');dos=new Date(parseInt(dp[2]),parseInt(dp[0])-1,parseInt(dp[1]));}
@@ -2304,125 +2273,103 @@ function _doExportPatientPDF(pat, db) {
   var totAll=totIns+totPat;
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
 
-  checkPage(180);
+  // Footer height = 26; we need chart to fit between y and H-26-8
+  var footerH = 30;
+  var summaryH = 26;
+  var availH   = H - y - footerH - summaryH - 12;
+  var chartH   = Math.max(80, Math.min(availH, 140));
 
-  // Chart area
-  var chartX = ML + 4;
-  var chartY = y;
-  var chartW = CW - 8;
-  var chartH = 130;
-  var barAreaX = chartX + 52;  // space for y-axis labels
-  var barAreaW = chartW - 52 - 10;
-  var barAreaH = chartH - 30; // top=0, bottom=x-axis labels
+  y = secBar('Aging', y);
 
-  // Find max value for scale
-  var maxVal = 0;
-  for(var bi2=0;bi2<5;bi2++){
-    if(patA[bi2]+insA[bi2]>maxVal) maxVal=patA[bi2]+insA[bi2];
-  }
-  if(maxVal===0) maxVal=1;
+  var chartX  = ML + 44;
+  var chartW  = CW - 44;
+  var barAreaH = chartH - 18; // leave 18pt for x labels
+  var baselineY = y + barAreaH;
 
-  // Chart background
-  sf(IVY); doc.roundedRect(chartX, chartY, chartW, chartH+10, 4, 4, 'F');
-  sd(BD); doc.setLineWidth(0.3);
-  doc.roundedRect(chartX, chartY, chartW, chartH+10, 4, 4, 'S');
+  // Chart bg
+  sf(IVY); doc.rect(ML, y, CW, chartH, 'F');
+  sd(BD); doc.setLineWidth(0.2); doc.rect(ML, y, CW, chartH, 'S');
 
-  // Y-axis grid lines (4 lines)
-  var gridCount = 4;
-  for(var gi=0;gi<=gridCount;gi++){
-    var gVal = maxVal*(gridCount-gi)/gridCount;
-    var gy2  = chartY + 8 + (gi/gridCount)*barAreaH;
-    // grid line
-    sd(BD); doc.setLineWidth(0.2);
-    doc.line(barAreaX, gy2, barAreaX+barAreaW, gy2);
-    // label
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
-    var gLabel = gVal>=1000?('$'+(gVal/1000).toFixed(1)+'k'):$v(gVal);
-    doc.text(gLabel, barAreaX-3, gy2+2, {align:'right'});
+  // Y-axis grid (4 lines)
+  var maxVal=1;
+  for(var i=0;i<5;i++){if(patA[i]+insA[i]>maxVal)maxVal=patA[i]+insA[i];}
+  for(var gi=0;gi<=4;gi++){
+    var gVal = maxVal*(4-gi)/4;
+    var gy   = y + (gi/4)*barAreaH;
+    sd(BD); doc.setLineWidth(0.15); doc.line(chartX, gy, ML+CW-2, gy);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); sc(LG);
+    var glbl = gVal>=1000?('$'+(gVal/1000).toFixed(0)+'k'):('$'+Math.round(gVal));
+    doc.text(glbl, chartX-3, gy+2, {align:'right'});
   }
 
-  // Bars — grouped (patient + insurance per bucket)
-  var numGroups  = 5;
-  var groupW     = barAreaW / numGroups;
-  var barPad     = groupW * 0.12;
-  var barW       = (groupW - barPad*2 - 2) / 2;
+  // Bars
+  var numGrp = 5;
+  var grpW   = chartW/numGrp;
+  var bPad   = grpW*0.1;
+  var bW     = (grpW-bPad*2-2)/2;
 
   for(var bi3=0;bi3<5;bi3++){
-    var gx = barAreaX + bi3*groupW + barPad;
-    var baseY = chartY + 8 + barAreaH;
+    var gx = chartX + bi3*grpW + bPad;
 
-    // Patient bar (terracotta)
-    var pVal = patA[bi3];
-    var pBarH = (pVal/maxVal)*barAreaH;
-    if(pBarH>1){
-      sf(TC); doc.rect(gx, baseY-pBarH, barW, pBarH, 'F');
-      if(pBarH>10){
-        doc.setFont('helvetica','bold'); doc.setFontSize(6); sc(WHT);
-        doc.text($v(pVal), gx+barW/2, baseY-pBarH+8, {align:'center'});
+    // Patient bar
+    var pH = (patA[bi3]/maxVal)*barAreaH;
+    if(pH>1){
+      sf(TC); doc.rect(gx, baselineY-pH, bW, pH, 'F');
+      if(pH>12){
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.5); sc(WHT);
+        doc.text($v(patA[bi3]), gx+bW/2, baselineY-pH+8, {align:'center'});
       }
     }
-
-    // Insurance bar (olive gray)
-    var iVal = insA[bi3];
-    var iBarH = (iVal/maxVal)*barAreaH;
-    if(iBarH>1){
-      sf([94,93,89]); doc.rect(gx+barW+2, baseY-iBarH, barW, iBarH, 'F');
-      if(iBarH>10){
-        doc.setFont('helvetica','bold'); doc.setFontSize(6); sc(WHT);
-        doc.text($v(iVal), gx+barW+2+barW/2, baseY-iBarH+8, {align:'center'});
+    // Insurance bar
+    var iH = (insA[bi3]/maxVal)*barAreaH;
+    if(iH>1){
+      sf(GR); doc.rect(gx+bW+2, baselineY-iH, bW, iH, 'F');
+      if(iH>12){
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.5); sc(WHT);
+        doc.text($v(insA[bi3]), gx+bW+2+bW/2, baselineY-iH+8, {align:'center'});
       }
     }
-
-    // X-axis label
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(GR);
-    doc.text(lbls[bi3], gx+barW+1, baseY+10, {align:'center'});
+    // X label
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(GR);
+    doc.text(lbls[bi3], gx+bW+1, baselineY+10, {align:'center'});
   }
 
-  // Legend
-  var legX = barAreaX + barAreaW - 120;
-  var legY  = chartY + 14;
-  sf(TC);         doc.rect(legX,    legY,   8, 6, 'F');
-  sf([94,93,89]); doc.rect(legX+50, legY,   8, 6, 'F');
-  doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(NK);
-  doc.text('Patient', legX+11,  legY+5);
-  doc.text('Insurance', legX+61, legY+5);
+  // Legend top-right
+  var legX = ML+CW-80, legY = y+6;
+  sf(TC);  doc.rect(legX,    legY,   7, 5, 'F');
+  sf(GR);  doc.rect(legX+38, legY,   7, 5, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(NK);
+  doc.text('Patient',   legX+10, legY+4.5);
+  doc.text('Insurance', legX+48, legY+4.5);
 
-  y = chartY + chartH + 24;
+  y = y + chartH + 4;
 
-  // Summary row below chart
-  var sumCols = [
-    {label:'Patient A/R', val:totPat, color:TC},
-    {label:'Insurance A/R', val:totIns, color:[94,93,89]},
-    {label:'Total Net A/R', val:totAll, color:RED},
+  // Summary strip
+  var sumItems = [
+    {l:'Patient A/R',   v:totPat, c:TC},
+    {l:'Insurance A/R', v:totIns, c:GR},
+    {l:'Net A/R',       v:totAll, c:RED},
   ];
-  var sumW = CW / sumCols.length;
-  sumCols.forEach(function(sc2, i) {
-    var sx = ML + i*sumW;
-    sf(i===sumCols.length-1?[249,243,240]:IVY);
-    doc.rect(sx, y, sumW, 28, 'F');
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-    doc.setTextColor(sc2.color[0],sc2.color[1],sc2.color[2]);
-    doc.text(sc2.label, sx+sumW/2, y+10, {align:'center'});
-    doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    doc.text($v(sc2.val), sx+sumW/2, y+23, {align:'center'});
-    sd(BD); doc.setLineWidth(0.2);
-    if(i<sumCols.length-1) doc.line(sx+sumW, y, sx+sumW, y+28);
+  var sW = CW/3;
+  sf(BG2); doc.rect(ML, y, CW, summaryH, 'F');
+  sd(BD);  doc.setLineWidth(0.3); doc.rect(ML, y, CW, summaryH, 'S');
+  sumItems.forEach(function(si, i){
+    var sx = ML + i*sW;
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+    doc.setTextColor(si.c[0],si.c[1],si.c[2]);
+    doc.text(si.l, sx+sW/2, y+8, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.text($v(si.v), sx+sW/2, y+21, {align:'center'});
+    if(i<2){ sd(BD); doc.setLineWidth(0.3); doc.line(sx+sW, y, sx+sW, y+summaryH); }
   });
-  sd(BD); doc.setLineWidth(0.3);
-  doc.rect(ML, y, CW, 28, 'S');
-  y += 40;
-  cardEnd();
+  y += summaryH;
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
-  var pgCount = doc.internal.getNumberOfPages();
-  for(var pi=1;pi<=pgCount;pi++){
-    doc.setPage(pi);
-    sf(BG2); doc.rect(0, H-28, W, 28, 'F');
-    sd(BD); doc.setLineWidth(0.4); doc.line(0, H-28, W, H-28);
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
-    doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', ML, H-10);
-    doc.text('Page '+pi+' of '+pgCount+'  |  '+dateStr, W-MR, H-10, {align:'right'});
-  }
+  sf(BG2); doc.rect(0, H-26, W, 26, 'F');
+  sd(BD);  doc.setLineWidth(0.4); doc.line(0, H-26, W, H-26);
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
+  doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', ML, H-10);
+  doc.text('Page 1 of 1  |  '+dateStr, W-MR, H-10, {align:'right'});
 
   var fname=((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+today.toISOString().slice(0,10)+'.pdf')
     .toLowerCase().replace(/\s+/g,'-');
