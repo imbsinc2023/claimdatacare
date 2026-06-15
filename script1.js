@@ -2087,166 +2087,139 @@ function _exportPatientPDF(patId) {
 function _doExportPatientPDF(pat, db) {
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
-  var W = 612, H = 792;
+  var W=612, H=792;
 
-  // Palette
-  var NK  = [20,20,19];
-  var GR  = [94,93,89];
-  var LG  = [135,134,127];
-  var BG2 = [240,238,230];
-  var BD  = [224,222,214];
-  var IVY = [250,249,245];
-  var RED = [185,28,28];
-  var TC  = [201,100,66];
-  var WHT = [255,255,255];
+  // Colors
+  var NK=[20,20,19], GR=[94,93,89], LG=[135,134,127];
+  var BG2=[240,238,230], BD=[224,222,214], IVY=[250,249,245];
+  var RED=[185,28,28], TC=[201,100,66], WHT=[255,255,255];
 
   var age    = _calcAge(pat.dob);
   var gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
   var today  = new Date();
-  var dateStr = today.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
-  var prov = db.providers.find(function(p){return p.id===pat.providerId;})||{};
-  var ref  = db.referring.find(function(r){return r.id===pat.referringId;})||{};
-  var fmtP = function(p){return p&&p.length>=10?'('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6):p||'';};
-  var $v   = function(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
+  var dateStr= today.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+  var prov   = db.providers.find(function(p){return p.id===pat.providerId;})||{};
+  var ref    = db.referring.find(function(r){return r.id===pat.referringId;})||{};
+  var fmtP   = function(p){return p&&p.length>=10?'('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6):p||'';};
+  var $v     = function(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
   function sc(r){doc.setTextColor(r[0],r[1],r[2]);}
   function sf(r){doc.setFillColor(r[0],r[1],r[2]);}
   function sd(r){doc.setDrawColor(r[0],r[1],r[2]);}
 
-  // ── Layout constants (all in pt, tuned to fit letter page) ───────────────
-  var ML = 40, MR = 40, CW = W-ML-MR;   // 532
-  var C1 = ML,        C2 = ML+178, C3 = ML+356;  // 3 equal cols ~178pt each
-  var COLW = 172;      // usable col width
-  var LH = 22;         // line height per field (label+value pair)
-  var LBL = 6.5;       // label font size
-  var VAL = 8.5;       // value font size
-
-  // ── Draw a single label+value pair at absolute position ──────────────────
-  function pair(label, value, x, y, opts) {
+  // ── Absolute-position field: label in small gray, value in normal below ───
+  // x,y = TOP-LEFT of the label. Total height consumed = 20pt (label 7 + gap 2 + value 9 + pad 2)
+  function F(label, value, x, y, opts) {
     if (!value && value!==0) return;
     opts = opts||{};
-    doc.setFont('helvetica','normal'); doc.setFontSize(LBL); sc(LG);
-    doc.text(String(label), x, y);
+    // Label
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
+    doc.text(String(label), x, y+6);
+    // Value
     doc.setFont('helvetica', opts.bold?'bold':'normal');
-    doc.setFontSize(VAL);
-    sc(opts.red ? RED : NK);
-    var maxW = opts.w || COLW;
-    var lines = doc.splitTextToSize(String(value), maxW);
-    doc.text(lines, x, y+9);
+    doc.setFontSize(opts.size||9);
+    sc(opts.color||NK);
+    doc.text(doc.splitTextToSize(String(value), opts.w||170)[0], x, y+16);
   }
 
-  // ── Section bar ───────────────────────────────────────────────────────────
-  function secBar(title, y) {
-    sf(BG2); doc.rect(ML, y, CW, 13, 'F');
-    sf(TC);  doc.rect(ML, y, 3, 13, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); sc(GR);
-    doc.text(title.toUpperCase(), ML+7, y+9.5);
-    return y+16;
+  // ── Section title bar ────────────────────────────────────────────────────
+  function S(title, y) {
+    sf(BG2); doc.rect(36, y, 540, 15, 'F');
+    sf(TC);  doc.rect(36, y, 4,  15, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); sc(GR);
+    doc.text(title.toUpperCase(), 46, y+10.5);
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  // HEADER  (logo + provider, ~72pt)
-  // ════════════════════════════════════════════════════════════════════════
-  sf(WHT); doc.rect(0,0,W,72,'F');
-  var lx=ML, ly=12, logoW=0;
-  if(prov.logo){try{doc.addImage(prov.logo,'PNG',lx,ly,50,50);logoW=56;}catch(e){}}
+  // ══════════════════════════════════════════════════════════════════════
+  // FIXED Y POSITIONS  (every element placed at exact pt coordinate)
+  // Letter = 792pt. Sections:
+  //  Header      36..100   (64pt)
+  //  divider     100
+  //  Pat label   108..123  (section bar)
+  //  Pat rows    126..218  (4 rows × 23pt each)
+  //  Ins label   228..243
+  //  Ins rows    246..338
+  //  Aging label 348..363
+  //  Chart       366..600
+  //  Summary     602..626
+  //  Footer      766..792
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── HEADER ───────────────────────────────────────────────────────────────
+  sf(WHT); doc.rect(0,0,W,100,'F');
+  var lx=36, ly=24, logoW=0;
+  if(prov.logo){try{doc.addImage(prov.logo,'PNG',lx,ly,54,54);logoW=62;}catch(e){}}
   var tx=lx+logoW;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12); sc(NK);
-  doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+14);
-  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); sc(GR);
-  var hy=ly+26;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); sc(NK);
+  doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+16);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); sc(GR);
   var pl2=[prov.addr1,prov.addr2].filter(Boolean).join(', ');
   var pl3=[prov.city,(prov.state||'')+(prov.zip?' '+prov.zip:'')].filter(Boolean).join(', ');
-  if(pl2){doc.text(pl2,tx,hy);hy+=11;}
-  if(pl3){doc.text(pl3,tx,hy);hy+=11;}
+  var hy=ly+30;
+  if(pl2){doc.text(pl2,tx,hy);hy+=12;}
+  if(pl3){doc.text(pl3,tx,hy);hy+=12;}
   if(prov.phone){doc.text('Tel: '+fmtP(prov.phone),tx,hy);}
-  sf(BD); doc.rect(0,72,W,1,'F');
+  sf(BD); doc.rect(0,100,W,1,'F');
 
-  // ════════════════════════════════════════════════════════════════════════
-  // PATIENT DETAILS  (3 cols × 4 rows = 12 fields, each row 22pt → 88pt)
-  // ════════════════════════════════════════════════════════════════════════
-  var y0 = 80;  // section bar top
-  y0 = secBar('Patient Details', y0);  // y0 now = 96
+  // ── PATIENT DETAILS ──────────────────────────────────────────────────────
+  // Section bar at y=108
+  S('Patient Details', 108);
 
-  // Row 1
-  pair('File #',        pat.acct||'',      C1, y0, {bold:true});
-  pair('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, y0, {bold:true});
-  pair('Date of Birth', _fmtDob(pat.dob)||'', C3, y0);
-  // Row 2
-  pair('Sex',    gender,                          C1, y0+LH);
-  pair('Status', pat.inactive?'Inactive':'Active',C2, y0+LH, {bold:true});
-  pair('Phone',  fmtP(pat.phone),                 C3, y0+LH);
-  // Row 3
-  pair('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, y0+LH*2, {w:COLW*1.8});
-  pair('Mobile',        fmtP(pat.phone2),          C3, y0+LH*2);
-  // Row 4
-  pair('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, y0+LH*3, {w:COLW*1.8});
-  pair('Email',         pat.email||'',             C3, y0+LH*3);
-  // Row 5
-  pair('Ethnicity', pat.ethnicity||'',             C1, y0+LH*4);
-  pair('Race',      pat.race||'',                  C2, y0+LH*4);
-  pair('Provider',  prov.name||'',                 C3, y0+LH*4, {w:COLW});
+  // 3 columns:  C1=36  C2=216  C3=396
+  // 4 rows:     R1=126  R2=149  R3=172  R4=195
+  var C1=36, C2=216, C3=396;
+  var R1=126, R2=149, R3=172, R4=195;
 
-  var patEnd = y0 + LH*5 + 6;
+  F('File #',        pat.acct||'',        C1, R1, {bold:true,size:10});
+  F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {bold:true,size:10,w:170});
+  F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1);
 
-  // ════════════════════════════════════════════════════════════════════════
-  // PRIMARY INSURANCE (3 cols × 4 rows → ~88pt)
-  // ════════════════════════════════════════════════════════════════════════
-  var allIns = pat.insurances||[];
-  var ins1 = allIns.find(function(i){return (i.insType||i.type||'').toLowerCase().includes('primary');})
+  F('Sex',           gender,              C1, R2);
+  F('Status',        pat.inactive?'Inactive':'Active', C2, R2, {bold:true});
+  F('Phone',         fmtP(pat.phone),     C3, R2);
+
+  F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
+  F('Mobile',        fmtP(pat.phone2),    C3, R3);
+
+  F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:170});
+  F('Email',         pat.email||'',       C2, R4, {w:170});
+  F('Provider',      prov.name||'',       C3, R4, {w:170});
+
+  // ── PRIMARY INSURANCE ────────────────────────────────────────────────────
+  // Section bar at y=222
+  S('Primary Insurance', 222);
+
+  var allIns=pat.insurances||[];
+  var ins1=allIns.find(function(i){return (i.insType||i.type||'').toLowerCase().includes('primary');})
     ||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,
-        group:pat.groupNum,relation:pat.relation||'Self',copay:pat.copay,
-        deductible:pat.deductible,lname:pat.last,fname:pat.first,dob:pat.dob}:null);
+       group:pat.groupNum,relation:pat.relation||'Self',copay:pat.copay,
+       deductible:pat.deductible,lname:pat.last,fname:pat.first,dob:pat.dob}:null);
 
-  var insEnd = patEnd;
+  // Ins rows: I1=240  I2=263  I3=286  I4=309
+  var I1=240, I2=263, I3=286, I4=309;
+
   if(ins1){
-    var i0 = patEnd;
-    i0 = secBar('Primary Insurance', i0);
-    // Row 1
-    pair('Insurance Name', ins1.name||ins1.insuranceName||'', C1, i0, {bold:true, w:COLW});
-    pair('Payor ID',       ins1.payerId||pat.payerid||'',     C2, i0);
-    pair('Policy No.',     ins1.policy||ins1.memberId||'',    C3, i0);
-    // Row 2
-    pair('Subscriber', (ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||''), C1, i0+LH);
-    pair('Relation',   ins1.relation||'Self',                C2, i0+LH);
-    pair('Accept Assign.', ins1.acceptAssign||'Accepted',    C3, i0+LH);
-    // Row 3
-    pair('Sub. DOB',    _fmtDob(ins1.dob||pat.dob)||'',      C1, i0+LH*2);
-    pair('Co-Pay',      '$'+parseFloat(ins1.copay||0).toFixed(2), C2, i0+LH*2, {bold:true});
-    pair('Deductible',  '$'+parseFloat(ins1.deductible||0).toFixed(2), C3, i0+LH*2, {bold:true});
-    // Row 4
-    pair('Co-Ins (%)',  String(ins1.coins||'0'),             C1, i0+LH*3);
-    pair('Status',      ins1.status||'Not Verified',         C2, i0+LH*3);
-    insEnd = i0 + LH*4 + 6;
+    F('Insurance Name', ins1.name||ins1.insuranceName||'', C1, I1, {bold:true,size:10,w:170});
+    F('Payor ID',       ins1.payerId||pat.payerid||'',     C2, I1);
+    F('Policy No.',     ins1.policy||ins1.memberId||'',    C3, I1);
+
+    F('Subscriber',    (ins1.lname||pat.last||'')+', '+(ins1.fname||pat.first||''), C1, I2, {w:170});
+    F('Relation',       ins1.relation||'Self',             C2, I2);
+    F('Accept Assign.', ins1.acceptAssign||'Accepted',     C3, I2);
+
+    F('Sub. DOB',       _fmtDob(ins1.dob||pat.dob)||'',   C1, I3);
+    F('Co-Pay',         '$'+parseFloat(ins1.copay||0).toFixed(2), C2, I3, {bold:true});
+    F('Deductible',     '$'+parseFloat(ins1.deductible||0).toFixed(2), C3, I3, {bold:true});
+
+    F('Co-Ins (%)',     String(ins1.coins||'0'),            C1, I4);
+    F('Status',         ins1.status||'Not Verified',        C2, I4);
   }
 
-  // Secondary insurance (compact, 2 rows)
-  var ins2 = allIns.find(function(i){return (i.insType||i.type||'').toLowerCase().includes('secondary');});
-  if(ins2){
-    var s0 = insEnd;
-    s0 = secBar('Secondary Insurance', s0);
-    pair('Insurance Name', ins2.name||ins2.insuranceName||'', C1, s0, {bold:true});
-    pair('Payor ID',       ins2.payerId||'',                  C2, s0);
-    pair('Policy No.',     ins2.policy||ins2.memberId||'',    C3, s0);
-    pair('Co-Pay',    '$'+parseFloat(ins2.copay||0).toFixed(2),    C1, s0+LH, {bold:true});
-    pair('Deductible','$'+parseFloat(ins2.deductible||0).toFixed(2),C2, s0+LH, {bold:true});
-    pair('Status',     ins2.status||'Not Verified',            C3, s0+LH);
-    insEnd = s0+LH*2+6;
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // AGING CHART  (fills remaining space above footer)
-  // Footer = 24pt. Summary strip = 24pt. Chart bar area + label = dynamic.
-  // ════════════════════════════════════════════════════════════════════════
-  var FOOTER_H  = 24;
-  var SUMMARY_H = 24;
-  var SBAR_H    = 16;
-  var chartTop  = insEnd + 4;
-  chartTop = secBar('Aging', chartTop);          // advances chartTop by SBAR_H
-  var chartAvail = H - chartTop - SUMMARY_H - FOOTER_H - 10;
-  var BAR_H     = Math.max(70, Math.min(chartAvail - 16, 130)); // bars area
+  // ── AGING SECTION ────────────────────────────────────────────────────────
+  // Section bar at y=340
+  S('Aging', 340);
 
   // A/R calc
-  var eobMap = _localDB.claimEOB||{};
+  var eobMap=_localDB.claimEOB||{};
   var bkts=[30,60,90,120,Infinity];
   var insA=[0,0,0,0,0], patA=[0,0,0,0,0];
   (db.claims||[]).filter(function(cl){return cl.patId===pat.id;}).forEach(function(cl){
@@ -2262,78 +2235,75 @@ function _doExportPatientPDF(pat, db) {
   var totIns=insA.reduce(function(a,b){return a+b;},0);
   var totPat=patA.reduce(function(a,b){return a+b;},0);
   var totAll=totIns+totPat;
+
+  // Chart area: top=360  bottom=700  (140pt bars)
+  var CHART_TOP=360, BAR_BOTTOM=700, BAR_H=BAR_BOTTOM-CHART_TOP;
+  var AXIS_X=76;  // left edge of bars (right of y-axis labels)
+  var AXIS_W=540-AXIS_X+36;  // = 500pt wide
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
 
-  // Chart drawing area
-  var YAXIS_W  = 40;          // space for y-axis labels
-  var chartX   = ML + YAXIS_W;
-  var chartW   = CW - YAXIS_W;
-  var baseY    = chartTop + BAR_H;   // baseline (x-axis)
-  var maxVal   = 1;
-  for(var bi2=0;bi2<5;bi2++){if(patA[bi2]+insA[bi2]>maxVal)maxVal=patA[bi2]+insA[bi2];}
+  // Chart bg
+  sf(IVY); doc.rect(36,CHART_TOP,540,BAR_H,'F');
 
-  // Chart background
-  sf(IVY); doc.rect(ML, chartTop, CW, BAR_H+14, 'F');
-
-  // Grid lines + y-axis labels (5 lines)
+  // Y-axis grid (5 lines)
+  var maxVal=1;
+  for(var i=0;i<5;i++){if(patA[i]+insA[i]>maxVal)maxVal=patA[i]+insA[i];}
   for(var gi=0;gi<=4;gi++){
-    var gv = maxVal*(4-gi)/4;
-    var gy = chartTop + (gi/4)*BAR_H;
-    sd(BD); doc.setLineWidth(0.15); doc.line(chartX, gy, ML+CW-2, gy);
-    doc.setFont('helvetica','normal'); doc.setFontSize(6); sc(LG);
-    var gl = gv>=1000?'$'+(gv/1000).toFixed(1)+'k':'$'+Math.round(gv);
-    doc.text(gl, chartX-3, gy+2.5, {align:'right'});
+    var gv=maxVal*(4-gi)/4;
+    var gy=CHART_TOP+(gi/4)*BAR_H;
+    sd(BD); doc.setLineWidth(0.15); doc.line(AXIS_X,gy,576,gy);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
+    var gl=gv>=1000?'$'+(gv/1000).toFixed(1)+'k':'$'+Math.round(gv);
+    doc.text(gl, AXIS_X-3, gy+2.5, {align:'right'});
   }
 
-  // Bars (grouped: patient + insurance per bucket)
-  var numG=5, gW=chartW/numG;
-  var bPad=gW*0.08, bW=(gW-bPad*2-3)/2;
+  // Bars
+  var numG=5, gW=AXIS_W/numG;
+  var bPad=gW*0.1, bW=(gW-bPad*2-4)/2;
   for(var bi3=0;bi3<5;bi3++){
-    var gx=chartX+bi3*gW+bPad;
+    var gx=AXIS_X+bi3*gW+bPad;
     var pH=(patA[bi3]/maxVal)*BAR_H;
     if(pH>1){
-      sf(TC); doc.rect(gx, baseY-pH, bW, pH, 'F');
-      if(pH>11){doc.setFont('helvetica','bold');doc.setFontSize(5.5);sc(WHT);doc.text($v(patA[bi3]),gx+bW/2,baseY-pH+8,{align:'center'});}
+      sf(TC); doc.rect(gx, BAR_BOTTOM-pH, bW, pH, 'F');
+      if(pH>14){doc.setFont('helvetica','bold');doc.setFontSize(6);sc(WHT);doc.text($v(patA[bi3]),gx+bW/2,BAR_BOTTOM-pH+10,{align:'center'});}
     }
     var iH=(insA[bi3]/maxVal)*BAR_H;
     if(iH>1){
-      sf(GR); doc.rect(gx+bW+3, baseY-iH, bW, iH, 'F');
-      if(iH>11){doc.setFont('helvetica','bold');doc.setFontSize(5.5);sc(WHT);doc.text($v(insA[bi3]),gx+bW+3+bW/2,baseY-iH+8,{align:'center'});}
+      sf(GR); doc.rect(gx+bW+4, BAR_BOTTOM-iH, bW, iH, 'F');
+      if(iH>14){doc.setFont('helvetica','bold');doc.setFontSize(6);sc(WHT);doc.text($v(insA[bi3]),gx+bW+4+bW/2,BAR_BOTTOM-iH+10,{align:'center'});}
     }
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);sc(GR);
-    doc.text(lbls[bi3], gx+bW+1.5, baseY+11, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(GR);
+    doc.text(lbls[bi3], gx+bW+2, BAR_BOTTOM+12, {align:'center'});
   }
 
-  // Legend
-  var legX=ML+CW-90, legY=chartTop+6;
-  sf(TC); doc.rect(legX,legY,7,5,'F');
-  sf(GR); doc.rect(legX+42,legY,7,5,'F');
-  doc.setFont('helvetica','normal');doc.setFontSize(6.5);sc(NK);
-  doc.text('Patient',legX+10,legY+4.5);
-  doc.text('Insurance',legX+52,legY+4.5);
+  // Legend top-right
+  sf(TC); doc.rect(480,CHART_TOP+8,8,6,'F');
+  sf(GR); doc.rect(522,CHART_TOP+8,8,6,'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(NK);
+  doc.text('Patient',   491, CHART_TOP+13.5);
+  doc.text('Insurance', 533, CHART_TOP+13.5);
 
-  // Summary strip
-  var sumY = chartTop + BAR_H + 14;
-  var sW3  = CW/3;
+  // ── SUMMARY STRIP  y=714..740 ────────────────────────────────────────────
+  var SY=714;
+  sf(BG2); doc.rect(36,SY,540,26,'F');
+  sd(BD);  doc.setLineWidth(0.3); doc.rect(36,SY,540,26,'S');
   var sumItems=[{l:'Patient A/R',v:totPat,c:TC},{l:'Insurance A/R',v:totIns,c:GR},{l:'Net A/R',v:totAll,c:RED}];
-  sf(BG2); doc.rect(ML, sumY, CW, SUMMARY_H, 'F');
-  sd(BD); doc.setLineWidth(0.3); doc.rect(ML, sumY, CW, SUMMARY_H, 'S');
   sumItems.forEach(function(si,i){
-    var sx=ML+i*sW3;
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+    var sx=36+i*180;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
     doc.setTextColor(si.c[0],si.c[1],si.c[2]);
-    doc.text(si.l, sx+sW3/2, sumY+8, {align:'center'});
-    doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.text($v(si.v), sx+sW3/2, sumY+20, {align:'center'});
-    if(i<2){sd(BD);doc.setLineWidth(0.3);doc.line(sx+sW3,sumY,sx+sW3,sumY+SUMMARY_H);}
+    doc.text(si.l, sx+90, SY+9, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text($v(si.v), sx+90, SY+22, {align:'center'});
+    if(i<2){sd(BD);doc.setLineWidth(0.3);doc.line(sx+180,SY,sx+180,SY+26);}
   });
 
-  // Footer
-  sf(BG2); doc.rect(0,H-FOOTER_H,W,FOOTER_H,'F');
-  sd(BD);  doc.setLineWidth(0.4); doc.line(0,H-FOOTER_H,W,H-FOOTER_H);
-  doc.setFont('helvetica','normal');doc.setFontSize(6.5);sc(LG);
-  doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', ML, H-8);
-  doc.text('Page 1 of 1  |  '+dateStr, W-MR, H-8, {align:'right'});
+  // ── FOOTER  y=766..792 ───────────────────────────────────────────────────
+  sf(BG2); doc.rect(0,766,W,26,'F');
+  sd(BD);  doc.setLineWidth(0.4); doc.line(0,766,W,766);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
+  doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', 36, 782);
+  doc.text('Page 1 of 1  |  '+dateStr, 576, 782, {align:'right'});
 
   var fname=((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+today.toISOString().slice(0,10)+'.pdf')
     .toLowerCase().replace(/\s+/g,'-');
