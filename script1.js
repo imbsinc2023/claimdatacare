@@ -2173,12 +2173,12 @@ function _doExportPatientPDF(pat, db) {
   F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {bold:true,size:10,w:170});
   F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1);
 
-  F('Sex',           gender,              C1, R2);
-  F('Status',        pat.inactive?'Inactive':'Active', C2, R2, {bold:true});
-  F('Phone',         fmtP(pat.phone),     C3, R2);
+  F('Sex / Status',  gender + '  |  ' + (pat.inactive?'Inactive':'Active'), C1, R2, {bold:false});
+  F('Phone',         fmtP(pat.phone||pat.phone1||pat.homePhone||''), C2, R2, {bold:true, size:10});
+  F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2);
 
   F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
-  F('Mobile',        fmtP(pat.phone2),    C3, R3);
+  F('Email',         pat.email||'',       C3, R3);
 
   F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:170});
   F('Email',         pat.email||'',       C2, R4, {w:170});
