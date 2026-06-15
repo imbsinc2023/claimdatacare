@@ -2146,9 +2146,9 @@ function _doExportPatientPDF(pat, db) {
 
   // ── HEADER ───────────────────────────────────────────────────────────────
   sf(WHT); doc.rect(0,0,W,100,'F');
-  var lx=36, ly=24, logoW=0;
-  if(prov.logo){try{doc.addImage(prov.logo,'PNG',lx,ly,54,54);logoW=62;}catch(e){}}
-  var tx=lx+logoW;
+  // Logo on RIGHT side
+  if(prov.logo){try{doc.addImage(prov.logo,'PNG',576-54,12,54,54);}catch(e){}}
+  var tx=36; // text always starts at left margin
   doc.setFont('helvetica','bold'); doc.setFontSize(13); sc(NK);
   doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+16);
   doc.setFont('helvetica','normal'); doc.setFontSize(8); sc(GR);
@@ -2173,8 +2173,8 @@ function _doExportPatientPDF(pat, db) {
   F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {bold:true,size:10,w:170});
   F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1);
 
-  F('Sex / Status',  gender + '  |  ' + (pat.inactive?'Inactive':'Active'), C1, R2, {bold:false});
-  F('Phone',         fmtP(pat.phone||pat.phone1||pat.homePhone||''), C2, R2, {bold:true, size:10});
+  F('Sex',           gender, C1, R2);
+  F('Phone',         fmtP(pat.phone||''), C2, R2, {bold:true, size:10});
   F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2);
 
   F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
@@ -2237,7 +2237,7 @@ function _doExportPatientPDF(pat, db) {
   var totAll=totIns+totPat;
 
   // Chart area: top=360  bottom=700  (140pt bars)
-  var CHART_TOP=360, BAR_BOTTOM=700, BAR_H=BAR_BOTTOM-CHART_TOP;
+  var CHART_TOP=360, BAR_BOTTOM=620, BAR_H=BAR_BOTTOM-CHART_TOP;
   var AXIS_X=76;  // left edge of bars (right of y-axis labels)
   var AXIS_W=540-AXIS_X+36;  // = 500pt wide
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
@@ -2273,18 +2273,18 @@ function _doExportPatientPDF(pat, db) {
       if(iH>14){doc.setFont('helvetica','bold');doc.setFontSize(6);sc(WHT);doc.text($v(insA[bi3]),gx+bW+4+bW/2,BAR_BOTTOM-iH+10,{align:'center'});}
     }
     doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(GR);
-    doc.text(lbls[bi3], gx+bW+2, BAR_BOTTOM+12, {align:'center'});
+    doc.text(lbls[bi3], gx+bW+2, BAR_BOTTOM+11, {align:'center'});
   }
 
   // Legend top-right
-  sf(TC); doc.rect(480,CHART_TOP+8,8,6,'F');
-  sf(GR); doc.rect(522,CHART_TOP+8,8,6,'F');
-  doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(NK);
-  doc.text('Patient',   491, CHART_TOP+13.5);
-  doc.text('Insurance', 533, CHART_TOP+13.5);
+  sf(TC); doc.rect(480,CHART_TOP+6,8,5,'F');
+  sf(GR); doc.rect(522,CHART_TOP+6,8,5,'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(NK);
+  doc.text('Patient',   491, CHART_TOP+11);
+  doc.text('Insurance', 533, CHART_TOP+11);
 
   // ── SUMMARY STRIP  y=714..740 ────────────────────────────────────────────
-  var SY=714;
+  var SY=628;
   sf(BG2); doc.rect(36,SY,540,26,'F');
   sd(BD);  doc.setLineWidth(0.3); doc.rect(36,SY,540,26,'S');
   var sumItems=[{l:'Patient A/R',v:totPat,c:TC},{l:'Insurance A/R',v:totIns,c:GR},{l:'Net A/R',v:totAll,c:RED}];
@@ -2299,8 +2299,8 @@ function _doExportPatientPDF(pat, db) {
   });
 
   // ── FOOTER  y=766..792 ───────────────────────────────────────────────────
-  sf(BG2); doc.rect(0,766,W,26,'F');
-  sd(BD);  doc.setLineWidth(0.4); doc.line(0,766,W,766);
+  sf(BG2); doc.rect(0,762,W,30,'F');
+  sd(BD);  doc.setLineWidth(0.4); doc.line(0,762,W,762);
   doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
   doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', 36, 782);
   doc.text('Page 1 of 1  |  '+dateStr, 576, 782, {align:'right'});
