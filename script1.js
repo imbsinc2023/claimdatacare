@@ -2323,10 +2323,11 @@ function _doExportPatientPDF(pat, db) {
   doc.text('Patient',   CHART_RIGHT-89, CHART_TOP+11);
   doc.text('Insurance', CHART_RIGHT-47, CHART_TOP+11);
 
-  // ── SUMMARY STRIP  y=714..740 ────────────────────────────────────────────
-  var SY=628;
-  sf(BG2); doc.rect(36,SY,540,26,'F');
-  sd(BD);  doc.setLineWidth(0.3); doc.rect(36,SY,540,26,'S');
+  // ── SUMMARY STRIP ──────────────────────────────────────────────────────────
+  var SY=CHART_TOP+CHART_TOTAL_H+4;
+  var sW3=CHART_WIDTH/3;
+  sf(BG2); doc.rect(CHART_LEFT,SY,CHART_WIDTH,26,'F');
+  sd(BD);  doc.setLineWidth(0.3); doc.rect(CHART_LEFT,SY,CHART_WIDTH,26,'S');
   var sumItems=[{l:'Patient A/R',v:totPat,c:TC},{l:'Insurance A/R',v:totIns,c:GR},{l:'Net A/R',v:totAll,c:RED}];
   sumItems.forEach(function(si,i){
     var sx=CHART_LEFT+i*sW3;
