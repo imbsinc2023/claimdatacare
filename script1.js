@@ -2087,9 +2087,9 @@ function _exportPatientPDF(patId) {
 function _doExportPatientPDF(pat, db) {
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
-  var W = doc.internal.pageSize.getWidth();   // 612
-  var H = doc.internal.pageSize.getHeight();  // 792
-  var ML = 44, MR = 44;
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var ML = 48, MR = 48;
   var CW = W - ML - MR;
   var y  = 0;
 
@@ -2119,148 +2119,86 @@ function _doExportPatientPDF(pat, db) {
     return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   };
   function checkPage(need) {
-    if (y+(need||30) > H-50) { doc.addPage(); y=50; }
+    if (y+(need||30) > H-50) { doc.addPage(); y=60; }
   }
-  function setColor(rgb) { doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
-  function setFill(rgb)  { doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
-  function setDraw(rgb)  { doc.setDrawColor(rgb[0],rgb[1],rgb[2]); }
+  function sc(rgb){ doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
+  function sf(rgb){ doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
+  function sd(rgb){ doc.setDrawColor(rgb[0],rgb[1],rgb[2]); }
 
-  // ── HEADER: white background, logo left, patient name right ──────────────
-  // White top area
-  setFill(WHT);
-  doc.rect(0, 0, W, 90, 'F');
+  // ── HEADER: logo + provider info only, no patient data ───────────────────
+  var headerH = 0;
+  sf(WHT); doc.rect(0,0,W,120,'F');
 
-  // Logo or provider name — left side
-  var logoLoaded = false;
+  // Logo left
+  var lx = ML, ly = 28;
+  var logoW = 0;
   if (prov.logo) {
     try {
-      // Try to draw logo image (base64)
-      doc.addImage(prov.logo, 'PNG', ML, 12, 60, 60);
-      logoLoaded = true;
-      // Provider name beside logo
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(13);
-      setColor(NK);
-      doc.text((prov.name||'').toUpperCase(), ML+68, 30);
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(8.5);
-      setColor(GR);
-      var provLine2 = [prov.addr1, prov.addr2].filter(Boolean).join(', ');
-      var provLine3 = [prov.city, prov.state?(prov.state+(prov.zip?' '+prov.zip:'')):null].filter(Boolean).join(', ');
-      if (provLine2) { doc.text(provLine2, ML+68, 43); }
-      if (provLine3) { doc.text(provLine3, ML+68, provLine2?55:43); }
-      if (prov.phone) { doc.text('Tel: '+fmtPhone(prov.phone), ML+68, provLine3?67:55); }
-    } catch(e) { logoLoaded = false; }
+      doc.addImage(prov.logo,'PNG',lx,ly,64,64);
+      logoW = 72;
+    } catch(e){ logoW=0; }
   }
-  if (!logoLoaded) {
-    // No logo — just text block
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(14);
-    setColor(NK);
-    doc.text((prov.name||'ClaimDataCare').toUpperCase(), ML, 30);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(8.5);
-    setColor(GR);
-    var pl2 = [prov.addr1, prov.addr2].filter(Boolean).join('  |  ');
-    var pl3 = [prov.city, prov.state?(prov.state+(prov.zip?' '+prov.zip:'')):null].filter(Boolean).join(', ');
-    var hy = 44;
-    if (pl2) { doc.text(pl2, ML, hy); hy+=13; }
-    if (pl3) { doc.text(pl3, ML, hy); hy+=13; }
-    if (prov.phone) doc.text('Tel: '+fmtPhone(prov.phone), ML, hy);
-  }
+  var tx = lx + logoW;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); sc(NK);
+  doc.text((prov.name||'ClaimDataCare').toUpperCase(), tx, ly+18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); sc(GR);
+  var hy = ly+32;
+  var pl2 = [prov.addr1, prov.addr2].filter(Boolean).join(', ');
+  var pl3 = [prov.city, (prov.state||'')+(prov.zip?' '+prov.zip:'')].filter(Boolean).join(', ');
+  if (pl2){ doc.text(pl2, tx, hy); hy+=13; }
+  if (pl3){ doc.text(pl3, tx, hy); hy+=13; }
+  if (prov.phone){ doc.text('Tel: '+fmtPhone(prov.phone), tx, hy); hy+=13; }
 
-  // Thin divider line in middle (vertical)
-  setDraw(BD);
-  doc.setLineWidth(0.5);
-  doc.line(W/2, 10, W/2, 80);
-
-  // Right side: Patient info block
-  var rx = W - MR;
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(13);
-  setColor(NK);
-  var fullName = (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid.toUpperCase():'');
-  doc.text(fullName, rx, 28, {align:'right'});
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8.5);
-  setColor(GR);
-  doc.text('File# '+(pat.acct||'—')+'   |   '+age+' yrs   |   '+gender, rx, 42, {align:'right'});
-  doc.text('DOB: '+(_fmtDob(pat.dob)||'—'), rx, 55, {align:'right'});
-  doc.text('Printed: '+dateStr, rx, 68, {align:'right'});
+  headerH = Math.max(hy, ly+72) + 16;
 
   // Bottom border of header
-  setFill(BD);
-  doc.rect(0, 88, W, 1.5, 'F');
+  sf(BD); doc.rect(0, headerH, W, 1, 'F');
+  y = headerH + 22;
 
-  y = 104;
-
-  // ── Card helpers ──────────────────────────────────────────────────────────
+  // ── Card helpers (no separator lines, just spacing) ───────────────────────
   function cardHeader(title) {
     checkPage(50);
-    // Full-width card header bar
-    setFill(BG2);
-    doc.roundedRect(ML, y, CW, 18, 2, 2, 'F');
-    // Left accent
-    setFill(TC);
-    doc.rect(ML, y, 4, 18, 'F');
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(7.5);
-    setColor(GR);
+    sf(BG2); doc.roundedRect(ML, y, CW, 18, 2, 2, 'F');
+    sf(TC);  doc.rect(ML, y, 4, 18, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); sc(GR);
     doc.text(title.toUpperCase(), ML+10, y+12);
-    y += 22;
+    y += 24;
   }
 
-  // Single field row: label left, value right of label column
-  // labelX=ML+8, valueX=ML+8+140
-  var LPAD = 8;
-  var VCOL = 145; // x offset for value from ML
-
-  function field(label, value, opts) {
-    if (value===null||value===undefined||value==='') return;
-    opts = opts||{};
-    checkPage(15);
-    var lx = ML+LPAD;
-    var vx = ML+VCOL;
-    var vw = CW - VCOL - 8;
-    // Label
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(8);
-    setColor(LG);
-    doc.text(label, lx, y);
-    // Value
-    doc.setFont('helvetica', opts.bold?'bold':'normal');
-    setColor(opts.red?RED:NK);
-    var lines = doc.splitTextToSize(String(value), vw);
-    doc.text(lines, vx, y);
-    y += Math.max(13, lines.length*12);
-    // Thin separator
-    setDraw(BD);
-    doc.setLineWidth(0.2);
-    doc.line(ML+LPAD, y-1, ML+CW-LPAD, y-1);
-  }
-
-  // Two-column layout: fields split into left/right halves
+  // Two-column field grid — labels above values, no lines between
+  // leftFields / rightFields: array of [label, value, {bold, red}]
   function twoCol(leftFields, rightFields) {
     var startY = y;
-    var halfCW = (CW-20)/2;
+    var halfW  = (CW - 16) / 2;
+    var ROW_H  = 18; // height per field: label+value stacked
+    var LABEL_H = 9;
+    var VAL_H   = 12;
 
-    // Left column
-    var savedML=ML, savedCW=CW, savedVCOL=VCOL;
-    CW=halfCW; VCOL=Math.min(130,halfCW*0.55);
-    leftFields.forEach(function(f){ if(f&&f[1]) field(f[0],f[1],f[2]); });
-    var leftEnd=y;
+    function drawCol(fields, ox) {
+      var cy = startY;
+      fields.forEach(function(f) {
+        if (!f || !f[1]) return;
+        var opts = f[2]||{};
+        // Label
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); sc(LG);
+        doc.text(f[0], ox, cy+LABEL_H);
+        // Value — slightly larger, bold if needed
+        doc.setFont('helvetica', opts.bold?'bold':'normal');
+        doc.setFontSize(9);
+        sc(opts.red ? RED : NK);
+        var lines = doc.splitTextToSize(String(f[1]), halfW - 8);
+        doc.text(lines, ox, cy+LABEL_H+VAL_H);
+        cy += ROW_H + (lines.length-1)*9 + 6;
+      });
+      return cy;
+    }
 
-    // Right column
-    y=startY;
-    ML=savedML+halfCW+20; CW=halfCW; VCOL=Math.min(130,halfCW*0.55);
-    rightFields.forEach(function(f){ if(f&&f[1]) field(f[0],f[1],f[2]); });
-    var rightEnd=y;
-
-    ML=savedML; CW=savedCW; VCOL=savedVCOL;
-    y=Math.max(leftEnd,rightEnd)+6;
+    var leftEnd  = drawCol(leftFields,  ML + 4);
+    var rightEnd = drawCol(rightFields, ML + halfW + 20);
+    y = Math.max(leftEnd, rightEnd) + 10;
   }
 
-  function cardEnd() { y+=12; }
+  function cardEnd() { y += 14; }
 
   // ── 1. PATIENT DETAILS ────────────────────────────────────────────────────
   cardHeader('Patient Details');
@@ -2270,9 +2208,8 @@ function _doExportPatientPDF(pat, db) {
       ['Name (L,F,M)',  (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), {bold:true}],
       ['Date of Birth', _fmtDob(pat.dob)||''],
       ['Sex',           gender],
-      ['Address',       pat.addr1||''],
-      ['',              pat.addr2||''],
-      ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').replace(/\s+$/,'')],
+      ['Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', ')],
+      ['City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim()],
       ['Status',        pat.inactive?'Inactive':'Active', {bold:true}],
     ],
     [
@@ -2281,14 +2218,13 @@ function _doExportPatientPDF(pat, db) {
       ['Email',         pat.email||''],
       ['Ethnicity',     pat.ethnicity||''],
       ['Race',          pat.race||''],
-      ['Marital',       pat.maritalStatus||''],
-      ['Ref. Physician',ref.last?(ref.last+', '+ref.first):''],
       ['Provider',      prov.name||''],
+      ['Ref. Physician',ref.last?(ref.last+', '+ref.first):''],
     ]
   );
   cardEnd();
 
-  // ── 2. INSURANCE ──────────────────────────────────────────────────────────
+  // ── 2. PRIMARY INSURANCE ──────────────────────────────────────────────────
   var allIns = pat.insurances||[];
   var ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
     ||(pat.payerName?{
@@ -2307,7 +2243,6 @@ function _doExportPatientPDF(pat, db) {
         ['Payor ID',       ins1.payerId||pat.payerid||''],
         ['Policy No.',     ins1.policy||ins1.memberId||''],
         ['Group No.',      ins1.group||''],
-        ['Plan',           ins1.plan||''],
         ['Relation',       ins1.relation||'Self'],
         ['Accept Assign.', ins1.acceptAssign||'Accepted'],
         ['Pre Auth.',      ins1.preAuth?'Yes':'No'],
@@ -2318,8 +2253,6 @@ function _doExportPatientPDF(pat, db) {
         ['Co-Pay',        '$'+parseFloat(ins1.copay||0).toFixed(2), {bold:true}],
         ['Deductible',    '$'+parseFloat(ins1.deductible||0).toFixed(2), {bold:true}],
         ['Co-Ins (%)',    String(ins1.coins||'0')],
-        ['Eff. Date',     ins1.effFrom||''],
-        ['Verified On',   ins1.verifiedOn||''],
         ['Status',        ins1.status||'Not Verified'],
       ]
     );
@@ -2334,7 +2267,6 @@ function _doExportPatientPDF(pat, db) {
         ['Insurance Name', ins2.name||ins2.insuranceName||'', {bold:true}],
         ['Payor ID',       ins2.payerId||''],
         ['Policy No.',     ins2.policy||ins2.memberId||''],
-        ['Group No.',      ins2.group||''],
         ['Relation',       ins2.relation||'Self'],
       ],
       [
@@ -2346,108 +2278,149 @@ function _doExportPatientPDF(pat, db) {
     cardEnd();
   }
 
-  // ── 3. A/R AGING ─────────────────────────────────────────────────────────
-  cardHeader('Billing Statement — A/R Aging');
+  // ── 3. A/R AGING — BAR CHART ──────────────────────────────────────────────
+  cardHeader('Aging');
   var eobMap = _localDB.claimEOB||{};
   var bkts = [30,60,90,120,Infinity];
   var insA=[0,0,0,0,0], patA=[0,0,0,0,0];
   (db.claims||[]).filter(function(cl){ return cl.patId===pat.id; }).forEach(function(cl){
     var dos=null;
-    if (cl.dos) {
-      if (cl.dos.includes('/')) {
-        var dp=cl.dos.split('/');
-        dos=new Date(parseInt(dp[2]),parseInt(dp[0])-1,parseInt(dp[1]));
-      } else { dos=new Date(cl.dos); }
+    if(cl.dos){
+      if(cl.dos.includes('/')){var dp=cl.dos.split('/');dos=new Date(parseInt(dp[2]),parseInt(dp[0])-1,parseInt(dp[1]));}
+      else{dos=new Date(cl.dos);}
     }
     var days=dos?Math.floor((today-dos)/86400000):0;
     var bi=bkts.findIndex(function(b){return days<=b;}); if(bi<0)bi=4;
-    // charge is already the line total — do NOT multiply by units
     var billed=(cl.lines||[]).reduce(function(s,l){return s+(parseFloat(l.charge)||0);},0);
     var paid=(eobMap[cl.id]||[]).reduce(function(s,p){return s+(parseFloat(p.paid)||0);},0);
     var bal=billed-paid;
-    if(bal>0){ if(['accepted','submitted'].includes(cl.status)) insA[bi]+=bal; else patA[bi]+=bal; }
+    if(bal>0){
+      if(['accepted','submitted'].includes(cl.status)) insA[bi]+=bal;
+      else patA[bi]+=bal;
+    }
   });
   var totIns=insA.reduce(function(a,b){return a+b;},0);
   var totPat=patA.reduce(function(a,b){return a+b;},0);
   var totAll=totIns+totPat;
+  var lbls=['0-30','31-60','61-90','91-120','Over 120'];
 
-  checkPage(90);
-  var ageLabelW = 100;
-  var ageCols   = ['0-30','31-60','61-90','91-120','Over 120','Total'];
-  var ageColW   = (CW-ageLabelW)/6;
-  var atx = ML+LPAD;
+  checkPage(180);
 
-  // Table header row
-  setFill(BG2);
-  doc.rect(ML+LPAD, y, CW-LPAD*2, 15, 'F');
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(7.5);
-  setColor(LG);
-  doc.text('A/R Aging (days)', atx+2, y+10);
-  ageCols.forEach(function(h,i){
-    doc.text(h, atx+ageLabelW+(i+0.5)*ageColW, y+10, {align:'center'});
+  // Chart area
+  var chartX = ML + 4;
+  var chartY = y;
+  var chartW = CW - 8;
+  var chartH = 130;
+  var barAreaX = chartX + 52;  // space for y-axis labels
+  var barAreaW = chartW - 52 - 10;
+  var barAreaH = chartH - 30; // top=0, bottom=x-axis labels
+
+  // Find max value for scale
+  var maxVal = 0;
+  for(var bi2=0;bi2<5;bi2++){
+    if(patA[bi2]+insA[bi2]>maxVal) maxVal=patA[bi2]+insA[bi2];
+  }
+  if(maxVal===0) maxVal=1;
+
+  // Chart background
+  sf(IVY); doc.roundedRect(chartX, chartY, chartW, chartH+10, 4, 4, 'F');
+  sd(BD); doc.setLineWidth(0.3);
+  doc.roundedRect(chartX, chartY, chartW, chartH+10, 4, 4, 'S');
+
+  // Y-axis grid lines (4 lines)
+  var gridCount = 4;
+  for(var gi=0;gi<=gridCount;gi++){
+    var gVal = maxVal*(gridCount-gi)/gridCount;
+    var gy2  = chartY + 8 + (gi/gridCount)*barAreaH;
+    // grid line
+    sd(BD); doc.setLineWidth(0.2);
+    doc.line(barAreaX, gy2, barAreaX+barAreaW, gy2);
+    // label
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); sc(LG);
+    var gLabel = gVal>=1000?('$'+(gVal/1000).toFixed(1)+'k'):$v(gVal);
+    doc.text(gLabel, barAreaX-3, gy2+2, {align:'right'});
+  }
+
+  // Bars — grouped (patient + insurance per bucket)
+  var numGroups  = 5;
+  var groupW     = barAreaW / numGroups;
+  var barPad     = groupW * 0.12;
+  var barW       = (groupW - barPad*2 - 2) / 2;
+
+  for(var bi3=0;bi3<5;bi3++){
+    var gx = barAreaX + bi3*groupW + barPad;
+    var baseY = chartY + 8 + barAreaH;
+
+    // Patient bar (terracotta)
+    var pVal = patA[bi3];
+    var pBarH = (pVal/maxVal)*barAreaH;
+    if(pBarH>1){
+      sf(TC); doc.rect(gx, baseY-pBarH, barW, pBarH, 'F');
+      if(pBarH>10){
+        doc.setFont('helvetica','bold'); doc.setFontSize(6); sc(WHT);
+        doc.text($v(pVal), gx+barW/2, baseY-pBarH+8, {align:'center'});
+      }
+    }
+
+    // Insurance bar (olive gray)
+    var iVal = insA[bi3];
+    var iBarH = (iVal/maxVal)*barAreaH;
+    if(iBarH>1){
+      sf([94,93,89]); doc.rect(gx+barW+2, baseY-iBarH, barW, iBarH, 'F');
+      if(iBarH>10){
+        doc.setFont('helvetica','bold'); doc.setFontSize(6); sc(WHT);
+        doc.text($v(iVal), gx+barW+2+barW/2, baseY-iBarH+8, {align:'center'});
+      }
+    }
+
+    // X-axis label
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(GR);
+    doc.text(lbls[bi3], gx+barW+1, baseY+10, {align:'center'});
+  }
+
+  // Legend
+  var legX = barAreaX + barAreaW - 120;
+  var legY  = chartY + 14;
+  sf(TC);         doc.rect(legX,    legY,   8, 6, 'F');
+  sf([94,93,89]); doc.rect(legX+50, legY,   8, 6, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(NK);
+  doc.text('Patient', legX+11,  legY+5);
+  doc.text('Insurance', legX+61, legY+5);
+
+  y = chartY + chartH + 24;
+
+  // Summary row below chart
+  var sumCols = [
+    {label:'Patient A/R', val:totPat, color:TC},
+    {label:'Insurance A/R', val:totIns, color:[94,93,89]},
+    {label:'Total Net A/R', val:totAll, color:RED},
+  ];
+  var sumW = CW / sumCols.length;
+  sumCols.forEach(function(sc2, i) {
+    var sx = ML + i*sumW;
+    sf(i===sumCols.length-1?[249,243,240]:IVY);
+    doc.rect(sx, y, sumW, 28, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    doc.setTextColor(sc2.color[0],sc2.color[1],sc2.color[2]);
+    doc.text(sc2.label, sx+sumW/2, y+10, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text($v(sc2.val), sx+sumW/2, y+23, {align:'center'});
+    sd(BD); doc.setLineWidth(0.2);
+    if(i<sumCols.length-1) doc.line(sx+sumW, y, sx+sumW, y+28);
   });
-  y+=17;
-
-  // Data rows
-  [
-    {label:'Patient Aging',   arr:patA, tot:totPat},
-    {label:'Insurance Aging', arr:insA, tot:totIns}
-  ].forEach(function(rd,ri){
-    if(ri%2===1){ setFill(IVY); doc.rect(ML+LPAD, y, CW-LPAD*2, 15, 'F'); }
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(8.5);
-    setColor(NK);
-    doc.text(rd.label, atx+2, y+10);
-    rd.arr.forEach(function(v,i){
-      doc.setFont('helvetica','normal');
-      setColor(v>0?RED:LG);
-      doc.text($v(v), atx+ageLabelW+(i+0.5)*ageColW, y+10, {align:'center'});
-    });
-    doc.setFont('helvetica','bold');
-    setColor(rd.tot>0?RED:LG);
-    doc.text($v(rd.tot), atx+ageLabelW+5.5*ageColW, y+10, {align:'center'});
-    setDraw(BD); doc.setLineWidth(0.2);
-    doc.line(ML+LPAD, y+15, ML+CW-LPAD, y+15);
-    y+=16;
-  });
-
-  // Total row
-  setFill([249,243,240]);
-  doc.rect(ML+LPAD, y, CW-LPAD*2, 18, 'F');
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  setColor(NK);
-  doc.text('Total', atx+2, y+12);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(7.5);
-  setColor(LG);
-  doc.text('Unapplied Patient Payments: $0.00', atx+ageLabelW+0.5*ageColW, y+12);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  setColor(totAll>0?TC:LG);
-  doc.text($v(totAll), atx+CW-LPAD*3, y+12, {align:'right'});
-  y+=22;
-  // Net A/R
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(8);
-  setColor(TC);
-  doc.text('Net A/R: '+$v(totAll), atx+CW-LPAD*3, y, {align:'right'});
-  y+=16;
+  sd(BD); doc.setLineWidth(0.3);
+  doc.rect(ML, y, CW, 28, 'S');
+  y += 40;
   cardEnd();
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
-  var pgCount=doc.internal.getNumberOfPages();
+  var pgCount = doc.internal.getNumberOfPages();
   for(var pi=1;pi<=pgCount;pi++){
     doc.setPage(pi);
-    setFill(BG2);
-    doc.rect(0, H-26, W, 26, 'F');
-    setDraw(BD); doc.setLineWidth(0.4);
-    doc.line(0, H-26, W, H-26);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
-    setColor(LG);
-    doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY', ML, H-10);
+    sf(BG2); doc.rect(0, H-28, W, 28, 'F');
+    sd(BD); doc.setLineWidth(0.4); doc.line(0, H-28, W, H-28);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
+    doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', ML, H-10);
     doc.text('Page '+pi+' of '+pgCount+'  |  '+dateStr, W-MR, H-10, {align:'right'});
   }
 
@@ -2455,101 +2428,6 @@ function _doExportPatientPDF(pat, db) {
     .toLowerCase().replace(/\s+/g,'-');
   doc.save(fname);
   toast('PDF exported','ok');
-}
-
-// ── A/R Aging Drilldown Modal ────────────────────────────────────────────
-function _ptcShowAgingDrilldown(claimIds) {
-  if (!claimIds || !claimIds.length) return;
-  var db = getDB();
-  var eobMap = _localDB.claimEOB||{};
-  var claims = (db.claims||[]).filter(function(c){ return claimIds.includes(c.id); });
-
-  // Remove existing drilldown
-  var existing = document.getElementById('ptc-aging-drilldown');
-  if (existing) existing.remove();
-
-  var S = {
-    terracotta:'#c96442', nearBlack:'#141413', parchment:'#f5f4ed',
-    ivory:'#faf9f5', borderWarm:'#e8e6dc', stoneGray:'#87867f',
-    oliveGray:'#5e5d59', red:'#dc2626'
-  };
-
-  var statusBadgeColor = function(s) {
-    var map = {
-      draft:'#87867f',pending:'#d97757',submitted:'#2563eb',
-      accepted:'#16a34a',rejected:'#dc2626',denied:'#dc2626',
-      paid:'#16a34a',on_hold:'#d97757',voided:'#87867f'
-    };
-    return map[s]||'#87867f';
-  };
-
-  var rows = claims.map(function(cl) {
-    var pat = (db.patients||[]).find(function(p){ return p.id===cl.patId; })||{};
-    var billed = (cl.lines||[]).reduce(function(s,l){ return s+(parseFloat(l.charge)||0); },0);
-    var paid   = (eobMap[cl.id]||[]).reduce(function(s,p){ return s+(parseFloat(p.paid)||0); },0);
-    var bal    = billed - paid;
-    var dos    = cl.dos||'—';
-    var $v2    = function(n){ return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); };
-    return '<tr style="cursor:pointer;border-bottom:1px solid '+S.borderWarm+'" '
-      + 'onclick="document.getElementById(\'ptc-aging-drilldown\').remove();openClaimDetail(\''+cl.id+'\');" '
-      + 'onmouseover="this.style.background=\''+S.parchment+'\'" onmouseout="this.style.background=\'\'">'
-      + '<td style="padding:7px 10px;font-size:12px;color:'+S.nearBlack+';font-weight:600">'+(cl.pcn||cl.id.slice(-6))+'</td>'
-      + '<td style="padding:7px 10px;font-size:12px;color:'+S.nearBlack+'">'+(pat.last||'?')+', '+(pat.first||'?')+'</td>'
-      + '<td style="padding:7px 10px;font-size:12px;color:'+S.stoneGray+'">'+dos+'</td>'
-      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:'+S.nearBlack+'">'+$v2(billed)+'</td>'
-      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:#16a34a">'+$v2(paid)+'</td>'
-      + '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right;color:'+S.red+';font-weight:700">'+$v2(bal)+'</td>'
-      + '<td style="padding:7px 10px"><span style="font-size:10px;font-weight:700;color:'+statusBadgeColor(cl.status)+';text-transform:uppercase;background:'+statusBadgeColor(cl.status)+'22;padding:2px 6px;border-radius:4px">'+( cl.status||'').replace('_',' ')+'</span></td>'
-      + '<td style="padding:7px 10px;text-align:center"><button onclick="event.stopPropagation();document.getElementById(\'ptc-aging-drilldown\').remove();openClaimDetail(\''+cl.id+'\');" style="background:'+S.terracotta+';color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-weight:600">Open</button></td>'
-      + '</tr>';
-  }).join('');
-
-  var totalBal = claims.reduce(function(s,cl){
-    var b=(cl.lines||[]).reduce(function(s2,l){return s2+(parseFloat(l.charge)||0);},0);
-    var p=(eobMap[cl.id]||[]).reduce(function(s2,p2){return s2+(parseFloat(p2.paid)||0);},0);
-    return s+b-p;
-  },0);
-  var $v3=function(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
-
-  var panel = document.createElement('div');
-  panel.id = 'ptc-aging-drilldown';
-  panel.style.cssText = 'position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,19,.45);padding:16px';
-  panel.innerHTML =
-    '<div style="background:'+S.ivory+';border-radius:12px;width:100%;max-width:860px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)">'
-    // Header
-    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:'+S.parchment+';border-bottom:1px solid '+S.borderWarm+';flex-shrink:0">'
-      + '<div>'
-        + '<div style="font-size:13px;font-weight:700;color:'+S.nearBlack+'">Claims — A/R Aging Detail</div>'
-        + '<div style="font-size:11px;color:'+S.stoneGray+';margin-top:2px">'+claims.length+' claim'+(claims.length!==1?'s':'')+' &nbsp;|&nbsp; Balance: <strong style="color:'+S.red+'">'+$v3(totalBal)+'</strong></div>'
-      + '</div>'
-      + '<button onclick="document.getElementById(\'ptc-aging-drilldown\').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:'+S.stoneGray+';line-height:1;padding:0 4px">&times;</button>'
-    + '</div>'
-    // Table
-    + '<div style="overflow-y:auto;flex:1">'
-      + '<table style="width:100%;border-collapse:collapse">'
-        + '<thead><tr style="background:'+S.parchment+';border-bottom:2px solid '+S.borderWarm+'">'
-          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">PCN</th>'
-          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Patient</th>'
-          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">DOS</th>'
-          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Billed</th>'
-          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Paid</th>'
-          + '<th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Balance</th>'
-          + '<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.stoneGray+'">Status</th>'
-          + '<th style="padding:8px 10px;width:60px"></th>'
-        + '</tr></thead>'
-        + '<tbody>'+rows+'</tbody>'
-      + '</table>'
-    + '</div>'
-    // Footer
-    + '<div style="padding:10px 18px;background:'+S.parchment+';border-top:1px solid '+S.borderWarm+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
-      + '<span style="font-size:11px;color:'+S.stoneGray+'">Click any row to open the claim editor</span>'
-      + '<button onclick="document.getElementById(\'ptc-aging-drilldown\').remove()" style="padding:6px 16px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Close</button>'
-    + '</div>'
-  + '</div>';
-
-  // Close on backdrop click
-  panel.addEventListener('click', function(e){ if(e.target===panel) panel.remove(); });
-  document.body.appendChild(panel);
 }
 
 // ── CPT Pad helpers ───────────────────────────────────────────────────────
