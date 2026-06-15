@@ -2073,14 +2073,46 @@ function _exportPatientPDF(patId) {
   var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
   if (!pat) { toast('Patient not found','err'); return; }
 
-  // Load jsPDF if not loaded
+  function tryExport() {
+    try {
+      _doExportPatientPDF(pat, db);
+    } catch(e) {
+      console.error('PDF export error:', e);
+      toast('PDF error: ' + e.message, 'err');
+    }
+  }
+
+  function loadScript(url, cb, fallback) {
+    fetch(url)
+      .then(function(r){ return r.text(); })
+      .then(function(code){
+        var blob = new Blob([code], {type:'text/javascript'});
+        var burl = URL.createObjectURL(blob);
+        var s = document.createElement('script');
+        s.src = burl;
+        s.onload = function(){ URL.revokeObjectURL(burl); cb(); };
+        s.onerror = function(){ fallback && fallback(); };
+        document.head.appendChild(s);
+      })
+      .catch(function(){ fallback && fallback(); });
+  }
+
+  // Load jsPDF if not already available
   if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
-    var script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    script.onload = function() { _doExportPatientPDF(pat, db); };
-    document.head.appendChild(script);
+    toast('Preparing PDF...', 'info');
+    loadScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+      tryExport,
+      function() {
+        loadScript(
+          'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+          tryExport,
+          function() { toast('Could not load PDF library', 'err'); }
+        );
+      }
+    );
   } else {
-    _doExportPatientPDF(pat, db);
+    tryExport();
   }
 }
 
