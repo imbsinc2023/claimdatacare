@@ -2271,15 +2271,15 @@ function _doExportPatientPDF(pat, db) {
 
   // Chart area: top=360  bottom=700  (140pt bars)
   // Chart dimensions: narrower, with room for x-axis labels
-  var CHART_LEFT=36, CHART_RIGHT=516;  // narrower: 480pt wide
-  var CHART_WIDTH=CHART_RIGHT-CHART_LEFT;
-  var AXIS_X=CHART_LEFT+46;  // left edge of bars (after y-axis labels)
-  var AXIS_W=CHART_WIDTH-46;  // bar area width
+  var CHART_LEFT=36, CHART_RIGHT=576;  // full page margins
+  var CHART_WIDTH=CHART_RIGHT-CHART_LEFT; // 540pt
+  var AXIS_X=CHART_LEFT+44;  // left edge of bars (after y-axis labels)
+  var AXIS_W=CHART_WIDTH-44;  // bar area width
   var X_LABEL_H=14;           // height reserved for x-axis labels
-  var CHART_TOP=360;
-  var BAR_H=120;                       // bar area height (shorter chart)
-  var BAR_BOTTOM=CHART_TOP+BAR_H;     // baseline of bars
-  var CHART_TOTAL_H=BAR_H+X_LABEL_H; // total chart height including labels
+  var CHART_TOP=356+8;        // 8pt gap below the Aging section bar
+  var BAR_H=120;              // bar area height
+  var BAR_BOTTOM=CHART_TOP+BAR_H;
+  var CHART_TOTAL_H=BAR_H+X_LABEL_H;
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
 
   // Chart bg (includes x-label area)
