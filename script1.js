@@ -9839,7 +9839,7 @@ if (!isSA || !isFromAdmin) {
   }
 }
 const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
-if(dupNPI){toast('NPI '+npi+' already registered to '+dupNPI.name,'err');return;}
+// NPI duplicate check removed
 const newAcctKey = document.getElementById('mprov-acctkey')?.value?.trim() || '';
 // Collect specialtyDefs from editable list
 var specialtyDefs = [];
@@ -10018,7 +10018,7 @@ const alertEl=document.getElementById('nu-alert');
 if(!email||!pass||!name){alertEl.innerHTML='<div class="alert al-error">All fields required.</div>';return;}
 if(pass.length<6){alertEl.innerHTML='<div class="alert al-error">Password must be at least 6 characters.</div>';return;}
 const users=getUsers();
-if(users.find(u=>u.email.toLowerCase()===email)){alertEl.innerHTML='<div class="alert al-error">Email already registered.</div>';return;}
+// email duplicate check removed
 const newUser={id:uid(),email,name,role:'Manager',createdAt:Date.now()};
 users.push(newUser); saveUsers(users);
 document.getElementById('nu-email').value=''; document.getElementById('nu-pass').value=''; document.getElementById('nu-name').value='';
@@ -23512,13 +23512,7 @@ function saveNewUser() {
     return;
   }
 
-  // Check email duplicity
-  if (users.find(function(u){ return (u.email||'').toLowerCase() === email && u.id !== id; })) {
-    var ee2 = document.getElementById('nu-email-err');
-    if (ee2) { ee2.textContent = 'This email is already registered.'; ee2.style.display = ''; }
-    alertEl.innerHTML = '<div class="alert al-error">Email already registered.</div>';
-    return;
-  }
+  // Email duplicate check removed per user request
 
   var primaryRole = roles[0] || 'User';
 
