@@ -2256,7 +2256,7 @@ function _doExportPatientPDF(pat, db) {
 
   // ── AGING SECTION ────────────────────────────────────────────────────────
   // Section bar at y=340
-  // Aging section bar will be drawn after CHART_LEFT is defined (below)
+  S('Aging', 340);
 
   // A/R calc
   var eobMap=_localDB.claimEOB||{};
@@ -2287,14 +2287,11 @@ function _doExportPatientPDF(pat, db) {
   var AXIS_X=CHART_LEFT+Y_AXIS_W;  // bars start at 66+40=106
   var AXIS_W=CHART_WIDTH-Y_AXIS_W; // 440pt for bars
   var X_LABEL_H=14;           // height reserved for x-axis labels
-  var CHART_TOP=356+8;        // 8pt gap below the Aging section bar
+  var CHART_TOP=356+20;       // 20pt gap below the Aging section bar
   var BAR_H=120;              // bar area height
   var BAR_BOTTOM=CHART_TOP+BAR_H;
   var CHART_TOTAL_H=BAR_H+X_LABEL_H;
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
-
-  // Aging section bar (centered with chart)
-  SC('Aging', CHART_TOP-20, CHART_LEFT, CHART_WIDTH);
 
   // Chart bg (includes x-label area)
   sf(IVY); doc.rect(CHART_LEFT,CHART_TOP,CHART_WIDTH,CHART_TOTAL_H,'F');
@@ -2357,7 +2354,7 @@ function _doExportPatientPDF(pat, db) {
   sf(BG2); doc.rect(0,762,W,30,'F');
   sd(BD);  doc.setLineWidth(0.4); doc.line(0,762,W,762);
   doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
-  doc.text('CONFIDENTIAL — FOR AUTHORIZED USE ONLY  |  Powered by ClaimDataCare', 36, 782);
+  doc.text('Powered by ClaimDataCare', 36, 782);
   doc.text('Page 1 of 1  |  '+dateStr, 576, 782, {align:'right'});
 
   var fname=((pat.last||'pat')+'-'+((pat.first||'')[0]||'')+'-chart-'+today.toISOString().slice(0,10)+'.pdf')
