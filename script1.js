@@ -2186,7 +2186,7 @@ function _doExportPatientPDF(pat, db) {
   // ── HEADER ───────────────────────────────────────────────────────────────
   sf(WHT); doc.rect(0,0,W,100,'F');
   // Logo on RIGHT side
-  var ly=18; // top of header content
+  var ly=30; // top of header content
   if(prov.logo){try{doc.addImage(prov.logo,'PNG',522,ly,54,54);}catch(e){}}
   var tx=36; // text always starts at left margin
   doc.setFont('helvetica','bold'); doc.setFontSize(13); sc(NK);
@@ -2198,7 +2198,6 @@ function _doExportPatientPDF(pat, db) {
   if(pl2){doc.text(pl2,tx,hy);hy+=12;}
   if(pl3){doc.text(pl3,tx,hy);hy+=12;}
   if(prov.phone){doc.text('Tel: '+fmtP(prov.phone),tx,hy);}
-  sf(BD); doc.rect(0,100,W,1,'F');
 
   // ── PATIENT DETAILS ──────────────────────────────────────────────────────
   // Section bar at y=108
