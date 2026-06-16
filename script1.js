@@ -15485,6 +15485,85 @@ function _parseERADataClaims(eraData, eraInfo, db) {
   return {posted:posted, unmatched:unmatched};
 }
 
+
+// ── ERA Import Progress Modal ─────────────────────────────────────────────
+function _eraProgressOpen(total) {
+  var existing = document.getElementById('era-progress-modal');
+  if (existing) existing.remove();
+
+  var panel = document.createElement('div');
+  panel.id = 'era-progress-modal';
+  panel.style.cssText = 'position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;background:rgba(20,20,19,.55);padding:16px';
+  panel.innerHTML =
+    '<div style="background:#faf9f5;border-radius:14px;width:100%;max-width:440px;padding:28px 28px 24px;box-shadow:0 24px 60px rgba(0,0,0,.25);position:relative">'
+    + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">'
+      + '<div style="width:40px;height:40px;background:#f0eee6;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>'
+      + '</div>'
+      + '<div>'
+        + '<div style="font-size:15px;font-weight:700;color:#141413">Importing Payments</div>'
+        + '<div id="era-prog-subtitle" style="font-size:12px;color:#87867f;margin-top:2px">Connecting to ClaimMD…</div>'
+      + '</div>'
+    + '</div>'
+    // Progress bar track
+    + '<div style="background:#f0eee6;border-radius:100px;height:8px;margin-bottom:10px;overflow:hidden">'
+      + '<div id="era-prog-bar" style="height:100%;background:#c96442;border-radius:100px;width:0%;transition:width .4s ease"></div>'
+    + '</div>'
+    // Stats row
+    + '<div style="display:flex;justify-content:space-between;margin-bottom:18px">'
+      + '<span id="era-prog-label" style="font-size:11px;color:#87867f">0 of ' + total + ' ERAs</span>'
+      + '<span id="era-prog-pct" style="font-size:11px;font-weight:700;color:#c96442">0%</span>'
+    + '</div>'
+    // Log
+    + '<div id="era-prog-log" style="background:#f5f4ed;border-radius:8px;padding:10px 12px;max-height:140px;overflow-y:auto;font-size:11px;font-family:monospace;color:#5e5d59;line-height:1.6"></div>'
+  + '</div>';
+
+  document.body.appendChild(panel);
+}
+
+function _eraProgressUpdate(current, total, msg) {
+  var bar  = document.getElementById('era-prog-bar');
+  var lbl  = document.getElementById('era-prog-label');
+  var pct  = document.getElementById('era-prog-pct');
+  var sub  = document.getElementById('era-prog-subtitle');
+  var log  = document.getElementById('era-prog-log');
+  if (!bar) return;
+  var p = total > 0 ? Math.round((current/total)*100) : 0;
+  bar.style.width = p + '%';
+  if (lbl) lbl.textContent = current + ' of ' + total + ' ERAs';
+  if (pct) pct.textContent = p + '%';
+  if (sub) sub.textContent = msg || 'Processing…';
+  if (log && msg) {
+    var line = document.createElement('div');
+    line.textContent = '▸ ' + msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+function _eraProgressClose(summary) {
+  var panel = document.getElementById('era-progress-modal');
+  if (!panel) return;
+  // Show completion state briefly before closing
+  var bar = document.getElementById('era-prog-bar');
+  var sub = document.getElementById('era-prog-subtitle');
+  var pct = document.getElementById('era-prog-pct');
+  if (bar) bar.style.width = '100%';
+  if (pct) pct.textContent = '100%';
+  if (sub) sub.textContent = summary || 'Import complete';
+  var log = document.getElementById('era-prog-log');
+  if (log && summary) {
+    var line = document.createElement('div');
+    line.style.cssText = 'margin-top:6px;padding-top:6px;border-top:1px solid #e8e6dc;font-weight:700;color:#141413';
+    line.textContent = '✓ ' + summary;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+  setTimeout(function() {
+    if (panel.parentNode) panel.remove();
+  }, 2200);
+}
+
 async function fetchERAFromClearinghouse() {
   var cfg = getApiConfig();
   if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
@@ -15518,8 +15597,12 @@ async function fetchERAFromClearinghouse() {
     toast('No new ERAs'); return;
   }
 
-  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) on list — fetching details&hellip;</div>');
+  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — importing&hellip;</div>');
   var eraDataCount = 0;
+
+  // Open progress modal
+  _eraProgressOpen(eras.length);
+  _eraProgressUpdate(0, eras.length, 'Found ' + eras.length + ' ERA(s) — fetching details…');
 
   var allPosted=[], allUnmatched=[], allBatches=[], newLastERAID=lastERAID;
 
@@ -15529,14 +15612,20 @@ async function fetchERAFromClearinghouse() {
     if (!eraid) continue;
     if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
 
+    _eraProgressUpdate(i, eras.length, 'Fetching ERA #' + eraid + ' (' + (i+1) + ' of ' + eras.length + ')…');
+
     var eraData;
     try {
       eraData = await _eraWorkerPost('/eradata', { AccountKey:cfg.acctKey, eraid:eraid });
-    } catch(e) { console.warn('[ERA] eradata failed for eraid',eraid,e.message); continue; }
+    } catch(e) {
+      _eraProgressUpdate(i+1, eras.length, '⚠ ERA #' + eraid + ' failed: ' + e.message);
+      console.warn('[ERA] eradata failed for eraid',eraid,e.message); continue;
+    }
 
     var dataRoot = eraData.result || eraData;
     eraDataCount++;
     var parsed   = _parseERADataClaims(dataRoot, eraInfo, db);
+    _eraProgressUpdate(i+1, eras.length, 'ERA #' + eraid + ': ' + parsed.posted.length + ' matched, ' + parsed.unmatched.length + ' unmatched');
     allPosted    = allPosted.concat(parsed.posted);
     allUnmatched = allUnmatched.concat(parsed.unmatched);
 
@@ -15631,6 +15720,9 @@ async function fetchERAFromClearinghouse() {
   var totalItems = previewItems.length;
   var futureCount = previewItems.filter(function(x){return x.isFuture;}).length;
   var unmatchedCount = allUnmatched.length;
+  // Close progress modal
+  var _summary2 = 'Imported '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' unmatched':'')+(futureCount?' · '+futureCount+' future':'');
+  _eraProgressClose(_summary2);
   toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+' ');
   renderEOBPage(); updateBadges();
   // Auto-navigate to Pending ERA tab
