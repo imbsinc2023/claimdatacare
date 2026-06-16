@@ -2160,6 +2160,13 @@ function _doExportPatientPDF(pat, db) {
     doc.setFont('helvetica','bold'); doc.setFontSize(7); sc(GR);
     doc.text(title.toUpperCase(), 46, y+10.5);
   }
+  // Centered section bar for chart sections
+  function SC(title, y, left, width) {
+    sf(BG2); doc.rect(left, y, width, 15, 'F');
+    sf(TC);  doc.rect(left, y, 4, 15, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); sc(GR);
+    doc.text(title.toUpperCase(), left+10, y+10.5);
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   // FIXED Y POSITIONS  (every element placed at exact pt coordinate)
@@ -2249,7 +2256,7 @@ function _doExportPatientPDF(pat, db) {
 
   // ── AGING SECTION ────────────────────────────────────────────────────────
   // Section bar at y=340
-  S('Aging', 340);
+  // Aging section bar will be drawn after CHART_LEFT is defined (below)
 
   // A/R calc
   var eobMap=_localDB.claimEOB||{};
@@ -2271,16 +2278,23 @@ function _doExportPatientPDF(pat, db) {
 
   // Chart area: top=360  bottom=700  (140pt bars)
   // Chart dimensions: narrower, with room for x-axis labels
-  var CHART_LEFT=36, CHART_RIGHT=576;  // full page margins
-  var CHART_WIDTH=CHART_RIGHT-CHART_LEFT; // 540pt
-  var AXIS_X=CHART_LEFT+44;  // left edge of bars (after y-axis labels)
-  var AXIS_W=CHART_WIDTH-44;  // bar area width
+  // Chart centered on page: 480pt wide, centered on 612pt page
+  var CHART_W_TOTAL=480;
+  var CHART_LEFT=Math.round((612-CHART_W_TOTAL)/2); // =66
+  var CHART_RIGHT=CHART_LEFT+CHART_W_TOTAL;          // =546
+  var CHART_WIDTH=CHART_W_TOTAL;
+  var Y_AXIS_W=40;  // y-axis label area
+  var AXIS_X=CHART_LEFT+Y_AXIS_W;  // bars start at 66+40=106
+  var AXIS_W=CHART_WIDTH-Y_AXIS_W; // 440pt for bars
   var X_LABEL_H=14;           // height reserved for x-axis labels
   var CHART_TOP=356+8;        // 8pt gap below the Aging section bar
   var BAR_H=120;              // bar area height
   var BAR_BOTTOM=CHART_TOP+BAR_H;
   var CHART_TOTAL_H=BAR_H+X_LABEL_H;
   var lbls=['0-30','31-60','61-90','91-120','Over 120'];
+
+  // Aging section bar (centered with chart)
+  SC('Aging', CHART_TOP-20, CHART_LEFT, CHART_WIDTH);
 
   // Chart bg (includes x-label area)
   sf(IVY); doc.rect(CHART_LEFT,CHART_TOP,CHART_WIDTH,CHART_TOTAL_H,'F');
