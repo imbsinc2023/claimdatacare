@@ -9821,22 +9821,9 @@ if(!npi||npi.length!==10){toast('NPI must be 10 digits','err');return;}
 if(!taxid||taxid.length!==9){toast('Tax ID must be 9 digits','err');return;}
 const db=getDB(); const existingId=v('mprov-id'); const isNew=!existingId;
 const isSA = isAdmin();
-var activeSec = document.querySelector('.section.active');
-var isFromAdmin = activeSec && activeSec.id === 'sec-admin-providers';
-if (!isSA || !isFromAdmin) {
-  if (isNew) { toast('Only Super Admin can create billing providers from Admin section','err'); return; }
-  const existing = db.providers.find(function(x){ return x.id === existingId; });
-  if (existing) {
-    if (name !== (existing.name||'').toUpperCase()) { toast('Provider Name is read-only','err'); return; }
-    if (npi !== (existing.npi||'').toUpperCase()) { toast('NPI is read-only','err'); return; }
-    if (taxid !== (existing.taxid||'').toUpperCase()) { toast('Tax ID is read-only','err'); return; }
-    var taxtype = document.getElementById('mprov-taxtype')?.value || '';
-    var providerType = document.getElementById('mprov-type')?.value || '';
-    var taxonomy = (document.getElementById('mprov-taxonomy')?.value || '').toUpperCase();
-    if (taxtype !== (existing.taxType||'E')) { toast('Tax ID Type is read-only','err'); return; }
-    if (providerType !== (existing.providerType||'Organization')) { toast('Provider Type is read-only','err'); return; }
-    if (taxonomy !== (existing.taxonomy||'').toUpperCase()) { toast('Taxonomy Code is read-only','err'); return; }
-  }
+// SA can always save from any section; non-SA cannot create new providers
+if (!isSA && isNew) {
+  toast('Only Super Admin can create billing providers','err'); return;
 }
 const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
 // NPI duplicate check removed
