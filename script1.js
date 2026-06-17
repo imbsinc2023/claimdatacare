@@ -9841,14 +9841,20 @@ const dupNPI=db.providers.find(p=>p.npi===npi&&p.id!==existingId);
 const newAcctKey = document.getElementById('mprov-acctkey')?.value?.trim() || '';
 // Collect specialtyDefs from editable list
 var specialtyDefs = [];
-document.querySelectorAll('.mprov-spec-row').forEach(function(row){
-  var name2 = (row.querySelector('.mprov-spec-name')||{}).value||'';
-  var taxonomy2 = (row.querySelector('.mprov-spec-taxonomy')||{}).value||'';
+var allRows = document.querySelectorAll('.mprov-spec-row');
+toast('Rows: '+allRows.length+' | specList: '+(document.getElementById('mprov-spec-list')?'EXISTS':'MISSING'), 'info');
+allRows.forEach(function(row){
+  var nameEl = row.querySelector('.mprov-spec-name');
+  var taxEl2 = row.querySelector('.mprov-spec-taxonomy');
+  var name2 = (nameEl||{}).value||'';
+  var taxonomy2 = (taxEl2||{}).value||'';
+  console.log('[SPEC] row name:', name2, 'taxonomy:', taxonomy2);
   if (!name2.trim()) return;
   var menus = [];
   row.querySelectorAll('.mprov-spec-menu-cb:checked').forEach(function(cb){ menus.push(cb.value); });
   specialtyDefs.push({ id: row.dataset.specId || uid(), name: name2.trim(), taxonomy: taxonomy2.trim(), menus: menus });
 });
+console.log('[SPEC] specialtyDefs to save:', JSON.stringify(specialtyDefs));
 const p={
 id:existingId||uid(), name, npi, taxid,
 taxType:document.getElementById('mprov-taxtype')?.value||'E',
