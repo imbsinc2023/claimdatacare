@@ -85,7 +85,7 @@ const sv = (id, val) => { const e = document.getElementById(id); if(e) e.value =
 document.addEventListener('input', function(e) {
   var el = e.target;
   if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
-  if (el.type === 'email' || el.type === 'password' || el.type === 'file' || el.classList.contains('no-upper')) return;
+  if (el.type === 'email' || el.type === 'password' || el.type === 'file' || el.type === 'checkbox' || el.type === 'radio' || el.classList.contains('no-upper')) return;
   var start = el.selectionStart, end = el.selectionEnd;
   var upper = el.value.toUpperCase();
   if (el.value !== upper) { el.value = upper; el.setSelectionRange(start, end); }
