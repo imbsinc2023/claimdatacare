@@ -4618,8 +4618,6 @@ Account Key
 </div>
 
 </div>
-</div>
-</div>
 
 <!-- Logo -->
 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Logo (optional)</div>
