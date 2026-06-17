@@ -12376,6 +12376,7 @@ const prev = document.getElementById('mprov-logo-preview');
 if (prev) prev.innerHTML = '<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>';
 }
 
+function dupCurrentClaim() {
 const id = (document.getElementById('mc-id')?.value||'').trim();
 if (!id) return;
 const db = getDB();
