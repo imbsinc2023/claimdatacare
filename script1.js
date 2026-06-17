@@ -4606,19 +4606,6 @@ Account Key
 
 </div>
 
-<div id="mprov-specialties-section">
-<!-- Specialties — editable list -->
-<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Specialties</div>
-<div class="field" style="grid-column:1/-1">
-<label style="margin-bottom:6px;display:block">Practice Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">— configure each specialty's taxonomy and visible menus</span></label>
-<div id="mprov-spec-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-<button class="btn btn-sm" onclick="_mprovAddSpecialty()" type="button" style="display:flex;align-items:center;gap:5px">
-<i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Specialty
-</button>
-</div>
-
-</div>
-
 <!-- Logo -->
 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Logo (optional)</div>
 <div style="display:flex;align-items:center;gap:12px">
@@ -9760,10 +9747,11 @@ const titleEl=document.getElementById('mprov-title'); if(titleEl) titleEl.textCo
 sv('mprov-id',p?p.id:''); sv('mprov-name',p?.name||''); sv('mprov-npi',p?.npi||''); sv('mprov-taxid',p?.taxid||'');
 sv('mprov-taxonomy',p?.taxonomy||''); sv('mprov-addr1',p?.addr1||''); sv('mprov-addr2',p?.addr2||'');
 sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');
-  // Render specialty list
+  // Render specialty list (runs after injection creates mprov-spec-list)
   setTimeout(function(){
     _mprovRenderSpecialties((p && p.specialtyDefs) ? p.specialtyDefs : []);
-  }, 50);
+    setTimeout(_renderLucideIcons, 30);
+  }, 80);
 const taxEl=document.getElementById('mprov-taxtype'); if(taxEl) taxEl.value=p?.taxType||'E';
 const typeEl=document.getElementById('mprov-type'); if(typeEl) typeEl.value=p?.providerType||'Organization';
 const statusEl=document.getElementById('mprov-status'); if(statusEl) statusEl.value=p?.status||'Active';
@@ -9779,6 +9767,29 @@ if(logoPrev) {
   ? `<img src="${_provLogoB64}" style="width:100%;height:100%;object-fit:contain">`
   : '<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>';
 }
+// Inject specialties section before logo if not already there
+(function(){
+  var logo = document.querySelector('#modal-provider .modal-body > div[style*="Logo"], #modal-provider .modal-body > div:last-of-type');
+  var existing = document.getElementById('mprov-specialties-section');
+  if (existing) existing.remove();
+  var sec = document.createElement('div');
+  sec.id = 'mprov-specialties-section';
+  sec.innerHTML =
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Specialties</div>' +
+    '<div class="field">' +
+      '<label style="margin-bottom:6px;display:block;font-size:12px;font-weight:600">Practice Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">— configure taxonomy and visible menus per specialty</span></label>' +
+      '<div id="mprov-spec-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
+      '<button class="btn btn-sm" onclick="_mprovAddSpecialty()" type="button" style="display:flex;align-items:center;gap:5px">' +
+        '<i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Specialty' +
+      '</button>' +
+    '</div>';
+  // Insert before logo section (last div in modal-body)
+  var mb = document.querySelector('#modal-provider .modal-body');
+  var logoDiv = mb ? Array.from(mb.children).find(function(el){ return el.textContent.includes('Logo'); }) : null;
+  if (logoDiv) mb.insertBefore(sec, logoDiv);
+  else if (mb) mb.appendChild(sec);
+})();
+
 openModal('modal-provider');
 // Role-based modal controls
 const acctRow = document.getElementById('mprov-acctkey-row');
