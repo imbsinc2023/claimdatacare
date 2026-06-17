@@ -9790,27 +9790,29 @@ const npiLookup = document.getElementById('mprov-npi-lookup-section');
 const saveBtn = document.getElementById('mprov-save-btn');
 if (saveBtn) saveBtn.style.display = '';
 var restrictedFields = ['mprov-name','mprov-npi','mprov-taxid','mprov-taxtype','mprov-taxonomy','mprov-type'];
-var activeSec = document.querySelector('.section.active');
-var isFromAdmin = activeSec && activeSec.id === 'sec-admin-providers';
-if (isFromAdmin && isSA) {
+// SA always sees all sections; non-SA sees only address/email/phone
+if (isSA) {
   if (acctRow) acctRow.style.display = '';
   if (statusRow) statusRow.style.display = '';
   if (specsSection) specsSection.style.display = '';
   if (npiLookup) npiLookup.style.display = '';
   document.querySelectorAll('#modal-provider input, #modal-provider select')
-  .forEach(el => { el.disabled = false; });
+    .forEach(function(el){ el.disabled = false; });
 } else {
   if (acctRow) acctRow.style.display = 'none';
   if (statusRow) statusRow.style.display = 'none';
-  if (specsSection) specsSection.style.display = 'none';
+  if (specsSection) specsSection.style.display = '';  // non-SA can still see specialties but not edit core fields
   if (npiLookup) npiLookup.style.display = 'none';
   restrictedFields.forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.disabled = true;
   });
-  document.querySelectorAll('#modal-provider input:not([disabled]), #modal-provider select:not([disabled])')
-  .forEach(el => { el.disabled = false; });
 }
+// Scroll modal body to top
+setTimeout(function(){
+  var mb = document.querySelector('#modal-provider .modal-body');
+  if (mb) mb.scrollTop = 0;
+}, 30);
 setTimeout(_renderLucideIcons, 20);
 }
 
