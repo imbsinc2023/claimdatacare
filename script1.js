@@ -5847,7 +5847,7 @@ if(!v('mc-dx1')){ toast('Diagnosis 1 (ICD-10) is required','err'); return; }
 if(!tmpLines.length||!tmpLines[0].cpt){ toast('Add at least one service line','err'); return; }
 const db=getDB();
 const pat=db.patients.find(x=>x.id===patId);
-const existId=v('mc-id');
+const existId=(document.getElementById('mc-id')?.value||'').trim();
 const c={
 id:existId||uid(), providerId:activeProviderId, patId, acct:pat?.acct||'',
 pcn:v('mc-pcn')||('CLM-'+Date.now()),
@@ -9833,7 +9833,7 @@ const name=v('mprov-name'), npi=v('mprov-npi'), taxid=v('mprov-taxid');
 if(!name){toast('Organization name is required','err');return;}
 if(!npi||npi.length!==10){toast('NPI must be 10 digits','err');return;}
 if(!taxid||taxid.length!==9){toast('Tax ID must be 9 digits','err');return;}
-const db=getDB(); const existingId=v('mprov-id'); const isNew=!existingId;
+const db=getDB(); const existingId=(document.getElementById('mprov-id')?.value||'').trim(); const isNew=!existingId;
 const isSA = isAdmin();
 // SA can always save from any section; non-SA cannot create new providers
 if (!isSA && isNew) {
@@ -12376,8 +12376,7 @@ const prev = document.getElementById('mprov-logo-preview');
 if (prev) prev.innerHTML = '<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>';
 }
 
-function dupCurrentClaim() {
-const id = v('mc-id');
+const id = (document.getElementById('mc-id')?.value||'').trim();
 if (!id) return;
 const db = getDB();
 const idx = db.claims.findIndex(c => c.id === id);
@@ -14090,7 +14089,7 @@ const name = v('mins-name');
 const payerId = v('mins-payerid');
 if (!name) { toast('Payer name is required','warn'); return; }
 if (!payerId) { toast('Payer ID is required','warn'); return; }
-const iid = v('mins-id');
+const iid = (document.getElementById('mins-id')?.value||'').trim();
 const isNew = !iid;
 const db = getDB();
 const exist = isNew ? null : (db.insurances||[]).find(x=>x.id===iid);
