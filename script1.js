@@ -9748,7 +9748,10 @@ sv('mprov-id',p?p.id:''); sv('mprov-name',p?.name||''); sv('mprov-npi',p?.npi||'
 sv('mprov-taxonomy',p?.taxonomy||''); sv('mprov-addr1',p?.addr1||''); sv('mprov-addr2',p?.addr2||'');
 sv('mprov-city',p?.city||''); sv('mprov-state',p?.state||''); sv('mprov-zip',p?.zip||''); sv('mprov-phone',p?.phone||''); sv('mprov-email', p?.email||'');
   // Render specialty list (runs after injection creates mprov-spec-list)
+  console.log('[SPEC-OPEN] provider id:', p?.id, 'name:', p?.name, 'specialtyDefs:', JSON.stringify(p?.specialtyDefs));
   setTimeout(function(){
+    var __container = document.getElementById('mprov-spec-list');
+    console.log('[SPEC-OPEN] mprov-spec-list exists:', !!__container, '| defs to render:', JSON.stringify((p && p.specialtyDefs) ? p.specialtyDefs : []));
     _mprovRenderSpecialties((p && p.specialtyDefs) ? p.specialtyDefs : []);
     setTimeout(_renderLucideIcons, 30);
   }, 80);
