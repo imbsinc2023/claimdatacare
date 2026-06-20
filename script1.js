@@ -19936,7 +19936,7 @@ const TABS = [
 {id:'summary',       label:'Summary',        icon:'layout-dashboard'},
 {id:'demographics',  label:'Info',           icon:'user'},
 {id:'insurance',     label:'Coverage',       icon:'shield-check'},
-{id:'auth',          label:'Auth/Referrals', icon:'share-2'},
+{id:'auth',          label:'Authorization',  icon:'share-2'},
 {id:'contacts',      label:'Contacts',       icon:'contact'},
 {id:'appointments',  label:'Schedule',       icon:'calendar-days'},
 {id:'documents',     label:'Records',        icon:'folder-open'},
@@ -20046,6 +20046,7 @@ switch (tabId) {
 case 'summary': mainEl.innerHTML = _buildSummaryTab(pat, db); break;
 case 'demographics': mainEl.innerHTML = _buildDemoTab(pat, db); break;
 case 'insurance': mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
+case 'auth': mainEl.innerHTML = _buildAuthTab(pat, db); break;
 case 'appointments': mainEl.innerHTML = _buildApptTab(pat, db); break;
 case 'bills': mainEl.innerHTML = _buildBillsTab(pat, db); break;
 case 'documents': mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
@@ -20880,6 +20881,242 @@ _renderChartTab('summary');
 }
 
 // ?? Insurance Tab ?????????????????????????????????????????????????????
+// ?? AUTHORIZATIONS ??????????????????????????????????????????????????????
+// Computes a live status for an authorization based on its effective date
+// range and whether its approved units have been exhausted — never stored,
+// always derived so it can never go stale.
+function _authStatus(auth) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var start = auth.startDate ? new Date(auth.startDate) : null;
+  var end   = auth.endDate ? new Date(auth.endDate) : null;
+  if (start) start.setHours(0,0,0,0);
+  if (end) end.setHours(0,0,0,0);
+
+  if (auth.manualStatus === 'Denied') return {key:'denied', label:'Denied', bg:'#fee2e2', fg:'#b53333', border:'#fca5a5'};
+
+  var services = auth.services || [];
+  var allExhausted = services.length>0 && services.every(function(s){
+    var approved = parseFloat(s.unitsApproved||0);
+    var used = parseFloat(s.unitsUsed||0);
+    return approved>0 && used>=approved;
+  });
+
+  if (end && today>end) return {key:'expired', label:'Expired', bg:'#f5f4ed', fg:'#87867f', border:'#d8d6ce'};
+  if (start && today<start) return {key:'upcoming', label:'Upcoming', bg:'#eef2ff', fg:'#4338ca', border:'#c7d2fe'};
+  if (allExhausted) return {key:'exhausted', label:'Units Exhausted', bg:'#fff7ed', fg:'#b45309', border:'#fed7aa'};
+  return {key:'active', label:'Active', bg:'#f0fdf4', fg:'#16a34a', border:'#bbf7d0'};
+}
+
+// Returns just the currently-active authorizations for a patient — used by
+// both the Authorization tab and the Coverage tab summary.
+function _activeAuths(pat) {
+  return (pat.authorizations||[]).filter(function(a){ return _authStatus(a).key === 'active'; });
+}
+
+function _buildAuthTab(pat, db) {
+  const C = {
+    parchment:'#f5f4ed', ivory:'#faf9f5', nearBlack:'#141413',
+    terracotta:'#c96442', coral:'#d97757', oliveGray:'#5e5d59', stoneGray:'#87867f',
+    borderCream:'#f0eee6', borderWarm:'#e8e6dc'
+  };
+  var auths = pat.authorizations || [];
+
+  function authCard(auth, idx) {
+    var st = _authStatus(auth);
+    var svcRows = (auth.services||[]).map(function(s){
+      var approved = parseFloat(s.unitsApproved||0);
+      var used = parseFloat(s.unitsUsed||0);
+      var pct = approved>0 ? Math.min(100, Math.round(used/approved*100)) : 0;
+      return '<div style="display:grid;grid-template-columns:90px 1fr 110px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid '+C.borderCream+'">'+
+        '<span style="font-family:monospace;font-weight:700;color:'+C.terracotta+';font-size:12px">'+(s.cpt||'—')+'</span>'+
+        '<span style="font-size:12px;color:'+C.nearBlack+'">'+(s.description||'')+'</span>'+
+        '<div>'+
+          '<div style="font-size:11px;color:'+C.stoneGray+';text-align:right;margin-bottom:2px">'+used+' / '+(approved||'∞')+' units</div>'+
+          (approved>0?'<div style="height:5px;background:'+C.borderCream+';border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(pct>=100?'#b45309':C.terracotta)+'"></div></div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('') || '<div style="font-size:12px;color:'+C.stoneGray+';font-style:italic;padding:6px 0">No services listed</div>';
+
+    return '<div style="background:'+C.ivory+';border:1.5px solid '+st.border+';border-radius:12px;padding:16px 18px;margin-bottom:12px">'+
+      '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'+
+        '<div style="flex:1">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+            '<span style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:'+st.bg+';color:'+st.fg+';border:1px solid '+st.border+'">'+st.label+'</span>'+
+            '<span style="font-size:12px;color:'+C.stoneGray+'">Auth# <strong style="color:'+C.nearBlack+';font-family:monospace">'+(auth.authNum||'—')+'</strong></span>'+
+          '</div>'+
+          '<div style="font-size:14px;font-weight:700;color:'+C.nearBlack+';margin-top:6px">'+(auth.payerName||'—')+'</div>'+
+          '<div style="font-size:12px;color:'+C.stoneGray+';margin-top:1px">Effective '+(auth.startDate||'—')+' → '+(auth.endDate||'—')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;flex-shrink:0">'+
+          '<button onclick="_openAuthModal(\''+pat.id+'\','+idx+')" title="Edit" style="width:30px;height:30px;border-radius:8px;border:1px solid '+C.borderWarm+';background:'+C.ivory+';color:'+C.oliveGray+';cursor:pointer;display:flex;align-items:center;justify-content:center"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+          '<button onclick="_deleteAuth(\''+pat.id+'\','+idx+')" title="Delete" style="width:30px;height:30px;border-radius:8px;border:1px solid #fca5a5;background:'+C.ivory+';color:#b53333;cursor:pointer;display:flex;align-items:center;justify-content:center"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:'+C.parchment+';border-radius:8px;padding:8px 12px">'+svcRows+'</div>'+
+      (auth.notes?'<div style="font-size:11px;color:'+C.stoneGray+';margin-top:8px;font-style:italic">'+auth.notes+'</div>':'')+
+    '</div>';
+  }
+
+  return '<div style="padding:14px 16px;background:'+C.parchment+';min-height:100%">'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'+
+      '<button onclick="_openAuthModal(\''+pat.id+'\',-1)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;background:'+C.terracotta+';color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> Add Authorization</button>'+
+      '<span style="font-size:12px;color:'+C.stoneGray+'">Authorizations show <strong style="color:#16a34a">Active</strong> automatically based on the approved service and effective dates — no manual switch needed.</span>'+
+    '</div>'+
+    (auths.length ?
+      '<div>'+auths.map(function(a,i){ return authCard(a,i); }).join('')+'</div>' :
+      '<div style="text-align:center;padding:48px 24px;background:'+C.ivory+';border-radius:12px;border:1.5px dashed '+C.borderWarm+'">'+
+        '<i data-lucide="file-check" class="lci" style="width:32px;height:32px;color:'+C.stoneGray+';margin-bottom:12px"></i>'+
+        '<div style="font-size:14px;font-weight:600;color:'+C.oliveGray+'">No authorizations on file</div>'+
+        '<div style="font-size:12px;color:'+C.stoneGray+';margin-top:4px">Click Add Authorization to add one</div>'+
+      '</div>'
+    )+
+  '</div>';
+}
+
+function _openAuthModal(patId, idx) {
+  var db = getDB();
+  var pat = db.patients.find(function(p){return p.id===patId;});
+  if (!pat) return;
+  var auth = (idx>=0 && pat.authorizations) ? pat.authorizations[idx] : {services:[{cpt:'',description:'',unitsApproved:'',unitsUsed:''}]};
+  var ins = pat.insurances || [];
+
+  var prev = document.getElementById('modal-auth'); if (prev) prev.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-auth';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var payerOpts = '<option value="">— Select Payer —</option>' + ins.map(function(iv){
+    var sel = (auth.payerName===(iv.name||'')) ? ' selected' : '';
+    return '<option value="'+(iv.name||'')+'"'+sel+'>'+(iv.name||'Unnamed Payer')+' ('+(iv.insType||iv.type||'Primary')+')</option>';
+  }).join('');
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.25)">'+
+      '<div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+        '<div style="font-size:15px;font-weight:700;color:var(--text)">'+(idx>=0?'Edit':'Add')+' Authorization</div>'+
+        '<button onclick="document.getElementById(\'modal-auth\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">&times;</button>'+
+      '</div>'+
+      '<div style="padding:20px;display:flex;flex-direction:column;gap:12px">'+
+        '<input type="hidden" id="auth-idx" value="'+idx+'">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+          '<div class="field" style="margin:0"><label>Payer</label><select id="auth-payer" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px">'+payerOpts+'</select></div>'+
+          '<div class="field" style="margin:0"><label>Authorization # *</label><input id="auth-num" value="'+(auth.authNum||'')+'" placeholder="e.g. AUTH-2026-00123" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px;font-family:monospace"></div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+          '<div class="field" style="margin:0"><label>Effective From *</label><input type="date" id="auth-start" value="'+(auth.startDate||'')+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"></div>'+
+          '<div class="field" style="margin:0"><label>Effective To *</label><input type="date" id="auth-end" value="'+(auth.endDate||'')+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"></div>'+
+        '</div>'+
+        '<div>'+
+          '<label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Approved Services</label>'+
+          '<div id="auth-svc-list" style="display:flex;flex-direction:column;gap:6px"></div>'+
+          '<button type="button" onclick="_authAddServiceRow()" style="margin-top:6px;display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;cursor:pointer"><i data-lucide="plus" class="lci" style="width:11px;height:11px"></i> Add Service</button>'+
+        '</div>'+
+        '<div class="field" style="margin:0"><label>Status</label><select id="auth-manual-status" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px">'+
+          '<option value=""'+(!auth.manualStatus?' selected':'')+'>Auto (based on dates &amp; units)</option>'+
+          '<option value="Denied"'+(auth.manualStatus==='Denied'?' selected':'')+'>Denied</option>'+
+        '</select></div>'+
+        '<div class="field" style="margin:0"><label>Notes</label><textarea id="auth-notes" rows="2" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px;font-family:inherit">'+(auth.notes||'')+'</textarea></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)">'+
+        '<button class="btn btn-ghost" onclick="document.getElementById(\'modal-auth\').remove()">Cancel</button>'+
+        '<button class="btn btn-primary" onclick="_saveAuth(\''+patId+'\')">Save Authorization</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(overlay);
+  window._authServicesDraft = (auth.services && auth.services.length) ? JSON.parse(JSON.stringify(auth.services)) : [{cpt:'',description:'',unitsApproved:'',unitsUsed:''}];
+  _authRenderServiceRows();
+  setTimeout(_renderLucideIcons, 30);
+}
+
+function _authRenderServiceRows() {
+  var list = document.getElementById('auth-svc-list');
+  if (!list) return;
+  var rows = window._authServicesDraft || [];
+  list.innerHTML = rows.map(function(s, i){
+    return '<div style="display:grid;grid-template-columns:90px 1fr 80px 80px 28px;gap:6px;align-items:center">'+
+      '<input data-auth-svc="cpt" data-i="'+i+'" value="'+(s.cpt||'')+'" placeholder="CPT" style="padding:6px 8px;border:1.5px solid var(--border2);border-radius:6px;font-family:monospace;font-size:12px">'+
+      '<input data-auth-svc="description" data-i="'+i+'" value="'+(s.description||'')+'" placeholder="Description" style="padding:6px 8px;border:1.5px solid var(--border2);border-radius:6px;font-size:12px">'+
+      '<input data-auth-svc="unitsApproved" data-i="'+i+'" value="'+(s.unitsApproved||'')+'" placeholder="Approved" style="padding:6px 8px;border:1.5px solid var(--border2);border-radius:6px;font-size:12px;text-align:center">'+
+      '<input data-auth-svc="unitsUsed" data-i="'+i+'" value="'+(s.unitsUsed||'')+'" placeholder="Used" style="padding:6px 8px;border:1.5px solid var(--border2);border-radius:6px;font-size:12px;text-align:center">'+
+      '<button type="button" onclick="_authRemoveServiceRow('+i+')" style="border:none;background:none;color:#b53333;cursor:pointer;font-size:16px">&times;</button>'+
+    '</div>';
+  }).join('');
+  list.querySelectorAll('[data-auth-svc]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var i = parseInt(this.dataset.i);
+      var key = this.dataset.authSvc;
+      window._authServicesDraft[i][key] = this.value;
+    });
+  });
+}
+
+function _authAddServiceRow() {
+  window._authServicesDraft = window._authServicesDraft || [];
+  window._authServicesDraft.push({cpt:'',description:'',unitsApproved:'',unitsUsed:''});
+  _authRenderServiceRows();
+}
+
+function _authRemoveServiceRow(i) {
+  window._authServicesDraft.splice(i,1);
+  if (!window._authServicesDraft.length) window._authServicesDraft.push({cpt:'',description:'',unitsApproved:'',unitsUsed:''});
+  _authRenderServiceRows();
+}
+
+function _saveAuth(patId) {
+  var authNum = document.getElementById('auth-num')?.value.trim();
+  var startDate = document.getElementById('auth-start')?.value;
+  var endDate = document.getElementById('auth-end')?.value;
+  if (!authNum) { toast('Enter an authorization number','err'); return; }
+  if (!startDate || !endDate) { toast('Enter both effective dates','err'); return; }
+  if (endDate < startDate) { toast('Effective To date must be after Effective From','err'); return; }
+
+  var idx = parseInt(document.getElementById('auth-idx')?.value);
+  var payerName = document.getElementById('auth-payer')?.value || '';
+  var manualStatus = document.getElementById('auth-manual-status')?.value || '';
+  var notes = document.getElementById('auth-notes')?.value || '';
+  var services = (window._authServicesDraft||[]).filter(function(s){ return s.cpt || s.description; });
+  var sess = getSession ? getSession() : null;
+
+  setDB(function(db){
+    var p = db.patients.find(function(x){return x.id===patId;});
+    if (!p) return;
+    if (!p.authorizations) p.authorizations = [];
+    var rec = {
+      authNum: authNum, payerName: payerName, startDate: startDate, endDate: endDate,
+      services: services, manualStatus: manualStatus, notes: notes,
+      updatedAt: Date.now()
+    };
+    if (idx>=0 && p.authorizations[idx]) {
+      rec.id = p.authorizations[idx].id;
+      rec.createdAt = p.authorizations[idx].createdAt;
+      rec.createdBy = p.authorizations[idx].createdBy;
+      p.authorizations[idx] = rec;
+    } else {
+      rec.id = uid();
+      rec.createdAt = Date.now();
+      rec.createdBy = (sess && (sess.name||sess.email)) || '';
+      p.authorizations.push(rec);
+    }
+  });
+
+  var m = document.getElementById('modal-auth'); if (m) m.remove();
+  toast('Authorization saved','ok');
+  _renderChartTab('auth');
+}
+
+function _deleteAuth(patId, idx) {
+  if (!confirm('Delete this authorization?')) return;
+  setDB(function(db){
+    var p = db.patients.find(function(x){return x.id===patId;});
+    if (p && p.authorizations) p.authorizations.splice(idx,1);
+  });
+  toast('Authorization deleted');
+  _renderChartTab('auth');
+}
+
+
 function _buildInsuranceTab(pat, db) {
   const ins = pat.insurances || [];
 
@@ -21036,6 +21273,30 @@ function _buildInsuranceTab(pat, db) {
   <div id="pt-ins-list" style="display:flex;flex-direction:column;gap:12px">
     ${ins.map((iv, idx) => insCard(iv, idx)).join('')}
   </div>`}
+
+  <!-- Authorization summary -->
+  <div style="margin-top:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${C.borderWarm}">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${C.stoneGray}">Authorization</div>
+      <button onclick="_renderChartTab('auth')" style="font-size:11px;font-weight:600;color:${C.terracotta};background:none;border:none;cursor:pointer">View All →</button>
+    </div>
+    ${(function(){
+      var active = _activeAuths(pat);
+      if (!active.length) {
+        return `<div style="font-size:12px;color:${C.stoneGray};font-style:italic">No active authorizations on file.</div>`;
+      }
+      return active.map(function(a){
+        var svcStr = (a.services||[]).map(function(s){ return (s.cpt||'')+(s.description?' — '+s.description:''); }).join(', ') || 'No services listed';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:6px;font-size:12px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:#16a34a;color:#fff;flex-shrink:0">Active</span>
+          <span style="font-weight:700;color:${C.nearBlack}">${a.payerName||'—'}</span>
+          <span style="color:${C.stoneGray}">Auth# <strong style="font-family:monospace">${a.authNum||'—'}</strong></span>
+          <span style="color:${C.stoneGray};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${svcStr}</span>
+          <span style="color:${C.stoneGray};flex-shrink:0">thru ${a.endDate||'—'}</span>
+        </div>`;
+      }).join('');
+    })()}
+  </div>
 
   <!-- Patient Case section -->
   <div style="margin-top:20px">
