@@ -1439,17 +1439,16 @@ function _renderClaimEditorInner(){
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
-  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#141413;border-bottom:2px solid #30302e;flex-shrink:0">'+
-    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
-    '<span style="color:#30302e">|</span>'+
+  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#30302e;border-bottom:2px solid #4d4c48;flex-shrink:0">'+
+    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #4d4c48;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    '<span style="color:#5e5d59">|</span>'+
     '<span style="font-size:11px;color:#b0aea5">Bill# <strong style="color:#faf9f5">'+(claim.billNum||'—')+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
     '<button class="btn btn-xs" onclick="window.print()" title="Print"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
     '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #4d4c48;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
     '<button class="btn btn-xs btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
-    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Cancel" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #30302e;border-radius:6px"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i></button>'+
   '</div>'+
 
   // ── PATIENT INFO BANNER ──
@@ -1465,7 +1464,7 @@ function _renderClaimEditorInner(){
   // ── SECTION TABS ──
   '<div style="display:flex;border-bottom:2px solid var(--border);background:var(--bg2);flex-shrink:0;padding:0 8px">'+
     ['services','payments','claims','eobs','comments'].map(function(t){
-      var labels={services:'Services',payments:'Payments',claims:'Claims',eobs:'EOBs',comments:'Comments'};
+      var labels={services:'ICDs & CPTs',payments:'Payments',claims:'Log',eobs:'EOBs',comments:'Comments'};
       var active=t===activeTab;
       return '<button onclick="window._ceActiveTab=\''+t+'\';renderClaimEditor()" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#c96442':'var(--text2)')+';border-bottom:3px solid '+(active?'#c96442':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
     }).join('')+
@@ -1483,8 +1482,8 @@ function _renderClaimEditorInner(){
 
   // ── MAIN BODY (Services tab) ──
   (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts,errs):'')+
-  (activeTab==='payments'?_ceBuildPaymentsTab(claim,claimId):'') +
-  (activeTab==='claims'?_ceBuildClaimsHistoryTab(pat,db):'') +
+  (activeTab==='payments'?_ceBuildPaymentsTab(claim,claimId,db):'') +
+  (activeTab==='claims'?_ceBuildLogTab(claim,claimId,db):'') +
   (activeTab==='eobs'?_ceBuildEOBsTab(claim,db):'') +
   (activeTab==='comments'?_ceBuildCommentsTab(claim,claimId):'') +
 
@@ -1707,14 +1706,31 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   // LEFT COLUMN
   +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'
 
-    // CPT table header (ICDs above)
-    +'<div style="border-bottom:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Bill ICDs (Diagnoses)</span>'
-        +'<button onclick="_ceLoadICDs(\''+claimId+'\')" title="Load ICDs" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:14px" title="Load ICDs from chart"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button>'
-        +'<button onclick="_ceAddICD(\''+claimId+'\')" title="Add/Delete ICDs" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer" title="Add/Delete ICDs"><i data-lucide="list-plus" class="lci" style="width:13px;height:13px"></i></button>'
+    // CPT table header (ICDs above) — ICDs left, CPT Pad right, compact (not full height)
+    +'<div style="border-bottom:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0;display:flex;gap:12px;align-items:flex-start">'
+
+      // ICDs (left, flexible width)
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+          +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Bill ICDs (Diagnoses)</span>'
+          +'<button onclick="_ceLoadICDs(\''+claimId+'\')" title="Load ICDs from chart" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i></button>'
+          +'<button onclick="_ceAddICD(\''+claimId+'\')" title="Add/Delete ICDs" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer"><i data-lucide="list-plus" class="lci" style="width:13px;height:13px"></i></button>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
+
+      // CPT Pad (right, fixed width, capped height, scrolls internally)
+      +'<div style="width:220px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';padding-left:12px;display:flex;flex-direction:column;max-height:150px">'
+        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-shrink:0">'
+          +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em;flex:1">CPT Pad</span>'
+          +'<i data-lucide="pill" class="lci" style="width:12px;height:12px;color:'+S.terracotta+'"></i>'
+        +'</div>'
+        +'<input id="ce-cpt-search" type="text" placeholder="Search CPT..." autocomplete="off" '
+          +'oninput="_cePadSearch(this.value)" '
+          +'style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';flex-shrink:0;margin-bottom:5px">'
+        +'<div id="ce-cpt-pad-list" style="flex:1;overflow-y:auto;min-height:0"></div>'
+      +'</div>'
+
     +'</div>'
 
     // CPT table header
@@ -1764,7 +1780,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     +'<div style="border-top:1px solid '+S.borderWarm+';padding:6px 10px;background:'+S.parchment+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
       +'<button onclick="_ceSave(\''+claimId+'\')" style="padding:5px 14px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Save</button>'
       +'<button onclick="renderClaimEditor()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Reset</button>'
-      +'<button onclick="window.print()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Printable View</button>'
+      +'<button onclick="_ceGenerateCMS1500(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px"><i data-lucide="file-text" class="lci" style="width:12px;height:12px;margin-right:3px"></i>Printable View</button>'
       +'<button onclick="go(\'claims\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">View All Bills</button>'
       +'<button onclick="_ceTransmitSingle(\''+claimId+'\')" style="padding:5px 14px;background:'+S.nearBlack+';color:'+S.warmSilver+';border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Claim</button>'
       +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:5px 12px;background:#c96442;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600" title="Submit as Corrected Claim (Resubmission Code 7)"><i data-lucide=\"refresh-ccw\" class=\"lci\" style=\"width:11px;height:11px;margin-right:3px\"></i>Corrected</button>'
@@ -1781,8 +1797,6 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
   +'</div>'  // /LEFT COLUMN
 
-  // CPT PAD — center column between left and right
-  +'<div id="ce-cpt-pad" style="width:196px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';border-right:1px solid '+S.borderWarm+';background:'+S.parchment+';display:flex;flex-direction:column;overflow:hidden">'    +'<div style="padding:6px 8px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';display:flex;align-items:center;gap:4px;flex-shrink:0">'      +'<span style="font-size:10px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em;flex:1">CPT Pad</span>'      +'<i data-lucide="pill" class="lci" style="width:12px;height:12px;color:'+S.terracotta+'"></i>'    +'</div>'    +'<div style="padding:5px 6px;border-bottom:1px solid '+S.borderWarm+';flex-shrink:0">'      +'<input id="ce-cpt-search" type="text" placeholder="Search CPT..." autocomplete="off" '        +'oninput="_cePadSearch(this.value)" '        +'style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'    +'</div>'    +'<div id="ce-cpt-pad-list" style="flex:1;overflow-y:auto"></div>'  +'</div>'
   // RIGHT PANEL
   +'<div style="width:270px;flex-shrink:0;border-right:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column;order:-1">'
 
@@ -1891,33 +1905,163 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 }
 
 
-function _ceBuildPaymentsTab(claim, claimId){
-  var payments=claim.payments||[];
+function _ceBuildPaymentsTab(claim, claimId, db){
+  var eobEntries = ((db.claimEOB||{})[claim.id]) || [];
+  var patPayments = claim.patientPayments || [];
+
+  // Unify both sources into one chronological list
+  var rows = [];
+  eobEntries.forEach(function(e){
+    rows.push({
+      ts: e.postedAt || 0,
+      date: e.checkDate || (e.postedAt?new Date(e.postedAt).toLocaleDateString():''),
+      source: 'Insurance', sourceColor:'#1565c0',
+      payer: e.payerName || '—',
+      amount: parseFloat(e.paid||0),
+      method: (e.checkType||'').toUpperCase()||'EFT/Check',
+      ref: e.checkNum || e.eraId || '',
+      notes: e.isDenial ? 'Denied' : (e.isSecondary ? 'Secondary payment' : 'Primary payment')
+    });
+  });
+  patPayments.forEach(function(p){
+    rows.push({
+      ts: p.ts || 0,
+      date: p.date || (p.ts?new Date(p.ts).toLocaleDateString():''),
+      source: 'Patient', sourceColor:'#c96442',
+      payer: 'Patient — '+((claim._patName)||''),
+      amount: parseFloat(p.amount||0),
+      method: p.method || 'Cash',
+      ref: p.ref || '',
+      notes: p.notes || '',
+      by: p.by || ''
+    });
+  });
+  rows.sort(function(a,b){return b.ts-a.ts;});
+
+  var totalIns = eobEntries.reduce(function(s,e){return s+parseFloat(e.paid||0);},0);
+  var totalPat = patPayments.reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
+
+  var summary = '<div style="display:flex;gap:10px;margin-bottom:14px">'+
+    '<div style="flex:1;padding:10px 12px;background:#e3f2fd;border-radius:8px"><div style="font-size:10px;font-weight:700;color:#1565c0;text-transform:uppercase">Insurance Paid</div><div style="font-size:16px;font-weight:700;color:#1565c0">$'+totalIns.toFixed(2)+'</div></div>'+
+    '<div style="flex:1;padding:10px 12px;background:var(--brand-bg);border-radius:8px"><div style="font-size:10px;font-weight:700;color:var(--brand);text-transform:uppercase">Patient Paid</div><div style="font-size:16px;font-weight:700;color:var(--brand)">$'+totalPat.toFixed(2)+'</div></div>'+
+    '<div style="flex:1;padding:10px 12px;background:var(--bg3);border-radius:8px"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Total Paid</div><div style="font-size:16px;font-weight:700;color:var(--text)">$'+(totalIns+totalPat).toFixed(2)+'</div></div>'+
+  '</div>';
+
+  var addBtn = '<button class="btn btn-sm btn-primary" onclick="_ceOpenRecordPatientPayment(\''+claimId+'\')" style="margin-bottom:12px"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Record Patient Payment</button>';
+
+  var table = rows.length ?
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="background:var(--bg3)">'+
+        '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Date</th>'+
+        '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Source</th>'+
+        '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Payer / From</th>'+
+        '<th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Amount</th>'+
+        '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Method/Ref</th>'+
+        '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Notes</th>'+
+      '</tr></thead><tbody>'+
+      rows.map(function(r){
+        return '<tr>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(r.date||'—')+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:'+r.sourceColor+'1a;color:'+r.sourceColor+'">'+r.source+'</span></td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+r.payer+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:monospace;font-weight:700">$'+r.amount.toFixed(2)+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px">'+r.method+(r.ref?' · '+r.ref:'')+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+r.notes+(r.by?' ('+r.by+')':'')+'</td>'+
+        '</tr>';
+      }).join('')+
+    '</tbody></table>' :
+    '<div style="color:var(--text3);font-size:12px;font-style:italic">No payments posted for this claim yet.</div>';
+
   return '<div style="flex:1;overflow-y:auto;padding:16px">'+
     '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Payment History</div>'+
-    (payments.length?
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Date</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Payer</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Amount</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Type</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Notes</th></tr></thead>'+
-        '<tbody>'+payments.map(function(p){return '<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.date||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.payer||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+(parseFloat(p.amount||0).toFixed(2))+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(p.type||'')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(p.notes||'')+'</td></tr>';}).join('')+
-        '</tbody></table>':
-      '<div style="color:var(--text3);font-size:12px;font-style:italic">No payments posted for this claim.</div>'
-    )+'</div>';
+    summary+
+    addBtn+
+    table+
+  '</div>';
 }
 
-function _ceBuildClaimsHistoryTab(pat, db){
-  var claims=(db.claims||[]).filter(function(c){return c.patId===pat.id;});
+function _ceOpenRecordPatientPayment(claimId){
+  var prev=document.getElementById('modal-rec-pay'); if(prev) prev.remove();
+  var overlay=document.createElement('div');
+  overlay.id='modal-rec-pay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,20,19,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick=function(e){if(e.target===overlay) overlay.remove();};
+  overlay.innerHTML=
+    '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:380px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.25)">'+
+      '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">Record Patient Payment</div>'+
+      '<div class="field" style="margin-bottom:10px"><label>Amount *</label><input id="rp-amount" type="text" placeholder="0.00" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"></div>'+
+      '<div class="field" style="margin-bottom:10px"><label>Method</label><select id="rp-method" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"><option>Cash</option><option>Credit Card</option><option>Check</option><option>Other</option></select></div>'+
+      '<div class="field" style="margin-bottom:10px"><label>Reference # (optional)</label><input id="rp-ref" type="text" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"></div>'+
+      '<div class="field" style="margin-bottom:14px"><label>Notes (optional)</label><input id="rp-notes" type="text" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:6px"></div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:8px">'+
+        '<button class="btn btn-ghost" onclick="document.getElementById(\'modal-rec-pay\').remove()">Cancel</button>'+
+        '<button class="btn btn-primary" onclick="_ceSaveRecordPatientPayment(\''+claimId+'\')">Save Payment</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){document.getElementById('rp-amount')?.focus();},50);
+}
+
+function _ceSaveRecordPatientPayment(claimId){
+  var amt=parseFloat(document.getElementById('rp-amount')?.value||'0');
+  if(!amt||amt<=0){toast('Enter a valid amount','err');return;}
+  var method=document.getElementById('rp-method')?.value||'Cash';
+  var ref=document.getElementById('rp-ref')?.value||'';
+  var notes=document.getElementById('rp-notes')?.value||'';
+  var sess=getSession?getSession():null;
+  setDB(function(db){
+    var c=(db.claims||[]).find(function(x){return x.id===claimId;});
+    if(!c) return;
+    if(!c.patientPayments) c.patientPayments=[];
+    c.patientPayments.push({id:uid(),ts:Date.now(),date:new Date().toLocaleDateString(),amount:amt,method:method,ref:ref,notes:notes,by:(sess&&(sess.name||sess.email))||''});
+    c.patPaid=(parseFloat(c.patPaid||0)+amt);
+    c.updatedAt=Date.now();
+  });
+  addClaimLog(claimId, {type:'payment', message:'Patient payment recorded: $'+amt.toFixed(2)+' via '+method+(ref?' (ref '+ref+')':'')});
+  var m=document.getElementById('modal-rec-pay'); if(m) m.remove();
+  toast('Payment recorded','ok');
+  renderClaimEditor();
+}
+
+function _ceBuildLogTab(claim, claimId, db){
+  var logs = ((db.claimLogs||{})[claimId]||[]).slice().sort(function(a,b){return b.ts-a.ts;});
+  var typeIcon = {submission:'send', edit:'pencil', cancel:'ban', corrected:'refresh-ccw', comment:'message-square', snapshot:'file-text', error:'alert-triangle', info:'info'};
+  var typeColor = {submission:'#2d7a4f', edit:'#5e5d59', cancel:'#b53333', corrected:'#c96442', comment:'#5e5d59', snapshot:'#1565c0', error:'#b53333', info:'#87867f'};
+
+  var header = '<div style="display:flex;gap:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:12px">'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">PCN</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.pcn||'—')+'</div></div>'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Bill #</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.billNum||'—')+'</div></div>'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">First Submitted</div><div style="font-weight:700;color:var(--text)">'+(claim.firstSubmittedAt?new Date(claim.firstSubmittedAt).toLocaleString():'Not yet submitted')+'</div></div>'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Status</div><div>'+statusBadge(claim.status)+'</div></div>'+
+  '</div>';
+
+  if (!logs.length) {
+    return '<div style="flex:1;overflow-y:auto;padding:16px">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Claim Log</div>'+
+      header+
+      '<div style="color:var(--text3);font-size:12px;font-style:italic">No activity logged for this claim yet.</div>'+
+    '</div>';
+  }
+
+  var rows = logs.map(function(l){
+    var ic = typeIcon[l.type]||'circle';
+    var col = typeColor[l.type]||'#87867f';
+    return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-cream)">'+
+      '<div style="width:26px;height:26px;border-radius:8px;background:'+col+'1a;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+
+        '<i data-lucide="'+ic+'" class="lci" style="width:13px;height:13px;color:'+col+'"></i>'+
+      '</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:12px;color:var(--text)">'+(l.message||l.type)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(new Date(l.ts).toLocaleString())+' · <strong>'+(l.user||'System')+'</strong>'+(l.detail?' · '+l.detail:'')+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
   return '<div style="flex:1;overflow-y:auto;padding:16px">'+
-    '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">All Claims — '+((pat.last||'')+(pat.first?', '+pat.first:''))+'</div>'+
-    (claims.length?
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-        '<thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">PCN</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">DOS</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--border)">Billed</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--border)">Status</th><th style="padding:6px 8px;text-align:center">Open</th></tr></thead>'+
-        '<tbody>'+claims.map(function(c){
-          var tot=c.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
-          return '<tr style="cursor:pointer" onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'\'"><td style="padding:5px 8px;border-bottom:1px solid var(--border);font-family:var(--mono)">'+(c.pcn||'—')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(c.dos||'—')+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono)">$'+tot.toFixed(2)+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+statusBadge(c.status)+'</td><td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:center"><button class="btn btn-xs btn-primary" onclick="window.location.hash=\'#claim-editor?id='+c.id+'\';renderClaimEditor()">Open</button></td></tr>';
-        }).join('')+
-        '</tbody></table>':
-      '<div style="color:var(--text3);font-size:12px;font-style:italic">No other claims found for this patient.</div>'
-    )+'</div>';
+    '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Claim Log <span style="font-weight:400;color:var(--text3);font-size:11px">— '+logs.length+' entries</span></div>'+
+    header+
+    '<div>'+rows+'</div>'+
+  '</div>';
 }
 
 function _ceBuildEOBsTab(claim, db){
@@ -2588,6 +2732,7 @@ function _ceSave(claimId){
     var idx=db2.claims.findIndex(function(x){return x.id===claimId;});
     if(idx>=0) db2.claims[idx]=claim;
   });
+  addClaimLog(claimId, {type:'edit', message:'Claim saved — PCN: '+(claim.pcn||'—')+' · Bill# '+(claim.billNum||'—')});
   toast('Claim saved','ok');
   renderClaimEditor();
   renderClaims();
@@ -2631,18 +2776,303 @@ function _ceDuplicate(claimId){
   toast('Claim duplicated');
 }
 
+// ── Lazy-load pdf-lib (used to fill the CMS-1500 AcroForm) ────────────────
+function _loadPdfLib(cb, fallback) {
+  if (window.PDFLib) { cb(); return; }
+  function loadScript(url, onok, onerr) {
+    var s = document.createElement('script');
+    s.src = url;
+    s.onload = onok;
+    s.onerror = onerr;
+    document.head.appendChild(s);
+  }
+  loadScript(
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    cb,
+    function(){
+      loadScript(
+        'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+        cb,
+        function(){ (fallback||function(){ toast('Could not load PDF library','err'); })(); }
+      );
+    }
+  );
+}
+
+// ── CMS-1500 field value mapping ───────────────────────────────────────────
+function _cms1500DateParts(d) {
+  if (!d) return {mm:'',dd:'',yy:''};
+  var s = String(d).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);          // YYYY-MM-DD
+  if (m) return {mm:m[2], dd:m[3], yy:m[1].slice(2)};
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);         // MM/DD/YYYY
+  if (m) return {mm:m[1].padStart(2,'0'), dd:m[2].padStart(2,'0'), yy:m[3].slice(2)};
+  var dt = new Date(s);
+  if (!isNaN(dt.getTime())) {
+    return {mm:String(dt.getMonth()+1).padStart(2,'0'), dd:String(dt.getDate()).padStart(2,'0'), yy:String(dt.getFullYear()).slice(2)};
+  }
+  return {mm:'',dd:'',yy:''};
+}
+
+function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
+  var f = {};
+  var dob = _cms1500DateParts(pat.dob);
+  var billed = (claim.lines||[]).reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
+  var paid = parseFloat(claim.paid||claim.primaryPaid||0) + parseFloat(claim.secAmt||0);
+
+  // Carrier block (top right) — primary insurance
+  f.insurance_name = (ins1 && (ins1.name||ins1.payerName)) || '';
+  f.insurance_id   = (ins1 && (ins1.memberId||ins1.subNum)) || pat.subNum || '';
+
+  var payerLc = String(f.insurance_name||'').toLowerCase();
+  f.insurance_type = payerLc.indexOf('medicare')>=0 ? '/Medicare'
+    : payerLc.indexOf('medicaid')>=0 ? '/Medicaid'
+    : payerLc.indexOf('tricare')>=0 ? '/Tricare'
+    : payerLc.indexOf('champva')>=0 ? '/Champva'
+    : '/Group';
+
+  // Box 2/3 — patient
+  f.pt_name = (pat.last||'')+', '+(pat.first||'')+(pat.mid?' '+pat.mid:'');
+  f.birth_mm = dob.mm; f.birth_dd = dob.dd; f.birth_yy = dob.yy;
+  if (pat.sex==='M') f.sex='/M'; else if (pat.sex==='F') f.sex='/F';
+
+  // Box 4 — insured (assume self unless a distinct insured is tracked)
+  f.ins_name = f.pt_name;
+
+  // Box 5 — patient address/phone
+  f.pt_street = pat.addr1||'';
+  f.pt_city   = pat.city||'';
+  f.pt_state  = pat.state||'';
+  f.pt_zip    = pat.zip||'';
+  var ptPhoneDigits = String(pat.phone||'').replace(/\D/g,'');
+  if (ptPhoneDigits.length>=10) { f.pt_AreaCode=ptPhoneDigits.slice(0,3); f.pt_phone=ptPhoneDigits.slice(3,10); }
+
+  // Box 6 — relationship to insured (default Self)
+  f.rel_to_ins = '/S';
+
+  // Box 7 — insured address (mirrors patient under the Self assumption)
+  f.ins_street=f.pt_street; f.ins_city=f.pt_city; f.ins_state=f.pt_state; f.ins_zip=f.pt_zip;
+
+  // Box 9 — secondary insurance ("other insured")
+  if (ins2) {
+    f.other_ins_name   = ins2.name||ins2.payerName||'';
+    f.other_ins_policy = ins2.memberId||ins2.subNum||'';
+    f.other_ins_plan_name = ins2.name||ins2.payerName||'';
+  }
+
+  // Box 10 — condition related to (no claim-level tracking yet — default NO)
+  f.employment='/NO'; f.pt_auto_accident='/NO'; f.other_accident='/NO';
+
+  // Box 11 — insured policy/group + plan name + other coverage flag
+  f.ins_policy    = (ins1 && (ins1.groupNum||ins1.memberId)) || '';
+  f.ins_plan_name = f.insurance_name;
+  f.ins_benefit_plan = ins2 ? '/YES' : '/NO';
+
+  // Box 17 — referring provider
+  if (ref && (ref.first||ref.last)) {
+    f.ref_physician = (ref.last||'')+', '+(ref.first||'');
+    f['physician number 17a1'] = ref.npi||'';
+  }
+
+  // Box 21 — diagnoses A-H
+  var dxFields = ['diagnosis1','diagnosis2','diagnosis3','diagnosis4','diagnosis5','diagnosis6','diagnosis7','diagnosis8'];
+  (claim.dx||[]).forEach(function(code,i){ if (code && dxFields[i]) f[dxFields[i]] = code; });
+
+  // Box 22 — resubmission code / original ref (Corrected Claim — Code 7)
+  if (claim.correctedClaimFlag) {
+    f.medicaid_resub = '7';
+    f.original_ref   = claim.originalClaimNumber || '';
+  }
+
+  // Box 23 — prior auth
+  f.prior_auth = claim.auth || '';
+
+  // Box 24 — up to 6 service lines
+  (claim.lines||[]).slice(0,6).forEach(function(l,i){
+    var n=i+1;
+    var from=_cms1500DateParts(l.dos||claim.dos);
+    var to=_cms1500DateParts(l.dosTo||l.dos||claim.dos);
+    f['sv'+n+'_mm_from']=from.mm; f['sv'+n+'_dd_from']=from.dd; f['sv'+n+'_yy_from']=from.yy;
+    f['sv'+n+'_mm_end']=to.mm;   f['sv'+n+'_dd_end']=to.dd;   f['sv'+n+'_yy_end']=to.yy;
+    f['place'+n] = claim.pos||'11';
+    f['cpt'+n]   = l.cpt||'';
+    f['mod'+n]   = l.mod1||''; f['mod'+n+'a']=l.mod2||''; f['mod'+n+'b']=l.mod3||''; f['mod'+n+'c']=l.mod4||'';
+    f['diag'+n]  = (l.dxPtr||'A').toUpperCase().charAt(0);
+    f['ch'+n]    = parseFloat(l.charge||0).toFixed(2);
+    f['day'+n]   = String(l.units||1);
+    f['local'+n] = rend.npi||'';
+  });
+
+  // Box 25 — Tax ID (billing provider)
+  f.tax_id = (prov.taxid||'').replace(/\D/g,'');
+  f.ssn = (prov.taxType==='S') ? '/SSN' : '/EIN';
+
+  // Box 26 — patient account #
+  f.pt_account = pat.acct||'';
+
+  // Box 27 — accept assignment (default YES — standard for participating providers)
+  f.assignment = '/YES';
+
+  // Box 28/29 — totals
+  f.t_charge = billed.toFixed(2);
+  f.amt_paid = paid.toFixed(2);
+
+  // Box 32 — service facility
+  f.fac_name = fac.name || prov.name || '';
+  f.fac_street = fac.addr1 || '';
+  f.fac_location = [fac.city,fac.state,fac.zip].filter(Boolean).join(', ');
+
+  // Box 33 — billing provider
+  f.doc_name = prov.name || '';
+  f.doc_street = prov.addr1 || '';
+  f.doc_location = [prov.city,prov.state,prov.zip].filter(Boolean).join(', ');
+  var docPhoneDigits = String(prov.phone||'').replace(/\D/g,'');
+  if (docPhoneDigits.length>=10) { f['doc_phone area']=docPhoneDigits.slice(0,3); f.doc_phone=docPhoneDigits.slice(3,10); }
+  f.pin = prov.npi || '';
+
+  return f;
+}
+
+// Fills the CMS-1500 template and returns the resulting PDF bytes (Uint8Array).
+// templateUrl defaults to a relative path — host cms1500-template.pdf at your
+// site root (same folder as app.html) for this to resolve correctly.
+async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
+  var PDFLib = window.PDFLib;
+  var templateUrl = window.CMS1500_TEMPLATE_URL || 'cms1500-template.pdf';
+  var resp = await fetch(templateUrl);
+  if (!resp.ok) throw new Error('CMS-1500 template not found at "'+templateUrl+'" — upload cms1500-template.pdf to your site root.');
+  var templateBytes = await resp.arrayBuffer();
+  var pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
+  var form = pdfDoc.getForm();
+  var values = _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db);
+
+  Object.keys(values).forEach(function(key){
+    var val = values[key];
+    if (val===undefined || val===null || val==='') return;
+    var field;
+    try { field = form.getField(key); } catch(e) { return; }
+    if (!field) return;
+    var typeName = field.constructor && field.constructor.name;
+    try {
+      if (typeName === 'PDFTextField') {
+        field.setText(String(val));
+      } else if (typeName === 'PDFRadioGroup') {
+        var optVal = String(val).replace(/^\//,'');
+        if (field.getOptions().indexOf(optVal) >= 0) field.select(optVal);
+      } else if (typeName === 'PDFCheckBox') {
+        if (val) field.check(); else field.uncheck();
+      }
+    } catch(fieldErr) { console.warn('[CMS1500] field set error', key, fieldErr.message); }
+  });
+
+  try { form.updateFieldAppearances(); } catch(e) {}
+  return await pdfDoc.save();
+}
+
+// "Printable View" button — opens the filled CMS-1500 in a new tab.
+function _ceGenerateCMS1500(claimId) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if (!claim) { toast('Claim not found','err'); return; }
+  var pat = db.patients.find(function(p){return p.id===claim.patId;}) || {};
+  var rend = (db.rendering||[]).find(function(r){return r.id===claim.renderingId;}) || {};
+  var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
+  var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
+  var prov = (db.providers||[]).find(function(p){return p.id===(pat.providerId||activeProviderId);}) || {};
+  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
+  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+
+  toast('Generating CMS-1500…','info');
+  _loadPdfLib(function(){
+    _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db).then(function(bytes){
+      var blob = new Blob([bytes], {type:'application/pdf'});
+      var url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    }).catch(function(err){
+      console.error('[CMS1500] generation error', err);
+      toast('CMS-1500 error: '+err.message, 'err');
+    });
+  });
+}
+
 function _ceTransmitSingle(claimId){
-  toast('Submitting claim...','info');
-  setTimeout(function(){
-    setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.status='submitted';});
-    renderClaimEditor(); renderClaims();
-    toast('Claim submitted','ok');
-  },800);
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if (!claim) { toast('Claim not found','err'); return; }
+  var cfg = getApiConfig();
+  if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); return; }
+  var provider = db.providers.find(function(p){return p.id===activeProviderId;});
+  if (!provider) { toast('No active provider','err'); return; }
+  var isFirstSubmission = !claim.firstSubmittedAt;
+
+  toast('Submitting claim…','info');
+  (async function(){
+    try {
+      var row = buildCSVRow(claim, provider, db);
+      if (!row) { toast('Could not build claim data','err'); return; }
+      var csvLine = CSV_COLS.map(function(k){
+        var val = String(row[k]||'');
+        return (val.includes(',')||val.includes('"')) ? '"'+val.replace(/"/g,'""')+'"' : val;
+      }).join(',');
+      var csv = CSV_COLS.join(',')+'\n'+csvLine;
+      var fname = (claim.pcn||claim.id)+'.837';
+      var fd = new FormData();
+      fd.append('upload','claim');
+      fd.append('AccountKey', cfg.acctKey);
+      fd.append('File', new Blob([csv],{type:'text/csv'}), fname);
+      var res = await fetch('https://claimmd-proxy.imbsinc2023.workers.dev', {method:'POST', body:fd});
+      var txt = await res.text();
+
+      if (res.ok) {
+        setDB(function(db2){
+          var c=(db2.claims||[]).find(function(x){return x.id===claimId;});
+          if (c) { c.status='submitted'; if(!c.firstSubmittedAt) c.firstSubmittedAt=Date.now(); }
+        });
+        addClaimLog(claimId, {type:'submission', message:'Claim submitted to ClaimMD — PCN: '+(claim.pcn||'—')+' · Bill# '+(claim.billNum||'—')});
+        toast('Claim submitted','ok');
+
+        // On the FIRST successful submission, generate and download a CMS-1500
+        // snapshot showing exactly how the claim was sent.
+        if (isFirstSubmission) {
+          _loadPdfLib(function(){
+            var pat = db.patients.find(function(p){return p.id===claim.patId;}) || {};
+            var rend = (db.rendering||[]).find(function(r){return r.id===claim.renderingId;}) || {};
+            var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
+            var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
+            var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
+            var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+            _fillCMS1500(claim, pat, provider, rend, fac, ref, ins1, ins2, db).then(function(bytes){
+              var blob = new Blob([bytes], {type:'application/pdf'});
+              var url = URL.createObjectURL(blob);
+              var fname2 = 'CMS1500_'+(claim.pcn||claim.billNum||claimId)+'_first-submission.pdf';
+              var a = document.createElement('a');
+              a.href=url; a.download=fname2;
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              setTimeout(function(){URL.revokeObjectURL(url);}, 30000);
+              addClaimLog(claimId, {type:'snapshot', message:'First-submission CMS-1500 snapshot saved: '+fname2});
+            }).catch(function(err){
+              console.warn('[CMS1500] first-submission snapshot failed', err);
+              addClaimLog(claimId, {type:'snapshot', status:'warn', message:'Could not generate first-submission snapshot: '+err.message});
+            });
+          });
+        }
+      } else {
+        addClaimLog(claimId, {type:'error', status:'error', message:'Submission failed: '+txt.slice(0,200)});
+        toast('Submission failed: '+txt.slice(0,120),'err');
+      }
+    } catch(e) {
+      addClaimLog(claimId, {type:'error', status:'error', message:'Submission error: '+(e.message||'Unknown error')});
+      toast('Error: '+(e.message||'Unknown error'),'err');
+    }
+    renderClaimEditor(); renderClaims(); updateBadges();
+  })();
 }
 
 function _ceCancelClaim(claimId){
   if(!confirm('Cancel this claim?')) return;
   setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.status='voided';});
+  addClaimLog(claimId, {type:'cancel', status:'warn', message:'Claim cancelled by user'});
   renderClaimEditor(); renderClaims();
   toast('Claim cancelled');
 }
@@ -2681,12 +3111,14 @@ function _ceAddComment(claimId){
   var txt=document.getElementById('ce-comment-txt');
   if(!txt||!txt.value.trim()){toast('Enter a comment','err');return;}
   var isAlert=document.getElementById('ce-comment-alert')?.checked;
+  var sess=getSession?getSession():null;
   setDB(function(db){
     var c=(db.claims||[]).find(function(x){return x.id===claimId;});
     if(!c) return;
     if(!c.comments) c.comments=[];
-    c.comments.push({text:txt.value.trim(),date:new Date().toLocaleDateString(),author:'User',alert:isAlert});
+    c.comments.push({text:txt.value.trim(),date:new Date().toLocaleDateString(),author:(sess&&(sess.name||sess.email))||'User',alert:isAlert});
   });
+  addClaimLog(claimId, {type:'comment', message:'Comment added: '+txt.value.trim().slice(0,140)});
   renderClaimEditor();
   toast('Comment added');
 }
@@ -18709,18 +19141,25 @@ if (!_localDB.claimLogs) _localDB.claimLogs = {};
 return _localDB.claimLogs[claimId] || [];
 }
 
-function addClaimLog(claimId, entry) {
+function addClaimLog(claimId, entry, legacyMessage) {
 if (!_localDB.claimLogs) _localDB.claimLogs = {};
 if (!_localDB.claimLogs[claimId]) _localDB.claimLogs[claimId] = [];
+// Back-compat: support both addClaimLog(id, {type,message,...}) and the
+// older addClaimLog(id, 'type', 'message') calling convention.
+if (typeof entry === 'string') entry = { type: entry, message: legacyMessage || '' };
+entry = entry || {};
+var sess = (typeof getSession === 'function') ? getSession() : null;
 _localDB.claimLogs[claimId].push({
 id: uid(),
 ts: Date.now(),
-type: entry.type || 'info', // submission|status_check|payment|error|info
+type: entry.type || 'info', // submission|status_check|payment|corrected|comment|cancel|error|info
 direction: entry.direction || 'out', // out|in|internal
 status: entry.status || 'ok', // ok|error|warn
 message: entry.message || '',
 detail: entry.detail || '',
 source: entry.source || 'Clearinghouse',
+user: (sess && (sess.name || sess.email)) || 'System',
+userEmail: (sess && sess.email) || '',
 });
 syncToFirestore();
 }
