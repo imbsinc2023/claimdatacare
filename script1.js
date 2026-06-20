@@ -1425,7 +1425,7 @@ function _renderClaimEditorInner(){
   var secAmt=parseFloat(claim.secAmt||0);
   var adjAmt=parseFloat(claim.adjAmt||0);
   var patPaid=parseFloat(claim.patPaid||0);
-  var balance=billed-paid-adjAmt;
+  var balance=Math.max(0, billed-paid-adjAmt-patPaid);
   var copay=parseFloat(claim.copay||pat.copay||0);
   var deductible=parseFloat(claim.deductible||0);
   var patPortion=parseFloat(claim.patPortion||0);
@@ -1494,6 +1494,11 @@ function _renderClaimEditorInner(){
 
   // Wire up interactions after render
   setTimeout(function(){
+    // Always render icons first — guarantees they show even if something
+    // below throws (previously a thrown error here left every icon in
+    // this view blank, since _renderLucideIcons was scheduled last).
+    if (typeof _renderLucideIcons === 'function') _renderLucideIcons();
+    try {
     // POS select
     var posEl=document.getElementById('ce-pos');
     if(posEl) _cePopulatePOS(posEl, claim.pos||'11');
@@ -1555,6 +1560,11 @@ function _renderClaimEditorInner(){
     }
     // CPT search wiring
     _ceWireCptSearch(cptCat, claimId);
+    } catch(wireErr) {
+      console.error('[CDC] claim editor wiring error (icons unaffected):', wireErr);
+    }
+    // Re-render icons again in case any of the innerHTML writes above
+    // (selects, etc.) introduced new data-lucide elements.
     setTimeout(_renderLucideIcons, 20);
   }, 60);
 }
@@ -1614,12 +1624,22 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     '<th style="'+theadStyle+'">Copay</th>'+
     '<th style="'+theadStyle+'">Deduct</th>'+
     '<th style="'+theadStyle+'">PatPort</th>'+
+    '<th style="'+theadStyle+'">Paid</th>'+
     '<th style="'+theadStyle+'">Due</th>'+
     '<th style="'+theadStyle+'">Status</th>'+
     '<th style="'+theadStyle+'"></th>'+
     '</tr></thead><tbody>'+
     claim.lines.map(function(l,li){
-      var due = parseFloat(l.charge||0);
+      var lineCharge = parseFloat(l.charge||0);
+      // Proportional allocation of claim-level totals across CPT lines,
+      // weighted by each line's share of the total billed amount.
+      var shareRatio = totalCharge>0 ? (lineCharge/totalCharge) : 0;
+      var lineAdj     = adjAmt * shareRatio;
+      var lineCopay   = copay * shareRatio;
+      var lineDeduct  = deductible * shareRatio;
+      var linePatPort = patPortion * shareRatio;
+      var linePaid    = (priAmt+secAmt) * shareRatio;
+      var due = Math.max(0, lineCharge - lineAdj - linePaid - patPaid*shareRatio);
       var ptr = (l.dxPtr||'').toUpperCase();
       var dxPtrs = dxLetters.slice(0,Math.max((claim.dx||[]).filter(Boolean).length,1)).split('').map(function(letter,i){
         if(!claim.dx||!claim.dx[i]) return '';
@@ -1640,11 +1660,12 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<td style="'+tcStyle+'"><div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;min-width:60px">'+dxPtrs+'</div></td>'
         +'<td style="'+tcStyle+'"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px 3px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Min</option></select></td>'
         +'<td style="'+tcStyle+'"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:34px;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';text-align:center"></td>'
-        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
-        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
-        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
-        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">0.00</td>'
-        +'<td style="'+tcStyle+';font-family:monospace;font-weight:700;color:'+S.nearBlack+'">'+due.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">'+lineAdj.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">'+lineCopay.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">'+lineDeduct.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+(linePatPort>0?S.terracotta:S.stoneGray)+'">'+linePatPort.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;color:'+(linePaid>0?'#2d7a4f':S.stoneGray)+'">'+linePaid.toFixed(2)+'</td>'
+        +'<td style="'+tcStyle+';font-family:monospace;font-weight:700;color:'+(due>0?S.nearBlack:'#2d7a4f')+'">'+due.toFixed(2)+'</td>'
         +'<td style="'+tcStyle+'"><span style="font-size:10px;padding:1px 5px;border-radius:10px;background:'+S.parchment+';border:1px solid '+S.borderWarm+';color:'+S.oliveGray+'">'+(claim.status||'draft')+'</span></td>'
         +'<td style="'+tcStyle+'"><button onclick="_ceRemoveLine(\''+claimId+'\','+li+')" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';padding:2px 4px;font-size:13px;line-height:1" title="Remove line">×</button></td>'
         +'</tr>';
@@ -1652,7 +1673,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     '<tr style="background:'+S.parchment+';border-top:2px solid '+S.borderWarm+'">'
     +'<td colspan="3" style="padding:4px 6px;font-size:11px;font-weight:700;color:'+S.nearBlack+'">TOTAL</td>'
     +'<td style="padding:4px 6px;font-family:monospace;font-weight:700;font-size:12px;color:'+S.terracotta+';text-align:right">'+totalCharge.toFixed(2)+'</td>'
-    +'<td colspan="14"></td></tr>'
+    +'<td colspan="15"></td></tr>'
     +'</tbody></table>'
   :
     '<div style="text-align:center;padding:24px;color:'+S.stoneGray+';font-size:12px">No service lines — click Add More to add CPT codes.</div>';
@@ -1746,6 +1767,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'<button onclick="window.print()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Printable View</button>'
       +'<button onclick="go(\'claims\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">View All Bills</button>'
       +'<button onclick="_ceTransmitSingle(\''+claimId+'\')" style="padding:5px 14px;background:'+S.nearBlack+';color:'+S.warmSilver+';border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Claim</button>'
+      +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:5px 12px;background:#c96442;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600" title="Submit as Corrected Claim (Resubmission Code 7)"><i data-lucide=\"refresh-ccw\" class=\"lci\" style=\"width:11px;height:11px;margin-right:3px\"></i>Corrected</button>'
       +'<button onclick="_ceCancelClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Cancel Claim</button>'
       +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
       +'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:5px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete this Bill</button>'
@@ -1828,7 +1850,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +[
         ['Pat Available Bal','$'+(pat.balance||'0.00'),true,false],
         ['Allowed Amount','$'+billed.toFixed(2),false,false],
-        ['Patient Resp','$0.00',false,false],
+        ['Patient Resp','$'+patPortion.toFixed(2),false,patPortion>0],
         ['Pri Amt','$'+priAmt.toFixed(2),priAmt>0,true],
         ['Sec Amt','$'+secAmt.toFixed(2),false,false],
         ['Ter Amt','$0.00',false,false],
@@ -6614,6 +6636,26 @@ toast('Sync failed: ' + e.message, 'err');
 
 function isAdmin() { const s = getSession(); return !!(s && s.role === 'Super Admin'); }
 
+// Returns true if the current session's user has the given permission string checked
+// (or is Super Admin, who always passes every permission check).
+function hasPermission(permName) {
+  var s = getSession();
+  if (!s) return false;
+  if (s.role === 'Super Admin' || s.email === SUPER_ADMIN_EMAIL) return true;
+  var db = getDB();
+  var u = (db.users||[]).find(function(x){ return x.email === s.email; });
+  return !!(u && Array.isArray(u.permissions) && u.permissions.indexOf(permName) >= 0);
+}
+
+// Returns true if targetUserId belongs to the currently logged-in user
+function isSelfUserId(targetUserId) {
+  var s = getSession();
+  if (!s || !targetUserId) return false;
+  var db = getDB();
+  var me = (db.users||[]).find(function(x){ return x.email === s.email; });
+  return !!(me && me.id === targetUserId);
+}
+
 function updateAdminUI() {
 // Admin visibility is based SOLELY on internal session role — no Firebase Auth dependency
 const session = getSession();
@@ -9459,6 +9501,9 @@ function _afterLoad() {
 
   rebuildProvSel();
   console.log('[CDC] _afterLoad: currentSection='+(document.querySelector('.section.active')?.id||'none'));
+  // Always (re)apply specialty-based menu restrictions after data loads,
+  // regardless of which page the user happens to land on.
+  setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
   // Only re-render dashboard if it is the currently active section
   // (prevents redirecting away from a page the user navigated to)
   var _curActive = document.querySelector('.section.active');
@@ -9466,7 +9511,6 @@ function _afterLoad() {
     go('dashboard');
     try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
     setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
-    setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
   } else {
     // Re-render current page so it picks up the freshly loaded Firestore data
     var _curPage = _curActive.id.replace('sec-', '');
@@ -10557,6 +10601,20 @@ function renderUserManagement() {
     return _userTab === 'inactive' ? inactive : !inactive;
   });
 
+  // ── Authorization: users without "Manage Users" (and who aren't
+  // Super Admin) may only ever see their own account, never the rest
+  // of the team's. Also hide the Search and Add controls for them.
+  var _canManageUsers2 = isSuperAdmin || hasPermission('Manage Users');
+  var _searchBtn = document.querySelector('#sec-account button[onclick="openUserSearch()"]');
+  var _addBtn = document.querySelector('#sec-account button[onclick="openAddUserModal()"]');
+  if (_searchBtn) _searchBtn.style.display = _canManageUsers2 ? '' : 'none';
+  if (_addBtn) _addBtn.style.display = _canManageUsers2 ? '' : 'none';
+  if (!_canManageUsers2) {
+    var _searchBar = document.getElementById('user-search-bar');
+    if (_searchBar) _searchBar.style.display = 'none';
+    users = users.filter(function(u){ return u.email === session.email; });
+  }
+
   var qEmail = (document.getElementById('us-email')?.value||'').toLowerCase().trim();
   var qFirst = (document.getElementById('us-first')?.value||'').toLowerCase().trim();
   var qLast  = (document.getElementById('us-last')?.value||'').toLowerCase().trim();
@@ -11442,6 +11500,7 @@ const CSV_COLS = [
 'ref_name_f','ref_name_l','ref_name_m','ref_npi',
 'remote_batchid','remote_claimid','remote_fileid',
 'total_charge','claimid',
+'resubmission_code','original_claim_number',
 'charge_1','diag_ref_1','from_date_1','mod1_1','mod2_1','mod3_1','mod4_1','narrative_1','place_of_service_1','proc_code_1','remote_chgid_1','thru_date_1','units_1',
 'charge_2','diag_ref_2','from_date_2','mod1_2','mod2_2','mod3_2','mod4_2','narrative_2','place_of_service_2','proc_code_2','remote_chgid_2','thru_date_2','units_2',
 'charge_3','diag_ref_3','from_date_3','mod1_3','mod2_3','mod3_3','mod4_3','narrative_3','place_of_service_3','proc_code_3','remote_chgid_3','thru_date_3','units_3',
@@ -11674,6 +11733,12 @@ row.remote_fileid = '';
 row.total_charge = totalCharge;
 row.claimid = '';
 
+// ?? Corrected Claim (Resubmission Code 7) ????????????????????
+// Per ANSI X12 837P CLM05-3: code 7 = replacement of prior claim
+// REF*F8* = original reference number (ICN from payer)
+row.resubmission_code = claim.correctedClaimFlag ? '7' : '';
+row.original_claim_number = (claim.correctedClaimFlag && claim.originalClaimNumber) ? String(claim.originalClaimNumber).trim() : '';
+
 // Service Lines (up to 6)
 for (let li=0; li<6; li++) {
   const n = li+1;
@@ -11706,6 +11771,154 @@ return row;
 }
 
 
+
+
+function openCorrectedClaimModal(claimId) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){ return c.id === claimId; });
+  if (!claim) { toast('Claim not found', 'err'); return; }
+
+  // Pre-fill with existing claimmdId if we already have it from sync
+  var existingICN = claim.originalClaimNumber || claim.claimmdId || '';
+
+  var prev = document.getElementById('modal-corrected-claim');
+  if (prev) prev.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-corrected-claim';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var pat = (db.patients||[]).find(function(x){ return x.id===claim.patId; }) || {};
+  var patName = ((pat.last||'') + ', ' + (pat.first||'')).trim().replace(/^,\s*/,'') || 'Unknown';
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">' +
+      // Header
+      '<div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">' +
+        '<div style="width:36px;height:36px;background:#c96442;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+          '<i data-lucide="refresh-ccw" class="lci" style="width:18px;height:18px;color:#fff"></i>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-size:15px;font-weight:700;color:var(--text)">Submit Corrected Claim</div>' +
+          '<div style="font-size:12px;color:var(--text3)">Resubmission Code 7 — Replacement of Prior Claim</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'modal-corrected-claim\').remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);padding:4px">&times;</button>' +
+      '</div>' +
+      // Body
+      '<div style="padding:20px;display:flex;flex-direction:column;gap:14px">' +
+        // Claim info banner
+        '<div style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:10px;padding:12px 14px;font-size:12px">' +
+          '<div style="font-weight:700;color:var(--brand);margin-bottom:6px">Claim being corrected</div>' +
+          '<div style="color:var(--text2)">Patient: <strong>' + patName + '</strong></div>' +
+          '<div style="color:var(--text2)">PCN: <strong>' + (claim.pcn||'—') + '</strong> &nbsp;|&nbsp; DOS: <strong>' + (claim.dos||'—') + '</strong></div>' +
+        '</div>' +
+        // ICN field
+        '<div>' +
+          '<label style="display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">' +
+            'Original Claim Number (ICN / DCN) from Payer *' +
+          '</label>' +
+          '<input id="cc-original-icn" value="' + existingICN + '" placeholder="e.g. 2024123456789 — from the payer\'s EOB or ClaimMD response"' +
+            ' style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">' +
+          '<div style="margin-top:5px;font-size:11px;color:var(--text3)">This is the claim number assigned by the payer (ICN), found on the EOB/RA or in the ClaimMD response. Required for Code 7.</div>' +
+        '</div>' +
+        // Warning
+        '<div style="display:flex;gap:8px;padding:10px 12px;background:#fdf3e3;border:1px solid #e8c468;border-radius:8px;font-size:11px;color:#7a5a1e">' +
+          '<i data-lucide="alert-triangle" class="lci" style="width:14px;height:14px;flex-shrink:0;margin-top:1px"></i>' +
+          '<div>This will transmit the claim to ClaimMD with <strong>Resubmission Code 7</strong> and the original ICN. Make sure all corrections to this claim have been saved before proceeding.</div>' +
+        '</div>' +
+      '</div>' +
+      // Footer
+      '<div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:var(--bg3)">' +
+        '<button class="btn btn-ghost" onclick="document.getElementById(\'modal-corrected-claim\').remove()">Cancel</button>' +
+        '<button class="btn btn-primary" onclick="submitCorrectedClaim(\'' + claimId + '\')" style="background:var(--brand)">' +
+          '<i data-lucide="send" class="lci" style="width:13px;height:13px"></i> Submit Corrected Claim' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  setTimeout(_renderLucideIcons, 30);
+  setTimeout(function(){ var el = document.getElementById('cc-original-icn'); if(el && !el.value) el.focus(); }, 80);
+}
+
+async function submitCorrectedClaim(claimId) {
+  var icn = (document.getElementById('cc-original-icn')?.value || '').trim();
+  if (!icn) {
+    var el = document.getElementById('cc-original-icn');
+    if (el) { el.style.borderColor = 'var(--red,#dc2626)'; el.focus(); }
+    toast('Enter the original claim number (ICN) from the payer', 'err');
+    return;
+  }
+
+  var cfg = getApiConfig();
+  if (!cfg.acctKey) {
+    toast('No Account Key configured — go to Admin → Billing Providers', 'err');
+    return;
+  }
+
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){ return c.id === claimId; });
+  if (!claim) { toast('Claim not found', 'err'); return; }
+
+  // Stamp corrected-claim fields onto a copy of the claim
+  var correctedClaim = Object.assign({}, claim, {
+    correctedClaimFlag: true,
+    originalClaimNumber: icn
+  });
+
+  var provider = (db.providers||[]).find(function(p){ return p.id === activeProviderId; });
+  if (!provider) { toast('No active provider', 'err'); return; }
+
+  // Close modal and show progress
+  var modal = document.getElementById('modal-corrected-claim');
+  if (modal) modal.remove();
+
+  toast('Submitting corrected claim…');
+
+  try {
+    var row = buildCSVRow(correctedClaim, provider, db);
+    if (!row) { toast('Could not build claim data', 'err'); return; }
+
+    var csvLine = CSV_COLS.map(function(k){
+      var val = String(row[k]||'');
+      return (val.includes(',') || val.includes('"')) ? '"' + val.replace(/"/g,'""') + '"' : val;
+    }).join(',');
+
+    var csv = CSV_COLS.join(',') + '\n' + csvLine;
+
+    var fname = (claim.pcn || claim.id) + '_corrected.837';
+    var fd = new FormData();
+    fd.append('upload', 'claim');
+    fd.append('AccountKey', cfg.acctKey);
+    fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
+
+    var res = await fetch(CLEARINGHOUSE_PROXY, {method:'POST', body:fd});
+    var txt = await res.text();
+
+    if (res.ok) {
+      // Persist the ICN and flag on the claim permanently so it shows in history
+      setDB(function(db2){
+        var c = (db2.claims||[]).find(function(x){ return x.id === claimId; });
+        if (c) {
+          c.correctedClaimFlag = true;
+          c.originalClaimNumber = icn;
+          c.status = 'submitted';
+          c.updatedAt = Date.now();
+        }
+      });
+      addClaimLog(claimId, 'corrected', 'Corrected claim submitted (Code 7) — Original ICN: ' + icn);
+      logTransmit('<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> ' + (claim.pcn||claimId) + ' — Corrected claim submitted (ICN: ' + icn + ')', 'ok');
+      toast('Corrected claim submitted successfully ✓', 'ok');
+      renderClaims(); updateBadges();
+    } else {
+      addClaimLog(claimId, 'error', 'Corrected claim error: ' + txt.slice(0,200));
+      toast('Submission failed: ' + txt.slice(0,120), 'err');
+    }
+  } catch(e) {
+    toast('Error: ' + (e.message||'Unknown error'), 'err');
+  }
+}
 
 
 function dateStr() {
@@ -15309,6 +15522,15 @@ claim.primaryPosted  = true;
 claim.updatedAt      = Date.now();
 claim.balance        = Math.max(0, billed - totalPaidAll);
 
+// ── Keep legacy/display field names in sync (claim editor reads these) ──
+var totalAdjAll = allEOBs.reduce(function(s,e){return s+parseFloat(e.adj||0);},0);
+var totalPriAll = allEOBs.filter(function(e){return !e.isSecondary;}).reduce(function(s,e){return s+parseFloat(e.paid||0);},0);
+var totalSecAll = allEOBs.filter(function(e){return e.isSecondary;}).reduce(function(s,e){return s+parseFloat(e.paid||0);},0);
+claim.paid    = totalPaidAll;
+claim.priAmt  = totalPriAll;
+claim.secAmt  = totalSecAll;
+claim.adjAmt  = totalAdjAll;
+
 if (isDenial) {
   // Full denial — mark denied, balance = full charge
   claim.status           = 'denied';
@@ -15354,18 +15576,9 @@ if (isDenial) {
   }
 }
 
-// ── Legacy compat fields ─────────────────────────────────────────────────
-const patx = pat;
-const ins2 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
-if (ins2 && patResp > 0.01) {
-claim.readyForSecondary = true;
-claim.status = 'accepted';
-} else if (paid >= billed * 0.99) {
-claim.status = 'paid';
-claim.readyForSecondary = false;
-} else {
-claim.status = 'partially_paid';
-}
+// Keep the legacy "patPortion" field (read by the claim editor UI) in sync
+// with the patientBalance computed above.
+claim.patPortion = claim.patientBalance || 0;
 });
 });
 }
@@ -15616,11 +15829,41 @@ async function fetchERAFromClearinghouse() {
 
   var allPosted=[], allUnmatched=[], allBatches=[], newLastERAID=lastERAID;
 
+  // Safety check: a single ClaimMD Account Key can cover multiple billing
+  // providers/NPIs. Each ERA entry carries the billing provider's own
+  // prov_npi/prov_taxid — we must verify it matches the ACTIVE provider
+  // before any matching/posting happens, or a check belonging to a
+  // DIFFERENT provider could get posted onto this provider's claims.
+  var activeProv = db.providers.find(function(p){ return p.id === activeProviderId; }) || {};
+  var activeNpi   = String(activeProv.npi||'').replace(/\D/g,'');
+  var activeTaxid = String(activeProv.taxid||'').replace(/\D/g,'');
+  var skippedOtherProvider = 0;
+
   for (var i=0; i<eras.length; i++) {
     var eraInfo = eras[i];
     var eraid   = String(eraInfo.eraid || eraInfo.ERAID || '');
     if (!eraid) continue;
+
+    var eraNpi   = String(eraInfo.prov_npi||'').replace(/\D/g,'');
+    var eraTaxid = String(eraInfo.prov_taxid||'').replace(/\D/g,'');
+    var belongsToActiveProvider = true;
+    if (eraNpi && activeNpi) belongsToActiveProvider = (eraNpi === activeNpi);
+    else if (eraTaxid && activeTaxid) belongsToActiveProvider = (eraTaxid === activeTaxid);
+    // If neither NPI nor TaxID is present on the ERA record, we can't verify —
+    // fall back to the existing PCN + providerId matching done downstream.
+
+    // Always advance this provider's cursor so a foreign-provider ERA isn't
+    // re-fetched/re-skipped forever — the OTHER provider has its own
+    // separate cursor (lastERAID_<providerId>) and will pick it up correctly
+    // the next time IT runs an import.
     if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
+
+    if (!belongsToActiveProvider) {
+      skippedOtherProvider++;
+      _eraProgressUpdate(i+1, eras.length, '⚠ Skipped ERA #' + eraid + ' — belongs to a different billing provider (NPI ' + (eraNpi||'?') + ')');
+      console.warn('[ERA] Skipping ERA', eraid, '— prov_npi', eraNpi, 'does not match active provider NPI', activeNpi);
+      continue;
+    }
 
     _eraProgressUpdate(i, eras.length, 'Fetching ERA #' + eraid + ' (' + (i+1) + ' of ' + eras.length + ')…');
 
@@ -15731,9 +15974,9 @@ async function fetchERAFromClearinghouse() {
   var futureCount = previewItems.filter(function(x){return x.isFuture;}).length;
   var unmatchedCount = allUnmatched.length;
   // Close progress modal
-  var _summary2 = 'Imported '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' unmatched':'')+(futureCount?' · '+futureCount+' future':'');
+  var _summary2 = 'Imported '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' unmatched':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' skipped (other provider)':'');
   _eraProgressClose(_summary2);
-  toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+' ');
+  toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' from other providers (skipped)':'')+' ');
   renderEOBPage(); updateBadges();
   // Auto-navigate to Pending ERA tab
   setEOBTab('era-pending', document.getElementById('eob-tab-era-pending'));
@@ -23218,6 +23461,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     updateAdminUI();
     updateBadges();
+    setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
     // Re-populate user chip billing provider after data loads
     try {
       var _provEl2 = document.getElementById('tn-user-prov');
@@ -23520,6 +23764,32 @@ function saveNewUser() {
   if (hasErr) return;
 
   var users = getUsers ? getUsers() : [];
+
+  // ── Authorization guard ──────────────────────────────────────────
+  // Only Super Admin or a user with the "Manage Users" permission may
+  // create new users or edit OTHER users' accounts. A user editing their
+  // own account without that permission may update their own contact
+  // info/password but cannot change their own role, permissions, or
+  // specialties (that would be self-escalation).
+  var _canManageUsers = isAdmin() || hasPermission('Manage Users');
+  if (!_canManageUsers) {
+    if (!id) {
+      alertEl.innerHTML = '<div class="alert al-error">You do not have permission to create users.</div>';
+      return;
+    }
+    if (!isSelfUserId(id)) {
+      alertEl.innerHTML = '<div class="alert al-error">You do not have permission to edit other users.</div>';
+      return;
+    }
+    // Self-editing without Manage Users — ignore any submitted changes to
+    // role/permissions/specialties and keep the existing values instead.
+    var _existingSelf = users.find(function(x){ return x.id === id; });
+    if (_existingSelf) {
+      roles = Array.isArray(_existingSelf.roles) ? _existingSelf.roles.slice() : (_existingSelf.role ? [_existingSelf.role] : []);
+      perms = Array.isArray(_existingSelf.permissions) ? _existingSelf.permissions.slice() : [];
+      specialties = Array.isArray(_existingSelf.specialties) ? _existingSelf.specialties.slice() : [];
+    }
+  }
 
   // Check username duplicity
   var dupName = users.find(function(u){ return (u.name||'').toLowerCase() === name.toLowerCase() && u.id !== id; });
@@ -24368,6 +24638,18 @@ function openAddUserModal(existingUser) {
 
   var u = existingUser || {};
   var isEdit = !!u.id;
+
+  // ── Authorization guard ──────────────────────────────────────────
+  var _canManageUsers0 = isAdmin() || hasPermission('Manage Users');
+  var _isSelfEdit0 = isEdit && isSelfUserId(u.id);
+  if (!_canManageUsers0 && !_isSelfEdit0) {
+    toast('You do not have permission to manage users', 'err');
+    return;
+  }
+  // Self-editing without Manage Users: contact info/password OK, but
+  // role/permissions/specialties must stay locked (no self-escalation).
+  var _lockRolePerm = !_canManageUsers0 && _isSelfEdit0;
+
   var db = getDB();
   var prov = db.providers.find(function(p2){ return p2.id === activeProviderId; }) || {};
   var provSpecDefs = (prov.specialtyDefs && prov.specialtyDefs.length) ? prov.specialtyDefs : [];
@@ -24393,29 +24675,36 @@ function openAddUserModal(existingUser) {
   var rolesHtml = availableRoles.map(function(r) {
     var userRoles = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : []);
     var chk = userRoles.indexOf(r) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)'+(chk?' border-color:var(--brand);background:var(--brand-bg)':'')+'">'+
-      '<input type="checkbox" class="nu-role-cb" value="'+r+'" '+chk+' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> '+r+'</label>';
+    var dis = _lockRolePerm ? 'disabled' : '';
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+(chk?';border-color:var(--brand);background:var(--brand-bg)':'')+'">'+
+      '<input type="checkbox" class="nu-role-cb" value="'+r+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> '+r+'</label>';
   }).join('');
 
   // Permissions — 2-col grid
   var permsHtml = USER_PERMISSIONS.map(function(p3) {
     var userPerms = u.permissions || [];
     var chk = userPerms.indexOf(p3) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px 0">'+
-      '<input type="checkbox" class="nu-perm-cb" value="'+p3+'" '+chk+' style="accent-color:var(--brand);width:13px;height:13px;flex-shrink:0"> '+p3+'</label>';
+    var dis = _lockRolePerm ? 'disabled' : '';
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';padding:4px 0;opacity:'+(_lockRolePerm?'.6':'1')+'">'+
+      '<input type="checkbox" class="nu-perm-cb" value="'+p3+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:13px;height:13px;flex-shrink:0"> '+p3+'</label>';
   }).join('');
 
   // Specialties
   var specsHtml = provSpecDefs.length
     ? provSpecDefs.map(function(sd) {
         var chk = userSpecs.indexOf(sd.name) >= 0 ? 'checked' : '';
-        return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--bg3);transition:all .15s">'+
-          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
+        var dis = _lockRolePerm ? 'disabled' : '';
+        return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+';transition:all .15s">'+
+          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
           '<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+sd.name+'</div>'+
           (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px">'+sd.taxonomy+'</div>':'')+
           '</div></label>';
       }).join('')
     : '<div style="padding:14px;text-align:center;background:var(--bg3);border-radius:8px;border:1px dashed var(--border);font-size:12px;color:var(--text3)">No specialties configured.<br>Add them in <strong>Admin → Billing Providers</strong>.</div>';
+
+  var lockNotice = _lockRolePerm
+    ? '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--amber-bg,#fdf3e3);border:1px solid var(--amber-bdr,#e8c468);border-radius:8px;font-size:11px;color:var(--text2);margin-bottom:10px"><i data-lucide="lock" class="lci" style="width:13px;height:13px;flex-shrink:0"></i> Roles, permissions and specialties are locked — only a Super Admin or a user with the Manage Users permission can change these.</div>'
+    : '';
 
   var passPlaceholder = isEdit ? 'Leave blank to keep current password' : 'Set initial password (min 6 chars)';
 
@@ -24466,6 +24755,7 @@ function openAddUserModal(existingUser) {
       + '</div>'
 
       // Roles
+      + lockNotice
       + secHdr('shield', 'Roles')
       + '<div style="display:flex;flex-wrap:wrap;gap:6px">'+rolesHtml+'</div>'
 
