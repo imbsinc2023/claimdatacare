@@ -2994,6 +2994,39 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
 }
 
 // "Printable View" button — opens the filled CMS-1500 in a new tab.
+// Same as _ceGenerateCMS1500 but triggers a download instead of opening a tab —
+// used so the "Superbill" shown in Patient Records is always the identical
+// CMS-1500 document produced by the claim's own Printable View.
+function _ceDownloadCMS1500(claimId, filename) {
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if (!claim) { toast('Linked claim not found — it may have been deleted','err'); return; }
+  var pat = db.patients.find(function(p){return p.id===claim.patId;}) || {};
+  var rend = (db.rendering||[]).find(function(r){return r.id===claim.renderingId;}) || {};
+  var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
+  var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
+  var prov = (db.providers||[]).find(function(p){return p.id===(pat.providerId||activeProviderId);}) || {};
+  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
+  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+
+  toast('Generating CMS-1500…','info');
+  _loadPdfLib(function(){
+    _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db).then(function(bytes){
+      var blob = new Blob([bytes], {type:'application/pdf'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename || ('CMS1500_'+(claim.pcn||claim.billNum||claimId)+'.pdf');
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+      toast('Superbill downloaded','ok');
+    }).catch(function(err){
+      console.error('[CMS1500] generation error', err);
+      toast('CMS-1500 error: '+err.message, 'err');
+    });
+  });
+}
+
 function _ceGenerateCMS1500(claimId) {
   var db = getDB();
   var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
@@ -20154,7 +20187,7 @@ if (customCats.length) groups.push({ label: 'Other', cats: customCats });
 var catCount = {};
 docs.forEach(function(d){ catCount[d.category] = (catCount[d.category]||0)+1; });
 
-var activeCat = window._docActiveCat || '';
+var activeCat = window._docActiveCat !== undefined ? window._docActiveCat : '__recent__';
 
 // Build category rows
 function catRow(c) {
@@ -20177,6 +20210,17 @@ function catRow(c) {
     +'</div>';
 }
 
+var recentActive = activeCat === '__recent__';
+var recentRow = '<div style="padding:4px 6px 6px">'
+  +'<div onclick="_setDocCategory(\''+pat.id+'\',\'__recent__\')"'
+  +' style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;border-radius:6px;'
+  +'background:'+(recentActive?'var(--brand-bg)':'transparent')+';'
+  +'border-left:3px solid '+(recentActive?'var(--brand)':'transparent')+';transition:background .15s">'
+  +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:'+(recentActive?'var(--brand)':'#c96442')+';flex-shrink:0"></i>'
+  +'<span style="flex:1;font-size:12px;color:'+(recentActive?'var(--brand)':'var(--text)')+';font-weight:'+(recentActive?'700':'600')+'">Recent Records</span>'
+  +'</div></div>'
+  +'<div style="border-bottom:1px solid var(--border);margin:0 8px 4px"></div>';
+
 var catItems = groups.map(function(g) {
   return '<div style="padding:4px 6px 0">'
     +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 4px 3px">'+g.label+'</div>'
@@ -20191,7 +20235,8 @@ var addCatLink = _canAddCat
   : '';
 
 // Filtered docs
-var filteredDocs = activeCat ? docs.filter(function(d){ return d.category===activeCat; }) : docs;
+var isRecentView = activeCat === '__recent__';
+var filteredDocs = isRecentView ? [] : (activeCat ? docs.filter(function(d){ return d.category===activeCat; }) : docs);
 var isSBCat = activeCat === 'Superbills';
 var isTrashCat = activeCat === 'Recycle Bin';
 
@@ -20241,7 +20286,7 @@ if (filteredDocs.length) {
          +'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>')
       +'</div></div>';
   }).join('');
-} else {
+} else if (!isRecentView) {
   docRowsHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">'
     +'<i data-lucide="folder-open" class="lci" style="width:40px;height:40px;display:block;margin:0 auto 10px"></i>'
     +'<div style="font-size:13px">'+(activeCat?'No documents in this category':'Select a category or upload a document')+'</div></div>';
@@ -20252,6 +20297,7 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   // LEFT sidebar
   +'<div style="border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)">'
   +'<div id="doc-cat-list" style="flex:1;overflow-y:auto;padding:4px 4px 8px">'
+  +recentRow
   +catItems
   +addCatLink
   +'</div></div>'
@@ -20261,7 +20307,7 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between">'
   +'<div>'
   +'<div style="font-size:13px;font-weight:700;color:var(--brand)">Patient Records</div>'
-  +'<div style="font-size:11px;color:var(--text3)">'+(activeCat||'All Documents')+' \u00b7 '+filteredDocs.length+' file'+(filteredDocs.length!==1?'s':'')+'</div>'
+  +'<div style="font-size:11px;color:var(--text3)">'+(isRecentView?'Recent Records · Last '+Math.min(docs.filter(function(d){return !d.deletedAt;}).length,5)+' uploads':(activeCat||'All Documents')+' \u00b7 '+filteredDocs.length+' file'+(filteredDocs.length!==1?'s':''))+'</div>'
   +'</div>'
   +'<div style="display:flex;gap:6px;align-items:center">'
   +'<span class="cdc-tip" data-tip="Upload Document"><button title="Upload" class="btn btn-primary btn-sm" onclick="_uploadDoc(\''+pat.id+'\')" style="padding:6px 10px"><i data-lucide="upload" class="lci" style="width:16px;height:16px"></i></button></span>'
@@ -20272,7 +20318,7 @@ return '<div style="display:grid;grid-template-columns:220px 1fr;gap:0;height:10
   +'<input type="file" id="doc-upload-input-'+pat.id+'" multiple accept="image/*,application/pdf,.doc,.docx,.xlsx,.csv"'
   +' style="display:none" onchange="_handleDocFiles(event,\''+pat.id+'\')">'
 
-  +'<div style="flex:1;overflow-y:auto">'+(!activeCat&&docs.length?_buildRecentDocsSection(docs,pat):'')+docRowsHTML+'</div>'
+  +'<div style="flex:1;overflow-y:auto">'+(isRecentView?(docs.length?_buildRecentDocsSection(docs,pat):'<div style="padding:40px;text-align:center;color:var(--text3)"><i data-lucide="clock" class="lci" style="width:40px;height:40px;display:block;margin:0 auto 10px"></i><div style="font-size:13px">No records yet</div></div>'):'')+docRowsHTML+'</div>'
   +'</div></div>';
 }
 
@@ -20413,7 +20459,25 @@ const pat = db.patients.find(p=>p.id===patId)||{};
 const doc = (pat.documents||[])[idx];
 if (!doc) return;
 
-// Superbill: render inline HTML viewer (works from any category including Recycle Bin)
+// Superbill: open the exact same PDF the printer-icon button on the Claims
+// list produces (exportBulkClaimsPDF) — use the cached copy if we have one,
+// otherwise regenerate it live from the linked claim so it's always
+// identical to what Print produces.
+if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') {
+  if (doc.data) {
+    window.open(doc.data, '_blank');
+    return;
+  }
+  var linkedClaimId = doc.claimId || ((doc.claimIds && doc.claimIds.length) ? doc.claimIds : null);
+  if (linkedClaimId) {
+    var db2 = getDB();
+    var claimsToPrint = Array.isArray(linkedClaimId)
+      ? linkedClaimId.map(function(id){ return db2.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
+      : [db2.claims.find(function(c){return c.id===linkedClaimId;})].filter(Boolean);
+    if (claimsToPrint.length) { exportBulkClaimsPDF(claimsToPrint); return; }
+  }
+  // Legacy fallback — only for old entries with no claim link and no cached data
+}
 if ((doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
     return '<tr style="font-size:12px;border-bottom:1px solid #e8e6dc">'+
@@ -25708,13 +25772,20 @@ function _downloadOne(patId, idx) {
       a.download = doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf');
       document.body.appendChild(a); a.click(); a.remove();
       toast('Superbill downloaded','ok');
-    } else {
-      // Legacy: no saved data, regenerate
-      var pdf = _sbBuildPDF(doc, pat);
-      var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-      pdf.save(fname);
-      toast('Superbill downloaded','ok');
+      return;
     }
+    var linkedClaimId1 = doc.claimId || ((doc.claimIds && doc.claimIds.length) ? doc.claimIds : null);
+    if (linkedClaimId1) {
+      var claimsToPrint1 = Array.isArray(linkedClaimId1)
+        ? linkedClaimId1.map(function(id){ return db.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
+        : [db.claims.find(function(c){return c.id===linkedClaimId1;})].filter(Boolean);
+      if (claimsToPrint1.length) { exportBulkClaimsPDF(claimsToPrint1); return; }
+    }
+    // Legacy: no saved data and no linked claim — fall back to the old builder
+    var pdf = _sbBuildPDF(doc, pat);
+    var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
+    pdf.save(fname);
+    toast('Superbill downloaded','ok');
   } else if (doc.data) {
     var a = document.createElement('a');
     a.href = doc.data;
@@ -25740,11 +25811,18 @@ function _downloadSelected(patId) {
         a2.href = doc.data;
         a2.download = doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf');
         document.body.appendChild(a2); a2.click(); a2.remove();
-      } else {
-        var pdf2 = _sbBuildPDF(doc, pat);
-        var fname2 = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
-        pdf2.save(fname2);
+        return;
       }
+      var linkedClaimId2 = doc.claimId || ((doc.claimIds && doc.claimIds.length) ? doc.claimIds : null);
+      if (linkedClaimId2) {
+        var claimsToPrint2 = Array.isArray(linkedClaimId2)
+          ? linkedClaimId2.map(function(id){ return db.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
+          : [db.claims.find(function(c){return c.id===linkedClaimId2;})].filter(Boolean);
+        if (claimsToPrint2.length) { exportBulkClaimsPDF(claimsToPrint2); return; }
+      }
+      var pdf2 = _sbBuildPDF(doc, pat);
+      var fname2 = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
+      pdf2.save(fname2);
     } else if (doc.data) {
       var a = document.createElement('a');
       a.href = doc.data;
