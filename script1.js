@@ -1439,15 +1439,17 @@ function _renderClaimEditorInner(){
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
-  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#30302e;border-bottom:2px solid #4d4c48;flex-shrink:0">'+
-    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #4d4c48;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
-    '<span style="color:#5e5d59">|</span>'+
-    '<span style="font-size:11px;color:#b0aea5">Bill# <strong style="color:#faf9f5">'+(claim.billNum||'—')+'</strong></span>'+
+  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#faf9f5;border-bottom:2px solid #c96442;flex-shrink:0">'+
+    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    '<span style="color:#e8e6dc">|</span>'+
+    '<span style="font-size:11px;color:#5e5d59">Bill# <strong style="color:#141413">'+(claim.billNum||'—')+'</strong></span>'+
+    '<span style="color:#e8e6dc">|</span>'+
+    '<span style="font-size:11px;color:#5e5d59">Total <strong style="color:#c96442;font-family:monospace">$'+billed.toFixed(2)+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
-    '<button class="btn btn-xs" onclick="window.print()" title="Print"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.08);color:#b0aea5;border:1px solid #4d4c48;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
     '<button class="btn btn-xs btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
   '</div>'+
 
@@ -1618,7 +1620,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     '<th style="'+theadStyle+'">M3</th><th style="'+theadStyle+'">M4</th>'+
     '<th style="'+theadStyle+'">ICD Codes</th>'+
     '<th style="'+theadStyle+'">Type</th>'+
-    '<th style="'+theadStyle+'">Qty</th>'+
+    '<th style="'+theadStyle+'">Unit(s)</th>'+
     '<th style="'+theadStyle+'">Adj</th>'+
     '<th style="'+theadStyle+'">Copay</th>'+
     '<th style="'+theadStyle+'">Deduct</th>'+
@@ -2939,31 +2941,53 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
 async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var PDFLib = window.PDFLib;
   var templateUrl = window.CMS1500_TEMPLATE_URL || 'cms1500-template.pdf';
-  var resp = await fetch(templateUrl);
-  if (!resp.ok) throw new Error('CMS-1500 template not found at "'+templateUrl+'" — upload cms1500-template.pdf to your site root.');
+  var resp;
+  try {
+    resp = await fetch(templateUrl, {cache:'no-store'});
+  } catch(netErr) {
+    throw new Error('Could not reach "'+templateUrl+'" — check your network or hosting.');
+  }
+  if (!resp.ok) {
+    throw new Error('CMS-1500 template not found (HTTP '+resp.status+') at "'+templateUrl+'". Upload cms1500-template.pdf to your site root (same folder as app.html).');
+  }
   var templateBytes = await resp.arrayBuffer();
+  // Verify this is actually a PDF (catches SPA fallback / wrong-content-type hosting issues
+  // where a missing file silently returns index.html with a 200 status instead of a 404).
+  var header = new Uint8Array(templateBytes.slice(0, 5));
+  var headerStr = String.fromCharCode.apply(null, header);
+  if (headerStr !== '%PDF-') {
+    console.error('[CMS1500] Fetched content is not a PDF. First bytes:', headerStr, 'Content-Type:', resp.headers.get('content-type'));
+    throw new Error('"'+templateUrl+'" did not return a valid PDF (got "'+headerStr+'..." instead — likely your server returned a 200 OK with the wrong file, e.g. app.html). Confirm cms1500-template.pdf is uploaded at your site root and re-deploy.');
+  }
   var pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
   var form = pdfDoc.getForm();
   var values = _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db);
 
+  var filledCount = 0, skippedCount = 0;
   Object.keys(values).forEach(function(key){
     var val = values[key];
     if (val===undefined || val===null || val==='') return;
     var field;
-    try { field = form.getField(key); } catch(e) { return; }
-    if (!field) return;
+    try { field = form.getField(key); } catch(e) { skippedCount++; console.warn('[CMS1500] field not found:', key); return; }
+    if (!field) { skippedCount++; console.warn('[CMS1500] field not found:', key); return; }
     var typeName = field.constructor && field.constructor.name;
     try {
       if (typeName === 'PDFTextField') {
         field.setText(String(val));
+        filledCount++;
       } else if (typeName === 'PDFRadioGroup') {
         var optVal = String(val).replace(/^\//,'');
-        if (field.getOptions().indexOf(optVal) >= 0) field.select(optVal);
+        if (field.getOptions().indexOf(optVal) >= 0) { field.select(optVal); filledCount++; }
       } else if (typeName === 'PDFCheckBox') {
         if (val) field.check(); else field.uncheck();
+        filledCount++;
       }
     } catch(fieldErr) { console.warn('[CMS1500] field set error', key, fieldErr.message); }
   });
+  console.log('[CMS1500] Filled', filledCount, 'fields, skipped', skippedCount, 'of', Object.keys(values).length, 'total values');
+  if (filledCount === 0) {
+    throw new Error('Loaded the PDF but filled 0 fields — the template\'s form fields may not match (check console for details).');
+  }
 
   try { form.updateFieldAppearances(); } catch(e) {}
   return await pdfDoc.save();
@@ -3477,7 +3501,7 @@ function renderLines() { renderClaimLines(); }
 function updateTotal() {
 const mcTot = document.getElementById('mc-total');
 if (!mcTot) return;
-const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
+const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
 mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 
@@ -5863,7 +5887,7 @@ function renderProcedureReport(el) {
       var cpt = l.cpt||'Unknown';
       if (!byProc[cpt]) byProc[cpt]={cnt:0,total:0,units:0};
       byProc[cpt].cnt++;
-      byProc[cpt].total += (parseFloat(l.charge)||0)*(parseInt(l.units)||1);
+      byProc[cpt].total += (parseFloat(l.charge)||0);
       byProc[cpt].units += parseInt(l.units)||1;
     });
   });
@@ -6074,7 +6098,7 @@ function exportProcedureReportPDF() {
   doc.setFillColor(55,55,55); doc.rect(M, Y-4, PW, 7, 'F');
   var cx = M+1; cols.forEach(function(c,i){doc.text(c,cx,Y);cx+=ws[i];}); Y += 5;
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
-  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0)*(parseInt(l.units)||1);byProc[cpt].units+=parseInt(l.units)||1;});});
+  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0);byProc[cpt].units+=parseInt(l.units)||1;});});
   Object.entries(byProc).sort(function(a,b){return b[1].cnt-a[1].cnt;}).forEach(function(r,idx){
     if(Y>240){doc.addPage();Y=15;}
     if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
@@ -6091,7 +6115,7 @@ function exportProcedureReportXLSX() {
   var db = getDB(); var claims = db.claims.filter(function(c){ return c.providerId===activeProviderId; });
   if(!claims.length){toast('No data to export','warn');return;}
   var rows = [['CPT Code','Times Billed','Total Units','Total Charges','Avg per Unit']];
-  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0)*(parseInt(l.units)||1);byProc[cpt].units+=parseInt(l.units)||1;});});
+  var byProc = {}; claims.forEach(function(c){(c.lines||[]).forEach(function(l){var cpt=l.cpt||'Unknown';if(!byProc[cpt])byProc[cpt]={cnt:0,total:0,units:0};byProc[cpt].cnt++;byProc[cpt].total+=(parseFloat(l.charge)||0);byProc[cpt].units+=parseInt(l.units)||1;});});
   var grandTotal=0,grandUnits=0,grandCnt=0;
   Object.entries(byProc).sort(function(a,b){return b[1].cnt-a[1].cnt;}).forEach(function(r){
     var avg = r[1].units>0?'$'+(r[1].total/r[1].units).toFixed(2):'$0.00';
@@ -11264,15 +11288,15 @@ wrap.innerHTML = tmpLines.map((l, i) => `
 <div class="field"><label>CPT *</label>
 <input class="mono" value="${l.cpt||''}" oninput="tmpLines[${i}].cpt=this.value;autoFillCPT(${i})" placeholder="97110">
 </div>
-<div class="field"><label>Charge $</label>
+<div class="field"><label>Total Charge $</label>
 <input class="mono" type="number" step="0.01" value="${l.charge||''}" oninput="tmpLines[${i}].charge=this.value;renderClaimLines()" placeholder="0.00">
 </div>
-<div class="field"><label>Units</label>
+<div class="field"><label>Unit(s)</label>
 <input class="mono" type="number" min="1" value="${l.units||'1'}" oninput="tmpLines[${i}].units=this.value;renderClaimLines()">
 </div>
-<div class="field" style="background:var(--brand-bg);border-radius:var(--r);padding:6px 8px;border:1px solid var(--brand-bdr)">
-<label style="color:var(--brand)">Line Total</label>
-<div class="mono" style="font-weight:700;font-size:13px;color:var(--brand)">\$${((parseFloat(l.charge)||0)*(parseInt(l.units||1))).toFixed(2)}</div>
+<div class="field" style="background:var(--bg3);border-radius:var(--r);padding:6px 8px;border:1px solid var(--border2)">
+<label style="color:var(--text3)">Per Unit</label>
+<div class="mono" style="font-weight:600;font-size:12px;color:var(--text3)">\$${(parseInt(l.units||1)>0?((parseFloat(l.charge)||0)/parseInt(l.units||1)):0).toFixed(2)}</div>
 </div>
 <div class="field"><label>Dx Ptr</label>
 <input class="mono" maxlength="8" value="${l.dxPtr||'A'}" oninput="tmpLines[${i}].dxPtr=this.value.toUpperCase()">
@@ -11287,7 +11311,7 @@ wrap.innerHTML = tmpLines.map((l, i) => `
 // Update total preview in modal
 const mc_total = document.getElementById('mc-total');
 if (mc_total) {
-const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
+const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
 mc_total.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 }
@@ -11952,7 +11976,8 @@ const ref = d.referring.find(x=>x.id===claim.referringId) || {};
 
 // Insurance — primary
 const allIns = pat.insurances || [];
-const ins1 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('primary'))
+const ins1 = allIns.find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('primary'))
+|| allIns.find(i=>!i.inactive)
 || (pat.payerName||pat.payerid ? {
 name:pat.payerName||'', payerId:pat.payerid||'',
 memberId:pat.subNum||'', group:pat.groupNum||'',
@@ -11962,7 +11987,7 @@ addr1:pat.addr1||'', addr2:pat.addr2||'',
 city:pat.city||'', state:pat.state||'', zip:pat.zip||'',
 relation:pat.relation||'18', plan:'', phone:''
 } : {});
-const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
+const ins2 = allIns.find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
 
 const dx = (claim.dx||[]).filter(Boolean);
 const lines = Array.isArray(claim.lines) ? claim.lines : [];
@@ -12737,7 +12762,7 @@ byPat.forEach(function(patClaims,patId){
     var rend = db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
     var ref  = db.referring.find(function(r){return r.id===claim.referringId;})||{};
     var fac  = db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
-    var ins1 = (pat.insurances||[]).find(function(i){return (i.insType||i.type||'').toLowerCase().includes('primary');})||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
+    var ins1 = (pat.insurances||[]).find(function(i){return !i.inactive&&(i.insType||i.type||'').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(i){return !i.inactive;})||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
     var lines = Array.isArray(claim.lines)?claim.lines:[];
     var dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
     var total = claimTotal(claim);
@@ -15507,7 +15532,7 @@ const pat = db.patients.find(p=>p.id===c.patId)||{};
 const eob = (db.claimEOB||{})[c.id]||[];
 const paid = eob.reduce((s,e)=>s+parseFloat(e.paid||0),0);
 const bal = parseFloat(c.totalCharge||claimTotal(c)) - paid;
-const ins2 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
+const ins2 = (pat.insurances||[]).find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
 return `<tr>
 <td class="mono" style="font-size:11px">${c.pcn||''}</td>
 <td style="font-weight:600">${pat.last||'?'}, ${pat.first||''}</td>
@@ -17216,7 +17241,7 @@ const db = getDB();
 const claim = db.claims.find(c=>c.id===claimId);
 if (!claim) return;
 const pat = db.patients.find(p=>p.id===claim.patId)||{};
-const ins2 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
+const ins2 = (pat.insurances||[]).find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
 if (!ins2) { toast('No secondary insurance on file','warn'); return; }
 
 // Build secondary claim — swap payer info
@@ -17251,7 +17276,7 @@ if (!ready.length) { toast('No claims ready for secondary','warn'); return; }
 // Use same CSV export but override payer info with secondary
 const secClaims = ready.map(c => {
 const pat = db.patients.find(p=>p.id===c.patId)||{};
-const ins2 = (pat.insurances||[]).find(i=>(i.insType||i.type||'').toLowerCase().includes('secondary'));
+const ins2 = (pat.insurances||[]).find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
 if (!ins2) return null;
 return {...c, _payerOverride: ins2};
 }).filter(Boolean);
@@ -18531,7 +18556,7 @@ if(li%2===1)fill(M,y-1,CW,7,LIGHT);
 t(l.cpt,M+3,y+4,{size:8.5,bold:true,color:BLUE});
 t((svc.desc||'').slice(0,35),M+16,y+4,{size:8,color:DARK});
 t(String(l.units||1),M+100,y+4,{size:8,color:DARK});
-t(`$${fmtMoney((parseFloat(l.charge)||0)*(parseInt(l.units)||1))}`,RX,y+4,{size:8.5,bold:true,color:DARK,align:'right'});
+t(`$${fmtMoney((parseFloat(l.charge)||0))}`,RX,y+4,{size:8.5,bold:true,color:DARK,align:'right'});
 hln(y+5.5,BORDER,0.2); y+=7;
 });
 y+=3;
@@ -19204,7 +19229,7 @@ const eob = getClaimEOB(claim.id);
 if (!eob.length) return claim.status; // no EOB yet — keep raw status
 
 const billed = parseFloat(claim.totalCharge||0) ||
-(claim.lines||[]).reduce((s,l)=>(s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1)),0);
+(claim.lines||[]).reduce((s,l)=>(s+(parseFloat(l.charge)||0)),0);
 const totalPaid = eob.reduce((s,p)=>s+p.paid, 0);
 const totalAdj = eob.reduce((s,p)=>s+p.adjustments, 0);
 const patResp = eob.reduce((s,p)=>s+p.patResp, 0);
@@ -20877,7 +20902,7 @@ const pat = db2.patients.find(p=>p.id===patId);
 const sidebar = document.getElementById('pt-sidebar');
 if (sidebar && pat) sidebar.innerHTML = _buildSidebar(pat, db2);
 toast('Demographics saved !');
-_renderChartTab('summary');
+_renderChartTab('insurance');
 }
 
 // ?? Insurance Tab ?????????????????????????????????????????????????????
@@ -21117,6 +21142,19 @@ function _deleteAuth(patId, idx) {
 }
 
 
+function _toggleSelfPay(patId) {
+  const db = getDB();
+  const pat = db.patients.find(p=>p.id===patId);
+  if (!pat) return;
+  const hasActiveIns = (pat.insurances||[]).some(iv => !iv.inactive);
+  const currentlyOn = pat.selfPay === true || (pat.selfPay !== false && !hasActiveIns);
+  setDB(db2 => {
+    const p = db2.patients.find(x=>x.id===patId);
+    if (p) p.selfPay = !currentlyOn;
+  });
+  _renderChartTab('insurance');
+}
+
 function _buildInsuranceTab(pat, db) {
   const ins = pat.insurances || [];
 
@@ -21248,14 +21286,18 @@ function _buildInsuranceTab(pat, db) {
       Do not collect patient responsibility
     </label>
 
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}">
-      <div onclick="this.classList.toggle('tog-on');this.querySelector('span').style.transform=this.classList.contains('tog-on')?'translateX(18px)':'translateX(2px)';this.querySelector('div').style.background=this.classList.contains('tog-on')?'#2d6b4a':'#d1d5db'"
-        style="width:38px;height:22px;border-radius:11px;background:#d1d5db;position:relative;flex-shrink:0;cursor:pointer;transition:background .2s">
-        <span style="position:absolute;top:2px;left:0;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(2px)"></span>
-        <div style="display:none"></div>
+    ${(function(){
+      const hasActiveIns = ins.some(iv => !iv.inactive);
+      const selfPayOn = pat.selfPay === true || (pat.selfPay !== false && !hasActiveIns);
+      return `
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}" title="${hasActiveIns?'Manually mark this patient as self-pay':'On by default — no active insurance on file'}">
+      <div onclick="_toggleSelfPay('${pat.id}')"
+        style="width:38px;height:22px;border-radius:11px;background:${selfPayOn?C.terracotta:'#d1d5db'};position:relative;flex-shrink:0;cursor:pointer;transition:background .2s">
+        <span style="position:absolute;top:2px;left:${selfPayOn?'18px':'2px'};width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s"></span>
       </div>
-      SelfPay Verified
-    </label>
+      Self Pay${selfPayOn&&!hasActiveIns&&pat.selfPay===undefined?' <span style="color:'+C.stoneGray+';font-weight:400">(default — no insurance)</span>':''}
+    </label>`;
+    })()}
 
     <div style="margin-left:auto;display:flex;gap:12px">
       <a href="#" style="font-size:12px;font-weight:600;color:${C.terracotta};text-decoration:none" onclick="return false">Prepayment plans</a>
@@ -21264,15 +21306,30 @@ function _buildInsuranceTab(pat, db) {
   </div>
 
   <!-- Cards -->
-  ${ins.length === 0 ? `
+  ${(function(){
+    const showInactive = !!window._ptInsShowInactive;
+    const visibleIns = showInactive ? ins : ins.filter(iv => !iv.inactive);
+    const inactiveCount = ins.filter(iv => iv.inactive).length;
+    const toggleBtn = inactiveCount ? `
+      <div style="text-align:center;margin:${visibleIns.length?'10px':'0'} 0">
+        <button onclick="window._ptInsShowInactive=${!showInactive};_renderChartTab('insurance')"
+          style="font-size:11px;font-weight:600;color:${C.stoneGray};background:none;border:none;cursor:pointer;text-decoration:underline">
+          ${showInactive ? 'Hide inactive insurance' : 'Show inactive insurance ('+inactiveCount+')'}
+        </button>
+      </div>` : '';
+    if (!visibleIns.length && !showInactive) {
+      return `
   <div style="text-align:center;padding:48px 24px;background:${C.ivory};border-radius:12px;border:1.5px dashed ${C.borderWarm}">
-    <i data-lucide="shield-off" class="lci" style="width:32px;height:32px;color:${C.stoneGray};margin-bottom:12px"></i>
-    <div style="font-size:14px;font-weight:600;color:${C.oliveGray}">No insurance on file</div>
-    <div style="font-size:12px;color:${C.stoneGray};margin-top:4px">Click Add Insurance to add coverage</div>
-  </div>` : `
+    <i data-lucide="wallet" class="lci" style="width:32px;height:32px;color:${C.terracotta};margin-bottom:12px"></i>
+    <div style="font-size:14px;font-weight:600;color:${C.oliveGray}">Self Pay</div>
+    <div style="font-size:12px;color:${C.stoneGray};margin-top:4px">No insurance on file — this patient is billed directly. Click Add Insurance if coverage applies.</div>
+  </div>${toggleBtn}`;
+    }
+    return `
   <div id="pt-ins-list" style="display:flex;flex-direction:column;gap:12px">
-    ${ins.map((iv, idx) => insCard(iv, idx)).join('')}
-  </div>`}
+    ${visibleIns.map(iv => insCard(iv, ins.indexOf(iv))).join('')}
+  </div>${toggleBtn}`;
+  })()}
 
   <!-- Authorization summary -->
   <div style="margin-top:20px">
@@ -21783,7 +21840,7 @@ return `<tr><td style="font-weight:600">${a.date}</td><td style="color:var(--tex
 function _buildBillsTab(pat, db) {
 const claims = (db.claims||[]).filter(c=>c.patId===pat.id).sort((a,b)=>a.dos<b.dos?1:-1);
 const eobMap = _localDB.claimEOB||{};
-const totalB = claims.reduce((s,c)=>s+(c.lines||[]).reduce((ss,l)=>ss+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0),0);
+const totalB = claims.reduce((s,c)=>s+(c.lines||[]).reduce((ss,l)=>ss+(parseFloat(l.charge)||0),0),0);
 const totalP = claims.reduce((s,c)=>s+(eobMap[c.id]||[]).reduce((ss,p)=>ss+p.paid,0),0);
 return `<div class="pt-card">
 <div class="pt-card-header"><span class="pt-card-title">Claims & Bills</span>
@@ -21797,7 +21854,7 @@ ${!claims.length?'<div style="padding:30px;text-align:center;color:var(--text3)"
 `<div style="overflow-x:auto"><table class="pt-contacts-table">
 <thead><tr><th>Claim #</th><th>DOS</th><th>CPT(s)</th><th>Billed</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
 <tbody>${claims.map(c=>{
-const billed=(c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0)*(parseInt(l.units)||1),0);
+const billed=(c.lines||[]).reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
 const paid=(eobMap[c.id]||[]).reduce((s,p)=>s+p.paid,0);
 const bal=billed-paid;
 const stColors={draft:'#87867f',pending:'#d97706',submitted:'#4d4c48',accepted:'#4d4c48',paid:'#4d4c48',settled:'#4d4c48',denied:'#b53333',rejected:'#b53333',partially_paid:'#d97706',patient_balance:'#d97706'};
