@@ -10003,6 +10003,7 @@ function _afterLoad() {
   const sess = getSession();
   if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); return; }
   console.log('[CDC] _afterLoad: providers='+(db2.providers||[]).length+' session.pid='+sess.activeBillingProviderId);
+  if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
 
   // Try to set activeProviderId from providers list
   if (db2.providers && db2.providers.length) {
@@ -10188,6 +10189,18 @@ btn.textContent = 'Sign In'; btn.disabled = false;
 }
 
 
+// Performs the actual sign-out (no confirmation) — shared by the manual
+// "Sign Out" button (after confirmation) and the automatic HIPAA idle logout.
+function _performLogout() {
+  try {
+    var cfg = getApiConfig();
+    if (cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
+  } catch(e) {}
+  clearSession();
+  if (_auth) _auth.signOut().catch(function(){});
+  renderLoginScreen();
+}
+
 function doLogout() {
   // Native modal confirmation — no browser alert
   var overlay = document.createElement('div');
@@ -10207,15 +10220,64 @@ function doLogout() {
   document.getElementById('logout-cancel-btn').onclick = function() { overlay.remove(); };
   document.getElementById('confirm-logout-btn').onclick = function() {
     overlay.remove();
-    try {
-      var cfg = getApiConfig();
-      if (cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
-    } catch(e) {}
-    clearSession();
-    if (_auth) _auth.signOut().catch(function(){});
-    renderLoginScreen();
+    _performLogout();
   };
 }
+
+// ── HIPAA auto-logout: signs the user out after 5 minutes of inactivity,
+// with a 60-second warning (and a "Stay Signed In" option) before it fires.
+var _idleTimer = null, _idleWarnTimer = null, _idleCountdownInt = null;
+var IDLE_TIMEOUT_MS = 5 * 60 * 1000;   // 5 minutes total
+var IDLE_WARNING_MS = 60 * 1000;       // warn 60s before logout
+
+function _resetIdleTimer() {
+  if (!getSession()) return; // nothing to protect when no one is logged in
+  clearTimeout(_idleTimer);
+  clearTimeout(_idleWarnTimer);
+  _idleWarnTimer = setTimeout(_showIdleWarning, IDLE_TIMEOUT_MS - IDLE_WARNING_MS);
+  _idleTimer = setTimeout(_autoLogoutIdle, IDLE_TIMEOUT_MS);
+}
+
+function _showIdleWarning() {
+  if (!getSession() || document.getElementById('idle-warning-modal')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'idle-warning-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.3);text-align:center;padding:28px 24px">'+
+      '<i data-lucide="clock" class="lci" style="width:32px;height:32px;color:#b45309;margin-bottom:10px"></i>'+
+      '<div style="font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px">Still there?</div>'+
+      '<div style="font-size:13px;color:var(--text3);margin-bottom:16px">For your security (HIPAA policy), you will be signed out in <strong id="idle-countdown">60</strong> seconds due to inactivity.</div>'+
+      '<button id="idle-stay-btn" style="padding:10px 24px;border:none;border-radius:8px;background:var(--brand);cursor:pointer;font-size:13px;font-weight:700;color:#fff">Stay Signed In</button>'+
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ if (typeof _renderLucideIcons==='function') _renderLucideIcons(); }, 20);
+  var secs = IDLE_WARNING_MS/1000;
+  var countdownEl = document.getElementById('idle-countdown');
+  _idleCountdownInt = setInterval(function(){
+    secs--;
+    if (countdownEl) countdownEl.textContent = secs;
+    if (secs<=0) clearInterval(_idleCountdownInt);
+  }, 1000);
+  document.getElementById('idle-stay-btn').onclick = function(){
+    clearInterval(_idleCountdownInt);
+    overlay.remove();
+    _resetIdleTimer();
+  };
+}
+
+function _autoLogoutIdle() {
+  clearInterval(_idleCountdownInt);
+  document.getElementById('idle-warning-modal')?.remove();
+  if (!getSession()) return;
+  _performLogout();
+  setTimeout(function(){ toast('Signed out automatically after 5 minutes of inactivity (HIPAA security policy)', 'warn'); }, 300);
+}
+
+// Any user activity resets the idle clock. Passive listeners — no perf cost.
+['mousemove','keydown','mousedown','click','scroll','touchstart'].forEach(function(evt){
+  window.addEventListener(evt, _resetIdleTimer, {passive:true});
+});
 
 // ?? BILLING PROVIDERS ????????????????????????????????????????????????????????
 function renderProviderInfo() {
@@ -16669,6 +16731,14 @@ function _mprovAddSpecialty() {
 // ── Active Specialty Runtime ──────────────────────────────────────────────────
 
 // Get active specialty for current user (from db.users)
+// Specialty assignments can be either a plain string (legacy) or an object
+// {name, role, active} (current). These helpers read either shape safely
+// so existing data never breaks.
+function _specEntryName(s) { return (s && typeof s === 'object') ? s.name : s; }
+function _specEntryRole(s) { return (s && typeof s === 'object') ? (s.role||'') : ''; }
+function _specEntryActive(s) { return (s && typeof s === 'object') ? (s.active !== false) : true; }
+function _specNamesOf(list) { return (Array.isArray(list)?list:[]).filter(_specEntryActive).map(_specEntryName); }
+
 function getActiveSpecialty() {
   var sess = getSession();
   if (!sess) return null;
@@ -16712,7 +16782,7 @@ function applyActiveSpecialty() {
   if (!specDefs.length) return; // No specialties configured on provider — show all
 
   var dbUser = (db.users||[]).find(function(u){ return u.email === sess.email; });
-  var userSpecNames = (dbUser && Array.isArray(dbUser.specialties)) ? dbUser.specialties : [];
+  var userSpecNames = _specNamesOf(dbUser && dbUser.specialties);
   if (!userSpecNames.length) return; // User has no specialty assigned — show all (nothing to restrict to)
 
   // Specialties this specific user is actually allowed to use
@@ -16750,14 +16820,18 @@ function _renderSpecialtySwitch() {
   var db = getDB();
   var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
   var specDefs = prov.specialtyDefs || [];
-  var userSpecs = Array.isArray(sess.specialties) ? sess.specialties : [];
-  // Also check db user
   var dbUser = (db.users||[]).find(function(u){ return u.email === sess.email; });
-  if (dbUser && dbUser.specialties) userSpecs = dbUser.specialties;
+  var rawSpecs = (dbUser && dbUser.specialties) || sess.specialties || [];
+  var userSpecNames = _specNamesOf(rawSpecs);
 
   // Only show if user has 2+ specialties assigned
-  var eligibleSpecs = specDefs.filter(function(sd){ return userSpecs.indexOf(sd.name) >= 0; });
+  var eligibleSpecs = specDefs.filter(function(sd){ return userSpecNames.indexOf(sd.name) >= 0; });
   if (eligibleSpecs.length < 2) { container.style.display = 'none'; return; }
+
+  function roleFor(name) {
+    var entry = rawSpecs.find(function(s){ return _specEntryName(s) === name; });
+    return entry ? _specEntryRole(entry) : '';
+  }
 
   var activeSpecName = getActiveSpecialty() || eligibleSpecs[0].name;
   container.style.display = '';
@@ -16767,13 +16841,14 @@ function _renderSpecialtySwitch() {
       '<div style="display:flex;flex-direction:column;gap:6px">' +
         eligibleSpecs.map(function(sd){
           var isActive = sd.name === activeSpecName;
+          var role = roleFor(sd.name);
           return '<button onclick="switchSpecialty(&quot;' + sd.name.replace(/"/g,'&quot;') + '&quot;)" type="button"' +
             ' style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:' +
             (isActive ? '2px solid var(--brand)' : '1px solid var(--border2)') +
             ';border-radius:10px;background:' + (isActive ? 'var(--brand-bg)' : 'var(--bg3)') +
             ';cursor:pointer;text-align:left;width:100%">' +
             '<div style="width:8px;height:8px;border-radius:50%;background:' + (isActive ? 'var(--brand)' : 'var(--border2)') + ';flex-shrink:0"></div>' +
-            '<div style="min-width:0"><div style="font-size:12px;font-weight:' + (isActive?'700':'600') + ';color:var(--text)">' + sd.name + '</div>' +
+            '<div style="min-width:0"><div style="font-size:12px;font-weight:' + (isActive?'700':'600') + ';color:var(--text)">' + sd.name + (role?' <span style="font-weight:400;color:var(--text3)">— '+role+'</span>':'') + '</div>' +
             (sd.taxonomy ? '<div style="font-size:10px;color:var(--text3);font-family:monospace">' + sd.taxonomy + '</div>' : '') +
             '</div>' +
             (isActive ? '<div style="margin-left:auto;font-size:9px;font-weight:700;color:var(--brand);background:var(--brand-bg);padding:2px 7px;border-radius:10px">ACTIVE</div>' : '') +
@@ -20019,9 +20094,34 @@ toast('Photo removed');
 // _patientAvatar moved earlier
 
 
+// The 4 meta items (acct#, name, age, sex) shown in the patient banner —
+// factored out so they can be recomputed fresh after a save, instead of
+// staying frozen at whatever the patient's data was when the chart first
+// opened (which is why a new patient's age never appeared after entering
+// their DOB and saving — the banner itself was never told to refresh).
+function _buildPatientBannerMeta(pat) {
+  const age = _calcAge(pat.dob);
+  const gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
+  return `<span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'—'}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age===''?'—':age} yrs</span>
+  <span class="ptc-banner-meta-item">${pat.sex==='F'
+    ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="15" r="5"/><path d="M13 11l7-7M14 4h6v6"/></svg>'
+  }${gender||'—'}</span>`;
+}
+
+function _refreshChartBanner(patId) {
+  const el = document.getElementById('ptc-banner-meta');
+  if (!el) return;
+  const db = getDB();
+  const pat = db.patients.find(p => p.id === patId);
+  if (!pat) return;
+  el.innerHTML = _buildPatientBannerMeta(pat);
+  setTimeout(_renderLucideIcons, 20);
+}
+
 function _buildChartShell(pat, db) {
-const age = _calcAge(pat.dob);
-const gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
 const initials = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
 const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
 const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.status)).length;
@@ -20045,13 +20145,10 @@ const tabsHTML = TABS.map(t =>
 
 return `
 <!-- BANNER: terracotta bar with patient info + tabs inline -->
-<div class="ptc-banner">
+<div class="ptc-banner" id="ptc-banner">
   <span class="ptc-banner-title">PATIENT FILE</span>
   <span class="ptc-banner-sep">|</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'—'}</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age} yrs</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="${pat.sex==='F'?'venus':'mars'}" class="lci" style="width:11px;height:11px"></i>${gender}</span>
+  <span id="ptc-banner-meta" style="display:contents">${_buildPatientBannerMeta(pat)}</span>
   <span class="ptc-banner-sep">|</span>
   <div class="ptc-tabs-inline">${tabsHTML}</div>
   <button onclick="_exportPatientPDF('${pat.id}')" title="Export Patient PDF" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="file-down" class="lci" style="width:14px;height:14px;pointer-events:none"></i></button>
@@ -20883,23 +20980,55 @@ No Notes for this patient.
 
 
 // ?? Demographics Tab (full editable form) ?????????????????????????????
+// Enforces single-select within a chip group: clicking a chip activates it
+// and deactivates any sibling chip in the same field, then syncs the hidden
+// input that _saveDemoTab reads from (same id a <select> would have used).
+function _pcdSelectChip(btn) {
+  var group = btn.closest('[data-chip-group]');
+  if (!group) return;
+  group.querySelectorAll('.pcd-chip').forEach(function(b){ b.classList.remove('pcd-chip-active'); });
+  btn.classList.add('pcd-chip-active');
+  var hidden = group.querySelector('input[type="hidden"]');
+  if (hidden) hidden.value = btn.dataset.value;
+}
+
 function _buildDemoTab(pat, db) {
 const fld = (id,lbl,val,type='text',req=false,opts=null) => {
 if (opts) {
-const sel = `<select id="pcd-${id}" style="width:100%;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font)">
+const sel = `<select id="pcd-${id}" style="width:100%;padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font)">
 ${opts.map(([v,t])=>`<option value="${v}"${v===val?' selected':''}>${t}</option>`).join('')}
 </select>`;
 return `<div class="field"><label style="font-size:11px;font-weight:700;color:var(--text3)">${lbl}${req?' <span class="req">*</span>':''}</label>${sel}</div>`;
 }
 return `<div class="field"><label style="font-size:11px;font-weight:700;color:var(--text3)">${lbl}${req?' <span class="req">*</span>':''}</label>
 <input id="pcd-${id}" type="${type}" value="${(val||'').toString().replace(/"/g,'&quot;')}"
-style="width:100%;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font)">
+style="width:100%;padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font)">
 </div>`;
 };
-const chk = (id,lbl,val) => `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0">
+// Single-select "chip" group — looks like multi-select but enforces exactly
+// one active choice per field (click swaps the selection, never adds to it).
+// Saves the same way a <select> does: a hidden input with the usual pcd-{id}
+// id, kept in sync by _pcdSelectChip — so _saveDemoTab needs no changes.
+const fldChips = (id,lbl,val,req,opts) => {
+  const chipsHtml = opts.filter(([v])=>v!=='').map(([v,t])=>{
+    const active = v===val;
+    return `<button type="button" class="pcd-chip${active?' pcd-chip-active':''}" data-value="${v.replace(/"/g,'&quot;')}" onclick="_pcdSelectChip(this)">${t}</button>`;
+  }).join('');
+  return `<div class="field" data-chip-group>
+    <label style="font-size:11px;font-weight:700;color:var(--text3)">${lbl}${req?' <span class="req">*</span>':''}</label>
+    <input type="hidden" id="pcd-${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}">
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:3px">${chipsHtml}</div>
+  </div>`;
+};
+const chk = (id,lbl,val) => `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:3px 0">
 <input type="checkbox" id="pcd-${id}" ${val?'checked':''} style="width:15px;height:15px;accent-color:var(--brand)"> ${lbl}</label>`;
 
 return `<div class="pt-card">
+<style>
+.pcd-chip{padding:5px 11px;border:1.5px solid var(--border2);border-radius:20px;background:var(--bg2);color:var(--text2);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .12s;white-space:nowrap}
+.pcd-chip:hover{border-color:var(--brand)}
+.pcd-chip-active{background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}
+</style>
 <div class="pt-card-header">
 <span class="pt-card-title">Demographics</span>
 <div class="btn-group">
@@ -20909,34 +21038,34 @@ return `<div class="pt-card">
 </div>
 <div class="pt-card-body" style="overflow-y:auto;max-height:calc(100vh - 180px)">
 <!-- Photo Section -->
-<div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:var(--r-md)">
-<div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:14px;padding:12px 16px;background:var(--bg3);border-radius:var(--r-md)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
 <div id="pt-photo-box-${pat.id}"
 onclick="${pat.photo?`_viewPhotoLarge('${pat.id}')`:''}"
-style="width:90px;height:90px;border-radius:14px;overflow:hidden;
+style="width:64px;height:64px;border-radius:12px;overflow:hidden;
 background:transparent;
 display:flex;align-items:center;justify-content:center;
 cursor:${pat.photo?'zoom-in':'default'};flex-shrink:0">
 ${pat.photo
 ? `<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover">`
-: _patientAvatar(pat, 90)
+: _patientAvatar(pat, 64)
 }
 </div>
-<button class="btn btn-sm" onclick="_openPhotoOptions('${pat.id}')"
-style="width:90px;font-size:11px;justify-content:center">
-<i data-lucide="camera" class="lci"></i> Photo
+<button class="btn btn-xs" onclick="_openPhotoOptions('${pat.id}')"
+style="width:64px;font-size:10px;justify-content:center">
+<i data-lucide="camera" class="lci" style="width:11px;height:11px"></i> Photo
 </button>
 ${pat.photo ? `
 <button class="btn btn-xs btn-ghost" onclick="_removePatientPhoto('${pat.id}')"
-style="width:90px;font-size:10px;justify-content:center;color:var(--red)">
-<i data-lucide="trash-2" class="lci" style="width:11px;height:11px"></i> Remove
+style="width:64px;font-size:9px;justify-content:center;color:var(--red)">
+<i data-lucide="trash-2" class="lci" style="width:10px;height:10px"></i> Remove
 </button>` : ''}
 </div>
 <div style="flex:1">
 <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px">
 ${(pat.last||'').toUpperCase()}, ${pat.first||''} ${pat.mid||''}
 </div>
-<div style="font-size:12px;color:var(--text3);margin-bottom:8px">
+<div style="font-size:12px;color:var(--text3);margin-bottom:6px">
 File #${pat.acct||''} · ${pat.inactive?'<span style="color:var(--red);font-weight:600">Inactive</span>':'<span style="color:var(--green);font-weight:600">Active</span>'}
 </div>
 <div style="font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:12px">
@@ -20948,13 +21077,13 @@ ${pat.phone?`<span><span style="color:var(--text3)">Phone</span> ${pat.phone}</s
 </div>
 
 <!-- Required fields -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Required Information</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:7px;letter-spacing:.06em">Required Information</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-bottom:14px">
 ${fld('last','Last Name',pat.last,'text',true)}
 ${fld('first','First Name',pat.first,'text',true)}
 ${fld('mid','Middle Name',pat.mid||'')}
 ${fld('dob','Date of Birth',pat.dob,'date',true)}
-${fld('sex','Sex',pat.sex,null,true,[['','— Select —'],['M','Male'],['F','Female'],['O','Other/Unknown']])}
+${fldChips('sex','Sex',pat.sex,true,[['M','Male'],['F','Female'],['O','Other/Unknown']])}
 ${fld('acct','Account #',pat.acct,'text',true)}
 ${fld('addr1','Address 1',pat.addr1,'text',true)}
 ${fld('addr2','Address 2',pat.addr2||'')}
@@ -20964,39 +21093,39 @@ ${fld('state','State',pat.state,'text',true)}
 ${fld('country','Country',pat.country||'USA','text',true)}
 </div>
 <!-- Clinical/identity -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Identity & Clinical</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
-${fld('ethnicity','Ethnicity',pat.ethnicity||'',null,true,[['','— Select —'],['Hispanic','Hispanic or Latino'],['Non-Hispanic','Not Hispanic or Latino'],['Unknown','Unknown']])}
-${fld('race','Race',pat.race||'',null,true,[['','— Select —'],['White','White'],['Black','Black or African American'],['Asian','Asian'],['AI','American Indian/Alaska Native'],['PI','Native Hawaiian/Pacific Islander'],['Multi','Two or More Races'],['Other','Other'],['Unknown','Unknown']])}
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:7px;letter-spacing:.06em">Identity & Clinical</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-bottom:14px">
+${fldChips('ethnicity','Ethnicity',pat.ethnicity||'',true,[['Hispanic','Hispanic/Latino'],['Non-Hispanic','Not Hispanic'],['Unknown','Unknown']])}
+${fldChips('race','Race',pat.race||'',true,[['White','White'],['Black','Black/African Am.'],['Asian','Asian'],['AI','AI/Alaska Native'],['PI','Native HI/Pacific Isl.'],['Multi','Two or More'],['Other','Other'],['Unknown','Unknown']])}
 ${fld('language','Preferred Language',pat.language||'')}
 ${fld('genderid','Gender Identity',pat.genderid||'')}
 ${fld('orientation','Sexual Orientation',pat.orientation||'')}
-${fld('marital','Marital Status',pat.marital||'',null,false,[['','— Select —'],['Single','Single'],['Married','Married'],['Divorced','Divorced'],['Widowed','Widowed'],['Partner','Domestic Partner']])}
+${fldChips('marital','Marital Status',pat.marital||'',false,[['Single','Single'],['Married','Married'],['Divorced','Divorced'],['Widowed','Widowed'],['Partner','Dom. Partner']])}
 ${fld('codeStatus','Code Status',pat.codeStatus||'')}
 ${fld('ssn','SSN (last 4)',pat.ssn||'')}
 ${fld('oldChart','Old Chart No.',pat.oldChart||'')}
 ${fld('dateOfDeath','Date of Death',pat.dateOfDeath||'','date')}
 </div>
 <!-- Contact -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Contact</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:7px;letter-spacing:.06em">Contact</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-bottom:14px">
 ${fld('phone','Primary Contact #',pat.phone||'','tel',true)}
 ${fld('phone2','Secondary Contact #',pat.phone2||'')}
 ${fld('email','Email',pat.email||'','email')}
-${fld('prefContact','Preferred Contact',pat.prefContact||'',null,false,[['','— Select —'],['phone','Phone'],['email','Email'],['text','Text'],['mail','Mail']])}
-${fld('apptReminder','Appointment Reminder',pat.apptReminder||'',null,false,[['','— Select —'],['phone','Phone'],['email','Email'],['text','Text']])}
+${fldChips('prefContact','Preferred Contact',pat.prefContact||'',false,[['phone','Phone'],['email','Email'],['text','Text'],['mail','Mail']])}
+${fldChips('apptReminder','Appointment Reminder',pat.apptReminder||'',false,[['phone','Phone'],['email','Email'],['text','Text']])}
 </div>
 <!-- Providers -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Providers & Facility</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:18px">
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:7px;letter-spacing:.06em">Providers & Facility</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;margin-bottom:14px">
 ${fld('pcp','PCP Provider',pat.pcp||'')}
 ${fld('refPhys','Referring Physician',pat.refPhys||'')}
-${fld('inactive','Status',pat.inactive?'inactive':'active',null,false,[['active','Active'],['inactive','Inactive']])}
+${fldChips('inactive','Status',pat.inactive?'inactive':'active',false,[['active','Active'],['inactive','Inactive']])}
 ${fld('nickname','Nick Name',pat.nickname||'')}
 </div>
 <!-- Flags -->
-<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.06em">Flags</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px">
+<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:7px;letter-spacing:.06em">Flags</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px 14px">
 ${chk('selfInsSync','Self insured demographic sync',pat.selfInsSync)}
 ${chk('addrSync','Address sync with insurance',pat.addrSync)}
 ${chk('specialNeeds','Special Needs Patient',pat.specialNeeds)}
@@ -21005,6 +21134,7 @@ ${chk('transportation','Transportation Needed',pat.transportation)}
 ${chk('wheelchair','Wheelchair Required',pat.wheelchair)}
 </div>
 </div>
+
 </div>`;
 }
 
@@ -21060,6 +21190,7 @@ const db2 = getDB();
 const pat = db2.patients.find(p=>p.id===patId);
 const sidebar = document.getElementById('pt-sidebar');
 if (sidebar && pat) sidebar.innerHTML = _buildSidebar(pat, db2);
+_refreshChartBanner(patId);
 toast('Demographics saved !');
 _renderChartTab('insurance');
 }
@@ -21678,8 +21809,8 @@ style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line
 
 <!-- LEFT column -->
 <div>
-${fld('pif-lname','Last Name *',iv.lname||pat.last||'','text','',true)}
-${fld('pif-fname','First Name *',iv.fname||pat.first||'','text','',true)}
+${fld('pif-lname','Last Name',iv.lname||pat.last||'','text','',true)}
+${fld('pif-fname','First Name',iv.fname||pat.first||'','text','',true)}
 ${fld('pif-mid','Middle Name',iv.mid||pat.mid||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Sex <span style="color:#b53333">*</span></label>
@@ -21691,7 +21822,7 @@ ${['Male','Female','Unknown'].map(s=>
 </label>`).join('')}
 </div>
 </div>
-${fld('pif-dob','Date Of Birth *',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
+${fld('pif-dob','Date Of Birth',iv.dob||pat.dob||'','text','placeholder="MM-DD-YYYY"',true)}
 ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
 <div style="display:flex;align-items:flex-start;gap:0;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0;padding-top:4px">Insurance Company <span style="color:#b53333">*</span></label>
@@ -21746,19 +21877,20 @@ ${fld('pif-ins-phone','Insurance Phone #',iv.insPhone||'')}
 <div style="display:flex;align-items:center;padding:4px 0">
 <label style="width:140px;font-size:12px;color:#4d4c48;flex-shrink:0">Relation <span style="color:#b53333">*</span></label>
 <span style="color:#555;margin-right:6px;font-size:12px">:</span>
-<select id="pif-relation"
-onchange="if(this.value==='Self'){window._insPatId='${patId}';const p=getDB().patients.find(x=>x.id==='${patId}')||{};['pif-lname','pif-fname','pif-mid'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[p.last,p.first,p.mid||''][i]||'';});document.getElementById('pif-dob').value=p.dob||'';document.getElementById('pif-ssn').value=p.ssn||'';document.getElementById('pif-addr1').value=p.addr1||'';document.getElementById('pif-city').value=p.city||'';document.getElementById('pif-state').value=p.state||'';document.getElementById('pif-zip').value=p.zip||'';document.getElementById('pif-phone').value=p.phone||'';document.getElementById('pif-mobile').value=p.phone2||'';document.getElementById('pif-email').value=p.email||'';const s=p.sex==='M'?'Male':p.sex==='F'?'Female':'Unknown';['Male','Female','Unknown'].forEach(sv=>{const r=document.getElementById('pif-sex-'+sv);if(r)r.checked=sv===s;});}"
-style="flex:1;padding:4px 6px;border:1px solid #e8e6dc;border-radius:3px;font-size:12px;background:#fff">
-${['Self','Spouse','Child','Parent','Other'].map(r=>`<option value="${r}" ${(iv.relation||'Self')===r?'selected':''}>${r}</option>`).join('')}
-</select>
+<div>${['Self','Spouse','Child','Parent','Other'].map(r=>
+`<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;margin-right:10px;cursor:pointer">
+<input type="radio" name="pif-relation-r" id="pif-relation-${r}" value="${r}" ${(iv.relation||'Self')===r?'checked':''}
+onchange="document.getElementById('pif-relation').value=this.value;if(this.value==='Self'){window._insPatId='${patId}';const p=getDB().patients.find(x=>x.id==='${patId}')||{};['pif-lname','pif-fname','pif-mid'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[p.last,p.first,p.mid||''][i]||'';});document.getElementById('pif-dob').value=p.dob||'';document.getElementById('pif-ssn').value=p.ssn||'';document.getElementById('pif-addr1').value=p.addr1||'';document.getElementById('pif-city').value=p.city||'';document.getElementById('pif-state').value=p.state||'';document.getElementById('pif-zip').value=p.zip||'';document.getElementById('pif-phone').value=p.phone||'';document.getElementById('pif-mobile').value=p.phone2||'';document.getElementById('pif-email').value=p.email||'';const s=p.sex==='M'?'Male':p.sex==='F'?'Female':'Unknown';['Male','Female','Unknown'].forEach(sv=>{const rr=document.getElementById('pif-sex-'+sv);if(rr)rr.checked=sv===s;});}"> ${r}
+</label>`).join('')}</div>
+<input type="hidden" id="pif-relation" value="${iv.relation||'Self'}">
 </div>
-${fld('pif-addr1','Address 1 *',iv.addr1||pat.addr1||'','text','',true)}
+${fld('pif-addr1','Address 1',iv.addr1||pat.addr1||'','text','',true)}
 ${fld('pif-addr2','Address 2',iv.addr2||pat.addr2||'')}
-${fld('pif-city','City *',iv.city||pat.city||'','text','',true)}
-${fld('pif-state','State *',iv.state||pat.state||'','text','',true)}
-${fld('pif-zip','ZIP *',iv.zip||pat.zip||'','text','',true)}
+${fld('pif-city','City',iv.city||pat.city||'','text','',true)}
+${fld('pif-state','State',iv.state||pat.state||'','text','',true)}
+${fld('pif-zip','ZIP',iv.zip||pat.zip||'','text','',true)}
 ${fld('pif-email','Email ID',iv.email||pat.email||'')}
-${fld('pif-phone','Contact No 1 *',iv.phone||pat.phone||'','text','',true)}
+${fld('pif-phone','Contact No 1',iv.phone||pat.phone||'','text','',true)}
 ${fld('pif-mobile','Mobile #',iv.mobile||pat.phone2||'')}
 ${fld('pif-fax','Fax',iv.fax||'')}
 ${fld('pif-employer','Employer',iv.employer||'')}
@@ -21782,7 +21914,7 @@ ${fld('pif-eff-to','Effective To',iv.effTo||'')}
 </div><!-- /grid -->
 
 <!-- Footer buttons -->
-<div style="display:flex;justify-content:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
+<div style="display:flex;justify-content:flex-end;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #e8e6dc">
 <button class="btn btn-primary"
 onclick="_saveInsuranceForm('${patId}',${idx})">Save</button>
 <button class="btn btn-primary"
@@ -21879,7 +22011,7 @@ document.getElementById('pt-ins-form')?.remove();
 // Refresh full insurance tab
 const db2 = getDB();
 const pat2 = db2.patients.find(p=>p.id===patId);
-const mainEl2 = document.getElementById('pt-chart-main');
+const mainEl2 = document.getElementById('pt-main');
 if (mainEl2 && pat2) mainEl2.innerHTML = _buildInsuranceTab(pat2, db2);
 setTimeout(_renderLucideIcons, 20);
 toast('Insurance saved');
@@ -21906,7 +22038,7 @@ if (usedInClaim) {
 if (!confirm('Delete this insurance record?')) return;
 setDB(db2 => { const p=db2.patients.find(x=>x.id===patId); if(p?.insurances) p.insurances.splice(idx,1); });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const mainEl2=document.getElementById('pt-chart-main');
+const mainEl2=document.getElementById('pt-main');
 if (mainEl2 && pat2) { mainEl2.innerHTML = _buildInsuranceTab(pat2, getDB()); setTimeout(_renderLucideIcons,20); }
 }
 
@@ -21916,7 +22048,7 @@ setDB(db2 => {
   if(p?.insurances?.[idx]) p.insurances[idx].inactive = !p.insurances[idx].inactive;
 });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const mainEl2=document.getElementById('pt-chart-main');
+const mainEl2=document.getElementById('pt-main');
 if (mainEl2 && pat2) { mainEl2.innerHTML = _buildInsuranceTab(pat2, getDB()); setTimeout(_renderLucideIcons,20); }
 const iv = pat2?.insurances?.[idx];
 toast('Insurance marked '+(iv?.inactive?'Inactive':'Active'));
@@ -21967,7 +22099,7 @@ const p = db.patients.find(x=>x.id===patId);
 if (p?.insurances?.[idx]) p.insurances[idx].inactive = !p.insurances[idx].inactive;
 });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
-const mainEl2=document.getElementById('pt-chart-main');
+const mainEl2=document.getElementById('pt-main');
 if(mainEl2&&pat2){mainEl2.innerHTML=_buildInsuranceTab(pat2,getDB());setTimeout(_renderLucideIcons,20);}
 }
 
@@ -22519,7 +22651,19 @@ function _cmWorkerOpts() {
 }
 function _isCMRole() {
   var s = getSession();
-  return !!(s && (s.role === 'Case Management' || s.role === 'Super Admin'));
+  if (!s) return false;
+  if (s.role === 'Super Admin') return true;
+  // Single source of truth: Case Management access now follows the same
+  // specialty → menu grant used everywhere else (tng-cm), instead of a
+  // separate "Case Management" role flag that could drift out of sync.
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
+  var specDefs = prov.specialtyDefs || [];
+  if (!specDefs.length) return true; // no specialties configured on this provider — don't lock anyone out
+  var activeSpecName = getActiveSpecialty();
+  var activeDef = specDefs.find(function(sd){ return sd.name === activeSpecName; });
+  if (!activeDef) return true; // couldn't resolve an active specialty — fail open rather than lock out
+  return (activeDef.menus||[]).indexOf('tng-cm') >= 0;
 }
 
 // ── CM: DASHBOARD ──────────────────────────────────────────────
@@ -24367,6 +24511,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
   function _afterLoad() {
     var db2 = getDB(); var s = getSession(); if (!s) return;
+    if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
     if (db2.providers && db2.providers.length) {
       var savedId = s.activeBillingProviderId;
       var vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
@@ -24653,7 +24798,10 @@ function saveNewUser() {
   var passExpire   = !!document.getElementById('nu-pass-expire')?.checked;
   var autoInactive = !!document.getElementById('nu-auto-inactive')?.checked;
   var twoFA        = !!document.getElementById('nu-twofa')?.checked;
-  var specialties = Array.from(document.querySelectorAll('.nu-spec-cb:checked')).map(function(cb){ return cb.value; });
+  var specialties = Array.from(document.querySelectorAll('.nu-spec-cb:checked')).map(function(cb){
+    var roleInput = document.querySelector('.nu-spec-role[data-spec="'+cb.value.replace(/"/g,'\\"')+'"]');
+    return {name: cb.value, role: (roleInput?roleInput.value.trim():''), active: true};
+  });
   var roles       = Array.from(document.querySelectorAll('.nu-role-cb:checked')).map(function(cb){ return cb.value; });
   var perms       = Array.from(document.querySelectorAll('.nu-perm-cb:checked')).map(function(cb){ return cb.value; });
 
@@ -25548,6 +25696,12 @@ function _suggestUserName() {
   if (nameEl && suggested) nameEl.value = suggested;
 }
 
+function _nuToggleSpecRole(cb) {
+  var wrap = cb.closest('div');
+  var roleInput = wrap ? wrap.querySelector('.nu-spec-role') : null;
+  if (roleInput) roleInput.style.display = cb.checked ? 'block' : 'none';
+}
+
 function openAddUserModal(existingUser) {
   var prev = document.getElementById('modal-add-user');
   if (prev) prev.remove();
@@ -25573,6 +25727,7 @@ function openAddUserModal(existingUser) {
     provSpecDefs = prov.specialties.map(function(s){ return { id:s, name:s, taxonomy:'', menus:[] }; });
   }
   var userSpecs = Array.isArray(u.specialties) ? u.specialties : (u.specialty ? [u.specialty] : []);
+  function _findSpecEntry(name) { return userSpecs.find(function(s){ return _specEntryName(s) === name; }); }
 
   var session = getSession ? getSession() : {};
   var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
@@ -25608,13 +25763,18 @@ function openAddUserModal(existingUser) {
   // Specialties
   var specsHtml = provSpecDefs.length
     ? provSpecDefs.map(function(sd) {
-        var chk = userSpecs.indexOf(sd.name) >= 0 ? 'checked' : '';
+        var entry = _findSpecEntry(sd.name);
+        var chk = entry ? 'checked' : '';
+        var roleVal = entry ? _specEntryRole(entry) : '';
         var dis = _lockRolePerm ? 'disabled' : '';
-        return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+';transition:all .15s">'+
-          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
-          '<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+sd.name+'</div>'+
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+';transition:all .15s">'+
+          '<label style="display:flex;align-items:center;gap:10px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';flex:1;min-width:0">'+
+          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' '+dis+' onchange="_nuToggleSpecRole(this)" style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
+          '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">'+sd.name+'</div>'+
           (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px">'+sd.taxonomy+'</div>':'')+
-          '</div></label>';
+          '</div></label>'+
+          '<input type="text" class="nu-spec-role" data-spec="'+sd.name.replace(/"/g,'&quot;')+'" placeholder="Role (e.g. Therapist)" value="'+roleVal.replace(/"/g,'&quot;')+'" '+dis+' style="width:150px;flex-shrink:0;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);display:'+(chk?'block':'none')+'">'+
+          '</div>';
       }).join('')
     : '<div style="padding:14px;text-align:center;background:var(--bg3);border-radius:8px;border:1px dashed var(--border);font-size:12px;color:var(--text3)">No specialties configured.<br>Add them in <strong>Admin → Billing Providers</strong>.</div>';
 
