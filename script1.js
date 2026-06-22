@@ -1560,7 +1560,7 @@ function _renderClaimEditorInner(){
       })(dxi);
     }
     // CPT search wiring
-    _ceWireCptSearch(cptCat, claimId);
+    _ceWireAutoFillCpt(cptCat, claimId);
     } catch(wireErr) {
       console.error('[CDC] claim editor wiring error (icons unaffected):', wireErr);
     }
@@ -2963,6 +2963,36 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var form = pdfDoc.getForm();
   var values = _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db);
 
+// Some CMS-1500 "radio-like" fields (Sex M/F, Self/Spouse/Child/Other,
+// Employment Yes/No, SSN/EIN, etc.) are exposed by pdf-lib as a single
+// PDFCheckBox with MULTIPLE widgets sharing one field name, rather than a
+// PDFRadioGroup. Calling .check() on these always selects the FIRST widget's
+// "on" state — there is no way to pick a specific one through the public
+// PDFCheckBox API. This sets the correct widget directly.
+function _cms1500SetCheckbox(field, PDFLib, targetValue) {
+  var PDFName = PDFLib.PDFName;
+  var widgets = field.acroField.getWidgets();
+  if (widgets.length <= 1) {
+    if (targetValue) field.check(); else field.uncheck();
+    return;
+  }
+  var targetName = String(targetValue).replace(/^\//,'');
+  var matched = false;
+  widgets.forEach(function(w){
+    var onState = null;
+    try {
+      var apDict = w.dict.lookup(PDFName.of('AP'));
+      var nDict = apDict && apDict.lookup(PDFName.of('N'));
+      if (nDict && nDict.keys) {
+        nDict.keys().forEach(function(k){ if (k.encodedName !== '/Off') onState = k.encodedName.replace(/^\//,''); });
+      }
+    } catch(e) {}
+    if (onState === targetName) { w.dict.set(PDFName.of('AS'), PDFName.of(targetName)); matched = true; }
+    else { w.dict.set(PDFName.of('AS'), PDFName.of('Off')); }
+  });
+  if (matched) field.acroField.dict.set(PDFName.of('V'), PDFName.of(targetName));
+}
+
   var filledCount = 0, skippedCount = 0;
   Object.keys(values).forEach(function(key){
     var val = values[key];
@@ -2970,19 +3000,29 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     var field;
     try { field = form.getField(key); } catch(e) { skippedCount++; console.warn('[CMS1500] field not found:', key); return; }
     if (!field) { skippedCount++; console.warn('[CMS1500] field not found:', key); return; }
-    var typeName = field.constructor && field.constructor.name;
     try {
-      if (typeName === 'PDFTextField') {
+      // Use instanceof against the PDFLib class references rather than
+      // field.constructor.name — minified CDN builds rename classes to
+      // single letters (e.g. PDFTextField -> "r"), which silently broke
+      // every name-based comparison and filled 0 fields.
+      if (field instanceof PDFLib.PDFTextField) {
         field.setText(String(val));
         filledCount++;
-      } else if (typeName === 'PDFRadioGroup') {
+      } else if (field instanceof PDFLib.PDFRadioGroup) {
         var optVal = String(val).replace(/^\//,'');
         if (field.getOptions().indexOf(optVal) >= 0) { field.select(optVal); filledCount++; }
-      } else if (typeName === 'PDFCheckBox') {
-        if (val) field.check(); else field.uncheck();
+        else { skippedCount++; console.warn('[CMS1500] radio option not found:', key, optVal); }
+      } else if (field instanceof PDFLib.PDFCheckBox) {
+        _cms1500SetCheckbox(field, PDFLib, val);
         filledCount++;
+      } else if (field instanceof PDFLib.PDFDropdown) {
+        var ddVal = String(val).replace(/^\//,'');
+        if (field.getOptions().indexOf(ddVal) >= 0) { field.select(ddVal); filledCount++; }
+        else { skippedCount++; }
+      } else {
+        skippedCount++; console.warn('[CMS1500] unhandled field type for:', key);
       }
-    } catch(fieldErr) { console.warn('[CMS1500] field set error', key, fieldErr.message); }
+    } catch(fieldErr) { console.warn('[CMS1500] field set error', key, fieldErr.message); skippedCount++; }
   });
   console.log('[CMS1500] Filled', filledCount, 'fields, skipped', skippedCount, 'of', Object.keys(values).length, 'total values');
   if (filledCount === 0) {
@@ -3511,10 +3551,15 @@ insurances: [],
 inactive: false,
 createdAt: Date.now(),
 };
-// Generate proper account number
+// Generate proper account number — guaranteed unique within this provider
 const existingAccts = db.patients.map(p => parseInt((p.acct||'0').replace(/\D/g,''))||0);
-const maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
-newPat.acct = String(maxAcct + 1);
+let maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
+let candidateAcct = String(maxAcct + 1);
+while (db.patients.find(p => String(p.acct||'').trim().toLowerCase()===candidateAcct.toLowerCase() && p.providerId===activeProviderId)) {
+  maxAcct++;
+  candidateAcct = String(maxAcct + 1);
+}
+newPat.acct = candidateAcct;
 setDB(db2 => { db2.patients.push(newPat); });
 openPatientChart(newPat.id);
 setTimeout(() => _renderChartTab('demographics'), 100);
@@ -6383,7 +6428,7 @@ const required=[['mp-last','Last Name'],['mp-first','First Name'],['mp-dob','Dat
 for(const [id,lbl] of required){ if(!v(id)){ toast('Required: '+lbl,'err'); return; } }
 const db=getDB(); const idx=parseInt(v('mp-id'));
 const isNew=idx<0||isNaN(idx);
-if(isNew){ const acct=v('mp-acct'); if(db.patients.find(p=>p.acct===acct&&p.providerId===activeProviderId)){ toast('Account # '+acct+' already exists','err'); return; } }
+if(isNew){ const acct=v('mp-acct').trim(); const dupAcct=db.patients.find(p=>String(p.acct||'').trim().toLowerCase()===acct.toLowerCase()&&p.providerId===activeProviderId); if(dupAcct){ toast('Account # "'+acct+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' — choose a different Account #','err'); return; } }
 const p={id:!isNew?db.patients[idx].id:uid(),providerId:activeProviderId,acct:!isNew?db.patients[idx].acct:v('mp-acct'),last:v('mp-last'),first:v('mp-first'),mid:v('mp-mid'),dob:v('mp-dob'),sex:document.getElementById('mp-sex').value,addr1:v('mp-addr1'),addr2:v('mp-addr2'),city:v('mp-city'),state:v('mp-state'),zip:v('mp-zip'),phone:v('mp-phone'),rel:document.getElementById('mp-rel').value,subLast:v('mp-insl'),subFirst:v('mp-insf'),subNum:v('mp-insnum'),subDob:v('mp-insdob'),subSex:document.getElementById('mp-inssex').value,group:v('mp-group'),plan:v('mp-plan'),payerid:v('mp-payerid'),payerName:v('mp-payername'),payerCity:v('mp-payercity'),payerState:v('mp-payerstate'),createdAt:!isNew?db.patients[idx].createdAt:Date.now()};
 setDB(db=>{ if(!isNew) db.patients[idx]=p; else db.patients.push(p); });
 closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
@@ -12615,7 +12660,6 @@ const {jsPDF} = window.jspdf;
 const db = getDB();
 const prov = db.providers.find(p => p.id === activeProviderId) || {};
 const W=216, M=14, RX=W-M, CW=RX-M, PAGE_H=279;
-const LINES_MAX = 6;    // max service lines per page
 const FOOTER_Y  = 245;  // footer always at this Y
 const BRAND=[201,100,66], TERRA=[181,69,27], BLACK=[0,0,0], GRAY2=[100,100,100], BLT=[210,210,210];
 
@@ -12667,23 +12711,19 @@ function _fetchQRthenPDF(callback) {
 // ── Watermark: QR + text, bottom-right of every page ─────────────────────────
 function drawWatermark(doc, qrDataURL) {
   var pages=doc.internal.getNumberOfPages();
-  var qrSz=9, qrX=RX-qrSz, qrY=PAGE_H-4-qrSz;
-  var midQR=qrY+qrSz/2, txtX=qrX-2;
+  var txtX=RX;
+  var now=new Date(), hr=now.getHours()%12||12;
+  var et=String(hr).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' '+(now.getHours()>=12?'PM':'AM');
+  var genStr=(now.getMonth()+1)+'/'+now.getDate()+'/'+now.getFullYear()+', '+et;
+  var baseY=PAGE_H-4;
   for(var pg=1;pg<=pages;pg++){
     doc.setPage(pg);
-    if(qrDataURL){
-      try{ doc.addImage(qrDataURL,'PNG',qrX,qrY,qrSz,qrSz,undefined,'FAST'); }catch(e){}
-    } else {
-      // Fallback box if QR unavailable
-      doc.setFillColor(240,238,230); doc.rect(qrX,qrY,qrSz,qrSz,'F');
-      doc.setDrawColor(181,69,27); doc.setLineWidth(0.4); doc.rect(qrX,qrY,qrSz,qrSz,'S');
-      doc.setFont('helvetica','bold'); doc.setFontSize(4); doc.setTextColor(181,69,27);
-      doc.text('CDC',qrX+qrSz/2,qrY+qrSz/2,{align:'center'});
-    }
     doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(...BRAND);
-    doc.text('Powered by',txtX,midQR-1.5,{align:'right'});
+    doc.text('Powered by',txtX,baseY-7,{align:'right'});
     doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...TERRA);
-    doc.text('ClaimDataCare',txtX,midQR+3,{align:'right'});
+    doc.text('ClaimDataCare',txtX,baseY-2.5,{align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(...GRAY2);
+    doc.text(genStr,txtX,baseY+2,{align:'right'});
   }
 }
 
@@ -12695,10 +12735,6 @@ function drawFooter(doc, claim, rend, prov) {
   t(doc,'ELECTRONICALLY SIGNED BY:',M+6,FOOTER_Y+6,{sz:7,c:GRAY2});
   t(doc,rn,M+6,FOOTER_Y+13,{b:true,sz:8.5,c:BLACK});
   if(rend.taxonomy) t(doc,'TAXONOMY: '+UC(rend.taxonomy),M+6,FOOTER_Y+19,{sz:7,c:BLACK});
-  var now=new Date(), hr=now.getHours()%12||12;
-  var et=String(hr).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' '+(now.getHours()>=12?'PM':'AM');
-  var dp=parseDOS(claim.dos);
-  t(doc,'GENERATED: '+parseInt(dp.mm)+'/'+parseInt(dp.dd)+'/'+dp.yyyy+', '+et,RX,FOOTER_Y+13,{sz:7,c:BLACK,a:'right'});
 }
 
 // ── Column headers for service lines table ────────────────────────────────────
@@ -12815,15 +12851,26 @@ byPat.forEach(function(patClaims,patId){
     hline(doc,M,y,RX,BLACK,0.3); y+=5;
     y=drawColHdrs(doc,y,hasDOS,CPTX,SL);
 
-    // ALL lines flow in order — NO grouping by date, NO page per date
-    // Split into pages of max LINES_MAX lines
-    var chunks=[];
-    for(var ci2=0;ci2<lines.length;ci2+=LINES_MAX) chunks.push(lines.slice(ci2,ci2+LINES_MAX));
-    if(!chunks.length) chunks.push([]);
+    // ALL lines flow in order — NO grouping by date, NO page per date.
+    // Page breaks are decided dynamically based on each row's actual
+    // rendered height (which varies with description wrapping), instead
+    // of a fixed line count, so a row never overlaps the footer.
+    var SAFE_Y = FOOTER_Y - 6;
 
-    chunks.forEach(function(chunk,chunkIdx){
-      // Page break for continuation pages
-      if(chunkIdx>0){
+    lines.forEach(function(l,li){
+      var dbSvc=(db.services||[]).find(function(s){return s.code===l.cpt||s.cpt===l.cpt;});
+      var desc=UC(l.desc||(dbSvc&&(dbSvc.description||dbSvc.desc))||'');
+      var mods=[l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
+      var chg=parseFloat(l.charge)||0;
+      var units=parseInt(l.units||1)||1;
+      var uprc=units>1?chg/units:chg;
+      var dxPtr=(l.dxPtr||'A').toUpperCase();
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      var dl=doc.splitTextToSize(desc||'',SL.dW-2);
+      var rowH=Math.max(7,dl.length*4.5);
+
+      // Page break: only if THIS row would actually overflow into the footer
+      if(y+rowH>SAFE_Y){
         drawFooter(doc,claim,rend,prov);
         doc.addPage();
         fill(doc,0,0,W,3,BRAND);
@@ -12835,52 +12882,41 @@ byPat.forEach(function(patClaims,patId){
         y=drawColHdrs(doc,y,hasDOS,CPTX,SL);
       }
 
-      // Draw each line row
-      chunk.forEach(function(l,li){
-        var dbSvc=(db.services||[]).find(function(s){return s.code===l.cpt||s.cpt===l.cpt;});
-        var desc=UC(l.desc||(dbSvc&&(dbSvc.description||dbSvc.desc))||'');
-        var mods=[l.mod1,l.mod2,l.mod3,l.mod4].filter(Boolean).join(' ');
-        var chg=parseFloat(l.charge)||0;
-        var units=parseInt(l.units||1)||1;
-        var uprc=units>1?chg/units:chg;
-        var dxPtr=(l.dxPtr||'A').toUpperCase();
-        doc.setFont('helvetica','normal'); doc.setFontSize(8);
-        var dl=doc.splitTextToSize(desc||'',SL.dW-2);
-        var rowH=Math.max(7,dl.length*4.5);
-
-        // Format DOS per line
-        if(hasDOS&&l.dos){
-          var ld=String(l.dos),ldf=ld;
-          try{if(ld.indexOf('-')>3){var p3=ld.split('-');ldf=p3[1]+'/'+p3[2]+'/'+p3[0];}else{var p4=ld.split('/');ldf=p4[0].padStart(2,'0')+'/'+p4[1].padStart(2,'0')+'/'+(p4[2]||'');}}catch(e){}
-          t(doc,ldf,M,y+4,{sz:8.5,c:BLACK});
-        }
-
-        t(doc,UC(l.cpt||''),CPTX,y+4,{sz:9,b:true,c:BLACK});
-        dl.forEach(function(dlx,dli){t(doc,dlx,CPTX+SL.cW,y+4+dli*4.5,{sz:8.5,c:BLACK});});
-        t(doc,String(units),CPTX+SL.cW+SL.dW+SL.uW/2,y+4,{sz:9,c:BLACK,a:'center'});
-        t(doc,'$'+uprc.toFixed(2),CPTX+SL.cW+SL.dW+SL.uW+SL.pW,y+4,{sz:9,c:BLACK,a:'right'});
-        if(mods)t(doc,UC(mods),CPTX+SL.cW+SL.dW+SL.uW+SL.pW+3,y+4,{sz:9,c:BLACK});
-        t(doc,dxPtr,CPTX+SL.cW+SL.dW+SL.uW+SL.pW+SL.mW+SL.xW/2+2,y+4,{sz:9,c:BLACK,a:'center'});
-        t(doc,$v(chg),RX,y+4,{sz:9,c:BLACK,a:'right'});
-        y+=rowH;
-        if(li<chunk.length-1){hline(doc,M,y,RX,BLT,0.15);y+=3;}
-      });
-
-      // Total only on last chunk — NO subtotals between dates
-      if(chunkIdx===chunks.length-1){
-        y+=4; hline(doc,M,y,RX,BLACK,0.6); y+=2;
-        t(doc,'TOTAL CHARGES',M,y+6,{b:true,sz:10,c:BLACK});
-        t(doc,$v(total),RX,y+6,{b:true,sz:11,c:BLACK,a:'right'});
+      // Format DOS per line
+      if(hasDOS&&l.dos){
+        var ld=String(l.dos),ldf=ld;
+        try{if(ld.indexOf('-')>3){var p3=ld.split('-');ldf=p3[1]+'/'+p3[2]+'/'+p3[0];}else{var p4=ld.split('/');ldf=p4[0].padStart(2,'0')+'/'+p4[1].padStart(2,'0')+'/'+(p4[2]||'');}}catch(e){}
+        t(doc,ldf,M,y+4,{sz:8.5,c:BLACK});
       }
+
+      t(doc,UC(l.cpt||''),CPTX,y+4,{sz:9,b:true,c:BLACK});
+      dl.forEach(function(dlx,dli){t(doc,dlx,CPTX+SL.cW,y+4+dli*4.5,{sz:8.5,c:BLACK});});
+      t(doc,String(units),CPTX+SL.cW+SL.dW+SL.uW/2,y+4,{sz:9,c:BLACK,a:'center'});
+      t(doc,'$'+uprc.toFixed(2),CPTX+SL.cW+SL.dW+SL.uW+SL.pW,y+4,{sz:9,c:BLACK,a:'right'});
+      if(mods)t(doc,UC(mods),CPTX+SL.cW+SL.dW+SL.uW+SL.pW+3,y+4,{sz:9,c:BLACK});
+      t(doc,dxPtr,CPTX+SL.cW+SL.dW+SL.uW+SL.pW+SL.mW+SL.xW/2+2,y+4,{sz:9,c:BLACK,a:'center'});
+      t(doc,$v(chg),RX,y+4,{sz:9,c:BLACK,a:'right'});
+      y+=rowH;
+      if(li<lines.length-1){hline(doc,M,y,RX,BLT,0.15);y+=3;}
     });
+
+    // Total — also page-break-aware so it never overlaps the footer
+    if(y+14>SAFE_Y){
+      drawFooter(doc,claim,rend,prov);
+      doc.addPage();
+      fill(doc,0,0,W,3,BRAND);
+      t(doc,UC(prov.name||'Provider'),M,10,{b:true,sz:9,c:BLACK});
+      t(doc,'PATIENT: '+UC(patName)+'   PCN: '+UC(claim.pcn||'')+'   (cont.)',M,16,{sz:8,c:GRAY2});
+      hline(doc,M,20,RX,BLT,0.4); y=28;
+    }
+    y+=4; hline(doc,M,y,RX,BLACK,0.6); y+=2;
+    t(doc,'TOTAL CHARGES',M,y+6,{b:true,sz:10,c:BLACK});
+    t(doc,$v(total),RX,y+6,{b:true,sz:11,c:BLACK,a:'right'});
 
     drawFooter(doc,claim,rend,prov);
   });
 
-  // Watermark applied after QR fetch (see callback below)
-  _pendingDocs.push({doc:doc, fn:fn, pid2:pid2, cids:cids, fp:fp});
-
-  // Save and store
+  // Save and store (watermark + .save() happen after QR fetch, see callback below)
   var fp=patClaims[0], fpt=db.patients.find(function(p){return p.id===(fp&&fp.patId);})||{};
   var l2=(fpt.last||'XX').slice(0,2).toUpperCase(), f2=(fpt.first||'XX').slice(0,2).toUpperCase();
   var dp2=parseDOS(fpt.dob), sp=parseDOS(fp&&fp.dos);
@@ -20239,6 +20275,7 @@ var isRecentView = activeCat === '__recent__';
 var filteredDocs = isRecentView ? [] : (activeCat ? docs.filter(function(d){ return d.category===activeCat; }) : docs);
 var isSBCat = activeCat === 'Superbills';
 var isTrashCat = activeCat === 'Recycle Bin';
+var _isSuperAdminDocs = isAdmin();
 
 // Generic selection toolbar (shown for any category with docs)
 var selToolbar = '';
@@ -20248,10 +20285,10 @@ if (filteredDocs.length) {
     +'<label for="sel-chk-all" style="font-size:12px;color:var(--text);cursor:pointer;margin:0;margin-right:8px">Select All</label>'
     +(isTrashCat
       ? '<span class="cdc-tip" data-tip="Restore Selected"><button class="btn btn-xs" onclick="_restoreSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="rotate-ccw" class="lci" style="width:13px;height:13px"></i> Restore</button></span>'
-        +'<span class="cdc-tip" data-tip="Permanently Delete"><button class="btn btn-xs btn-danger" onclick="_permDeleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete Forever</button></span>'
+        +(_isSuperAdminDocs?'<span class="cdc-tip" data-tip="Permanently Delete"><button class="btn btn-xs btn-danger" onclick="_permDeleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete Forever</button></span>':'')
       : '<span class="cdc-tip" data-tip="Download Selected"><button class="btn btn-xs" onclick="_downloadSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="download" class="lci" style="width:13px;height:13px"></i> Download</button></span>'
        +'<span class="cdc-tip" data-tip="Move Selected"><button class="btn btn-xs" onclick="_moveSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="move" class="lci" style="width:13px;height:13px"></i> Move</button></span>'
-       +'<span class="cdc-tip" data-tip="Delete Selected"><button class="btn btn-xs btn-danger" onclick="_deleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete</button></span>')
+       +((isSBCat && !_isSuperAdminDocs)?'':'<span class="cdc-tip" data-tip="Delete Selected"><button class="btn btn-xs btn-danger" onclick="_deleteSelected(\''+pat.id+'\')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i> Delete</button></span>'))
     +'</div>';
 }
 
@@ -20281,9 +20318,9 @@ if (filteredDocs.length) {
       +(showView?'<span class="cdc-tip" data-tip="View"><button class="btn btn-xs" onclick="_viewDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="eye" class="lci" style="width:13px;height:13px"></i></button></span>':'')
       +(isTrashCat
         ?'<span class="cdc-tip" data-tip="Restore"><button class="btn btn-xs" onclick="_restoreDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="rotate-ccw" class="lci" style="width:13px;height:13px"></i></button></span>'
-         +'<span class="cdc-tip" data-tip="Delete Forever"><button class="btn btn-xs btn-danger" onclick="_permDeleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>'
+         +(_isSuperAdminDocs?'<span class="cdc-tip" data-tip="Delete Forever"><button class="btn btn-xs btn-danger" onclick="_permDeleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>':'')
         :'<span class="cdc-tip" data-tip="Move"><button class="btn btn-xs" onclick="_moveDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="move" class="lci" style="width:13px;height:13px"></i></button></span>'
-         +'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>')
+         +((isDocSB && !_isSuperAdminDocs)?'':'<span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="_deleteDoc(\''+pat.id+'\','+di+')" style="padding:4px 7px"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button></span>'))
       +'</div></div>';
   }).join('');
 } else if (!isRecentView) {
@@ -20453,6 +20490,45 @@ reader.readAsDataURL(file);
 });
 }
 
+// Floating native-style window for previewing a PDF data URI in-app,
+// without leaving the page or opening a new browser tab.
+function _openFloatingDocViewer(dataUri, title) {
+  var prev = document.getElementById('modal-doc-viewer');
+  if (prev) prev.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'modal-doc-viewer';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  overlay.onclick = function(e){ if (e.target===overlay) overlay.remove(); };
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:12px;width:100%;max-width:900px;height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.35);overflow:hidden';
+  card.onclick = function(e){ e.stopPropagation(); };
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#30302e;color:#fff;flex-shrink:0';
+  hdr.innerHTML =
+    '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:10px">'+(title||'Document')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-shrink:0">'+
+      '<button id="dv-open-tab" title="Open in new tab" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i data-lucide="external-link" class="lci" style="width:14px;height:14px"></i></button>'+
+      '<button id="dv-close" title="Close" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">&times;</button>'+
+    '</div>';
+
+  var iframe = document.createElement('iframe');
+  iframe.src = dataUri;
+  iframe.style.cssText = 'flex:1;border:none;width:100%';
+
+  card.appendChild(hdr);
+  card.appendChild(iframe);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  hdr.querySelector('#dv-open-tab').onclick = function(){ window.open(dataUri,'_blank'); };
+  hdr.querySelector('#dv-close').onclick = function(){ overlay.remove(); };
+
+  setTimeout(_renderLucideIcons, 30);
+}
+
 function _viewDoc(patId, idx) {
 const db = getDB();
 const pat = db.patients.find(p=>p.id===patId)||{};
@@ -20465,7 +20541,7 @@ if (!doc) return;
 // identical to what Print produces.
 if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') {
   if (doc.data) {
-    window.open(doc.data, '_blank');
+    _openFloatingDocViewer(doc.data, doc.name || 'Superbill');
     return;
   }
   var linkedClaimId = doc.claimId || ((doc.claimIds && doc.claimIds.length) ? doc.claimIds : null);
@@ -20545,6 +20621,10 @@ _openPDFPreview(doc.data, {
 }
 
 function _deleteDoc(patId, idx) {
+const _db0 = getDB();
+const _pat0 = _db0.patients.find(x=>x.id===patId);
+const _doc0 = _pat0 && _pat0.documents && _pat0.documents[idx];
+if (_doc0 && _doc0.category==='Superbills' && !isAdmin()) { toast('Only a Super Admin can delete Superbills','err'); return; }
 if (!confirm('Move this document to Recycle Bin?')) return;
 setDB(db=>{
   const p=db.patients.find(x=>x.id===patId);
@@ -20943,6 +21023,21 @@ const db = getDB();
 const idx = db.patients.findIndex(p=>p.id===patId);
 if (idx<0) { toast('Patient not found','err'); return; }
 const prev = db.patients[idx];
+
+// Prevent duplicate Account # (and therefore duplicate patient identity)
+// within the same billing provider.
+const acctVal = gv('acct');
+const dupAcct = db.patients.find(function(p){
+  return p.id !== patId
+    && p.providerId === prev.providerId
+    && String(p.acct||'').trim().toLowerCase() === acctVal.toLowerCase();
+});
+if (dupAcct) {
+  toast('Account # "'+acctVal+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' — choose a different Account #','err');
+  g('acct')?.focus();
+  return;
+}
+
 setDB(db2 => {
 const p = db2.patients[idx];
 Object.assign(p, {
@@ -25836,6 +25931,15 @@ function _downloadSelected(patId) {
 function _deleteSelected(patId) {
   var indices = _getSelectedIdx(patId);
   if (!indices.length) { toast('Select at least one document','warn'); return; }
+  var _db0 = getDB();
+  var _pat0 = _db0.patients.find(function(x){ return x.id===patId; });
+  var _docs0 = (_pat0 && _pat0.documents) || [];
+  var _blocked = !isAdmin() && indices.some(function(idx){ return _docs0[idx] && _docs0[idx].category==='Superbills'; });
+  if (_blocked) {
+    indices = indices.filter(function(idx){ return !(_docs0[idx] && _docs0[idx].category==='Superbills'); });
+    toast('Superbills were skipped — only a Super Admin can delete them', 'warn');
+    if (!indices.length) return;
+  }
   if (!confirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?')) return;
   setDB(function(db){
     var p = db.patients.find(function(x){ return x.id===patId; });
@@ -25965,6 +26069,7 @@ function _restoreSelected(patId) {
 }
 
 function _permDeleteDoc(patId, idx) {
+  if (!isAdmin()) { toast('Only a Super Admin can permanently delete documents','err'); return; }
   if (!confirm('Permanently delete this document? This cannot be undone.')) return;
   setDB(function(db){
     var p = db.patients.find(function(x){ return x.id===patId; });
@@ -25976,6 +26081,7 @@ function _permDeleteDoc(patId, idx) {
 }
 
 function _permDeleteSelected(patId) {
+  if (!isAdmin()) { toast('Only a Super Admin can permanently delete documents','err'); return; }
   var indices = _getSelectedIdx(patId);
   if (!indices.length) { toast('Select at least one document','warn'); return; }
   if (!confirm('Permanently delete '+indices.length+' selected document'+(indices.length>1?'s':'')+'? This cannot be undone.')) return;
