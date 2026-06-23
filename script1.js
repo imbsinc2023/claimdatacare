@@ -10189,6 +10189,20 @@ btn.textContent = 'Sign In'; btn.disabled = false;
 }
 
 
+// Warn before closing/refreshing if there's anything not yet confirmed
+// saved — either a local cache failure (storage full) or a Firestore sync
+// still in flight. This is the direct fix for "I hit F5 and lost everything":
+// the browser will now ask for confirmation instead of silently discarding
+// work that never finished saving.
+window.addEventListener('beforeunload', function(e) {
+  var pending = window._pendingFirestoreSyncs || 0;
+  if (window._cacheSaveFailed || pending > 0) {
+    e.preventDefault();
+    e.returnValue = 'Some of your recent work has not finished saving yet. If you leave now you may lose it. Are you sure?';
+    return e.returnValue;
+  }
+});
+
 // Performs the actual sign-out (no confirmation) — shared by the manual
 // "Sign Out" button (after confirmation) and the automatic HIPAA idle logout.
 function _performLogout() {
@@ -12577,10 +12591,16 @@ toast('Excel exported — '+claims.length+' claims');
 function generateSuperbillPDF(claim) {
 // Accept claim object directly (from claim detail modal)
 if (!claim) { toast('Claim not found', 'err'); return; }
+if (window._sbGenInFlight) { return; } // guard against rapid double-clicks producing duplicate files
+window._sbGenInFlight = true;
+setTimeout(function(){ window._sbGenInFlight = false; }, 1500);
 exportBulkClaimsPDF([claim]);
 }
 function genSuperbill(oi) {
 // Single claim superbill
+if (window._sbGenInFlight) { return; } // guard against rapid double-clicks producing duplicate files
+window._sbGenInFlight = true;
+setTimeout(function(){ window._sbGenInFlight = false; }, 1500);
 const db = getDB();
 const claim = db.claims[oi];
 if (!claim) { toast('Claim not found', 'err'); return; }
@@ -20633,14 +20653,12 @@ const doc = (pat.documents||[])[idx];
 if (!doc) return;
 
 // Superbill: open the exact same PDF the printer-icon button on the Claims
-// list produces (exportBulkClaimsPDF) — use the cached copy if we have one,
-// otherwise regenerate it live from the linked claim so it's always
-// identical to what Print produces.
+// list produces. Always regenerate from the linked claim when possible —
+// using a cached copy here risked showing an old/outdated render (e.g. from
+// before a watermark or pagination fix) while Print always shows the
+// current one. Only fall back to the cached copy for legacy entries that
+// have no claim link at all.
 if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') {
-  if (doc.data) {
-    _openFloatingDocViewer(doc.data, doc.name || 'Superbill');
-    return;
-  }
   var linkedClaimId = doc.claimId || ((doc.claimIds && doc.claimIds.length) ? doc.claimIds : null);
   if (linkedClaimId) {
     var db2 = getDB();
@@ -20648,6 +20666,10 @@ if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source=
       ? linkedClaimId.map(function(id){ return db2.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
       : [db2.claims.find(function(c){return c.id===linkedClaimId;})].filter(Boolean);
     if (claimsToPrint.length) { exportBulkClaimsPDF(claimsToPrint); return; }
+  }
+  if (doc.data) {
+    _openFloatingDocViewer(doc.data, doc.name || 'Superbill');
+    return;
   }
   // Legacy fallback — only for old entries with no claim link and no cached data
 }
@@ -25211,7 +25233,47 @@ try {
 
 // ?? Cache ????????????????????????????????????????????????????????????????????
 function _saveCache(db) {
-try { localStorage.setItem(CACHE_KEY, JSON.stringify(db)); } catch(e) {}
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(db));
+    if (window._cacheSaveFailed) { window._cacheSaveFailed = false; _hideStorageFullWarning(); }
+  } catch(e) {
+    // CRITICAL: this used to fail completely silently (catch(e){}), which is
+    // exactly how data got lost on refresh — localStorage has a ~5-10MB quota
+    // per origin, and base64 PDF attachments embedded in patient.documents[]
+    // can blow through it with no warning at all. Now we detect it, try a
+    // reduced-size save so the core records (patients/claims/billing) still
+    // survive a refresh even if attachments don't, and put up a loud warning
+    // so the user knows NOT to close or refresh until it's resolved.
+    window._cacheSaveFailed = true;
+    console.error('[CDC] CRITICAL: local cache save failed —', e.name, e.message);
+    try {
+      var trimmed = JSON.parse(JSON.stringify(db));
+      var strippedCount = 0;
+      (trimmed.patients||[]).forEach(function(p){
+        (p.documents||[]).forEach(function(d){ if (d.data) { d.data = null; d._strippedForSpace = true; strippedCount++; } });
+      });
+      localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
+      console.warn('[CDC] Saved a reduced cache (stripped '+strippedCount+' attachment(s)) to avoid total data loss.');
+    } catch(e2) {
+      console.error('[CDC] Even the reduced cache save failed:', e2.message);
+    }
+    _showStorageFullWarning();
+  }
+}
+
+// Loud, persistent, impossible-to-miss banner — shown the moment a local
+// save fails, telling the user not to navigate away until it clears.
+function _showStorageFullWarning() {
+  if (document.getElementById('cdc-storage-warning')) return;
+  var bar = document.createElement('div');
+  bar.id = 'cdc-storage-warning';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  bar.innerHTML = '⚠ STORAGE FULL — your browser ran out of space to save data locally. '+
+    '<u style="cursor:pointer" onclick="alert(\'Your device storage for this app is full. To fix:\\n\\n1. Do NOT close or refresh this tab yet.\\n2. Ask support to help clear old superbill/document attachments from old patients.\\n3. Once cleared, refresh to confirm your recent work is saved.\\n\\nClosing this tab now may lose anything not yet confirmed saved.\')">What do I do?</u>';
+  document.body.appendChild(bar);
+}
+function _hideStorageFullWarning() {
+  document.getElementById('cdc-storage-warning')?.remove();
 }
 
 function _loadCache() {
@@ -25479,8 +25541,10 @@ var coll = _syncColls[_ci];
 const prev = before[coll] || [];
 const next = db[coll] || [];
 if (JSON.stringify(prev) !== JSON.stringify(next)) {
-_fsSyncCollection(coll, next).catch(e =>
-console.warn(`Firestore ${coll} sync failed:`, e.message));
+window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
+_fsSyncCollection(coll, next)
+  .catch(e => { console.warn(`Firestore ${coll} sync failed:`, e.message); window._lastSyncError = coll+': '+e.message; })
+  .finally(() => { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
 }
 }
 
