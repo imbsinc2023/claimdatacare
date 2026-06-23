@@ -25347,24 +25347,39 @@ try {
 }
 
 // ?? Cache ????????????????????????????????????????????????????????????????????
+// Collections excluded from the localStorage snapshot: they're audit/history
+// data (one entry can be added per claim action, per ERA import, etc.) that
+// isn't needed for instant page load — always live and available from
+// Firestore the moment you actually open a claim's Log or EOB tab. Keeping
+// them out of the local cache is the single biggest lever for staying under
+// localStorage's fixed ~5-10MB-per-origin ceiling, which doesn't grow no
+// matter how much free disk space the computer has.
+var _CACHE_EXCLUDED_KEYS = ['claimLogs','claimEOB','eraPreviewQueue','eobUnmatched'];
+
 function _saveCache(db) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(db));
+    var lean = {};
+    for (var k in db) { if (_CACHE_EXCLUDED_KEYS.indexOf(k) === -1) lean[k] = db[k]; }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(lean));
     if (window._cacheSaveFailed) { window._cacheSaveFailed = false; _hideStorageFullWarning(); }
   } catch(e) {
     // CRITICAL: this used to fail completely silently (catch(e){}), which is
     // exactly how data got lost on refresh — localStorage has a ~5-10MB quota
-    // per origin, and base64 PDF attachments embedded in patient.documents[]
-    // can blow through it with no warning at all. Now we detect it, try a
-    // reduced-size save so the core records (patients/claims/billing) still
-    // survive a refresh even if attachments don't, and put up a loud warning
-    // so the user knows NOT to close or refresh until it's resolved.
+    // per origin (fixed regardless of free disk space), and base64 PDF/photo
+    // attachments embedded in patient records can blow through it with no
+    // warning at all. Now we detect it, try a reduced-size save so the core
+    // records (patients/claims/billing) still survive a refresh even if
+    // attachments don't, and put up a loud warning so the user knows NOT to
+    // close or refresh until it's resolved.
     window._cacheSaveFailed = true;
     console.error('[CDC] CRITICAL: local cache save failed —', e.name, e.message);
     try {
-      var trimmed = JSON.parse(JSON.stringify(db));
+      var lean2 = {};
+      for (var k2 in db) { if (_CACHE_EXCLUDED_KEYS.indexOf(k2) === -1) lean2[k2] = db[k2]; }
+      var trimmed = JSON.parse(JSON.stringify(lean2));
       var strippedCount = 0;
       (trimmed.patients||[]).forEach(function(p){
+        if (p.photo && p.photo.indexOf('data:')===0) { p.photo=''; strippedCount++; }
         (p.documents||[]).forEach(function(d){ if (d.data) { d.data = null; d._strippedForSpace = true; strippedCount++; } });
       });
       localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
@@ -25376,15 +25391,38 @@ function _saveCache(db) {
   }
 }
 
+// Diagnostic — run _inspectCacheSize() from the console to see exactly which
+// collection is responsible for the bulk of the local cache, in KB, instead
+// of guessing. (Numbers are approximate — JS string length, not exact UTF-8
+// byte size, but close enough to identify the real offender.)
+function _inspectCacheSize() {
+  var db = getDB();
+  var rows = [];
+  var total = 0;
+  for (var k in db) {
+    var sz = 0;
+    try { sz = JSON.stringify(db[k]).length; } catch(e) {}
+    total += sz;
+    rows.push({key:k, kb: (sz/1024).toFixed(1)});
+  }
+  rows.sort(function(a,b){ return parseFloat(b.kb)-parseFloat(a.kb); });
+  console.log('--- ClaimDataCare local cache size breakdown ---');
+  rows.forEach(function(r){ console.log(r.key.padEnd(20), r.kb+' KB'); });
+  console.log('TOTAL:', (total/1024/1024).toFixed(2), 'MB');
+  console.log('(localStorage quota is typically ~5-10MB total, fixed per-origin)');
+  return rows;
+}
+
 // Loud, persistent, impossible-to-miss banner — shown the moment a local
 // save fails, telling the user not to navigate away until it clears.
 function _showStorageFullWarning() {
   if (document.getElementById('cdc-storage-warning')) return;
   var bar = document.createElement('div');
   bar.id = 'cdc-storage-warning';
-  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
-  bar.innerHTML = '⚠ STORAGE FULL — your browser ran out of space to save data locally. '+
-    '<u style="cursor:pointer" onclick="alert(\'Your device storage for this app is full. To fix:\\n\\n1. Do NOT close or refresh this tab yet.\\n2. Ask support to help clear old superbill/document attachments from old patients.\\n3. Once cleared, refresh to confirm your recent work is saved.\\n\\nClosing this tab now may lose anything not yet confirmed saved.\')">What do I do?</u>';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;gap:10px';
+  bar.innerHTML = '<span>⚠ STORAGE FULL — your browser ran out of space to save data locally. '+
+    '<u style="cursor:pointer" onclick="alert(\'Your device storage for this app is full. To fix:\\n\\n1. Do NOT close or refresh this tab yet.\\n2. Ask support to help clear old superbill/document attachments from old patients.\\n3. Once cleared, refresh to confirm your recent work is saved.\\n\\nClosing this tab now may lose anything not yet confirmed saved.\')">What do I do?</u></span>'+
+    '<button onclick="document.getElementById(\'cdc-storage-warning\').remove()" title="Dismiss (will reappear if saving fails again)" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0">&times;</button>';
   document.body.appendChild(bar);
 }
 function _hideStorageFullWarning() {
