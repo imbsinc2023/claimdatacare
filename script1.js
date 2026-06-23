@@ -2820,11 +2820,22 @@ async function _migrateAttachmentsToStorage() {
   _loadFirebaseStorage(async function(){
     var db = getDB();
     var migrated = 0, failed = 0, total = 0;
-    (db.patients||[]).forEach(function(p){ (p.documents||[]).forEach(function(d){ if (d.data && !d.storageUrl) total++; }); });
+    (db.patients||[]).forEach(function(p){
+      (p.documents||[]).forEach(function(d){ if (d.data && !d.storageUrl) total++; });
+      if (p.photo && p.photo.indexOf('data:')===0) total++;
+    });
     if (!total) { toast('Nothing to migrate — no inline attachments found','ok'); return; }
     toast('Migrating '+total+' attachment(s) to Storage…','info');
     for (var pi=0; pi<db.patients.length; pi++) {
       var pat = db.patients[pi];
+      // Patient photo
+      if (pat.photo && pat.photo.indexOf('data:')===0) {
+        try {
+          var upPhoto = await _uploadPdfToStorage(pat.photo, 'photo_'+(pat.acct||pat.id));
+          pat.photo = upPhoto.url;
+          migrated++;
+        } catch(e) { failed++; console.warn('[Migrate] photo failed for', pat.acct||pat.id, e.message); }
+      }
       if (!pat.documents) continue;
       for (var di=0; di<pat.documents.length; di++) {
         var d = pat.documents[di];
@@ -20186,10 +20197,22 @@ srcImg.src = window._cropSrc || img.src;
 }
 
 function _savePatientPhoto(patId, dataUrl) {
-setDB(db => { const p=db.patients.find(x=>x.id===patId); if(p) p.photo=dataUrl; });
-// Refresh photo box in sidebar
+// Refresh photo box immediately with the local preview (instant feedback)
 const box = document.getElementById('pt-photo-box-'+patId);
 if (box) box.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;cursor:zoom-in" onclick="_viewPhotoLarge('${patId}')">`;
+// Prefer Storage (keeps base64 image data out of localStorage/Firestore) —
+// falls back to the old inline-base64 behavior if Storage isn't available.
+_loadFirebaseStorage(async function(){
+  try {
+    var up = await _uploadPdfToStorage(dataUrl, 'photo_'+patId);
+    setDB(db => { const p=db.patients.find(x=>x.id===patId); if(p) p.photo=up.url; });
+  } catch(e) {
+    console.warn('[Storage] photo upload failed, falling back to inline base64:', e.message);
+    setDB(db => { const p=db.patients.find(x=>x.id===patId); if(p) p.photo=dataUrl; });
+  }
+}, function(){
+  setDB(db => { const p=db.patients.find(x=>x.id===patId); if(p) p.photo=dataUrl; });
+});
 toast('Photo saved');
 }
 
