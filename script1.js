@@ -2779,6 +2779,71 @@ function _ceDuplicate(claimId){
 }
 
 // ── Lazy-load pdf-lib (used to fill the CMS-1500 AcroForm) ────────────────
+// ── Firebase Storage: lazy-load matching the already-loaded SDK version ───
+// (Frank's app.html loads the compat SDKs — firebase.SDK_VERSION tells us
+// exactly which one, so we load the matching storage-compat.js instead of
+// guessing a version and risking a mismatch.)
+function _loadFirebaseStorage(cb, fallback) {
+  if (window.firebase && firebase.storage) { cb(); return; }
+  if (!window.firebase || !firebase.SDK_VERSION) { (fallback||function(){})(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://www.gstatic.com/firebasejs/' + firebase.SDK_VERSION + '/firebase-storage-compat.js';
+  s.onload = function() {
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    } catch(e) {}
+    cb();
+  };
+  s.onerror = function() { (fallback||function(){})(); };
+  document.head.appendChild(s);
+}
+
+// Uploads a base64 "data:application/pdf;base64,...." string to Firebase
+// Storage and returns {url, path}. Throws if Storage isn't reachable —
+// callers must catch this and fall back to inline storage gracefully.
+async function _uploadPdfToStorage(dataUri, pathHint) {
+  if (!window.firebase || !firebase.storage) throw new Error('Firebase Storage not loaded');
+  var storage = firebase.storage();
+  var safeHint = String(pathHint||'doc').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80);
+  var path = 'documents/' + (activeProviderId||'unknown') + '/' + safeHint + '_' + Date.now() + '.pdf';
+  var ref = storage.ref().child(path);
+  await ref.putString(dataUri, 'data_url');
+  var url = await ref.getDownloadURL();
+  return {url: url, path: path};
+}
+
+// One-time maintenance: moves any EXISTING base64-embedded attachments
+// (the thing that was filling up localStorage/Firestore) out to Storage,
+// freeing up space immediately. Super Admin only — run from Admin/Settings.
+async function _migrateAttachmentsToStorage() {
+  if (!isAdmin()) { toast('Only a Super Admin can run this','err'); return; }
+  _loadFirebaseStorage(async function(){
+    var db = getDB();
+    var migrated = 0, failed = 0, total = 0;
+    (db.patients||[]).forEach(function(p){ (p.documents||[]).forEach(function(d){ if (d.data && !d.storageUrl) total++; }); });
+    if (!total) { toast('Nothing to migrate — no inline attachments found','ok'); return; }
+    toast('Migrating '+total+' attachment(s) to Storage…','info');
+    for (var pi=0; pi<db.patients.length; pi++) {
+      var pat = db.patients[pi];
+      if (!pat.documents) continue;
+      for (var di=0; di<pat.documents.length; di++) {
+        var d = pat.documents[di];
+        if (d.data && !d.storageUrl) {
+          try {
+            var up = await _uploadPdfToStorage(d.data, (d.name||'doc').replace(/\.pdf$/i,''));
+            d.storageUrl = up.url; d.storagePath = up.path; d.data = null;
+            migrated++;
+          } catch(e) { failed++; console.warn('[Migrate] failed for', d.name, e.message); }
+        }
+      }
+    }
+    setDB(function(db2){ db2.patients = db.patients; });
+    toast('Migrated '+migrated+' attachment(s) to Storage'+(failed?' · '+failed+' failed (left as-is)':''), failed?'warn':'ok');
+  }, function(){
+    toast('Could not load Firebase Storage — add firebase-storage-compat.js to app.html first (see instructions)','err');
+  });
+}
+
 function _loadPdfLib(cb, fallback) {
   if (window.PDFLib) { cb(); return; }
   function loadScript(url, onok, onerr) {
@@ -13012,18 +13077,45 @@ byPat.forEach(function(patClaims,patId){
 _fetchQRthenPDF(function(qrDataURL) {
   _pendingDocs.forEach(function(pd) {
     drawWatermark(pd.doc, qrDataURL);
-    try{
-      var b64=pd.doc.output('datauristring');
+    var b64=pd.doc.output('datauristring');
+
+    // Prefer Firebase Storage (keeps the heavy PDF bytes out of
+    // localStorage/Firestore, which is what filled up the quota and caused
+    // data loss). Falls back to the old inline-base64 behavior automatically
+    // if Storage isn't loaded/configured yet — nothing breaks either way.
+    _loadFirebaseStorage(async function(){
+      var entry = {id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',totalCharge:claimTotal(pd.fp)||'0.00'};
+      try {
+        var up = await _uploadPdfToStorage(b64, pd.fn.replace(/\.pdf$/i,''));
+        entry.storageUrl = up.url; entry.storagePath = up.path;
+      } catch(upErr) {
+        console.warn('[Storage] upload failed, falling back to inline base64:', upErr.message);
+        entry.data = b64;
+      }
       setDB(function(db3){
         var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
         if(p3){
           if(!p3.documents)p3.documents=[];
           var key=pd.cids.slice().sort().join(',');
           p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
-          p3.documents.unshift({id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(pd.fp)||'0.00'});
+          p3.documents.unshift(entry);
         }
       });
-    }catch(e){console.warn('Superbill save:',e);}
+    }, function(){
+      // Storage SDK not available at all — old behavior, unchanged
+      try {
+        setDB(function(db3){
+          var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
+          if(p3){
+            if(!p3.documents)p3.documents=[];
+            var key=pd.cids.slice().sort().join(',');
+            p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
+            p3.documents.unshift({id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(pd.fp)||'0.00'});
+          }
+        });
+      } catch(e) { console.warn('Superbill save:', e); }
+    });
+
     pd.doc.save(pd.fn);
   });
   toast(fileCount+' superbill PDF'+(fileCount>1?'s':'')+' exported');
@@ -20667,8 +20759,8 @@ if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source=
       : [db2.claims.find(function(c){return c.id===linkedClaimId;})].filter(Boolean);
     if (claimsToPrint.length) { exportBulkClaimsPDF(claimsToPrint); return; }
   }
-  if (doc.data) {
-    _openFloatingDocViewer(doc.data, doc.name || 'Superbill');
+  if (doc.data || doc.storageUrl) {
+    _openFloatingDocViewer(doc.storageUrl || doc.data, doc.name || 'Superbill');
     return;
   }
   // Legacy fallback — only for old entries with no claim link and no cached data
@@ -26078,12 +26170,35 @@ function _getSelectedIdx(patId) {
   return Array.from(document.querySelectorAll('.sel-chk:checked')).map(function(cb){ return parseInt(cb.dataset.idx); }).filter(function(i){ return !isNaN(i); });
 }
 
+// Downloads a remote file (e.g. a Firebase Storage URL) as a real file
+// download rather than just navigating to it. Falls back to opening it in
+// a new tab if the fetch is blocked for any reason — still better than
+// nothing.
+async function _downloadFromUrl(url, filename) {
+  try {
+    var resp = await fetch(url);
+    var blob = await resp.blob();
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 30000);
+  } catch(e) {
+    window.open(url, '_blank');
+  }
+}
+
 function _downloadOne(patId, idx) {
   var db = getDB();
   var pat = db.patients.find(function(p){ return p.id===patId; })||{};
   var doc = (pat.documents||[])[idx];
   if (!doc) { toast('Document not found','err'); return; }
   if (doc.category === 'Superbills') {
+    if (doc.storageUrl) {
+      _downloadFromUrl(doc.storageUrl, doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf'));
+      toast('Superbill downloaded','ok');
+      return;
+    }
     if (doc.data) {
       // Use the exact PDF that was generated and saved
       var a = document.createElement('a');
@@ -26105,6 +26220,9 @@ function _downloadOne(patId, idx) {
     var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
     pdf.save(fname);
     toast('Superbill downloaded','ok');
+  } else if (doc.storageUrl) {
+    _downloadFromUrl(doc.storageUrl, doc.name || 'document');
+    toast('Document downloaded','ok');
   } else if (doc.data) {
     var a = document.createElement('a');
     a.href = doc.data;
@@ -26125,6 +26243,10 @@ function _downloadSelected(patId) {
     var doc = (pat.documents||[])[idx];
     if (!doc) return;
     if (doc.category === 'Superbills') {
+      if (doc.storageUrl) {
+        _downloadFromUrl(doc.storageUrl, doc.name || ('Superbill_'+(doc.claimPCN||doc.id||'')+'.pdf'));
+        return;
+      }
       if (doc.data) {
         var a2 = document.createElement('a');
         a2.href = doc.data;
@@ -26142,6 +26264,8 @@ function _downloadSelected(patId) {
       var pdf2 = _sbBuildPDF(doc, pat);
       var fname2 = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
       pdf2.save(fname2);
+    } else if (doc.storageUrl) {
+      _downloadFromUrl(doc.storageUrl, doc.name || 'document');
     } else if (doc.data) {
       var a = document.createElement('a');
       a.href = doc.data;
