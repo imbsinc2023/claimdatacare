@@ -2847,6 +2847,20 @@ async function _migrateAttachmentsToStorage() {
           } catch(e) { failed++; console.warn('[Migrate] failed for', d.name, e.message); }
         }
       }
+      // Also migrate old superbills[] array (remanent from legacy code, auto-migrates
+      // to documents[] when patient is edited, but if never opened, stays as inline base64)
+      if (pat.superbills && pat.superbills.length) {
+        for (var si=0; si<pat.superbills.length; si++) {
+          var sb = pat.superbills[si];
+          if (sb.data && !sb.storageUrl) {
+            try {
+              var upSB = await _uploadPdfToStorage(sb.data, 'superbill_'+(pat.acct||pat.id)+'_'+sb.createdAt);
+              sb.storageUrl = upSB.url; sb.storagePath = upSB.path; sb.data = null;
+              migrated++;
+            } catch(e) { failed++; console.warn('[Migrate] superbill failed for', pat.acct||pat.id, e.message); }
+          }
+        }
+      }
     }
     setDB(function(db2){ db2.patients = db.patients; });
     toast('Migrated '+migrated+' attachment(s) to Storage'+(failed?' · '+failed+' failed (left as-is)':''), failed?'warn':'ok');
@@ -25406,6 +25420,7 @@ function _saveCache(db) {
       (trimmed.patients||[]).forEach(function(p){
         if (p.photo && p.photo.indexOf('data:')===0) { p.photo=''; strippedCount++; }
         (p.documents||[]).forEach(function(d){ if (d.data) { d.data = null; d._strippedForSpace = true; strippedCount++; } });
+        (p.superbills||[]).forEach(function(sb){ if (sb.data) { sb.data = null; sb._strippedForSpace = true; strippedCount++; } });
       });
       localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
       console.warn('[CDC] Saved a reduced cache (stripped '+strippedCount+' attachment(s)) to avoid total data loss.');
