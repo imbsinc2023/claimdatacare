@@ -18963,7 +18963,10 @@ const db = getDB();
 const appts = getAppts().filter(a => a.providerId === activeProviderId);
 console.log('[CDC] renderAppointments: activeProviderId='+activeProviderId+' | total appts='+getAppts().length+' | matching='+appts.length);
 
-// Populate provider filter once
+// Populate provider filter once. On initial populate, auto-select the first
+// rendering provider so the agenda lands on a clean single-provider view —
+// users can still flip the dropdown back to "All Physicians" to get the
+// dynamic per-provider columns view.
 const provSel = document.getElementById('appt-filter-prov');
 if (provSel && provSel.options.length <= 1) {
 db.rendering.filter(r => r.providerId === activeProviderId).forEach(r => {
@@ -18972,6 +18975,9 @@ o.value = r.id;
 o.textContent = r.last + ', ' + r.first;
 provSel.appendChild(o);
 });
+if (provSel.options.length > 1) {
+  provSel.value = provSel.options[1].value;
+}
 }
 
 const rendF = document.getElementById('appt-filter-prov')?.value || '';
@@ -19037,7 +19043,15 @@ return;
 }
 
 if (_isoDay && !window._apptCardsMode) {
-el.innerHTML = _renderApptAgenda(list, db, _isoDay);
+  // When the provider filter is "All Physicians" (empty value), split the day
+  // into one column per rendering provider with dynamic widths and horizontal
+  // scroll if needed. Otherwise render the standard single-column agenda.
+  var _rendActive = document.getElementById('appt-filter-prov')?.value || '';
+  if (!_rendActive) {
+    el.innerHTML = _renderMultiProviderAgenda(list, db, _isoDay);
+  } else {
+    el.innerHTML = _renderApptAgenda(list, db, _isoDay);
+  }
 } else {
 el.innerHTML = list.map(a => _renderApptCard(a, db)).join('');
 }
@@ -19056,6 +19070,14 @@ renderAppointments();
 
 function _renderApptGrid(list, db, dateStr) {
 var interval = parseInt(document.getElementById('appt-slot-interval')?.value || '30');
+// Prefer Schedule Setup's TimeSpan for the active rendering provider
+try {
+  var _rid = document.getElementById('appt-filter-prov')?.value;
+  if (_rid) {
+    var _hrs = (db.scheduleHours || []).find(function(h){ return h.renderingId === _rid; });
+    if (_hrs && _hrs.timeSpan && parseInt(_hrs.timeSpan) > 0) interval = parseInt(_hrs.timeSpan);
+  }
+} catch(_){}
 var slots = [];
 for (var h = 7; h <= 19; h++) {
 for (var m = 0; m < 60; m += interval) {
@@ -19111,41 +19133,63 @@ window._apptCalMonth = (window._apptCalMonth === undefined) ? new Date().getMont
 window._apptCalYear  = (window._apptCalYear  === undefined) ? new Date().getFullYear() : window._apptCalYear;
 
 function _initScheduleEpicHeader() {
-  if (document.getElementById('appt-epic-header')) return;
+  if (document.getElementById('appt-epic-shell')) return;
   var dayStrip = document.getElementById('appt-day-strip');
   if (!dayStrip) return;
-  var oldFilterRow = document.getElementById('appt-filter-prov') ? document.getElementById('appt-filter-prov').parentElement : null;
+  var apptList = document.getElementById('appt-list');
+  if (!apptList) return;
 
-  // 3-column grid: [black box w/ provider+KPIs] [filters] [month calendar]
-  var header = document.createElement('div');
-  header.id = 'appt-epic-header';
-  header.innerHTML =
-    '<div id="appt-epic-left"></div>' +
-    '<div id="appt-epic-mid"></div>' +
-    '<div id="appt-epic-cal"></div>';
-  dayStrip.parentElement.insertBefore(header, dayStrip);
+  // Hide section page-hdr — title + top "+ New" moved into the sidebar
+  var sec = document.getElementById('sec-appointments');
+  if (sec) {
+    var hdr = sec.querySelector('.page-hdr');
+    if (hdr) hdr.style.display = 'none';
+  }
 
-  // Date Range gets its own full-width row BELOW the grid box (per request)
-  var dateRow = document.createElement('div');
-  dateRow.id = 'appt-epic-daterow';
-  dateRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap';
-  dayStrip.parentElement.insertBefore(dateRow, dayStrip);
+  // Hide the original filter row. The controls inside (especially the
+  // provider, status, date and slot-interval selects) MUST remain in the DOM
+  // because their inline onchange="renderAppointments()" handlers are how we
+  // get re-rendered. We just move the visible ones into the new sidebar; the
+  // slot-interval stays hidden inside the original (collapsed) row and reads
+  // its effective value from Schedule Setup's TimeSpan instead.
+  var oldFilterRow = document.getElementById('appt-filter-prov')
+    ? document.getElementById('appt-filter-prov').parentElement : null;
+  if (oldFilterRow) oldFilterRow.style.display = 'none';
 
+  // Day strip is unused now — the mini month calendar handles day picking
   dayStrip.style.display = 'none';
 
-  var mq = window.matchMedia && window.matchMedia('(max-width:980px)').matches;
-  header.style.cssText = 'display:grid;grid-template-columns:'+(mq?'1fr':'240px 1fr 330px')+';gap:14px;margin-bottom:12px;align-items:stretch';
+  // 80/20 shell: agenda left, sidebar right (Calendar → Filters → KPI box)
+  var shell = document.createElement('div');
+  shell.id = 'appt-epic-shell';
+  shell.style.cssText = 'display:grid;grid-template-columns:1fr 290px;gap:14px;align-items:stretch;min-height:560px;height:calc(100vh - 115px)';
+  shell.innerHTML =
+    '<div id="appt-epic-shell-left" style="display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:0"></div>' +
+    '<div id="appt-epic-shell-right" style="display:flex;flex-direction:column;gap:11px;overflow-y:auto;min-height:0;padding-right:2px"></div>';
 
-  // The provider <select> moves into the black box (done in _renderEpicLeft);
-  // status+interval move into the mid panel. Keep them in the DOM so their
-  // onchange handlers keep firing.
-  if (oldFilterRow) {
-    var mid = document.getElementById('appt-epic-mid');
-    ['appt-filter-status','appt-slot-interval'].forEach(function(id){
-      var elm = document.getElementById(id);
-      if (elm) mid.appendChild(elm);
-    });
-    oldFilterRow.style.display = 'none';
+  dayStrip.parentElement.insertBefore(shell, dayStrip);
+
+  // Move appt-list into the left shell so it gets full-height + internal scroll
+  var leftShell = shell.querySelector('#appt-epic-shell-left');
+  leftShell.appendChild(apptList);
+  apptList.style.flex = '1';
+  apptList.style.overflow = 'auto';
+  apptList.style.padding = '12px';
+  apptList.style.minHeight = '0';
+
+  // Sidebar order (top → bottom): +New CTA, Calendar, Filters, KPI box
+  var right = shell.querySelector('#appt-epic-shell-right');
+  right.innerHTML =
+    '<button class="btn btn-primary" onclick="openApptModal(null)" style="width:100%;padding:11px 14px;font-size:13px;font-weight:700;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:15px;height:15px"></i> New Appointment</button>' +
+    '<div id="appt-epic-cal"></div>' +
+    '<div id="appt-epic-mid"></div>' +
+    '<div id="appt-epic-left"></div>';
+
+  // Relabel the "All Providers" placeholder to "All Physicians" — selecting
+  // this option triggers the dynamic per-provider columns view.
+  var provSel = document.getElementById('appt-filter-prov');
+  if (provSel && provSel.options.length && provSel.options[0].value === '') {
+    provSel.options[0].textContent = 'All Physicians';
   }
 }
 
@@ -19186,7 +19230,7 @@ function _renderEpicLeft(db, list, rendF) {
   // numbers on each render, never the select (so it doesn't lose focus/value).
   if (elm.dataset.built !== '1') {
     elm.dataset.built = '1';
-    elm.style.cssText = 'background:#30302e;border-radius:14px;padding:16px;color:#fff;height:100%;display:flex;flex-direction:column;gap:13px';
+    elm.style.cssText = 'background:#30302e;border-radius:14px;padding:16px;color:#fff;display:flex;flex-direction:column;gap:13px;flex-shrink:0';
     elm.innerHTML =
       '<div style="display:flex;align-items:center;gap:9px">' +
         '<div style="width:34px;height:34px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="stethoscope" class="lci" style="width:17px;height:17px;color:#fff"></i></div>' +
@@ -19217,52 +19261,76 @@ function _renderEpicLeft(db, list, rendF) {
 
 // LEFT panel end
 
-// MIDDLE — just the Status + Slot Interval selects (Date Range moved out)
+// MIDDLE — Filters card: Status select + Date Range pills + active day-pick badge
+// (Slot Interval is no longer shown — it's sourced from Schedule Setup → TimeSpan.)
 function _renderEpicMid(selVal) {
   var elm = document.getElementById('appt-epic-mid');
   if (!elm) return;
+
   if (elm.dataset.built !== '1') {
     elm.dataset.built = '1';
-    elm.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;justify-content:center';
-    var label = function(t){ return '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+t+'</div>'; };
+    elm.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:11px;flex-shrink:0';
 
+    var label = function(t){ return '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">'+t+'</div>'; };
+
+    // Status row — move the live <select id=appt-filter-status> here so its
+    // onchange="renderAppointments()" keeps firing
+    var statusCol = document.createElement('div');
+    statusCol.innerHTML = label('Status');
     var status = document.getElementById('appt-filter-status');
-    var interval = document.getElementById('appt-slot-interval');
-    var styleSel = 'width:100%;padding:9px 11px;border:1.5px solid var(--border2);border-radius:10px;background:var(--bg);color:var(--text);font-size:12px;font-weight:600';
-    [status,interval].forEach(function(s){ if (s) s.style.cssText = styleSel; });
+    if (status) {
+      status.style.cssText = 'width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:9px;background:var(--bg);color:var(--text);font-size:12px;font-weight:600';
+      statusCol.appendChild(status);
+    }
+    elm.appendChild(statusCol);
 
-    var row = document.createElement('div');
-    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px';
-    var col1 = document.createElement('div'); col1.innerHTML = label('Status'); if (status) col1.appendChild(status);
-    var col2 = document.createElement('div'); col2.innerHTML = label('Slot Interval'); if (interval) col2.appendChild(interval);
-    row.appendChild(col1); row.appendChild(col2);
+    // Date range chip row (rebuilt every render to keep "active" up to date)
+    var dateCol = document.createElement('div');
+    dateCol.innerHTML = label('Date Range');
+    var chips = document.createElement('div');
+    chips.id = 'appt-epic-daterange';
+    chips.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:5px';
+    dateCol.appendChild(chips);
+    elm.appendChild(dateCol);
 
-    elm.innerHTML = '';
-    elm.appendChild(row);
+    // Day-pick badge (shown only when the calendar picks an exact day)
+    var badge = document.createElement('div');
+    badge.id = 'appt-epic-daybadge';
+    elm.appendChild(badge);
+  }
+
+  var chips = elm.querySelector('#appt-epic-daterange');
+  var badge = elm.querySelector('#appt-epic-daybadge');
+  if (chips) {
+    var ranges = [['today','Today'],['week','Week'],['month','Month'],['all','All']];
+    var active = window._apptDayPick ? '' : selVal;
+    chips.innerHTML = ranges.map(function(r){
+      var isOn = active === r[0];
+      return '<button onclick="_apptQuickRange(\''+r[0]+'\')" style="cursor:pointer;font-size:11px;padding:7px 10px;border-radius:8px;font-weight:700;border:1.5px solid '
+        + (isOn ? 'var(--brand)' : 'var(--border2)') + ';'
+        + (isOn ? 'background:var(--brand);color:#fff' : 'background:var(--bg);color:var(--text2)')
+        + '">'+r[1]+'</button>';
+    }).join('');
+  }
+  if (badge) {
+    if (window._apptDayPick) {
+      var d = new Date(window._apptDayPick+'T12:00:00');
+      var lbl = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      badge.innerHTML = '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:9px;padding:7px 10px">'
+        + '<i data-lucide="calendar-check" class="lci" style="width:13px;height:13px"></i>'
+        + '<span style="flex:1">Viewing '+lbl+'</span>'
+        + '<span style="cursor:pointer;opacity:.7;font-size:14px;line-height:1" onclick="_apptQuickRange(\'today\')">×</span></div>';
+      badge.style.display = '';
+    } else {
+      badge.innerHTML = '';
+      badge.style.display = 'none';
+    }
   }
 }
 
-// DATE ROW — full-width row of quick date-range pills, below the grid box
-function _renderEpicDateRow(selVal) {
-  var elm = document.getElementById('appt-epic-daterow');
-  if (!elm) return;
-  var ranges = [['today','Today'],['week','This Week'],['month','This Month'],['all','All']];
-  var active = window._apptDayPick ? '' : selVal;
-  var html = '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-right:4px"><i data-lucide="calendar-range" class="lci" style="width:13px;height:13px;vertical-align:-2px"></i> Date Range</div>';
-  html += ranges.map(function(r){
-    var isOn = active === r[0];
-    return '<button class="btn btn-sm" onclick="_apptQuickRange(\''+r[0]+'\')" style="font-size:12px;padding:7px 16px;border-radius:20px;'
-      + (isOn ? 'background:var(--brand);color:#fff;border-color:var(--brand)' : 'background:var(--bg2);color:var(--text2)') + '">'+r[1]+'</button>';
-  }).join('');
-  if (window._apptDayPick) {
-    var d = new Date(window._apptDayPick+'T12:00:00');
-    var lbl = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    html += '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:20px;padding:6px 14px">'
-      + '<i data-lucide="calendar-check" class="lci" style="width:13px;height:13px"></i> Viewing ' + lbl
-      + ' <span style="cursor:pointer;opacity:.7" onclick="_apptQuickRange(\'today\')">✕</span></span>';
-  }
-  elm.innerHTML = html;
-}
+// DATE ROW — DEPRECATED. Date-range pills now live inside _renderEpicMid in the
+// new 80/20 sidebar. Kept as a noop so any stale call sites don't crash.
+function _renderEpicDateRow(selVal) { /* folded into _renderEpicMid */ }
 
 // RIGHT — mini month calendar; dots show appt counts; click selects the day
 function _renderEpicCal(appts, isoDay) {
@@ -19278,7 +19346,7 @@ function _renderEpicCal(appts, isoDay) {
   var countsByDay = {};
   appts.forEach(function(a){ if (a.date) countsByDay[a.date] = (countsByDay[a.date]||0)+1; });
 
-  var html = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;height:100%;display:flex;flex-direction:column">';
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;flex-shrink:0">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
   html += '<button class="btn btn-ghost btn-sm" onclick="_apptCalNav(-1)" style="padding:4px 8px"><i data-lucide="chevron-left" class="lci" style="width:15px;height:15px"></i></button>';
   html += '<div style="font-size:13px;font-weight:700;color:var(--text)">'+monthLbl+'</div>';
@@ -19310,13 +19378,40 @@ function _renderEpicCal(appts, isoDay) {
   elm.innerHTML = html;
 }
 
+// "All Physicians" mode — split the agenda into one column per rendering
+// provider. 1-2 providers fill the available width; 3+ get fixed-width columns
+// with horizontal scroll. Provider header shows count badge.
+function _renderMultiProviderAgenda(list, db, dateStr) {
+  var provs = (db.rendering || []).filter(function(r){ return r.providerId === activeProviderId; });
+  if (!provs.length) return _renderApptAgenda(list, db, dateStr);
+
+  var n = provs.length;
+  var fixedW = n > 2;
+  var colMinW = fixedW ? '340px' : '0';
+  var colFlex = fixedW ? '0 0 340px' : '1';
+
+  var html = '<div style="display:flex;gap:10px;height:100%;min-height:0;'+(fixedW?'overflow-x:auto':'')+'">';
+  provs.forEach(function(p){
+    var subList = list.filter(function(a){ return a.renderingId === p.id; });
+    html += '<div style="min-width:'+colMinW+';flex:'+colFlex+';display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);min-height:0">';
+    html += '<div style="padding:9px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px;flex-shrink:0">'
+      + '<div style="width:7px;height:7px;border-radius:50%;background:var(--brand);flex-shrink:0"></div>'
+      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.last+', '+p.first)+'</span>'
+      + '<span style="font-size:10px;font-weight:700;color:var(--text3);background:var(--bg2);padding:2px 8px;border-radius:10px;flex-shrink:0">'+subList.length+'</span>'
+      + '</div>';
+    html += '<div style="flex:1;overflow-y:auto;padding:8px;min-height:0">' + _renderApptAgenda(subList, db, dateStr, p.id) + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
 function _renderScheduleEpicHeader(appts, list, db, isoDay, selVal) {
   _initScheduleEpicHeader();
   var rendF = document.getElementById('appt-filter-prov') ? document.getElementById('appt-filter-prov').value : '';
   _renderEpicLeft(db, list, rendF);
   _renderEpicMid(selVal);
   _renderEpicCal(appts, isoDay);
-  _renderEpicDateRow(selVal);
 }
 
 // ── Agenda View (eMedicalPractice-style day schedule, warm theme) ──────────
@@ -19326,11 +19421,15 @@ function _renderScheduleEpicHeader(appts, list, db, isoDay, selVal) {
 // configured Working Hours (Schedule Setup) when available, else 07:00–19:00,
 // stepped by the slot interval selected in the toolbar.
 function _agDaySlots(db, dateStr, renderingId) {
+  // Slot interval: prefer Schedule Setup → Working Hours → TimeSpan for this
+  // rendering provider (the canonical source). The toolbar control is hidden
+  // in the new 80/20 layout and just acts as a last-resort fallback.
   var interval = parseInt(document.getElementById('appt-slot-interval')?.value || '30');
   var startMin = 7*60, endMin = 19*60; // defaults
   try {
     var hrs = (db.scheduleHours || []).find(function(h){ return h.renderingId === renderingId; });
     if (hrs) {
+      if (hrs.timeSpan && parseInt(hrs.timeSpan) > 0) interval = parseInt(hrs.timeSpan);
       var dObj = new Date(dateStr+'T12:00:00');
       var dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dObj.getDay()];
       var d = hrs.days && hrs.days[dayName];
@@ -19366,7 +19465,7 @@ function _agEmptySlotRow(timeStr, dateStr) {
     + '</div>';
 }
 
-function _renderApptAgenda(list, db, dateStr) {
+function _renderApptAgenda(list, db, dateStr, overrideRendId) {
   var rendById = {}; (db.rendering||[]).forEach(function(r){ rendById[r.id] = r; });
   var facById  = {}; (db.facilities||[]).forEach(function(f){ facById[f.id] = f; });
   var sgById   = {}; (db.serviceGroups||[]).forEach(function(g){ sgById[g.id] = g; });
@@ -19425,8 +19524,11 @@ function _renderApptAgenda(list, db, dateStr) {
   });
   html += '</div>';
 
-  // Determine which provider's working-hours drive the empty-slot grid
-  var _slotProvId = document.getElementById('appt-filter-prov')?.value
+  // Determine which provider's working-hours drive the empty-slot grid.
+  // overrideRendId wins when set (multi-provider columns view passes the
+  // column's provider explicitly).
+  var _slotProvId = overrideRendId
+    || document.getElementById('appt-filter-prov')?.value
     || (rows[0] && rows[0].a.renderingId)
     || ((db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;})[0]||{}).id
     || '';
