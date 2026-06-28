@@ -18948,6 +18948,12 @@ rescheduled: { label:'Rescheduled', color:'#d97706', bg:'#fffbeb', icon:'refresh
 };
 
 let _apptSelPats = new Set();
+// Selected day, set by clicking a day in the epic mini-calendar. Overrides
+// the keyword <select> (today/week/month/all) until the user touches that
+// select again. We track the select's last-seen value to know when the user
+// changed it manually vs. us just re-rendering after a day click.
+window._apptDayPick = window._apptDayPick || null;
+window._apptLastSelectVal = window._apptLastSelectVal || null;
 
 // ?? Main render ??????????????????????????????????????????????????????????
 function renderAppointments() {
@@ -18970,7 +18976,17 @@ provSel.appendChild(o);
 
 const rendF = document.getElementById('appt-filter-prov')?.value || '';
 const statusF = document.getElementById('appt-filter-status')?.value || '';
-const dateF = document.getElementById('appt-filter-date')?.value || '';
+// Date filter: the keyword <select> (today/week/month/all) OR an exact ISO
+// date picked from the mini-calendar (window._apptDayPick). If the select's
+// value changed since last render, the user touched it manually — that wins
+// and clears any day-pick override. (Previously this tried to write the ISO
+// date directly into the <select>.value, which silently failed — no option
+// has that value, so .value read back as '' — that was the root cause of
+// the day-strip not highlighting and the agenda going blank on click.)
+const _selDateVal = document.getElementById('appt-filter-date')?.value || 'today';
+if (_selDateVal !== window._apptLastSelectVal) { window._apptDayPick = null; }
+window._apptLastSelectVal = _selDateVal;
+const dateF = window._apptDayPick || _selDateVal;
 
 let list = [...appts].sort((a, b) => {
 const ka = (a.date||'') + (a.startTime||'');
@@ -19000,8 +19016,6 @@ if (dateF && dateF !== 'all') {
   }
 }
 
-_renderDayStrip(appts);
-
 // View selection:
 //   • Single specific day (ISO date or "today") + agenda mode → rich agenda
 //     (shown even with zero appointments, so empty time-slots are clickable)
@@ -19009,6 +19023,8 @@ _renderDayStrip(appts);
 // The toggle button flips window._apptCardsMode.
 var _isoDay = /^\d{4}-\d{2}-\d{2}$/.test(dateF) ? dateF
             : (dateF === 'today' ? new Date().toISOString().split('T')[0] : '');
+
+_renderScheduleEpicHeader(appts, list, db, _isoDay, _selDateVal);
 
 if (!list.length && !(_isoDay && !window._apptCardsMode)) {
 el.innerHTML = `<div class="empty">
@@ -19087,36 +19103,206 @@ return html;
 }
 
 
-function _renderDayStrip(appts) {
-const strip = document.getElementById('appt-day-strip');
-if (!strip) return;
-const today = new Date();
-const todayStr = today.toISOString().split('T')[0];
-const days = [];
-for (let i = -3; i <= 7; i++) {
-const d = new Date(today);
-d.setDate(today.getDate() + i);
-days.push(d.toISOString().split('T')[0]);
+// ── Epic Schedule Header (provider+KPI | filters | mini month calendar) ───
+// Built entirely via runtime DOM injection (never edits the giant template
+// string) — the established safe pattern after the Schedule Setup escaping
+// bug. Created once, then just updated on every renderAppointments() call.
+window._apptCalMonth = (window._apptCalMonth === undefined) ? new Date().getMonth() : window._apptCalMonth;
+window._apptCalYear  = (window._apptCalYear  === undefined) ? new Date().getFullYear() : window._apptCalYear;
+
+function _initScheduleEpicHeader() {
+  if (document.getElementById('appt-epic-header')) return;
+  var dayStrip = document.getElementById('appt-day-strip');
+  if (!dayStrip) return;
+  var oldFilterRow = document.getElementById('appt-filter-prov') ? document.getElementById('appt-filter-prov').parentElement : null;
+
+  var header = document.createElement('div');
+  header.id = 'appt-epic-header';
+  header.innerHTML =
+    '<div id="appt-epic-left"></div>' +
+    '<div id="appt-epic-mid"></div>' +
+    '<div id="appt-epic-cal"></div>';
+  dayStrip.parentElement.insertBefore(header, dayStrip);
+  dayStrip.style.display = 'none';
+
+  var mq = window.matchMedia && window.matchMedia('(max-width:980px)').matches;
+  header.style.cssText = 'display:grid;grid-template-columns:'+(mq?'1fr':'220px 1fr 330px')+';gap:14px;margin-bottom:14px;align-items:stretch'+(mq?';grid-template-areas:none':'');
+
+  if (oldFilterRow) {
+    var mid = document.getElementById('appt-epic-mid');
+    ['appt-filter-prov','appt-filter-status','appt-slot-interval'].forEach(function(id){
+      var elm = document.getElementById(id);
+      if (elm) mid.appendChild(elm);
+    });
+    oldFilterRow.style.display = 'none';
+  }
 }
-strip.innerHTML = days.map(dt => {
-const cnt = appts.filter(a => a.date === dt).length;
-const isToday = dt === todayStr;
-const d = new Date(dt + 'T12:00:00');
-const dayLbl = d.toLocaleDateString('en-US', { weekday:'short' });
-const numLbl = d.getDate();
-const bg = isToday ? 'var(--brand)' : 'var(--bg3)';
-const col = isToday ? '#fff' : 'var(--text)';
-const border = isToday ? 'var(--brand)' : 'var(--border)';
-return `<div onclick="document.getElementById('appt-filter-date').value='${dt}';renderAppointments()"
-style="flex-shrink:0;cursor:pointer;text-align:center;padding:6px 10px;min-width:48px;border-radius:8px;
-background:${bg};color:${col};border:2px solid ${border};user-select:none">
-<div style="font-size:10px;font-weight:600">${dayLbl}</div>
-<div style="font-size:17px;font-weight:800">${numLbl}</div>
-${cnt ? `<div style="font-size:9px;border-radius:4px;padding:1px 4px;margin-top:2px;
-background:${isToday?'rgba(255,255,255,.3)':'var(--brand-bg)'};
-color:${isToday?'#fff':'var(--brand)'}">${cnt}</div>` : ''}
-</div>`;
-}).join('');
+
+function _apptQuickRange(kw) {
+  window._apptDayPick = null;
+  var sel = document.getElementById('appt-filter-date');
+  if (sel) sel.value = kw;
+  renderAppointments();
+}
+
+function _apptPickDay(iso) {
+  window._apptDayPick = iso;
+  var d = new Date(iso+'T12:00:00');
+  window._apptCalMonth = d.getMonth();
+  window._apptCalYear = d.getFullYear();
+  renderAppointments();
+}
+
+function _apptCalNav(dir) {
+  window._apptCalMonth += dir;
+  if (window._apptCalMonth < 0) { window._apptCalMonth = 11; window._apptCalYear--; }
+  if (window._apptCalMonth > 11) { window._apptCalMonth = 0; window._apptCalYear++; }
+  renderAppointments();
+}
+
+// LEFT — active provider + KPI summary for whatever is currently shown
+function _renderEpicLeft(db, list, rendF) {
+  var elm = document.getElementById('appt-epic-left');
+  if (!elm) return;
+  var rend = (db.rendering||[]).find(function(r){ return r.id===rendF; });
+  var provName = rend ? (rend.last+', '+rend.first) : 'All Providers';
+  var provSub = rend ? ('NPI '+(rend.npi||'—')) : ((db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;}).length+' rendering providers');
+
+  var total = list.length;
+  var checked = list.filter(function(a){ return ['checked_in','in_progress','completed'].indexOf(a.status)>=0; }).length;
+  var pending = list.filter(function(a){ return ['scheduled','confirmed'].indexOf(a.status)>=0; }).length;
+  var noshow  = list.filter(function(a){ return a.status==='no_show'; }).length;
+
+  var html = '<div style="background:#30302e;border-radius:14px;padding:16px;color:#fff;height:100%;display:flex;flex-direction:column;gap:14px">';
+  html += '<div style="display:flex;align-items:center;gap:10px">';
+  html += '<div style="width:38px;height:38px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="stethoscope" class="lci" style="width:19px;height:19px;color:#fff"></i></div>';
+  html += '<div style="min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+provName+'</div>';
+  html += '<div style="font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+provSub+'</div></div>';
+  html += '</div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  var mk = function(val,label,color){
+    return '<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px 10px">'
+      + '<div style="font-size:19px;font-weight:800;color:'+color+';line-height:1">'+val+'</div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">'+label+'</div></div>';
+  };
+  html += mk(total,'Appts','#fff');
+  html += mk(checked,'Checked In','#4ade80');
+  html += mk(pending,'Pending','#fbbf24');
+  html += mk(noshow,'No-Show','#f87171');
+  html += '</div>';
+
+  html += '<button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="openApptModal(null)"><i data-lucide="plus" class="lci"></i> New Appointment</button>';
+  html += '</div>';
+  elm.innerHTML = html;
+}
+
+// MIDDLE — relocated filter selects (styled) + quick date-range pills
+function _renderEpicMid(selVal) {
+  var elm = document.getElementById('appt-epic-mid');
+  if (!elm) return;
+  if (elm.dataset.built !== '1') {
+    elm.dataset.built = '1';
+    elm.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px';
+    var label = function(t){ return '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+t+'</div>'; };
+    var wrapProv = document.createElement('div');
+    var wrapStatus = document.createElement('div');
+    var wrapInterval = document.createElement('div');
+    var pills = document.createElement('div');
+    pills.id = 'appt-epic-pills';
+    pills.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
+
+    var prov = document.getElementById('appt-filter-prov');
+    var status = document.getElementById('appt-filter-status');
+    var interval = document.getElementById('appt-slot-interval');
+    var styleSel = 'width:100%;padding:9px 11px;border:1.5px solid var(--border2);border-radius:10px;background:var(--bg);color:var(--text);font-size:12px;font-weight:600';
+    [prov,status,interval].forEach(function(s){ if (s) s.style.cssText = styleSel; });
+
+    wrapProv.innerHTML = label('Rendering Provider');
+    wrapStatus.innerHTML = label('Status');
+    wrapInterval.innerHTML = label('Slot Interval');
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px';
+    var col1 = document.createElement('div'); col1.appendChild(wrapProv); if (prov) wrapProv.appendChild(prov);
+    var col2 = document.createElement('div'); col2.appendChild(wrapStatus); if (status) wrapStatus.appendChild(status);
+    row.appendChild(col1); row.appendChild(col2);
+
+    elm.innerHTML = '';
+    var pillsLabelEl = document.createElement('div');
+    pillsLabelEl.innerHTML = label('Date Range');
+    elm.appendChild(pillsLabelEl);
+    elm.appendChild(pills);
+    var sep = document.createElement('div');
+    sep.style.cssText = 'border-top:1px solid var(--border);margin:2px 0';
+    elm.appendChild(sep);
+    elm.appendChild(row);
+    if (interval) { wrapInterval.appendChild(interval); elm.appendChild(wrapInterval); }
+  }
+  var pills = document.getElementById('appt-epic-pills');
+  if (pills) {
+    var ranges = [['today','Today'],['week','This Week'],['month','This Month'],['all','All']];
+    var active = window._apptDayPick ? '' : selVal;
+    pills.innerHTML = ranges.map(function(r){
+      var isOn = active === r[0];
+      return '<button class="btn btn-sm" onclick="_apptQuickRange(\''+r[0]+'\')" style="font-size:11px;padding:6px 12px;border-radius:20px;'
+        + (isOn ? 'background:var(--brand);color:#fff;border-color:var(--brand)' : 'background:var(--bg);color:var(--text2)') + '">'+r[1]+'</button>';
+    }).join('');
+  }
+}
+
+// RIGHT — mini month calendar; dots show appt counts; click selects the day
+function _renderEpicCal(appts, isoDay) {
+  var elm = document.getElementById('appt-epic-cal');
+  if (!elm) return;
+  var y = window._apptCalYear, m = window._apptCalMonth;
+  var first = new Date(y, m, 1);
+  var startDow = first.getDay();
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var todayStr = new Date().toISOString().split('T')[0];
+  var monthLbl = first.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+
+  var countsByDay = {};
+  appts.forEach(function(a){ if (a.date) countsByDay[a.date] = (countsByDay[a.date]||0)+1; });
+
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;height:100%;display:flex;flex-direction:column">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  html += '<button class="btn btn-ghost btn-sm" onclick="_apptCalNav(-1)" style="padding:4px 8px"><i data-lucide="chevron-left" class="lci" style="width:15px;height:15px"></i></button>';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--text)">'+monthLbl+'</div>';
+  html += '<button class="btn btn-ghost btn-sm" onclick="_apptCalNav(1)" style="padding:4px 8px"><i data-lucide="chevron-right" class="lci" style="width:15px;height:15px"></i></button>';
+  html += '</div>';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px">';
+  ['S','M','T','W','T','F','S'].forEach(function(d){ html += '<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px 0">'+d+'</div>'; });
+  html += '</div>';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;flex:1">';
+  for (var i=0;i<startDow;i++) html += '<div></div>';
+  for (var day=1; day<=daysInMonth; day++) {
+    var iso = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var isToday = iso === todayStr;
+    var isSel = iso === isoDay;
+    var cnt = countsByDay[iso] || 0;
+    var bg = isSel ? 'var(--brand)' : 'transparent';
+    var col = isSel ? '#fff' : (isToday ? 'var(--brand)' : 'var(--text)');
+    var ring = isToday && !isSel ? 'box-shadow:inset 0 0 0 1.5px var(--brand);' : '';
+    html += '<div onclick="_apptPickDay(\''+iso+'\')" style="cursor:pointer;text-align:center;padding:5px 0 4px;border-radius:8px;'+ring+'background:'+bg+';color:'+col+';font-size:11px;font-weight:'+(isToday||isSel?'800':'600')+';position:relative;user-select:none">'
+      + day
+      + (cnt ? '<div style="width:4px;height:4px;border-radius:50%;margin:2px auto 0;background:'+(isSel?'#fff':'var(--brand)')+'"></div>' : '<div style="height:6px"></div>')
+      + '</div>';
+  }
+  html += '</div>';
+  html += '<button class="btn btn-ghost btn-sm" style="margin-top:8px;font-size:11px" onclick="_apptQuickRange(\'today\')"><i data-lucide="calendar-check" class="lci" style="width:12px;height:12px"></i> Jump to Today</button>';
+  html += '</div>';
+  elm.innerHTML = html;
+}
+
+function _renderScheduleEpicHeader(appts, list, db, isoDay, selVal) {
+  _initScheduleEpicHeader();
+  var rendF = document.getElementById('appt-filter-prov') ? document.getElementById('appt-filter-prov').value : '';
+  _renderEpicLeft(db, list, rendF);
+  _renderEpicMid(selVal);
+  _renderEpicCal(appts, isoDay);
 }
 
 // ── Agenda View (eMedicalPractice-style day schedule, warm theme) ──────────
@@ -19158,10 +19344,10 @@ function _agEmptySlotRow(timeStr, dateStr) {
   var disp = (hh%12||12)+':'+mm+' '+(hh<12?'AM':'PM');
   var oc = "openApptModal(null);setTimeout(function(){var d=document.getElementById('appt-date');if(d)d.value='"+dateStr+"';var s=document.getElementById('appt-start');if(s)s.value='"+timeStr+"';},100)";
   return '<div ondblclick="'+oc+'" title="Double-click to add an appointment at '+disp+'" '
-    + 'style="display:grid;grid-template-columns:62px 1fr;gap:0;align-items:center;border-bottom:1px solid var(--border);cursor:pointer;min-height:34px;transition:background .1s" '
+    + 'style="display:grid;grid-template-columns:62px 1fr;gap:0;align-items:center;border-bottom:1px solid var(--border);cursor:pointer;min-height:24px;transition:background .1s" '
     + 'onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'">'
-    + '<div style="padding:8px 6px 8px 11px"><span class="mono" style="font-size:11px;color:var(--text3)">'+disp+'</span></div>'
-    + '<div style="padding:8px 12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px">'
+    + '<div style="padding:4px 6px 4px 11px"><span class="mono" style="font-size:11px;color:var(--text3)">'+disp+'</span></div>'
+    + '<div style="padding:4px 12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px">'
     + '<span style="opacity:.5">+ Add appointment</span></div>'
     + '</div>';
 }
@@ -19210,13 +19396,13 @@ function _renderApptAgenda(list, db, dateStr) {
 
   // ── Agenda table ──
   html += '<div class="card" style="padding:0;overflow:hidden">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 16px;background:#30302e;color:#fff">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#30302e;color:#fff">';
   html += '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i data-lucide="calendar-days" class="lci" style="width:15px;height:15px"></i> '+dTitle+'</div>';
   html += '<button class="btn btn-primary btn-sm" onclick="openApptModal(null);setTimeout(function(){var e=document.getElementById(\'appt-date\');if(e)e.value=\''+dateStr+'\'},100)" style="height:28px"><i data-lucide="plus" class="lci"></i> Add</button>';
   html += '</div>';
 
   // Column header
-  html += '<div style="display:grid;grid-template-columns:62px 1.6fr 1.1fr 90px 1.1fr 78px 78px 1fr 150px;gap:0;padding:7px 14px;background:var(--bg3);border-bottom:2px solid var(--border2);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">';
+  html += '<div style="display:grid;grid-template-columns:62px 1.6fr 1.1fr 90px 1.1fr 78px 78px 1fr 150px;gap:0;padding:5px 14px;background:var(--bg3);border-bottom:2px solid var(--border2);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">';
   ['Time','Patient','Insurance','Chart #','Provider','Copay','Balance','Status','Actions'].forEach(function(h,i){
     html += '<div'+(['Copay','Balance'].indexOf(h)>=0?' style="text-align:right"':'')+'>'+h+'</div>';
   });
@@ -19273,13 +19459,13 @@ function _renderApptAgenda(list, db, dateStr) {
     html += '<div style="display:grid;grid-template-columns:62px 1.6fr 1.1fr 90px 1.1fr 78px 78px 1fr 150px;gap:0;align-items:center;padding:0;border-bottom:1px solid var(--border);background:'+rowBg+';border-left:3px solid '+st.color+'">';
 
     // Time
-    html += '<div style="padding:9px 6px 9px 11px">'
+    html += '<div style="padding:5px 6px 5px 11px">'
          +  '<div class="mono" style="font-size:12px;font-weight:700;color:var(--text)">'+disp+'</div>'
          +  (newHour && a.endTime ? '<div class="mono" style="font-size:9px;color:var(--text3)">'+_agDur(a.startTime,a.endTime)+'</div>':'')
          +  '</div>';
 
     // Patient + appt type
-    html += '<div style="padding:9px 8px 9px 4px;min-width:0">'
+    html += '<div style="padding:5px 8px 5px 4px;min-width:0">'
          +  '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
          +  (pat.id ? '<span style="cursor:pointer;border-bottom:1px dashed var(--border2)" onclick="openPatientChart(\''+pat.id+'\')">'+pName+'</span>' : pName)+'</div>'
          +  '<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
@@ -19287,25 +19473,25 @@ function _renderApptAgenda(list, db, dateStr) {
          +  '</div>';
 
     // Insurance
-    html += '<div style="padding:9px 8px;min-width:0"><div style="display:inline-block;max-width:100%;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+payer+'</div></div>';
+    html += '<div style="padding:5px 8px;min-width:0"><div style="display:inline-block;max-width:100%;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+payer+'</div></div>';
 
     // Chart #
-    html += '<div style="padding:9px 8px"><span class="mono" style="font-size:11px;color:var(--text2)">'+(pat.acct||'—')+'</span></div>';
+    html += '<div style="padding:5px 8px"><span class="mono" style="font-size:11px;color:var(--text2)">'+(pat.acct||'—')+'</span></div>';
 
     // Provider
-    html += '<div style="padding:9px 8px;min-width:0"><div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rend.last?(rend.last+', '+(rend.first||'').charAt(0)+'.'):'—')+'</div></div>';
+    html += '<div style="padding:5px 8px;min-width:0"><div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rend.last?(rend.last+', '+(rend.first||'').charAt(0)+'.'):'—')+'</div></div>';
 
     // Copay
-    html += '<div style="padding:9px 8px;text-align:right"><span class="mono" style="font-size:11px;color:'+(cop>0?'var(--text)':'var(--text3)')+'">$'+cop.toFixed(2)+'</span></div>';
+    html += '<div style="padding:5px 8px;text-align:right"><span class="mono" style="font-size:11px;color:'+(cop>0?'var(--text)':'var(--text3)')+'">$'+cop.toFixed(2)+'</span></div>';
 
     // Balance
-    html += '<div style="padding:9px 8px;text-align:right"><span class="mono" style="font-size:11px;font-weight:'+(bal>0?'700':'400')+';color:'+(bal>0?'var(--brand)':'var(--text3)')+'">$'+bal.toFixed(2)+'</span></div>';
+    html += '<div style="padding:5px 8px;text-align:right"><span class="mono" style="font-size:11px;font-weight:'+(bal>0?'700':'400')+';color:'+(bal>0?'var(--brand)':'var(--text3)')+'">$'+bal.toFixed(2)+'</span></div>';
 
     // Status pill
-    html += '<div style="padding:9px 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:'+st.bg+';color:'+st.color+';white-space:nowrap"><i data-lucide="'+(st.icon||'calendar')+'" class="lci" style="width:10px;height:10px"></i>'+st.label+'</span></div>';
+    html += '<div style="padding:5px 8px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:'+st.bg+';color:'+st.color+';white-space:nowrap"><i data-lucide="'+(st.icon||'calendar')+'" class="lci" style="width:10px;height:10px"></i>'+st.label+'</span></div>';
 
     // Actions
-    html += '<div style="padding:7px 11px 7px 4px;display:flex;gap:4px;justify-content:flex-end;align-items:center">';
+    html += '<div style="padding:4px 11px 4px 4px;display:flex;gap:4px;justify-content:flex-end;align-items:center">';
     var isGroupAppt = a.scheduleGroupId && (a.patients||[]).length > 1;
     var firstRowOfGroup = isGroupAppt && _seenGroupApptIds.indexOf(a.id) === -1;
     if (firstRowOfGroup) { _seenGroupApptIds.push(a.id); }
@@ -20058,7 +20244,7 @@ db.facilities.filter(f => f.providerId === activeProviderId)
 }
 
 const patQ = document.getElementById('appt-pat-q');
-if (patQ) patQ.value = '';
+if (patQ) { patQ.value = ''; patQ.placeholder = 'Search by DOB, Account #, or Last/First name…'; }
 
 // Inject Appointment Type + Brief Reason fields (eMedicalPractice-style) once,
 // right after the Service Group field, without editing the giant template string.
@@ -20092,6 +20278,47 @@ if (typeEl) typeEl.value = appt?.apptType || '';
 const reasonEl = document.getElementById('appt-reason');
 if (reasonEl) reasonEl.value = appt?.reason || '';
 
+// One-time visual polish: section labels + dividers, matching the rest of
+// the app's modal style (.sep / .slabel — same classes used in modal-claim),
+// injected at runtime so the giant template string is never touched.
+const apptModalEl = document.getElementById('modal-appt');
+if (apptModalEl && !apptModalEl.dataset.epicStyled) {
+  apptModalEl.dataset.epicStyled = '1';
+  const body = apptModalEl.querySelector('.modal-body');
+  if (body) {
+    const mkSlabel = (icon, text) => {
+      const s = document.createElement('span');
+      s.className = 'slabel';
+      s.innerHTML = '<i data-lucide="'+icon+'" class="lci"></i> '+text;
+      return s;
+    };
+    const mkSep = () => { const d = document.createElement('div'); d.className = 'sep'; return d; };
+
+    const dateField = document.getElementById('appt-date');
+    const scheduleRow = dateField ? dateField.closest('.fg') : null;
+    if (scheduleRow) {
+      scheduleRow.parentElement.insertBefore(mkSlabel('calendar-clock','Schedule'), scheduleRow);
+    }
+
+    const rendField = document.getElementById('appt-rend')?.closest('.field');
+    if (rendField) {
+      rendField.parentElement.insertBefore(mkSep(), rendField);
+      rendField.parentElement.insertBefore(mkSlabel('map-pin','Provider & Location'), rendField);
+    }
+  }
+  // Service Group is optional — make that explicit in the label
+  const sgLabel = document.getElementById('appt-sg')?.closest('.field')?.querySelector('label');
+  if (sgLabel && !/optional/i.test(sgLabel.textContent)) sgLabel.innerHTML = 'Service Group <span style="font-weight:400;color:var(--text3);font-size:11px">(optional)</span>';
+
+  // Upgrade the plain "Patients" div into a proper slabel + divider
+  const patDiv = Array.from(apptModalEl.querySelectorAll('.slabel')).find(e => e.textContent.trim() === 'Patients');
+  if (patDiv) {
+    patDiv.classList.add('slabel');
+    patDiv.innerHTML = '<i data-lucide="users" class="lci"></i> Patients';
+    patDiv.parentElement.insertBefore((() => { const d=document.createElement('div'); d.className='sep'; return d; })(), patDiv);
+  }
+}
+
 renderApptPatientPicker();
 openModal('modal-appt');
 setTimeout(_renderLucideIcons, 20);
@@ -20099,12 +20326,35 @@ setTimeout(_renderLucideIcons, 20);
 
 function renderApptPatientPicker() {
 const db = getDB();
-const q = (document.getElementById('appt-pat-q')?.value || '').toLowerCase();
+const qRaw = (document.getElementById('appt-pat-q')?.value || '').trim();
+const q = qRaw.toLowerCase();
 const el = document.getElementById('appt-pat-list');
 if (!el) return;
 
+// No preloaded list — only search once the user has typed something. This
+// matches DOB (any format the patient was entered with), Account #, or
+// Last/First name (in either order).
+if (q.length < 2) {
+el.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--text3);text-align:center">'
+  + '<i data-lucide="search" class="lci" style="width:16px;height:16px;display:block;margin:0 auto 6px;opacity:.5"></i>'
+  + 'Type a DOB, Account #, or patient name to search</div>';
+const tagsElEarly = document.getElementById('appt-selected-pats');
+if (tagsElEarly) {
+tagsElEarly.innerHTML = [..._apptSelPats].map(id => {
+const p = db.patients.find(x => x.id === id) || {};
+return `<span class="badge b-blue" style="cursor:pointer;font-size:12px"
+onclick="_apptSelPats.delete('${id}');renderApptPatientPicker()">${ptLinkName(p.id,p.last||'?',p.first||'')} <i data-lucide="x" class="lci"></i></span>`;
+}).join('');
+}
+setTimeout(_renderLucideIcons, 10);
+return;
+}
+
 let pats = db.patients.filter(p => p.providerId === activeProviderId);
-if (q) pats = pats.filter(p => (p.last + ' ' + p.first + ' ' + (p.acct||'')).toLowerCase().includes(q));
+pats = pats.filter(p => {
+const hay = ((p.last||'') + ' ' + (p.first||'') + ' ' + (p.first||'') + ' ' + (p.last||'') + ' ' + (p.acct||'') + ' ' + (p.dob||'')).toLowerCase();
+return hay.includes(q);
+});
 
 el.innerHTML = pats.slice(0, 60).map(p => {
 const sel = _apptSelPats.has(p.id);
@@ -20116,10 +20366,10 @@ onclick="_apptSelPats.has('${p.id}')?_apptSelPats.delete('${p.id}'):_apptSelPats
 <div style="flex:1">
 <span style="font-weight:600;font-size:13px">${ptLinkName(p.id,p.last||'?',p.first||'')}</span>
 <span class="acct" style="margin-left:6px;font-size:11px">${p.acct||''}</span>
-<span style="font-size:11px;color:var(--text3);margin-left:6px">${p.payerName||''}</span>
+<span style="font-size:11px;color:var(--text3);margin-left:6px">${p.dob?('DOB '+p.dob):''}${p.payerName?(' · '+p.payerName):''}</span>
 </div>
 </div>`;
-}).join('') || '<div style="padding:14px;font-size:12px;color:var(--text3)">No patients found</div>';
+}).join('') || '<div style="padding:14px;font-size:12px;color:var(--text3)">No patients match "'+qRaw+'"</div>';
 
 const tagsEl = document.getElementById('appt-selected-pats');
 if (tagsEl) {
@@ -20129,6 +20379,7 @@ return `<span class="badge b-blue" style="cursor:pointer;font-size:12px"
 onclick="_apptSelPats.delete('${id}');renderApptPatientPicker()">${ptLinkName(p.id,p.last||'?',p.first||'')} <i data-lucide="x" class="lci"></i></span>`;
 }).join('');
 }
+setTimeout(_renderLucideIcons, 10);
 }
 
 function onApptSGChange() {
@@ -20149,7 +20400,6 @@ const sgId = g('appt-sg');
 
 if (!date) { toast('Date is required', 'err'); return; }
 if (!rendId) { toast('Rendering provider is required', 'err'); return; }
-if (!sgId) { toast('Service group is required', 'err'); return; }
 if (!_apptSelPats.size) { toast('Add at least one patient', 'err'); return; }
 
 const existId = g('appt-id');
