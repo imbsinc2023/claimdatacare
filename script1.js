@@ -1336,7 +1336,7 @@ function startNewClaim(patId, apptId, dos, apptData){
   var sgAsgn=(apptData||{}).sgAsgn||{};
   var claim={
     id:uid(), providerId:activeProviderId, patId:patId,
-    acct:pat.acct||'', pcn:'CLM-'+Date.now(), billNum:_generateBillNum(),
+    acct:pat.acct||'', pcn:buildNextPCN(patId, activeProviderId, db.claims), billNum:_generateBillNum(),
     dos:dos||appt.date||'', pos:appt.pos||'11',
     multiDate:false, facilityId:appt.facilityId||'',
     renderingId:appt.renderingId||'', referringId:sgAsgn.referringId||'',
@@ -3945,7 +3945,7 @@ return `<div class="app-shell">
 <div class="tn-dd-sep"></div>
 <div class="tn-dd-item" id="tnd-schedule-setup" onclick="go('schedule-setup');closeTnDropdown()"><i data-lucide="settings-2" class="lci"></i><span>Schedule Setup</span></div>
 </div>
-</div></button>
+</div>
 <button class="tn-item" id="tnav-patients" onclick="go('patients')"><i data-lucide="users" class="lci"></i><span>Patients</span></button>
 <div class="tn-group" id="tng-billing">
 <button class="tn-item tn-has-dd" id="tnav-billing" onclick="toggleTnDropdown('billing',event)">
@@ -4622,8 +4622,8 @@ style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>
 </div>
 <div class="stabs" id="ss-tabs" style="margin-bottom:14px">
-<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>
-<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>
+<button class="stab active" id="ss-stab-hours" onclick="setSSTab('hours',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>
+<button class="stab" id="ss-stab-groups" onclick="setSSTab('groups',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>
 </div>
 <div id="ss-panel-hours"></div>
 <div id="ss-panel-groups" style="display:none"></div>
@@ -19002,7 +19002,15 @@ if (dateF && dateF !== 'all') {
 
 _renderDayStrip(appts);
 
-if (!list.length) {
+// View selection:
+//   • Single specific day (ISO date or "today") + agenda mode → rich agenda
+//     (shown even with zero appointments, so empty time-slots are clickable)
+//   • Cards mode → the legacy per-appointment cards
+// The toggle button flips window._apptCardsMode.
+var _isoDay = /^\d{4}-\d{2}-\d{2}$/.test(dateF) ? dateF
+            : (dateF === 'today' ? new Date().toISOString().split('T')[0] : '');
+
+if (!list.length && !(_isoDay && !window._apptCardsMode)) {
 el.innerHTML = `<div class="empty">
 <div class="empty-ico"></div>
 <h3>No appointments found</h3>
@@ -19012,12 +19020,6 @@ el.innerHTML = `<div class="empty">
 return;
 }
 
-// View selection:
-//   • Single specific day (ISO date or "today") + agenda mode → rich agenda
-//   • Cards mode → the legacy per-appointment cards
-// The toggle button flips window._apptCardsMode.
-var _isoDay = /^\d{4}-\d{2}-\d{2}$/.test(dateF) ? dateF
-            : (dateF === 'today' ? new Date().toISOString().split('T')[0] : '');
 if (_isoDay && !window._apptCardsMode) {
 el.innerHTML = _renderApptAgenda(list, db, _isoDay);
 } else {
@@ -19120,6 +19122,50 @@ color:${isToday?'#fff':'var(--brand)'}">${cnt}</div>` : ''}
 // ── Agenda View (eMedicalPractice-style day schedule, warm theme) ──────────
 // Dense, color-coded day grid: time rail on the left, one row per patient with
 // chart#, DOB, payer, copay, balance, status pill, and check-in/out actions.
+// Build the list of time-slot strings ("HH:MM") for a day, from the provider's
+// configured Working Hours (Schedule Setup) when available, else 07:00–19:00,
+// stepped by the slot interval selected in the toolbar.
+function _agDaySlots(db, dateStr, renderingId) {
+  var interval = parseInt(document.getElementById('appt-slot-interval')?.value || '30');
+  var startMin = 7*60, endMin = 19*60; // defaults
+  try {
+    var hrs = (db.scheduleHours || []).find(function(h){ return h.renderingId === renderingId; });
+    if (hrs) {
+      var dObj = new Date(dateStr+'T12:00:00');
+      var dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dObj.getDay()];
+      var d = hrs.days && hrs.days[dayName];
+      // Prefer the calendar display window if set, else that day's from/to
+      var fromStr = (hrs.calStart || (d && d.from) || '07:00');
+      var toStr   = (hrs.calEnd   || (d && d.to)   || '19:00');
+      var pf = fromStr.split(':'), pt = toStr.split(':');
+      if (pf.length===2) startMin = parseInt(pf[0])*60 + parseInt(pf[1]);
+      if (pt.length===2) endMin   = parseInt(pt[0])*60 + parseInt(pt[1]);
+    }
+  } catch(_){}
+  if (endMin <= startMin) { startMin = 7*60; endMin = 19*60; }
+  var slots = [];
+  for (var m = startMin; m < endMin; m += interval) {
+    var hh = String(Math.floor(m/60)).padStart(2,'0');
+    var mm = String(m%60).padStart(2,'0');
+    slots.push(hh+':'+mm);
+  }
+  return slots;
+}
+
+// One empty, double-clickable slot row matching the agenda's column grid.
+function _agEmptySlotRow(timeStr, dateStr) {
+  var hh = parseInt(timeStr.slice(0,2)), mm = timeStr.slice(3,5);
+  var disp = (hh%12||12)+':'+mm+' '+(hh<12?'AM':'PM');
+  var oc = "openApptModal(null);setTimeout(function(){var d=document.getElementById('appt-date');if(d)d.value='"+dateStr+"';var s=document.getElementById('appt-start');if(s)s.value='"+timeStr+"';},100)";
+  return '<div ondblclick="'+oc+'" title="Double-click to add an appointment at '+disp+'" '
+    + 'style="display:grid;grid-template-columns:62px 1fr;gap:0;align-items:center;border-bottom:1px solid var(--border);cursor:pointer;min-height:34px;transition:background .1s" '
+    + 'onmouseover="this.style.background=\'var(--brand-bg)\'" onmouseout="this.style.background=\'transparent\'">'
+    + '<div style="padding:8px 6px 8px 11px"><span class="mono" style="font-size:11px;color:var(--text3)">'+disp+'</span></div>'
+    + '<div style="padding:8px 12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px">'
+    + '<span style="opacity:.5">+ Add appointment</span></div>'
+    + '</div>';
+}
+
 function _renderApptAgenda(list, db, dateStr) {
   var rendById = {}; (db.rendering||[]).forEach(function(r){ rendById[r.id] = r; });
   var facById  = {}; (db.facilities||[]).forEach(function(f){ facById[f.id] = f; });
@@ -19176,8 +19222,17 @@ function _renderApptAgenda(list, db, dateStr) {
   });
   html += '</div>';
 
+  // Determine which provider's working-hours drive the empty-slot grid
+  var _slotProvId = document.getElementById('appt-filter-prov')?.value
+    || (rows[0] && rows[0].a.renderingId)
+    || ((db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;})[0]||{}).id
+    || '';
+  var _slots = _agDaySlots(db, dateStr, _slotProvId);
+
   if (!rows.length) {
-    html += '<div style="padding:34px;text-align:center;color:var(--text3)"><div style="font-size:13px;font-weight:600;margin-bottom:4px">No appointments scheduled</div><div style="font-size:12px">Click <strong>Add</strong> to schedule for '+dTitle+'.</div></div>';
+    // No appointments — show the empty time-slot grid so the user can double-click to add
+    html += '<div style="padding:9px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">No appointments yet — <strong>double-click any time slot</strong> below to schedule one.</div>';
+    _slots.forEach(function(t){ html += _agEmptySlotRow(t, dateStr); });
     html += '</div>';
     return html;
   }
@@ -19269,6 +19324,16 @@ function _renderApptAgenda(list, db, dateStr) {
 
     html += '</div>';
   });
+
+  // After the booked rows, show the remaining open time-slots for this day so the
+  // user can double-click any free slot to add an appointment.
+  var bookedTimes = {};
+  rows.forEach(function(r){ if (r.a.startTime) bookedTimes[r.a.startTime.slice(0,5)] = true; });
+  var openSlots = _slots.filter(function(t){ return !bookedTimes[t]; });
+  if (openSlots.length) {
+    html += '<div style="padding:8px 14px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Open Slots — double-click to add</div>';
+    openSlots.forEach(function(t){ html += _agEmptySlotRow(t, dateStr); });
+  }
 
   html += '</div>';
   return html;
