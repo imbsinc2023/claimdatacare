@@ -19116,6 +19116,7 @@ function _initScheduleEpicHeader() {
   if (!dayStrip) return;
   var oldFilterRow = document.getElementById('appt-filter-prov') ? document.getElementById('appt-filter-prov').parentElement : null;
 
+  // 3-column grid: [black box w/ provider+KPIs] [filters] [month calendar]
   var header = document.createElement('div');
   header.id = 'appt-epic-header';
   header.innerHTML =
@@ -19123,14 +19124,24 @@ function _initScheduleEpicHeader() {
     '<div id="appt-epic-mid"></div>' +
     '<div id="appt-epic-cal"></div>';
   dayStrip.parentElement.insertBefore(header, dayStrip);
+
+  // Date Range gets its own full-width row BELOW the grid box (per request)
+  var dateRow = document.createElement('div');
+  dateRow.id = 'appt-epic-daterow';
+  dateRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap';
+  dayStrip.parentElement.insertBefore(dateRow, dayStrip);
+
   dayStrip.style.display = 'none';
 
   var mq = window.matchMedia && window.matchMedia('(max-width:980px)').matches;
-  header.style.cssText = 'display:grid;grid-template-columns:'+(mq?'1fr':'220px 1fr 330px')+';gap:14px;margin-bottom:14px;align-items:stretch'+(mq?';grid-template-areas:none':'');
+  header.style.cssText = 'display:grid;grid-template-columns:'+(mq?'1fr':'240px 1fr 330px')+';gap:14px;margin-bottom:12px;align-items:stretch';
 
+  // The provider <select> moves into the black box (done in _renderEpicLeft);
+  // status+interval move into the mid panel. Keep them in the DOM so their
+  // onchange handlers keep firing.
   if (oldFilterRow) {
     var mid = document.getElementById('appt-epic-mid');
-    ['appt-filter-prov','appt-filter-status','appt-slot-interval'].forEach(function(id){
+    ['appt-filter-status','appt-slot-interval'].forEach(function(id){
       var elm = document.getElementById(id);
       if (elm) mid.appendChild(elm);
     });
@@ -19160,95 +19171,97 @@ function _apptCalNav(dir) {
   renderAppointments();
 }
 
-// LEFT — active provider + KPI summary for whatever is currently shown
+// LEFT — black box: provider picker (eMedical "Physician/Scheduler" style) + KPIs
 function _renderEpicLeft(db, list, rendF) {
   var elm = document.getElementById('appt-epic-left');
   if (!elm) return;
-  var rend = (db.rendering||[]).find(function(r){ return r.id===rendF; });
-  var provName = rend ? (rend.last+', '+rend.first) : 'All Providers';
-  var provSub = rend ? ('NPI '+(rend.npi||'—')) : ((db.rendering||[]).filter(function(r){return r.providerId===activeProviderId;}).length+' rendering providers');
 
   var total = list.length;
   var checked = list.filter(function(a){ return ['checked_in','in_progress','completed'].indexOf(a.status)>=0; }).length;
   var pending = list.filter(function(a){ return ['scheduled','confirmed'].indexOf(a.status)>=0; }).length;
   var noshow  = list.filter(function(a){ return a.status==='no_show'; }).length;
 
-  var html = '<div style="background:#30302e;border-radius:14px;padding:16px;color:#fff;height:100%;display:flex;flex-direction:column;gap:14px">';
-  html += '<div style="display:flex;align-items:center;gap:10px">';
-  html += '<div style="width:38px;height:38px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="stethoscope" class="lci" style="width:19px;height:19px;color:#fff"></i></div>';
-  html += '<div style="min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+provName+'</div>';
-  html += '<div style="font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+provSub+'</div></div>';
-  html += '</div>';
+  // Build the box shell once; keep the live <select id=appt-filter-prov> inside
+  // it so its onchange still drives renderAppointments. We only rebuild the KPI
+  // numbers on each render, never the select (so it doesn't lose focus/value).
+  if (elm.dataset.built !== '1') {
+    elm.dataset.built = '1';
+    elm.style.cssText = 'background:#30302e;border-radius:14px;padding:16px;color:#fff;height:100%;display:flex;flex-direction:column;gap:13px';
+    elm.innerHTML =
+      '<div style="display:flex;align-items:center;gap:9px">' +
+        '<div style="width:34px;height:34px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="stethoscope" class="lci" style="width:17px;height:17px;color:#fff"></i></div>' +
+        '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em">Physician / Scheduler</div>' +
+      '</div>' +
+      '<div id="appt-epic-prov-slot"></div>' +
+      '<div id="appt-epic-kpis" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>';
 
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  var mk = function(val,label,color){
-    return '<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px 10px">'
-      + '<div style="font-size:19px;font-weight:800;color:'+color+';line-height:1">'+val+'</div>'
-      + '<div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">'+label+'</div></div>';
-  };
-  html += mk(total,'Appts','#fff');
-  html += mk(checked,'Checked In','#4ade80');
-  html += mk(pending,'Pending','#fbbf24');
-  html += mk(noshow,'No-Show','#f87171');
-  html += '</div>';
+    // Drop the live provider <select> into the slot and style it dark
+    var prov = document.getElementById('appt-filter-prov');
+    var slot = elm.querySelector('#appt-epic-prov-slot');
+    if (prov && slot) {
+      prov.style.cssText = 'width:100%;padding:9px 11px;border:1.5px solid rgba(255,255,255,.18);border-radius:9px;background:#1f1f1d;color:#fff;font-size:13px;font-weight:600;cursor:pointer';
+      slot.appendChild(prov);
+    }
+  }
 
-  html += '<button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="openApptModal(null)"><i data-lucide="plus" class="lci"></i> New Appointment</button>';
-  html += '</div>';
-  elm.innerHTML = html;
+  var kpis = elm.querySelector('#appt-epic-kpis');
+  if (kpis) {
+    var mk = function(val,label,color){
+      return '<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px 10px">'
+        + '<div style="font-size:19px;font-weight:800;color:'+color+';line-height:1">'+val+'</div>'
+        + '<div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">'+label+'</div></div>';
+    };
+    kpis.innerHTML = mk(total,'Appts','#fff') + mk(checked,'Checked In','#4ade80') + mk(pending,'Pending','#fbbf24') + mk(noshow,'No-Show','#f87171');
+  }
 }
 
-// MIDDLE — relocated filter selects (styled) + quick date-range pills
+// LEFT panel end
+
+// MIDDLE — just the Status + Slot Interval selects (Date Range moved out)
 function _renderEpicMid(selVal) {
   var elm = document.getElementById('appt-epic-mid');
   if (!elm) return;
   if (elm.dataset.built !== '1') {
     elm.dataset.built = '1';
-    elm.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px';
+    elm.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;justify-content:center';
     var label = function(t){ return '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+t+'</div>'; };
-    var wrapProv = document.createElement('div');
-    var wrapStatus = document.createElement('div');
-    var wrapInterval = document.createElement('div');
-    var pills = document.createElement('div');
-    pills.id = 'appt-epic-pills';
-    pills.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
 
-    var prov = document.getElementById('appt-filter-prov');
     var status = document.getElementById('appt-filter-status');
     var interval = document.getElementById('appt-slot-interval');
     var styleSel = 'width:100%;padding:9px 11px;border:1.5px solid var(--border2);border-radius:10px;background:var(--bg);color:var(--text);font-size:12px;font-weight:600';
-    [prov,status,interval].forEach(function(s){ if (s) s.style.cssText = styleSel; });
-
-    wrapProv.innerHTML = label('Rendering Provider');
-    wrapStatus.innerHTML = label('Status');
-    wrapInterval.innerHTML = label('Slot Interval');
+    [status,interval].forEach(function(s){ if (s) s.style.cssText = styleSel; });
 
     var row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px';
-    var col1 = document.createElement('div'); col1.appendChild(wrapProv); if (prov) wrapProv.appendChild(prov);
-    var col2 = document.createElement('div'); col2.appendChild(wrapStatus); if (status) wrapStatus.appendChild(status);
+    var col1 = document.createElement('div'); col1.innerHTML = label('Status'); if (status) col1.appendChild(status);
+    var col2 = document.createElement('div'); col2.innerHTML = label('Slot Interval'); if (interval) col2.appendChild(interval);
     row.appendChild(col1); row.appendChild(col2);
 
     elm.innerHTML = '';
-    var pillsLabelEl = document.createElement('div');
-    pillsLabelEl.innerHTML = label('Date Range');
-    elm.appendChild(pillsLabelEl);
-    elm.appendChild(pills);
-    var sep = document.createElement('div');
-    sep.style.cssText = 'border-top:1px solid var(--border);margin:2px 0';
-    elm.appendChild(sep);
     elm.appendChild(row);
-    if (interval) { wrapInterval.appendChild(interval); elm.appendChild(wrapInterval); }
   }
-  var pills = document.getElementById('appt-epic-pills');
-  if (pills) {
-    var ranges = [['today','Today'],['week','This Week'],['month','This Month'],['all','All']];
-    var active = window._apptDayPick ? '' : selVal;
-    pills.innerHTML = ranges.map(function(r){
-      var isOn = active === r[0];
-      return '<button class="btn btn-sm" onclick="_apptQuickRange(\''+r[0]+'\')" style="font-size:11px;padding:6px 12px;border-radius:20px;'
-        + (isOn ? 'background:var(--brand);color:#fff;border-color:var(--brand)' : 'background:var(--bg);color:var(--text2)') + '">'+r[1]+'</button>';
-    }).join('');
+}
+
+// DATE ROW — full-width row of quick date-range pills, below the grid box
+function _renderEpicDateRow(selVal) {
+  var elm = document.getElementById('appt-epic-daterow');
+  if (!elm) return;
+  var ranges = [['today','Today'],['week','This Week'],['month','This Month'],['all','All']];
+  var active = window._apptDayPick ? '' : selVal;
+  var html = '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-right:4px"><i data-lucide="calendar-range" class="lci" style="width:13px;height:13px;vertical-align:-2px"></i> Date Range</div>';
+  html += ranges.map(function(r){
+    var isOn = active === r[0];
+    return '<button class="btn btn-sm" onclick="_apptQuickRange(\''+r[0]+'\')" style="font-size:12px;padding:7px 16px;border-radius:20px;'
+      + (isOn ? 'background:var(--brand);color:#fff;border-color:var(--brand)' : 'background:var(--bg2);color:var(--text2)') + '">'+r[1]+'</button>';
+  }).join('');
+  if (window._apptDayPick) {
+    var d = new Date(window._apptDayPick+'T12:00:00');
+    var lbl = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    html += '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:20px;padding:6px 14px">'
+      + '<i data-lucide="calendar-check" class="lci" style="width:13px;height:13px"></i> Viewing ' + lbl
+      + ' <span style="cursor:pointer;opacity:.7" onclick="_apptQuickRange(\'today\')">✕</span></span>';
   }
+  elm.innerHTML = html;
 }
 
 // RIGHT — mini month calendar; dots show appt counts; click selects the day
@@ -19303,6 +19316,7 @@ function _renderScheduleEpicHeader(appts, list, db, isoDay, selVal) {
   _renderEpicLeft(db, list, rendF);
   _renderEpicMid(selVal);
   _renderEpicCal(appts, isoDay);
+  _renderEpicDateRow(selVal);
 }
 
 // ── Agenda View (eMedicalPractice-style day schedule, warm theme) ──────────
@@ -19385,20 +19399,23 @@ function _renderApptAgenda(list, db, dateStr) {
 
   var html = '';
 
-  // ── KPI cards ──
-  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">';
-  html += _agKpi('calendar-days','Appointments', total, 'var(--brand)','var(--brand-bg)');
-  html += _agKpi('check-circle-2','Checked In', checked, '#16a34a','#f0fdf4');
-  html += _agKpi('clock','Pending', pending, '#d97706','#fffbeb');
-  html += _agKpi('ban','No-Show', noshow, '#dc2626','#fef2f2');
-  html += _agKpi('wallet','Day Balance', '$'+dayBalance.toFixed(2), 'var(--text2)','var(--bg3)');
-  html += '</div>';
+  // Day Balance is the only KPI not already shown in the epic header's black
+  // box, so we keep just that single figure here (the Appointments/Checked In/
+  // Pending/No-Show cards were duplicated and have been removed).
+  if (dayBalance > 0) {
+    html += '<div style="display:flex;justify-content:flex-end;margin-bottom:10px">';
+    html += '<div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:7px 14px">';
+    html += '<i data-lucide="wallet" class="lci" style="width:14px;height:14px;color:var(--text2)"></i>';
+    html += '<span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Day Balance</span>';
+    html += '<span style="font-size:15px;font-weight:800;color:var(--text)">$'+dayBalance.toFixed(2)+'</span>';
+    html += '</div></div>';
+  }
 
   // ── Agenda table ──
   html += '<div class="card" style="padding:0;overflow:hidden">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#30302e;color:#fff">';
   html += '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i data-lucide="calendar-days" class="lci" style="width:15px;height:15px"></i> '+dTitle+'</div>';
-  html += '<button class="btn btn-primary btn-sm" onclick="openApptModal(null);setTimeout(function(){var e=document.getElementById(\'appt-date\');if(e)e.value=\''+dateStr+'\'},100)" style="height:28px"><i data-lucide="plus" class="lci"></i> Add</button>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:5px"><i data-lucide="mouse-pointer-click" class="lci" style="width:12px;height:12px"></i> Double-click a slot to add</div>';
   html += '</div>';
 
   // Column header
