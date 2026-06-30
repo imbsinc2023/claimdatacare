@@ -8249,7 +8249,7 @@ try {
 }
 txt('INVOICE', RX, M + 10, { bold:true, size:22, color:DARK, align:'right' });
 txt(inv.number||'', RX, M + 17, { size:8, color:MID, align:'right' });
-txt(fmtInvDate(inv.month)||inv.month||'', RX, M + 22, { size:8, color:MID, align:'right' });
+txt('Period: ' + (fmtInvDate(inv.month)||inv.month||''), RX, M + 22, { size:8, color:MID, align:'right' });
 y = M + _logoH + 10;
 line(M + 2, y, RX, y, BORDER, 0.4);
 y += 6;
@@ -8312,7 +8312,7 @@ if (y + 70 > 265) {
   txt(iss.name||'', M+2, 292, { size:7, color:MID });
   txt('Continued...', W/2, 292, { size:7, color:MID, align:'center' });
   if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-  txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
+  txt('Powered by ClaimDataCare', RX, 292, { size:7, bold:true, color:ACCENT, align:'right' });
   doc.addPage(); fill(0, 0, 3, 297, ACCENT);
   y = M + 4;
   txt('Invoice '+(inv.number||'')+' — continued', M+5, y+4, { size:9, bold:true, color:DARK });
@@ -8342,7 +8342,7 @@ txt(iss.name||'', M+2, 292, { size:7, color:MID });
 txt('Thank you for your business', W/2, 292, { size:7, color:MID, align:'center' });
 if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
 txt('Page 1', RX, 292, { size:7, color:MID, align:'right' });
-txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
+txt('Powered by ClaimDataCare', RX, 286, { size:7, bold:true, color:ACCENT, align:'right' });
 
 if (inv.lines && inv.lines.length) {
 doc.addPage(); fill(0, 0, 3, 297, ACCENT);
@@ -8369,7 +8369,7 @@ if (py > 268) {
   txt(iss.name||'', M+2, 292, { size:7, color:MID });
   txt('Payment Detail (cont.)', W/2, 292, { size:7, color:MID, align:'center' });
   if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-  txt('Powered by ClaimDataCare', RX, 292, { size:6, color:[190,188,184], align:'right' });
+  txt('Powered by ClaimDataCare', RX, 292, { size:7, bold:true, color:ACCENT, align:'right' });
   doc.addPage(); fill(0, 0, 3, 297, ACCENT); py = M;
   line(M+2, py-1, RX, py-1, BORDER, 0.5);
   allCols.forEach(c => { txt(c.label, c.right?c.x:c.x, py+1.5, { size:6.5, bold:true, color:MID, align:c.right?'right':'left' }); });
@@ -8395,7 +8395,7 @@ txt(iss.name||'', M+2, 292, { size:7, color:MID });
 txt('Payment Detail', W/2, 292, { size:7, color:MID, align:'center' });
 if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
 txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7, color:MID, align:'right' });
-txt('Powered by ClaimDataCare', RX, 286, { size:6, color:[190,188,184], align:'right' });
+txt('Powered by ClaimDataCare', RX, 286, { size:7, bold:true, color:ACCENT, align:'right' });
 }
 return doc;
 }
