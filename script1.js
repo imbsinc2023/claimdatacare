@@ -8229,13 +8229,6 @@ doc.setTextColor(...(opts.color||BLACK));
 doc.text(String(s||''), x, y, { align: opts.align||'left', maxWidth: opts.maxWidth });
 };
 
-let _invQR = null;
-try {
-  if (typeof generateQRDataURL === 'function') {
-    _invQR = generateQRDataURL('https://claimdatacare.com/invoice/' + (inv.number||''), 60);
-  }
-} catch(e) {}
-
 let y = M;
 fill(0, 0, 3, 297, ACCENT);
 let _logoH = 28;
@@ -8381,17 +8374,9 @@ for (let _p = 1; _p <= _totalPages; _p++) {
   line(M+2, 280, RX, 280, BORDER, 0.3);
   line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
   txt('Payment Detail', M+2, 292, { size:7, color:MID });
-  txt('Powered by ClaimDataCare', W/2, 292, { size:7, bold:true, color:ACCENT, align:'center' });
+  txt('Powered by ClaimDataCare  \u2014  www.claimdatacare.com', W/2, 292, { size:7, bold:true, color:ACCENT, align:'center' });
   txt('Page ' + _p + ' / ' + _totalPages, RX, 292, { size:7, color:MID, align:'right' });
 }
-// QR code only on the last page (kept from original behavior)
-if (_invQR) {
-  try {
-    doc.setPage(_totalPages);
-    doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST');
-  } catch(e) {}
-}
-
 return doc;
 }
 
