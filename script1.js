@@ -8308,11 +8308,6 @@ txt(money(svcTotal), RX-2, y+3, { size:8.5, color:DARK, align:'right' });
 y += 9;
 
 if (y + 70 > 265) {
-  line(M+2, 280, RX, 280, BORDER, 0.3);
-  txt(iss.name||'', M+2, 292, { size:7, color:MID });
-  txt('Continued...', W/2, 292, { size:7, color:MID, align:'center' });
-  if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-  txt('Powered by ClaimDataCare', RX, 292, { size:7, bold:true, color:ACCENT, align:'right' });
   doc.addPage(); fill(0, 0, 3, 297, ACCENT);
   y = M + 4;
   txt('Invoice '+(inv.number||'')+' — continued', M+5, y+4, { size:9, bold:true, color:DARK });
@@ -8336,14 +8331,6 @@ line(M+2, y, RX, y, BORDER, 0.2); y += 4;
 const noteLines = doc.splitTextToSize([iss.notes, inv.notes].filter(Boolean).join(' \u00b7 '), CW - 6);
 txt(noteLines, M+5, y+2, { size:7.5, color:MID }); y += noteLines.length * 3.5 + 4;
 }
-line(M+2, 280, RX, 280, BORDER, 0.3);
-line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
-txt(iss.name||'', M+2, 292, { size:7, color:MID });
-txt('Thank you for your business', W/2, 292, { size:7, color:MID, align:'center' });
-if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-txt('Page 1', RX, 292, { size:7, color:MID, align:'right' });
-txt('Powered by ClaimDataCare', RX, 286, { size:7, bold:true, color:ACCENT, align:'right' });
-
 if (inv.lines && inv.lines.length) {
 doc.addPage(); fill(0, 0, 3, 297, ACCENT);
 let py = M;
@@ -8365,11 +8352,6 @@ let pageRev = 0;
 doc.setFont('helvetica','normal'); doc.setFontSize(9);
 inv.lines.forEach((l, i) => {
 if (py > 268) {
-  line(M+2, 280, RX, 280, BORDER, 0.3);
-  txt(iss.name||'', M+2, 292, { size:7, color:MID });
-  txt('Payment Detail (cont.)', W/2, 292, { size:7, color:MID, align:'center' });
-  if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-  txt('Powered by ClaimDataCare', RX, 292, { size:7, bold:true, color:ACCENT, align:'right' });
   doc.addPage(); fill(0, 0, 3, 297, ACCENT); py = M;
   line(M+2, py-1, RX, py-1, BORDER, 0.5);
   allCols.forEach(c => { txt(c.label, c.right?c.x:c.x, py+1.5, { size:6.5, bold:true, color:MID, align:c.right?'right':'left' }); });
@@ -8389,14 +8371,27 @@ pageRev += parseFloat(l.amount)||0; py += 8;
 py += 3; line(M+2, py, RX, py, DARK, 0.4); py += 4;
 txt('Total Revenue', M+5, py+2, { size:9, bold:true, color:DARK });
 txt(money(pageRev), RX-2, py+2, { size:10, bold:true, color:DARK, align:'right' });
-line(M+2, 280, RX, 280, BORDER, 0.3);
-line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
-txt(iss.name||'', M+2, 292, { size:7, color:MID });
-txt('Payment Detail', W/2, 292, { size:7, color:MID, align:'center' });
-if (_invQR) { try { doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST'); } catch(e) {} }
-txt('Page '+doc.getNumberOfPages(), RX, 292, { size:7, color:MID, align:'right' });
-txt('Powered by ClaimDataCare', RX, 286, { size:7, bold:true, color:ACCENT, align:'right' });
 }
+
+// Uniform footer painted across all pages once the total page count is known.
+// LEFT: "Payment Detail"  |  CENTER: "Powered by ClaimDataCare" (terracotta+bold)  |  RIGHT: "Page X / Y"
+const _totalPages = doc.getNumberOfPages();
+for (let _p = 1; _p <= _totalPages; _p++) {
+  doc.setPage(_p);
+  line(M+2, 280, RX, 280, BORDER, 0.3);
+  line(M+2, 281.5, RX, 281.5, LIGHT, 0.3);
+  txt('Payment Detail', M+2, 292, { size:7, color:MID });
+  txt('Powered by ClaimDataCare', W/2, 292, { size:7, bold:true, color:ACCENT, align:'center' });
+  txt('Page ' + _p + ' / ' + _totalPages, RX, 292, { size:7, color:MID, align:'right' });
+}
+// QR code only on the last page (kept from original behavior)
+if (_invQR) {
+  try {
+    doc.setPage(_totalPages);
+    doc.addImage(_invQR, 'PNG', RX - 14, 280 - 14, 12, 12, undefined, 'FAST');
+  } catch(e) {}
+}
+
 return doc;
 }
 
