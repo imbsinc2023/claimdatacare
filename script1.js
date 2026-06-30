@@ -3773,49 +3773,90 @@ sv('mc-acct', pat.acct||'');
 window._mcActiveIns = _resolvePatientInsurance(pat);
 }
 function openClaimModal(idx){
-  var db=getDB();
-  var provId=activeProviderId||(db.providers&&db.providers[0]?db.providers[0].id:'');
-  var claimId;
+  console.log('[CDC] openClaimModal(' + idx + ') called');
+  try {
+    var db=getDB();
+    var provId=activeProviderId||(db.providers&&db.providers[0]?db.providers[0].id:'');
+    var claimId;
+    var newClaim = null;
 
-  if(idx>=0){
-    var c=db.claims[idx];
-    if(!c){toast('Claim not found','err');return;}
-    claimId=c.id;
-  } else {
-    var newId=uid();
-    var pcn=typeof buildNextPCN==='function'?buildNextPCN('',provId,db.claims):('PCN'+Date.now());
-    var billNum=_generateBillNum();
-    var rends=(db.rendering||[]).filter(function(r){return r.providerId===provId;});
-    var newClaim={
-      id:newId, providerId:provId,
-      pcn:pcn, billNum:billNum, patId:'', acct:'',
-      dos:today(), pos:'11',
-      facilityId:'', renderingId:rends.length?rends[0].id:'',
-      referringId:'', auth:'',
-      dx:['','','','','','','',''],
-      lines:[], status:'draft',
-      emp:'N', auto:'N',
-      createdAt:Date.now(), updatedAt:Date.now()
-    };
-    setDB(function(db2){ db2.claims.push(newClaim); });
-    claimId=newId;
-    // Store claim directly so renderClaimEditor finds it even if getDB() is stale
-    window._ceCurrentClaim=newClaim;
+    if(idx>=0){
+      var c=db.claims[idx];
+      if(!c){toast('Claim not found','err');return;}
+      claimId=c.id;
+    } else {
+      var newId=uid();
+      var pcn, billNum;
+      try { pcn = typeof buildNextPCN==='function' ? buildNextPCN('',provId,db.claims) : ('PCN'+Date.now()); }
+      catch(e){ console.warn('[CDC] buildNextPCN failed, using fallback:', e); pcn='PCN'+Date.now(); }
+      try { billNum = _generateBillNum(); }
+      catch(e){ console.warn('[CDC] _generateBillNum failed, using fallback:', e); billNum=String(Date.now()); }
+      var rends=(db.rendering||[]).filter(function(r){return r.providerId===provId;});
+      newClaim={
+        id:newId, providerId:provId,
+        pcn:pcn, billNum:billNum, patId:'', acct:'',
+        dos:(typeof today==='function'?today():new Date().toISOString().slice(0,10)),
+        pos:'11',
+        facilityId:'', renderingId:rends.length?rends[0].id:'',
+        referringId:'', auth:'',
+        dx:['','','','','','','',''],
+        lines:[], status:'draft',
+        emp:'N', auto:'N',
+        createdAt:Date.now(), updatedAt:Date.now()
+      };
+      claimId=newId;
+      // Store claim directly so renderClaimEditor finds it even if setDB later fails
+      window._ceCurrentClaim=newClaim;
+    }
+
+    // Set editor state BEFORE persisting — guarantees navigation can render
+    // even if the DB write throws (e.g. localStorage quota).
+    window._ceActiveTab='services';
+    window._ceClaimId=claimId;
+    window._ceClaimIdStored=claimId;
+
+    // Navigate to the editor section NOW. This is what the user sees.
+    document.querySelectorAll('.section').forEach(function(e){
+      e.style.display='none'; e.classList.remove('active');
+    });
+    var sec=document.getElementById('sec-claim-editor');
+    if(sec){ sec.style.display='flex'; sec.classList.add('active'); }
+    try{ setActiveTopNav('claim-editor'); }catch(_){}
+    var tbt=document.getElementById('tb-title');
+    if(tbt) tbt.textContent='Claim Editor';
+
+    // Persist the new claim AFTER navigation. If this fails, the editor still
+    // works in-memory via window._ceCurrentClaim — user won't be blocked.
+    if (newClaim) {
+      try {
+        setDB(function(db2){
+          if (!db2.claims) db2.claims = [];
+          db2.claims.push(newClaim);
+        });
+      } catch(persistErr) {
+        console.error('[CDC] setDB failed during new-claim persist (continuing in-memory):', persistErr);
+        toast('Warning: claim created in memory but not yet saved — '+(persistErr.message||persistErr), 'warn');
+      }
+    }
+
+    // Render the editor (already inside its own try/catch)
+    renderClaimEditor();
+  } catch(err) {
+    console.error('[CDC] openClaimModal FATAL:', err);
+    toast('Could not open claim editor: '+(err.message||err), 'err');
+    // Last-ditch: still try to navigate so the user sees the error message
+    try {
+      document.querySelectorAll('.section').forEach(function(e){
+        e.style.display='none'; e.classList.remove('active');
+      });
+      var sec2=document.getElementById('sec-claim-editor');
+      if(sec2){
+        sec2.style.display='flex'; sec2.classList.add('active');
+        var el=document.getElementById('claim-editor-content');
+        if(el) el.innerHTML='<div style="padding:40px;color:var(--red);font-family:monospace;font-size:13px;white-space:pre-wrap"><strong>NEW CLAIM ERROR:</strong>\n'+(err.stack||err.message||err)+'</div>';
+      }
+    } catch(_){}
   }
-
-  window._ceActiveTab='services';
-  window._ceClaimId=claimId;
-  window._ceClaimIdStored=claimId;
-
-  document.querySelectorAll('.section').forEach(function(e){
-    e.style.display='none'; e.classList.remove('active');
-  });
-  var sec=document.getElementById('sec-claim-editor');
-  if(sec){ sec.style.display='flex'; sec.classList.add('active'); }
-  try{ setActiveTopNav('claim-editor'); }catch(_){}
-  var tbt=document.getElementById('tb-title');
-  if(tbt) tbt.textContent='Claim Editor';
-  renderClaimEditor();
 }
 function saveFacility() {
 const nameVal = v('mfac-name');
@@ -9295,10 +9336,17 @@ function fmtPhone(p) {
 }
 function fmtInvDate(d) {
   if (!d) return '';
-  // Handle YYYY-MM-DD → MM/DD/YYYY
-  if (d.includes('-') && d.split('-')[0].length===4) {
+  if (d.includes('-')) {
     const parts = d.split('-');
-    return parts[1]+'/'+parts[2]+'/'+parts[0];
+    // Real YYYY-MM-DD → MM/DD/YYYY (require 3 numeric parts; the old check
+    // .length===4 wrongly matched "June-2026" since "June".length is also 4)
+    if (parts.length === 3 && /^\d{4}$/.test(parts[0])) {
+      return parts[1]+'/'+parts[2]+'/'+parts[0];
+    }
+    // Invoice period "MonthName-YYYY" → "MonthName YYYY" (e.g. "June 2026")
+    if (parts.length === 2 && /^[A-Za-z]+$/.test(parts[0]) && /^\d{4}$/.test(parts[1])) {
+      return parts[0] + ' ' + parts[1];
+    }
   }
   return d;
 }
