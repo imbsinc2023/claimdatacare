@@ -2276,34 +2276,52 @@ function _exportPatientPDF(patId) {
   var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
   if (!pat) { toast('Patient not found','err'); return; }
 
-  // Load patient photo as base64 (data: URIs pass through, HTTPS via <img>+canvas to bypass CORS)
+  // Load patient photo as base64 (data: URIs pass through, HTTPS via multiple strategies)
   function loadPhotoBase64(url) {
     return new Promise(function(resolve) {
-      if (!url) { resolve(null); return; }
+      if (!url) { toast('Photo: no URL','info'); resolve(null); return; }
       if (url.indexOf('data:') === 0) { resolve(url); return; }
-      var img = new Image();
-      img.crossOrigin = 'anonymous';
-      var done = false;
-      var finish = function(v) { if (!done) { done = true; resolve(v); } };
-      setTimeout(function(){ finish(null); }, 6000);
-      img.onload = function() {
-        try {
-          var s = Math.min(1, 300 / Math.max(img.naturalWidth, img.naturalHeight));
-          var c = document.createElement('canvas');
-          c.width  = Math.max(1, Math.round(img.naturalWidth  * s));
-          c.height = Math.max(1, Math.round(img.naturalHeight * s));
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          finish(c.toDataURL('image/jpeg', 0.8));
-        } catch(e) { finish(null); }
-      };
-      img.onerror = function(){ finish(null); };
-      img.src = url;
+
+      // Strategy 1: fetch as blob (works if Firebase Storage CORS is configured)
+      fetch(url).then(function(r){
+        if (!r.ok) throw new Error('HTTP '+r.status);
+        return r.blob();
+      }).then(function(blob){
+        var fr = new FileReader();
+        fr.onload = function(){ resolve(fr.result); };
+        fr.onerror = function(){ tryImg(); };
+        fr.readAsDataURL(blob);
+      }).catch(function(e){
+        toast('Photo fetch failed: '+e.message+' — trying img','warn');
+        tryImg();
+      });
+
+      // Strategy 2: <img> + canvas with CORS
+      function tryImg() {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        var done=false, fin=function(v){ if(!done){done=true;resolve(v);} };
+        setTimeout(function(){ if(!done){ toast('Photo timeout','warn'); fin(null);} }, 6000);
+        img.onload = function(){
+          try {
+            var s = Math.min(1, 300 / Math.max(img.naturalWidth, img.naturalHeight));
+            var c = document.createElement('canvas');
+            c.width  = Math.max(1, Math.round(img.naturalWidth  * s));
+            c.height = Math.max(1, Math.round(img.naturalHeight * s));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            fin(c.toDataURL('image/jpeg', 0.8));
+          } catch(e){ toast('Photo canvas failed (CORS): '+e.message,'err'); fin(null); }
+        };
+        img.onerror = function(){ toast('Photo img load failed','err'); fin(null); };
+        img.src = url;
+      }
     });
   }
 
   async function tryExport() {
     try {
       var photoBase64 = await loadPhotoBase64(pat.photo || null);
+      if (pat.photo && !photoBase64) toast('Photo could not be loaded — PDF will be generated without it','warn');
       _doExportPatientPDF(pat, db, photoBase64);
     } catch(e) {
       console.error('PDF export error:', e);
