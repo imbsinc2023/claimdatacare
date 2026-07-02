@@ -2276,20 +2276,29 @@ function _exportPatientPDF(patId) {
   var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
   if (!pat) { toast('Patient not found','err'); return; }
 
-  // Load patient photo as base64 (handles both data: URIs and Firebase Storage URLs)
-  async function loadPhotoBase64(url) {
-    if (!url) return null;
-    if (url.startsWith('data:')) return url;         // already base64
-    try {
-      var resp = await fetch(url);
-      var blob = await resp.blob();
-      return await new Promise(function(res, rej) {
-        var r = new FileReader();
-        r.onload = function() { res(r.result); };
-        r.onerror = rej;
-        r.readAsDataURL(blob);
-      });
-    } catch(e) { return null; }
+  // Load patient photo as base64 (data: URIs pass through, HTTPS via <img>+canvas to bypass CORS)
+  function loadPhotoBase64(url) {
+    return new Promise(function(resolve) {
+      if (!url) { resolve(null); return; }
+      if (url.indexOf('data:') === 0) { resolve(url); return; }
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      var done = false;
+      var finish = function(v) { if (!done) { done = true; resolve(v); } };
+      setTimeout(function(){ finish(null); }, 6000);
+      img.onload = function() {
+        try {
+          var s = Math.min(1, 300 / Math.max(img.naturalWidth, img.naturalHeight));
+          var c = document.createElement('canvas');
+          c.width  = Math.max(1, Math.round(img.naturalWidth  * s));
+          c.height = Math.max(1, Math.round(img.naturalHeight * s));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          finish(c.toDataURL('image/jpeg', 0.8));
+        } catch(e) { finish(null); }
+      };
+      img.onerror = function(){ finish(null); };
+      img.src = url;
+    });
   }
 
   async function tryExport() {
