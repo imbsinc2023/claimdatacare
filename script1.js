@@ -2276,9 +2276,26 @@ function _exportPatientPDF(patId) {
   var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
   if (!pat) { toast('Patient not found','err'); return; }
 
-  function tryExport() {
+  // Load patient photo as base64 (handles both data: URIs and Firebase Storage URLs)
+  async function loadPhotoBase64(url) {
+    if (!url) return null;
+    if (url.startsWith('data:')) return url;         // already base64
     try {
-      _doExportPatientPDF(pat, db);
+      var resp = await fetch(url);
+      var blob = await resp.blob();
+      return await new Promise(function(res, rej) {
+        var r = new FileReader();
+        r.onload = function() { res(r.result); };
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+    } catch(e) { return null; }
+  }
+
+  async function tryExport() {
+    try {
+      var photoBase64 = await loadPhotoBase64(pat.photo || null);
+      _doExportPatientPDF(pat, db, photoBase64);
     } catch(e) {
       console.error('PDF export error:', e);
       toast('PDF error: ' + e.message, 'err');
@@ -2319,7 +2336,7 @@ function _exportPatientPDF(patId) {
   }
 }
 
-function _doExportPatientPDF(pat, db) {
+function _doExportPatientPDF(pat, db, photoBase64) {
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   var doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'letter' });
   var W=612, H=792;
@@ -2410,21 +2427,41 @@ function _doExportPatientPDF(pat, db) {
   // 4 rows:     R1=126  R2=149  R3=172  R4=195
   var C1=36, C2=216, C3=396;
   var R1=126, R2=149, R3=172, R4=195;
+  // When photo present, cap C3 text width so it doesn't overlap the photo box
+  var C3W = photoBase64 ? 88 : 170;
 
   F('File #',        pat.acct||'',        C1, R1, {size:9});
   F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {size:9,w:170});
-  F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1);
+  F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1, {w:C3W});
 
   F('Sex',           gender, C1, R2);
   F('Phone',         fmtP(pat.phone||''), C2, R2, {size:9});
-  F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2);
+  F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2, {w:C3W});
 
   F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
-  F('Email',         pat.email||'',       C3, R3);
+  F('Email',         pat.email||'',       C3, R3, {w:C3W});
 
   F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:170});
   F('Email',         pat.email||'',       C2, R4, {w:170});
-  F('Provider',      prov.name||'',       C3, R4, {w:170});
+  F('Provider',      prov.name||'',       C3, R4, {w:C3W});
+
+  // ── Patient photo (right side of Patient Details block) ──────────────────
+  if (photoBase64) {
+    var PHx=492, PHy=119, PHsz=84;
+    // Light border / background box
+    sd(BD); sf(BG2);
+    doc.setLineWidth(0.5);
+    doc.rect(PHx, PHy, PHsz, PHsz, 'FD');
+    try {
+      // Detect format from data URL header
+      var imgFmt = (photoBase64.toLowerCase().indexOf('data:image/png')===0) ? 'PNG' : 'JPEG';
+      doc.addImage(photoBase64, imgFmt, PHx+1, PHy+1, PHsz-2, PHsz-2, undefined, 'FAST');
+    } catch(e) {
+      // If image fails, show placeholder text
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
+      doc.text('Photo', PHx+PHsz/2, PHy+PHsz/2+3, {align:'center'});
+    }
+  }
 
   // ── PRIMARY INSURANCE ────────────────────────────────────────────────────
   // Section bar at y=222
@@ -3324,10 +3361,12 @@ function _ceCancelClaim(claimId){
 }
 
 function _ceDeleteBill(claimId){
-  if(!confirm('Delete this bill permanently? This cannot be undone.')) return;
+  if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
+  if(!confirm('Delete this claim permanently? This cannot be undone.')) return;
   setDB(function(db){db.claims=(db.claims||[]).filter(function(c){return c.id!==claimId;});});
+  _deleteClaimDoc(claimId);
   go('claims');
-  toast('Bill deleted');
+  toast('Claim deleted');
 }
 
 function _ceLogClaim(claimId){
@@ -3606,7 +3645,7 @@ el.innerHTML =
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'export\')"><i data-lucide="download" class="lci"></i> Export 837P</button>'+
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'pdf\')"><i data-lucide="printer" class="lci"></i> Superbills PDF</button>'+
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'transmit\')" style="background:#c96442;color:#fff"><i data-lucide="send" class="lci"></i> Transmit to Clearinghouse</button>'+
-'<button class="btn btn-sm btn-danger" onclick="bulkClaimAction(\'delete\')"><i data-lucide="trash-2" class="lci"></i> Delete</button>'+
+(hasPermission('Delete Claims') ? '<button class="btn btn-sm btn-danger" onclick="bulkClaimAction(\'delete\')"><i data-lucide="trash-2" class="lci"></i> Delete</button>' : '')+
 '</div>'+
 '<button class="btn btn-xs btn-ghost" onclick="selectAllClaims(false)" style="margin-left:auto"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i> Clear</button>'+
 '</div>'+
@@ -6653,7 +6692,15 @@ closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-luci
 }
 
 
-function delClaim(idx){ if(!confirm('Delete this claim?')) return; setDB(db=>db.claims.splice(idx,1)); renderClaims(); updateBadges(); toast('Claim deleted'); }
+function delClaim(idx){
+  if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
+  if(!confirm('Delete this claim?')) return;
+  const db=getDB();
+  const claimId=db.claims[idx]?.id;
+  setDB(db2=>db2.claims.splice(idx,1));
+  if(claimId) _deleteClaimDoc(claimId);
+  renderClaims(); updateBadges(); toast('Claim deleted');
+}
 
 function toggleClaimActive(idx){
   const db=getDB();
@@ -8001,6 +8048,7 @@ function setSession(user) {
 function clearSession() {
   sessionStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem('cdc_verified');
+  sessionStorage.removeItem('_cdc_tab_alive');
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
 }
 
@@ -11753,8 +11801,11 @@ const db = getDB();
 const claims = [..._selectedClaims].map(id => db.claims.find(c=>c.id===id)).filter(Boolean);
 
 if (action === 'delete') {
+if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
 if (!confirm(`Delete ${claims.length} claim(s)? This cannot be undone.`)) return;
+const idsToDelete = [..._selectedClaims];
 setDB(db2 => { db2.claims = db2.claims.filter(c => !_selectedClaims.has(c.id)); });
+idsToDelete.forEach(id => _deleteClaimDoc(id));
 _selectedClaims.clear();
 renderClaims(); updateBadges();
 toast(`${claims.length} claim(s) deleted`);
@@ -11858,8 +11909,11 @@ const claims = db.claims.filter(c => _selectedClaims.has(c.id));
 if (!claims.length) { toast('Select at least one claim','warn'); return; }
 
 if (action === 'delete') {
+if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
 if (!confirm(`Delete ${claims.length} claim(s)? This cannot be undone.`)) return;
+const idsToDelete2 = [..._selectedClaims];
 setDB(db => { db.claims = db.claims.filter(c => !_selectedClaims.has(c.id)); });
+idsToDelete2.forEach(id => _deleteClaimDoc(id));
 _selectedClaims.clear();
 renderClaims(); updateBadges(); toast(`${claims.length} claim(s) deleted`);
 return;
@@ -26079,6 +26133,19 @@ document.addEventListener("DOMContentLoaded", async function() {
 
   await waitForFirebase();
   initFirebase();
+
+  // ── Tab-close auto-logout ─────────────────────────────────────
+  // sessionStorage survives F5 but is cleared when the tab is closed.
+  // If _cdc_tab_alive is absent this is a fresh open after a tab close
+  // -> wipe the localStorage session so the user must log in again.
+  if (!sessionStorage.getItem('_cdc_tab_alive')) {
+    try { localStorage.removeItem('rcmpro_session'); } catch(e) {}
+    sessionStorage.removeItem('rcmpro_session');
+    sessionStorage.removeItem('cdc_verified');
+  }
+  // Stamp alive flag immediately -- survives F5, cleared on tab close.
+  sessionStorage.setItem('_cdc_tab_alive', '1');
+  // ─────────────────────────────────────────────────────────────
 
   function _afterLoad() {
     var db2 = getDB(); var s = getSession(); if (!s) return;
