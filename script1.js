@@ -2276,32 +2276,22 @@ function _exportPatientPDF(patId) {
   var pat = (db.patients||[]).find(function(p){ return p.id===patId; });
   if (!pat) { toast('Patient not found','err'); return; }
 
-  // Load patient photo as base64 (data: URIs pass through, HTTPS via multiple strategies)
+  // Load patient photo as base64. Requires CORS enabled on Firebase Storage bucket.
   function loadPhotoBase64(url) {
     return new Promise(function(resolve) {
-      if (!url) { toast('Photo: no URL','info'); resolve(null); return; }
+      if (!url) { resolve(null); return; }
       if (url.indexOf('data:') === 0) { resolve(url); return; }
-
-      // Strategy 1: fetch as blob (works if Firebase Storage CORS is configured)
-      fetch(url).then(function(r){
-        if (!r.ok) throw new Error('HTTP '+r.status);
-        return r.blob();
-      }).then(function(blob){
+      fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
         var fr = new FileReader();
         fr.onload = function(){ resolve(fr.result); };
-        fr.onerror = function(){ tryImg(); };
+        fr.onerror = function(){ resolve(null); };
         fr.readAsDataURL(blob);
-      }).catch(function(e){
-        toast('Photo fetch failed: '+e.message+' — trying img','warn');
-        tryImg();
-      });
-
-      // Strategy 2: <img> + canvas with CORS
-      function tryImg() {
+      }).catch(function(){
+        // CORS blocked — try <img> + canvas as fallback
         var img = new Image();
         img.crossOrigin = 'anonymous';
         var done=false, fin=function(v){ if(!done){done=true;resolve(v);} };
-        setTimeout(function(){ if(!done){ toast('Photo timeout','warn'); fin(null);} }, 6000);
+        setTimeout(function(){ fin(null); }, 5000);
         img.onload = function(){
           try {
             var s = Math.min(1, 300 / Math.max(img.naturalWidth, img.naturalHeight));
@@ -2310,18 +2300,17 @@ function _exportPatientPDF(patId) {
             c.height = Math.max(1, Math.round(img.naturalHeight * s));
             c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
             fin(c.toDataURL('image/jpeg', 0.8));
-          } catch(e){ toast('Photo canvas failed (CORS): '+e.message,'err'); fin(null); }
+          } catch(e){ fin(null); }
         };
-        img.onerror = function(){ toast('Photo img load failed','err'); fin(null); };
+        img.onerror = function(){ fin(null); };
         img.src = url;
-      }
+      });
     });
   }
 
   async function tryExport() {
     try {
       var photoBase64 = await loadPhotoBase64(pat.photo || null);
-      if (pat.photo && !photoBase64) toast('Photo could not be loaded — PDF will be generated without it','warn');
       _doExportPatientPDF(pat, db, photoBase64);
     } catch(e) {
       console.error('PDF export error:', e);
@@ -2470,21 +2459,19 @@ function _doExportPatientPDF(pat, db, photoBase64) {
 
   F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:170});
   F('Email',         pat.email||'',       C2, R4, {w:170});
-  F('Provider',      prov.name||'',       C3, R4, {w:C3W});
+  F('Provider',      prov.name||'',       C3, R4, {w:170});
 
   // ── Patient photo (right side of Patient Details block) ──────────────────
+  // Placed to cover only R1..R3 so R4 (Provider) has full width below it.
   if (photoBase64) {
-    var PHx=492, PHy=119, PHsz=84;
-    // Light border / background box
+    var PHx=498, PHy=126, PHsz=65;
     sd(BD); sf(BG2);
     doc.setLineWidth(0.5);
     doc.rect(PHx, PHy, PHsz, PHsz, 'FD');
     try {
-      // Detect format from data URL header
       var imgFmt = (photoBase64.toLowerCase().indexOf('data:image/png')===0) ? 'PNG' : 'JPEG';
       doc.addImage(photoBase64, imgFmt, PHx+1, PHy+1, PHsz-2, PHsz-2, undefined, 'FAST');
     } catch(e) {
-      // If image fails, show placeholder text
       doc.setFont('helvetica','normal'); doc.setFontSize(7); sc(LG);
       doc.text('Photo', PHx+PHsz/2, PHy+PHsz/2+3, {align:'center'});
     }
