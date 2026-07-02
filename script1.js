@@ -2439,32 +2439,33 @@ function _doExportPatientPDF(pat, db, photoBase64) {
   // Section bar at y=108
   S('Patient Details', 108);
 
-  // 3 columns:  C1=36  C2=216  C3=396
+  // 3 columns:  C1  C2  C3 (positions shift if photo is on the left)
   // 4 rows:     R1=126  R2=149  R3=172  R4=195
-  var C1=36, C2=216, C3=396;
+  var hasPhoto = !!photoBase64;
+  var C1 = hasPhoto ? 123 : 36;
+  var C2 = hasPhoto ? 274 : 216;
+  var C3 = hasPhoto ? 425 : 396;
+  var COLW = hasPhoto ? 140 : 170;
   var R1=126, R2=149, R3=172, R4=195;
-  // When photo present, cap C3 text width so it doesn't overlap the photo box
-  var C3W = photoBase64 ? 88 : 170;
 
   F('File #',        pat.acct||'',        C1, R1, {size:9});
-  F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {size:9,w:170});
-  F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1, {w:C3W});
+  F('Name',          (pat.last||'').toUpperCase()+', '+(pat.first||'').toUpperCase()+(pat.mid?' '+pat.mid:''), C2, R1, {size:9,w:COLW});
+  F('Date of Birth', _fmtDob(pat.dob)||'',C3, R1, {w:COLW});
 
   F('Sex',           gender, C1, R2);
   F('Phone',         fmtP(pat.phone||''), C2, R2, {size:9});
-  F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2, {w:C3W});
+  F('Mobile',        fmtP(pat.phone2||pat.mobile||''), C3, R2, {w:COLW});
 
-  F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:170});
-  F('Email',         pat.email||'',       C3, R3, {w:C3W});
+  F('Address',       [pat.addr1,pat.addr2].filter(Boolean).join(', '), C1, R3, {w:COLW});
+  F('Email',         pat.email||'',       C3, R3, {w:COLW});
 
-  F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:170});
-  F('Email',         pat.email||'',       C2, R4, {w:170});
-  F('Provider',      prov.name||'',       C3, R4, {w:170});
+  F('City/State/ZIP',((pat.city||'')+', '+(pat.state||'')+' '+(pat.zip||'')).replace(/^,\s*/,'').trim(), C1, R4, {w:COLW});
+  F('Email',         pat.email||'',       C2, R4, {w:COLW});
+  F('Provider',      prov.name||'',       C3, R4, {w:COLW});
 
-  // ── Patient photo (right side of Patient Details block) ──────────────────
-  // Placed to cover only R1..R3 so R4 (Provider) has full width below it.
-  if (photoBase64) {
-    var PHx=498, PHy=126, PHsz=65;
+  // ── Patient photo (LEFT side of Patient Details block) ──────────────────
+  if (hasPhoto) {
+    var PHx=36, PHy=126, PHsz=78;
     sd(BD); sf(BG2);
     doc.setLineWidth(0.5);
     doc.rect(PHx, PHy, PHsz, PHsz, 'FD');
