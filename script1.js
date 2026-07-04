@@ -13010,7 +13010,8 @@ function getBrandColors() {
 
 
 
-function exportBulkClaimsPDF(claims) {
+function exportBulkClaimsPDF(claims, opts) {
+opts = opts || {};
 if (!window.jspdf) { toast('PDF library loading...','warn'); return; }
 const {jsPDF} = window.jspdf;
 const db = getDB();
@@ -13301,28 +13302,32 @@ _fetchQRthenPDF(function(qrDataURL) {
         console.warn('[Storage] upload failed, falling back to inline base64:', upErr.message);
         entry.data = b64;
       }
-      setDB(function(db3){
-        var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
-        if(p3){
-          if(!p3.documents)p3.documents=[];
-          var key=pd.cids.slice().sort().join(',');
-          p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
-          p3.documents.unshift(entry);
-        }
-      });
-    }, function(){
-      // Storage SDK not available at all — old behavior, unchanged
-      try {
+      if (!opts.skipSave) {
         setDB(function(db3){
           var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
           if(p3){
             if(!p3.documents)p3.documents=[];
             var key=pd.cids.slice().sort().join(',');
             p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
-            p3.documents.unshift({id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(pd.fp)||'0.00'});
+            p3.documents.unshift(entry);
           }
         });
-      } catch(e) { console.warn('Superbill save:', e); }
+      }
+    }, function(){
+      // Storage SDK not available at all — old behavior, unchanged
+      if (!opts.skipSave) {
+        try {
+          setDB(function(db3){
+            var p3=db3.patients.find(function(x){return x.id===pd.pid2;});
+            if(p3){
+              if(!p3.documents)p3.documents=[];
+              var key=pd.cids.slice().sort().join(',');
+              p3.documents=p3.documents.filter(function(d){if(d.source!=='superbill')return true;return(d.claimIds||[]).slice().sort().join(',')!==key;});
+              p3.documents.unshift({id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',data:b64,totalCharge:claimTotal(pd.fp)||'0.00'});
+            }
+          });
+        } catch(e) { console.warn('Superbill save:', e); }
+      }
     });
 
     pd.doc.save(pd.fn);
@@ -19839,7 +19844,7 @@ function renderScheduleSetup() {
   const facSel = document.getElementById('ss-fac-sel');
   if (provSel) {
     const cur = provSel.value;
-    const rends = db.rendering.filter(r => r.providerId === activeProviderId);
+    const rends = (db.rendering || []).filter(r => r.providerId === activeProviderId);
     provSel.innerHTML = rends.map(r => `<option value="${r.id}">${r.last}, ${r.first}</option>`).join('') || '<option value="">— No rendering providers —</option>';
     if (cur && rends.find(r => r.id === cur)) provSel.value = cur;
   }
@@ -20019,7 +20024,7 @@ function _renderSSGroups() {
   const renderingId = document.getElementById('ss-prov-sel')?.value || '';
   const db = getDB();
   const groups = (db.scheduleGroups || []).filter(g => g.renderingId === renderingId);
-  const rend = db.rendering.find(r => r.id === renderingId) || {};
+  const rend = (db.rendering || []).find(r => r.id === renderingId) || {};
 
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div style="font-size:13px;color:var(--text3)">Groups of up to 12 patients seen together by <strong style="color:var(--text)">${rend.last ? rend.last+', '+rend.first : 'this provider'}</strong> — e.g. group therapy.</div>
@@ -27933,7 +27938,7 @@ function _downloadOne(patId, idx) {
       var claimsToPrint1 = Array.isArray(linkedClaimId1)
         ? linkedClaimId1.map(function(id){ return db.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
         : [db.claims.find(function(c){return c.id===linkedClaimId1;})].filter(Boolean);
-      if (claimsToPrint1.length) { exportBulkClaimsPDF(claimsToPrint1); return; }
+      if (claimsToPrint1.length) { exportBulkClaimsPDF(claimsToPrint1, {skipSave:true}); return; }
     }
     // Legacy: no saved data and no linked claim — fall back to the old builder
     var pdf = _sbBuildPDF(doc, pat);
@@ -27979,7 +27984,7 @@ function _downloadSelected(patId) {
         var claimsToPrint2 = Array.isArray(linkedClaimId2)
           ? linkedClaimId2.map(function(id){ return db.claims.find(function(c){return c.id===id;}); }).filter(Boolean)
           : [db.claims.find(function(c){return c.id===linkedClaimId2;})].filter(Boolean);
-        if (claimsToPrint2.length) { exportBulkClaimsPDF(claimsToPrint2); return; }
+        if (claimsToPrint2.length) { exportBulkClaimsPDF(claimsToPrint2, {skipSave:true}); return; }
       }
       var pdf2 = _sbBuildPDF(doc, pat);
       var fname2 = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
