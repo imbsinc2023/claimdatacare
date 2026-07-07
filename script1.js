@@ -1822,24 +1822,50 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
 
     // Bill ICDs moved to top — placeholder removed
 
-    // Action buttons
-    +'<div style="border-top:1px solid '+S.borderWarm+';padding:6px 10px;background:'+S.parchment+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
-      +'<button onclick="_ceSave(\''+claimId+'\')" style="padding:5px 14px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Save</button>'
-      +'<button onclick="renderClaimEditor()" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Reset</button>'
-      +'<button onclick="_ceGenerateCMS1500(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px"><i data-lucide="file-text" class="lci" style="width:12px;height:12px;margin-right:3px"></i>Printable View</button>'
-      +'<button onclick="go(\'claims\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">View All Bills</button>'
-      +'<button onclick="_ceTransmitSingle(\''+claimId+'\')" style="padding:5px 14px;background:'+S.nearBlack+';color:'+S.warmSilver+';border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Claim</button>'
-      +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:5px 12px;background:#c96442;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600" title="Submit as Corrected Claim (Resubmission Code 7)"><i data-lucide=\"refresh-ccw\" class=\"lci\" style=\"width:11px;height:11px;margin-right:3px\"></i>Corrected</button>'
-      +'<button onclick="_ceCancelClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Cancel Claim</button>'
-      +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:5px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
-      +'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:5px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete this Bill</button>'
-    +'</div>'
-
-    // Scrub Rules
-    +'<div style="border-top:1px solid '+S.borderCream+';padding:4px 10px;background:'+S.parchment+';flex-shrink:0;font-size:11px;color:'+S.stoneGray+'">'
-      +'<span style="font-weight:700;color:'+S.nearBlack+'">Scrub Rules: </span>'
-      +(errs&&errs.length?'<span style="color:#b53333">'+errs.join(' · ')+'</span> <button onclick="openFixInsuranceModal()" style="margin-left:8px;font-size:11px;padding:2px 8px;background:#fee2e2;color:#b53333;border:1px solid #fca5a5;border-radius:4px;cursor:pointer">Fix Insurance</button>':'No Rule(s)')
-    +'</div>'
+    // Action buttons — compact clean layout with integrated validation
+    +(function(){
+      var canDel = (typeof hasPermission==='function' && hasPermission('Delete Claims'));
+      var canBypass = (typeof hasPermission==='function' && hasPermission('Manage Settings'));
+      var critical = (errs||[]).filter(function(e){ return /not found|missing|empty|Invalid|must be/i.test(e); });
+      var minor = (errs||[]).filter(function(e){ return critical.indexOf(e)<0; });
+      var hasCritical = critical.length>0;
+      var hasErrs = (errs||[]).length>0;
+      var badgeColor = hasCritical?'#b53333':(hasErrs?'#d97706':'#2d6a4f');
+      var badgeBg    = hasCritical?'#fef2f2':(hasErrs?'#fffbeb':'#f0fdf4');
+      var badgeBdr   = hasCritical?'#fecaca':(hasErrs?'#fde68a':'#bbf7d0');
+      var badgeIco   = hasCritical?'x-circle':(hasErrs?'alert-triangle':'check-circle');
+      var badgeText  = hasCritical?(critical.length+' issue'+(critical.length>1?'s':'')+' to fix'):(hasErrs?minor.length+' warning'+(minor.length>1?'s':''):'Ready to submit');
+      return '<div style="border-top:1px solid '+S.borderWarm+';padding:10px 14px;background:#fff;flex-shrink:0;display:flex;align-items:stretch;gap:10px;flex-wrap:wrap">'
+        // LEFT: primary actions
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+          +'<button onclick="_ceSave(\''+claimId+'\')" style="padding:7px 16px;background:'+S.terracotta+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Save</button>'
+          +'<button onclick="_ceTransmitToPending(\''+claimId+'\')" title="Send to batch (Draft → Pending)" style="padding:7px 14px;background:'+S.nearBlack+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700"><i data-lucide="send" class="lci" style="width:12px;height:12px;margin-right:4px"></i>Transmit</button>'
+          +'<button onclick="renderClaimEditor()" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Reset</button>'
+          +'<button onclick="_ceGenerateCMS1500(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px"><i data-lucide="file-text" class="lci" style="width:12px;height:12px;margin-right:3px"></i>Print</button>'
+          +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:7px 12px;background:#c96442;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px" title="Submit as Corrected Claim"><i data-lucide="refresh-ccw" class="lci" style="width:11px;height:11px;margin-right:3px"></i>Corrected</button>'
+          +'<button onclick="_ceCancelClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>'
+          +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
+          +(canDel?'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:7px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete</button>':'')
+        +'</div>'
+        // RIGHT: unified Claim Check box (validation + scrub rules)
+        +'<div id="ce-check-box" style="margin-left:auto;min-width:240px;max-width:420px;background:#fff;border:1px solid '+badgeBdr+';border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+            +'<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:'+badgeColor+'"><i data-lucide="'+badgeIco+'" class="lci" style="width:13px;height:13px"></i>Claim Check <span style="background:'+badgeBg+';color:'+badgeColor+';padding:1px 7px;border-radius:10px;font-size:10px">'+badgeText+'</span></div>'
+            +(hasErrs?'<button onclick="_ceToggleCheckDetails()" id="ce-check-toggle" style="background:none;border:none;color:'+S.stoneGray+';cursor:pointer;font-size:11px;padding:0">Details ▾</button>':'')
+          +'</div>'
+          +(hasErrs?
+            '<div id="ce-check-details" style="display:none;font-size:11px;color:'+S.stoneGray+';padding-top:4px;border-top:1px dashed '+S.borderCream+';max-height:120px;overflow-y:auto">'
+              +(errs||[]).map(function(e){
+                var isCrit = critical.indexOf(e)>=0;
+                return '<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><i data-lucide="'+(isCrit?'x':'alert-triangle')+'" class="lci" style="width:10px;height:10px;color:'+(isCrit?'#b53333':'#d97706')+';flex-shrink:0"></i><span style="flex:1">'+e+'</span></div>';
+              }).join('')
+              +(hasCritical?'<div style="margin-top:6px;padding-top:6px;border-top:1px dashed '+S.borderCream+';font-size:10px;color:#b53333">'+critical.length+' critical issue(s) must be fixed before saving.</div>':'')
+              +(minor.length&&canBypass?'<button onclick="_ceBypassMinor(\''+claimId+'\')" style="margin-top:6px;padding:3px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:5px;font-size:10px;cursor:pointer">Bypass warnings & Save</button>':'')
+            +'</div>'
+          :'')
+        +'</div>'
+      +'</div>';
+    })()
 
   +'</div>'  // /LEFT COLUMN
 
@@ -2781,7 +2807,52 @@ function _ceAddLine(claimId) {
 }
 
 // ── Extended save to capture new fields ──
-function _ceSave(claimId){
+function _ceToggleCheckDetails(){
+  var el = document.getElementById('ce-check-details');
+  var btn = document.getElementById('ce-check-toggle');
+  if (!el) return;
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.innerHTML = open ? 'Details \u25be' : 'Details \u25b4';
+}
+function _ceTransmitToPending(claimId){
+  var db = getDB();
+  var c = (db.claims||[]).find(function(x){ return x.id===claimId; });
+  if (!c) { toast('Claim not found','err'); return; }
+  var errs = validateClaim(c);
+  var critical = errs.filter(function(e){ return /not found|missing|empty|Invalid|must be/i.test(e); });
+  if (critical.length) { toast('Fix '+critical.length+' critical issue(s) before transmitting','err'); _ceToggleCheckDetails(); return; }
+  // Save first (silent)
+  try { _ceSave(claimId, {silent:true, skipValidation:true}); } catch(e){}
+  setDB(function(db2){
+    var c2 = (db2.claims||[]).find(function(x){ return x.id===claimId; });
+    if (c2) { c2.status = 'pending'; c2.updatedAt = Date.now(); }
+  });
+  toast('Claim moved to Pending — will be sent in next batch','ok');
+  renderClaimEditor();
+}
+function _ceBypassMinor(claimId){
+  window._ceBypassMinorWarnings = claimId;
+  _ceSave(claimId, {bypass:true});
+}
+
+function _ceSave(claimId, opts){
+  opts = opts || {};
+  // Validation gate: block save if there are critical issues (unless bypass)
+  if (!opts.skipValidation) {
+    var _db0 = getDB();
+    var _c0 = (_db0.claims||[]).find(function(c){return c.id===claimId;});
+    if (_c0) {
+      var _errs = validateClaim(_c0);
+      var _crit = _errs.filter(function(e){ return /not found|missing|empty|Invalid|must be/i.test(e); });
+      if (_crit.length && !opts.bypass) {
+        toast('Fix '+_crit.length+' critical issue(s) before saving','err');
+        var d=document.getElementById('ce-check-details'); if(d) d.style.display='block';
+        var b=document.getElementById('ce-check-toggle'); if(b) b.innerHTML='Details \u25b4';
+        return;
+      }
+    }
+  }
   var db=getDB();
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
   if(!claim){toast('Claim not found','err');return;}
