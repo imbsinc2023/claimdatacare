@@ -104,7 +104,7 @@ function rebuildProvSel() {
     }
   }
 }
-function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }
+function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); try{ _applyProviderCHKeyGate(); }catch(e){} }
 
 // \u2500\u2500 Navigation \u2500\u2500
 const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',services:'Services / CPT',export:'Export / Submit',providers:'Providers',facilities:'Facilities',rendering:'Rendering',referring:'Referring',validate:'Validate',reports:'Reports'};
@@ -570,7 +570,7 @@ function _injectMissingModals() {
     '<div class="modal modal-lg" style="max-width:860px;display:flex;flex-direction:column;max-height:94vh">' +
     '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t" id="sg-title">Service Group</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
+    '<div class="modal-body" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:18px 22px">' +
     '<div class="fg g3" style="margin-bottom:14px">' +
     '<div class="field"><label>Group Name *</label><input id="sg-name" placeholder="e.g. ABA Therapy"></div>' +
     '<div class="field"><label>Rendering Provider</label><select id="sg-rend"></select></div>' +
@@ -586,14 +586,8 @@ function _injectMissingModals() {
     '<div id="sg-lines" style="margin-bottom:14px"></div><div class="sep"></div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
     '<span class="slabel" style="margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Patients</span>' +
-    '<button class="icoBtn" title="Add Patient" onclick="document.getElementById(\'sg-pat-search\').focus();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button></div>' +
-    '<div id="sg-patients"></div>' +
-    '<!-- Inline patient search -->'+
-    '<div style="position:relative;margin-top:8px">'+
-    '<input id="sg-pat-search" placeholder="Search patients to add..." oninput="_sgUpdateSearch()"'+
-    ' style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">'+
-    '<div id="sg-pat-results" style="display:none;position:absolute;z-index:99;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto"></div>'+
-    '</div></div>' +
+    '<button class="icoBtn" title="Add Patient" onclick="openSGPatientPicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button></div>' +
+    '<div id="sg-patients"></div></div>' +
     '<div class="modal-ftr" style="flex-shrink:0;gap:8px">' +
     '<button class="icoBtn" title="Cancel" onclick="closeModal(\'modal-sg\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
     '<button class="icoBtn icoBtn--brand" title="Save Group" onclick="saveSG()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg></button>' +
@@ -699,15 +693,44 @@ function _injectMissingModals() {
   );
 
   _mk('modal-sg-patients',
-    '<div class="modal modal-sm"><div class="modal-hdr"><div><div class="modal-t">Add Patient to Group</div></div>' +
+    '<div class="modal" style="max-width:920px;width:96%;display:flex;flex-direction:column;max-height:90vh">' +
+    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t">Add Patients to Group</div>' +
+    '<div class="modal-sub">Search by name, File #, Member ID, phone, payer, DOB…</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg-patients\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body"><div class="fg g1">' +
-    '<div class="field"><label>Patient *</label><select id="sgpat-patient"><option value="">— Select —</option></select></div>' +
-    '<div class="fg g2"><div class="field"><label>Rendering</label><select id="sgpat-rend"><option value="">— Group default —</option></select></div>' +
-    '<div class="field"><label>Referring</label><select id="sgpat-ref"><option value="">— None —</option></select></div></div>' +
-    '<div class="field"><label>Notes</label><input id="sgpat-notes" placeholder="Optional"></div></div></div>' +
-    '<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-sg-patients\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveSGPatient()">Add Patient</button></div></div>'
+    '<div class="modal-body" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px">' +
+    // Search + filters row
+    '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;margin-bottom:10px;align-items:end">' +
+      '<div class="field" style="margin:0"><label>Search</label>' +
+        '<input id="sgpick-q" placeholder="Name, File #, Member ID, phone, payer…" oninput="renderSGPatientPicker()" ' +
+        'style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">' +
+      '</div>' +
+      '<div class="field" style="margin:0;min-width:110px"><label>Sex</label>' +
+        '<select id="sgpick-sex" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
+        '<option value="">All</option><option value="F">F</option><option value="M">M</option></select>' +
+      '</div>' +
+      '<div class="field" style="margin:0;min-width:170px"><label>Payer</label>' +
+        '<select id="sgpick-payer" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
+        '<option value="">All Payers</option></select>' +
+      '</div>' +
+      '<div class="field" style="margin:0;min-width:140px"><label>Not in group</label>' +
+        '<select id="sgpick-inclusion" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
+        '<option value="new">Hide already added</option><option value="all">Show all patients</option></select>' +
+      '</div>' +
+    '</div>' +
+    // Selection info
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--r);margin-bottom:8px;font-size:11px">' +
+      '<div id="sgpick-count" style="color:var(--text3)">0 patients</div>' +
+      '<div id="sgpick-selcount" style="color:#c96442;font-weight:700">0 selected</div>' +
+    '</div>' +
+    // Results table
+    '<div id="sgpick-list" style="border:1px solid var(--border);border-radius:var(--r);max-height:52vh;overflow-y:auto;background:#fff"></div>' +
+    '</div>' +
+    '<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+    '<div style="font-size:11px;color:var(--text3)"><i data-lucide="info" class="lci" style="width:12px;height:12px"></i> Click rows to select. Use search + filters to narrow results.</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button class="btn" onclick="closeModal(\'modal-sg-patients\')">Cancel</button>' +
+    '<button class="btn btn-primary" onclick="addSelectedSGPatients()"><i data-lucide="user-plus" class="lci"></i> Add Selected</button>' +
+    '</div></div></div>'
   );
 
   _mk('modal-issuer',
@@ -4379,11 +4402,107 @@ el.innerHTML=(totalErrs===0?`<div class="alert al-success"><i data-lucide="check
 }
 
 
+// ── UI gate: disable clearinghouse-dependent buttons when the active
+// provider has no acctKey. Shows a clear warning + navigation shortcut
+// to configure the key. Runs on export/eob renders and on provider switch.
+function _applyProviderCHKeyGate(){
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id===activeProviderId; });
+  var hasKey = !!(prov && prov.acctKey);
+  var provName = prov ? (prov.name || '(unnamed)') : '(no active provider)';
+
+  // ── Export section: Transmit Direct card ─────────────────────────────
+  var expSec = document.getElementById('sec-export');
+  if (expSec){
+    var transmitBtns = expSec.querySelectorAll('button[onclick*="transmitDirect"]');
+    var syncBtn = expSec.querySelector('button[onclick*="syncStatuses"]');
+    var buttons = Array.prototype.slice.call(transmitBtns);
+    if (syncBtn) buttons.push(syncBtn);
+
+    if (buttons.length){
+      // Buttons live in a flex-column div — that is our anchor.
+      var btnGroup = buttons[0].parentElement;
+      var parent = btnGroup && btnGroup.parentElement;
+      // Look for the existing warning banner (sibling of btnGroup).
+      var existing = null;
+      if (parent){
+        var kids = parent.children;
+        for (var i=0;i<kids.length;i++){
+          if (kids[i].getAttribute && kids[i].getAttribute('data-ch-key-warn')==='1'){
+            existing = kids[i]; break;
+          }
+        }
+      }
+
+      if (hasKey){
+        // Restore normal state
+        if (existing) existing.remove();
+        buttons.forEach(function(b){
+          b.disabled = false;
+          b.style.opacity = '';
+          b.style.cursor = '';
+          b.style.pointerEvents = '';
+          b.title = '';
+        });
+        if (btnGroup) btnGroup.style.display = '';
+      } else {
+        // Hide buttons + show warning
+        buttons.forEach(function(b){
+          b.disabled = true;
+          b.style.opacity = '0.35';
+          b.style.cursor = 'not-allowed';
+          b.style.pointerEvents = 'none';
+          b.title = 'No API key configured for "'+provName+'"';
+        });
+        if (btnGroup) btnGroup.style.display = 'none';
+        if (!existing && parent){
+          var warn = document.createElement('div');
+          warn.setAttribute('data-ch-key-warn','1');
+          warn.style.cssText = 'padding:14px;background:#fdf5f0;border:1.5px dashed #c96442;border-radius:10px;margin-top:8px';
+          warn.innerHTML =
+            '<div style="display:flex;align-items:flex-start;gap:10px">'+
+              '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#c96442" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'+
+              '<div style="flex:1;min-width:0">'+
+                '<div style="font-size:12px;font-weight:700;color:#c96442;margin-bottom:4px">Transmit Direct not available</div>'+
+                '<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Provider <strong>'+provName.replace(/</g,'&lt;')+'</strong> has no Clearinghouse Account Key configured. Direct transmit, sync status, and ERA import are disabled for this provider. Add a key to enable these operations.</div>'+
+                '<button class="btn btn-sm btn-primary" onclick="go(\'admin-providers\')"><i data-lucide="key" class="lci"></i> Configure API Key</button>'+
+              '</div>'+
+            '</div>';
+          parent.insertBefore(warn, btnGroup);
+          setTimeout(_renderLucideIcons, 30);
+        }
+      }
+    }
+  }
+
+  // ── ERA/EOB section: Import Payments button ──────────────────────────
+  var eobSec = document.getElementById('sec-eob');
+  if (eobSec){
+    var importBtn = eobSec.querySelector('button[onclick*="fetchERAFromClearinghouse"]');
+    if (importBtn){
+      if (hasKey){
+        importBtn.disabled = false;
+        importBtn.style.opacity = '';
+        importBtn.style.cursor = '';
+        importBtn.style.pointerEvents = '';
+        importBtn.title = 'Import ERA payments from clearinghouse';
+      } else {
+        importBtn.disabled = true;
+        importBtn.style.opacity = '0.4';
+        importBtn.style.cursor = 'not-allowed';
+        importBtn.style.pointerEvents = 'none';
+        importBtn.title = 'No API key for "'+provName+'" — ERA import disabled';
+      }
+    }
+  }
+}
+
 function renderExportSummary(){
 const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId);
 const total=claims.reduce((s,c)=>s+claimTotal(c),0); const pending=claims.filter(c=>c.status==='pending').length; const errs=claims.reduce((s,c)=>s+validateClaim(c).length,0);
 const sumEl=document.getElementById('exp-summary'); if(sumEl) sumEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--brand)">${claims.length}</div><div style="font-size:11px;color:var(--text3)">Total claims</div></div><div style="background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">$${fmtMoney(total)}</div><div style="font-size:11px;color:var(--text3)">Total charges</div></div><div style="background:var(--amber-bg);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">${pending}</div><div style="font-size:11px;color:var(--text3)">Pending</div></div><div style="background:${errs?'var(--red-bg)':'var(--green-bg)'};border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:${errs?'var(--red)':'var(--green)'}">${errs||'<i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'}</div><div style="font-size:11px;color:var(--text3)">${errs?'Errors':'No errors'}</div></div></div>`;
 const ea=document.getElementById('exp-alert-top'); if(ea) ea.innerHTML=errs?`<div class="alert al-warn"><i data-lucide="alert-triangle" class="lci" style="width:13px;height:13px"></i> ${errs} error(s). <a href="#" onclick="go('validate');return false" style="font-weight:600">Review <i data-lucide="arrow-right" class="lci" style="width:11px;height:11px"></i></a></div>`:pending?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> ${pending} claim(s) ready to export.</div>`:`<div class="alert al-info"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> No pending claims.</div>`;
+try { _applyProviderCHKeyGate(); } catch(e){ console.warn('[CDC] CH-key gate failed:', e); }
 }
 
 
@@ -8164,9 +8283,16 @@ if (!_sgForm.patients || !_sgForm.patients.length) {
     const pat = pats.find(p => p.id === asgn.patientId) || {};
     const bg = pat.sex==='F'?'#c96442':pat.sex==='M'?'#2d6a4f':'#4d4c48';
     const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
+    // Extra info line (payer / member ID / phone) — only render pieces that exist
+    const infoBits = [];
+    if(pat.payername) infoBits.push('<span style="color:#c96442;font-weight:600">'+pat.payername+'</span>');
+    else if(pat.payerid) infoBits.push('<span style="color:#c96442;font-weight:600">Payer '+pat.payerid+'</span>');
+    if(pat.insnum) infoBits.push('Sub ID <span style="font-family:var(--mono,monospace);color:#141413">'+pat.insnum+'</span>');
+    if(pat.phone) infoBits.push('<span style="font-family:var(--mono,monospace)">'+pat.phone+'</span>');
+    const extraLine = infoBits.length ? '<div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">'+infoBits.join(' · ')+'</div>' : '';
     const refOpts = refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
     const facOpts = facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('');
-    return `<div draggable="true" data-sg-idx="${i}" class="sg-pat-card" style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:opacity .12s,border-color .12s,transform .12s">
+    return `<div draggable="true" data-sg-idx="${i}" class="sg-pat-card" style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:opacity .12s,border-color .12s,transform .12s;min-width:0">
   <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
     <div class="sg-drag-handle" title="Drag to reorder" style="cursor:grab;color:#a3a19a;padding:2px 3px;display:flex;align-items:center;flex-shrink:0;user-select:none" onmousedown="this.style.cursor='grabbing'" onmouseup="this.style.cursor='grab'">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="pointer-events:none">
@@ -8177,7 +8303,8 @@ if (!_sgForm.patients || !_sgForm.patients.length) {
     <div style="width:26px;height:26px;border-radius:50%;background:${bg};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${ini}</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:12px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(pat.last||'?').toUpperCase()}, ${pat.first||'?'}</div>
-      <div style="font-size:10px;color:#87867f">File #${pat.acct||''} · ${pat.dob||'—'} · ${pat.sex||''}</div>
+      <div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #${pat.acct||''} · ${pat.dob||'—'} · ${pat.sex||''}</div>
+      ${extraLine}
     </div>
     <button onclick="_sgForm.patients.splice(${i},1);renderSGPatients()" title="Remove patient"
       class="icoBtn icoBtn--danger icoBtn--sm">
@@ -8260,6 +8387,118 @@ function _sgInstallDragReorder(){
     cards.forEach(function(c){ c.style.opacity=''; c.style.borderTop=''; c.style.borderBottom=''; c.style.borderColor='#e4e1d8'; });
     window._sgDragFrom = null;
   });
+}
+
+// ── SG Patient Picker (floating modal with multi-field search + filters) ─────
+function openSGPatientPicker(){
+  if(!_sgForm) return;
+  window._sgPickerSelected = new Set();
+  openModal('modal-sg-patients');
+  // Populate payer filter with unique payers
+  var db = getDB();
+  var pats = (db.patients||[]).filter(function(p){ return p.providerId===activeProviderId; });
+  var payers = {};
+  pats.forEach(function(p){
+    var name = (p.payername||'').trim();
+    var id = (p.payerid||'').trim();
+    var key = name || id;
+    if(key && !payers[key]) payers[key] = { key:key, label: name ? name : ('Payer '+id) };
+  });
+  var payerSel = document.getElementById('sgpick-payer');
+  if(payerSel){
+    payerSel.innerHTML = '<option value="">All Payers</option>' +
+      Object.values(payers).sort(function(a,b){return a.label.localeCompare(b.label);})
+        .map(function(p){ return '<option value="'+p.key.replace(/"/g,'&quot;')+'">'+p.label+'</option>'; }).join('');
+  }
+  // Reset inputs
+  var q = document.getElementById('sgpick-q'); if(q){ q.value=''; setTimeout(function(){q.focus();},60); }
+  var sx = document.getElementById('sgpick-sex'); if(sx) sx.value='';
+  var inc = document.getElementById('sgpick-inclusion'); if(inc) inc.value='new';
+  renderSGPatientPicker();
+}
+
+function renderSGPatientPicker(){
+  var listEl = document.getElementById('sgpick-list');
+  if(!listEl || !_sgForm) return;
+  var db = getDB();
+  var q = (document.getElementById('sgpick-q')?.value||'').trim().toLowerCase();
+  var sex = document.getElementById('sgpick-sex')?.value||'';
+  var payer = document.getElementById('sgpick-payer')?.value||'';
+  var inclusion = document.getElementById('sgpick-inclusion')?.value||'new';
+  var alreadyIn = new Set((_sgForm.patients||[]).map(function(p){return p.patientId;}));
+  var pats = (db.patients||[]).filter(function(p){ return p.providerId===activeProviderId; });
+  if(inclusion==='new') pats = pats.filter(function(p){ return !alreadyIn.has(p.id); });
+  if(sex) pats = pats.filter(function(p){ return (p.sex||'')===sex; });
+  if(payer) pats = pats.filter(function(p){ return (p.payername||'')===payer || (p.payerid||'')===payer; });
+  if(q){
+    pats = pats.filter(function(p){
+      var hay = [p.first,p.last,p.mid,p.acct,p.dob,p.sex,p.phone,p.insnum,p.insl,p.insf,p.payername,p.payerid,p.group,p.plan,p.addr1,p.city,p.state,p.zip,p.id]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.indexOf(q)>=0;
+    });
+  }
+  // Sort by last name
+  pats.sort(function(a,b){ return (a.last||'').localeCompare(b.last||''); });
+  // Update counts
+  var cntEl = document.getElementById('sgpick-count'); if(cntEl) cntEl.textContent = pats.length+' patient'+(pats.length===1?'':'s');
+  _sgUpdatePickerSelCount();
+  if(!pats.length){
+    listEl.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--text3);font-size:12px">No patients match. Adjust search or filters.</div>';
+    return;
+  }
+  var selected = window._sgPickerSelected || new Set();
+  listEl.innerHTML = pats.map(function(p){
+    var isIn = alreadyIn.has(p.id);
+    var isSel = selected.has(p.id);
+    var bg = p.sex==='F'?'#c96442':p.sex==='M'?'#2d6a4f':'#4d4c48';
+    var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
+    var rowBg = isSel ? '#fdf5f0' : (isIn ? '#f5f4ed' : '#fff');
+    var rowBorder = isSel ? '#c96442' : '#eeece4';
+    return '<div onclick="_sgTogglePickerSel(\''+p.id+'\')" style="display:grid;grid-template-columns:22px 30px 1.7fr 1fr 1.2fr 1.2fr 1fr;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid '+rowBorder+';background:'+rowBg+';cursor:'+(isIn?'default':'pointer')+';font-size:11px;'+(isIn?'opacity:.6':'')+'" '+(isIn?'title="Already in group"':'')+'>'+
+      '<div style="text-align:center">'+(isIn?'<span style="color:#2d7a4f;font-weight:700" title="Already added">✓</span>':'<input type="checkbox" '+(isSel?'checked':'')+' style="accent-color:#c96442;pointer-events:none">')+'</div>'+
+      '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">'+ini+'</div>'+
+      '<div style="min-width:0"><div style="font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'—')+'</div></div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'—')+'</div><div style="font-size:10px;color:#87867f">'+(p.sex||'')+'</div></div>'+
+      '<div style="min-width:0"><div style="color:#c96442;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.payername||(p.payerid?'Payer '+p.payerid:'—'))+'</div>'+(p.plan?'<div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'—')+'</div><div style="font-size:10px;color:#87867f">Sub ID</div></div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'—')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function _sgTogglePickerSel(patientId){
+  if(!window._sgPickerSelected) window._sgPickerSelected = new Set();
+  // Skip if already in group
+  var alreadyIn = new Set((_sgForm.patients||[]).map(function(p){return p.patientId;}));
+  if(alreadyIn.has(patientId)) return;
+  if(window._sgPickerSelected.has(patientId)) window._sgPickerSelected.delete(patientId);
+  else window._sgPickerSelected.add(patientId);
+  renderSGPatientPicker();
+}
+
+function _sgUpdatePickerSelCount(){
+  var el = document.getElementById('sgpick-selcount');
+  if(!el) return;
+  var n = (window._sgPickerSelected||new Set()).size;
+  el.textContent = n+' selected';
+}
+
+function addSelectedSGPatients(){
+  if(!_sgForm) return;
+  var sel = window._sgPickerSelected || new Set();
+  if(!sel.size){ toast('Select at least one patient','err'); return; }
+  if(!_sgForm.patients) _sgForm.patients = [];
+  var added = 0;
+  sel.forEach(function(pid){
+    if(!_sgForm.patients.find(function(x){return x.patientId===pid;})){
+      _sgForm.patients.push({ patientId:pid, dx:'', auth:'', referringId:'', facilityId:'' });
+      added++;
+    }
+  });
+  window._sgPickerSelected = new Set();
+  closeModal('modal-sg-patients');
+  renderSGPatients();
+  toast(added+' patient'+(added===1?'':'s')+' added','ok');
 }
 
 function _sgInsertPatient(atIdx) {
@@ -9628,10 +9867,11 @@ invoicingClients: data.invoicingClients || [],
 invoices: data.invoices || [],
 });
 
-// Restore API config
-if (backup.apiConfig?.acctKey) {
-_apiConfigCache = backup.apiConfig;
-try { localStorage.setItem(API_CFG_KEY, JSON.stringify(backup.apiConfig)); } catch(_) {}
+// Legacy backups may include a global apiConfig with acctKey — no longer honored.
+// Per-provider acctKeys ride on the provider records themselves, which are
+// restored via the providers collection above.
+if (backup.apiConfig && 'acctKey' in backup.apiConfig) {
+  console.warn('[CDC][provider-isolation] Ignoring legacy global apiConfig.acctKey from backup — clearinghouse keys are per-provider.');
 }
 
 // Set in memory and cache immediately
@@ -10880,10 +11120,9 @@ window.addEventListener('beforeunload', function(e) {
 // Performs the actual sign-out (no confirmation) — shared by the manual
 // "Sign Out" button (after confirmation) and the automatic HIPAA idle logout.
 function _performLogout() {
-  try {
-    var cfg = getApiConfig();
-    if (cfg.acctKey) localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
-  } catch(e) {}
+  // NOTE: previously this persisted the current acctKey to a global localStorage
+  // key so it could be re-used across sessions. That was a cross-provider leak —
+  // removed. Per-provider acctKeys live on each provider record only.
   clearSession();
   if (_auth) _auth.signOut().catch(function(){});
   renderLoginScreen();
@@ -12493,10 +12732,13 @@ return;
 el.innerHTML = log.slice(0,50).map(entry => {
 const ts = new Date(entry.ts).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 const isOk = entry.status==='success';
+const provBadge = entry.providerName
+  ? `<span style="display:inline-block;padding:1px 6px;background:#f5f4ed;border:1px solid #e4e1d8;border-radius:4px;font-size:10px;color:#141413;margin-left:6px;font-weight:600">${entry.providerName}</span>`
+  : '<span style="display:inline-block;padding:1px 6px;background:#fff8e1;border:1px solid #f59e0b;border-radius:4px;font-size:10px;color:#b45309;margin-left:6px;font-weight:600" title="Legacy entry — provider not recorded">unknown provider</span>';
 return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
-<span style="flex-shrink:0;margin-top:1px">${isOk?'?':'?'}</span>
+<span style="flex-shrink:0;margin-top:1px">${isOk?'✓':'✗'}</span>
 <div style="flex:1;min-width:0">
-<div style="font-weight:600;color:var(--text)">${ts} — ${entry.count} claim(s) ${entry.action}</div>
+<div style="font-weight:600;color:var(--text)">${ts} — ${entry.count} claim(s) ${entry.action}${provBadge}</div>
 <div style="color:var(--text3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
 PCNs: ${(entry.pcns||[]).slice(0,6).join(', ')}${(entry.pcns||[]).length>6?'...':''}
 </div>
@@ -12676,19 +12918,30 @@ function buildClaimJSON(claim, prov, db) {
 }
 
 async function transmitDirect(filter) {
-  const cfg = getApiConfig();
-  if (!cfg.acctKey) {
-    toast('Configure your Clearinghouse Account Key in Settings → Billing Providers', 'warn');
-    return;
-  }
+  // Strict per-provider check — no fallback to another provider's key.
+  const chk = _requireCHKey('Transmit claims');
+  if (!chk) return;
+  const acctKey = chk.acctKey;
+  const transmittingProviderId = chk.providerId;
+  const transmittingProviderName = chk.providerName;
 
   const proxyUrl = CLEARINGHOUSE_PROXY;
 
   const db = getDB();
-  let claims = db.claims.filter(function(c){ return c.providerId === activeProviderId; });
+  // Only include claims belonging to the ACTIVE provider — never transmit
+  // another provider's claims from this session.
+  let claims = db.claims.filter(function(c){ return c.providerId === transmittingProviderId; });
   if (filter === 'pending')  claims = claims.filter(function(c){ return c.status === 'pending'; });
   if (filter === 'selected') claims = claims.filter(function(c){ return _selectedClaims.has(c.id); });
   if (!claims.length) { toast('No hay claims ' + filter + ' para transmitir', 'warn'); return; }
+
+  // Extra safety: verify every claim belongs to the transmitting provider.
+  var mismatched = claims.filter(function(c){ return c.providerId !== transmittingProviderId; });
+  if (mismatched.length){
+    toast('Blocked: '+mismatched.length+' claim(s) do not belong to active provider "'+transmittingProviderName+'"','err');
+    console.error('[CDC][provider-isolation] transmit blocked — mismatched claims:', mismatched.map(function(c){return c.id;}));
+    return;
+  }
 
   // Build CSV — this is what Clearinghouse accepts via file upload
   const rows = claims.map(function(c) {
@@ -12706,15 +12959,15 @@ async function transmitDirect(filter) {
   const fname = 'Claims_' + filter + '_' + dateStr() + '.csv';
   const alertEl = document.getElementById('exp-alert-top');
 
-  toast('Transmitiendo ' + claims.length + ' claim(s) a Clearinghouse...');
+  toast('Transmitiendo ' + claims.length + ' claim(s) como "' + transmittingProviderName + '"...');
 
   try {
     // Clearinghouse upload endpoint: multipart/form-data with AccountKey + File
     const fd = new FormData();
-    fd.append('AccountKey', cfg.acctKey);
+    fd.append('AccountKey', acctKey);
     fd.append('File', new Blob([csv], {type:'text/csv'}), fname);
 
-    console.log('[Clearinghouse] Uploading CSV to svc.claim.md via proxy...');
+    console.log('[Clearinghouse] Uploading CSV as provider', transmittingProviderId, transmittingProviderName);
 
     const res = await fetch(proxyUrl, { method: 'POST', body: fd });
     const text = await res.text();
@@ -12732,6 +12985,8 @@ async function transmitDirect(filter) {
         if (claims.find(function(x){ return x.id===c.id; })) {
           c.status = 'submitted';
           c.submittedAt = Date.now();
+          c.transmittedByProviderId = transmittingProviderId;
+          c.transmittedByProviderName = transmittingProviderName;
           c.updatedAt = Date.now();
         }
       });
@@ -12739,6 +12994,7 @@ async function transmitDirect(filter) {
       db2.transmitLog.unshift({
         id: 'log_'+Date.now(), ts: new Date().toISOString(),
         action:'transmit', filter, count:claims.length,
+        providerId: transmittingProviderId, providerName: transmittingProviderName,
         status:'success', response: text.slice(0,500),
       });
     });
@@ -15828,6 +16084,7 @@ const ep = document.getElementById('eob-cnt-era-pending');
 if (ep) ep.textContent = (db.eraPreviewQueue||[]).filter(x=>x.providerId===activeProviderId&&x.status!=='posted'&&x.status!=='dismissed').length;
 
 setEOBTab(_eobCurrentTab, null);
+try { _applyProviderCHKeyGate(); } catch(e){ console.warn('[CDC] CH-key gate failed:', e); }
 }
 
 function setEOBTab(tab, btn) {
@@ -17110,26 +17367,35 @@ function _eraProgressClose(summary) {
 }
 
 async function fetchERAFromClearinghouse() {
-  var cfg = getApiConfig();
-  if (!cfg.acctKey) { toast('Configure your Clearinghouse Account Key first','warn'); go('export'); return; }
+  // Strict per-provider check — do NOT fall back to any cached key from another
+  // provider. Using the wrong provider's key here previously caused ERAs from a
+  // different practice to be imported and stamped as the active provider's payments.
+  var chk = _requireCHKey('Import ERA payments');
+  if (!chk) { go('export'); return; }
+  var acctKey = chk.acctKey;
+  var importingProviderId = chk.providerId;
+  var importingProviderName = chk.providerName;
 
   var alertEl = document.getElementById('eob-alert');
   var setAlert = function(html){ if(alertEl) alertEl.innerHTML=html; };
 
   setAlert('<div class="alert al-info" style="display:flex;align-items:center;gap:8px">'+
     '<i data-lucide="loader" class="lci" style="width:14px;height:14px;animation:spin 1s linear infinite"></i>'+
-    'Fetching new ERA from ClaimMD&hellip;</div>');
+    'Fetching new ERA for <strong>'+importingProviderName+'</strong>&hellip;</div>');
   setTimeout(_renderLucideIcons, 50);
 
   var db = getDB();
-  var cursorKey = 'lastERAID_' + activeProviderId;
+  // ERA cursor is stored per-provider — that was already correct.
+  var cursorKey = 'lastERAID_' + importingProviderId;
   var lastERAID = (db.settings && db.settings[cursorKey]) ? db.settings[cursorKey] : '0';
+
+  console.log('[CDC][ERA] Fetching as provider', importingProviderId, importingProviderName, '— last ERAID:', lastERAID);
 
   var eraList;
   try {
-    eraList = await _eraWorkerPost('/eralist', { AccountKey:cfg.acctKey, ERAID:lastERAID, NewOnly:'0' });
+    eraList = await _eraWorkerPost('/eralist', { AccountKey:acctKey, ERAID:lastERAID, NewOnly:'0' });
   } catch(e) {
-    setAlert('<div class="alert al-error">ERA list fetch failed: '+e.message+'</div>');
+    setAlert('<div class="alert al-error">ERA list fetch failed for '+importingProviderName+': '+e.message+'</div>');
     toast('ERA fetch failed: '+e.message,'err'); return;
   }
 
@@ -17191,7 +17457,7 @@ async function fetchERAFromClearinghouse() {
 
     var eraData;
     try {
-      eraData = await _eraWorkerPost('/eradata', { AccountKey:cfg.acctKey, eraid:eraid });
+      eraData = await _eraWorkerPost('/eradata', { AccountKey:acctKey, eraid:eraid });
     } catch(e) {
       _eraProgressUpdate(i+1, eras.length, '⚠ ERA #' + eraid + ' failed: ' + e.message);
       console.warn('[ERA] eradata failed for eraid',eraid,e.message); continue;
@@ -27110,24 +27376,65 @@ ${initials}</text></svg>`;
 function getApiConfig() {
   // Default worker URL if not set per provider
   const DEFAULT_PROXY = CLEARINGHOUSE_PROXY;
-// Also reads OPENAI_KEY from localStorage if stored
-const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
-if (stored.openaiKey) return stored;
-// Return API config for the active provider
-// Primary: active provider s stored acctKey
-if (activeProviderId) {
-const db = getDB();
-const prov = db.providers.find(p => p.id === activeProviderId);
-if (prov?.acctKey) return { acctKey: prov.acctKey };
+  // Also reads OPENAI_KEY from localStorage if stored — this is a user-level pref, safe to share
+  const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
+
+  // ── Clearinghouse Account Key: STRICTLY per-active-provider ────────────────
+  // Historically this function fell back to _apiConfigCache and localStorage
+  // when the active provider had no acctKey. In a multi-provider install this
+  // caused claims from provider A (no key) to be transmitted using provider B's
+  // key, and ERAs meant for provider B to be imported under provider A. This
+  // was a critical isolation bug. There is NO fallback anymore — either the
+  // active provider has its own acctKey or the calling operation must fail.
+  let acctKey = '';
+  let acctKeyProviderId = null;
+  let acctKeyProviderName = null;
+  if (activeProviderId) {
+    const db = getDB();
+    const prov = (db.providers||[]).find(p => p.id === activeProviderId);
+    if (prov && prov.acctKey) {
+      acctKey = prov.acctKey;
+      acctKeyProviderId = prov.id;
+      acctKeyProviderName = prov.name || '(unnamed)';
+    }
+  }
+
+  // ── OpenAI key: user/global setting, safe to fall back to cache/localStorage ──
+  const openaiKey = stored.openaiKey || (_apiConfigCache && _apiConfigCache.openaiKey) || '';
+
+  return {
+    acctKey: acctKey,
+    acctKeyProviderId: acctKeyProviderId,
+    acctKeyProviderName: acctKeyProviderName,
+    openaiKey: openaiKey
+  };
 }
-// Fallback: in-memory cache from loadFromFirestore
-if (_apiConfigCache?.acctKey) return _apiConfigCache;
-// Last resort: localStorage cache
-try {
-const cfg = JSON.parse(localStorage.getItem(API_CFG_KEY) || '{}');
-if (cfg.acctKey) return cfg;
-} catch(e) {}
-return {};
+
+// Strict helper: verifies active provider AND its acctKey. Returns
+// { acctKey, providerId, providerName } on success, null on failure (after showing
+// an explicit error naming which provider is missing the key). Use this at the
+// entry point of every clearinghouse call (transmit, ERA fetch, sync, corrected claim).
+function _requireCHKey(opName){
+  var label = opName || 'this operation';
+  if (!activeProviderId){
+    toast('No active provider selected — cannot perform '+label,'err');
+    return null;
+  }
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; });
+  if (!prov){
+    toast('Active provider not found — cannot perform '+label,'err');
+    return null;
+  }
+  if (!prov.acctKey){
+    // Explicit block — do NOT fall back to any cached key from another provider.
+    var msg = 'Provider "'+(prov.name||'(unnamed)')+'" has no Clearinghouse Account Key configured. '+
+              label+' aborted. Configure a key for THIS provider in Settings → Billing Providers.';
+    toast(msg,'err');
+    console.warn('[CDC][provider-isolation]', label, 'blocked: provider', prov.id, prov.name, 'has no acctKey');
+    return null;
+  }
+  return { acctKey: prov.acctKey, providerId: prov.id, providerName: prov.name || '(unnamed)' };
 }
 
 // ???????????????????????????????????????????????????????
@@ -27588,8 +27895,11 @@ async function loadFromFirestore() {
     const configDoc = await _db.collection('meta').doc('config').get();
     if (configDoc.exists) {
       const cfg = configDoc.data();
+      // Cache config but STRIP acctKey — clearinghouse keys are strictly
+      // per-provider, held on each provider record. Caching one here would
+      // let it leak into getApiConfig for the wrong provider.
+      if (cfg && 'acctKey' in cfg) { try { delete cfg.acctKey; } catch(e) {} }
       _apiConfigCache = cfg;
-      if (cfg.acctKey) { try { localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg)); } catch(e) {} }
       try { applyTheme(); } catch(e) {}
     }
   } catch(e) {}
