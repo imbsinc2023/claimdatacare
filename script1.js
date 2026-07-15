@@ -224,7 +224,7 @@ const prov = getDB().providers.find(p=>p.id===activeProviderId);
 const tbProv = document.getElementById('tb-prov');
 if(tbProv) tbProv.textContent = page==='invoices' ? '' : (prov ? prov.name : '');
 const provSelWrap = document.getElementById('prov-sel-wrap');
-if(provSelWrap) provSelWrap.style.display = page==='invoices' ? 'none' : '';
+if(provSelWrap) provSelWrap.style.display = page==='invoices' ? 'none' : 'flex';
 const renders = {
 dashboard: renderDashboard,
 claims: renderClaims,
@@ -7932,7 +7932,7 @@ const session = getSession();
 const isSA = !!(session && session.role === 'Super Admin');
 // Provider selector — Super Admin only
 var _provWrap = document.getElementById('prov-sel-wrap');
-if (_provWrap) _provWrap.style.display = isSA ? '' : 'none';
+if (_provWrap) _provWrap.style.display = isSA ? 'flex' : 'none';
 
 // Top nav admin group (desktop)
 const tngAdmin = document.getElementById('tng-admin');
