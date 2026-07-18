@@ -358,9 +358,31 @@ function showApp(username) {
   root.appendChild(shell);
 
   try {
-    var _u=(session.name||session.email||username||'User').trim();
-    var _p=_u.split(/\s+/);
-    var _i=_p.length>=2?(_p[0][0]+_p[_p.length-1][0]).toUpperCase():_u.slice(0,2).toUpperCase();
+    // Resolve display name with best-available data. Order of preference:
+    //   1) session.name (populated at login from user record)
+    //   2) db.users lookup by email (works on page reload when session was persisted without name)
+    //   3) local param passed to showApp
+    //   4) email prefix (before @) — never show full email as a name
+    //   5) placeholder 'User'
+    var _u = (session.name || '').trim();
+    if (!_u || _u === 'User') {
+      try {
+        var _cachedUsers = typeof getUsers === 'function' ? getUsers() : (_usersCache||[]);
+        var _match = _cachedUsers.find(function(u){ return (u.email||'').toLowerCase() === (session.email||'').toLowerCase(); });
+        if (_match) {
+          var _fn = ((_match.first||'') + ' ' + (_match.last||'')).trim();
+          if (_fn) _u = _fn;
+          else if (_match.name) _u = _match.name;
+        }
+      } catch(_re) {}
+    }
+    if (!_u || _u === 'User') {
+      if (username && username.indexOf('@') === -1) _u = username;
+      else if (session.email) _u = String(session.email).split('@')[0];
+      else _u = 'User';
+    }
+    var _p = _u.split(/\s+/);
+    var _i = _p.length>=2 ? (_p[0][0]+_p[_p.length-1][0]).toUpperCase() : _u.slice(0,2).toUpperCase();
     var e;
     e=document.getElementById('tn-user-name'); if(e) e.textContent=_p[0]||_u;
     e=document.getElementById('tn-avatar-initials'); if(e) e.textContent=_i;
@@ -10932,11 +10954,21 @@ function _afterLoad() {
   // Try to set activeProviderId from providers list
   if (db2.providers && db2.providers.length) {
     const savedId = sess.activeBillingProviderId;
-    const validProv = (savedId && db2.providers.find(p => p.id === savedId)) || db2.providers[0];
+    // ── Provider isolation fix ──
+    // For a non-Super-Admin user, ALWAYS honor their assigned provider first.
+    // Previously this fell back to db2.providers[0] when savedId was missing,
+    // which caused users to briefly see another practice's dashboard.
+    let validProv = null;
+    if (sess.role !== 'Super Admin' && sess.providerId) {
+      validProv = db2.providers.find(p => p.id === sess.providerId);
+    }
+    if (!validProv) {
+      validProv = (savedId && db2.providers.find(p => p.id === savedId)) || db2.providers[0];
+    }
     activeProviderId = validProv.id;
     sess.activeBillingProviderId = activeProviderId;
     setSession(sess);
-    console.log('[CDC] _afterLoad: set activeProviderId='+activeProviderId+' from provider "'+(validProv.name||'')+'"');
+    console.log('[CDC] _afterLoad: set activeProviderId='+activeProviderId+' from provider "'+(validProv.name||'')+'" (user role='+sess.role+', assigned pid='+sess.providerId+')');
   }
 
   // If still no activeProviderId, detect from claims or patients
@@ -10963,6 +10995,8 @@ function _afterLoad() {
   // Always (re)apply specialty-based menu restrictions after data loads,
   // regardless of which page the user happens to land on.
   setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
+  // Also explicitly render the topnav specialty chip after data is available.
+  setTimeout(function(){ try { _renderTopnavSpecialtyChip(); } catch(e){ console.warn('spec chip render err:', e); } }, 700);
   // Only re-render dashboard if it is the currently active section
   // (prevents redirecting away from a page the user navigated to)
   var _curActive = document.querySelector('.section.active');
@@ -17746,7 +17780,7 @@ function _mprovAddSpecialty() {
 // this user is allowed to switch to (or all provider specialties for SA).
 function _renderTopnavSpecialtyChip(){
   var wrap = document.getElementById('tn-specialty-wrap');
-  if (!wrap) return;
+  if (!wrap) { console.log('[CDC][spec-chip] no #tn-specialty-wrap in DOM yet'); return; }
   var lbl  = document.getElementById('tn-specialty-label');
   var chev = document.getElementById('tn-specialty-chevron');
   var list = document.getElementById('tn-specialty-list');
@@ -17754,12 +17788,13 @@ function _renderTopnavSpecialtyChip(){
   if (!lbl || !list || !chip) return;
 
   var sess = getSession();
-  if (!sess) { wrap.style.display = 'none'; return; }
+  if (!sess) { wrap.style.display = 'none'; console.log('[CDC][spec-chip] no session'); return; }
 
   var db = getDB();
   var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; });
   var specDefs = (prov && prov.specialtyDefs) || [];
-  if (!specDefs.length) { wrap.style.display = 'none'; return; }
+  console.log('[CDC][spec-chip] provider="'+(prov && prov.name || '?')+'" id='+activeProviderId+' specDefs.length='+specDefs.length+' role='+sess.role);
+  if (!specDefs.length) { wrap.style.display = 'none'; console.log('[CDC][spec-chip] provider has no specialtyDefs — chip hidden'); return; }
 
   // Which specialties should this user see?
   //   Super Admin → all specialties of the active provider
@@ -17768,12 +17803,16 @@ function _renderTopnavSpecialtyChip(){
   if (sess.role === 'Super Admin') {
     eligibleDefs = specDefs.slice();
   } else {
-    var dbUser = (db.users||[]).find(function(u){ return u.email === sess.email; });
+    var dbUser = (db.users||[]).find(function(u){ return (u.email||'').toLowerCase() === (sess.email||'').toLowerCase(); });
     var raw    = (dbUser && dbUser.specialties) || sess.specialties || [];
     var names  = _specNamesOf(raw);
-    if (!names.length) { wrap.style.display = 'none'; return; }
-    eligibleDefs = specDefs.filter(function(sd){ return names.indexOf(sd.name) >= 0; });
-    if (!eligibleDefs.length) { wrap.style.display = 'none'; return; }
+    console.log('[CDC][spec-chip] user specialties raw='+JSON.stringify(raw)+' names='+JSON.stringify(names));
+    if (!names.length) { wrap.style.display = 'none'; console.log('[CDC][spec-chip] user has no specialties assigned — chip hidden'); return; }
+    // Case-insensitive matching so minor naming differences don't hide the chip
+    var namesLC = names.map(function(n){ return String(n).toLowerCase().trim(); });
+    eligibleDefs = specDefs.filter(function(sd){ return namesLC.indexOf(String(sd.name).toLowerCase().trim()) >= 0; });
+    console.log('[CDC][spec-chip] provider specDefs names='+JSON.stringify(specDefs.map(function(x){return x.name;}))+' matched eligibleDefs.length='+eligibleDefs.length);
+    if (!eligibleDefs.length) { wrap.style.display = 'none'; console.log('[CDC][spec-chip] no match between user specialties and provider specDefs — chip hidden. Fix: ensure names match exactly (case-insensitive) in Provider Info AND Users & Account.'); return; }
   }
 
   // Active spec
@@ -27054,7 +27093,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
     if (db2.providers && db2.providers.length) {
       var savedId = s.activeBillingProviderId;
-      var vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
+      // Provider isolation: non-SA users always land on their assigned provider first.
+      var vp = null;
+      if (s.role !== 'Super Admin' && s.providerId) {
+        vp = db2.providers.find(function(p){ return p.id === s.providerId; });
+      }
+      if (!vp) {
+        vp = (savedId && db2.providers.find(function(p){ return p.id===savedId; })) || db2.providers[0];
+      }
       activeProviderId = vp.id;
       s.activeBillingProviderId = activeProviderId;
       setSession(s);
@@ -28109,7 +28155,14 @@ async function loadFromFirestore() {
       const s = getSession();
       if (s && providers.length) {
         const savedId = s.activeBillingProviderId;
-        const vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
+        // Provider isolation: non-SA users always land on their assigned provider first.
+        let vp = null;
+        if (s.role !== 'Super Admin' && s.providerId) {
+          vp = providers.find(function(p){ return p.id === s.providerId; });
+        }
+        if (!vp) {
+          vp = (savedId && providers.find(function(p){ return p.id===savedId; })) || providers[0];
+        }
         activeProviderId = vp.id;
         s.activeBillingProviderId = activeProviderId;
         setSession(s);
