@@ -18669,11 +18669,26 @@ function switchSpecialty(specName) {
   toast('Switched to ' + specName, 'ok');
   applyActiveSpecialty();
   toggleUserMenu();
+  // Navigate to the Home of the newly active specialty so the dashboard
+  // content matches the new context. go('dashboard') is intercepted upstream
+  // and redirects to cm-dashboard when CM is active.
+  try { go('dashboard'); } catch(e){}
 }
 
 // Apply visibility rules based on active specialty
 function applyActiveSpecialty() {
   var sess = getSession();
+  // ── Role gate for admin group ────────────────────────────────────────
+  // tng-admin visibility is STRICTLY role-based (Super Admin only). Even if
+  // a specialty's menus allowlist contains 'tng-admin', a non-SA user must
+  // never see it. This helper is applied at the end of every branch.
+  function _enforceRoleGates(){
+    var isSA = !!(sess && sess.role === 'Super Admin');
+    var adm = document.getElementById('tng-admin');
+    if (adm) adm.style.display = isSA ? '' : 'none';
+    var mobAdm = document.getElementById('mob-grp-admin');
+    if (mobAdm) mobAdm.style.display = isSA ? '' : 'none';
+  }
 
   // ── Detect CM mode ────────────────────────────────────────────────────
   // When Case Management is active, the topnav does a FULL LAYOUT SWAP:
@@ -18696,68 +18711,74 @@ function applyActiveSpecialty() {
     _CM_GROUP_IDS.forEach(function(id){ setGroupDisplay(id, true); });
     // Legacy tng-cm stays hidden always (no items — was replaced by 4 groups)
     setGroupDisplay('tng-cm', false);
-    // Home + Settings + Admin remain (Admin gated separately by updateAdminUI)
+    // Home + Settings remain (Admin gated by _enforceRoleGates below)
     setGroupDisplay('tnav-dashboard', true);
     setGroupDisplay('tng-config', true);
-  } else {
-    // Non-CM active: hide CM groups, apply the standard allowlist behavior
-    _CM_GROUP_IDS.forEach(function(id){ setGroupDisplay(id, false); });
-    setGroupDisplay('tng-cm', false);
-
-    if (!sess || sess.role === 'Super Admin') {
-      // SA — by default show all NP groups. If SA has a preview override
-      // set from the topnav chip and it's a non-CM specialty, apply its allowlist.
-      if (sess && sess.role === 'Super Admin' && window._saActiveSpecialty) {
-        try { _applySpecialtyMenuForSA(window._saActiveSpecialty); } catch(e) {}
-      } else {
-        _NP_GROUP_IDS.concat(['tnav-dashboard','tng-config']).forEach(function(id){ setGroupDisplay(id, true); });
-        _SPEC_MENU_DEFS.forEach(function(m){
-          var el = document.getElementById(m.group);
-          if (el) el.style.display = '';
-        });
-      }
-      try { _renderTopnavSpecialtyChip(); } catch(e) {}
-      return;
-    }
-
-    // Non-SA, non-CM: apply the specialty's menus allowlist
-    var db = getDB();
-    var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
-    var specDefs = prov.specialtyDefs || [];
-    if (!specDefs.length) return;
-
-    var email = (sess.email||'').toLowerCase();
-    var dbUser = (db.users||[]).find(function(u){ return (u.email||'').toLowerCase() === email; });
-    var rawSpecs = (dbUser && dbUser.specialties) || sess.specialties || [];
-    var userSpecNames = _specNamesOf(rawSpecs);
-    if (!userSpecNames.length) return;
-
-    var userSpecNamesLC = userSpecNames.map(function(n){ return String(n).toLowerCase().trim(); });
-    var eligibleDefs = specDefs.filter(function(sd){
-      return userSpecNamesLC.indexOf(String(sd.name).toLowerCase().trim()) >= 0;
-    });
-    if (!eligibleDefs.length) return;
-
-    var activeSpecName = getActiveSpecialty();
-    var activeDef = activeSpecName ? eligibleDefs.find(function(sd){
-      return String(sd.name).toLowerCase().trim() === String(activeSpecName).toLowerCase().trim();
-    }) : null;
-    if (!activeDef) {
-      activeDef = eligibleDefs[0];
-      switchSpecialty(activeDef.name);
-      return;
-    }
-
-    var allowedMenus = _expandLegacyMenus(activeDef.menus || []);
-    _SPEC_MENU_DEFS.forEach(function(m){
-      var el = document.getElementById(m.group);
-      if (!el) return;
-      // CM groups already hidden above; skip them here to avoid resurrection
-      if (_CM_GROUP_IDS.indexOf(m.group) >= 0) return;
-      el.style.display = allowedMenus.indexOf(m.id) >= 0 ? '' : 'none';
-    });
-    window._activeSpecialty = activeDef;
+    _enforceRoleGates();
+    try { _renderTopnavSpecialtyChip(); } catch(e) {}
+    return;
   }
+
+  // Non-CM: hide CM groups first
+  _CM_GROUP_IDS.forEach(function(id){ setGroupDisplay(id, false); });
+  setGroupDisplay('tng-cm', false);
+
+  if (!sess || sess.role === 'Super Admin') {
+    // SA — by default show all NP groups. If SA has a preview override
+    // set from the topnav chip and it's a non-CM specialty, apply its allowlist.
+    if (sess && sess.role === 'Super Admin' && window._saActiveSpecialty) {
+      try { _applySpecialtyMenuForSA(window._saActiveSpecialty); } catch(e) {}
+    } else {
+      _NP_GROUP_IDS.concat(['tnav-dashboard','tng-config']).forEach(function(id){ setGroupDisplay(id, true); });
+      _SPEC_MENU_DEFS.forEach(function(m){
+        var el = document.getElementById(m.group);
+        if (el) el.style.display = '';
+      });
+    }
+    _enforceRoleGates();
+    try { _renderTopnavSpecialtyChip(); } catch(e) {}
+    return;
+  }
+
+  // Non-SA, non-CM: apply the specialty's menus allowlist
+  var db = getDB();
+  var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
+  var specDefs = prov.specialtyDefs || [];
+  if (!specDefs.length) { _enforceRoleGates(); return; }
+
+  var email = (sess.email||'').toLowerCase();
+  var dbUser = (db.users||[]).find(function(u){ return (u.email||'').toLowerCase() === email; });
+  var rawSpecs = (dbUser && dbUser.specialties) || sess.specialties || [];
+  var userSpecNames = _specNamesOf(rawSpecs);
+  if (!userSpecNames.length) { _enforceRoleGates(); return; }
+
+  var userSpecNamesLC = userSpecNames.map(function(n){ return String(n).toLowerCase().trim(); });
+  var eligibleDefs = specDefs.filter(function(sd){
+    return userSpecNamesLC.indexOf(String(sd.name).toLowerCase().trim()) >= 0;
+  });
+  if (!eligibleDefs.length) { _enforceRoleGates(); return; }
+
+  var activeSpecName = getActiveSpecialty();
+  var activeDef = activeSpecName ? eligibleDefs.find(function(sd){
+    return String(sd.name).toLowerCase().trim() === String(activeSpecName).toLowerCase().trim();
+  }) : null;
+  if (!activeDef) {
+    activeDef = eligibleDefs[0];
+    switchSpecialty(activeDef.name);
+    return;
+  }
+
+  var allowedMenus = _expandLegacyMenus(activeDef.menus || []);
+  _SPEC_MENU_DEFS.forEach(function(m){
+    var el = document.getElementById(m.group);
+    if (!el) return;
+    if (_CM_GROUP_IDS.indexOf(m.group) >= 0) return;
+    // tng-admin is role-gated below; skip it here so allowlist can't override
+    if (m.group === 'tng-admin') return;
+    el.style.display = allowedMenus.indexOf(m.id) >= 0 ? '' : 'none';
+  });
+  window._activeSpecialty = activeDef;
+  _enforceRoleGates();
 
   // Refresh the topnav specialty chip so its label matches
   try { _renderTopnavSpecialtyChip(); } catch(e) {}
@@ -18848,19 +18869,22 @@ function _renderTopnavSpecialtyChip(){ try { _renderSpecialtySwitch(); } catch(e
 function switchSpecialtyFromMenu(specName){
   var sess = getSession();
   if (!sess) return;
+  // Close the user menu immediately so the topnav transformation is visible
+  var m = document.getElementById('tn-user-menu');
+  if (m) m.style.display = 'none';
   if (sess.role === 'Super Admin') {
     // SA preview mode
     window._saActiveSpecialty = specName;
     toast('Preview as: '+specName, 'ok');
     _renderSpecialtySwitch();
     _applySpecialtyMenuForSA(specName);
+    // Navigate to home of previewed specialty so dashboard refreshes
+    try { go('dashboard'); } catch(e){}
   } else {
+    // switchSpecialty already navigates to dashboard internally
     switchSpecialty(specName);
     _renderSpecialtySwitch();
   }
-  // Close the user menu after selecting so the change is visible immediately
-  var m = document.getElementById('tn-user-menu');
-  if (m) m.style.display = 'none';
 }
 
 function _recreateClaimFromERA(eraId) {
