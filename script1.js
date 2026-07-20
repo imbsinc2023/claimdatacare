@@ -4798,7 +4798,7 @@ return `<div class="app-shell">
 </div>
 </div>
 
-<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>
+<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openImportFromCMClientsModal()" title="Import from CM Clients"><i data-lucide="download" class="lci"></i> Import from CM Clients</button><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>
 
 <div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>
 
@@ -5486,9 +5486,9 @@ Show Paid
 <div class="section" id="sec-cm-clients">
 <div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">
 <label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>
-<button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>
+<button class="btn btn-sm" onclick="openImportFromPatientsModal()" title="Import clients from Patients (EHR side)"><i data-lucide="download" class="lci"></i> Import from Patients</button><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>
 <div class="page-body">
-<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMClients()">
+<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMClients()">
 <select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Workers</option></select>
 <select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>
 </div>
@@ -5508,14 +5508,14 @@ Show Paid
 
 <div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>
 
-<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="page-body"><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div></div>
+<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openCMBillingSettings()" title="Configure rates per CPT code"><i data-lucide="settings-2" class="lci"></i> Rates</button><button class="btn btn-sm" onclick="generateCMBilling()"><i data-lucide="zap" class="lci"></i> From Notes</button><button class="btn btn-primary btn-sm" onclick="openCMBillingModal()">+ New Entry</button><button class="btn btn-sm" onclick="exportCMBillingCSV()"><i data-lucide="download" class="lci"></i> Export CSV</button></div></div><div class="page-body"><div id="cm-billing-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div><div id="cm-billing-bulk" style="display:none;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:10px;align-items:center;gap:8px;font-size:12px"><span id="cm-bill-selcount" style="font-weight:700;color:var(--brand)">0 selected</span><button class="btn btn-xs" onclick="cmBillingBulk('Ready')">Mark Ready</button><button class="btn btn-xs" onclick="cmBillingBulk('Submitted')">Mark Submitted</button><button class="btn btn-xs" onclick="cmBillingBulk('Paid')">Mark Paid</button><button class="btn btn-xs" onclick="cmBillingBulk('Rejected')">Mark Rejected</button><button class="btn btn-xs" onclick="cmBillingBulkDelete()" style="color:var(--red);border-color:var(--red)">Delete</button><button class="btn btn-xs btn-ghost" onclick="cmBillingClearSel()" style="margin-left:auto">Clear</button></div><div class="search-row"><input id="cm-bill-q" class="no-upper" placeholder="Search client, worker, code..." oninput="renderCMBilling()"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select><select id="cm-bill-code" onchange="renderCMBilling()"><option value="">All Codes</option></select><select id="cm-bill-worker" onchange="renderCMBilling()"><option value="">All Workers</option></select><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap">DOS<input type="date" id="cm-bill-from" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><span style="color:var(--text3)">–</span><input type="date" id="cm-bill-to" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><button onclick="document.getElementById('cm-bill-from').value='';document.getElementById('cm-bill-to').value='';renderCMBilling()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button></label></div><div id="cm-billing-tbl"></div></div></div>
 
 <div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>
 
 <div class="section" id="sec-cm-intake">
 <div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>
 <div class="page-body">
-<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMIntake()">
+<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMIntake()">
 <select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>
 </div>
 <div id="cm-intake-tbl"></div>
@@ -6310,7 +6310,7 @@ function getShellHeaderHTML(){
 return '<header class="topnav" id="topnav">\n<button class="tn-hamburger" onclick="openTnDrawer()" aria-label="Menu">\n<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="40" y1="80" x2="216" y2="80"/><line x1="40" y1="128" x2="216" y2="128"/><line x1="40" y1="176" x2="216" y2="176"/></svg>\n</button>\n<div class="tn-brand">\n<img src="favicon.svg" id="nav-logo-main" class="nav-favicon" width="20" height="20" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">\n<span class="tn-brand-name">ClaimDataCare</span>\n</div>\n<div class="tn-divider"></div>\n<nav class="tn-nav" id="tn-nav">\n<button class="tn-item" id="tnav-dashboard" onclick="go(\'dashboard\')"><i data-lucide="layout-dashboard" class="lci"></i><span>Home</span></button>\n<div class="tn-group" id="tng-appointments">\n<button class="tn-item tn-has-dd" id="tnav-appointments" onclick="toggleTnDropdown(\'appointments\',event)">\n<i data-lucide="calendar-days" class="lci"></i><span>Schedule</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-appointments">\n<div class="tn-dd-item" id="tnd-appointments" onclick="go(\'appointments\');closeTnDropdown()"><i data-lucide="calendar-days" class="lci"></i><span>Day Schedule</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-schedule-setup" onclick="go(\'schedule-setup\');closeTnDropdown()"><i data-lucide="settings-2" class="lci"></i><span>Schedule Setup</span></div>\n</div>\n</div>\n<button class="tn-item" id="tnav-patients" onclick="go(\'patients\')"><i data-lucide="users" class="lci"></i><span>Patients</span></button>\n<div class="tn-group" id="tng-billing">\n<button class="tn-item tn-has-dd" id="tnav-billing" onclick="toggleTnDropdown(\'billing\',event)">\n<i data-lucide="receipt" class="lci"></i><span>Billing</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-billing">\n<div class="tn-dd-item" id="tnd-claims" onclick="go(\'claims\');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-eob" onclick="go(\'eob\');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>\n<div class="tn-dd-item" id="tnd-validate" onclick="go(\'validate\');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-billing-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-ehr">\n<button class="tn-item tn-has-dd" id="tnav-ehr" onclick="toggleTnDropdown(\'ehr\',event)">\n<i data-lucide="stethoscope" class="lci"></i><span>EHR</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-ehr">\n<div class="tn-dd-item" id="tnd-notes" onclick="go(\'notes\');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters</span></div>\n      <div class="tn-dd-item" id="tnd-services" onclick="go(\'services\');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-clients-group\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-clients-group\" onclick=\"toggleTnDropdown(\'cm-clients-group\',event)\">\n      <i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-clients-group\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-intake\" onclick=\"go(\'cm-intake\');closeTnDropdown()\"><i data-lucide=\"user-plus\" class=\"lci\"></i><span>Intake / Referrals</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-clients\" onclick=\"go(\'cm-clients\');closeTnDropdown()\"><i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-workers\" onclick=\"go(\'cm-workers\');closeTnDropdown()\"><i data-lucide=\"user-cog\" class=\"lci\"></i><span>Case Workers</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-care\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-care\" onclick=\"toggleTnDropdown(\'cm-care\',event)\">\n      <i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Care</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-care\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-assessments\" onclick=\"go(\'cm-assessments\');closeTnDropdown()\"><i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Assessments</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-plans\" onclick=\"go(\'cm-plans\');closeTnDropdown()\"><i data-lucide=\"clipboard-list\" class=\"lci\"></i><span>Care Plans</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-encounters\" onclick=\"go(\'cm-encounters\');closeTnDropdown()\"><i data-lucide=\"notebook-pen\" class=\"lci\"></i><span>Encounters / Notes</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-workflow\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-workflow\" onclick=\"toggleTnDropdown(\'cm-workflow\',event)\">\n      <i data-lucide=\"list-checks\" class=\"lci\"></i><span>Workflow</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-workflow\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-tasks\" onclick=\"go(\'cm-tasks\');closeTnDropdown()\"><i data-lucide=\"list-checks\" class=\"lci\"></i><span>Tasks &amp; Follow-Ups</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-auth\" onclick=\"go(\'cm-authorizations\');closeTnDropdown()\"><i data-lucide=\"file-check\" class=\"lci\"></i><span>Authorizations</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-referrals\" onclick=\"go(\'cm-referrals\');closeTnDropdown()\"><i data-lucide=\"external-link\" class=\"lci\"></i><span>Referrals &amp; Resources</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-review\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-review\" onclick=\"toggleTnDropdown(\'cm-review\',event)\">\n      <i data-lucide=\"eye\" class=\"lci\"></i><span>Review</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-review\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-supervisor\" onclick=\"go(\'cm-supervisor\');closeTnDropdown()\"><i data-lucide=\"eye\" class=\"lci\"></i><span>Supervisor Review</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-billing-readiness\" onclick=\"go(\'cm-billing\');closeTnDropdown()\"><i data-lucide=\"receipt\" class=\"lci\"></i><span>Billing Readiness</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-reports\" onclick=\"go(\'cm-reports\');closeTnDropdown()\"><i data-lucide=\"bar-chart-3\" class=\"lci\"></i><span>Reports</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-discharge\" onclick=\"go(\'cm-discharge\');closeTnDropdown()\"><i data-lucide=\"door-open\" class=\"lci\"></i><span>Discharge</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm\" style=\"display:none\"></div>\n      <div class="tn-group" id="tng-config">\n<button class="tn-item tn-has-dd" id="tnav-config" onclick="toggleTnDropdown(\'config\',event)">\n<i data-lucide="settings" class="lci"></i><span>Settings</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-config">\n<div class="tn-dd-item" id="tnd-settings-users" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-sep" style="height:1px;background:var(--border);margin:4px 0"></div>\n<div class="tn-dd-item" id="tnd-insurances" onclick="go(\'insurances\');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Insurances / Payers</span></div>\n<div class="tn-dd-item" id="tnd-facilities" onclick="go(\'facilities\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Facilities</span></div>\n<div class="tn-dd-item" id="tnd-rendering" onclick="go(\'rendering\');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Rendering Providers</span></div>\n<div class="tn-dd-item" id="tnd-referring" onclick="go(\'referring\');closeTnDropdown()"><i data-lucide="arrow-right-left" class="lci"></i><span>Referring Providers</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-provider-info" onclick="go(\'provider-info\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Provider Information</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-admin" style="display:none">\n<button class="tn-item tn-has-dd" id="tnav-admin" onclick="toggleTnDropdown(\'admin\',event)">\n<i data-lucide="shield-check" class="lci"></i><span>Admin</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown tn-dd-right" id="tn-dd-admin">\n<div class="tn-dd-item" id="tnd-admin-providers" onclick="go(\'admin-providers\');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>\n<div class="tn-dd-item" id="tnd-servicegroups" onclick="go(\'servicegroups\');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>\n<div class="tn-dd-item" id="tnd-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n<div class="tn-dd-item" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-item" onclick="go(\'reports\');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div><div class="tn-dd-item" onclick="go(\'admin-tickets\');closeTnDropdown()"><i data-lucide="headphones" class="lci"></i><span>Support Tickets <span id="tnc-admin-tickets" class="tn-cnt" style="display:none;background:#dc2626;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-invoices" onclick="go(\'invoices\');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>\n<div class="tn-dd-item" onclick="_storageMigrateClick()"><i data-lucide="upload-cloud" class="lci"></i><span>Free Up Storage</span></div>\n<div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>\n</div>\n</div>\n</div>\n</nav>\n<div class="tn-right">\n<div id="fb-status" style="display:none"></div>\n<div id="prov-sel-wrap" style="display:flex;align-items:center;gap:6px;flex-shrink:0">\n<button id="tn-tickets" onclick="openTicketsModal(event)" title="Support Tickets" style="position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border-radius:8px;background:#fdf5f0;border:1.5px solid #c96442;color:#c96442;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(201,100,66,.25);transition:background .15s,box-shadow .15s"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg><span id="tn-tickets-badge" style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:9px;border:1.5px solid #141413;display:none;align-items:center;justify-content:center;font-family:var(--font);line-height:1">0</span></button><button id="tn-recent-pats" onclick="showRecentPatients(event)" title="Recent Patients" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border-radius:8px;background:#fdf5f0;border:1.5px solid #c96442;color:#c96442;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(201,100,66,.25);transition:background .15s,box-shadow .15s"><i data-lucide="history" class="lci" style="width:14px;height:14px"></i></button><select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)" style="min-width:200px;height:30px"></select>\n</div>\n<!-- Specialty chip (separate switcher) -->\n<div id="tn-specialty-wrap" style="display:none;position:relative;flex-shrink:0"><button id="tn-specialty-chip" onclick="toggleSpecialtyMenu(event)" title="Active Specialty" style="display:flex;align-items:center;gap:6px;padding:0 10px;height:30px;border-radius:8px;background:#fdf5f0;border:1.5px solid #c96442;color:#c96442;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(201,100,66,.25);transition:background .15s,box-shadow .15s;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.02em;max-width:220px"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span id="tn-specialty-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</span><svg id="tn-specialty-chevron" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;opacity:.6"><polyline points="6 9 12 15 18 9"/></svg></button><div id="tn-specialty-menu" onclick="event.stopPropagation()" style="display:none;position:absolute;top:36px;right:0;min-width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.2);z-index:9000;overflow:hidden"><div style="padding:10px 12px;background:#fdf5f0;border-bottom:1px solid #ede9df;font-size:10px;font-weight:700;color:#c96442;text-transform:uppercase;letter-spacing:.06em">Switch Specialty</div><div id="tn-specialty-list" style="padding:8px;display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow-y:auto"></div></div></div>\n\n<!-- User chip with dropdown -->\n<div id="tn-user-chip" onclick="toggleUserMenu(event)"\n  style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;border-radius:20px;\n  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);cursor:pointer;\n  height:30px;box-sizing:border-box;transition:background .15s;flex-shrink:0"\n  onmouseover="this.style.background=\'rgba(255,255,255,.22)\'"\n  onmouseout="this.style.background=\'rgba(255,255,255,.13)\'">\n  <div id="tn-user-avatar" style="width:22px;height:22px;border-radius:50%;\n    background:var(--brand);color:#fff;font-size:9px;font-weight:700;\n    display:flex;align-items:center;justify-content:center;flex-shrink:0;\n    border:1.5px solid rgba(255,255,255,.4)">\n    <span id="tn-avatar-initials">?</span>\n  </div>\n  <div id="tn-user-name" style="font-size:11px;font-weight:700;color:#fff;\n    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px"></div>\n  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"\n    stroke-width="2.5" style="color:rgba(255,255,255,.6);flex-shrink:0">\n    <polyline points="6 9 12 15 18 9"></polyline>\n  </svg>\n</div>\n\n<!-- User dropdown menu -->\n<div id="tn-user-menu" onclick="event.stopPropagation()"\n  style="display:none;position:fixed;top:44px;right:10px;\n  background:var(--bg2);border:1px solid var(--border);border-radius:14px;\n  box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">\n\n  <!-- Header with avatar + info -->\n  <div style="padding:14px 16px;background:#141413;display:flex;align-items:center;gap:12px">\n    <div style="width:40px;height:40px;border-radius:50%;background:#4d4c48;\n      border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;\n      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">\n      <span id="tn-avatar-initials2">?</span>\n    </div>\n    <div style="min-width:0;flex:1">\n      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;\n        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div id="tn-menu-email" style="font-size:10px;color:rgba(255,255,255,.65);\n        margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">\n        <span id="tn-menu-role" style="font-size:9px;font-weight:700;color:rgba(255,255,255,.9);\n          background:rgba(255,255,255,.15);padding:2px 6px;border-radius:10px"></span>\n        <span id="tn-menu-prov" style="font-size:9px;color:rgba(255,255,255,.65);\n          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px"></span>\n      </div>\n      <div id="tn-menu-login-time" style="font-size:9px;color:rgba(255,255,255,.45);margin-top:3px"></div>\n    </div>\n  </div>\n\n  <!-- Specialty switcher (renders when user has 1+ specialties assigned) -->\n  <div id="tn-user-specialty-section" style="display:none"></div>\n\n  <!-- Action buttons grid -->\n  <div style="padding:12px;display:grid;grid-template-columns:1fr;gap:8px;\n    border-bottom:1px solid var(--border)">\n    <button onclick="go(\'account\');toggleUserMenu()"\n      style="display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;\n      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"\n      onmouseover="this.style.background=\'var(--brand-bg)\';this.style.borderColor=\'var(--brand)\'"\n      onmouseout="this.style.background=\'var(--bg3)\';this.style.borderColor=\'var(--border2)\'">\n      <i data-lucide="settings" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n      <span style="font-size:11px;font-weight:600;color:var(--text)">Settings</span>\n    </button>\n  </div>\n\n  <!-- Sign out -->\n  <div style="padding:10px 12px">\n    <button onclick="doLogout()"\n      style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:10px;border:1.5px solid var(--red,#dc2626);border-radius:10px;\n      background:transparent;cursor:pointer;color:var(--red,#dc2626);\n      font-size:12px;font-weight:700;transition:background .15s"\n      onmouseover="this.style.background=\'#fef2f2\'"\n      onmouseout="this.style.background=\'transparent\'">\n      <i data-lucide="log-out" class="lci" style="width:15px;height:15px"></i>\n      Sign Out\n    </button>\n  </div>\n</div>\n</div>\n\n</div>\n</header>';
 }
 function getShellSectionsHTML(){
-return '\n<div class="section active" id="sec-dashboard">\n<div class="page-hdr">\n  <div><h1>Dashboard</h1><div id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></div></div>\n</div>\n<div class="page-body">\n<div id="dash-alerts" style="margin-bottom:8px"></div>\n<div id="dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"></div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">\n  <div class="card">\n    <div class="card-title" style="margin-bottom:10px">Recent Claims</div>\n    <div id="dash-recent"></div>\n  </div>\n  <div style="display:flex;flex-direction:column;gap:14px">\n    <div class="card">\n      <div class="card-title" style="margin-bottom:6px">By Payer</div>\n      <div id="dash-payers"></div>\n    </div>\n    <div class="card">\n      <div class="card-title" style="margin-bottom:6px">By Status</div>\n      <div id="dash-status"></div>\n  </div>\n</div>\n</div>\n</div>\n</div>\n<div class="section" id="sec-claims">\n<div class="page-hdr"><div><h1>Claims</h1></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>\n<div class="page-body">\n<div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab(\'all\',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'draft\',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'pending\',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab(\'submitted\',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab(\'accepted\',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab(\'rejected\',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>\n<div class="search-row">\n<input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\\u2026" oninput="renderClaims()">\n<select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select>\n<select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select>\n<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0">\n  DOS\n  <input type="date" id="clm-dos-from" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <span style="color:var(--text3)">–</span>\n  <input type="date" id="clm-dos-to" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <button onclick="document.getElementById(\'clm-dos-from\').value=\'\';document.getElementById(\'clm-dos-to\').value=\'\';renderClaims()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button>\n</label>\n</div>\n<div id="claims-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>\n\n<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>\n\n<div class="section" id="sec-export">\n<div class="page-hdr">\n<div><h1>Export / Submit</h1></div>\n</div>\n<div class="page-body">\n<div id="exp-alert-top" style="margin-bottom:12px"></div>\n\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n\n<!-- Card 1: CSV Export -->\n<div class="card">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center">\n<i data-lucide="download" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Export CSV</div>\n<div style="font-size:11px;color:var(--text3)">Standard CSV Format</div>\n</div>\n</div>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="exportCSV(\'pending\')">\n<i data-lucide="download" class="lci"></i> Export Pending Claims\n</button>\n<button class="btn btn-sm" onclick="exportCSV(\'all\')">\n<i data-lucide="download" class="lci"></i> Export All Claims\n</button>\n</div>\n</div>\n\n<!-- Card 2: Direct Transmit -->\n<div class="card" style="border:2px solid var(--brand)">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">\n<i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Transmit Direct</div>\n<div style="font-size:11px;color:var(--text3)">via Clearinghouse</div>\n</div>\n</div>\n<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">\nRequires API Key configured in Settings ? Billing Providers.<br>\nClaims are validated, transmitted and marked <strong>Submitted</strong> automatically.\n</p>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="transmitDirect(\'pending\')">\n<i data-lucide="send" class="lci"></i> Transmit All Pending\n</button>\n<button class="btn btn-sm" onclick="transmitDirect(\'selected\')">\n<i data-lucide="send" class="lci"></i> Transmit Selected Claims\n</button>\n<button class="btn btn-sm" onclick="syncStatuses()">\n<i data-lucide="refresh-cw" class="lci"></i> Sync Status from Clearinghouse\n</button>\n</div>\n</div>\n\n</div>\n\n<!-- Summary + Instructions row -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">Summary</div>\n<div id="exp-summary"></div>\n</div>\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">How it works</div>\n<ol style="padding-left:18px;font-size:13px;color:var(--text2);line-height:2.2">\n<li>Create claims via Quick Batch or manually</li>\n<li>Click <strong>Transmit All Pending</strong> to send directly</li>\n<li>Or export CSV and upload at the clearinghouse portal</li>\n<li>Click <strong>Sync Status</strong> to update claim results</li>\n<li>Paid claims ? mark <strong>Accepted CH</strong></li>\n</ol>\n</div>\n</div>\n\n<!-- Transmission Log -->\n<div class="card">\n<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">\n<div class="card-title">Transmission Log</div>\n<button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">\n<i data-lucide="refresh-cw" class="lci" style="width:12px;height:12px"></i> Refresh\n</button>\n</div>\n<div id="exp-transmit-log" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>\n</div>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-bills">\n<div class="page-hdr">\n<div><h1>Bills</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<select id="bills-status-filter" onchange="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="draft">Draft</option>\n<option value="pending">Pending</option>\n<option value="submitted">Submitted</option>\n<option value="accepted">Accepted CH</option>\n<option value="rejected">Rejected</option>\n<option value="on_hold">On Hold</option>\n<option value="denied">Denied</option>\n<option value="paid">Paid</option>\n<option value="voided">Voided</option>\n</select>\n<input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">\n<button class="btn btn-primary btn-sm" onclick="go(\'claims\')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>\n</div>\n</div>\n<div class="page-body">\n<div id="bills-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-claim-editor" style="flex-direction:column;height:100%;padding:0;overflow:hidden">\n<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>\n</div>\n\n<div class="section" id="sec-eob">\n<div class="page-hdr">\n<div>\n<h1>ERA / EOB Payments</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="openEOBPostingModal()">\n<i data-lucide="pen-line" class="lci"></i> Manual EOB\n</button>\n<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">\n<i data-lucide="download-cloud" class="lci"></i> Import Payments\n</button>\n<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'era-835-input\').click()">\n<i data-lucide="upload" class="lci"></i> Upload EDI 835\n</button>\n</div>\n</div>\n<div class="page-body">\n<input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">\n\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="eob-tab-payments" onclick="setEOBTab(\'payments\',this)">\nPayment Batches <span id="eob-cnt-payments" class="nav-cnt" style="background:var(--brand)">0</span>\n</button>\n<button class="stab" id="eob-tab-unmatched" onclick="setEOBTab(\'unmatched\',this)">\nUnmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--amber)">0</span>\n</button>\n<button class="stab" id="eob-tab-secondary" onclick="setEOBTab(\'secondary\',this)">\nReady for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>\n</button>\n<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab(\x27era-pending\x27,this)">\n<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>\n</button>\n</div>\n\n<div id="eob-alert" style="margin-bottom:12px"></div>\n<div id="eob-content"></div>\n</div>\n</div>\n\n<!-- MANUAL EOB POSTING MODAL -->\n<div class="overlay" id="modal-eob-post">\n<div class="modal" style="max-width:900px;width:98%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t">Post EOB Payment</div>\n<div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>\n</div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-post\')">×</button>\n</div>\n<div class="modal-body" style="max-height:80vh;overflow-y:auto">\n<!-- Check Header -->\n<div style="background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:16px;border:1px solid var(--border)">\n<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Check / EFT Details</div>\n<div class="fg g4">\n<div class="field"><label>Payer Name *</label><input id="eob-payer-name" placeholder="e.g. FL Medicaid"></div>\n<div class="field"><label>Payer ID</label><input id="eob-payer-id" placeholder="e.g. 77027"></div>\n<div class="field"><label>Check / EFT #</label><input id="eob-check-num" placeholder="Check number"></div>\n<div class="field"><label>Check Date *</label><input type="date" id="eob-check-date"></div>\n</div>\n<div class="fg g3" style="margin-top:10px">\n<div class="field"><label>Total Check Amount *</label><input type="number" step="0.01" id="eob-check-amt" placeholder="0.00" oninput="updateEOBRunning()"></div>\n<div class="field"><label>NPI (Payee)</label><input id="eob-payee-npi" placeholder="Rendering or Billing NPI"></div>\n<div class="field"><label>Notes</label><input id="eob-notes" placeholder="Optional"></div>\n</div>\n</div>\n\n<!-- Claim Search & Match -->\n<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">\n<div style="font-size:13px;font-weight:700;color:var(--text)">Claim Lines</div>\n<button class="btn btn-sm" onclick="openEOBClaimSearch()">\n<i data-lucide="search" class="lci"></i> Find & Add Claim\n</button>\n<div style="margin-left:auto;font-size:12px;color:var(--text3)">\nPosted: <strong id="eob-running-total" style="color:var(--brand)">$0.00</strong>\n&nbsp;/&nbsp; Check: <strong id="eob-check-display">$0.00</strong>\n&nbsp;\n<span id="eob-balance-badge" class="badge b-gray">Balance: $0.00</span>\n</div>\n</div>\n<div id="eob-claim-lines" style="min-height:60px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);padding:8px">\n<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">\nClick "Find &amp; Add Claim" to search and add claims to this payment\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-post\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveEOBBatch()">\n<i data-lucide="save" class="lci"></i> Post Payment Batch\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIM SEARCH MODAL (for EOB matching) -->\n<div class="overlay" id="modal-eob-search">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-search\')">×</button>\n</div>\n<div class="modal-body">\n<div class="fg g2" style="margin-bottom:10px">\n<div class="field">\n<label>Search Field</label>\n<select id="eob-search-field">\n<option value="pcn">PCN / Claim #</option>\n<option value="last">Patient Last Name</option>\n<option value="first">Patient First Name</option>\n<option value="member">Member ID</option>\n<option value="acct">Account #</option>\n<option value="dob">Date of Birth</option>\n</select>\n</div>\n<div class="field"><label>Search Value *</label><input id="eob-search-val" placeholder="Enter value..." oninput="searchEOBClaims()"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Date of Service (DOS) *</label><input type="text" id="eob-search-dos" placeholder="MM/DD/YYYY" oninput="searchEOBClaims()"></div>\n<div class="field"><label>Status Filter</label>\n<select id="eob-search-status" onchange="searchEOBClaims()">\n<option value="">All</option>\n<option value="accepted" selected>Accepted</option>\n<option value="submitted">Submitted</option>\n<option value="pending">Pending</option>\n</select>\n</div>\n</div>\n<div id="eob-search-results" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">\n<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">Enter search criteria above</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-search\')">Cancel</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-providers">\n<div class="page-hdr">\n<div>\n<h1>Billing Providers</h1>\n</div>\n<button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">\n<i data-lucide="plus" class="lci"></i> Add Provider\n</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-insurances">\n<div class="page-hdr">\n<div>\n<h1>Insurances / Payers</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="searchClearinghousePayers()">\n<i data-lucide="search" class="lci"></i> Search Clearinghouse Payers\n</button>\n<button class="btn btn-primary btn-sm" onclick="openInsuranceModal(\'\')">\n<i data-lucide="plus" class="lci"></i> Add Payer\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">\n<input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">\n<select id="ins-type-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Types</option>\n<option value="electronic">Electronic</option>\n<option value="manual">Manual / Paper</option>\n</select>\n<select id="ins-status-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n\n<div id="insurances-tbl"></div>\n</div>\n</div>\n\n<!-- INSURANCE MODAL -->\n<div class="overlay" id="modal-insurance">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t" id="mins-title">Add Payer</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-insurance\')">×</button>\n</div>\n<div class="modal-body">\n<input type="hidden" id="mins-id">\n<div class="fg g1">\n<div class="fg g2">\n<div class="field">\n<label>Payer / Insurance Name *</label>\n<input id="mins-name" placeholder="e.g. FL Medicaid" oninput="searchInsNameLive()">\n<div id="mins-name-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n<div class="field" style="position:relative">\n<label>Payer ID *</label>\n<input id="mins-payerid" placeholder="e.g. 77027" maxlength="10" oninput="searchInsPayerIdLive()">\n<div id="mins-payerid-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n</div>\n<div class="fg g2">\n<div class="field">\n<label>Type</label>\n<select id="mins-type">\n<option value="electronic">Electronic (EDI)</option>\n<option value="manual">Manual / Paper</option>\n</select>\n</div>\n<div class="field">\n<label>Status</label>\n<select id="mins-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="mins-phone" placeholder="800-000-0000"></div>\n<div class="field"><label>Claims Address</label><input id="mins-addr" placeholder="PO Box or address"></div>\n</div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="mins-city"></div>\n<div class="field"><label>State</label><input id="mins-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="mins-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="mins-notes" placeholder="Optional notes"></div>\n<div id="mins-claimmd-badge" style="display:none;margin-top:6px;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand)">\n<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i>\n<strong>Verified in Directory</strong> — Electronic submission supported\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-insurance\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveInsurance()">\n<i data-lucide="save" class="lci"></i> Save Payer\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIMMD PAYER SEARCH MODAL -->\n<div class="overlay" id="modal-claimmd-payers">\n<div class="modal" style="max-width:700px;width:98%">\n<div class="modal-hdr">\n<div><div class="modal-t">Payer Directory</div><div class="modal-sub">Search and import payers from the directory</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claimmd-payers\')">×</button>\n</div>\n<div class="modal-body">\n<div style="display:flex;gap:8px;margin-bottom:12px">\n<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."\nstyle="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"\noninput="filterClearinghousePayers()">\n<select id="claimmd-payer-state" onchange="filterClearinghousePayers()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All States</option>\n<option value="FL">FL</option><option value="CA">CA</option><option value="TX">TX</option>\n<option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option>\n<option value="OH">OH</option><option value="PA">PA</option><option value="IL">IL</option>\n</select>\n</div>\n<div id="claimmd-payer-results" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">Type to search the payer list</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claimmd-payers\')">Close</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal(\'\')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>\n\n<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>\n\n<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>\n\n<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>\n\n<div class="section" id="sec-reports">\n<div class="page-hdr">\n<div><h1>Reports</h1></div>\n</div>\n<div class="page-body">\n<div id="reports-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-appointments">\n<div class="page-hdr">\n<div><h1>Schedule</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px"><i data-lucide="rows-3" class="lci" style="width:12px;height:12px"></i> Cards</button>\n<button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>\n<select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>\n<select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="all">All</option></select>\n<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>\n<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>\n</div>\n<div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>\n<div id="appt-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-schedule-setup">\n<div class="page-hdr"><div><h1>Schedule Setup</h1></div></div>\n<div class="page-body">\n<div class="fg g2" style="margin-bottom:14px">\n<div class="field"><label>Physician / Scheduler</label><select id="ss-prov-sel" onchange="renderScheduleSetup()" style="width:100%"></select></div>\n<div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>\n</div>\n<div class="stabs" id="ss-tabs" style="margin-bottom:14px">\n<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>\n<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>\n</div>\n<div id="ss-panel-hours"></div>\n<div id="ss-panel-groups" style="display:none"></div>\n</div>\n</div>\n\n<div class="section" id="sec-notes">\n<div class="page-hdr">\n<div><h1>Encounters</h1></div>\n<div style="display:flex;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="openAINoteModal(\'\',\'\',\'\')">\n<i data-lucide="bot" class="lci"></i> AI Note Assistant\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>\n<select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>\n</div>\n<div id="notes-list"></div>\n<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">\n  <div class="enc-editor-hdr" id="ee-hdr"></div>\n  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>\n  <div class="enc-editor-body">\n    <div class="enc-editor-sidebar" id="ee-sidebar"></div>\n    <div class="enc-editor-content" id="ee-content"></div>\n    <div class="enc-editor-preview" id="ee-preview"></div>\n  </div>\n  <div class="enc-editor-ftr" id="ee-ftr"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-servicegroups">\n<div class="page-hdr">\n<div><h1>Service Groups</h1></div>\n<button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>\n</div>\n<div class="page-body">\n<div id="sg-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-account">\n<div class="page-hdr">\n  <div>\n    <h1>Users &amp; Account</h1>\n    \n  </div>\n  <div style="display:flex;gap:8px;align-items:center">\n    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search\n    </button>\n    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add\n    </button>\n  </div>\n</div>\n<div class="page-body">\n\n<!-- Search panel -->\n<div id="user-search-bar" style="display:none;margin-bottom:14px">\n  <div class="card" style="padding:16px">\n    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>\n    <div class="fg g3" style="margin-bottom:12px">\n      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>\n      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Role</label>\n        <select id="us-role" onchange="renderUserManagement()">\n          <option value="">All Roles</option>\n          <option>Super Admin</option>\n          <option>Admin</option>\n          <option>Manager</option>\n          <option>Billing</option>\n          <option>User</option>\n        </select>\n      </div>\n    </div>\n    <button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'us-email\').value=\'\';document.getElementById(\'us-first\').value=\'\';document.getElementById(\'us-last\').value=\'\';document.getElementById(\'us-role\').value=\'\';renderUserManagement()">Clear</button>\n  </div>\n</div>\n\n<!-- Active / Inactive tabs -->\n<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">\n  <button id="utab-active" onclick="setUserTab(\'active\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Active\n  </button>\n  <button id="utab-inactive" onclick="setUserTab(\'inactive\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Inactive\n  </button>\n</div>\n\n<!-- Users table -->\n<div class="tbl-wrap" style="margin-top:0;border-top:none">\n  <table>\n    <thead><tr>\n      <th>Email</th>\n      <th>First Name</th>\n      <th>Last Name</th>\n      <th>Phone</th>\n      <th>Provider</th>\n      <th>Role</th>\n      <th>Status</th>\n      <th style="text-align:center">2FA</th>\n      <th>Created</th>\n      <th style="width:90px;text-align:center">Actions</th>\n    </tr></thead>\n    <tbody id="users-list"></tbody>\n  </table>\n</div>\n\n<!-- Account info -->\n\n\n\n</div>\n</div>\n\n<div class="section" id="sec-provider-info">\n<div class="page-hdr">\n<div><h1>Provider Information</h1></div>\n</div>\n<div class="page-body">\n<div id="provider-info-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-invoices">\n<div class="page-hdr">\n<div>\n<h1 style="display:flex;align-items:center;gap:10px">\n<i data-lucide="receipt" class="lci" style="width:24px;height:24px;color:var(--brand)"></i>\nInvoicing\n</h1>\n</div>\n<div class="btn-group" id="inv-hdr-btns">\n<button class="btn btn-primary btn-sm" onclick="openInvoiceModal()" id="inv-btn-new" style="display:none">\n<i data-lucide="plus" class="lci"></i> New Invoice\n</button>\n</div>\n</div>\n<div class="page-body">\n\n<!-- DASHBOARD -->\n<div id="inv-dashboard" style="margin-bottom:14px"></div>\n\n<!-- TABS -->\n<div class="stabs" id="inv-tabs" style="margin-bottom:14px">\n<button class="stab active" id="inv-stab-dashboard" onclick="setInvTab(\'dashboard\',this)">\n<i data-lucide="layout-dashboard" class="lci" style="width:13px;height:13px"></i> Dashboard\n</button>\n<button class="stab" id="inv-stab-invoices" onclick="setInvTab(\'invoices\',this)">\n<i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> Invoices\n</button>\n<button class="stab" id="inv-stab-clients" onclick="setInvTab(\'clients\',this)">\n<i data-lucide="building" class="lci" style="width:13px;height:13px"></i> Clients\n</button>\n<button class="stab" id="inv-stab-issuers" onclick="setInvTab(\'issuers\',this)">\n<i data-lucide="briefcase" class="lci" style="width:13px;height:13px"></i> Billing Entities\n</button>\n</div>\n\n<!-- PANELS -->\n<div id="inv-panel-dashboard"></div>\n<div id="inv-panel-invoices" style="display:none">\n<!-- Filters -->\n<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">\n<select id="inv-filter-issuer" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Billing Entities</option>\n</select>\n<select id="inv-filter-client" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Clients</option>\n</select>\n<select id="inv-filter-status" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Draft">Draft</option>\n<option value="Sent">Sent</option>\n<option value="Partial">Partial</option>\n<option value="Overdue">Overdue</option>\n<option value="Paid">Paid (hidden by default)</option>\n</select>\n<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">\n<input type="checkbox" id="inv-show-paid" onchange="renderInvoicesList()" style="accent-color:var(--brand)">\nShow Paid\n</label>\n</div>\n<div id="inv-list"></div>\n</div>\n<div id="inv-panel-clients" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openClientModal()">\n<i data-lucide="plus" class="lci"></i> New Client\n</button>\n</div>\n<div id="inv-clients-list"></div>\n</div>\n<div id="inv-panel-issuers" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openIssuerModal()">\n<i data-lucide="plus" class="lci"></i> New Billing Entity\n</button>\n</div>\n<div id="inv-issuers-list"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-admin-providers">\n<div class="page-hdr">\n<div><h1>Billing Providers</h1></div>\n<button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-admin-tickets"></div>\n\n<div class="section" id="sec-cm-dashboard"><div class="page-hdr"><div><h1>Case Management Dashboard</h1></div></div><div class="page-body"><div id="cm-dash-content"></div></div></div>\n\n<div class="section" id="sec-cm-clients">\n<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">\n<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>\n<button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMClients()">\n<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Workers</option></select>\n<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>\n</div>\n<div id="cm-clients-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-workers">\n<div class="page-hdr"><div><h1>Case Workers</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add Worker</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>\n<div id="cm-workers-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="generateCMBilling()">Generate from Notes</button><button class="btn btn-sm btn-primary" onclick="exportCMBillingCSV()">Export CSV</button></div></div><div class="page-body"><div class="search-row"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select></div><div id="cm-billing-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>\n\n<div class="section" id="sec-cm-intake">\n<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by name, Medicaid ID, phone..." oninput="renderCMIntake()">\n<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>\n</div>\n<div id="cm-intake-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-assessments">\n<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">\n<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>\n<div id="cm-assessments-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-encounters">\n<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">\n<button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()"><i data-lucide="notebook-pen" class="lci"></i> CM Encounter</button>\n<button class="btn btn-sm" onclick="openTCMEncounter()"><i data-lucide="briefcase" class="lci"></i> + TCM Note</button>\n</div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMEncounters()">\n<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>\n<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>\n<div id="cm-encounters-tbl"></div>\n<div id="cm-tcm-notes" style="margin-top:16px"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-tasks">\n<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">\n<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>\n<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>\n<div id="cm-tasks-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-authorizations">\n<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">\n<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>\n<div id="cm-auths-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-referrals">\n<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">\n<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>\n<div id="cm-referrals-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-supervisor">\n<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>\n<div class="page-body">\n<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>\n<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>\n<div id="cm-supervisor-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-discharge">\n<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>\n<div id="cm-discharge-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go(\'cm-clients\')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>\n\n<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>\n\n<!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->\n<div class="section" id="sec-intake-center">\n<div class="page-hdr">\n<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>\n</div>\n</div>\n<div class="page-body">\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="ic-stab-clients" onclick="icSetTab(\'clients\',this)"><i data-lucide="users" class="lci"></i> Clients</button>\n<button class="stab" id="ic-stab-forms" onclick="icSetTab(\'forms\',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>\n<button class="stab" id="ic-stab-eval" onclick="icSetTab(\'eval\',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>\n</div>\n<!-- Panels -->\n<div id="ic-panel-clients"></div>\n<div id="ic-panel-forms" style="display:none"></div>\n<div id="ic-panel-eval" style="display:none"></div>\n</div>\n</div>\n\n<!-- Intake Clients section -->\n<div class="section" id="sec-intake-clients">\n<div class="page-hdr">\n<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>\n<div class="btn-group">\n<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="Pending Forms">Pending Forms</option>\n<option value="Forms Sent">Forms Sent</option>\n<option value="Viewed">Viewed</option>\n<option value="Partially Completed">Partially Completed</option>\n<option value="Signed">Signed</option>\n<option value="Completed">Completed</option>\n<option value="Evaluation Pending">Evaluation Pending</option>\n<option value="Evaluation Completed">Evaluation Completed</option>\n<option value="Archived">Archived</option>\n</select>\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">\n<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>\n</div>\n<div id="ic-clients-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Consent Forms section -->\n<div class="section" id="sec-intake-forms">\n<div class="page-hdr">\n<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">\n<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>\n<option value="HIPAA">HIPAA</option>\n<option value="Consent">Consent</option>\n<option value="Financial">Financial</option>\n<option value="Release">Release of Information</option>\n<option value="Telehealth">Telehealth</option>\n<option value="Signature">Electronic Signature</option>\n<option value="Other">Other</option>\n</select>\n</div>\n<div class="stabs" style="margin-bottom:10px">\n<button class="stab active" onclick="icFormFilterSet(\'all\',this)">All</button>\n<button class="stab" onclick="icFormFilterSet(\'active\',this)">Active</button>\n<button class="stab" onclick="icFormFilterSet(\'archived\',this)">Archived</button>\n</div>\n<div id="ic-forms-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Comprehensive Evaluation section -->\n<div class="section" id="sec-intake-eval">\n<div class="page-hdr">\n<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">\n<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>\n<option value="Draft">Draft</option>\n<option value="In Progress">In Progress</option>\n<option value="Completed">Completed</option>\n</select>\n</div>\n<div id="ic-eval-tbl"></div>\n</div>\n</div>\n\n</div>\n</div>\n\n<div class="overlay" id="modal-claim"><div class="modal modal-lg">\n<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claim\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mc-id">\n<div class="dup-warn hidden" id="mc-dup"></div>\n<div class="fg g3">\n<div class="field"><label>Patient *</label><select id="mc-pat" onchange="onPatientChange()"></select></div>\n<div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>\n<div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>\n<div class="fg g3">\n<div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>\n<div class="field" style="grid-column:1/-1;padding:6px 0">\n  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">\n    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">\n    <span>Multiple dates of service (weekly/range)</span>\n    <span style="font-size:11px;color:var(--text3);font-weight:400">— assign a different date to each service line</span>\n  </label>\n</div>\n<div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>\n<div class="field"><label>Facility</label><select id="mc-fac"></select></div>\n</div>\n<div class="fg g3" style="margin-top:12px">\n<div class="field"><label>Rendering Provider *</label><select id="mc-rend"></select></div>\n<div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>\n<div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \\u2014 e.g. M25562)</span></span>\n<div class="fg g4">\n<div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 3</label><input id="mc-dx3" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 4</label><input id="mc-dx4" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 5</label><input id="mc-dx5" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 6</label><input id="mc-dx6" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 7</label><input id="mc-dx7" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 8</label><input id="mc-dx8" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n</div>\n<div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \\u2014 pointers auto-assign</div>\n<div class="sep"></div>\n<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">\n<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>\n<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>\n</div>\n<div id="mc-lines"></div>\n<div class="total-preview" id="mc-total">Total: $0.00</div>\n<div class="sep"></div>\n<div class="fg g3">\n<div class="field"><label>Status</label><select id="mc-status"><option value="draft">Draft</option><option value="pending" selected>Pending</option><option value="submitted">Submitted</option><option value="accepted">Accepted CH</option><option value="rejected">Rejected</option></select></div>\n<div class="field"><label>Employment Related</label><select id="mc-emp"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="field"><label>Auto Accident</label><select id="mc-auto"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claim\')">Cancel</button>\n<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>\n<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>\n<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>\n</div>\n</div></div>\n\n<!-- PATIENT MODAL -->\n<div class="overlay" id="modal-patient"><div class="modal">\n<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-patient\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mp-id">\n<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>\n<div class="fg g2">\n<div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \\u2014 cannot be changed later.</div></div>\n<div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>\n<div class="field"><label>Last Name *</label><input id="mp-last"></div>\n<div class="field"><label>First Name *</label><input id="mp-first"></div>\n<div class="field"><label>Middle Initial</label><input id="mp-mid" maxlength="1"></div>\n<div class="field"><label>Date of Birth (M/D/YYYY) *</label><input id="mp-dob" placeholder="1/15/1985"></div>\n<div class="field"><label>Sex *</label><select id="mp-sex"><option value="F">F \\u2014 Female</option><option value="M">M \\u2014 Male</option></select></div>\n<div class="field"><label>Phone</label><input id="mp-phone" maxlength="10"></div>\n<div class="field" style="grid-column:1/-1"><label>Address</label><input id="mp-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mp-addr2"></div>\n<div class="field"><label>City</label><input id="mp-city"></div>\n<div class="field"><label>State</label><input id="mp-state" maxlength="2" placeholder="FL"></div>\n<div class="field"><label>ZIP</label><input id="mp-zip" maxlength="10"></div>\n<div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \\u2014 Self</option><option value="01">01 \\u2014 Spouse</option><option value="19">19 \\u2014 Child</option><option value="G8">G8 \\u2014 Other</option><option value="32">32 \\u2014 Mother</option><option value="33">33 \\u2014 Father</option></select></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>\n<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \\u2014 subscriber fields auto-filled from patient data above.</div>\n<div class="fg g2">\n<div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>\n<div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>\n<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>\n<div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>\n<div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>\n<div class="field"><label>Group #</label><input id="mp-group"></div>\n<div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>\n<div class="fg g2">\n<div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>\n<div class="field"><label>Payer Name</label><input id="mp-payername"></div>\n<div class="field"><label>Payer City</label><input id="mp-payercity"></div>\n<div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-patient\')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>\n</div></div>\n\n<!-- PROVIDER MODAL -->\n<div class="overlay" id="modal-provider">\n<div class="modal" style="max-width:680px;width:100%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t" id="mprov-title">New Billing Provider</div>\n<div class="modal-sub" id="mprov-subtitle"></div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-provider\')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body" style="padding:22px;background:var(--bg2)">\n<input type="hidden" id="mprov-id">\n<style>\n.mprov-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}\n.mprov-chip input{display:none}\n.mprov-chip:has(input:checked){background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}\n.mprov-chip:hover{border-color:var(--brand)}\n.mprov-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px}\n.mprov-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.mprov-card-ico{width:30px;height:30px;background:var(--brand-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n.mprov-card-title{font-size:13px;font-weight:700;color:var(--text)}\n</style>\n\n<!-- NPI Lookup -->\n<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;padding:16px 18px;margin-bottom:16px">\n<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">\n<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup — Auto-fill from NPPES Registry\n</div>\n<div style="display:flex;gap:8px;align-items:flex-end">\n<div style="flex:1">\n<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">NPI Number (10 digits)</label>\n<input id="mprov-npi" maxlength="10" placeholder="Enter 10-digit NPI"\noninput="this.value=this.value.replace(/\\D/g,\'\');if(this.value.length===10)lookupBillingProviderNPI(this.value)"\nstyle="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:var(--bg)">\n</div>\n<button class="btn btn-primary btn-sm" onclick="lookupBillingProviderNPI(document.getElementById(\'mprov-npi\').value)" style="white-space:nowrap;flex-shrink:0">\n<i data-lucide="search" class="lci"></i> Look Up\n</button>\n</div>\n<div id="bp-npi-result" style="margin-top:8px"></div>\n</div>\n\n<!-- Identification -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="building-2" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Identification</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Organization Name *</label>\n<input id="mprov-name" placeholder="e.g. Sunrise Medical Group">\n</div>\n<div class="field">\n<label>Tax ID (EIN/SSN, 9 digits)</label>\n<input id="mprov-taxid" maxlength="9" placeholder="123456789">\n</div>\n<div class="field">\n<label>Tax ID Type</label>\n<select id="mprov-taxtype">\n<option value="E">EIN (Employer)</option>\n<option value="S">SSN (Individual)</option>\n</select>\n</div>\n<div class="field">\n<label>Taxonomy Code</label>\n<input id="mprov-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X">\n</div>\n<div class="field">\n<label>Provider Type</label>\n<select id="mprov-type">\n<option value="Organization">Organization</option>\n<option value="Individual">Individual</option>\n</select>\n</div>\n<div class="field" id="mprov-status-row">\n<label>Status</label>\n<select id="mprov-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n<option value="Pending">Pending</option>\n</select>\n</div>\n</div>\n</div>\n\n<!-- API Key (Super Admin only, toggled by JS) -->\n<div id="mprov-acctkey-row" class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="key" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Clearinghouse Integration</div>\n</div>\n<div class="field" style="margin:0">\n<label>Account Key</label>\n<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">\n<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission.</div>\n</div>\n</div>\n\n<!-- Address -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Address</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Street Address</label>\n<input id="mprov-addr1" placeholder="123 Main St">\n</div>\n<div class="field" style="grid-column:1/-1">\n<label>Address Line 2</label>\n<input id="mprov-addr2" placeholder="Suite 100">\n</div>\n<div class="field">\n<label>City</label>\n<input id="mprov-city">\n</div>\n<div class="field">\n<label>State</label>\n<input id="mprov-state" maxlength="2" placeholder="FL">\n</div>\n<div class="field">\n<label>ZIP</label>\n<input id="mprov-zip" maxlength="10" placeholder="33101">\n</div>\n<div class="field">\n<label>Phone</label>\n<input id="mprov-phone" maxlength="10" placeholder="3051234567">\n</div>\n<div class="field">\n<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>\n<input id="mprov-email" type="email" placeholder="billing@practice.com">\n</div>\n</div>\n</div>\n\n<!-- Logo -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="image" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Logo <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(optional)</span></div>\n</div>\n<div style="display:flex;align-items:center;gap:14px">\n<div id="mprov-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0">\n<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>\n</div>\n<div>\n<input type="file" id="mprov-logo-file" accept="image/*" onchange="loadProviderLogo(event)" style="display:none">\n<button class="btn btn-sm" onclick="document.getElementById(\'mprov-logo-file\').click()">\n<i data-lucide="upload" class="lci"></i> Upload Logo\n</button>\n<button class="btn btn-sm btn-ghost" onclick="clearProviderLogo()" style="margin-left:6px">Clear</button>\n</div>\n</div>\n</div>\n\n</div>\n<div class="modal-ftr">\n<button class="btn btn-ghost" onclick="closeModal(\'modal-provider\')">Cancel</button>\n<button class="btn btn-primary" id="mprov-save-btn" onclick="saveBillingProvider()">\n<i data-lucide="save" class="lci"></i> Save Provider\n</button>\n</div>\n</div>\n</div><!-- FACILITY MODAL -->\n<div class="overlay" id="modal-facility"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-facility\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mfac-id">\n<div class="fg g1">\n<div class="field"><label>Facility Name *</label><input id="mfac-name"></div>\n<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'fac\')"><button onclick="lookupNPI(v(\'mfac-npi\'),\'fac\')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>\n<div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>\n<div class="field"><label>Address *</label><input id="mfac-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mfac-addr2"></div>\n<div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-facility\')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- RENDERING MODAL -->\n<div class="overlay" id="modal-rendering"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mrend-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'rend\')"><button onclick="lookupNPI(v(\'mrend-npi\'),\'rend\')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>\n<div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>\n<div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- REFERRING MODAL -->\n<div class="overlay" id="modal-referring"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-referring\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mref-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'ref\')"><button onclick="lookupNPI(v(\'mref-npi\'),\'ref\')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>\n<div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-referring\')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- SERVICE MODAL -->\n<div class="overlay" id="modal-service"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-service\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="msvc-id">\n<div class="fg g1">\n<div class="fg g2"><div class="field"><label>CPT Code *</label><input id="msvc-code" maxlength="5" class="mono" style="font-size:15px;font-weight:700"></div><div class="field"><label>Category</label><input id="msvc-cat" placeholder="Physical Therapy"></div></div>\n<div class="field"><label>Description *</label><input id="msvc-desc" placeholder="Therapeutic Exercise"></div>\n<div class="fg g2"><div class="field"><label>Default Rate $</label><input id="msvc-rate" class="mono"></div><div class="field"><label>Default Units</label><input id="msvc-units" class="mono"></div></div>\n<div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-service\')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>\n</div></div>\n\n<!-- STATUS MODAL -->\n<div class="overlay" id="modal-status"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-status\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mst-id">\n<div class="fg g1">\n<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to Clearinghouse</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>\n<div class="field" id="mst-claimmd-wrap" style="display:none"><label>Clearinghouse Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by Clearinghouse"></div>\n<div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-status\')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>\n</div></div>\n\n<!-- BATCH MODAL -->\n<div class="overlay" id="modal-batch">\n<div class="modal modal-lg" style="max-width:900px;display:flex;flex-direction:column;max-height:92vh">\n\n<!-- Header -->\n<div class="modal-hdr" style="flex-shrink:0">\n<div>\n<div class="modal-t"><i data-lucide="zap" class="lci"></i> Quick Batch — Generate Claims</div>\n<div class="modal-sub">Generate one claim per date for selected patients and services</div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n\n<!-- Tab switcher -->\n<div style="display:flex;gap:0;border-bottom:2px solid var(--border);padding:0 22px;flex-shrink:0">\n<button id="mb-tab-patient" onclick="setBatchTab(\'patient\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px">\n<i data-lucide="users" class="lci"></i> By Patient\n</button>\n<button id="mb-tab-sg" onclick="setBatchTab(\'sg\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:3px solid transparent;margin-bottom:-2px">\n<i data-lucide="layers" class="lci"></i> By Service Group\n</button>\n</div>\n\n<!-- Body scrolls -->\n<div class="modal-body" style="flex:1;overflow-y:auto;padding:0">\n\n<!-- ?? BY PATIENT PANEL ?? -->\n<div id="mb-panel-patient" style="padding:18px 22px">\n\n<!-- Row 1: Rendering + Facility + Referring -->\n<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Rendering Provider *</label>\n<select id="mb-rend" onchange="renderBatchPatDx()"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac"></select>\n</div>\n<div class="field">\n<label>Referring Provider</label>\n<select id="mb-ref"><option value="">— None —</option></select>\n</div>\n</div>\n\n<!-- Row 2: Two columns — Patients | Services -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">\n\n<!-- LEFT: Patient selector -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients *\n</div>\n<input id="mb-pat-q" placeholder="Search patients..."\noninput="renderBatchPatients()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div style="display:flex;gap:6px">\n<button class="btn btn-xs" onclick="batchSelectAllPats(true)">Select All</button>\n<button class="btn btn-xs" onclick="batchSelectAllPats(false)">Clear</button>\n</div>\n<div id="mb-pat-list"\nstyle="border:1px solid var(--border);border-radius:var(--r);overflow-y:auto;max-height:220px;background:var(--bg2)">\n</div>\n</div>\n\n<!-- RIGHT: Services catalog -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="pill" class="lci" style="width:11px;height:11px"></i> Services / CPT *\n</div>\n<input id="mb-svc-q" placeholder="Search CPT or description..."\noninput="renderBatchCatalog()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div class="cpt-scroll" id="mb-catalog" style="max-height:180px"></div>\n<div id="mb-selected-svcs-tbl"></div>\n</div>\n</div>\n\n<!-- Diagnoses (shown per patient when selected) -->\n<div id="mb-pat-dx-section" style="display:none;margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="activity" class="lci" style="width:11px;height:11px"></i> Diagnoses\n</div>\n<div id="mb-pat-dx-list" style="display:flex;flex-direction:column;gap:6px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-from" onchange="buildDateChips()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-to" onchange="buildDateChips()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Click dates to toggle on/off:</div>\n<div class="date-chips" id="mb-date-chips"></div>\n</div>\n\n<!-- Preview -->\n<div id="mb-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect patients, services and dates to preview\n</div>\n\n</div><!-- /mb-panel-patient -->\n\n<!-- ?? BY SERVICE GROUP PANEL ?? -->\n<div id="mb-panel-sg" style="display:none;padding:18px 22px">\n\n<!-- Row 1: SG + Rendering + Facility -->\n<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Service Group *</label>\n<select id="mb-sg-sel" onchange="onBatchSGChange()"></select>\n</div>\n<div class="field">\n<label>Rendering Provider</label>\n<select id="mb-rend-sg"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac-sg"></select>\n</div>\n</div>\n\n<!-- CPT summary row (shown after SG selection) -->\n<div id="mb-sg-cpt-row" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600">CPT codes in this group:</div>\n<div id="mb-sg-lines" style="display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-bottom:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-sg-from" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-sg-to" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div class="date-chips" id="mb-date-chips-sg"></div>\n</div>\n\n<!-- Patients in group -->\n<div id="mb-sg-patients-wrap" style="display:none">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients in Group\n</div>\n<div id="mb-sg-pat-rows" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden"></div>\n</div>\n\n<!-- SG Preview -->\n<div id="mb-sg-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect a service group and dates to preview\n</div>\n\n</div><!-- /mb-panel-sg -->\n\n</div><!-- /modal-body -->\n\n<!-- Footer -->\n<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">\n  <button class="btn btn-ghost" onclick="closeModal(\'modal-batch\')">Cancel</button>\n  <label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);flex:1;margin:0 8px;background:var(--bg3);border-radius:8px;padding:7px 12px;border:1.5px solid var(--border)">\n    <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById(\'mb-sg-sel\')?.value);if(sg)renderSGBatchPatients(sg);})()">\n    <span>1 claim per patient</span>\n    <span style="font-weight:400;color:var(--text3);font-size:11px">— all selected dates become service lines</span>\n  </label>\n  <button class="btn btn-primary" onclick="runBatch()" style="flex-shrink:0">\n    <i data-lucide="zap" class="lci"></i> Generate Claims\n  </button>\n</div>\n\n</div>\n</div>\n\n<!-- CPT PICKER MODAL -->\n<div class="overlay" id="modal-catalog"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \\u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-catalog\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\\u2026" oninput="renderPickerCatalog()"></div>\n<div class="cpt-scroll" id="cat-list"></div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-catalog\')">Cancel</button><button class="btn btn-primary" onclick="addCatalogToLines()">Add Selected to Claim</button></div>\n</div></div>\n<div class="overlay" id="modal-appt">\n<div class="modal modal-lg">\n<div class="modal-hdr">\n<div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body">\n<div class="fg g2">\n<div class="field"><label>Date</label><input type="date" id="appt-date"></div>\n<div class="field"><label>Start Time</label><input type="time" id="appt-start"></div>\n<div class="field"><label>End Time</label><input type="time" id="appt-end"></div>\n<div class="field"><label>Place of Service</label><select id="appt-pos"><option value="11">11 — Office</option><option value="02">02 — Telehealth</option><option value="23">23 — Emergency Room</option></select></div>\n</div>\n<div class="field" style="margin-top:10px"><label>Rendering Provider</label><select id="appt-rend"><option value="">— None —</option></select></div>\n<div class="field"><label>Facility</label><select id="appt-fac"><option value="">— None —</option></select></div>\n<div class="field"><label>Service Group</label><select id="appt-sg" onchange="onApptSGChange()"><option value="">— None —</option></select></div>\n<div class="field"><label>Status</label><select id="appt-status">\n<option value="scheduled">Scheduled</option>\n<option value="confirmed">Confirmed</option>\n<option value="checked_in">Checked In</option>\n<option value="completed">Completed</option>\n<option value="cancelled">Cancelled</option>\n<option value="no_show">No Show</option>\n</select></div>\n<div class="field"><label>Notes</label><textarea id="appt-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div style="margin-top:10px">\n<div class="slabel" style="margin-bottom:6px">Patients</div>\n<input id="appt-pat-q" placeholder="Search patients..." oninput="renderApptPatientPicker()" style="width:100%;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:6px">\n<div id="appt-pat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>\n<div id="appt-selected-pats" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="appt-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button>\n</div>\n</div>\n</div>\n\n<div class="overlay" id="modal-checkin">\n<div class="modal">\n<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div id="checkin-info"></div>\n<div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="ci-appt-id"><input type="hidden" id="ci-pat-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')">Cancel</button>\n<button class="btn btn-primary" onclick="_confirmCheckInDispatch()">Confirm Check-In</button>\n</div>\n</div>\n';
+return '\n<div class="section active" id="sec-dashboard">\n<div class="page-hdr">\n  <div><h1>Dashboard</h1><div id="dash-sub" style="font-size:13px;color:var(--text3);margin-top:2px"></div></div>\n</div>\n<div class="page-body">\n<div id="dash-alerts" style="margin-bottom:8px"></div>\n<div id="dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"></div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">\n  <div class="card">\n    <div class="card-title" style="margin-bottom:10px">Recent Claims</div>\n    <div id="dash-recent"></div>\n  </div>\n  <div style="display:flex;flex-direction:column;gap:14px">\n    <div class="card">\n      <div class="card-title" style="margin-bottom:6px">By Payer</div>\n      <div id="dash-payers"></div>\n    </div>\n    <div class="card">\n      <div class="card-title" style="margin-bottom:6px">By Status</div>\n      <div id="dash-status"></div>\n  </div>\n</div>\n</div>\n</div>\n</div>\n<div class="section" id="sec-claims">\n<div class="page-hdr"><div><h1>Claims</h1></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>\n<div class="page-body">\n<div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab(\'all\',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'draft\',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'pending\',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab(\'submitted\',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab(\'accepted\',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab(\'rejected\',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>\n<div class="search-row">\n<input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\\u2026" oninput="renderClaims()">\n<select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select>\n<select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select>\n<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0">\n  DOS\n  <input type="date" id="clm-dos-from" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <span style="color:var(--text3)">–</span>\n  <input type="date" id="clm-dos-to" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <button onclick="document.getElementById(\'clm-dos-from\').value=\'\';document.getElementById(\'clm-dos-to\').value=\'\';renderClaims()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button>\n</label>\n</div>\n<div id="claims-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openImportFromCMClientsModal()" title="Import from CM Clients"><i data-lucide="download" class="lci"></i> Import from CM Clients</button><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>\n\n<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>\n\n<div class="section" id="sec-export">\n<div class="page-hdr">\n<div><h1>Export / Submit</h1></div>\n</div>\n<div class="page-body">\n<div id="exp-alert-top" style="margin-bottom:12px"></div>\n\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n\n<!-- Card 1: CSV Export -->\n<div class="card">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center">\n<i data-lucide="download" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Export CSV</div>\n<div style="font-size:11px;color:var(--text3)">Standard CSV Format</div>\n</div>\n</div>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="exportCSV(\'pending\')">\n<i data-lucide="download" class="lci"></i> Export Pending Claims\n</button>\n<button class="btn btn-sm" onclick="exportCSV(\'all\')">\n<i data-lucide="download" class="lci"></i> Export All Claims\n</button>\n</div>\n</div>\n\n<!-- Card 2: Direct Transmit -->\n<div class="card" style="border:2px solid var(--brand)">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">\n<i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Transmit Direct</div>\n<div style="font-size:11px;color:var(--text3)">via Clearinghouse</div>\n</div>\n</div>\n<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">\nRequires API Key configured in Settings ? Billing Providers.<br>\nClaims are validated, transmitted and marked <strong>Submitted</strong> automatically.\n</p>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="transmitDirect(\'pending\')">\n<i data-lucide="send" class="lci"></i> Transmit All Pending\n</button>\n<button class="btn btn-sm" onclick="transmitDirect(\'selected\')">\n<i data-lucide="send" class="lci"></i> Transmit Selected Claims\n</button>\n<button class="btn btn-sm" onclick="syncStatuses()">\n<i data-lucide="refresh-cw" class="lci"></i> Sync Status from Clearinghouse\n</button>\n</div>\n</div>\n\n</div>\n\n<!-- Summary + Instructions row -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">Summary</div>\n<div id="exp-summary"></div>\n</div>\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">How it works</div>\n<ol style="padding-left:18px;font-size:13px;color:var(--text2);line-height:2.2">\n<li>Create claims via Quick Batch or manually</li>\n<li>Click <strong>Transmit All Pending</strong> to send directly</li>\n<li>Or export CSV and upload at the clearinghouse portal</li>\n<li>Click <strong>Sync Status</strong> to update claim results</li>\n<li>Paid claims ? mark <strong>Accepted CH</strong></li>\n</ol>\n</div>\n</div>\n\n<!-- Transmission Log -->\n<div class="card">\n<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">\n<div class="card-title">Transmission Log</div>\n<button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">\n<i data-lucide="refresh-cw" class="lci" style="width:12px;height:12px"></i> Refresh\n</button>\n</div>\n<div id="exp-transmit-log" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>\n</div>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-bills">\n<div class="page-hdr">\n<div><h1>Bills</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<select id="bills-status-filter" onchange="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="draft">Draft</option>\n<option value="pending">Pending</option>\n<option value="submitted">Submitted</option>\n<option value="accepted">Accepted CH</option>\n<option value="rejected">Rejected</option>\n<option value="on_hold">On Hold</option>\n<option value="denied">Denied</option>\n<option value="paid">Paid</option>\n<option value="voided">Voided</option>\n</select>\n<input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">\n<button class="btn btn-primary btn-sm" onclick="go(\'claims\')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>\n</div>\n</div>\n<div class="page-body">\n<div id="bills-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-claim-editor" style="flex-direction:column;height:100%;padding:0;overflow:hidden">\n<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>\n</div>\n\n<div class="section" id="sec-eob">\n<div class="page-hdr">\n<div>\n<h1>ERA / EOB Payments</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="openEOBPostingModal()">\n<i data-lucide="pen-line" class="lci"></i> Manual EOB\n</button>\n<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">\n<i data-lucide="download-cloud" class="lci"></i> Import Payments\n</button>\n<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'era-835-input\').click()">\n<i data-lucide="upload" class="lci"></i> Upload EDI 835\n</button>\n</div>\n</div>\n<div class="page-body">\n<input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">\n\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="eob-tab-payments" onclick="setEOBTab(\'payments\',this)">\nPayment Batches <span id="eob-cnt-payments" class="nav-cnt" style="background:var(--brand)">0</span>\n</button>\n<button class="stab" id="eob-tab-unmatched" onclick="setEOBTab(\'unmatched\',this)">\nUnmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--amber)">0</span>\n</button>\n<button class="stab" id="eob-tab-secondary" onclick="setEOBTab(\'secondary\',this)">\nReady for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>\n</button>\n<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab(\x27era-pending\x27,this)">\n<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>\n</button>\n</div>\n\n<div id="eob-alert" style="margin-bottom:12px"></div>\n<div id="eob-content"></div>\n</div>\n</div>\n\n<!-- MANUAL EOB POSTING MODAL -->\n<div class="overlay" id="modal-eob-post">\n<div class="modal" style="max-width:900px;width:98%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t">Post EOB Payment</div>\n<div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>\n</div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-post\')">×</button>\n</div>\n<div class="modal-body" style="max-height:80vh;overflow-y:auto">\n<!-- Check Header -->\n<div style="background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:16px;border:1px solid var(--border)">\n<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Check / EFT Details</div>\n<div class="fg g4">\n<div class="field"><label>Payer Name *</label><input id="eob-payer-name" placeholder="e.g. FL Medicaid"></div>\n<div class="field"><label>Payer ID</label><input id="eob-payer-id" placeholder="e.g. 77027"></div>\n<div class="field"><label>Check / EFT #</label><input id="eob-check-num" placeholder="Check number"></div>\n<div class="field"><label>Check Date *</label><input type="date" id="eob-check-date"></div>\n</div>\n<div class="fg g3" style="margin-top:10px">\n<div class="field"><label>Total Check Amount *</label><input type="number" step="0.01" id="eob-check-amt" placeholder="0.00" oninput="updateEOBRunning()"></div>\n<div class="field"><label>NPI (Payee)</label><input id="eob-payee-npi" placeholder="Rendering or Billing NPI"></div>\n<div class="field"><label>Notes</label><input id="eob-notes" placeholder="Optional"></div>\n</div>\n</div>\n\n<!-- Claim Search & Match -->\n<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">\n<div style="font-size:13px;font-weight:700;color:var(--text)">Claim Lines</div>\n<button class="btn btn-sm" onclick="openEOBClaimSearch()">\n<i data-lucide="search" class="lci"></i> Find & Add Claim\n</button>\n<div style="margin-left:auto;font-size:12px;color:var(--text3)">\nPosted: <strong id="eob-running-total" style="color:var(--brand)">$0.00</strong>\n&nbsp;/&nbsp; Check: <strong id="eob-check-display">$0.00</strong>\n&nbsp;\n<span id="eob-balance-badge" class="badge b-gray">Balance: $0.00</span>\n</div>\n</div>\n<div id="eob-claim-lines" style="min-height:60px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);padding:8px">\n<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">\nClick "Find &amp; Add Claim" to search and add claims to this payment\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-post\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveEOBBatch()">\n<i data-lucide="save" class="lci"></i> Post Payment Batch\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIM SEARCH MODAL (for EOB matching) -->\n<div class="overlay" id="modal-eob-search">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-search\')">×</button>\n</div>\n<div class="modal-body">\n<div class="fg g2" style="margin-bottom:10px">\n<div class="field">\n<label>Search Field</label>\n<select id="eob-search-field">\n<option value="pcn">PCN / Claim #</option>\n<option value="last">Patient Last Name</option>\n<option value="first">Patient First Name</option>\n<option value="member">Member ID</option>\n<option value="acct">Account #</option>\n<option value="dob">Date of Birth</option>\n</select>\n</div>\n<div class="field"><label>Search Value *</label><input id="eob-search-val" placeholder="Enter value..." oninput="searchEOBClaims()"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Date of Service (DOS) *</label><input type="text" id="eob-search-dos" placeholder="MM/DD/YYYY" oninput="searchEOBClaims()"></div>\n<div class="field"><label>Status Filter</label>\n<select id="eob-search-status" onchange="searchEOBClaims()">\n<option value="">All</option>\n<option value="accepted" selected>Accepted</option>\n<option value="submitted">Submitted</option>\n<option value="pending">Pending</option>\n</select>\n</div>\n</div>\n<div id="eob-search-results" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">\n<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">Enter search criteria above</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-search\')">Cancel</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-providers">\n<div class="page-hdr">\n<div>\n<h1>Billing Providers</h1>\n</div>\n<button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">\n<i data-lucide="plus" class="lci"></i> Add Provider\n</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-insurances">\n<div class="page-hdr">\n<div>\n<h1>Insurances / Payers</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="searchClearinghousePayers()">\n<i data-lucide="search" class="lci"></i> Search Clearinghouse Payers\n</button>\n<button class="btn btn-primary btn-sm" onclick="openInsuranceModal(\'\')">\n<i data-lucide="plus" class="lci"></i> Add Payer\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">\n<input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">\n<select id="ins-type-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Types</option>\n<option value="electronic">Electronic</option>\n<option value="manual">Manual / Paper</option>\n</select>\n<select id="ins-status-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n\n<div id="insurances-tbl"></div>\n</div>\n</div>\n\n<!-- INSURANCE MODAL -->\n<div class="overlay" id="modal-insurance">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t" id="mins-title">Add Payer</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-insurance\')">×</button>\n</div>\n<div class="modal-body">\n<input type="hidden" id="mins-id">\n<div class="fg g1">\n<div class="fg g2">\n<div class="field">\n<label>Payer / Insurance Name *</label>\n<input id="mins-name" placeholder="e.g. FL Medicaid" oninput="searchInsNameLive()">\n<div id="mins-name-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n<div class="field" style="position:relative">\n<label>Payer ID *</label>\n<input id="mins-payerid" placeholder="e.g. 77027" maxlength="10" oninput="searchInsPayerIdLive()">\n<div id="mins-payerid-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n</div>\n<div class="fg g2">\n<div class="field">\n<label>Type</label>\n<select id="mins-type">\n<option value="electronic">Electronic (EDI)</option>\n<option value="manual">Manual / Paper</option>\n</select>\n</div>\n<div class="field">\n<label>Status</label>\n<select id="mins-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="mins-phone" placeholder="800-000-0000"></div>\n<div class="field"><label>Claims Address</label><input id="mins-addr" placeholder="PO Box or address"></div>\n</div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="mins-city"></div>\n<div class="field"><label>State</label><input id="mins-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="mins-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="mins-notes" placeholder="Optional notes"></div>\n<div id="mins-claimmd-badge" style="display:none;margin-top:6px;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand)">\n<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i>\n<strong>Verified in Directory</strong> — Electronic submission supported\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-insurance\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveInsurance()">\n<i data-lucide="save" class="lci"></i> Save Payer\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIMMD PAYER SEARCH MODAL -->\n<div class="overlay" id="modal-claimmd-payers">\n<div class="modal" style="max-width:700px;width:98%">\n<div class="modal-hdr">\n<div><div class="modal-t">Payer Directory</div><div class="modal-sub">Search and import payers from the directory</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claimmd-payers\')">×</button>\n</div>\n<div class="modal-body">\n<div style="display:flex;gap:8px;margin-bottom:12px">\n<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."\nstyle="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"\noninput="filterClearinghousePayers()">\n<select id="claimmd-payer-state" onchange="filterClearinghousePayers()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All States</option>\n<option value="FL">FL</option><option value="CA">CA</option><option value="TX">TX</option>\n<option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option>\n<option value="OH">OH</option><option value="PA">PA</option><option value="IL">IL</option>\n</select>\n</div>\n<div id="claimmd-payer-results" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">Type to search the payer list</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claimmd-payers\')">Close</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal(\'\')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>\n\n<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>\n\n<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>\n\n<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>\n\n<div class="section" id="sec-reports">\n<div class="page-hdr">\n<div><h1>Reports</h1></div>\n</div>\n<div class="page-body">\n<div id="reports-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-appointments">\n<div class="page-hdr">\n<div><h1>Schedule</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px"><i data-lucide="rows-3" class="lci" style="width:12px;height:12px"></i> Cards</button>\n<button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>\n<select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>\n<select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="all">All</option></select>\n<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>\n<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>\n</div>\n<div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>\n<div id="appt-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-schedule-setup">\n<div class="page-hdr"><div><h1>Schedule Setup</h1></div></div>\n<div class="page-body">\n<div class="fg g2" style="margin-bottom:14px">\n<div class="field"><label>Physician / Scheduler</label><select id="ss-prov-sel" onchange="renderScheduleSetup()" style="width:100%"></select></div>\n<div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>\n</div>\n<div class="stabs" id="ss-tabs" style="margin-bottom:14px">\n<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>\n<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>\n</div>\n<div id="ss-panel-hours"></div>\n<div id="ss-panel-groups" style="display:none"></div>\n</div>\n</div>\n\n<div class="section" id="sec-notes">\n<div class="page-hdr">\n<div><h1>Encounters</h1></div>\n<div style="display:flex;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="openAINoteModal(\'\',\'\',\'\')">\n<i data-lucide="bot" class="lci"></i> AI Note Assistant\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>\n<select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>\n</div>\n<div id="notes-list"></div>\n<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">\n  <div class="enc-editor-hdr" id="ee-hdr"></div>\n  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>\n  <div class="enc-editor-body">\n    <div class="enc-editor-sidebar" id="ee-sidebar"></div>\n    <div class="enc-editor-content" id="ee-content"></div>\n    <div class="enc-editor-preview" id="ee-preview"></div>\n  </div>\n  <div class="enc-editor-ftr" id="ee-ftr"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-servicegroups">\n<div class="page-hdr">\n<div><h1>Service Groups</h1></div>\n<button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>\n</div>\n<div class="page-body">\n<div id="sg-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-account">\n<div class="page-hdr">\n  <div>\n    <h1>Users &amp; Account</h1>\n    \n  </div>\n  <div style="display:flex;gap:8px;align-items:center">\n    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search\n    </button>\n    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add\n    </button>\n  </div>\n</div>\n<div class="page-body">\n\n<!-- Search panel -->\n<div id="user-search-bar" style="display:none;margin-bottom:14px">\n  <div class="card" style="padding:16px">\n    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>\n    <div class="fg g3" style="margin-bottom:12px">\n      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>\n      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Role</label>\n        <select id="us-role" onchange="renderUserManagement()">\n          <option value="">All Roles</option>\n          <option>Super Admin</option>\n          <option>Admin</option>\n          <option>Manager</option>\n          <option>Billing</option>\n          <option>User</option>\n        </select>\n      </div>\n    </div>\n    <button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'us-email\').value=\'\';document.getElementById(\'us-first\').value=\'\';document.getElementById(\'us-last\').value=\'\';document.getElementById(\'us-role\').value=\'\';renderUserManagement()">Clear</button>\n  </div>\n</div>\n\n<!-- Active / Inactive tabs -->\n<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">\n  <button id="utab-active" onclick="setUserTab(\'active\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Active\n  </button>\n  <button id="utab-inactive" onclick="setUserTab(\'inactive\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Inactive\n  </button>\n</div>\n\n<!-- Users table -->\n<div class="tbl-wrap" style="margin-top:0;border-top:none">\n  <table>\n    <thead><tr>\n      <th>Email</th>\n      <th>First Name</th>\n      <th>Last Name</th>\n      <th>Phone</th>\n      <th>Provider</th>\n      <th>Role</th>\n      <th>Status</th>\n      <th style="text-align:center">2FA</th>\n      <th>Created</th>\n      <th style="width:90px;text-align:center">Actions</th>\n    </tr></thead>\n    <tbody id="users-list"></tbody>\n  </table>\n</div>\n\n<!-- Account info -->\n\n\n\n</div>\n</div>\n\n<div class="section" id="sec-provider-info">\n<div class="page-hdr">\n<div><h1>Provider Information</h1></div>\n</div>\n<div class="page-body">\n<div id="provider-info-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-invoices">\n<div class="page-hdr">\n<div>\n<h1 style="display:flex;align-items:center;gap:10px">\n<i data-lucide="receipt" class="lci" style="width:24px;height:24px;color:var(--brand)"></i>\nInvoicing\n</h1>\n</div>\n<div class="btn-group" id="inv-hdr-btns">\n<button class="btn btn-primary btn-sm" onclick="openInvoiceModal()" id="inv-btn-new" style="display:none">\n<i data-lucide="plus" class="lci"></i> New Invoice\n</button>\n</div>\n</div>\n<div class="page-body">\n\n<!-- DASHBOARD -->\n<div id="inv-dashboard" style="margin-bottom:14px"></div>\n\n<!-- TABS -->\n<div class="stabs" id="inv-tabs" style="margin-bottom:14px">\n<button class="stab active" id="inv-stab-dashboard" onclick="setInvTab(\'dashboard\',this)">\n<i data-lucide="layout-dashboard" class="lci" style="width:13px;height:13px"></i> Dashboard\n</button>\n<button class="stab" id="inv-stab-invoices" onclick="setInvTab(\'invoices\',this)">\n<i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> Invoices\n</button>\n<button class="stab" id="inv-stab-clients" onclick="setInvTab(\'clients\',this)">\n<i data-lucide="building" class="lci" style="width:13px;height:13px"></i> Clients\n</button>\n<button class="stab" id="inv-stab-issuers" onclick="setInvTab(\'issuers\',this)">\n<i data-lucide="briefcase" class="lci" style="width:13px;height:13px"></i> Billing Entities\n</button>\n</div>\n\n<!-- PANELS -->\n<div id="inv-panel-dashboard"></div>\n<div id="inv-panel-invoices" style="display:none">\n<!-- Filters -->\n<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">\n<select id="inv-filter-issuer" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Billing Entities</option>\n</select>\n<select id="inv-filter-client" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Clients</option>\n</select>\n<select id="inv-filter-status" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Draft">Draft</option>\n<option value="Sent">Sent</option>\n<option value="Partial">Partial</option>\n<option value="Overdue">Overdue</option>\n<option value="Paid">Paid (hidden by default)</option>\n</select>\n<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">\n<input type="checkbox" id="inv-show-paid" onchange="renderInvoicesList()" style="accent-color:var(--brand)">\nShow Paid\n</label>\n</div>\n<div id="inv-list"></div>\n</div>\n<div id="inv-panel-clients" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openClientModal()">\n<i data-lucide="plus" class="lci"></i> New Client\n</button>\n</div>\n<div id="inv-clients-list"></div>\n</div>\n<div id="inv-panel-issuers" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openIssuerModal()">\n<i data-lucide="plus" class="lci"></i> New Billing Entity\n</button>\n</div>\n<div id="inv-issuers-list"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-admin-providers">\n<div class="page-hdr">\n<div><h1>Billing Providers</h1></div>\n<button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-admin-tickets"></div>\n\n<div class="section" id="sec-cm-dashboard"><div class="page-hdr"><div><h1>Case Management Dashboard</h1></div></div><div class="page-body"><div id="cm-dash-content"></div></div></div>\n\n<div class="section" id="sec-cm-clients">\n<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">\n<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>\n<button class="btn btn-sm" onclick="openImportFromPatientsModal()" title="Import clients from Patients (EHR side)"><i data-lucide="download" class="lci"></i> Import from Patients</button><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMClients()">\n<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Workers</option></select>\n<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>\n</div>\n<div id="cm-clients-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-workers">\n<div class="page-hdr"><div><h1>Case Workers</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add Worker</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>\n<div id="cm-workers-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openCMBillingSettings()" title="Configure rates per CPT code"><i data-lucide="settings-2" class="lci"></i> Rates</button><button class="btn btn-sm" onclick="generateCMBilling()"><i data-lucide="zap" class="lci"></i> From Notes</button><button class="btn btn-primary btn-sm" onclick="openCMBillingModal()">+ New Entry</button><button class="btn btn-sm" onclick="exportCMBillingCSV()"><i data-lucide="download" class="lci"></i> Export CSV</button></div></div><div class="page-body"><div id="cm-billing-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div><div id="cm-billing-bulk" style="display:none;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:10px;align-items:center;gap:8px;font-size:12px"><span id="cm-bill-selcount" style="font-weight:700;color:var(--brand)">0 selected</span><button class="btn btn-xs" onclick="cmBillingBulk(\'Ready\')">Mark Ready</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Submitted\')">Mark Submitted</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Paid\')">Mark Paid</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Rejected\')">Mark Rejected</button><button class="btn btn-xs" onclick="cmBillingBulkDelete()" style="color:var(--red);border-color:var(--red)">Delete</button><button class="btn btn-xs btn-ghost" onclick="cmBillingClearSel()" style="margin-left:auto">Clear</button></div><div class="search-row"><input id="cm-bill-q" class="no-upper" placeholder="Search client, worker, code..." oninput="renderCMBilling()"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select><select id="cm-bill-code" onchange="renderCMBilling()"><option value="">All Codes</option></select><select id="cm-bill-worker" onchange="renderCMBilling()"><option value="">All Workers</option></select><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap">DOS<input type="date" id="cm-bill-from" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><span style="color:var(--text3)">–</span><input type="date" id="cm-bill-to" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><button onclick="document.getElementById(\'cm-bill-from\').value=\'\';document.getElementById(\'cm-bill-to\').value=\'\';renderCMBilling()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button></label></div><div id="cm-billing-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>\n\n<div class="section" id="sec-cm-intake">\n<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMIntake()">\n<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>\n</div>\n<div id="cm-intake-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-assessments">\n<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">\n<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>\n<div id="cm-assessments-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-encounters">\n<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">\n<button class="btn btn-primary btn-sm" onclick="openCMEncounterModal()"><i data-lucide="notebook-pen" class="lci"></i> CM Encounter</button>\n<button class="btn btn-sm" onclick="openTCMEncounter()"><i data-lucide="briefcase" class="lci"></i> + TCM Note</button>\n</div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or worker..." oninput="renderCMEncounters()">\n<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>\n<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>\n<div id="cm-encounters-tbl"></div>\n<div id="cm-tcm-notes" style="margin-top:16px"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-tasks">\n<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">\n<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>\n<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>\n<div id="cm-tasks-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-authorizations">\n<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">\n<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>\n<div id="cm-auths-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-referrals">\n<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">\n<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>\n<div id="cm-referrals-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-supervisor">\n<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>\n<div class="page-body">\n<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>\n<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>\n<div id="cm-supervisor-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-discharge">\n<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>\n<div id="cm-discharge-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go(\'cm-clients\')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>\n\n<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>\n\n<!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->\n<div class="section" id="sec-intake-center">\n<div class="page-hdr">\n<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>\n</div>\n</div>\n<div class="page-body">\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="ic-stab-clients" onclick="icSetTab(\'clients\',this)"><i data-lucide="users" class="lci"></i> Clients</button>\n<button class="stab" id="ic-stab-forms" onclick="icSetTab(\'forms\',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>\n<button class="stab" id="ic-stab-eval" onclick="icSetTab(\'eval\',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>\n</div>\n<!-- Panels -->\n<div id="ic-panel-clients"></div>\n<div id="ic-panel-forms" style="display:none"></div>\n<div id="ic-panel-eval" style="display:none"></div>\n</div>\n</div>\n\n<!-- Intake Clients section -->\n<div class="section" id="sec-intake-clients">\n<div class="page-hdr">\n<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>\n<div class="btn-group">\n<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="Pending Forms">Pending Forms</option>\n<option value="Forms Sent">Forms Sent</option>\n<option value="Viewed">Viewed</option>\n<option value="Partially Completed">Partially Completed</option>\n<option value="Signed">Signed</option>\n<option value="Completed">Completed</option>\n<option value="Evaluation Pending">Evaluation Pending</option>\n<option value="Evaluation Completed">Evaluation Completed</option>\n<option value="Archived">Archived</option>\n</select>\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">\n<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>\n</div>\n<div id="ic-clients-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Consent Forms section -->\n<div class="section" id="sec-intake-forms">\n<div class="page-hdr">\n<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">\n<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>\n<option value="HIPAA">HIPAA</option>\n<option value="Consent">Consent</option>\n<option value="Financial">Financial</option>\n<option value="Release">Release of Information</option>\n<option value="Telehealth">Telehealth</option>\n<option value="Signature">Electronic Signature</option>\n<option value="Other">Other</option>\n</select>\n</div>\n<div class="stabs" style="margin-bottom:10px">\n<button class="stab active" onclick="icFormFilterSet(\'all\',this)">All</button>\n<button class="stab" onclick="icFormFilterSet(\'active\',this)">Active</button>\n<button class="stab" onclick="icFormFilterSet(\'archived\',this)">Archived</button>\n</div>\n<div id="ic-forms-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Comprehensive Evaluation section -->\n<div class="section" id="sec-intake-eval">\n<div class="page-hdr">\n<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">\n<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>\n<option value="Draft">Draft</option>\n<option value="In Progress">In Progress</option>\n<option value="Completed">Completed</option>\n</select>\n</div>\n<div id="ic-eval-tbl"></div>\n</div>\n</div>\n\n</div>\n</div>\n\n<div class="overlay" id="modal-claim"><div class="modal modal-lg">\n<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claim\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mc-id">\n<div class="dup-warn hidden" id="mc-dup"></div>\n<div class="fg g3">\n<div class="field"><label>Patient *</label><select id="mc-pat" onchange="onPatientChange()"></select></div>\n<div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>\n<div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>\n<div class="fg g3">\n<div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>\n<div class="field" style="grid-column:1/-1;padding:6px 0">\n  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">\n    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">\n    <span>Multiple dates of service (weekly/range)</span>\n    <span style="font-size:11px;color:var(--text3);font-weight:400">— assign a different date to each service line</span>\n  </label>\n</div>\n<div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>\n<div class="field"><label>Facility</label><select id="mc-fac"></select></div>\n</div>\n<div class="fg g3" style="margin-top:12px">\n<div class="field"><label>Rendering Provider *</label><select id="mc-rend"></select></div>\n<div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>\n<div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \\u2014 e.g. M25562)</span></span>\n<div class="fg g4">\n<div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 3</label><input id="mc-dx3" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 4</label><input id="mc-dx4" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 5</label><input id="mc-dx5" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 6</label><input id="mc-dx6" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 7</label><input id="mc-dx7" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 8</label><input id="mc-dx8" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n</div>\n<div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \\u2014 pointers auto-assign</div>\n<div class="sep"></div>\n<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">\n<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>\n<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>\n</div>\n<div id="mc-lines"></div>\n<div class="total-preview" id="mc-total">Total: $0.00</div>\n<div class="sep"></div>\n<div class="fg g3">\n<div class="field"><label>Status</label><select id="mc-status"><option value="draft">Draft</option><option value="pending" selected>Pending</option><option value="submitted">Submitted</option><option value="accepted">Accepted CH</option><option value="rejected">Rejected</option></select></div>\n<div class="field"><label>Employment Related</label><select id="mc-emp"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="field"><label>Auto Accident</label><select id="mc-auto"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claim\')">Cancel</button>\n<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>\n<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>\n<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>\n</div>\n</div></div>\n\n<!-- PATIENT MODAL -->\n<div class="overlay" id="modal-patient"><div class="modal">\n<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-patient\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mp-id">\n<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>\n<div class="fg g2">\n<div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \\u2014 cannot be changed later.</div></div>\n<div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>\n<div class="field"><label>Last Name *</label><input id="mp-last"></div>\n<div class="field"><label>First Name *</label><input id="mp-first"></div>\n<div class="field"><label>Middle Initial</label><input id="mp-mid" maxlength="1"></div>\n<div class="field"><label>Date of Birth (M/D/YYYY) *</label><input id="mp-dob" placeholder="1/15/1985"></div>\n<div class="field"><label>Sex *</label><select id="mp-sex"><option value="F">F \\u2014 Female</option><option value="M">M \\u2014 Male</option></select></div>\n<div class="field"><label>Phone</label><input id="mp-phone" maxlength="10"></div>\n<div class="field" style="grid-column:1/-1"><label>Address</label><input id="mp-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mp-addr2"></div>\n<div class="field"><label>City</label><input id="mp-city"></div>\n<div class="field"><label>State</label><input id="mp-state" maxlength="2" placeholder="FL"></div>\n<div class="field"><label>ZIP</label><input id="mp-zip" maxlength="10"></div>\n<div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \\u2014 Self</option><option value="01">01 \\u2014 Spouse</option><option value="19">19 \\u2014 Child</option><option value="G8">G8 \\u2014 Other</option><option value="32">32 \\u2014 Mother</option><option value="33">33 \\u2014 Father</option></select></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>\n<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \\u2014 subscriber fields auto-filled from patient data above.</div>\n<div class="fg g2">\n<div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>\n<div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>\n<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>\n<div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>\n<div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>\n<div class="field"><label>Group #</label><input id="mp-group"></div>\n<div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>\n<div class="fg g2">\n<div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>\n<div class="field"><label>Payer Name</label><input id="mp-payername"></div>\n<div class="field"><label>Payer City</label><input id="mp-payercity"></div>\n<div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-patient\')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>\n</div></div>\n\n<!-- PROVIDER MODAL -->\n<div class="overlay" id="modal-provider">\n<div class="modal" style="max-width:680px;width:100%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t" id="mprov-title">New Billing Provider</div>\n<div class="modal-sub" id="mprov-subtitle"></div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-provider\')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body" style="padding:22px;background:var(--bg2)">\n<input type="hidden" id="mprov-id">\n<style>\n.mprov-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}\n.mprov-chip input{display:none}\n.mprov-chip:has(input:checked){background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}\n.mprov-chip:hover{border-color:var(--brand)}\n.mprov-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px}\n.mprov-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.mprov-card-ico{width:30px;height:30px;background:var(--brand-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n.mprov-card-title{font-size:13px;font-weight:700;color:var(--text)}\n</style>\n\n<!-- NPI Lookup -->\n<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;padding:16px 18px;margin-bottom:16px">\n<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">\n<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup — Auto-fill from NPPES Registry\n</div>\n<div style="display:flex;gap:8px;align-items:flex-end">\n<div style="flex:1">\n<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">NPI Number (10 digits)</label>\n<input id="mprov-npi" maxlength="10" placeholder="Enter 10-digit NPI"\noninput="this.value=this.value.replace(/\\D/g,\'\');if(this.value.length===10)lookupBillingProviderNPI(this.value)"\nstyle="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:var(--bg)">\n</div>\n<button class="btn btn-primary btn-sm" onclick="lookupBillingProviderNPI(document.getElementById(\'mprov-npi\').value)" style="white-space:nowrap;flex-shrink:0">\n<i data-lucide="search" class="lci"></i> Look Up\n</button>\n</div>\n<div id="bp-npi-result" style="margin-top:8px"></div>\n</div>\n\n<!-- Identification -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="building-2" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Identification</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Organization Name *</label>\n<input id="mprov-name" placeholder="e.g. Sunrise Medical Group">\n</div>\n<div class="field">\n<label>Tax ID (EIN/SSN, 9 digits)</label>\n<input id="mprov-taxid" maxlength="9" placeholder="123456789">\n</div>\n<div class="field">\n<label>Tax ID Type</label>\n<select id="mprov-taxtype">\n<option value="E">EIN (Employer)</option>\n<option value="S">SSN (Individual)</option>\n</select>\n</div>\n<div class="field">\n<label>Taxonomy Code</label>\n<input id="mprov-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X">\n</div>\n<div class="field">\n<label>Provider Type</label>\n<select id="mprov-type">\n<option value="Organization">Organization</option>\n<option value="Individual">Individual</option>\n</select>\n</div>\n<div class="field" id="mprov-status-row">\n<label>Status</label>\n<select id="mprov-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n<option value="Pending">Pending</option>\n</select>\n</div>\n</div>\n</div>\n\n<!-- API Key (Super Admin only, toggled by JS) -->\n<div id="mprov-acctkey-row" class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="key" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Clearinghouse Integration</div>\n</div>\n<div class="field" style="margin:0">\n<label>Account Key</label>\n<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">\n<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission.</div>\n</div>\n</div>\n\n<!-- Address -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Address</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Street Address</label>\n<input id="mprov-addr1" placeholder="123 Main St">\n</div>\n<div class="field" style="grid-column:1/-1">\n<label>Address Line 2</label>\n<input id="mprov-addr2" placeholder="Suite 100">\n</div>\n<div class="field">\n<label>City</label>\n<input id="mprov-city">\n</div>\n<div class="field">\n<label>State</label>\n<input id="mprov-state" maxlength="2" placeholder="FL">\n</div>\n<div class="field">\n<label>ZIP</label>\n<input id="mprov-zip" maxlength="10" placeholder="33101">\n</div>\n<div class="field">\n<label>Phone</label>\n<input id="mprov-phone" maxlength="10" placeholder="3051234567">\n</div>\n<div class="field">\n<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>\n<input id="mprov-email" type="email" placeholder="billing@practice.com">\n</div>\n</div>\n</div>\n\n<!-- Logo -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="image" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Logo <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(optional)</span></div>\n</div>\n<div style="display:flex;align-items:center;gap:14px">\n<div id="mprov-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0">\n<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>\n</div>\n<div>\n<input type="file" id="mprov-logo-file" accept="image/*" onchange="loadProviderLogo(event)" style="display:none">\n<button class="btn btn-sm" onclick="document.getElementById(\'mprov-logo-file\').click()">\n<i data-lucide="upload" class="lci"></i> Upload Logo\n</button>\n<button class="btn btn-sm btn-ghost" onclick="clearProviderLogo()" style="margin-left:6px">Clear</button>\n</div>\n</div>\n</div>\n\n</div>\n<div class="modal-ftr">\n<button class="btn btn-ghost" onclick="closeModal(\'modal-provider\')">Cancel</button>\n<button class="btn btn-primary" id="mprov-save-btn" onclick="saveBillingProvider()">\n<i data-lucide="save" class="lci"></i> Save Provider\n</button>\n</div>\n</div>\n</div><!-- FACILITY MODAL -->\n<div class="overlay" id="modal-facility"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-facility\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mfac-id">\n<div class="fg g1">\n<div class="field"><label>Facility Name *</label><input id="mfac-name"></div>\n<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'fac\')"><button onclick="lookupNPI(v(\'mfac-npi\'),\'fac\')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>\n<div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>\n<div class="field"><label>Address *</label><input id="mfac-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mfac-addr2"></div>\n<div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-facility\')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- RENDERING MODAL -->\n<div class="overlay" id="modal-rendering"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mrend-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'rend\')"><button onclick="lookupNPI(v(\'mrend-npi\'),\'rend\')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>\n<div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>\n<div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- REFERRING MODAL -->\n<div class="overlay" id="modal-referring"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-referring\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mref-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'ref\')"><button onclick="lookupNPI(v(\'mref-npi\'),\'ref\')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>\n<div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-referring\')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- SERVICE MODAL -->\n<div class="overlay" id="modal-service"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-service\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="msvc-id">\n<div class="fg g1">\n<div class="fg g2"><div class="field"><label>CPT Code *</label><input id="msvc-code" maxlength="5" class="mono" style="font-size:15px;font-weight:700"></div><div class="field"><label>Category</label><input id="msvc-cat" placeholder="Physical Therapy"></div></div>\n<div class="field"><label>Description *</label><input id="msvc-desc" placeholder="Therapeutic Exercise"></div>\n<div class="fg g2"><div class="field"><label>Default Rate $</label><input id="msvc-rate" class="mono"></div><div class="field"><label>Default Units</label><input id="msvc-units" class="mono"></div></div>\n<div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-service\')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>\n</div></div>\n\n<!-- STATUS MODAL -->\n<div class="overlay" id="modal-status"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-status\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mst-id">\n<div class="fg g1">\n<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to Clearinghouse</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>\n<div class="field" id="mst-claimmd-wrap" style="display:none"><label>Clearinghouse Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by Clearinghouse"></div>\n<div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-status\')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>\n</div></div>\n\n<!-- BATCH MODAL -->\n<div class="overlay" id="modal-batch">\n<div class="modal modal-lg" style="max-width:900px;display:flex;flex-direction:column;max-height:92vh">\n\n<!-- Header -->\n<div class="modal-hdr" style="flex-shrink:0">\n<div>\n<div class="modal-t"><i data-lucide="zap" class="lci"></i> Quick Batch — Generate Claims</div>\n<div class="modal-sub">Generate one claim per date for selected patients and services</div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n\n<!-- Tab switcher -->\n<div style="display:flex;gap:0;border-bottom:2px solid var(--border);padding:0 22px;flex-shrink:0">\n<button id="mb-tab-patient" onclick="setBatchTab(\'patient\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px">\n<i data-lucide="users" class="lci"></i> By Patient\n</button>\n<button id="mb-tab-sg" onclick="setBatchTab(\'sg\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:3px solid transparent;margin-bottom:-2px">\n<i data-lucide="layers" class="lci"></i> By Service Group\n</button>\n</div>\n\n<!-- Body scrolls -->\n<div class="modal-body" style="flex:1;overflow-y:auto;padding:0">\n\n<!-- ?? BY PATIENT PANEL ?? -->\n<div id="mb-panel-patient" style="padding:18px 22px">\n\n<!-- Row 1: Rendering + Facility + Referring -->\n<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Rendering Provider *</label>\n<select id="mb-rend" onchange="renderBatchPatDx()"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac"></select>\n</div>\n<div class="field">\n<label>Referring Provider</label>\n<select id="mb-ref"><option value="">— None —</option></select>\n</div>\n</div>\n\n<!-- Row 2: Two columns — Patients | Services -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">\n\n<!-- LEFT: Patient selector -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients *\n</div>\n<input id="mb-pat-q" placeholder="Search patients..."\noninput="renderBatchPatients()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div style="display:flex;gap:6px">\n<button class="btn btn-xs" onclick="batchSelectAllPats(true)">Select All</button>\n<button class="btn btn-xs" onclick="batchSelectAllPats(false)">Clear</button>\n</div>\n<div id="mb-pat-list"\nstyle="border:1px solid var(--border);border-radius:var(--r);overflow-y:auto;max-height:220px;background:var(--bg2)">\n</div>\n</div>\n\n<!-- RIGHT: Services catalog -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="pill" class="lci" style="width:11px;height:11px"></i> Services / CPT *\n</div>\n<input id="mb-svc-q" placeholder="Search CPT or description..."\noninput="renderBatchCatalog()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div class="cpt-scroll" id="mb-catalog" style="max-height:180px"></div>\n<div id="mb-selected-svcs-tbl"></div>\n</div>\n</div>\n\n<!-- Diagnoses (shown per patient when selected) -->\n<div id="mb-pat-dx-section" style="display:none;margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="activity" class="lci" style="width:11px;height:11px"></i> Diagnoses\n</div>\n<div id="mb-pat-dx-list" style="display:flex;flex-direction:column;gap:6px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-from" onchange="buildDateChips()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-to" onchange="buildDateChips()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Click dates to toggle on/off:</div>\n<div class="date-chips" id="mb-date-chips"></div>\n</div>\n\n<!-- Preview -->\n<div id="mb-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect patients, services and dates to preview\n</div>\n\n</div><!-- /mb-panel-patient -->\n\n<!-- ?? BY SERVICE GROUP PANEL ?? -->\n<div id="mb-panel-sg" style="display:none;padding:18px 22px">\n\n<!-- Row 1: SG + Rendering + Facility -->\n<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Service Group *</label>\n<select id="mb-sg-sel" onchange="onBatchSGChange()"></select>\n</div>\n<div class="field">\n<label>Rendering Provider</label>\n<select id="mb-rend-sg"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac-sg"></select>\n</div>\n</div>\n\n<!-- CPT summary row (shown after SG selection) -->\n<div id="mb-sg-cpt-row" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600">CPT codes in this group:</div>\n<div id="mb-sg-lines" style="display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-bottom:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-sg-from" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-sg-to" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div class="date-chips" id="mb-date-chips-sg"></div>\n</div>\n\n<!-- Patients in group -->\n<div id="mb-sg-patients-wrap" style="display:none">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients in Group\n</div>\n<div id="mb-sg-pat-rows" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden"></div>\n</div>\n\n<!-- SG Preview -->\n<div id="mb-sg-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect a service group and dates to preview\n</div>\n\n</div><!-- /mb-panel-sg -->\n\n</div><!-- /modal-body -->\n\n<!-- Footer -->\n<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">\n  <button class="btn btn-ghost" onclick="closeModal(\'modal-batch\')">Cancel</button>\n  <label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);flex:1;margin:0 8px;background:var(--bg3);border-radius:8px;padding:7px 12px;border:1.5px solid var(--border)">\n    <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById(\'mb-sg-sel\')?.value);if(sg)renderSGBatchPatients(sg);})()">\n    <span>1 claim per patient</span>\n    <span style="font-weight:400;color:var(--text3);font-size:11px">— all selected dates become service lines</span>\n  </label>\n  <button class="btn btn-primary" onclick="runBatch()" style="flex-shrink:0">\n    <i data-lucide="zap" class="lci"></i> Generate Claims\n  </button>\n</div>\n\n</div>\n</div>\n\n<!-- CPT PICKER MODAL -->\n<div class="overlay" id="modal-catalog"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \\u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-catalog\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\\u2026" oninput="renderPickerCatalog()"></div>\n<div class="cpt-scroll" id="cat-list"></div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-catalog\')">Cancel</button><button class="btn btn-primary" onclick="addCatalogToLines()">Add Selected to Claim</button></div>\n</div></div>\n<div class="overlay" id="modal-appt">\n<div class="modal modal-lg">\n<div class="modal-hdr">\n<div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body">\n<div class="fg g2">\n<div class="field"><label>Date</label><input type="date" id="appt-date"></div>\n<div class="field"><label>Start Time</label><input type="time" id="appt-start"></div>\n<div class="field"><label>End Time</label><input type="time" id="appt-end"></div>\n<div class="field"><label>Place of Service</label><select id="appt-pos"><option value="11">11 — Office</option><option value="02">02 — Telehealth</option><option value="23">23 — Emergency Room</option></select></div>\n</div>\n<div class="field" style="margin-top:10px"><label>Rendering Provider</label><select id="appt-rend"><option value="">— None —</option></select></div>\n<div class="field"><label>Facility</label><select id="appt-fac"><option value="">— None —</option></select></div>\n<div class="field"><label>Service Group</label><select id="appt-sg" onchange="onApptSGChange()"><option value="">— None —</option></select></div>\n<div class="field"><label>Status</label><select id="appt-status">\n<option value="scheduled">Scheduled</option>\n<option value="confirmed">Confirmed</option>\n<option value="checked_in">Checked In</option>\n<option value="completed">Completed</option>\n<option value="cancelled">Cancelled</option>\n<option value="no_show">No Show</option>\n</select></div>\n<div class="field"><label>Notes</label><textarea id="appt-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div style="margin-top:10px">\n<div class="slabel" style="margin-bottom:6px">Patients</div>\n<input id="appt-pat-q" placeholder="Search patients..." oninput="renderApptPatientPicker()" style="width:100%;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:6px">\n<div id="appt-pat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>\n<div id="appt-selected-pats" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="appt-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button>\n</div>\n</div>\n</div>\n\n<div class="overlay" id="modal-checkin">\n<div class="modal">\n<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div id="checkin-info"></div>\n<div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="ci-appt-id"><input type="hidden" id="ci-pat-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')">Cancel</button>\n<button class="btn btn-primary" onclick="_confirmCheckInDispatch()">Confirm Check-In</button>\n</div>\n</div>\n';
 }
 
 
@@ -26006,6 +26006,33 @@ function _saveCMToFirestore(d) {
   } catch(e) {}
 }
 function _cmId() { return 'cm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+// Generate next CM client File # — random 4-digit seed (1000-9999), sequential thereafter.
+// Uniqueness enforced across d.clients. If seed collides, retry until free.
+function _cmNextFileNo(d) {
+  d = d || getCMData();
+  if (!d.cmSettings) d.cmSettings = {};
+  var used = {};
+  (d.clients || []).forEach(function(c){ if (c.fileNo) used[String(c.fileNo)] = 1; });
+  var next = d.cmSettings.nextFileNo;
+  if (!next || next < 1000 || next > 9999) {
+    // First File # ever — pick a random 4-digit seed not in use
+    var attempts = 0;
+    do {
+      next = 1000 + Math.floor(Math.random() * 9000);
+      attempts++;
+    } while (used[String(next)] && attempts < 500);
+  } else {
+    // Sequential — skip any pre-existing values
+    while (used[String(next)] && next <= 9999) next++;
+    if (next > 9999) next = 1000; // wrap
+    while (used[String(next)] && next <= 9999) next++;
+  }
+  var assigned = next;
+  // Advance pointer for next call
+  d.cmSettings.nextFileNo = (assigned >= 9999) ? 1000 : (assigned + 1);
+  return String(assigned);
+}
 function _cmDateStr(d) {
   if (!d) return '';
   if (typeof d === 'string') return d;
@@ -26078,6 +26105,14 @@ function renderCMClients() {
   var el = document.getElementById('cm-clients-tbl');
   if (!el) return;
   var d = getCMData();
+  // Backfill fileNo for any legacy clients created before the File # system existed
+  var _backfillNeeded = (d.clients||[]).some(function(c){return !c.fileNo;});
+  if (_backfillNeeded) {
+    (d.clients||[]).forEach(function(c){
+      if (!c.fileNo) c.fileNo = _cmNextFileNo(d);
+    });
+    saveCMData(d);
+  }
   var q = (document.getElementById('cm-cli-q')?.value||'').toLowerCase().trim();
   var workerF = document.getElementById('cm-cli-worker')?.value||'';
   var statusF = document.getElementById('cm-cli-status')?.value||'';
@@ -26093,16 +26128,35 @@ function renderCMClients() {
   if (!showInactive) list = list.filter(function(c){return c.status==='Active';});
   if (workerF) list = list.filter(function(c){return c.workerId===workerF;});
   if (statusF) list = list.filter(function(c){return c.status===statusF;});
-  if (q) list = list.filter(function(c){return (c.first+' '+c.last+' '+c.medicaidId+' '+c.phone).toLowerCase().includes(q);});
+  if (q) list = list.filter(function(c){
+    return ((c.fileNo||'')+' '+c.first+' '+c.last+' '+(c.medicaidId||'')+' '+(c.phone||'')+' '+(c.guardianName||'')).toLowerCase().includes(q);
+  });
+  // Sort by fileNo desc (newest first)
+  list = list.slice().sort(function(a,b){
+    var af=parseInt(a.fileNo||0)||0, bf=parseInt(b.fileNo||0)||0;
+    return bf - af;
+  });
   if (!list.length) {
     el.innerHTML = '<div class="empty"><h3>No clients found</h3></div>';
     return;
   }
   el.innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Medicaid ID</th><th>Worker</th><th>Status</th><th>Auth Until</th><th>Phone</th><th></th></tr></thead><tbody>'+
+    '<div class="tbl-wrap"><table><thead><tr>'+
+    '<th style="width:70px">File #</th>'+
+    '<th>Name</th>'+
+    '<th>DOB</th>'+
+    '<th>Medicaid ID</th>'+
+    '<th>Worker</th>'+
+    '<th>Status</th>'+
+    '<th>Auth Until</th>'+
+    '<th>Phone</th>'+
+    '<th style="width:90px"></th>'+
+    '</tr></thead><tbody>'+
     list.map(function(c){
       return '<tr>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'—')+'</td>'+
         '<td style="font-weight:600">'+c.last+', '+c.first+'</td>'+
+        '<td style="font-size:12px">'+(c.dob||'—')+'</td>'+
         '<td style="font-size:12px">'+(c.medicaidId||'—')+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(c.workerId)+'</td>'+
         '<td>'+_cmStatusBadge(c.status||'Active')+'</td>'+
@@ -26116,55 +26170,186 @@ function renderCMClients() {
     '</tbody></table></div>';
   setTimeout(_renderLucideIcons, 20);
 }
+
 function openCMClientModal(editId) {
   var d = getCMData();
   var c = editId ? d.clients.find(function(x){return x.id===editId;}) : {};
   var workerOpts = '<option value="">— None —</option>'+_cmWorkerOpts();
+  // Preview the File # that WOULD be assigned (without consuming it)
+  var fileNoDisplay;
+  if (editId) {
+    fileNoDisplay = c.fileNo || '—';
+  } else {
+    var used = {};
+    (d.clients||[]).forEach(function(x){ if(x.fileNo) used[String(x.fileNo)]=1; });
+    var preview = d.cmSettings && d.cmSettings.nextFileNo;
+    if (!preview || preview<1000 || preview>9999) preview = '(auto — random 4-digit)';
+    else {
+      while (used[String(preview)] && preview<=9999) preview++;
+      preview = preview>9999 ? '(auto)' : String(preview);
+    }
+    fileNoDisplay = preview;
+  }
+  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
+
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
-  overlay.innerHTML =
-    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
-    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Client':'New Client')+'</div></div>'+
-    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
-    '<div style="padding:16px 20px">'+
-    '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmc-first" class="no-upper" value="'+(c.first||'')+'"></div>'+
-    '<div class="field"><label>Last Name</label><input id="cmc-last" class="no-upper" value="'+(c.last||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Medicaid ID</label><input id="cmc-mid" value="'+(c.medicaidId||'')+'"></div>'+
-    '<div class="field"><label>DOB</label><input id="cmc-dob" type="date" value="'+(c.dob||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Phone</label><input id="cmc-phone" value="'+(c.phone||'')+'"></div>'+
-    '<div class="field"><label>Email</label><input id="cmc-email" type="email" value="'+(c.email||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Address</label><input id="cmc-addr" value="'+(c.address||'')+'"></div>'+
-    '<div class="field"><label>Status</label><select id="cmc-status"><option value="Active"'+(c.status==='Active'?' selected':'')+'>Active</option><option value="Inactive"'+(c.status==='Inactive'?' selected':'')+'>Inactive</option><option value="Discharged"'+(c.status==='Discharged'?' selected':'')+'>Discharged</option></select></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Case Worker</label><select id="cmc-worker">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
-    '<div class="field"><label>Auth Start</label><input id="cmc-auth-start" type="date" value="'+(c.authStart||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Auth End</label><input id="cmc-auth-end" type="date" value="'+(c.authEnd||'')+'"></div>'+
-    '<div class="field"><label>Auth Units</label><input id="cmc-auth-units" type="number" value="'+(c.authUnits||'')+'"></div></div>'+
-    '</div>'+
-    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
-    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
-    '<button class="btn btn-primary" onclick="saveCMClient(\''+(editId||'')+'\')">Save</button></div></div>';
   overlay.setAttribute('data-cm','1');
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:720px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3)">'+
+      '<div>'+
+        '<div style="font-size:16px;font-weight:700">'+(editId?'Edit Client':'New Client')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">File #: <span style="font-family:var(--mono);color:var(--brand);font-weight:700">'+fileNoDisplay+'</span></div>'+
+      '</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button>'+
+    '</div>'+
+    '<div style="padding:18px 22px">'+
+
+    // Identity
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Identity</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>First Name *</label><input id="cmc-first" class="no-upper" value="'+esc(c.first)+'"></div>'+
+      '<div class="field"><label>Last Name *</label><input id="cmc-last" class="no-upper" value="'+esc(c.last)+'"></div>'+
+    '</div>'+
+    '<div class="fg g3">'+
+      '<div class="field"><label>DOB</label><input id="cmc-dob" type="date" value="'+esc(c.dob)+'"></div>'+
+      '<div class="field"><label>Sex</label><select id="cmc-sex">'+
+        '<option value=""'+sel(c.sex,'')+'>—</option>'+
+        '<option value="F"'+sel(c.sex,'F')+'>F — Female</option>'+
+        '<option value="M"'+sel(c.sex,'M')+'>M — Male</option>'+
+        '<option value="O"'+sel(c.sex,'O')+'>Other</option>'+
+      '</select></div>'+
+      '<div class="field"><label>SSN (last 4)</label><input id="cmc-ssn4" maxlength="4" value="'+esc(c.ssn4)+'"></div>'+
+    '</div>'+
+
+    // Contact
+    '<div class="sep"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Contact</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Phone</label><input id="cmc-phone" value="'+esc(c.phone)+'"></div>'+
+      '<div class="field"><label>Email</label><input id="cmc-email" type="email" value="'+esc(c.email)+'"></div>'+
+    '</div>'+
+    '<div class="fg g1"><div class="field"><label>Address</label><input id="cmc-addr" value="'+esc(c.address)+'"></div></div>'+
+    '<div class="fg g3">'+
+      '<div class="field"><label>City</label><input id="cmc-city" value="'+esc(c.city)+'"></div>'+
+      '<div class="field"><label>State</label><input id="cmc-state" maxlength="2" value="'+esc(c.state)+'"></div>'+
+      '<div class="field"><label>ZIP</label><input id="cmc-zip" maxlength="10" value="'+esc(c.zip)+'"></div>'+
+    '</div>'+
+
+    // Guardian (for minors or LAR)
+    '<div class="sep"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Guardian / Legal Representative <span style="font-weight:400;text-transform:none">(if applicable)</span></div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Guardian Name</label><input id="cmc-gname" value="'+esc(c.guardianName)+'"></div>'+
+      '<div class="field"><label>Relationship</label><select id="cmc-grel">'+
+        ['','Mother','Father','Legal Guardian','Spouse','Adult Child','Other'].map(function(v){
+          return '<option value="'+v+'"'+sel(c.guardianRel||'',v)+'>'+(v||'—')+'</option>';
+        }).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Guardian Phone</label><input id="cmc-gphone" value="'+esc(c.guardianPhone)+'"></div>'+
+      '<div class="field"><label>Guardian Email</label><input id="cmc-gemail" type="email" value="'+esc(c.guardianEmail)+'"></div>'+
+    '</div>'+
+
+    // Insurance & Clinical
+    '<div class="sep"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Insurance &amp; Clinical</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Medicaid ID</label><input id="cmc-mid" value="'+esc(c.medicaidId)+'"></div>'+
+      '<div class="field"><label>Payer / MCO</label><input id="cmc-payer" placeholder="e.g. Sunshine Health" value="'+esc(c.payer)+'"></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Primary Dx (ICD-10)</label><input id="cmc-dx" placeholder="F411" value="'+esc(c.primaryDx)+'"></div>'+
+      '<div class="field"><label>Level of Care</label><select id="cmc-loc">'+
+        ['','Outpatient','Intensive Outpatient (IOP)','Partial Hospitalization (PHP)','Community-Based','Targeted Case Management (TCM)','Behavioral Health Overlay','Other'].map(function(v){
+          return '<option value="'+v+'"'+sel(c.levelOfCare||'',v)+'>'+(v||'—')+'</option>';
+        }).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Referral Source</label><input id="cmc-refsrc" placeholder="e.g. Dr. Smith / DCF / Self" value="'+esc(c.referralSource)+'"></div>'+
+      '<div class="field"><label>Preferred Language</label><select id="cmc-lang">'+
+        ['','English','Spanish','Creole','Portuguese','Other'].map(function(v){
+          return '<option value="'+v+'"'+sel(c.language||'',v)+'>'+(v||'—')+'</option>';
+        }).join('')+
+      '</select></div>'+
+    '</div>'+
+
+    // Case management
+    '<div class="sep"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Case Management</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Assigned Case Worker</label><select id="cmc-worker">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
+      '<div class="field"><label>Status</label><select id="cmc-status">'+
+        '<option value="Active"'+sel(c.status||'Active','Active')+'>Active</option>'+
+        '<option value="Inactive"'+sel(c.status,'Inactive')+'>Inactive</option>'+
+        '<option value="On-Hold"'+sel(c.status,'On-Hold')+'>On-Hold</option>'+
+        '<option value="Discharged"'+sel(c.status,'Discharged')+'>Discharged</option>'+
+      '</select></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Admission Date</label><input id="cmc-admit" type="date" value="'+esc(c.admissionDate)+'"></div>'+
+      '<div class="field"><label>Discharge Date</label><input id="cmc-discharge" type="date" value="'+esc(c.dischargeDate)+'"></div>'+
+    '</div>'+
+    '<div class="fg g3">'+
+      '<div class="field"><label>Auth Start</label><input id="cmc-auth-start" type="date" value="'+esc(c.authStart)+'"></div>'+
+      '<div class="field"><label>Auth End</label><input id="cmc-auth-end" type="date" value="'+esc(c.authEnd)+'"></div>'+
+      '<div class="field"><label>Auth Units</label><input id="cmc-auth-units" type="number" value="'+esc(c.authUnits)+'"></div>'+
+    '</div>'+
+
+    // Notes
+    '<div class="sep"></div>'+
+    '<div class="field"><label>Notes</label><textarea id="cmc-notes" rows="3" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical">'+esc(c.notes)+'</textarea></div>'+
+
+    '</div>'+
+    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg3)">'+
+      '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+      '<button class="btn btn-primary" onclick="saveCMClient(\''+(editId||'')+'\')">Save</button>'+
+    '</div></div>';
   document.body.appendChild(overlay);
+  setTimeout(_renderLucideIcons, 20);
 }
+
 function saveCMClient(id) {
   var d = getCMData();
-  var first = document.getElementById('cmc-first')?.value||'';
-  var last = document.getElementById('cmc-last')?.value||'';
+  var val = function(i){ return (document.getElementById(i)?.value||'').trim(); };
+  var first = val('cmc-first');
+  var last = val('cmc-last');
   if (!first || !last) { toast('First and last name required','warn'); return; }
   var obj = {
-    first: first.trim(), last: last.trim(),
-    medicaidId: document.getElementById('cmc-mid')?.value||'',
-    dob: document.getElementById('cmc-dob')?.value||'',
-    phone: document.getElementById('cmc-phone')?.value||'',
-    email: document.getElementById('cmc-email')?.value||'',
-    address: document.getElementById('cmc-addr')?.value||'',
-    status: document.getElementById('cmc-status')?.value||'Active',
-    workerId: document.getElementById('cmc-worker')?.value||'',
-    authStart: document.getElementById('cmc-auth-start')?.value||'',
-    authEnd: document.getElementById('cmc-auth-end')?.value||'',
+    first: first, last: last,
+    dob: val('cmc-dob'),
+    sex: val('cmc-sex'),
+    ssn4: val('cmc-ssn4'),
+    phone: val('cmc-phone'),
+    email: val('cmc-email'),
+    address: val('cmc-addr'),
+    city: val('cmc-city'),
+    state: val('cmc-state').toUpperCase(),
+    zip: val('cmc-zip'),
+    guardianName: val('cmc-gname'),
+    guardianRel: val('cmc-grel'),
+    guardianPhone: val('cmc-gphone'),
+    guardianEmail: val('cmc-gemail'),
+    medicaidId: val('cmc-mid'),
+    payer: val('cmc-payer'),
+    primaryDx: val('cmc-dx').toUpperCase().replace('.',''),
+    levelOfCare: val('cmc-loc'),
+    referralSource: val('cmc-refsrc'),
+    language: val('cmc-lang'),
+    workerId: val('cmc-worker'),
+    status: val('cmc-status') || 'Active',
+    admissionDate: val('cmc-admit'),
+    dischargeDate: val('cmc-discharge'),
+    authStart: val('cmc-auth-start'),
+    authEnd: val('cmc-auth-end'),
     authUnits: parseInt(document.getElementById('cmc-auth-units')?.value)||0,
+    notes: (document.getElementById('cmc-notes')?.value||'').trim(),
     updatedAt: _cmNowISO()
   };
   if (id) {
@@ -26172,23 +26357,410 @@ function saveCMClient(id) {
     if (idx>=0) { Object.assign(d.clients[idx], obj); }
   } else {
     obj.id = _cmId();
+    obj.fileNo = _cmNextFileNo(d);
     obj.createdAt = _cmNowISO();
     obj.status = obj.status || 'Active';
+    if (!obj.admissionDate) obj.admissionDate = obj.createdAt.slice(0,10);
     d.clients.push(obj);
   }
   saveCMData(d);
   document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
   renderCMClients();
-  toast('Client saved');
+  toast(id ? 'Client updated' : 'Client saved — File # '+obj.fileNo);
 }
 function editCMClient(id) { openCMClientModal(id); }
 function delCMClient(id) {
-  if (!confirm('Delete this client?')) return;
   var d = getCMData();
+  var c = d.clients.find(function(x){return x.id===id;});
+  var label = c ? (c.last+', '+c.first+' (File #'+(c.fileNo||'—')+')') : 'this client';
+  if (!confirm('Delete '+label+'?\n\nThis cannot be undone.')) return;
   d.clients = d.clients.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMClients();
   toast('Client deleted');
+}
+
+// ── CM: CROSS-SPECIALTY IMPORT ──────────────────────────────────
+// Import from Patients (EHR db.patients) into CM Clients (d.clients)
+// - Match duplicates by (last+first+dob) OR (medicaidId/subNum)
+// - Assign new File # to each imported client
+// - Preserve trace: sourceAcct, sourceProviderId
+
+function _importDupKey(last, first, dob) {
+  return ((last||'').trim().toLowerCase()+'|'+(first||'').trim().toLowerCase()+'|'+(dob||'').trim()).replace(/\s+/g,'');
+}
+
+function _buildCMDupIndex(d) {
+  var byNameDob = {};
+  var byMedId = {};
+  var bySrcAcct = {};
+  (d.clients||[]).forEach(function(c){
+    byNameDob[_importDupKey(c.last, c.first, c.dob)] = c;
+    if (c.medicaidId) byMedId[String(c.medicaidId).trim()] = c;
+    if (c.sourceAcct) bySrcAcct[String(c.sourceAcct).trim()] = c;
+  });
+  return { byNameDob: byNameDob, byMedId: byMedId, bySrcAcct: bySrcAcct };
+}
+
+function _buildPatientDupIndex(db) {
+  var byNameDob = {};
+  var byAcct = {};
+  var bySrcFileNo = {};
+  (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;}).forEach(function(p){
+    byNameDob[_importDupKey(p.last, p.first, p.dob)] = p;
+    if (p.acct) byAcct[String(p.acct).trim()] = p;
+    if (p.sourceFileNo) bySrcFileNo[String(p.sourceFileNo).trim()] = p;
+  });
+  return { byNameDob: byNameDob, byAcct: byAcct, bySrcFileNo: bySrcFileNo };
+}
+
+// ── Import FROM Patients INTO CM Clients ──
+function openImportFromPatientsModal() {
+  var db = getDB();
+  var pool = (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;});
+  if (!pool.length) { toast('No patients in the current provider to import.','warn'); return; }
+  window._impSel = {}; // patId -> true
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-cm','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
+      '<div>'+
+        '<div style="font-size:16px;font-weight:700">Import Clients from Patients</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">Select patients from EHR to bring into CM. New File # assigned to each; duplicates skipped.</div>'+
+      '</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button>'+
+    '</div>'+
+    '<div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0">'+
+      '<input id="imp-q" class="no-upper" placeholder="Search by name, Acct #, subscriber ID..." oninput="_renderImportFromPatientsList()" style="flex:1;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">'+
+      '<button class="btn btn-xs" onclick="_impSelectAll(true)">Select All</button>'+
+      '<button class="btn btn-xs" onclick="_impSelectAll(false)">Clear</button>'+
+    '</div>'+
+    '<div id="imp-list" style="flex:1;overflow-y:auto;padding:8px 12px"></div>'+
+    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
+      '<div id="imp-summary" style="font-size:12px;color:var(--text3)">0 selected</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+        '<button class="btn btn-primary" onclick="runImportFromPatients()"><i data-lucide="download" class="lci"></i> Import Selected</button>'+
+      '</div>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  _renderImportFromPatientsList();
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function _renderImportFromPatientsList() {
+  var db = getDB();
+  var d = getCMData();
+  var cmIdx = _buildCMDupIndex(d);
+  var q = (document.getElementById('imp-q')?.value||'').toLowerCase().trim();
+  var pool = (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;});
+  if (q) pool = pool.filter(function(p){
+    return ((p.last||'')+' '+(p.first||'')+' '+(p.acct||'')+' '+(p.subNum||'')).toLowerCase().includes(q);
+  });
+  pool.sort(function(a,b){return (a.last||'').localeCompare(b.last||'');});
+  var el = document.getElementById('imp-list');
+  if (!el) return;
+  if (!pool.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No patients match.</div>';
+    _updateImpSummary();
+    return;
+  }
+  el.innerHTML = pool.map(function(p){
+    var dupKey = _importDupKey(p.last, p.first, p.dob);
+    var dupByName = cmIdx.byNameDob[dupKey];
+    var dupByMed = p.subNum ? cmIdx.byMedId[String(p.subNum).trim()] : null;
+    var dupBySrc = p.acct ? cmIdx.bySrcAcct[String(p.acct).trim()] : null;
+    var dup = dupByName || dupByMed || dupBySrc;
+    var reason = dup ? (dupBySrc ? 'Already imported (Acct #'+p.acct+')' : (dupByMed ? 'Medicaid ID matches File #'+(dupByMed.fileNo||'?') : 'Name+DOB matches File #'+(dupByName.fileNo||'?'))) : '';
+    var checked = !dup && window._impSel[p.id] ? 'checked' : '';
+    var disabled = dup ? 'disabled' : '';
+    var rowStyle = dup ? 'opacity:.55;background:var(--bg3)' : '';
+    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:'+(dup?'not-allowed':'pointer')+';'+rowStyle+'">'+
+      '<input type="checkbox" '+checked+' '+disabled+' onchange="_impToggle(\''+p.id+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:13px">'+(p.last||'')+', '+(p.first||'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">Acct #'+(p.acct||'—')+' · DOB '+(p.dob||'—')+(p.subNum?' · Sub '+p.subNum:'')+(p.payerName?' · '+p.payerName:'')+'</div>'+
+      '</div>'+
+      (dup ? '<span style="font-size:10px;font-weight:700;color:#c96442;background:#fdf5f0;padding:3px 8px;border-radius:10px;border:1px solid #edd5c8;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
+    '</label>';
+  }).join('');
+  _updateImpSummary();
+}
+
+function _impToggle(pid, on) {
+  if (on) window._impSel[pid] = true; else delete window._impSel[pid];
+  _updateImpSummary();
+}
+function _impSelectAll(on) {
+  var db = getDB();
+  var d = getCMData();
+  var cmIdx = _buildCMDupIndex(d);
+  var q = (document.getElementById('imp-q')?.value||'').toLowerCase().trim();
+  var pool = (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;});
+  if (q) pool = pool.filter(function(p){
+    return ((p.last||'')+' '+(p.first||'')+' '+(p.acct||'')+' '+(p.subNum||'')).toLowerCase().includes(q);
+  });
+  pool.forEach(function(p){
+    var dupKey = _importDupKey(p.last, p.first, p.dob);
+    var dup = cmIdx.byNameDob[dupKey] || (p.subNum && cmIdx.byMedId[String(p.subNum).trim()]) || (p.acct && cmIdx.bySrcAcct[String(p.acct).trim()]);
+    if (dup) return;
+    if (on) window._impSel[p.id] = true; else delete window._impSel[p.id];
+  });
+  _renderImportFromPatientsList();
+}
+function _updateImpSummary() {
+  var el = document.getElementById('imp-summary');
+  if (!el) return;
+  var n = Object.keys(window._impSel||{}).length;
+  el.textContent = n + ' selected';
+}
+
+function runImportFromPatients() {
+  var sel = window._impSel || {};
+  var ids = Object.keys(sel);
+  if (!ids.length) { toast('Select at least one patient','warn'); return; }
+  var db = getDB();
+  var d = getCMData();
+  var cmIdx = _buildCMDupIndex(d); // final safety check
+  var imported = 0, skipped = 0;
+  ids.forEach(function(pid){
+    var p = (db.patients||[]).find(function(x){return x.id===pid && x.providerId===activeProviderId;});
+    if (!p) { skipped++; return; }
+    // Final dup check
+    var dupKey = _importDupKey(p.last, p.first, p.dob);
+    if (cmIdx.byNameDob[dupKey] || (p.subNum && cmIdx.byMedId[String(p.subNum).trim()]) || (p.acct && cmIdx.bySrcAcct[String(p.acct).trim()])) {
+      skipped++; return;
+    }
+    var newC = {
+      id: _cmId(),
+      fileNo: _cmNextFileNo(d),
+      first: p.first||'',
+      last: p.last||'',
+      dob: p.dob||'',
+      sex: p.sex||'',
+      phone: p.phone||'',
+      email: p.email||'',
+      address: [p.addr1, p.addr2].filter(Boolean).join(', '),
+      city: p.city||'',
+      state: p.state||'',
+      zip: p.zip||'',
+      medicaidId: p.subNum||'',
+      payer: p.payerName||'',
+      status: 'Active',
+      admissionDate: new Date().toISOString().slice(0,10),
+      // Traceability
+      sourceAcct: p.acct||'',
+      sourceProviderId: p.providerId||'',
+      sourcePatId: p.id||'',
+      importedAt: _cmNowISO(),
+      createdAt: _cmNowISO(),
+      updatedAt: _cmNowISO()
+    };
+    d.clients.push(newC);
+    // Update running index so subsequent iterations in this batch see the new record
+    cmIdx.byNameDob[dupKey] = newC;
+    if (newC.medicaidId) cmIdx.byMedId[String(newC.medicaidId).trim()] = newC;
+    if (newC.sourceAcct) cmIdx.bySrcAcct[String(newC.sourceAcct).trim()] = newC;
+    imported++;
+  });
+  saveCMData(d);
+  window._impSel = {};
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  if (typeof renderCMClients === 'function') renderCMClients();
+  toast(imported+' imported'+(skipped?' · '+skipped+' skipped (duplicates)':''), imported ? 'ok' : 'warn');
+}
+
+// ── Import FROM CM Clients INTO Patients ──
+function openImportFromCMClientsModal() {
+  var d = getCMData();
+  if (!(d.clients||[]).length) { toast('No CM clients to import.','warn'); return; }
+  window._impSelCM = {}; // cmClientId -> true
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-cm','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
+      '<div>'+
+        '<div style="font-size:16px;font-weight:700">Import Patients from CM Clients</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">Select CM clients to create Patient records under the active billing provider.</div>'+
+      '</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button>'+
+    '</div>'+
+    '<div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0">'+
+      '<input id="impcm-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID..." oninput="_renderImportFromCMList()" style="flex:1;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">'+
+      '<button class="btn btn-xs" onclick="_impCMSelectAll(true)">Select All</button>'+
+      '<button class="btn btn-xs" onclick="_impCMSelectAll(false)">Clear</button>'+
+    '</div>'+
+    '<div id="impcm-list" style="flex:1;overflow-y:auto;padding:8px 12px"></div>'+
+    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
+      '<div id="impcm-summary" style="font-size:12px;color:var(--text3)">0 selected</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+        '<button class="btn btn-primary" onclick="runImportFromCMClients()"><i data-lucide="download" class="lci"></i> Import Selected</button>'+
+      '</div>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  _renderImportFromCMList();
+  setTimeout(_renderLucideIcons, 20);
+}
+
+function _renderImportFromCMList() {
+  var d = getCMData();
+  var db = getDB();
+  var patIdx = _buildPatientDupIndex(db);
+  var q = (document.getElementById('impcm-q')?.value||'').toLowerCase().trim();
+  var pool = (d.clients||[]).slice();
+  if (q) pool = pool.filter(function(c){
+    return ((c.fileNo||'')+' '+(c.last||'')+' '+(c.first||'')+' '+(c.medicaidId||'')+' '+(c.phone||'')).toLowerCase().includes(q);
+  });
+  pool.sort(function(a,b){return (a.last||'').localeCompare(b.last||'');});
+  var el = document.getElementById('impcm-list');
+  if (!el) return;
+  if (!pool.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No CM clients match.</div>';
+    _updateImpCMSummary();
+    return;
+  }
+  el.innerHTML = pool.map(function(cli){
+    var dupKey = _importDupKey(cli.last, cli.first, cli.dob);
+    var dupByName = patIdx.byNameDob[dupKey];
+    var dupBySrcFile = cli.fileNo ? patIdx.bySrcFileNo[String(cli.fileNo).trim()] : null;
+    var dup = dupByName || dupBySrcFile;
+    var reason = dup ? (dupBySrcFile ? 'Already imported (File #'+cli.fileNo+')' : 'Name+DOB matches Acct #'+(dupByName.acct||'?')) : '';
+    var checked = !dup && window._impSelCM[cli.id] ? 'checked' : '';
+    var disabled = dup ? 'disabled' : '';
+    var rowStyle = dup ? 'opacity:.55;background:var(--bg3)' : '';
+    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:'+(dup?'not-allowed':'pointer')+';'+rowStyle+'">'+
+      '<input type="checkbox" '+checked+' '+disabled+' onchange="_impCMToggle(\''+cli.id+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:13px"><span style="font-family:var(--mono);color:var(--brand);margin-right:6px">#'+(cli.fileNo||'—')+'</span>'+(cli.last||'')+', '+(cli.first||'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">DOB '+(cli.dob||'—')+(cli.medicaidId?' · Medicaid '+cli.medicaidId:'')+(cli.payer?' · '+cli.payer:'')+'</div>'+
+      '</div>'+
+      (dup ? '<span style="font-size:10px;font-weight:700;color:#c96442;background:#fdf5f0;padding:3px 8px;border-radius:10px;border:1px solid #edd5c8;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
+    '</label>';
+  }).join('');
+  _updateImpCMSummary();
+}
+
+function _impCMToggle(cid, on) {
+  if (on) window._impSelCM[cid] = true; else delete window._impSelCM[cid];
+  _updateImpCMSummary();
+}
+function _impCMSelectAll(on) {
+  var d = getCMData();
+  var db = getDB();
+  var patIdx = _buildPatientDupIndex(db);
+  var q = (document.getElementById('impcm-q')?.value||'').toLowerCase().trim();
+  var pool = (d.clients||[]).slice();
+  if (q) pool = pool.filter(function(c){
+    return ((c.fileNo||'')+' '+(c.last||'')+' '+(c.first||'')+' '+(c.medicaidId||'')).toLowerCase().includes(q);
+  });
+  pool.forEach(function(cli){
+    var dupKey = _importDupKey(cli.last, cli.first, cli.dob);
+    var dup = patIdx.byNameDob[dupKey] || (cli.fileNo && patIdx.bySrcFileNo[String(cli.fileNo).trim()]);
+    if (dup) return;
+    if (on) window._impSelCM[cli.id] = true; else delete window._impSelCM[cli.id];
+  });
+  _renderImportFromCMList();
+}
+function _updateImpCMSummary() {
+  var el = document.getElementById('impcm-summary');
+  if (!el) return;
+  var n = Object.keys(window._impSelCM||{}).length;
+  el.textContent = n + ' selected';
+}
+
+// Generate next Patient Acct # unique within the active provider.
+// Starts sequential from the highest existing numeric portion; falls back to timestamp-based.
+function _nextPatientAcct(db) {
+  var highest = 0;
+  (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;}).forEach(function(p){
+    var m = String(p.acct||'').match(/(\d+)/);
+    if (m) { var n = parseInt(m[1],10); if (n>highest) highest=n; }
+  });
+  if (highest <= 0) highest = 1000 + Math.floor(Math.random()*9000); // random seed
+  var next = highest + 1;
+  // ensure uniqueness
+  var used = {};
+  (db.patients||[]).filter(function(p){return p.providerId===activeProviderId;}).forEach(function(p){ if(p.acct) used[String(p.acct)]=1; });
+  while (used[String(next)]) next++;
+  return String(next);
+}
+
+function runImportFromCMClients() {
+  var sel = window._impSelCM || {};
+  var ids = Object.keys(sel);
+  if (!ids.length) { toast('Select at least one client','warn'); return; }
+  if (!activeProviderId) { toast('No active billing provider selected','warn'); return; }
+  var d = getCMData();
+  var db = getDB();
+  var patIdx = _buildPatientDupIndex(db);
+  var imported = 0, skipped = 0;
+  var newPatients = [];
+  ids.forEach(function(cid){
+    var cli = (d.clients||[]).find(function(x){return x.id===cid;});
+    if (!cli) { skipped++; return; }
+    var dupKey = _importDupKey(cli.last, cli.first, cli.dob);
+    if (patIdx.byNameDob[dupKey] || (cli.fileNo && patIdx.bySrcFileNo[String(cli.fileNo).trim()])) {
+      skipped++; return;
+    }
+    var newP = {
+      id: uid(),
+      providerId: activeProviderId,
+      acct: _nextPatientAcct(db),
+      last: cli.last||'',
+      first: cli.first||'',
+      mid: '',
+      dob: cli.dob||'',
+      sex: cli.sex||'',
+      phone: cli.phone||'',
+      email: cli.email||'',
+      addr1: cli.address||'',
+      addr2: '',
+      city: cli.city||'',
+      state: cli.state||'',
+      zip: cli.zip||'',
+      rel: '18', // default Self — user can adjust
+      subLast: cli.last||'',
+      subFirst: cli.first||'',
+      subNum: cli.medicaidId||'',
+      subDob: cli.dob||'',
+      subSex: cli.sex||'',
+      group: '',
+      plan: '',
+      payerid: '',
+      payerName: cli.payer||'',
+      payerCity: '',
+      payerState: '',
+      // Traceability
+      sourceFileNo: cli.fileNo||'',
+      sourceCMId: cli.id||'',
+      importedAt: Date.now(),
+      createdAt: Date.now()
+    };
+    newPatients.push(newP);
+    // Update running index
+    patIdx.byNameDob[dupKey] = newP;
+    if (newP.acct) patIdx.byAcct[String(newP.acct).trim()] = newP;
+    if (newP.sourceFileNo) patIdx.bySrcFileNo[String(newP.sourceFileNo).trim()] = newP;
+    // Also stamp the CM client so we know it was exported
+    cli.exportedToPatientAcct = newP.acct;
+    cli.exportedAt = _cmNowISO();
+    imported++;
+  });
+  if (imported > 0) {
+    setDB(function(db2){ db2.patients = (db2.patients||[]).concat(newPatients); });
+    saveCMData(d);
+  }
+  window._impSelCM = {};
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  if (typeof renderPatients === 'function') renderPatients();
+  toast(imported+' imported'+(skipped?' · '+skipped+' skipped (duplicates)':''), imported ? 'ok' : 'warn');
 }
 
 // ── CM: WORKERS ─────────────────────────────────────────────────
@@ -26526,175 +27098,1003 @@ function delCMNote(id) {
 }
 
 // ── CM: BILLING ────────────────────────────────────────────────
+// ── CM: BILLING ─────────────────────────────────────────────────
+// Standard TCM / Case Management / Behavioral Health CPT+HCPCS catalog.
+// Rates below are defaults; users override per-provider in cmSettings.rates[code].
+var _CM_CPT_CATALOG = [
+  { code:'T1017', desc:'Targeted Case Management, per 15 min', unit:'15 min', defaultRate:12.50 },
+  { code:'T2022', desc:'Case Management, per month (bundled)', unit:'month', defaultRate:225.00 },
+  { code:'T2023', desc:'Case Management, per 15 min', unit:'15 min', defaultRate:12.50 },
+  { code:'H0031', desc:'Mental health assessment, non-physician', unit:'encounter', defaultRate:150.00 },
+  { code:'H0032', desc:'Mental health service plan development', unit:'encounter', defaultRate:75.00 },
+  { code:'H0033', desc:'Oral medication administration, direct observation', unit:'encounter', defaultRate:22.00 },
+  { code:'H0034', desc:'Medication training and support, per 15 min', unit:'15 min', defaultRate:16.00 },
+  { code:'H0036', desc:'Community psychiatric supportive treatment, per 15 min', unit:'15 min', defaultRate:19.00 },
+  { code:'H0038', desc:'Self-help / peer services, per 15 min', unit:'15 min', defaultRate:15.00 },
+  { code:'H0045', desc:'Respite care services, per diem', unit:'day', defaultRate:120.00 },
+  { code:'H2000', desc:'Comprehensive multidisciplinary evaluation', unit:'encounter', defaultRate:250.00 },
+  { code:'H2015', desc:'Comprehensive community support services, per 15 min', unit:'15 min', defaultRate:16.50 },
+  { code:'H2017', desc:'Psychosocial rehabilitation, per 15 min', unit:'15 min', defaultRate:15.75 },
+  { code:'H2018', desc:'Psychosocial rehabilitation, per diem', unit:'day', defaultRate:145.00 },
+  { code:'H2019', desc:'Therapeutic behavioral services, per 15 min', unit:'15 min', defaultRate:18.00 },
+  { code:'H2021', desc:'Community-based wrap-around services, per 15 min', unit:'15 min', defaultRate:17.00 },
+  { code:'90791', desc:'Psychiatric diagnostic evaluation', unit:'encounter', defaultRate:180.00 },
+  { code:'90792', desc:'Psychiatric diagnostic evaluation with medical services', unit:'encounter', defaultRate:225.00 },
+  { code:'90832', desc:'Psychotherapy, 30 min', unit:'session', defaultRate:75.00 },
+  { code:'90834', desc:'Psychotherapy, 45 min', unit:'session', defaultRate:100.00 },
+  { code:'90837', desc:'Psychotherapy, 60 min', unit:'session', defaultRate:140.00 },
+  { code:'90846', desc:'Family psychotherapy without patient', unit:'session', defaultRate:100.00 },
+  { code:'90847', desc:'Family psychotherapy with patient', unit:'session', defaultRate:110.00 },
+  { code:'90853', desc:'Group psychotherapy', unit:'session', defaultRate:45.00 },
+  { code:'99366', desc:'Team conference, non-physician, patient present', unit:'30 min', defaultRate:65.00 },
+  { code:'99368', desc:'Team conference, non-physician, patient not present', unit:'30 min', defaultRate:55.00 }
+];
+
+function _cmCatByCode(code) {
+  return _CM_CPT_CATALOG.find(function(x){return x.code===code;});
+}
+function _cmRateFor(d, code) {
+  var rates = (d.cmSettings && d.cmSettings.rates) || {};
+  if (rates[code] != null && !isNaN(parseFloat(rates[code]))) return parseFloat(rates[code]);
+  var cat = _cmCatByCode(code);
+  return cat ? cat.defaultRate : (d.cmSettings && d.cmSettings.billingRate) || 12.50;
+}
+
+// Selection state for bulk actions
+window._cmBillSel = window._cmBillSel || {};
+
 function renderCMBilling() {
   if (!_isCMRole()) return;
   var el = document.getElementById('cm-billing-tbl');
   if (!el) return;
   var d = getCMData();
+
+  // Populate code + worker filters
+  var codeSel = document.getElementById('cm-bill-code');
+  if (codeSel && codeSel.options.length <= 1) {
+    codeSel.innerHTML = '<option value="">All Codes</option>' +
+      _CM_CPT_CATALOG.map(function(x){return '<option value="'+x.code+'">'+x.code+' — '+x.desc.slice(0,40)+'</option>';}).join('');
+  }
+  var wkrSel = document.getElementById('cm-bill-worker');
+  if (wkrSel) {
+    var cur = wkrSel.value;
+    wkrSel.innerHTML = '<option value="">All Workers</option>'+
+      (d.workers||[]).filter(function(w){return w.status!=='Inactive';}).map(function(w){
+        return '<option value="'+w.id+'"'+(w.id===cur?' selected':'')+'>'+w.first+' '+w.last+'</option>';
+      }).join('');
+  }
+
+  var q = (document.getElementById('cm-bill-q')?.value||'').toLowerCase().trim();
   var sf = document.getElementById('cm-bill-status')?.value||'';
-  var list = d.billing;
+  var cf = document.getElementById('cm-bill-code')?.value||'';
+  var wf = document.getElementById('cm-bill-worker')?.value||'';
+  var df = document.getElementById('cm-bill-from')?.value||'';
+  var dt = document.getElementById('cm-bill-to')?.value||'';
+
+  var full = d.billing || [];
+  var list = full.slice();
   if (sf) list = list.filter(function(b){return b.status===sf;});
-  list = list.slice().sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt);});
+  if (cf) list = list.filter(function(b){return b.code===cf;});
+  if (wf) list = list.filter(function(b){return b.workerId===wf;});
+  if (df) list = list.filter(function(b){return (b.serviceDate||'')>=df;});
+  if (dt) list = list.filter(function(b){return (b.serviceDate||'')<=dt;});
+  if (q) list = list.filter(function(b){
+    return (_cmClientName(b.clientId)+' '+_cmWorkerName(b.workerId)+' '+(b.code||'')+' '+(b.pcn||'')).toLowerCase().includes(q);
+  });
+  list = list.sort(function(a,b){return (b.serviceDate||'').localeCompare(a.serviceDate||'') || new Date(b.createdAt)-new Date(a.createdAt);});
+
+  // KPIs (across full billing table, unfiltered — gives global picture)
+  var kpi = {Draft:{n:0,$:0}, Ready:{n:0,$:0}, Submitted:{n:0,$:0}, Paid:{n:0,$:0}, Rejected:{n:0,$:0}};
+  full.forEach(function(b){
+    var s = b.status||'Draft';
+    if (!kpi[s]) kpi[s] = {n:0,$:0};
+    kpi[s].n++; kpi[s].$ += (parseFloat(b.total)||0);
+  });
+  var kpiEl = document.getElementById('cm-billing-kpis');
+  if (kpiEl) {
+    var kpiCard = function(label, obj, color) {
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">'+
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+color+'">'+label+'</div>'+
+        '<div style="font-size:20px;font-weight:800;color:var(--text);margin-top:4px">'+_cmFmtMoney(obj.$)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+obj.n+' entr'+(obj.n===1?'y':'ies')+'</div>'+
+      '</div>';
+    };
+    kpiEl.innerHTML =
+      kpiCard('Draft', kpi.Draft, 'var(--text3)') +
+      kpiCard('Ready', kpi.Ready, '#7c3aed') +
+      kpiCard('Submitted', kpi.Submitted, 'var(--brand)') +
+      kpiCard('Paid', kpi.Paid, 'var(--green,#059669)');
+  }
+
+  // Bulk action bar visibility
+  _cmBillingRefreshSel();
+
   if (!list.length) {
-    el.innerHTML = '<div class="empty"><h3>No billing entries yet</h3><p style="color:var(--text3);font-size:13px">Click "Generate from Notes" to create billing from billable progress notes.</p></div>';
+    el.innerHTML = '<div class="empty"><h3>No billing entries match</h3><p style="color:var(--text3);font-size:13px">Adjust filters, click "+ New Entry" to add one manually, or "From Notes" to generate from billable notes.</p></div>';
     return;
   }
   el.innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Service Date</th><th>Code</th><th>Units</th><th>Rate</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>'+
+    '<div class="tbl-wrap"><table><thead><tr>'+
+      '<th style="width:32px"><input type="checkbox" onchange="cmBillingSelectAll(this.checked)" style="accent-color:var(--brand)"></th>'+
+      '<th>Client</th>'+
+      '<th style="width:100px">DOS</th>'+
+      '<th style="width:80px">Code</th>'+
+      '<th>Description</th>'+
+      '<th style="width:50px;text-align:center">Units</th>'+
+      '<th style="width:90px;text-align:right">Rate</th>'+
+      '<th style="width:90px;text-align:right">Total</th>'+
+      '<th style="width:100px">Status</th>'+
+      '<th>Worker</th>'+
+      '<th style="width:90px"></th>'+
+    '</tr></thead><tbody>'+
     list.map(function(b){
+      var cat = _cmCatByCode(b.code) || {};
+      var checked = window._cmBillSel[b.id] ? 'checked' : '';
       return '<tr>'+
+        '<td><input type="checkbox" '+checked+' onchange="cmBillingToggleSel(\''+b.id+'\',this.checked)" style="accent-color:var(--brand)"></td>'+
         '<td style="font-weight:600">'+_cmClientName(b.clientId)+'</td>'+
         '<td style="font-size:12px">'+(b.serviceDate||'')+'</td>'+
-        '<td style="font-size:12px">'+(b.code||'')+'</td>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(b.code||'')+'</td>'+
+        '<td style="font-size:11px;color:var(--text3)">'+(cat.desc||'—').slice(0,50)+'</td>'+
         '<td style="text-align:center">'+(b.units||0)+'</td>'+
-        '<td style="text-align:right">'+_cmFmtMoney(b.rate||0)+'</td>'+
+        '<td style="text-align:right;font-size:12px">'+_cmFmtMoney(b.rate||0)+'</td>'+
         '<td style="font-weight:700;text-align:right">'+_cmFmtMoney(b.total||0)+'</td>'+
         '<td>'+_cmStatusBadge(b.status||'Draft')+'</td>'+
+        '<td style="font-size:11px">'+_cmWorkerName(b.workerId)+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
-        '<button class="btn-icon sm" onclick="editCMBilling(\''+b.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
-        '<button class="btn-icon sm danger" onclick="delCMBilling(\''+b.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
-        '</div></td></tr>';
+          '<button class="btn-icon sm" onclick="editCMBilling(\''+b.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+          '<button class="btn-icon sm danger" onclick="delCMBilling(\''+b.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
+        '</div></td>'+
+      '</tr>';
     }).join('')+
     '</tbody></table></div>';
   setTimeout(_renderLucideIcons, 20);
 }
+
+// ── Selection helpers ──
+function cmBillingToggleSel(id, on) {
+  if (on) window._cmBillSel[id] = true; else delete window._cmBillSel[id];
+  _cmBillingRefreshSel();
+}
+function cmBillingSelectAll(on) {
+  var d = getCMData();
+  if (on) (d.billing||[]).forEach(function(b){ window._cmBillSel[b.id]=true; });
+  else window._cmBillSel = {};
+  renderCMBilling();
+}
+function cmBillingClearSel() {
+  window._cmBillSel = {};
+  renderCMBilling();
+}
+function _cmBillingRefreshSel() {
+  var n = Object.keys(window._cmBillSel||{}).length;
+  var bar = document.getElementById('cm-billing-bulk');
+  var cnt = document.getElementById('cm-bill-selcount');
+  if (cnt) cnt.textContent = n + ' selected';
+  if (bar) bar.style.display = n>0 ? 'flex' : 'none';
+}
+function cmBillingBulk(newStatus) {
+  var ids = Object.keys(window._cmBillSel||{});
+  if (!ids.length) return;
+  var d = getCMData();
+  var changed = 0;
+  ids.forEach(function(id){
+    var b = (d.billing||[]).find(function(x){return x.id===id;});
+    if (b) { b.status = newStatus; b.updatedAt = _cmNowISO(); changed++; }
+  });
+  saveCMData(d);
+  window._cmBillSel = {};
+  renderCMBilling();
+  toast(changed+' marked '+newStatus);
+}
+function cmBillingBulkDelete() {
+  var ids = Object.keys(window._cmBillSel||{});
+  if (!ids.length) return;
+  if (!confirm('Delete '+ids.length+' billing entries?\n\nThis cannot be undone.')) return;
+  var d = getCMData();
+  d.billing = (d.billing||[]).filter(function(b){return !window._cmBillSel[b.id];});
+  saveCMData(d);
+  var n = ids.length;
+  window._cmBillSel = {};
+  renderCMBilling();
+  toast(n+' entries deleted');
+}
+
+// ── Generate from Notes (rate now looked up per code) ──
 function generateCMBilling() {
   var d = getCMData();
-  var billable = d.notes.filter(function(n){return n.billable && !n._billed;});
+  var billable = (d.notes||[]).filter(function(n){return n.billable && !n._billed;});
   if (!billable.length) { toast('No unbilled billable notes found','info'); return; }
-  var rate = 12.50; // Default TCM rate per 15-min unit
+  var made = 0;
   billable.forEach(function(n){
-    var existing = d.billing.find(function(b){return b.noteId===n.id;});
+    var existing = (d.billing||[]).find(function(b){return b.noteId===n.id;});
     if (existing) { n._billed = true; return; }
+    var code = n.code || (d.cmSettings && d.cmSettings.defaultCode) || 'T1017';
+    var rate = _cmRateFor(d, code);
+    var units = n.units || 1;
     d.billing.push({
       id: _cmId(),
       noteId: n.id,
       clientId: n.clientId,
       workerId: n.workerId,
       serviceDate: n.date,
-      code: n.code||'T1017',
-      units: n.units||1,
+      code: code,
+      units: units,
       rate: rate,
-      total: (n.units||1) * rate,
+      total: units * rate,
       status: 'Draft',
       createdAt: _cmNowISO(),
       updatedAt: _cmNowISO()
     });
     n._billed = true;
+    made++;
   });
   saveCMData(d);
   renderCMBilling();
-  toast(billable.length+' billing entries generated');
+  toast(made+' billing entries generated');
 }
+
+// ── New / Edit modal ──
+function openCMBillingModal() { editCMBilling(null); }
 function editCMBilling(id) {
   var d = getCMData();
-  var b = d.billing.find(function(x){return x.id===id;});
-  if (!b) return;
+  var b = id ? (d.billing||[]).find(function(x){return x.id===id;}) : {};
+  b = b || {};
+  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
+
+  var clientOpts = '<option value="">— Select Client —</option>' +
+    (d.clients||[]).slice().sort(function(a,b){return (a.last||'').localeCompare(b.last||'');}).map(function(c){
+      var label = (c.last||'')+', '+(c.first||'')+(c.fileNo?' (#'+c.fileNo+')':'');
+      return '<option value="'+c.id+'"'+sel(b.clientId,c.id)+'>'+label+'</option>';
+    }).join('');
+  var workerOpts = '<option value="">— None —</option>' +
+    (d.workers||[]).filter(function(w){return w.status!=='Inactive';}).map(function(w){
+      return '<option value="'+w.id+'"'+sel(b.workerId,w.id)+'>'+w.first+' '+w.last+'</option>';
+    }).join('');
+  var codeOpts = _CM_CPT_CATALOG.map(function(x){
+    return '<option value="'+x.code+'" data-rate="'+_cmRateFor(d, x.code)+'"'+sel(b.code||'T1017',x.code)+'>'+x.code+' — '+x.desc+'</option>';
+  }).join('');
+
   var overlay = document.createElement('div');
+  overlay.setAttribute('data-cm','1');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+
   overlay.innerHTML =
-    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
-    '<div><div style="font-size:16px;font-weight:700">Edit Billing Entry</div></div>'+
-    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
-    '<div style="padding:16px 20px">'+
-    '<div style="font-size:13px;margin-bottom:12px"><strong>Client:</strong> '+_cmClientName(b.clientId)+'</div>'+
-    '<div class="fg g2"><div class="field"><label>Units</label><input id="cmb-units" type="number" value="'+b.units+'"></div>'+
-    '<div class="field"><label>Rate</label><input id="cmb-rate" type="number" step="0.01" value="'+b.rate+'"></div></div>'+
-    '<div class="field"><label>Status</label><select id="cmb-status"><option value="Draft"'+(b.status==='Draft'?' selected':'')+'>Draft</option><option value="Ready"'+(b.status==='Ready'?' selected':'')+'>Ready</option><option value="Submitted"'+(b.status==='Submitted'?' selected':'')+'>Submitted</option><option value="Paid"'+(b.status==='Paid'?' selected':'')+'>Paid</option><option value="Rejected"'+(b.status==='Rejected'?' selected':'')+'>Rejected</option></select></div>'+
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3)">'+
+      '<div><div style="font-size:16px;font-weight:700">'+(id?'Edit Billing Entry':'New Billing Entry')+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">Case Management billing line</div></div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button>'+
     '</div>'+
-    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
-    '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
-    '<button class="btn btn-primary" onclick="saveCMBilling(\''+b.id+'\')">Save</button></div></div>';
-  overlay.setAttribute('data-cm','1');
+    '<div style="padding:18px 22px">'+
+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Client *</label><select id="cmb-client">'+clientOpts+'</select></div>'+
+      '<div class="field"><label>Assigned Worker</label><select id="cmb-worker">'+workerOpts+'</select></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Date of Service *</label><input id="cmb-dos" type="date" value="'+esc(b.serviceDate)+'"></div>'+
+      '<div class="field"><label>Place of Service</label><select id="cmb-pos">'+
+        ['11 — Office','12 — Home','02 — Telehealth (patient home)','10 — Telehealth (other)','03 — School','04 — Homeless Shelter','53 — Community Mental Health','99 — Other'].map(function(v){
+          var code = v.split(' — ')[0];
+          return '<option value="'+code+'"'+sel(b.pos||'11',code)+'>'+v+'</option>';
+        }).join('')+
+      '</select></div>'+
+    '</div>'+
+
+    '<div class="sep"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Service Line</div>'+
+    '<div class="fg g1"><div class="field"><label>CPT / HCPCS Code *</label><select id="cmb-code" onchange="_cmBillingCodeChange()">'+codeOpts+'</select></div></div>'+
+    '<div class="fg g4">'+
+      '<div class="field"><label>Units *</label><input id="cmb-units" type="number" min="1" step="1" value="'+(b.units||1)+'" oninput="_cmBillingRecalcTotal()"></div>'+
+      '<div class="field"><label>Rate ($/unit)</label><input id="cmb-rate" type="number" step="0.01" value="'+(b.rate!=null?b.rate:'')+'" oninput="_cmBillingRecalcTotal()"></div>'+
+      '<div class="field"><label>Total</label><input id="cmb-total" readonly style="background:var(--bg3);color:var(--brand);font-weight:700" value="'+_cmFmtMoney(b.total||0)+'"></div>'+
+      '<div class="field"><label>Duration (min)</label><input id="cmb-duration" type="number" placeholder="Optional" value="'+esc(b.duration)+'"></div>'+
+    '</div>'+
+    '<div class="fg g4">'+
+      '<div class="field"><label>Mod 1</label><input id="cmb-mod1" maxlength="2" class="mono" value="'+esc(b.mod1)+'"></div>'+
+      '<div class="field"><label>Mod 2</label><input id="cmb-mod2" maxlength="2" class="mono" value="'+esc(b.mod2)+'"></div>'+
+      '<div class="field"><label>Mod 3</label><input id="cmb-mod3" maxlength="2" class="mono" value="'+esc(b.mod3)+'"></div>'+
+      '<div class="field"><label>Mod 4</label><input id="cmb-mod4" maxlength="2" class="mono" value="'+esc(b.mod4)+'"></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Primary Diagnosis (ICD-10)</label><input id="cmb-dx" placeholder="e.g. F411" value="'+esc(b.dx1)+'" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\')"></div>'+
+      '<div class="field"><label>Auth # / PA</label><input id="cmb-auth" placeholder="Optional" value="'+esc(b.auth)+'"></div>'+
+    '</div>'+
+
+    '<div class="sep"></div>'+
+    '<div class="fg g2">'+
+      '<div class="field"><label>Status</label><select id="cmb-status">'+
+        ['Draft','Ready','Submitted','Paid','Rejected'].map(function(v){
+          return '<option value="'+v+'"'+sel(b.status||'Draft',v)+'>'+v+'</option>';
+        }).join('')+
+      '</select></div>'+
+      '<div class="field"><label>PCN / Claim #</label><input id="cmb-pcn" placeholder="Auto or manual" value="'+esc(b.pcn)+'"></div>'+
+    '</div>'+
+    '<div class="field"><label>Notes</label><textarea id="cmb-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical">'+esc(b.notes)+'</textarea></div>'+
+
+    '</div>'+
+    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg3)">'+
+      '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+      '<button class="btn btn-primary" onclick="saveCMBilling(\''+(id||'')+'\')">Save</button>'+
+    '</div></div>';
   document.body.appendChild(overlay);
+  setTimeout(function(){
+    if (!id) _cmBillingCodeChange(); // populate rate from selected code
+    _cmBillingRecalcTotal();
+    _renderLucideIcons();
+  }, 20);
 }
+
+function _cmBillingCodeChange() {
+  var sel = document.getElementById('cmb-code');
+  if (!sel) return;
+  var code = sel.value;
+  var d = getCMData();
+  var rate = _cmRateFor(d, code);
+  var rateInp = document.getElementById('cmb-rate');
+  if (rateInp && (!rateInp.value || parseFloat(rateInp.dataset.autofill||'1'))) {
+    rateInp.value = rate.toFixed(2);
+    rateInp.dataset.autofill = '1';
+  }
+  _cmBillingRecalcTotal();
+}
+function _cmBillingRecalcTotal() {
+  var units = parseFloat(document.getElementById('cmb-units')?.value)||0;
+  var rate = parseFloat(document.getElementById('cmb-rate')?.value)||0;
+  var totalEl = document.getElementById('cmb-total');
+  if (totalEl) totalEl.value = _cmFmtMoney(units * rate);
+  // once user manually edits rate, stop auto-filling from code changes
+  var rateInp = document.getElementById('cmb-rate');
+  if (rateInp) rateInp.dataset.autofill = '0';
+}
+
 function saveCMBilling(id) {
   var d = getCMData();
-  var idx = d.billing.findIndex(function(x){return x.id===id;});
-  if (idx<0) return;
-  var units = parseInt(document.getElementById('cmb-units')?.value)||0;
-  var rate = parseFloat(document.getElementById('cmb-rate')?.value)||0;
-  d.billing[idx].units = units;
-  d.billing[idx].rate = rate;
-  d.billing[idx].total = units * rate;
-  d.billing[idx].status = document.getElementById('cmb-status')?.value||'Draft';
-  d.billing[idx].updatedAt = _cmNowISO();
+  var val = function(i){ return (document.getElementById(i)?.value||'').trim(); };
+  var clientId = val('cmb-client');
+  if (!clientId) { toast('Client is required','warn'); return; }
+  var dos = val('cmb-dos');
+  if (!dos) { toast('Date of Service is required','warn'); return; }
+  var code = val('cmb-code') || 'T1017';
+  var units = parseInt(val('cmb-units'))||1;
+  var rate = parseFloat(val('cmb-rate'))||_cmRateFor(d, code);
+  var obj = {
+    clientId: clientId,
+    workerId: val('cmb-worker'),
+    serviceDate: dos,
+    pos: val('cmb-pos') || '11',
+    code: code,
+    units: units,
+    rate: rate,
+    total: units * rate,
+    duration: parseInt(val('cmb-duration'))||0,
+    mod1: val('cmb-mod1').toUpperCase(),
+    mod2: val('cmb-mod2').toUpperCase(),
+    mod3: val('cmb-mod3').toUpperCase(),
+    mod4: val('cmb-mod4').toUpperCase(),
+    dx1: val('cmb-dx').toUpperCase().replace('.',''),
+    auth: val('cmb-auth'),
+    status: val('cmb-status')||'Draft',
+    pcn: val('cmb-pcn'),
+    notes: (document.getElementById('cmb-notes')?.value||'').trim(),
+    updatedAt: _cmNowISO()
+  };
+  if (id) {
+    var idx = (d.billing||[]).findIndex(function(x){return x.id===id;});
+    if (idx>=0) Object.assign(d.billing[idx], obj);
+  } else {
+    obj.id = _cmId();
+    obj.createdAt = _cmNowISO();
+    if (!obj.pcn) obj.pcn = 'CM'+Date.now().toString().slice(-8);
+    d.billing = d.billing || [];
+    d.billing.push(obj);
+  }
   saveCMData(d);
   document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
   renderCMBilling();
-  toast('Billing entry updated');
+  toast(id ? 'Billing entry updated' : 'Billing entry saved');
 }
+
 function delCMBilling(id) {
-  if (!confirm('Delete this billing entry?')) return;
   var d = getCMData();
+  var b = (d.billing||[]).find(function(x){return x.id===id;});
+  if (!b) return;
+  if (!confirm('Delete this billing entry ('+(b.code||'')+' · '+_cmClientName(b.clientId)+' · '+(b.serviceDate||'')+')?')) return;
   d.billing = d.billing.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMBilling();
   toast('Billing entry deleted');
 }
-function exportCMBillingCSV() {
+
+// ── Rate configuration modal (per-CPT overrides) ──
+function openCMBillingSettings() {
   var d = getCMData();
-  var list = d.billing.filter(function(b){return b.status!=='Draft';});
-  if (!list.length) { toast('No ready/submitted billing entries to export','warn'); return; }
-  var rows = [['Client','ServiceDate','Code','Units','Rate','Total','Status']];
-  list.forEach(function(b){
-    rows.push([_cmClientName(b.clientId), b.serviceDate, b.code, b.units, b.rate, b.total, b.status]);
+  var rates = (d.cmSettings && d.cmSettings.rates) || {};
+  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-cm','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML =
+    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
+      '<div><div style="font-size:16px;font-weight:700">CM Billing Rates</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">Override default rates per CPT/HCPCS code. Blank = use default.</div></div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button>'+
+    '</div>'+
+    '<div style="flex:1;overflow-y:auto;padding:14px 22px">'+
+    '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border);text-align:left">'+
+      '<th style="padding:6px 4px;width:75px">Code</th><th style="padding:6px 4px">Description</th><th style="padding:6px 4px;width:70px;text-align:right">Default</th><th style="padding:6px 4px;width:110px">Your Rate</th>'+
+    '</tr></thead><tbody>'+
+    _CM_CPT_CATALOG.map(function(x){
+      var r = rates[x.code];
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:6px 4px;font-family:var(--mono);font-weight:700;color:var(--brand)">'+x.code+'</td>'+
+        '<td style="padding:6px 4px;color:var(--text2)">'+x.desc+' <span style="color:var(--text3);font-size:10px">/'+x.unit+'</span></td>'+
+        '<td style="padding:6px 4px;text-align:right;color:var(--text3)">'+_cmFmtMoney(x.defaultRate)+'</td>'+
+        '<td style="padding:6px 4px"><input type="number" step="0.01" data-code="'+x.code+'" placeholder="'+x.defaultRate.toFixed(2)+'" value="'+(r!=null?esc(r):'')+'" style="width:100%;padding:4px 6px;border:1px solid var(--border2);border-radius:6px;font-family:var(--mono);font-size:12px;text-align:right;background:var(--bg2);color:var(--text)"></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>'+
+    '</div>'+
+    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg3);flex-shrink:0">'+
+      '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
+      '<button class="btn btn-primary" onclick="_saveCMBillingRates(this)">Save Rates</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+function _saveCMBillingRates(btn) {
+  var d = getCMData();
+  if (!d.cmSettings) d.cmSettings = {};
+  var rates = {};
+  document.querySelectorAll('input[data-code]').forEach(function(inp){
+    var v = inp.value.trim();
+    if (v !== '' && !isNaN(parseFloat(v))) rates[inp.dataset.code] = parseFloat(v);
   });
-  var csv = rows.map(function(r){return r.join(',');}).join('\n');
-  var blob = new Blob([csv], {type:'text/csv'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'cm_billing_export_'+_cmDateStr(new Date()).replace(/\//g,'-')+'.csv';
-  a.click();
-  toast('Billing CSV exported');
+  d.cmSettings.rates = rates;
+  saveCMData(d);
+  document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
+  renderCMBilling();
+  toast('Rates saved');
 }
 
+// ── CSV export (clearinghouse-friendly format) ──
+function exportCMBillingCSV() {
+  var d = getCMData();
+  var list = (d.billing||[]).filter(function(b){return b.status !== 'Draft';});
+  if (!list.length) { toast('No non-draft entries to export','warn'); return; }
+  var esc = function(v){
+    v = String(v==null?'':v);
+    return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  };
+  var headers = ['ClaimNumber','PatientLast','PatientFirst','PatientDOB','MedicaidID','FileNo','ServiceDate','POS','CPT','Mod1','Mod2','Mod3','Mod4','Units','Rate','TotalCharge','Dx1','AuthNumber','RenderingWorker','Status'];
+  var rows = [headers.join(',')];
+  list.forEach(function(b){
+    var cli = (d.clients||[]).find(function(c){return c.id===b.clientId;}) || {};
+    var wkr = (d.workers||[]).find(function(w){return w.id===b.workerId;}) || {};
+    var row = [
+      b.pcn||b.id, cli.last||'', cli.first||'', cli.dob||'', cli.medicaidId||'', cli.fileNo||'',
+      b.serviceDate||'', b.pos||'11', b.code||'', b.mod1||'', b.mod2||'', b.mod3||'', b.mod4||'',
+      b.units||0, (b.rate||0).toFixed(2), (b.total||0).toFixed(2),
+      b.dx1||cli.primaryDx||'', b.auth||'',
+      ((wkr.first||'')+' '+(wkr.last||'')).trim(), b.status||''
+    ];
+    rows.push(row.map(esc).join(','));
+  });
+  var csv = rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cm_billing_'+_cmDateStr(new Date()).replace(/\//g,'-')+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
+  toast(list.length+' entries exported');
+}
+
+
 // ── CM: REPORTS ────────────────────────────────────────────────
+// ── CM: REPORTS ────────────────────────────────────────────────
+// Full reporting suite: date-range filters, 6 KPIs, 4 breakdown reports (worker productivity,
+// client utilization vs auth, CPT distribution, A/R aging), CSV export per report.
+
+window._cmRpt = window._cmRpt || {
+  preset: 'this-month',
+  from: '', to: '',
+  workerId: '', code: '',
+  activeReport: 'productivity' // productivity | utilization | codes | aging
+};
+
+function _cmRptDateRange() {
+  var r = window._cmRpt || {};
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  var iso = function(d){ return d.toISOString().slice(0,10); };
+  var startOfMonth = function(y,m){ return new Date(y,m,1); };
+  var endOfMonth   = function(y,m){ return new Date(y,m+1,0); };
+  switch (r.preset) {
+    case 'this-month':
+      return { from: iso(startOfMonth(y,m)), to: iso(endOfMonth(y,m)) };
+    case 'last-month':
+      return { from: iso(startOfMonth(y,m-1)), to: iso(endOfMonth(y,m-1)) };
+    case 'this-quarter':
+      var qStart = Math.floor(m/3)*3;
+      return { from: iso(startOfMonth(y,qStart)), to: iso(endOfMonth(y,qStart+2)) };
+    case 'ytd':
+      return { from: iso(new Date(y,0,1)), to: iso(now) };
+    case 'last-90':
+      return { from: iso(new Date(now.getTime()-90*86400000)), to: iso(now) };
+    case 'all':
+      return { from: '', to: '' };
+    case 'custom':
+      return { from: r.from||'', to: r.to||'' };
+  }
+  return { from: '', to: '' };
+}
+
+function _cmRptFilterBilling(d) {
+  var range = _cmRptDateRange();
+  var r = window._cmRpt || {};
+  return (d.billing||[]).filter(function(b){
+    if (range.from && (b.serviceDate||'') < range.from) return false;
+    if (range.to   && (b.serviceDate||'') > range.to)   return false;
+    if (r.workerId && b.workerId !== r.workerId) return false;
+    if (r.code && b.code !== r.code) return false;
+    return true;
+  });
+}
+
 function renderCMReports() {
   if (!_isCMRole()) return;
   var el = document.getElementById('cm-reports-content');
   if (!el) return;
   var d = getCMData();
-  var totalClients = d.clients.length;
-  var activeClients = d.clients.filter(function(c){return c.status==='Active';}).length;
-  var totalWorkers = d.workers.filter(function(w){return w.status!=='Inactive';}).length;
-  var totalNotes = d.notes.length;
-  var billableNotes = d.notes.filter(function(n){return n.billable;}).length;
-  var totalBilled = d.billing.reduce(function(s,b){return s + (b.total||0);},0);
-  var totalPaid = d.billing.filter(function(b){return b.status==='Paid';}).reduce(function(s,b){return s + (b.total||0);},0);
-  var plansActive = d.plans.filter(function(p){return p.status==='Active';}).length;
-  var thisMonth = new Date().getMonth();
-  var thisYear = new Date().getFullYear();
-  var monthNotes = d.notes.filter(function(n){
-    var nd = new Date(n.date);
-    return nd.getMonth()===thisMonth && nd.getFullYear()===thisYear;
-  }).length;
-  el.innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--brand)">'+activeClients+'/'+totalClients+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Clients</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+totalWorkers+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Active Workers</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--blue)">'+totalNotes+' ('+monthNotes+' this month)</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Progress Notes</div></div>'+
-    '<div class="card" style="padding:18px;text-align:center"><div style="font-size:28px;font-weight:800;color:var(--green)">'+_cmFmtMoney(totalBilled)+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Total Billed ('+_cmFmtMoney(totalPaid)+' paid)</div></div>'+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
-    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Service Plans</div>'+
-    '<div style="padding:16px">'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Active Plans</span><strong>'+plansActive+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Total Plans</span><strong>'+d.plans.length+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Billable Notes</span><strong>'+billableNotes+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Non-Billable Notes</span><strong>'+(totalNotes-billableNotes)+'</strong></div>'+
-    '</div></div>'+
-    '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Billing Summary</div>'+
-    '<div style="padding:16px">'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Draft</span><strong>'+d.billing.filter(function(b){return b.status==='Draft';}).length+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Ready</span><strong>'+d.billing.filter(function(b){return b.status==='Ready';}).length+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Submitted</span><strong>'+d.billing.filter(function(b){return b.status==='Submitted';}).length+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Paid</span><strong>'+d.billing.filter(function(b){return b.status==='Paid';}).length+'</strong></div>'+
-    '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Rejected</span><strong>'+d.billing.filter(function(b){return b.status==='Rejected';}).length+'</strong></div>'+
-    '</div></div></div>';
+  var range = _cmRptDateRange();
+  var billing = _cmRptFilterBilling(d);
+  var r = window._cmRpt;
+
+  // ── KPIs ──
+  var totalUnits = billing.reduce(function(s,b){return s+(parseInt(b.units)||0);},0);
+  var totalBilled = billing.reduce(function(s,b){return s+(parseFloat(b.total)||0);},0);
+  var paidList = billing.filter(function(b){return b.status==='Paid';});
+  var totalPaid = paidList.reduce(function(s,b){return s+(parseFloat(b.total)||0);},0);
+  var rejectedList = billing.filter(function(b){return b.status==='Rejected';});
+  var totalRejected = rejectedList.reduce(function(s,b){return s+(parseFloat(b.total)||0);},0);
+  var submittedOrLater = billing.filter(function(b){return ['Submitted','Paid','Rejected'].indexOf(b.status)>=0;});
+  var submittedRev = submittedOrLater.reduce(function(s,b){return s+(parseFloat(b.total)||0);},0);
+  var collectionRate = submittedRev > 0 ? (totalPaid / submittedRev * 100) : 0;
+  var denialRate = submittedOrLater.length > 0 ? (rejectedList.length / submittedOrLater.length * 100) : 0;
+
+  // Encounter count in range (from d.encounters + d.notes)
+  var encs = (d.encounters||[]).concat(d.notes||[]);
+  var encsInRange = encs.filter(function(n){
+    var dt = n.date || n.serviceDate || '';
+    if (range.from && dt < range.from) return false;
+    if (range.to   && dt > range.to)   return false;
+    return true;
+  });
+
+  // ── Filter bar ──
+  var presetBtn = function(val, label){
+    var active = r.preset === val;
+    return '<button onclick="_cmRptSetPreset(\''+val+'\')" style="padding:5px 10px;font-size:11px;font-weight:600;border:1.5px solid '+(active?'var(--brand)':'var(--border2)')+';background:'+(active?'var(--brand-bg)':'var(--bg2)')+';color:'+(active?'var(--brand)':'var(--text2)')+';border-radius:6px;cursor:pointer">'+label+'</button>';
+  };
+  var workerOpts = '<option value="">All Workers</option>' +
+    (d.workers||[]).filter(function(w){return w.status!=='Inactive';}).map(function(w){
+      return '<option value="'+w.id+'"'+(w.id===r.workerId?' selected':'')+'>'+w.first+' '+w.last+'</option>';
+    }).join('');
+  var codeOpts = '<option value="">All Codes</option>' +
+    (typeof _CM_CPT_CATALOG !== 'undefined' ? _CM_CPT_CATALOG : []).map(function(x){
+      return '<option value="'+x.code+'"'+(x.code===r.code?' selected':'')+'>'+x.code+'</option>';
+    }).join('');
+
+  var filterBar =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+
+        '<span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-right:6px">Period:</span>'+
+        presetBtn('this-month','This Month')+
+        presetBtn('last-month','Last Month')+
+        presetBtn('this-quarter','This Quarter')+
+        presetBtn('ytd','YTD')+
+        presetBtn('last-90','Last 90 Days')+
+        presetBtn('all','All Time')+
+        presetBtn('custom','Custom')+
+      '</div>'+
+      (r.preset==='custom' ?
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'+
+          '<span style="font-size:11px;color:var(--text3)">From</span>'+
+          '<input type="date" id="cmrpt-from" value="'+(r.from||'')+'" onchange="window._cmRpt.from=this.value;renderCMReports()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text)">'+
+          '<span style="font-size:11px;color:var(--text3)">To</span>'+
+          '<input type="date" id="cmrpt-to" value="'+(r.to||'')+'" onchange="window._cmRpt.to=this.value;renderCMReports()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text)">'+
+        '</div>' : ''
+      )+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-right:6px">Filters:</span>'+
+        '<select onchange="window._cmRpt.workerId=this.value;renderCMReports()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);min-width:160px">'+workerOpts+'</select>'+
+        '<select onchange="window._cmRpt.code=this.value;renderCMReports()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);min-width:120px">'+codeOpts+'</select>'+
+        '<span style="font-size:11px;color:var(--text3);margin-left:auto">'+
+          (range.from || range.to ? ('Showing: '+(range.from||'∞')+' → '+(range.to||'∞')) : 'All time')+
+          ' · <strong>'+billing.length+'</strong> billing entries'+
+        '</span>'+
+      '</div>'+
+    '</div>';
+
+  // ── KPI cards ──
+  var kpiCard = function(label, value, sub, color) {
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px">'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+color+'">'+label+'</div>'+
+      '<div style="font-size:22px;font-weight:800;color:var(--text);margin-top:4px;line-height:1.1">'+value+'</div>'+
+      (sub ? '<div style="font-size:11px;color:var(--text3);margin-top:3px">'+sub+'</div>' : '')+
+    '</div>';
+  };
+  var kpis = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px">'+
+    kpiCard('Encounters', encsInRange.length, encsInRange.filter(function(n){return n.billable;}).length+' billable', 'var(--brand)')+
+    kpiCard('Units Billed', totalUnits.toLocaleString(), billing.length+' line items', '#7c3aed')+
+    kpiCard('Total Billed', _cmFmtMoney(totalBilled), '', 'var(--brand)')+
+    kpiCard('Total Paid', _cmFmtMoney(totalPaid), paidList.length+' entries', 'var(--green,#059669)')+
+    kpiCard('Collection Rate', collectionRate.toFixed(1)+'%', 'Paid ÷ Submitted', collectionRate >= 80 ? 'var(--green,#059669)' : collectionRate >= 60 ? '#d97706' : 'var(--red,#dc2626)')+
+    kpiCard('Denial Rate', denialRate.toFixed(1)+'%', rejectedList.length+' rejected · '+_cmFmtMoney(totalRejected), denialRate <= 5 ? 'var(--green,#059669)' : denialRate <= 15 ? '#d97706' : 'var(--red,#dc2626)')+
+  '</div>';
+
+  // ── Report tabs ──
+  var tab = function(id, label) {
+    var active = r.activeReport === id;
+    return '<button onclick="window._cmRpt.activeReport=\''+id+'\';renderCMReports()" style="padding:8px 16px;font-size:12px;font-weight:'+(active?'700':'600')+';border:none;background:'+(active?'var(--bg2)':'transparent')+';color:'+(active?'var(--brand)':'var(--text2)')+';border-bottom:3px solid '+(active?'var(--brand)':'transparent')+';margin-bottom:-2px;cursor:pointer">'+label+'</button>';
+  };
+  var tabs = '<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0">'+
+    tab('productivity','Productivity by Worker')+
+    tab('utilization','Utilization by Client')+
+    tab('codes','CPT Distribution')+
+    tab('aging','A/R Aging')+
+  '</div>';
+
+  // ── Report bodies ──
+  var reportBody = '';
+  if (r.activeReport === 'productivity') reportBody = _cmRptProductivity(d, billing);
+  else if (r.activeReport === 'utilization') reportBody = _cmRptUtilization(d);
+  else if (r.activeReport === 'codes') reportBody = _cmRptCodes(d, billing);
+  else if (r.activeReport === 'aging') reportBody = _cmRptAging(d, billing);
+
+  el.innerHTML = filterBar + kpis + tabs +
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:14px">'+reportBody+'</div>';
+  setTimeout(_renderLucideIcons, 20);
 }
+
+function _cmRptSetPreset(val) {
+  window._cmRpt.preset = val;
+  if (val !== 'custom') { window._cmRpt.from = ''; window._cmRpt.to = ''; }
+  renderCMReports();
+}
+
+// ── Report: Productivity by Worker ──
+function _cmRptProductivity(d, billing) {
+  var byWorker = {};
+  billing.forEach(function(b){
+    var w = b.workerId || '__unassigned';
+    if (!byWorker[w]) byWorker[w] = { entries:0, units:0, billed:0, paid:0, rejected:0 };
+    byWorker[w].entries++;
+    byWorker[w].units += parseInt(b.units)||0;
+    byWorker[w].billed += parseFloat(b.total)||0;
+    if (b.status==='Paid') byWorker[w].paid += parseFloat(b.total)||0;
+    if (b.status==='Rejected') byWorker[w].rejected += parseFloat(b.total)||0;
+  });
+  // Add encounters count per worker for productivity context
+  var encsByWorker = {};
+  (d.encounters||[]).concat(d.notes||[]).forEach(function(n){
+    var w = n.workerId || '__unassigned';
+    encsByWorker[w] = (encsByWorker[w]||0) + 1;
+  });
+  var rows = Object.keys(byWorker).map(function(wid){
+    var w = (d.workers||[]).find(function(x){return x.id===wid;});
+    var name = w ? (w.first+' '+w.last) : (wid==='__unassigned' ? '(Unassigned)' : 'Unknown');
+    var credential = w ? (w.credential||'') : '';
+    return { wid:wid, name:name, credential:credential, encs:encsByWorker[wid]||0, ...byWorker[wid] };
+  }).sort(function(a,b){return b.billed - a.billed;});
+
+  if (!rows.length) return '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No billing data in this period.</div>';
+
+  var header =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div style="font-size:13px;font-weight:700">Productivity by Worker</div>'+
+      '<button class="btn btn-xs" onclick="_cmRptExport(\'productivity\')"><i data-lucide="download" class="lci" style="width:11px;height:11px"></i> Export CSV</button>'+
+    '</div>';
+
+  var table = '<div class="tbl-wrap"><table><thead><tr>'+
+    '<th>Worker</th><th>Credential</th>'+
+    '<th style="text-align:center">Encounters</th>'+
+    '<th style="text-align:center">Bill Lines</th>'+
+    '<th style="text-align:center">Units</th>'+
+    '<th style="text-align:right">Billed</th>'+
+    '<th style="text-align:right">Paid</th>'+
+    '<th style="text-align:right">Rejected</th>'+
+    '<th style="text-align:right">Collection %</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(function(row){
+      var rate = (row.paid + row.rejected) > 0 ? (row.paid / (row.paid + row.rejected) * 100) : 0;
+      return '<tr>'+
+        '<td style="font-weight:600">'+row.name+'</td>'+
+        '<td style="font-size:11px;color:var(--text3)">'+row.credential+'</td>'+
+        '<td style="text-align:center">'+row.encs+'</td>'+
+        '<td style="text-align:center">'+row.entries+'</td>'+
+        '<td style="text-align:center">'+row.units.toLocaleString()+'</td>'+
+        '<td style="text-align:right;font-weight:600">'+_cmFmtMoney(row.billed)+'</td>'+
+        '<td style="text-align:right;color:var(--green,#059669)">'+_cmFmtMoney(row.paid)+'</td>'+
+        '<td style="text-align:right;color:var(--red,#dc2626)">'+_cmFmtMoney(row.rejected)+'</td>'+
+        '<td style="text-align:right;font-weight:700;color:'+(rate>=80?'var(--green,#059669)':rate>=60?'#d97706':'var(--red,#dc2626)')+'">'+rate.toFixed(0)+'%</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  return header + table;
+}
+
+// ── Report: Utilization by Client (units used vs authorized) ──
+function _cmRptUtilization(d) {
+  var byClient = {};
+  (d.billing||[]).forEach(function(b){
+    var cid = b.clientId; if (!cid) return;
+    if (!byClient[cid]) byClient[cid] = { used:0, billed:0, paid:0 };
+    byClient[cid].used += parseInt(b.units)||0;
+    byClient[cid].billed += parseFloat(b.total)||0;
+    if (b.status==='Paid') byClient[cid].paid += parseFloat(b.total)||0;
+  });
+  var rows = (d.clients||[]).filter(function(c){return c.status==='Active';}).map(function(c){
+    var stats = byClient[c.id] || { used:0, billed:0, paid:0 };
+    var authorized = parseInt(c.authUnits)||0;
+    var pct = authorized > 0 ? (stats.used / authorized * 100) : (stats.used>0 ? 999 : 0);
+    return { c:c, used:stats.used, billed:stats.billed, paid:stats.paid, authorized:authorized, pct:pct };
+  }).sort(function(a,b){return b.pct - a.pct;});
+
+  if (!rows.length) return '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No active clients.</div>';
+
+  var header =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div><div style="font-size:13px;font-weight:700">Utilization by Client</div>'+
+      '<div style="font-size:11px;color:var(--text3)">Units used (all-time) vs authorized. ⚠️ = &gt;85%, 🔴 = over 100%.</div></div>'+
+      '<button class="btn btn-xs" onclick="_cmRptExport(\'utilization\')"><i data-lucide="download" class="lci" style="width:11px;height:11px"></i> Export CSV</button>'+
+    '</div>';
+
+  var table = '<div class="tbl-wrap"><table><thead><tr>'+
+    '<th style="width:70px">File #</th><th>Client</th><th>Auth Period</th>'+
+    '<th style="text-align:center">Authorized</th>'+
+    '<th style="text-align:center">Used</th>'+
+    '<th style="text-align:center">Remaining</th>'+
+    '<th style="text-align:right">Utilization</th>'+
+    '<th style="text-align:right">Billed</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(function(row){
+      var c = row.c;
+      var pctColor = row.pct>=100?'var(--red,#dc2626)':row.pct>=85?'#d97706':row.pct>=50?'var(--brand)':'var(--text3)';
+      var pctIcon = row.pct>=100?'🔴 ':row.pct>=85?'⚠️ ':'';
+      var remaining = row.authorized > 0 ? Math.max(0, row.authorized - row.used) : '—';
+      return '<tr>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'—')+'</td>'+
+        '<td style="font-weight:600">'+c.last+', '+c.first+'</td>'+
+        '<td style="font-size:11px;color:var(--text3)">'+(c.authStart||'—')+' → '+(c.authEnd||'—')+'</td>'+
+        '<td style="text-align:center">'+(row.authorized>0?row.authorized.toLocaleString():'—')+'</td>'+
+        '<td style="text-align:center;font-weight:600">'+row.used.toLocaleString()+'</td>'+
+        '<td style="text-align:center">'+remaining+'</td>'+
+        '<td style="text-align:right;font-weight:700;color:'+pctColor+'">'+pctIcon+(row.authorized>0?row.pct.toFixed(1)+'%':'no auth')+'</td>'+
+        '<td style="text-align:right">'+_cmFmtMoney(row.billed)+'</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  return header + table;
+}
+
+// ── Report: CPT Code Distribution ──
+function _cmRptCodes(d, billing) {
+  var byCode = {};
+  billing.forEach(function(b){
+    var code = b.code || '__none';
+    if (!byCode[code]) byCode[code] = { count:0, units:0, billed:0, paid:0 };
+    byCode[code].count++;
+    byCode[code].units += parseInt(b.units)||0;
+    byCode[code].billed += parseFloat(b.total)||0;
+    if (b.status==='Paid') byCode[code].paid += parseFloat(b.total)||0;
+  });
+  var rows = Object.keys(byCode).map(function(code){
+    var cat = (typeof _cmCatByCode === 'function') ? _cmCatByCode(code) : null;
+    return { code:code, desc:(cat?cat.desc:'—'), ...byCode[code] };
+  }).sort(function(a,b){return b.billed - a.billed;});
+
+  if (!rows.length) return '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No billing data in this period.</div>';
+
+  var totalBilled = rows.reduce(function(s,r){return s+r.billed;},0);
+  var header =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div style="font-size:13px;font-weight:700">CPT / HCPCS Distribution</div>'+
+      '<button class="btn btn-xs" onclick="_cmRptExport(\'codes\')"><i data-lucide="download" class="lci" style="width:11px;height:11px"></i> Export CSV</button>'+
+    '</div>';
+
+  var table = '<div class="tbl-wrap"><table><thead><tr>'+
+    '<th style="width:80px">Code</th><th>Description</th>'+
+    '<th style="text-align:center">Entries</th>'+
+    '<th style="text-align:center">Units</th>'+
+    '<th style="text-align:right">Billed</th>'+
+    '<th style="text-align:right">Paid</th>'+
+    '<th style="text-align:right">Share</th>'+
+    '</tr></thead><tbody>'+
+    rows.map(function(row){
+      var share = totalBilled > 0 ? (row.billed / totalBilled * 100) : 0;
+      // mini bar
+      var barPct = Math.min(100, share);
+      return '<tr>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+row.code+'</td>'+
+        '<td style="font-size:11px;color:var(--text2)">'+row.desc+'</td>'+
+        '<td style="text-align:center">'+row.count+'</td>'+
+        '<td style="text-align:center">'+row.units.toLocaleString()+'</td>'+
+        '<td style="text-align:right;font-weight:600">'+_cmFmtMoney(row.billed)+'</td>'+
+        '<td style="text-align:right;color:var(--green,#059669)">'+_cmFmtMoney(row.paid)+'</td>'+
+        '<td style="text-align:right;font-weight:600;min-width:100px">'+
+          '<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">'+
+            '<div style="width:60px;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:'+barPct+'%;height:100%;background:var(--brand)"></div></div>'+
+            '<span style="min-width:40px;text-align:right">'+share.toFixed(1)+'%</span>'+
+          '</div>'+
+        '</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  return header + table;
+}
+
+// ── Report: A/R Aging ──
+// For billing entries with status Submitted (not yet Paid/Rejected), age from serviceDate.
+function _cmRptAging(d, billing) {
+  var outstanding = billing.filter(function(b){return b.status === 'Submitted' || b.status === 'Ready';});
+  var now = new Date();
+  var buckets = { '0-30':{count:0,$:0}, '31-60':{count:0,$:0}, '61-90':{count:0,$:0}, '90+':{count:0,$:0} };
+  var rows = [];
+  outstanding.forEach(function(b){
+    var dos = b.serviceDate ? new Date(b.serviceDate) : now;
+    var ageDays = Math.max(0, Math.floor((now - dos) / 86400000));
+    var bucket = ageDays <= 30 ? '0-30' : ageDays <= 60 ? '31-60' : ageDays <= 90 ? '61-90' : '90+';
+    buckets[bucket].count++;
+    buckets[bucket].$ += parseFloat(b.total)||0;
+    rows.push({ b:b, age:ageDays, bucket:bucket });
+  });
+  rows.sort(function(a,b){return b.age - a.age;});
+
+  var bucketCard = function(label, obj, color) {
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid '+color+';border-radius:8px;padding:12px 14px">'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+color+'">'+label+' days</div>'+
+      '<div style="font-size:20px;font-weight:800;color:var(--text);margin-top:4px">'+_cmFmtMoney(obj.$)+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+obj.count+' entr'+(obj.count===1?'y':'ies')+'</div>'+
+    '</div>';
+  };
+
+  var header =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<div><div style="font-size:13px;font-weight:700">A/R Aging</div>'+
+      '<div style="font-size:11px;color:var(--text3)">Submitted &amp; Ready entries not yet paid, aged from date of service.</div></div>'+
+      '<button class="btn btn-xs" onclick="_cmRptExport(\'aging\')"><i data-lucide="download" class="lci" style="width:11px;height:11px"></i> Export CSV</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">'+
+      bucketCard('0-30', buckets['0-30'], 'var(--green,#059669)')+
+      bucketCard('31-60', buckets['31-60'], '#d97706')+
+      bucketCard('61-90', buckets['61-90'], '#ea580c')+
+      bucketCard('90+', buckets['90+'], 'var(--red,#dc2626)')+
+    '</div>';
+
+  if (!rows.length) return header + '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">🎉 Nothing outstanding. All entries are Draft, Paid, or Rejected.</div>';
+
+  var table = '<div class="tbl-wrap"><table><thead><tr>'+
+    '<th>Client</th><th style="width:100px">DOS</th><th style="width:80px">Code</th>'+
+    '<th style="text-align:right;width:90px">Amount</th>'+
+    '<th style="text-align:center;width:80px">Age (days)</th>'+
+    '<th style="width:80px">Bucket</th>'+
+    '<th>PCN</th>'+
+    '</tr></thead><tbody>'+
+    rows.slice(0,50).map(function(row){
+      var b = row.b;
+      var bColor = row.bucket==='0-30'?'var(--green,#059669)':row.bucket==='31-60'?'#d97706':row.bucket==='61-90'?'#ea580c':'var(--red,#dc2626)';
+      return '<tr>'+
+        '<td style="font-weight:600">'+_cmClientName(b.clientId)+'</td>'+
+        '<td style="font-size:12px">'+(b.serviceDate||'—')+'</td>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(b.code||'')+'</td>'+
+        '<td style="text-align:right;font-weight:600">'+_cmFmtMoney(b.total||0)+'</td>'+
+        '<td style="text-align:center;font-weight:600;color:'+bColor+'">'+row.age+'</td>'+
+        '<td><span style="font-size:10px;font-weight:700;color:'+bColor+';background:'+bColor+'15;padding:2px 8px;border-radius:10px">'+row.bucket+'</span></td>'+
+        '<td style="font-size:11px;color:var(--text3);font-family:var(--mono)">'+(b.pcn||'—')+'</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>'+
+    (rows.length > 50 ? '<div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">Showing top 50 of '+rows.length+'. Export CSV for full list.</div>' : '');
+  return header + table;
+}
+
+// ── CSV export per report ──
+function _cmRptExport(which) {
+  var d = getCMData();
+  var billing = _cmRptFilterBilling(d);
+  var range = _cmRptDateRange();
+  var esc = function(v){
+    v = String(v==null?'':v);
+    return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  };
+  var rows = [];
+  var filename = 'cm_report_'+which+'_';
+
+  if (which === 'productivity') {
+    var byW = {};
+    billing.forEach(function(b){
+      var w = b.workerId || '__unassigned';
+      if (!byW[w]) byW[w] = { entries:0, units:0, billed:0, paid:0, rejected:0 };
+      byW[w].entries++; byW[w].units += parseInt(b.units)||0; byW[w].billed += parseFloat(b.total)||0;
+      if (b.status==='Paid') byW[w].paid += parseFloat(b.total)||0;
+      if (b.status==='Rejected') byW[w].rejected += parseFloat(b.total)||0;
+    });
+    rows.push(['Worker','Credential','BillLines','Units','Billed','Paid','Rejected','CollectionRate%']);
+    Object.keys(byW).forEach(function(wid){
+      var w = (d.workers||[]).find(function(x){return x.id===wid;});
+      var name = w ? (w.first+' '+w.last) : '(Unassigned)';
+      var cred = w ? (w.credential||'') : '';
+      var s = byW[wid];
+      var rate = (s.paid + s.rejected) > 0 ? (s.paid / (s.paid + s.rejected) * 100) : 0;
+      rows.push([name, cred, s.entries, s.units, s.billed.toFixed(2), s.paid.toFixed(2), s.rejected.toFixed(2), rate.toFixed(1)]);
+    });
+  }
+  else if (which === 'utilization') {
+    var byC = {};
+    (d.billing||[]).forEach(function(b){
+      var cid = b.clientId; if (!cid) return;
+      if (!byC[cid]) byC[cid] = { used:0, billed:0, paid:0 };
+      byC[cid].used += parseInt(b.units)||0;
+      byC[cid].billed += parseFloat(b.total)||0;
+      if (b.status==='Paid') byC[cid].paid += parseFloat(b.total)||0;
+    });
+    rows.push(['FileNo','LastName','FirstName','AuthStart','AuthEnd','AuthorizedUnits','UsedUnits','RemainingUnits','UtilizationPct','Billed','Paid']);
+    (d.clients||[]).filter(function(c){return c.status==='Active';}).forEach(function(c){
+      var s = byC[c.id] || { used:0, billed:0, paid:0 };
+      var auth = parseInt(c.authUnits)||0;
+      var pct = auth>0 ? (s.used/auth*100).toFixed(1) : '';
+      var rem = auth>0 ? Math.max(0, auth-s.used) : '';
+      rows.push([c.fileNo||'', c.last||'', c.first||'', c.authStart||'', c.authEnd||'', auth||'', s.used, rem, pct, s.billed.toFixed(2), s.paid.toFixed(2)]);
+    });
+  }
+  else if (which === 'codes') {
+    var byCode = {};
+    billing.forEach(function(b){
+      var code = b.code || '__none';
+      if (!byCode[code]) byCode[code] = { count:0, units:0, billed:0, paid:0 };
+      byCode[code].count++; byCode[code].units += parseInt(b.units)||0;
+      byCode[code].billed += parseFloat(b.total)||0;
+      if (b.status==='Paid') byCode[code].paid += parseFloat(b.total)||0;
+    });
+    rows.push(['Code','Description','Entries','Units','Billed','Paid']);
+    Object.keys(byCode).forEach(function(code){
+      var cat = (typeof _cmCatByCode === 'function') ? _cmCatByCode(code) : null;
+      var s = byCode[code];
+      rows.push([code, cat?cat.desc:'', s.count, s.units, s.billed.toFixed(2), s.paid.toFixed(2)]);
+    });
+  }
+  else if (which === 'aging') {
+    var outstanding = billing.filter(function(b){return b.status==='Submitted' || b.status==='Ready';});
+    var now = new Date();
+    rows.push(['Client','FileNo','ServiceDate','Code','Amount','AgeDays','Bucket','PCN','Status']);
+    outstanding.forEach(function(b){
+      var cli = (d.clients||[]).find(function(c){return c.id===b.clientId;}) || {};
+      var dos = b.serviceDate ? new Date(b.serviceDate) : now;
+      var age = Math.max(0, Math.floor((now - dos) / 86400000));
+      var bucket = age <= 30 ? '0-30' : age <= 60 ? '31-60' : age <= 90 ? '61-90' : '90+';
+      rows.push([(cli.last||'')+', '+(cli.first||''), cli.fileNo||'', b.serviceDate||'', b.code||'', (b.total||0).toFixed(2), age, bucket, b.pcn||'', b.status||'']);
+    });
+  }
+
+  var csv = rows.map(function(r){return r.map(esc).join(',');}).join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var suffix = (range.from||'all')+'_'+(range.to||'now');
+  a.download = filename+suffix.replace(/[^\w\-]/g,'')+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
+  toast('Report exported');
+}
+
 
 function renderCMSettings() {
   var el = document.getElementById('cm-settings-content');
