@@ -1550,13 +1550,27 @@ function _renderClaimEditorInner(){
   var statusOpts=['draft','pending','submitted','accepted','rejected','on_hold','denied','partially_paid','paid','voided'];
   var activeTab=window._ceActiveTab||'services';
 
+  // ── TOP NAV BAR ──
+  // In float mode (opened over Patient Chart), the "Claims" button becomes
+  // "Back to Patient" and a close (×) button is appended at the end,
+  // absorbing what used to be a separate black bar above.
+  var _floatMode = !!window._ceFloatMode;
+  var _leftBtn = _floatMode
+    ? '<button class="btn btn-xs" onclick="window._ceCloseFloatPanel && window._ceCloseFloatPanel()" title="Back to Patient Chart" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Back to Patient</button>'
+    : '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>';
+  var _closeBtn = _floatMode
+    ? '<button onclick="window._ceCloseFloatPanel && window._ceCloseFloatPanel()" title="Close Claim Editor" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;margin-left:4px">&times;</button>'
+    : '';
+
   var html=
   // ── WRAPPER ──
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#c96442;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(201,100,66,.25)">'+
-    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    _leftBtn+
+    '<span style="color:rgba(255,255,255,.4)">|</span>'+
+    '<span style="font-size:12px;font-weight:700;color:#fff">Claim Editor</span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
     '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'—')+'</strong></span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
@@ -1567,6 +1581,7 @@ function _renderClaimEditorInner(){
     '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
     '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
     '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" style="background:#fff;color:#c96442;border:1px solid #fff;border-radius:6px;font-weight:700"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+    _closeBtn+
   '</div>'+
 
   // ── PATIENT INFO BANNER ──
@@ -1785,7 +1800,10 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<td style="'+tcStyle+';font-family:monospace;color:'+(linePaid>0?'#2d7a4f':S.stoneGray)+'">'+linePaid.toFixed(2)+'</td>'
         +'<td style="'+tcStyle+';font-family:monospace;font-weight:700;color:'+(due>0?S.nearBlack:'#2d7a4f')+'">'+due.toFixed(2)+'</td>'
         +'<td style="'+tcStyle+'"><span style="font-size:10px;padding:1px 5px;border-radius:10px;background:'+S.parchment+';border:1px solid '+S.borderWarm+';color:'+S.oliveGray+'">'+(claim.status||'draft')+'</span></td>'
-        +'<td style="'+tcStyle+'"><button onclick="_ceRemoveLine(\''+claimId+'\','+li+')" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';padding:2px 4px;font-size:13px;line-height:1" title="Remove line">×</button></td>'
+        +'<td style="'+tcStyle+'"><div style="display:inline-flex;align-items:center;gap:2px">'
+          +'<button onclick="_ceOpenAccidentModal(\''+claimId+'\')" style="border:1px solid '+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?S.terracotta:S.borderWarm)+';background:'+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?S.terracotta:S.ivory)+';cursor:pointer;color:'+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?'#fff':S.oliveGray)+';padding:2px 5px;border-radius:4px;line-height:1;display:inline-flex;align-items:center;justify-content:center" title="Accident / Casualty Info (Box 10-11b, 14)"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i></button>'
+          +'<button onclick="_ceRemoveLine(\''+claimId+'\','+li+')" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';padding:2px 4px;font-size:13px;line-height:1" title="Remove line">×</button>'
+        +'</div></td>'
         +'</tr>';
     }).join('')+
     '<tr style="background:'+S.parchment+';border-top:2px solid '+S.borderWarm+'">'
@@ -1866,7 +1884,6 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state)?'<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#fff3ee;color:#c96442;border:1px solid #f0d4c8;border-radius:10px;font-size:10px;font-weight:700"><i data-lucide="car" class="lci" style="width:10px;height:10px"></i> ACCIDENT</span>':'')
       +'<div style="flex:1"></div>'
       +'<button onclick="_ceAddLine(\''+claimId+'\')" title="Add CPT Line" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.terracotta+';color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:16px;height:16px"></i></button>'
-      +'<button onclick="_ceOpenAccidentModal(\''+claimId+'\')" title="Accident / Casualty Info (Box 10-11b, 14)" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state) ? S.terracotta : S.warmSand)+';color:'+(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state) ? '#fff' : S.charcoalWarm)+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0;position:relative"><i data-lucide="file-plus-2" class="lci" style="width:15px;height:15px"></i></button>'
       +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" title="Use Previous Bill" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="history" class="lci" style="width:15px;height:15px"></i></button>'
       +'<button onclick="_ceLoadToday(\''+claimId+'\')" title="Load Today\'s Services" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="calendar-check" class="lci" style="width:15px;height:15px"></i></button>'
     +'</div>'
@@ -16159,7 +16176,11 @@ sv('mins-state', ins.state||'');
 sv('mins-zip', ins.zip||'');
 sv('mins-notes', ins.notes||'');
 const typeEl = document.getElementById('mins-type');
-if (typeEl) typeEl.value = ins.type||'electronic';
+if (typeEl) {
+  typeEl.value = ins.type||'electronic';
+  // Update Payer ID label whenever type changes, and once on open
+  typeEl.onchange = _updatePayerIdLabel;
+}
 const statEl = document.getElementById('mins-status');
 if (statEl) statEl.value = ins.status||'Active';
 const badge = document.getElementById('mins-claimmd-badge');
@@ -16169,14 +16190,35 @@ if (badge) badge.style.display = ins.claimmdVerified ? '' : 'none';
 const el = document.getElementById(id); if(el) el.style.display='none';
 });
 openModal('modal-insurance');
-setTimeout(_renderLucideIcons,20);
+setTimeout(function(){ _renderLucideIcons(); _updatePayerIdLabel(); },20);
+}
+
+// Toggle the Payer ID label between "Payer ID *" (required for electronic)
+// and "Payer ID" + Optional hint (manual/paper).
+function _updatePayerIdLabel() {
+  var type = document.getElementById('mins-type')?.value || 'electronic';
+  var payerIdInput = document.getElementById('mins-payerid');
+  if (!payerIdInput) return;
+  var label = payerIdInput.closest('.field')?.querySelector('label');
+  if (!label) return;
+  if (type === 'manual') {
+    label.innerHTML = 'Payer ID <span style="font-size:10px;color:var(--text3);font-weight:400">(optional for manual/paper)</span>';
+    payerIdInput.placeholder = 'Optional';
+    payerIdInput.style.background = 'var(--bg3)';
+  } else {
+    label.innerHTML = 'Payer ID *';
+    payerIdInput.placeholder = 'e.g. 77027';
+    payerIdInput.style.background = '';
+  }
 }
 
 function saveInsurance() {
 const name = v('mins-name');
 const payerId = v('mins-payerid');
+const insType = document.getElementById('mins-type')?.value||'electronic';
 if (!name) { toast('Payer name is required','warn'); return; }
-if (!payerId) { toast('Payer ID is required','warn'); return; }
+// Payer ID only required for electronic (EDI) submission — manual/paper payers can skip it
+if (insType === 'electronic' && !payerId) { toast('Payer ID is required for electronic submission','warn'); return; }
 const iid = (document.getElementById('mins-id')?.value||'').trim();
 const isNew = !iid;
 const db = getDB();
@@ -22984,41 +23026,14 @@ function openClaimDetail(claimId) {
       window._ceFloatMode = false;
     };
 
-    var hdr = document.createElement('div');
-    hdr.style.cssText = 'height:36px;flex-shrink:0;background:#141413;display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0';
-
-    var backBtn = document.createElement('button');
-    backBtn.textContent = '← Back to Patient';
-    backBtn.style.cssText = 'background:none;border:none;color:#fff;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px';
-    backBtn.onclick = window._ceCloseFloatPanel;
-
-    var sep = document.createElement('span');
-    sep.textContent = '|';
-    sep.style.cssText = 'color:rgba(255,255,255,.3);margin:0 6px';
-
-    var title = document.createElement('span');
-    title.textContent = 'Claim Editor';
-    title.style.cssText = 'color:#fff;font-size:12px;font-weight:600';
-
-    var spacer = document.createElement('div');
-    spacer.style.flex = '1';
-
-    var closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '&times;';
-    closeBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;line-height:1;padding:0 6px';
-    closeBtn.onclick = window._ceCloseFloatPanel;
-
-    hdr.appendChild(backBtn);
-    hdr.appendChild(sep);
-    hdr.appendChild(title);
-    hdr.appendChild(spacer);
-    hdr.appendChild(closeBtn);
+    // Header removed — Back to Patient + Close (×) are integrated into the
+    // terracotta title bar rendered by _renderClaimEditorInner when
+    // window._ceFloatMode is true.
 
     var body = document.createElement('div');
     body.id = 'claim-editor-content-float';
     body.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
 
-    panel.appendChild(hdr);
     panel.appendChild(body);
     ptOverlay.appendChild(panel);
 
