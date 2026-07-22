@@ -1555,18 +1555,18 @@ function _renderClaimEditorInner(){
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
-  '<div style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:#faf9f5;border-bottom:2px solid #c96442;flex-shrink:0">'+
-    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
-    '<span style="color:#e8e6dc">|</span>'+
-    '<span style="font-size:11px;color:#5e5d59">Bill# <strong style="color:#141413">'+(claim.billNum||'—')+'</strong></span>'+
-    '<span style="color:#e8e6dc">|</span>'+
-    '<span style="font-size:11px;color:#5e5d59">Total <strong style="color:#c96442;font-family:monospace">$'+billed.toFixed(2)+'</strong></span>'+
+  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#c96442;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(201,100,66,.25)">'+
+    '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>'+
+    '<span style="color:rgba(255,255,255,.4)">|</span>'+
+    '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'—')+'</strong></span>'+
+    '<span style="color:rgba(255,255,255,.4)">|</span>'+
+    '<span style="font-size:11px;color:rgba(255,255,255,.85)">Total <strong style="color:#fff;font-family:monospace">$'+billed.toFixed(2)+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
-    '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:#f0eee6;color:#5e5d59;border:1px solid #e8e6dc;border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
-    '<button class="btn btn-xs btn-primary" onclick="_ceSave(\''+claimId+'\')"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+    '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
+    '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" style="background:#fff;color:#c96442;border:1px solid #fff;border-radius:6px;font-weight:700"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
   '</div>'+
 
   // ── PATIENT INFO BANNER ──
@@ -1863,8 +1863,10 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     // CPT table header
     +'<div style="padding:6px 10px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
       +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'
+      +(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state)?'<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#fff3ee;color:#c96442;border:1px solid #f0d4c8;border-radius:10px;font-size:10px;font-weight:700"><i data-lucide="car" class="lci" style="width:10px;height:10px"></i> ACCIDENT</span>':'')
       +'<div style="flex:1"></div>'
       +'<button onclick="_ceAddLine(\''+claimId+'\')" title="Add CPT Line" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.terracotta+';color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:16px;height:16px"></i></button>'
+      +'<button onclick="_ceOpenAccidentModal(\''+claimId+'\')" title="Accident / Casualty Info (Box 10-11b, 14)" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state) ? S.terracotta : S.warmSand)+';color:'+(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state) ? '#fff' : S.charcoalWarm)+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0;position:relative"><i data-lucide="file-plus-2" class="lci" style="width:15px;height:15px"></i></button>'
       +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" title="Use Previous Bill" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="history" class="lci" style="width:15px;height:15px"></i></button>'
       +'<button onclick="_ceLoadToday(\''+claimId+'\')" title="Load Today\'s Services" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="calendar-check" class="lci" style="width:15px;height:15px"></i></button>'
     +'</div>'
@@ -2952,6 +2954,228 @@ function _ceTransmitToPending(claimId){
 function _ceBypassMinor(claimId){
   window._ceBypassMinorWarnings = claimId;
   _ceSave(claimId, {bypass:true});
+}
+
+// ── ACCIDENT / CASUALTY INFO MODAL (CMS-1500 Box 10, 11b, 14) ──
+// Frank's use case: GEICO auto claims and other property/casualty payers
+// Box 10a = Employment | 10b = Auto Accident + State | 10c = Other Accident
+// Box 11b = Casualty Claim # (with Y4 qualifier in EDI)
+// Box 14  = Accident Date (with 439 qualifier)
+function _ceOpenAccidentModal(claimId){
+  var db=getDB();
+  var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
+  if(idx<0){ toast('Claim not found','err'); return; }
+  var claim=db.claims[idx];
+  claim.accident = claim.accident || {};
+  var a = claim.accident;
+  // Migrate legacy top-level flags into accident object once
+  if(!a.employment && claim.emp==='Y') a.employment='Y';
+  if(!a.autoAccident && claim.auto==='Y') a.autoAccident='Y';
+
+  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var sel = function(cur,val){ return cur===val ? ' selected' : ''; };
+  var states = ['','AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
+
+  // Detect casualty payer (rough heuristic based on payer name/id)
+  var pat=(db.patients||[]).find(function(p){return p.id===claim.patId;})||{};
+  var ins1=(pat.insurances||[]).find(function(i){return !i.inactive;})||{};
+  var payerName=(ins1.name||pat.payerName||'').toUpperCase();
+  var isCasualty = /GEICO|STATE FARM|PROGRESSIVE|ALLSTATE|LIBERTY|FARMERS|USAA|NATIONWIDE|PIP/i.test(payerName);
+
+  // Remove any existing accident modal
+  var existing=document.getElementById('modal-ce-accident');
+  if(existing) existing.remove();
+
+  var overlay=document.createElement('div');
+  overlay.id='modal-ce-accident';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick=function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var inputStyle = 'width:100%;padding:7px 10px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:13px;background:#faf9f5;color:#141413;font-family:inherit';
+  var monoStyle  = inputStyle + ';font-family:monospace;letter-spacing:.02em';
+  var labelStyle = 'display:block;font-size:10px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px';
+  var sectStyle  = 'font-size:11px;font-weight:800;color:#c96442;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px;padding-bottom:6px;border-bottom:1.5px solid #f0d4c8';
+
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:12px;width:100%;max-width:720px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
+    // Header (terracotta)
+    '<div style="padding:14px 22px;background:#c96442;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
+      '<div>'+
+        '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="car" class="lci" style="width:18px;height:18px"></i> Accident / Casualty Info</div>'+
+        '<div style="font-size:11px;opacity:.9;margin-top:2px">CMS-1500 Box 10a-c, 11b, 14 &nbsp;·&nbsp; Bill# '+(claim.billNum||'—')+'</div>'+
+      '</div>'+
+      '<button onclick="document.getElementById(\'modal-ce-accident\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
+    '</div>'+
+
+    // Body
+    '<div style="padding:18px 22px;overflow-y:auto;flex:1">'+
+
+    (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #f0d4c8;border-radius:8px;margin-bottom:14px;font-size:12px;color:#c96442;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # is required for electronic submission.</span></div>' : '')+
+
+    // ── Box 10 — Related To ──
+    '<div style="'+sectStyle+'">Box 10 — Patient\'s Condition Related To</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'+
+      '<div><label style="'+labelStyle+'">10a — Employment</label>'+
+        '<select id="acc-employment" style="'+inputStyle+'">'+
+          '<option value="N"'+sel(a.employment||'N','N')+'>N — No</option>'+
+          '<option value="Y"'+sel(a.employment,'Y')+'>Y — Yes</option>'+
+        '</select></div>'+
+      '<div><label style="'+labelStyle+'">10b — Auto Accident</label>'+
+        '<select id="acc-auto" onchange="_ceToggleAutoState()" style="'+inputStyle+'">'+
+          '<option value="N"'+sel(a.autoAccident||'N','N')+'>N — No</option>'+
+          '<option value="Y"'+sel(a.autoAccident,'Y')+'>Y — Yes</option>'+
+        '</select></div>'+
+      '<div><label style="'+labelStyle+'">Accident State (10b)</label>'+
+        '<select id="acc-state" style="'+inputStyle+'">'+
+          states.map(function(s){return '<option value="'+s+'"'+sel(a.state,s)+'>'+(s||'— select —')+'</option>';}).join('')+
+        '</select></div>'+
+    '</div>'+
+    '<div style="margin-top:10px">'+
+      '<label style="'+labelStyle+'">10c — Other Accident</label>'+
+      '<select id="acc-other" style="'+inputStyle+';max-width:200px">'+
+        '<option value="N"'+sel(a.otherAccident||'N','N')+'>N — No</option>'+
+        '<option value="Y"'+sel(a.otherAccident,'Y')+'>Y — Yes</option>'+
+      '</select>'+
+    '</div>'+
+
+    // ── Box 14 — Date of Current Illness/Injury ──
+    '<div style="'+sectStyle+'">Box 14 — Date of Current Injury / Accident</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+      '<div><label style="'+labelStyle+'">Accident Date <span style="color:#c96442">*</span></label>'+
+        '<input type="date" id="acc-date" value="'+esc(a.date)+'" style="'+inputStyle+'">'+
+        '<div style="font-size:10px;color:#87867f;margin-top:3px">EDI qualifier: <strong>439</strong> (Accident)</div>'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Onset Qualifier</label>'+
+        '<select id="acc-qualifier" style="'+inputStyle+'">'+
+          '<option value="439"'+sel(a.qualifier||'439','439')+'>439 — Accident</option>'+
+          '<option value="431"'+sel(a.qualifier,'431')+'>431 — Onset of Current Symptoms</option>'+
+          '<option value="484"'+sel(a.qualifier,'484')+'>484 — Last Menstrual Period</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>'+
+
+    // ── Box 11b — Casualty Claim # ──
+    '<div style="'+sectStyle+'">Box 11b — Other Claim ID <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Casualty Payer Claim #)</span></div>'+
+    '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:end">'+
+      '<div><label style="'+labelStyle+'">Qualifier</label>'+
+        '<input type="text" value="Y4" readonly style="'+monoStyle+';background:#f0eee6;color:#5e5d59;text-align:center;font-weight:700">'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Casualty Claim # <span style="color:#c96442">*</span></label>'+
+        '<input type="text" id="acc-claim-number" value="'+esc(a.claimNumber)+'" placeholder="e.g. 0123456789012345" style="'+monoStyle+'">'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#87867f;margin-top:4px">This is the claim number assigned by GEICO / State Farm / other P&amp;C payer. Emitted in EDI 837P as <code style="background:#f5f4ed;padding:1px 4px;border-radius:3px">REF*Y4*&lt;number&gt;</code>.</div>'+
+
+    // ── Adjuster / Operational (not on CMS-1500 but useful) ──
+    '<div style="'+sectStyle+'">Adjuster &amp; Contact <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(internal use)</span></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+      '<div><label style="'+labelStyle+'">Adjuster Name</label>'+
+        '<input type="text" id="acc-adjuster-name" value="'+esc(a.adjusterName)+'" style="'+inputStyle+'">'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Adjuster Phone</label>'+
+        '<input type="text" id="acc-adjuster-phone" value="'+esc(a.adjusterPhone)+'" placeholder="800-000-0000" style="'+monoStyle+'">'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Adjuster Email</label>'+
+        '<input type="text" id="acc-adjuster-email" value="'+esc(a.adjusterEmail)+'" style="'+inputStyle+'">'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Policy # (Auto)</label>'+
+        '<input type="text" id="acc-policy" value="'+esc(a.policyNumber)+'" style="'+monoStyle+'">'+
+      '</div>'+
+    '</div>'+
+
+    // ── Attorney info (optional, common in P&C cases) ──
+    '<div style="'+sectStyle+'">Attorney <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(optional — if patient is represented)</span></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+      '<div><label style="'+labelStyle+'">Attorney Name / Firm</label>'+
+        '<input type="text" id="acc-attorney-name" value="'+esc(a.attorneyName)+'" style="'+inputStyle+'">'+
+      '</div>'+
+      '<div><label style="'+labelStyle+'">Attorney Phone</label>'+
+        '<input type="text" id="acc-attorney-phone" value="'+esc(a.attorneyPhone)+'" style="'+monoStyle+'">'+
+      '</div>'+
+    '</div>'+
+
+    // ── Description ──
+    '<div style="margin-top:14px">'+
+      '<label style="'+labelStyle+'">Accident Description / Notes</label>'+
+      '<textarea id="acc-description" rows="2" style="'+inputStyle+';resize:vertical;min-height:56px" placeholder="Brief description of accident (internal notes only, not sent to payer)">'+esc(a.description)+'</textarea>'+
+    '</div>'+
+
+    // ── FL PIP specific note ──
+    '<div id="acc-pip-warn" style="'+((a.autoAccident==='Y' && (a.state==='FL' || !a.state))?'':'display:none;')+'margin-top:14px;padding:10px 14px;background:#fef7ee;border:1px solid #fed7aa;border-radius:8px;font-size:11px;color:#9a3412">'+
+      '<strong>⚠ FL PIP notice:</strong> If billing under Florida PIP, patient must have been treated within 14 days of accident. $10,000 statutory limit. Confirm PIP payer ID (not health payer ID).'+
+    '</div>'+
+
+    '</div>'+ // /body
+
+    // Footer
+    '<div style="padding:12px 22px;background:#f5f4ed;border-top:1px solid #e8e6dc;display:flex;gap:8px;justify-content:space-between;align-items:center;flex-shrink:0">'+
+      '<div style="font-size:11px;color:#5e5d59">'+(a.updatedAt?'Last saved '+new Date(a.updatedAt).toLocaleString():'Not yet saved')+'</div>'+
+      '<div style="display:flex;gap:8px">'+
+        (a.claimNumber||a.date||a.state||a.adjusterName?'<button onclick="_ceClearAccident(\''+claimId+'\')" style="padding:8px 14px;background:#fff;color:#c96442;border:1.5px solid #c96442;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Clear All</button>':'')+
+        '<button onclick="document.getElementById(\'modal-ce-accident\').remove()" style="padding:8px 16px;background:#fff;color:#5e5d59;border:1.5px solid #e8e6dc;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Cancel</button>'+
+        '<button onclick="_ceSaveAccident(\''+claimId+'\')" style="padding:8px 18px;background:#c96442;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save Accident Info</button>'+
+      '</div>'+
+    '</div>'+
+    '</div>';
+
+  document.body.appendChild(overlay);
+  setTimeout(function(){ if(typeof _renderLucideIcons==='function') _renderLucideIcons(); }, 20);
+}
+
+function _ceToggleAutoState(){
+  var isAuto = document.getElementById('acc-auto')?.value === 'Y';
+  var stateEl = document.getElementById('acc-state');
+  if(stateEl && !isAuto) stateEl.value = '';
+  // Show/hide FL PIP warning
+  var pipEl = document.getElementById('acc-pip-warn');
+  var state = stateEl?.value || '';
+  if(pipEl) pipEl.style.display = (isAuto && (state==='FL' || !state)) ? '' : 'none';
+}
+
+function _ceSaveAccident(claimId){
+  var db=getDB();
+  var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
+  if(idx<0){ toast('Claim not found','err'); return; }
+  var val=function(id){ return (document.getElementById(id)?.value||'').trim(); };
+  var claim=db.claims[idx];
+  claim.accident = {
+    employment: val('acc-employment') || 'N',
+    autoAccident: val('acc-auto') || 'N',
+    otherAccident: val('acc-other') || 'N',
+    state: val('acc-state'),
+    date: val('acc-date'),
+    qualifier: val('acc-qualifier') || '439',
+    claimNumber: val('acc-claim-number'),
+    adjusterName: val('acc-adjuster-name'),
+    adjusterPhone: val('acc-adjuster-phone'),
+    adjusterEmail: val('acc-adjuster-email'),
+    policyNumber: val('acc-policy'),
+    attorneyName: val('acc-attorney-name'),
+    attorneyPhone: val('acc-attorney-phone'),
+    description: val('acc-description'),
+    updatedAt: Date.now()
+  };
+  // Mirror to top-level fields for backward compat with existing export/validation code
+  claim.emp = claim.accident.employment;
+  claim.auto = claim.accident.autoAccident;
+  saveDB(db);
+  toast('Accident info saved','ok');
+  document.getElementById('modal-ce-accident')?.remove();
+  renderClaimEditor();
+}
+
+function _ceClearAccident(claimId){
+  if(!confirm('Clear all accident information for this claim?\n\nThis cannot be undone.')) return;
+  var db=getDB();
+  var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
+  if(idx<0) return;
+  db.claims[idx].accident = {};
+  db.claims[idx].emp = 'N';
+  db.claims[idx].auto = 'N';
+  saveDB(db);
+  toast('Accident info cleared','ok');
+  document.getElementById('modal-ce-accident')?.remove();
+  renderClaimEditor();
 }
 
 function _ceSave(claimId, opts){
@@ -8333,8 +8557,8 @@ if (!_sgForm.patients || !_sgForm.patients.length) {
     const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
     // Extra info line (payer / member ID / phone) — only render pieces that exist
     const infoBits = [];
-    if(pat.payername) infoBits.push('<span style="color:#c96442;font-weight:600">'+pat.payername+'</span>');
-    else if(pat.payerid) infoBits.push('<span style="color:#c96442;font-weight:600">Payer '+pat.payerid+'</span>');
+    const payerLabel = _sgResolvePayerName(pat, db);
+    if(payerLabel) infoBits.push('<span style="color:#c96442;font-weight:600">'+payerLabel+'</span>');
     if(pat.insnum) infoBits.push('Sub ID <span style="font-family:var(--mono,monospace);color:#141413">'+pat.insnum+'</span>');
     if(pat.phone) infoBits.push('<span style="font-family:var(--mono,monospace)">'+pat.phone+'</span>');
     const extraLine = infoBits.length ? '<div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">'+infoBits.join(' · ')+'</div>' : '';
@@ -8465,6 +8689,22 @@ function openSGPatientPicker(){
   renderSGPatientPicker();
 }
 
+// Resolve display name for a patient's payer:
+// 1) patient's own payername   2) look up db.insurances by payerid   3) "—"
+function _sgResolvePayerName(pat, db) {
+  if (!pat) return '';
+  db = db || getDB();
+  var name = (pat.payername||'').trim();
+  if (name) return name;
+  var pid = (pat.payerid||'').trim();
+  if (pid) {
+    var ins = (db.insurances||[]).find(function(i){return String(i.payerId||'').trim()===pid || String(i.payerid||'').trim()===pid;});
+    if (ins && ins.name) return ins.name;
+    return pid; // last resort: show the id itself (no "Payer" prefix)
+  }
+  return '';
+}
+
 function renderSGPatientPicker(){
   var listEl = document.getElementById('sgpick-list');
   if(!listEl || !_sgForm) return;
@@ -8507,7 +8747,7 @@ function renderSGPatientPicker(){
       '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">'+ini+'</div>'+
       '<div style="min-width:0"><div style="font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'—')+'</div></div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'—')+'</div><div style="font-size:10px;color:#87867f">'+(p.sex||'')+'</div></div>'+
-      '<div style="min-width:0"><div style="color:#c96442;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.payername||(p.payerid?'Payer '+p.payerid:'—'))+'</div>'+(p.plan?'<div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
+      '<div style="min-width:0"><div style="color:#c96442;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'—')+'</div>'+(p.plan?'<div style="font-size:10px;color:#87867f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'—')+'</div><div style="font-size:10px;color:#87867f">Sub ID</div></div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'—')+'</div>'+
     '</div>';
