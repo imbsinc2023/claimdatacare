@@ -1551,16 +1551,13 @@ function _renderClaimEditorInner(){
   var activeTab=window._ceActiveTab||'services';
 
   // ── TOP NAV BAR ──
-  // In float mode (opened over Patient Chart), the "Claims" button becomes
-  // "Back to Patient" and a close (×) button is appended at the end,
-  // absorbing what used to be a separate black bar above.
+  // In float mode we still expose the close (×). The left "Back" button is
+  // removed by request — the terracotta bar only shows Claim Editor identity
+  // and action icons on the right.
   var _floatMode = !!window._ceFloatMode;
-  var _leftBtn = _floatMode
-    ? '<button class="btn btn-xs" onclick="window._ceCloseFloatPanel && window._ceCloseFloatPanel()" title="Back to Patient Chart" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Back to Patient</button>'
-    : '<button class="btn btn-xs" onclick="go(\'claims\')" title="Back to Claims" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="arrow-left" class="lci" style="width:13px;height:13px"></i> Claims</button>';
   var _closeBtn = _floatMode
     ? '<button onclick="window._ceCloseFloatPanel && window._ceCloseFloatPanel()" title="Close Claim Editor" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;margin-left:4px">&times;</button>'
-    : '';
+    : '<button onclick="go(\'claims\')" title="Close" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;margin-left:4px">&times;</button>';
 
   var html=
   // ── WRAPPER ──
@@ -1568,8 +1565,6 @@ function _renderClaimEditorInner(){
 
   // ── TOP NAV BAR ──
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#c96442;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(201,100,66,.25)">'+
-    _leftBtn+
-    '<span style="color:rgba(255,255,255,.4)">|</span>'+
     '<span style="font-size:12px;font-weight:700;color:#fff">Claim Editor</span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
     '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'—')+'</strong></span>'+
@@ -1577,10 +1572,9 @@ function _renderClaimEditorInner(){
     '<span style="font-size:11px;color:rgba(255,255,255,.85)">Total <strong style="color:#fff;font-family:monospace">$'+billed.toFixed(2)+'</strong></span>'+
     statusBadge(claim.status)+
     '<div style="flex:1"></div>'+
-    '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="printer" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="copy" class="lci" style="width:12px;height:12px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceValidate(\''+claimId+'\')" title="Scrub / Validate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px"><i data-lucide="shield-check" class="lci" style="width:12px;height:12px"></i> Scrub</button>'+
-    '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" style="background:#fff;color:#c96442;border:1px solid #fff;border-radius:6px;font-weight:700"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+    '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" title="Save" style="background:#fff;color:#c96442;border:1px solid #fff;border-radius:6px;width:28px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:700"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>'+
     _closeBtn+
   '</div>'+
 
@@ -1607,6 +1601,9 @@ function _renderClaimEditorInner(){
   '<div id="ce-scrub" style="display:none"></div>'+
   '<div id="ce-scrub-list" style="display:none"></div>'+
 
+  // ── STATIC CLAIM CHECK panel (always visible, live validation) ──
+  '<div id="ce-claim-check-static" style="flex-shrink:0;padding:6px 12px"></div>'+
+
   // ── MAIN BODY (Services tab) ──
   (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts,errs):'')+
   (activeTab==='payments'?_ceBuildPaymentsTab(claim,claimId,db):'') +
@@ -1624,6 +1621,10 @@ function _renderClaimEditorInner(){
     // below throws (previously a thrown error here left every icon in
     // this view blank, since _renderLucideIcons was scheduled last).
     if (typeof _renderLucideIcons === 'function') _renderLucideIcons();
+    // Fire static Claim Check panel render every time the editor is drawn
+    try { _ceValidate(claimId, {silent:true}); } catch(e) {}
+    // Auto-save + auto-revalidate on any field change (debounced)
+    _ceWireAutoSave(el, claimId);
     try {
     // POS select
     var posEl=document.getElementById('ce-pos');
@@ -1744,6 +1745,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   var linesHtml = (claim.lines&&claim.lines.length)?
     '<table style="width:100%;border-collapse:collapse">'+
     '<thead><tr>'+
+    '<th style="'+theadStyle+';width:18px;padding:0"></th>'+
     '<th style="'+theadStyle+';text-align:left;min-width:80px">Svc From</th>'+
     '<th style="'+theadStyle+';text-align:left;min-width:80px">Svc To</th>'+
     '<th style="'+theadStyle+'">CPT</th>'+
@@ -1774,14 +1776,39 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       var linePaid    = (priAmt+secAmt) * shareRatio;
       var due = Math.max(0, lineCharge - lineAdj - linePaid - patPaid*shareRatio);
       var ptr = (l.dxPtr||'').toUpperCase();
-      var dxPtrs = dxLetters.slice(0,Math.max((claim.dx||[]).filter(Boolean).length,1)).split('').map(function(letter,i){
-        if(!claim.dx||!claim.dx[i]) return '';
-        var chk = ptr.includes(letter);
-        return '<label style="display:inline-flex;align-items:center;gap:1px;font-size:10px;cursor:pointer;padding:1px 3px;border-radius:3px;border:1px solid '+(chk?S.terracotta:S.borderWarm)+';background:'+(chk?'rgba(201,100,66,.08)':S.ivory)+'">'
-          +'<input type="checkbox" id="ce-ln-dxptr-'+li+'-'+letter+'" '+(chk?'checked':'')+' value="'+letter+'" style="width:9px;height:9px;margin:0;accent-color:'+S.terracotta+'">'+letter+'</label>';
+      // Draggable ICD chips: (1) chips currently linked in order (draggable to reorder),
+      // (2) available letters not yet linked (click to add).
+      var linkedLetters = ptr.split('').filter(function(ch){
+        var idx = dxLetters.indexOf(ch);
+        return idx >= 0 && claim.dx && claim.dx[idx];
+      });
+      var availableLetters = [];
+      for(var d=0; d<8; d++){
+        var letter = dxLetters[d];
+        if(claim.dx && claim.dx[d] && linkedLetters.indexOf(letter) < 0) availableLetters.push(letter);
+      }
+      var linkedChips = linkedLetters.map(function(letter, ord){
+        return '<span draggable="true" '+
+          'ondragstart="_ceDxDragStart(event,'+li+','+ord+')" '+
+          'ondragover="event.preventDefault();this.style.background=\'#f0d4c8\'" '+
+          'ondragleave="this.style.background=\'\'" '+
+          'ondrop="_ceDxDrop(event,\''+claimId+'\','+li+','+ord+')" '+
+          'onclick="_ceDxUnlink(\''+claimId+'\','+li+',\''+letter+'\')" '+
+          'title="Drag to reorder · Click to remove" '+
+          'style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;background:'+S.terracotta+';color:#fff;font-size:10px;font-weight:700;font-family:monospace;border-radius:10px;cursor:grab;user-select:none">'+
+          (ord+1)+'.'+letter+
+        '</span>';
       }).join('');
+      var availChips = availableLetters.map(function(letter){
+        return '<span onclick="_ceDxLink(\''+claimId+'\','+li+',\''+letter+'\')" '+
+          'title="Click to link" '+
+          'style="display:inline-flex;align-items:center;padding:2px 6px;background:'+S.ivory+';color:'+S.stoneGray+';font-size:10px;font-weight:600;font-family:monospace;border:1px dashed '+S.borderWarm+';border-radius:10px;cursor:pointer;user-select:none">+'+letter+'</span>';
+      }).join('');
+      var dxChipsHtml = '<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-width:60px;justify-content:flex-start">'+(linkedChips||'')+(availChips||'')+'</div>';
+
       var rowBg = li%2===0 ? S.ivory : S.parchment;
-      return '<tr style="background:'+rowBg+'">'
+      return '<tr draggable="true" ondragstart="_ceLineDragStart(event,'+li+')" ondragover="event.preventDefault()" ondrop="_ceLineDrop(event,\''+claimId+'\','+li+')" style="background:'+rowBg+'" data-line-idx="'+li+'">'
+        +'<td style="'+tcStyle+';width:18px;padding:0;text-align:center;cursor:grab;color:'+S.stoneGray+'" title="Drag to reorder line"><i data-lucide="grip-vertical" class="lci" style="width:12px;height:12px"></i></td>'
         +'<td style="'+tcStyle+'">'+inp('ce-ln-dos-'+li,l.dos||claim.dos||'','76px')+'</td>'
         +'<td style="'+tcStyle+'">'+inp('ce-ln-dos-to-'+li,l.dosTo||l.dos||claim.dos||'','76px')+'</td>'
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-cpt-'+li+'" class="ce-cpt-input" value="'+(l.cpt||'')+'" style="width:62px;font-size:11px;font-family:monospace;font-weight:700;color:'+S.terracotta+';padding:3px 5px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'" autocomplete="off"></td>'
@@ -1790,7 +1817,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod2-'+li+'" value="'+(l.mod2||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod3-'+li+'" value="'+(l.mod3||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod4-'+li+'" value="'+(l.mod4||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
-        +'<td style="'+tcStyle+'"><div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;min-width:60px">'+dxPtrs+'</div></td>'
+        +'<td style="'+tcStyle+'">'+dxChipsHtml+'</td>'
         +'<td style="'+tcStyle+'"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px 3px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Min</option></select></td>'
         +'<td style="'+tcStyle+'"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:34px;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';text-align:center"></td>'
         +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">'+lineAdj.toFixed(2)+'</td>'
@@ -1867,23 +1894,19 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
       +'</div>'
 
-      // CPT Pad (right, wider and taller for better usability)
-      +'<div style="width:290px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';padding-left:12px;display:flex;flex-direction:column;max-height:340px">'
+      // CPT Pad (right, search-only — results appear only when typing, click to add)
+      +'<div style="width:290px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';padding-left:12px;display:flex;flex-direction:column">'
         +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-shrink:0">'
           +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em;flex:1">CPT Pad</span>'
           +'<i data-lucide="pill" class="lci" style="width:12px;height:12px;color:'+S.terracotta+'"></i>'
         +'</div>'
-        +'<input id="ce-cpt-search" type="text" placeholder="Search CPT or description..." autocomplete="off" '
-          +'oninput="_cePadSearch(this.value)" onkeydown="if(event.key===\'Enter\'){_ceAddManualCPT(\''+claimId+'\',this.value);this.value=\'\';_cePadSearch(\'\')}" '
-          +'style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px;border:1px solid '+S.borderWarm+';border-radius:5px;background:'+S.ivory+';color:'+S.nearBlack+';flex-shrink:0;margin-bottom:5px">'
-        +'<div id="ce-cpt-pad-list" style="flex:1;overflow-y:auto;min-height:0"></div>'
-        +'<div style="border-top:1px dashed '+S.borderWarm+';padding-top:6px;margin-top:6px;flex-shrink:0">'
-          +'<div style="font-size:10px;color:'+S.stoneGray+';margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Add manually</div>'
-          +'<div style="display:flex;gap:4px">'
-            +'<input id="ce-cpt-manual" type="text" placeholder="CPT" maxlength="5" style="width:70px;font-size:11px;padding:5px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;font-family:monospace">'
-            +'<input id="ce-cpt-manual-rate" type="text" placeholder="Rate" style="width:60px;font-size:11px;padding:5px 6px;border:1px solid '+S.borderWarm+';border-radius:4px;font-family:monospace">'
-            +'<button onclick="_ceAddManualCPT(\''+claimId+'\')" style="flex:1;padding:5px 8px;background:'+S.terracotta+';color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">+ Add</button>'
-          +'</div>'
+        +'<div style="position:relative">'
+          +'<input id="ce-cpt-search" type="text" placeholder="Search CPT or description..." autocomplete="off" '
+            +'oninput="_cePadSearch(this.value,\''+claimId+'\')" '
+            +'onkeydown="if(event.key===\'Enter\'&&this.value.trim()){_ceAddManualCPT(\''+claimId+'\',this.value);this.value=\'\';_cePadSearch(\'\',\''+claimId+'\')}else if(event.key===\'Escape\'){this.value=\'\';_cePadSearch(\'\',\''+claimId+'\')}" '
+            +'style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px;border:1px solid '+S.borderWarm+';border-radius:5px;background:'+S.ivory+';color:'+S.nearBlack+';flex-shrink:0">'
+          // Results dropdown - only appears while typing
+          +'<div id="ce-cpt-pad-list" style="position:absolute;top:100%;left:0;right:0;background:'+S.ivory+';border:1px solid '+S.borderWarm+';border-top:none;border-radius:0 0 5px 5px;max-height:220px;overflow-y:auto;z-index:50;display:none;box-shadow:0 4px 12px rgba(0,0,0,.08)"></div>'
         +'</div>'
       +'</div>'
 
@@ -1892,32 +1915,6 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     // CPT table header
     +'<div style="padding:6px 10px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
       +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'
-      +(function(){
-        var m = claim.more || {};
-        var a = m.accident || claim.accident || {};
-        var lines = m.lines || {};
-        var badges = [];
-        var mkBadge = function(bg, fg, bdr, icon, label){
-          return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:'+bg+';color:'+fg+';border:1px solid '+bdr+';border-radius:10px;font-size:10px;font-weight:700"><i data-lucide="'+icon+'" class="lci" style="width:10px;height:10px"></i> '+label+'</span>';
-        };
-        if (a.claimNumber||a.date||a.state) badges.push(mkBadge('#fff3ee','#c96442','#f0d4c8','car','ACCIDENT'));
-        // Scan any line for per-line data
-        var hasMea=false, hasDrug=false, hasEpsdt=false, hasAnes=false, hasOther=false;
-        Object.keys(lines).forEach(function(k){
-          var ld = lines[k]||{};
-          if(ld.measurements && ld.measurements.value) hasMea=true;
-          if(ld.drug && ld.drug.code) hasDrug=true;
-          if(ld.epsdt && ld.epsdt.indicator) hasEpsdt=true;
-          if(ld.anesthesia && (ld.anesthesia.fromHours||ld.anesthesia.toHours)) hasAnes=true;
-          if(ld.other && (ld.other.lastSeen||ld.other.emergency||ld.other.description||ld.other.orderingProvider)) hasOther=true;
-        });
-        if(hasMea)   badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','ruler','MEA'));
-        if(hasDrug)  badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','pill','NDC'));
-        if(hasEpsdt) badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','baby','EPSDT'));
-        if(hasAnes)  badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','clock','ANES'));
-        if(hasOther) badges.push(mkBadge('#f5f4ed','#5e5d59','#e8e6dc','settings-2','OTHER'));
-        return badges.join(' ');
-      })()
       +'<div style="flex:1"></div>'
       +'<button onclick="_ceAddLine(\''+claimId+'\')" title="Add CPT Line" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.terracotta+';color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:16px;height:16px"></i></button>'
       +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" title="Use Previous Bill" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="history" class="lci" style="width:15px;height:15px"></i></button>'
@@ -2827,24 +2824,20 @@ function _cePadRender(encounterCpts, svcMap, query) {
   if (!container) return;
   var catalog = window._cePadCatalog || [];
   var q = (query||'').toLowerCase().trim();
-  var filtered = q
-    ? catalog.filter(function(s){
-        return (s.code||'').toLowerCase().includes(q) ||
-               (s.desc||s.description||'').toLowerCase().includes(q);
-      }).slice(0,25)
-    : catalog.slice(0,30);
-  var html = '';
-  if (encounterCpts && encounterCpts.length && !q) {
-    html += '<div style="padding:3px 8px 2px;font-size:9px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em;background:#f5f4ed;border-bottom:1px solid #e8e6dc">From Encounter</div>';
-    encounterCpts.forEach(function(code){
-      var svc = svcMap ? svcMap[code] : null;
-      var price = svc ? parseFloat(svc.rate||svc.price||0).toFixed(2) : '0.00';
-      var desc = svc ? (svc.desc||svc.description||'') : '';
-      html += _cePadItem(code, desc, price, true);
-    });
-    html += '<div style="height:1px;background:#e8e6dc;margin:3px 0"></div>';
-    html += '<div style="padding:3px 8px 2px;font-size:9px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.06em;background:#f5f4ed;border-bottom:1px solid #e8e6dc">Catalog</div>';
+
+  // Empty query → hide the dropdown entirely (no default list)
+  if (!q) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
   }
+
+  var filtered = catalog.filter(function(s){
+    return (s.code||'').toLowerCase().includes(q) ||
+           (s.desc||s.description||'').toLowerCase().includes(q);
+  }).slice(0,25);
+
+  var html = '';
   if (filtered.length) {
     filtered.forEach(function(s){
       var code = s.code||s.cpt||'';
@@ -2852,15 +2845,27 @@ function _cePadRender(encounterCpts, svcMap, query) {
       var desc = s.desc||s.description||'';
       html += _cePadItem(code, desc, price, false);
     });
-  } else if (q) {
-    html += '<div style="padding:12px 8px;text-align:center;font-size:11px;color:#87867f;font-style:italic">No CPTs found</div>';
+  } else {
+    // No catalog match — offer to add whatever the user typed as a raw CPT
+    var typed = query.trim().toUpperCase();
+    if (/^[0-9A-Z]{4,5}$/.test(typed)) {
+      html += '<div onclick="_cePadAddCpt(\''+typed+'\',\'0.00\')" style="display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer;border-bottom:1px solid #e8e6dc;background:#fff3ee" onmouseover="this.style.background=\'#f0d4c8\'" onmouseout="this.style.background=\'#fff3ee\'">'+
+                '<i data-lucide="plus" class="lci" style="width:12px;height:12px;color:#c96442"></i>'+
+                '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#c96442;font-family:monospace">'+typed+'</div><div style="font-size:9px;color:#87867f">Add as new CPT line</div></div>'+
+              '</div>';
+    } else {
+      html += '<div style="padding:12px 8px;text-align:center;font-size:11px;color:#87867f;font-style:italic">No CPTs found</div>';
+    }
   }
-  container.innerHTML = html || '<div style="padding:8px;font-size:11px;color:#87867f;text-align:center;font-style:italic">No CPTs in catalog</div>';
+
+  container.innerHTML = html;
+  container.style.display = 'block';
+  setTimeout(function(){ if(typeof _renderLucideIcons==='function') _renderLucideIcons(); }, 10);
 }
 
 function _cePadItem(code, desc, price, isEncounter) {
   return '<div onclick="_cePadAddCpt(\''+code+'\',\''+price+'\')" '+
-    'style="display:flex;align-items:center;gap:5px;padding:5px 8px;cursor:pointer;border-bottom:1px solid #e8e6dc" '+
+    'style="display:flex;align-items:center;gap:5px;padding:6px 8px;cursor:pointer;border-bottom:1px solid #e8e6dc" '+
     'onmouseover="this.style.background=\'#f5f4ed\'" onmouseout="this.style.background=\'\'">'+
       '<div style="flex:1;min-width:0">'+
         '<div style="font-size:11px;font-weight:700;color:'+(isEncounter?'#c96442':'#141413')+';font-family:monospace">'+code+'</div>'+
@@ -2870,10 +2875,11 @@ function _cePadItem(code, desc, price, isEncounter) {
     '</div>';
 }
 
-function _cePadSearch(q) {
+function _cePadSearch(q, claimId) {
   var svcMap = {};
   var catalog = window._cePadCatalog || [];
   catalog.forEach(function(s){ svcMap[s.code||s.cpt||''] = s; });
+  if (claimId) window._cePadClaimId = claimId;
   _cePadRender([], svcMap, q);
 }
 
@@ -2893,7 +2899,14 @@ function _cePadAddCpt(code, price) {
   claim.totalCharge = claim.lines.reduce(function(s,l){ return s+parseFloat(l.charge||0); },0).toFixed(2);
   claim.updatedAt = Date.now();
   setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  // Clear the search box + hide dropdown before re-render
+  var searchInp = document.getElementById('ce-cpt-search');
+  if (searchInp) searchInp.value = '';
+  var listEl = document.getElementById('ce-cpt-pad-list');
+  if (listEl) { listEl.innerHTML=''; listEl.style.display='none'; }
   renderClaimEditor();
+  // Auto-revalidate after adding
+  try { _ceValidate(claimId, {silent:true}); } catch(e) {}
   toast('CPT '+code+' added','ok');
 }
 
@@ -2940,6 +2953,78 @@ function _ceRemoveLine(claimId, lineIdx) {
 }
 
 // ── Add empty line ────────────────────────────────────────────────────────
+
+// ── ICD dx-pointer chip handlers (per-line) ──
+function _ceDxLink(claimId, lineIdx, letter){
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim || !claim.lines || !claim.lines[lineIdx]) return;
+  var cur = (claim.lines[lineIdx].dxPtr||'').toUpperCase().replace(/[^A-H]/g,'');
+  if(cur.indexOf(letter) < 0) cur += letter;
+  claim.lines[lineIdx].dxPtr = cur;
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
+  try { _ceValidate(claimId,{silent:true}); } catch(e) {}
+}
+function _ceDxUnlink(claimId, lineIdx, letter){
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim || !claim.lines || !claim.lines[lineIdx]) return;
+  var cur = (claim.lines[lineIdx].dxPtr||'').toUpperCase().split('').filter(function(ch){return ch!==letter;}).join('');
+  claim.lines[lineIdx].dxPtr = cur;
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
+  try { _ceValidate(claimId,{silent:true}); } catch(e) {}
+}
+function _ceDxDragStart(ev, lineIdx, ord){
+  ev.stopPropagation(); // prevent bubbling to row drag
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', 'dxchip|'+lineIdx+'|'+ord);
+  window._ceDxDrag = { lineIdx: lineIdx, ord: ord };
+}
+function _ceDxDrop(ev, claimId, lineIdx, targetOrd){
+  ev.preventDefault(); ev.stopPropagation();
+  if(ev.currentTarget) ev.currentTarget.style.background = '';
+  var drag = window._ceDxDrag;
+  if(!drag || drag.lineIdx !== lineIdx) return;
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim || !claim.lines || !claim.lines[lineIdx]) return;
+  var letters = (claim.lines[lineIdx].dxPtr||'').toUpperCase().split('');
+  if(drag.ord === targetOrd || drag.ord >= letters.length) return;
+  var moved = letters.splice(drag.ord, 1)[0];
+  letters.splice(targetOrd, 0, moved);
+  claim.lines[lineIdx].dxPtr = letters.join('');
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  window._ceDxDrag = null;
+  renderClaimEditor();
+  try { _ceValidate(claimId,{silent:true}); } catch(e) {}
+}
+
+// ── CPT line drag reorder ──
+function _ceLineDragStart(ev, lineIdx){
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', 'line|'+lineIdx);
+  window._ceLineDrag = lineIdx;
+}
+function _ceLineDrop(ev, claimId, targetIdx){
+  ev.preventDefault();
+  var src = window._ceLineDrag;
+  window._ceLineDrag = null;
+  if(src == null || src === targetIdx) return;
+  var db = getDB();
+  var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
+  if(!claim || !claim.lines) return;
+  var moved = claim.lines.splice(src, 1)[0];
+  claim.lines.splice(targetIdx, 0, moved);
+  claim.updatedAt = Date.now();
+  setDB(function(db2){ var idx=db2.claims.findIndex(function(x){return x.id===claimId;}); if(idx>=0) db2.claims[idx]=claim; });
+  renderClaimEditor();
+  try { _ceValidate(claimId,{silent:true}); } catch(e) {}
+}
 
 function _ceAddLine(claimId) {
   var db = getDB();
@@ -3606,15 +3691,41 @@ function _ceSave(claimId, opts){
     _logClaimEvent(claimId, 'edit', 'Claim saved with no field changes');
   }
   if (!opts.silent) toast('Claim saved','ok');
-  renderClaimEditor();
-  renderClaims();
+  if (!opts.skipRender) renderClaimEditor();
+  if (!opts.skipRender) renderClaims();
 }
 
-function _ceValidate(claimId){
+// ── Auto-save + auto-revalidate wiring ──
+// Attaches once per container. On every input/change within the editor,
+// waits 700ms of idle then triggers _ceSave + _ceValidate silently.
+function _ceWireAutoSave(container, claimId){
+  if(!container) return;
+  if(container._ceAutoWired === claimId) return;
+  container._ceAutoWired = claimId;
+  var timer = null;
+  var scheduleAutoSave = function(ev){
+    // Ignore inputs the caller marked as non-tracked (like tab buttons)
+    var tgt = ev.target;
+    if(tgt && tgt.getAttribute && tgt.getAttribute('data-ce-notrack')==='1') return;
+    if(!tgt || !tgt.matches) return;
+    if(!tgt.matches('input,textarea,select')) return;
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      try { _ceSave(claimId,{silent:true, skipValidation:true, skipRender:true}); } catch(e) { console.warn('auto-save error', e); }
+      try { _ceValidate(claimId,{silent:true}); } catch(e) {}
+    }, 700);
+  };
+  container.addEventListener('input', scheduleAutoSave, true);
+  container.addEventListener('change', scheduleAutoSave, true);
+}
+
+function _ceValidate(claimId, opts){
+  opts = opts || {};
   var db=getDB();
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
   if(!claim) return;
   var errs=validateClaim(claim);
+  // Legacy scrub el (still supported for older layouts)
   var scrubEl=document.getElementById('ce-scrub');
   var listEl=document.getElementById('ce-scrub-list');
   if(scrubEl) scrubEl.style.display='block';
@@ -3628,7 +3739,75 @@ function _ceValidate(claimId){
       listEl.innerHTML='<div style="font-size:11px;color:var(--red);padding:4px 12px"><strong>'+errs.length+' error(s):</strong> '+errs.join(' · ')+'</div>';
     }
   }
+  // Static persistent claim-check panel (new)
+  var staticPanel = document.getElementById('ce-claim-check-static');
+  if(staticPanel){
+    _ceRenderStaticClaimCheck(claimId, errs);
+  }
+  // Store latest errors for the static panel to consult on re-render
+  window._ceValidationErrs = window._ceValidationErrs || {};
+  window._ceValidationErrs[claimId] = errs;
+  if(!opts.silent) setTimeout(_renderLucideIcons, 20);
+  return errs;
+}
+
+// ── Static Claim Check panel renderer ──
+function _ceRenderStaticClaimCheck(claimId, errs){
+  var panel = document.getElementById('ce-claim-check-static');
+  if(!panel) return;
+  errs = errs || (window._ceValidationErrs && window._ceValidationErrs[claimId]) || [];
+  var canBypass = _ceUserCanBypass();
+  var bypassed = window._ceBypassed && window._ceBypassed[claimId];
+
+  if(!errs.length){
+    panel.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0f8f2;border:1px solid #c9e2d1;border-radius:6px">'+
+        '<i data-lucide="shield-check" class="lci" style="width:16px;height:16px;color:#2d7a4f;flex-shrink:0"></i>'+
+        '<div style="flex:1;font-size:12px;color:#2d7a4f;font-weight:600">Claim Check — all validations passed</div>'+
+      '</div>';
+  } else {
+    var status = bypassed ? 'Bypassed' : (errs.length + ' issue' + (errs.length>1?'s':''));
+    var color  = bypassed ? '#87867f' : '#c96442';
+    var bg     = bypassed ? '#f5f4ed' : '#fff3ee';
+    var bdr    = bypassed ? '#e8e6dc' : '#f0d4c8';
+    panel.innerHTML =
+      '<div style="padding:8px 14px;background:'+bg+';border:1px solid '+bdr+';border-radius:6px">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+          '<i data-lucide="shield-alert" class="lci" style="width:16px;height:16px;color:'+color+';flex-shrink:0"></i>'+
+          '<div style="flex:1;font-size:12px;color:'+color+';font-weight:700">Claim Check — '+status+'</div>'+
+          (canBypass && !bypassed && errs.length ?
+            '<button onclick="_ceBypassValidation(\''+claimId+'\')" title="Bypass validation (requires privilege)" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#fff;color:'+color+';border:1px solid '+bdr+';border-radius:4px;cursor:pointer;padding:0"><i data-lucide="shield-off" class="lci" style="width:12px;height:12px"></i></button>'
+            : '')+
+          (bypassed ? '<button onclick="_ceUnbypassValidation(\''+claimId+'\')" title="Re-enable validation" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#fff;color:'+color+';border:1px solid '+bdr+';border-radius:4px;cursor:pointer;padding:0"><i data-lucide="undo-2" class="lci" style="width:12px;height:12px"></i></button>' : '')+
+        '</div>'+
+        (bypassed ? '' :
+          '<ul style="margin:0;padding:0 0 0 22px;list-style:disc;font-size:11px;color:'+color+';line-height:1.6">'+
+            errs.map(function(e){return '<li>'+e+'</li>';}).join('')+
+          '</ul>')+
+      '</div>';
+  }
   setTimeout(_renderLucideIcons, 20);
+}
+
+// User privilege check — bypass only for users with the flag set
+function _ceUserCanBypass(){
+  try {
+    var sess = getSession && getSession();
+    if(!sess) return false;
+    if(sess.role === 'Super Admin' || sess.role === 'Admin') return true;
+    return !!(sess.privileges && sess.privileges.claimBypass) || !!sess.canBypassValidation;
+  } catch(e){ return false; }
+}
+function _ceBypassValidation(claimId){
+  if(!_ceUserCanBypass()){ toast('Your account does not have bypass privilege','warn'); return; }
+  window._ceBypassed = window._ceBypassed || {};
+  window._ceBypassed[claimId] = true;
+  _ceRenderStaticClaimCheck(claimId);
+}
+function _ceUnbypassValidation(claimId){
+  window._ceBypassed = window._ceBypassed || {};
+  delete window._ceBypassed[claimId];
+  _ceRenderStaticClaimCheck(claimId);
 }
 
 function _ceDuplicate(claimId){
