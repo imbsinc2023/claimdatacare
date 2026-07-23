@@ -1801,7 +1801,18 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<td style="'+tcStyle+';font-family:monospace;font-weight:700;color:'+(due>0?S.nearBlack:'#2d7a4f')+'">'+due.toFixed(2)+'</td>'
         +'<td style="'+tcStyle+'"><span style="font-size:10px;padding:1px 5px;border-radius:10px;background:'+S.parchment+';border:1px solid '+S.borderWarm+';color:'+S.oliveGray+'">'+(claim.status||'draft')+'</span></td>'
         +'<td style="'+tcStyle+'"><div style="display:inline-flex;align-items:center;gap:2px">'
-          +'<button onclick="_ceOpenAccidentModal(\''+claimId+'\')" style="border:1px solid '+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?S.terracotta:S.borderWarm)+';background:'+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?S.terracotta:S.ivory)+';cursor:pointer;color:'+((claim.accident&&(claim.accident.claimNumber||claim.accident.date||claim.accident.state))?'#fff':S.oliveGray)+';padding:2px 5px;border-radius:4px;line-height:1;display:inline-flex;align-items:center;justify-content:center" title="Accident / Casualty Info (Box 10-11b, 14)"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i></button>'
+          +(function(){
+            var m = claim.more || {};
+            var a = m.accident || claim.accident || {};
+            var ld = (m.lines && m.lines[li]) || {};
+            var hasMore = !!(a.claimNumber||a.date||a.state
+                          || (ld.measurements && ld.measurements.value)
+                          || (ld.drug && ld.drug.code)
+                          || (ld.epsdt && ld.epsdt.indicator)
+                          || (ld.anesthesia && (ld.anesthesia.fromHours||ld.anesthesia.toHours))
+                          || (ld.other && (ld.other.lastSeen||ld.other.emergency||ld.other.description||ld.other.orderingProvider)));
+            return '<button onclick="_ceOpenMoreModal(\''+claimId+'\','+li+')" style="border:1px solid '+(hasMore?S.terracotta:S.borderWarm)+';background:'+(hasMore?S.terracotta:S.ivory)+';cursor:pointer;color:'+(hasMore?'#fff':S.oliveGray)+';padding:2px 5px;border-radius:4px;line-height:1;display:inline-flex;align-items:center;justify-content:center" title="Additional Details (Measurements, Drug, EPSDT, Anesthesia, Other, Accident)"><i data-lucide="plus" class="lci" style="width:12px;height:12px"></i></button>';
+          })()
           +'<button onclick="_ceRemoveLine(\''+claimId+'\','+li+')" style="border:none;background:none;cursor:pointer;color:'+S.stoneGray+';padding:2px 4px;font-size:13px;line-height:1" title="Remove line">×</button>'
         +'</div></td>'
         +'</tr>';
@@ -1881,7 +1892,32 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     // CPT table header
     +'<div style="padding:6px 10px;border-bottom:1px solid '+S.borderWarm+';background:'+S.ivory+';flex-shrink:0;display:flex;align-items:center;gap:6px">'
       +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em">Patient CPTs</span>'
-      +(claim.accident && (claim.accident.claimNumber||claim.accident.date||claim.accident.state)?'<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#fff3ee;color:#c96442;border:1px solid #f0d4c8;border-radius:10px;font-size:10px;font-weight:700"><i data-lucide="car" class="lci" style="width:10px;height:10px"></i> ACCIDENT</span>':'')
+      +(function(){
+        var m = claim.more || {};
+        var a = m.accident || claim.accident || {};
+        var lines = m.lines || {};
+        var badges = [];
+        var mkBadge = function(bg, fg, bdr, icon, label){
+          return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:'+bg+';color:'+fg+';border:1px solid '+bdr+';border-radius:10px;font-size:10px;font-weight:700"><i data-lucide="'+icon+'" class="lci" style="width:10px;height:10px"></i> '+label+'</span>';
+        };
+        if (a.claimNumber||a.date||a.state) badges.push(mkBadge('#fff3ee','#c96442','#f0d4c8','car','ACCIDENT'));
+        // Scan any line for per-line data
+        var hasMea=false, hasDrug=false, hasEpsdt=false, hasAnes=false, hasOther=false;
+        Object.keys(lines).forEach(function(k){
+          var ld = lines[k]||{};
+          if(ld.measurements && ld.measurements.value) hasMea=true;
+          if(ld.drug && ld.drug.code) hasDrug=true;
+          if(ld.epsdt && ld.epsdt.indicator) hasEpsdt=true;
+          if(ld.anesthesia && (ld.anesthesia.fromHours||ld.anesthesia.toHours)) hasAnes=true;
+          if(ld.other && (ld.other.lastSeen||ld.other.emergency||ld.other.description||ld.other.orderingProvider)) hasOther=true;
+        });
+        if(hasMea)   badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','ruler','MEA'));
+        if(hasDrug)  badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','pill','NDC'));
+        if(hasEpsdt) badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','baby','EPSDT'));
+        if(hasAnes)  badges.push(mkBadge('#eef4fb','#1e5490','#c4d8ee','clock','ANES'));
+        if(hasOther) badges.push(mkBadge('#f5f4ed','#5e5d59','#e8e6dc','settings-2','OTHER'));
+        return badges.join(' ');
+      })()
       +'<div style="flex:1"></div>'
       +'<button onclick="_ceAddLine(\''+claimId+'\')" title="Add CPT Line" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.terracotta+';color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="plus" class="lci" style="width:16px;height:16px"></i></button>'
       +'<button onclick="_ceLoadPrevious(\''+claimId+'\')" title="Use Previous Bill" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:8px;cursor:pointer;flex-shrink:0"><i data-lucide="history" class="lci" style="width:15px;height:15px"></i></button>'
@@ -2973,164 +3009,124 @@ function _ceBypassMinor(claimId){
   _ceSave(claimId, {bypass:true});
 }
 
-// ── ACCIDENT / CASUALTY INFO MODAL (CMS-1500 Box 10, 11b, 14) ──
-// Frank's use case: GEICO auto claims and other property/casualty payers
-// Box 10a = Employment | 10b = Auto Accident + State | 10c = Other Accident
-// Box 11b = Casualty Claim # (with Y4 qualifier in EDI)
-// Box 14  = Accident Date (with 439 qualifier)
-function _ceOpenAccidentModal(claimId){
+// ── ADDITIONAL INFO MODAL (the "+" button on each CPT row opens this) ──
+// Tabbed modal for extra service-line details that don't fit in the main editor.
+// 6 tabs: Measurements, Drug / NDC, EPSDT / CHCUP, Anesthesia, Other Details, Accident.
+// Per-line data lives in claim.more.lines[<lineIdx>]. Accident is claim-level.
+window._ceMoreTab = window._ceMoreTab || 'measurements';
+
+function _ceOpenMoreModal(claimId, lineIdx){
   var db=getDB();
   var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
   if(idx<0){ toast('Claim not found','err'); return; }
   var claim=db.claims[idx];
-  claim.accident = claim.accident || {};
-  var a = claim.accident;
-  // Migrate legacy top-level flags into accident object once
+  claim.more = claim.more || {};
+  claim.more.lines = claim.more.lines || {};
+
+  // Determine which CPT line we're editing
+  lineIdx = (lineIdx==null || lineIdx==='') ? 0 : parseInt(lineIdx);
+  if(isNaN(lineIdx) || lineIdx<0) lineIdx = 0;
+  var lines = claim.lines || claim.cpts || [];
+  var lineCount = lines.length || 1;
+  if(lineIdx >= lineCount) lineIdx = 0;
+  var lineData = claim.more.lines[lineIdx] = claim.more.lines[lineIdx] || {};
+  var cptLabel = (lines[lineIdx] && (lines[lineIdx].cpt||lines[lineIdx].code)) || '';
+
+  // Claim-level Accident (migrate legacy fields)
+  claim.more.accident = claim.more.accident || claim.accident || {};
+  var a = claim.more.accident;
   if(!a.employment && claim.emp==='Y') a.employment='Y';
   if(!a.autoAccident && claim.auto==='Y') a.autoAccident='Y';
 
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
-  var sel = function(cur,val){ return cur===val ? ' selected' : ''; };
-  var states = ['','AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
+  var existing=document.getElementById('modal-ce-more');
+  if(existing) existing.remove();
 
-  // Detect casualty payer (rough heuristic based on payer name/id)
+  var overlay=document.createElement('div');
+  overlay.id='modal-ce-more';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick=function(e){ if(e.target===overlay) overlay.remove(); };
+
+  // Detect casualty payer (only used inside accident tab)
   var pat=(db.patients||[]).find(function(p){return p.id===claim.patId;})||{};
   var ins1=(pat.insurances||[]).find(function(i){return !i.inactive;})||{};
   var payerName=(ins1.name||pat.payerName||'').toUpperCase();
   var isCasualty = /GEICO|STATE FARM|PROGRESSIVE|ALLSTATE|LIBERTY|FARMERS|USAA|NATIONWIDE|PIP/i.test(payerName);
 
-  // Remove any existing accident modal
-  var existing=document.getElementById('modal-ce-accident');
-  if(existing) existing.remove();
+  // Store current context for the save handler
+  window._ceMoreCtx = { claimId: claimId, lineIdx: lineIdx };
 
-  var overlay=document.createElement('div');
-  overlay.id='modal-ce-accident';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  overlay.onclick=function(e){ if(e.target===overlay) overlay.remove(); };
+  // ── Tab definitions ──
+  var tabs = [
+    { id:'measurements', label:'Measurements',   icon:'ruler',          hasData: !!(lineData.measurements && lineData.measurements.value),   scope:'per-line' },
+    { id:'drug',         label:'Drug / NDC',     icon:'pill',           hasData: !!(lineData.drug && lineData.drug.code),                     scope:'per-line' },
+    { id:'epsdt',        label:'EPSDT / CHCUP',  icon:'baby',           hasData: !!(lineData.epsdt && lineData.epsdt.indicator),              scope:'per-line' },
+    { id:'anesthesia',   label:'Anesthesia',     icon:'clock',          hasData: !!(lineData.anesthesia && (lineData.anesthesia.fromHours||lineData.anesthesia.toHours)), scope:'per-line' },
+    { id:'other',        label:'Other Details',  icon:'settings-2',     hasData: !!(lineData.other && (lineData.other.lastSeen||lineData.other.emergency||lineData.other.description||lineData.other.orderingProvider)), scope:'per-line' },
+    { id:'accident',     label:'Accident / Casualty', icon:'car',       hasData: !!(a.claimNumber||a.date||a.state||a.adjusterName),           scope:'claim' }
+  ];
+  var activeTab = window._ceMoreTab || 'measurements';
+  if(!tabs.find(function(t){return t.id===activeTab;})) activeTab = 'measurements';
 
-  var inputStyle = 'width:100%;padding:7px 10px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:13px;background:#faf9f5;color:#141413;font-family:inherit';
-  var monoStyle  = inputStyle + ';font-family:monospace;letter-spacing:.02em';
-  var labelStyle = 'display:block;font-size:10px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px';
-  var sectStyle  = 'font-size:11px;font-weight:800;color:#c96442;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px;padding-bottom:6px;border-bottom:1.5px solid #f0d4c8';
+  // Build line selector (only if there is more than 1 CPT line)
+  var lineSelector = '';
+  if(lineCount > 1) {
+    lineSelector = '<div style="padding:10px 14px;background:#faf9f5;border-bottom:1px solid #e8e6dc"><label style="display:block;font-size:9px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">CPT Line</label><select onchange="window._ceMoreCtx.lineIdx=parseInt(this.value);_ceOpenMoreModal(\'' + claimId + '\',parseInt(this.value))" style="width:100%;padding:6px 8px;border:1px solid #e8e6dc;border-radius:5px;font-size:12px;background:#fff;color:#141413">' +
+      lines.map(function(l, i){ var cpt=(l && (l.cpt||l.code))||'—'; return '<option value="'+i+'"'+(i===lineIdx?' selected':'')+'>Line '+(i+1)+' — '+cpt+'</option>'; }).join('') +
+    '</select></div>';
+  }
+
+  // Build sidebar
+  var sidebar = tabs.map(function(t){
+    var isActive = t.id === activeTab;
+    return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#c96442':'#5e5d59')+';cursor:pointer;border-left:3px solid '+(isActive?'#c96442':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
+      '<i data-lucide="'+t.icon+'" class="lci" style="width:14px;height:14px;flex-shrink:0"></i>'+
+      '<span style="flex:1;line-height:1.2">'+t.label+'<div style="font-size:9px;font-weight:400;color:#87867f;margin-top:2px">'+t.scope+'</div></span>'+
+      (t.hasData ? '<span style="width:8px;height:8px;background:#c96442;border-radius:50%;flex-shrink:0" title="Has data"></span>' : '')+
+    '</button>';
+  }).join('');
+
+  // Build content area based on active tab
+  var content;
+  if (activeTab === 'measurements') content = _ceMoreTabMeasurements(lineData);
+  else if (activeTab === 'drug')    content = _ceMoreTabDrug(lineData);
+  else if (activeTab === 'epsdt')   content = _ceMoreTabEpsdt(lineData);
+  else if (activeTab === 'anesthesia') content = _ceMoreTabAnesthesia(lineData);
+  else if (activeTab === 'other')   content = _ceMoreTabOther(lineData);
+  else if (activeTab === 'accident')content = _ceMoreTabAccident(claim, isCasualty, payerName);
+  else content = '<div style="padding:24px;color:#87867f;font-size:12px">Coming soon.</div>';
+
+  var subtitle = activeTab === 'accident'
+    ? 'Applies to entire claim &nbsp;·&nbsp; Bill# '+(claim.billNum||'—')
+    : 'Line '+(lineIdx+1)+' of '+lineCount+(cptLabel?' — CPT <strong>'+cptLabel+'</strong>':'')+' &nbsp;·&nbsp; Bill# '+(claim.billNum||'—');
 
   overlay.innerHTML =
-    '<div style="background:#fff;border-radius:12px;width:100%;max-width:720px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
+    '<div style="background:#fff;border-radius:12px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
     // Header (terracotta)
     '<div style="padding:14px 22px;background:#c96442;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
       '<div>'+
-        '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="car" class="lci" style="width:18px;height:18px"></i> Accident / Casualty Info</div>'+
-        '<div style="font-size:11px;opacity:.9;margin-top:2px">CMS-1500 Box 10a-c, 11b, 14 &nbsp;·&nbsp; Bill# '+(claim.billNum||'—')+'</div>'+
+        '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="file-plus-2" class="lci" style="width:18px;height:18px"></i> CPT Additional Details</div>'+
+        '<div style="font-size:11px;opacity:.9;margin-top:2px">'+subtitle+'</div>'+
       '</div>'+
-      '<button onclick="document.getElementById(\'modal-ce-accident\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
+      '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
     '</div>'+
-
-    // Body
-    '<div style="padding:18px 22px;overflow-y:auto;flex:1">'+
-
-    (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #f0d4c8;border-radius:8px;margin-bottom:14px;font-size:12px;color:#c96442;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # is required for electronic submission.</span></div>' : '')+
-
-    // ── Box 10 — Related To ──
-    '<div style="'+sectStyle+'">Box 10 — Patient\'s Condition Related To</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'+
-      '<div><label style="'+labelStyle+'">10a — Employment</label>'+
-        '<select id="acc-employment" style="'+inputStyle+'">'+
-          '<option value="N"'+sel(a.employment||'N','N')+'>N — No</option>'+
-          '<option value="Y"'+sel(a.employment,'Y')+'>Y — Yes</option>'+
-        '</select></div>'+
-      '<div><label style="'+labelStyle+'">10b — Auto Accident</label>'+
-        '<select id="acc-auto" onchange="_ceToggleAutoState()" style="'+inputStyle+'">'+
-          '<option value="N"'+sel(a.autoAccident||'N','N')+'>N — No</option>'+
-          '<option value="Y"'+sel(a.autoAccident,'Y')+'>Y — Yes</option>'+
-        '</select></div>'+
-      '<div><label style="'+labelStyle+'">Accident State (10b)</label>'+
-        '<select id="acc-state" style="'+inputStyle+'">'+
-          states.map(function(s){return '<option value="'+s+'"'+sel(a.state,s)+'>'+(s||'— select —')+'</option>';}).join('')+
-        '</select></div>'+
-    '</div>'+
-    '<div style="margin-top:10px">'+
-      '<label style="'+labelStyle+'">10c — Other Accident</label>'+
-      '<select id="acc-other" style="'+inputStyle+';max-width:200px">'+
-        '<option value="N"'+sel(a.otherAccident||'N','N')+'>N — No</option>'+
-        '<option value="Y"'+sel(a.otherAccident,'Y')+'>Y — Yes</option>'+
-      '</select>'+
-    '</div>'+
-
-    // ── Box 14 — Date of Current Illness/Injury ──
-    '<div style="'+sectStyle+'">Box 14 — Date of Current Injury / Accident</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-      '<div><label style="'+labelStyle+'">Accident Date <span style="color:#c96442">*</span></label>'+
-        '<input type="date" id="acc-date" value="'+esc(a.date)+'" style="'+inputStyle+'">'+
-        '<div style="font-size:10px;color:#87867f;margin-top:3px">EDI qualifier: <strong>439</strong> (Accident)</div>'+
+    // Body: sidebar + content
+    '<div style="display:flex;flex:1;min-height:0;overflow:hidden">'+
+      // Sidebar
+      '<div style="width:210px;flex-shrink:0;background:#f5f4ed;border-right:1px solid #e8e6dc;display:flex;flex-direction:column">'+
+        lineSelector+
+        '<div style="flex:1;overflow-y:auto;padding:8px 0">'+sidebar+'</div>'+
       '</div>'+
-      '<div><label style="'+labelStyle+'">Onset Qualifier</label>'+
-        '<select id="acc-qualifier" style="'+inputStyle+'">'+
-          '<option value="439"'+sel(a.qualifier||'439','439')+'>439 — Accident</option>'+
-          '<option value="431"'+sel(a.qualifier,'431')+'>431 — Onset of Current Symptoms</option>'+
-          '<option value="484"'+sel(a.qualifier,'484')+'>484 — Last Menstrual Period</option>'+
-        '</select>'+
+      // Content
+      '<div id="ce-more-content" style="flex:1;padding:20px 24px;overflow-y:auto">'+
+        content+
       '</div>'+
     '</div>'+
-
-    // ── Box 11b — Casualty Claim # ──
-    '<div style="'+sectStyle+'">Box 11b — Other Claim ID <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Casualty Payer Claim #)</span></div>'+
-    '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:end">'+
-      '<div><label style="'+labelStyle+'">Qualifier</label>'+
-        '<input type="text" value="Y4" readonly style="'+monoStyle+';background:#f0eee6;color:#5e5d59;text-align:center;font-weight:700">'+
-      '</div>'+
-      '<div><label style="'+labelStyle+'">Casualty Claim # <span style="color:#c96442">*</span></label>'+
-        '<input type="text" id="acc-claim-number" value="'+esc(a.claimNumber)+'" placeholder="e.g. 0123456789012345" style="'+monoStyle+'">'+
-      '</div>'+
-    '</div>'+
-    '<div style="font-size:11px;color:#87867f;margin-top:4px">This is the claim number assigned by GEICO / State Farm / other P&amp;C payer. Emitted in EDI 837P as <code style="background:#f5f4ed;padding:1px 4px;border-radius:3px">REF*Y4*&lt;number&gt;</code>.</div>'+
-
-    // ── Adjuster / Operational (not on CMS-1500 but useful) ──
-    '<div style="'+sectStyle+'">Adjuster &amp; Contact <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(internal use)</span></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-      '<div><label style="'+labelStyle+'">Adjuster Name</label>'+
-        '<input type="text" id="acc-adjuster-name" value="'+esc(a.adjusterName)+'" style="'+inputStyle+'">'+
-      '</div>'+
-      '<div><label style="'+labelStyle+'">Adjuster Phone</label>'+
-        '<input type="text" id="acc-adjuster-phone" value="'+esc(a.adjusterPhone)+'" placeholder="800-000-0000" style="'+monoStyle+'">'+
-      '</div>'+
-      '<div><label style="'+labelStyle+'">Adjuster Email</label>'+
-        '<input type="text" id="acc-adjuster-email" value="'+esc(a.adjusterEmail)+'" style="'+inputStyle+'">'+
-      '</div>'+
-      '<div><label style="'+labelStyle+'">Policy # (Auto)</label>'+
-        '<input type="text" id="acc-policy" value="'+esc(a.policyNumber)+'" style="'+monoStyle+'">'+
-      '</div>'+
-    '</div>'+
-
-    // ── Attorney info (optional, common in P&C cases) ──
-    '<div style="'+sectStyle+'">Attorney <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(optional — if patient is represented)</span></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-      '<div><label style="'+labelStyle+'">Attorney Name / Firm</label>'+
-        '<input type="text" id="acc-attorney-name" value="'+esc(a.attorneyName)+'" style="'+inputStyle+'">'+
-      '</div>'+
-      '<div><label style="'+labelStyle+'">Attorney Phone</label>'+
-        '<input type="text" id="acc-attorney-phone" value="'+esc(a.attorneyPhone)+'" style="'+monoStyle+'">'+
-      '</div>'+
-    '</div>'+
-
-    // ── Description ──
-    '<div style="margin-top:14px">'+
-      '<label style="'+labelStyle+'">Accident Description / Notes</label>'+
-      '<textarea id="acc-description" rows="2" style="'+inputStyle+';resize:vertical;min-height:56px" placeholder="Brief description of accident (internal notes only, not sent to payer)">'+esc(a.description)+'</textarea>'+
-    '</div>'+
-
-    // ── FL PIP specific note ──
-    '<div id="acc-pip-warn" style="'+((a.autoAccident==='Y' && (a.state==='FL' || !a.state))?'':'display:none;')+'margin-top:14px;padding:10px 14px;background:#fef7ee;border:1px solid #fed7aa;border-radius:8px;font-size:11px;color:#9a3412">'+
-      '<strong>⚠ FL PIP notice:</strong> If billing under Florida PIP, patient must have been treated within 14 days of accident. $10,000 statutory limit. Confirm PIP payer ID (not health payer ID).'+
-    '</div>'+
-
-    '</div>'+ // /body
-
     // Footer
     '<div style="padding:12px 22px;background:#f5f4ed;border-top:1px solid #e8e6dc;display:flex;gap:8px;justify-content:space-between;align-items:center;flex-shrink:0">'+
-      '<div style="font-size:11px;color:#5e5d59">'+(a.updatedAt?'Last saved '+new Date(a.updatedAt).toLocaleString():'Not yet saved')+'</div>'+
+      '<div style="font-size:11px;color:#5e5d59">'+(activeTab==='accident'?(a.updatedAt?'Last saved '+new Date(a.updatedAt).toLocaleString():'Not yet saved'):((lineData[activeTab]&&lineData[activeTab].updatedAt)?'Last saved '+new Date(lineData[activeTab].updatedAt).toLocaleString():'Not yet saved'))+'</div>'+
       '<div style="display:flex;gap:8px">'+
-        (a.claimNumber||a.date||a.state||a.adjusterName?'<button onclick="_ceClearAccident(\''+claimId+'\')" style="padding:8px 14px;background:#fff;color:#c96442;border:1.5px solid #c96442;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Clear All</button>':'')+
-        '<button onclick="document.getElementById(\'modal-ce-accident\').remove()" style="padding:8px 16px;background:#fff;color:#5e5d59;border:1.5px solid #e8e6dc;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Cancel</button>'+
-        '<button onclick="_ceSaveAccident(\''+claimId+'\')" style="padding:8px 18px;background:#c96442;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save Accident Info</button>'+
+        '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="padding:8px 16px;background:#fff;color:#5e5d59;border:1.5px solid #e8e6dc;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Cancel</button>'+
+        '<button onclick="_ceSaveMore(\''+claimId+'\','+lineIdx+')" style="padding:8px 18px;background:#c96442;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
       '</div>'+
     '</div>'+
     '</div>';
@@ -3138,62 +3134,425 @@ function _ceOpenAccidentModal(claimId){
   document.body.appendChild(overlay);
   setTimeout(function(){ if(typeof _renderLucideIcons==='function') _renderLucideIcons(); }, 20);
 }
+// Back-compat alias
+window._ceOpenAccidentModal = function(claimId){ window._ceMoreTab='accident'; _ceOpenMoreModal(claimId, 0); };
+
+// ── Shared helpers ──
+function _ceMoreHelpers(){
+  return {
+    input: 'width:100%;padding:7px 10px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:13px;background:#faf9f5;color:#141413;font-family:inherit',
+    mono: 'width:100%;padding:7px 10px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:13px;background:#faf9f5;color:#141413;font-family:monospace;letter-spacing:.02em',
+    lbl:  'display:block;font-size:10px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px',
+    sect: 'font-size:11px;font-weight:800;color:#c96442;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;padding-bottom:6px;border-bottom:1.5px solid #f0d4c8',
+    esc:  function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); },
+    sel:  function(cur,val){ return cur===val ? ' selected' : ''; }
+  };
+}
+
+// ── Tab: Measurements (Loop 2400 MEA segment on EDI 837P) ──
+function _ceMoreTabMeasurements(lineData){
+  var h = _ceMoreHelpers();
+  var m = lineData.measurements || {};
+  var identifiers = [
+    { val:'',   lbl:'— select —' },
+    { val:'HT', lbl:'HT — Hematocrit' },
+    { val:'HB', lbl:'HB — Hemoglobin' },
+    { val:'R1', lbl:'R1 — Test Result 1' },
+    { val:'R2', lbl:'R2 — Test Result 2' },
+    { val:'R3', lbl:'R3 — Test Result 3' },
+    { val:'R4', lbl:'R4 — Test Result 4' },
+    { val:'TR', lbl:'TR — Blood Pressure Systolic' },
+    { val:'ZO', lbl:'ZO — Blood Pressure Diastolic' },
+    { val:'OG', lbl:'OG — Original' }
+  ];
+  var qualifiers = [
+    { val:'',   lbl:'— select —' },
+    { val:'OG', lbl:'OG — Original Reading' },
+    { val:'TR', lbl:'TR — Actual Reading' },
+    { val:'MN', lbl:'MN — Minimum' },
+    { val:'MX', lbl:'MX — Maximum' }
+  ];
+  return '<div style="'+h.sect+'">Measurements <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Loop 2400 MEA segment)</span></div>'+
+    '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Used for lab/imaging services (dialysis, oxygen therapy, PSA, hematocrit) where the payer requires the reading value on the claim.</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'+
+      '<div><label style="'+h.lbl+'">Measurement Identifier *</label>'+
+        '<select id="mea-identifier" style="'+h.input+'">'+
+          identifiers.map(function(o){return '<option value="'+o.val+'"'+h.sel(m.identifier,o.val)+'>'+o.lbl+'</option>';}).join('')+
+        '</select></div>'+
+      '<div><label style="'+h.lbl+'">Measurement Qualifier *</label>'+
+        '<select id="mea-qualifier" style="'+h.input+'">'+
+          qualifiers.map(function(o){return '<option value="'+o.val+'"'+h.sel(m.qualifier,o.val)+'>'+o.lbl+'</option>';}).join('')+
+        '</select></div>'+
+    '</div>'+
+    '<div style="max-width:280px">'+
+      '<label style="'+h.lbl+'">Measurement Value *</label>'+
+      '<input type="text" id="mea-value" value="'+h.esc(m.value)+'" placeholder="e.g. 39.5" style="'+h.mono+'">'+
+    '</div>';
+}
+
+// ── Tab: Drug / NDC (Loop 2410 LIN segment — Box 24A shaded area) ──
+function _ceMoreTabDrug(lineData){
+  var h = _ceMoreHelpers();
+  var d = lineData.drug || {};
+  var units = [
+    { val:'F2', lbl:'F2 — International Unit' },
+    { val:'GR', lbl:'GR — Gram' },
+    { val:'ME', lbl:'ME — Milligram' },
+    { val:'ML', lbl:'ML — Milliliter' },
+    { val:'UN', lbl:'UN — Unit' }
+  ];
+  return '<div style="'+h.sect+'">Drug / NDC <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 24A shaded — Loop 2410)</span></div>'+
+    '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Required when billing J-codes or unlisted drug HCPCS. NDC must be <strong>11 numeric digits, no dashes</strong>.</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">Drug Code (NDC) *</label>'+
+      '<input type="text" id="drug-code" value="'+h.esc(d.code)+'" placeholder="00074433902" maxlength="11" pattern="[0-9]{11}" style="'+h.mono+'">'+
+      '<div style="font-size:10px;color:#87867f;margin-top:4px">EDI: <code style="background:#f5f4ed;padding:1px 4px;border-radius:3px">LIN**N4*&lt;ndc&gt;</code></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 140px;gap:14px;margin-bottom:14px">'+
+      '<div><label style="'+h.lbl+'">Drug Unit Type</label>'+
+        '<select id="drug-unit" style="'+h.input+'">'+
+          units.map(function(o){return '<option value="'+o.val+'"'+h.sel(d.unit||'UN',o.val)+'>'+o.lbl+'</option>';}).join('')+
+        '</select></div>'+
+      '<div><label style="'+h.lbl+'">Quantity</label>'+
+        '<input type="number" step="0.001" id="drug-qty" value="'+h.esc(d.quantity)+'" style="'+h.mono+'">'+
+      '</div>'+
+    '</div>'+
+    '<div><label style="'+h.lbl+'">Drug Name (optional, for reference)</label>'+
+      '<input type="text" id="drug-name" value="'+h.esc(d.name)+'" style="'+h.input+'">'+
+    '</div>';
+}
+
+// ── Tab: EPSDT / CHCUP (Box 24H — Family Planning / EPSDT indicator) ──
+function _ceMoreTabEpsdt(lineData){
+  var h = _ceMoreHelpers();
+  var e = lineData.epsdt || {};
+  var indicators = [
+    { val:'',   lbl:'— select —' },
+    { val:'Y',  lbl:'Y — Yes, EPSDT screening performed' },
+    { val:'N',  lbl:'N — No / not applicable' },
+    { val:'AV', lbl:'AV — Available — not used' },
+    { val:'S2', lbl:'S2 — Under treatment' },
+    { val:'ST', lbl:'ST — New services requested' },
+    { val:'NU', lbl:'NU — Not used' }
+  ];
+  var referrals = [
+    { val:'',  lbl:'— select —' },
+    { val:'AV', lbl:'AV — Available — not used' },
+    { val:'S2', lbl:'S2 — Under treatment' },
+    { val:'ST', lbl:'ST — New services requested' },
+    { val:'NU', lbl:'NU — Not used' }
+  ];
+  return '<div style="'+h.sect+'">EPSDT / CHCUP <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 24H — FL Medicaid CHCUP)</span></div>'+
+    '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Florida Medicaid uses <strong>CHCUP</strong> (Child Health Check-Up Program) as its EPSDT equivalent for well-child visits. Set only when billing for children under 21.</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">CHCUP / EPSDT Indicator</label>'+
+      '<select id="epsdt-indicator" style="'+h.input+'">'+
+        indicators.map(function(o){return '<option value="'+o.val+'"'+h.sel(e.indicator,o.val)+'>'+o.lbl+'</option>';}).join('')+
+      '</select>'+
+    '</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">Referral Code (if EPSDT screening triggered referral)</label>'+
+      '<select id="epsdt-referral" style="'+h.input+'">'+
+        referrals.map(function(o){return '<option value="'+o.val+'"'+h.sel(e.referral,o.val)+'>'+o.lbl+'</option>';}).join('')+
+      '</select>'+
+    '</div>'+
+    '<div><label style="'+h.lbl+'">Family Planning Indicator</label>'+
+      '<select id="epsdt-familyplan" style="'+h.input+';max-width:200px">'+
+        ['','Y','N'].map(function(v){return '<option value="'+v+'"'+h.sel(e.familyPlanning,v)+'>'+(v?v+' — '+(v==='Y'?'Yes':'No'):'— select —')+'</option>';}).join('')+
+      '</select>'+
+    '</div>';
+}
+
+// ── Tab: Anesthesia Time (Box 24G — units calculated in 15-min blocks) ──
+function _ceMoreTabAnesthesia(lineData){
+  var h = _ceMoreHelpers();
+  var an = lineData.anesthesia || {};
+  var hourOpts = function(sel){ var o=''; for(var i=0;i<24;i++){var v=(i<10?'0':'')+i;o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+v+'</option>';} return o; };
+  var minOpts  = function(sel){ var o=''; for(var i=0;i<60;i++){var v=(i<10?'0':'')+i;o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+v+'</option>';} return o; };
+  return '<div style="'+h.sect+'">Anesthesia Time <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 24G — anesthesia unit calculation)</span></div>'+
+    '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Total units = elapsed minutes ÷ 15 (rounded up). Only complete this for anesthesia CPTs (00100-01999).</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">'+
+      '<div><label style="'+h.lbl+'">From Time</label>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          '<select id="anes-from-h" onchange="_ceAnesRecalc()" style="'+h.mono+';padding:6px">'+hourOpts(an.fromHours||'00')+'</select>'+
+          '<span style="font-family:monospace;font-weight:700;color:#87867f">:</span>'+
+          '<select id="anes-from-m" onchange="_ceAnesRecalc()" style="'+h.mono+';padding:6px">'+minOpts(an.fromMinutes||'00')+'</select>'+
+        '</div>'+
+      '</div>'+
+      '<div><label style="'+h.lbl+'">To Time</label>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          '<select id="anes-to-h" onchange="_ceAnesRecalc()" style="'+h.mono+';padding:6px">'+hourOpts(an.toHours||'00')+'</select>'+
+          '<span style="font-family:monospace;font-weight:700;color:#87867f">:</span>'+
+          '<select id="anes-to-m" onchange="_ceAnesRecalc()" style="'+h.mono+';padding:6px">'+minOpts(an.toMinutes||'00')+'</select>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="padding:14px 18px;background:#fff3ee;border:1.5px solid #f0d4c8;border-radius:8px;text-align:center">'+
+      '<div style="font-size:10px;color:#c96442;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Anesthesia Units</div>'+
+      '<div id="anes-total" style="font-size:22px;font-weight:800;color:#c96442;font-family:monospace">0</div>'+
+      '<div style="font-size:10px;color:#87867f;margin-top:3px" id="anes-elapsed">0 minutes ÷ 15</div>'+
+    '</div>';
+}
+function _ceAnesRecalc(){
+  var fh = parseInt(document.getElementById('anes-from-h')?.value)||0;
+  var fm = parseInt(document.getElementById('anes-from-m')?.value)||0;
+  var th = parseInt(document.getElementById('anes-to-h')?.value)||0;
+  var tm = parseInt(document.getElementById('anes-to-m')?.value)||0;
+  var mins = (th*60+tm) - (fh*60+fm);
+  if(mins < 0) mins += 24*60; // rollover past midnight
+  var units = Math.ceil(mins / 15);
+  var tot = document.getElementById('anes-total');
+  var elp = document.getElementById('anes-elapsed');
+  if(tot) tot.textContent = units;
+  if(elp) elp.textContent = mins + ' minutes ÷ 15';
+}
+
+// ── Tab: Other Details (Emergency, Last Seen, CPT Description, Ordering Provider) ──
+function _ceMoreTabOther(lineData){
+  var h = _ceMoreHelpers();
+  var o = lineData.other || {};
+  return '<div style="'+h.sect+'">Other Details</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'+
+      '<div><label style="'+h.lbl+'">Last Seen Date</label>'+
+        '<input type="date" id="oth-lastseen" value="'+h.esc(o.lastSeen)+'" style="'+h.input+'"></div>'+
+      '<div><label style="'+h.lbl+'">Emergency Indicator (Box 24C)</label>'+
+        '<select id="oth-emergency" style="'+h.input+'">'+
+          '<option value=""'+h.sel(o.emergency,'')+'>— No / not set —</option>'+
+          '<option value="Y"'+h.sel(o.emergency,'Y')+'>Y — Emergency</option>'+
+        '</select></div>'+
+    '</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#141413;cursor:pointer">'+
+        '<input type="checkbox" id="oth-svc-time" '+(o.serviceProvidedTime?'checked':'')+' style="width:14px;height:14px">'+
+        'Include service-provided time on the claim'+
+      '</label>'+
+    '</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">CPT Description <span style="color:#87867f;font-weight:400;text-transform:none;letter-spacing:0">(required for non-specific CPT codes)</span></label>'+
+      '<input type="text" id="oth-description" value="'+h.esc(o.description)+'" style="'+h.input+'">'+
+    '</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">Reserved For Local Use (Box 19 line-level)</label>'+
+      '<input type="text" id="oth-local" value="'+h.esc(o.localUse)+'" style="'+h.input+'">'+
+    '</div>'+
+    '<div style="margin-bottom:14px">'+
+      '<label style="'+h.lbl+'">Ordering Provider (DK)</label>'+
+      '<input type="text" id="oth-ordering" value="'+h.esc(o.orderingProvider)+'" placeholder="Provider name" style="'+h.input+'">'+
+    '</div>'+
+    '<div>'+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#141413;cursor:pointer;padding:10px 14px;background:#faf9f5;border:1px solid #e8e6dc;border-radius:6px">'+
+        '<input type="checkbox" id="oth-applyall" '+(o.applyAll?'checked':'')+' style="width:14px;height:14px">'+
+        '<span>Apply <strong>Ordering Provider</strong> to all CPT codes on this bill</span>'+
+      '</label>'+
+    '</div>';
+}
+
+// ── Tab: Accident / Casualty (Claim-level: Box 10a-c, 11b, 14) ──
+function _ceMoreTabAccident(claim, isCasualty, payerName){
+  var h = _ceMoreHelpers();
+  var a = claim.more.accident || {};
+  var states = ['','AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
+
+  return '<div style="'+h.sect+'">Accident / Casualty <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 10a-c, 11b, 14 — claim-level)</span></div>'+
+    '<div style="padding:10px 14px;background:#fef7ee;border:1px solid #fed7aa;border-radius:8px;margin-bottom:14px;font-size:12px;color:#9a3412"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> This tab applies to the <strong>entire claim</strong>, not just the current CPT line.</div>'+
+    (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #f0d4c8;border-radius:8px;margin-bottom:14px;font-size:12px;color:#c96442;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # required for EDI submission.</span></div>' : '')+
+    '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 10 — Condition Related To</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div><label style="'+h.lbl+'">10a — Employment</label>'+
+        '<select id="acc-employment" style="'+h.input+'">'+
+          '<option value="N"'+h.sel(a.employment||'N','N')+'>N — No</option>'+
+          '<option value="Y"'+h.sel(a.employment,'Y')+'>Y — Yes</option>'+
+        '</select></div>'+
+      '<div><label style="'+h.lbl+'">10b — Auto Accident</label>'+
+        '<select id="acc-auto" onchange="_ceToggleAutoState()" style="'+h.input+'">'+
+          '<option value="N"'+h.sel(a.autoAccident||'N','N')+'>N — No</option>'+
+          '<option value="Y"'+h.sel(a.autoAccident,'Y')+'>Y — Yes</option>'+
+        '</select></div>'+
+      '<div><label style="'+h.lbl+'">Accident State (10b)</label>'+
+        '<select id="acc-state" style="'+h.input+'">'+
+          states.map(function(s){return '<option value="'+s+'"'+h.sel(a.state,s)+'>'+(s||'— select —')+'</option>';}).join('')+
+        '</select></div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px;max-width:200px">'+
+      '<label style="'+h.lbl+'">10c — Other Accident</label>'+
+      '<select id="acc-other" style="'+h.input+'">'+
+        '<option value="N"'+h.sel(a.otherAccident||'N','N')+'>N — No</option>'+
+        '<option value="Y"'+h.sel(a.otherAccident,'Y')+'>Y — Yes</option>'+
+      '</select>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 14 — Date of Injury / Accident</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div><label style="'+h.lbl+'">Accident Date</label>'+
+        '<input type="date" id="acc-date" value="'+h.esc(a.date)+'" style="'+h.input+'">'+
+        '<div style="font-size:10px;color:#87867f;margin-top:3px">EDI qualifier: <strong>439</strong></div>'+
+      '</div>'+
+      '<div><label style="'+h.lbl+'">Onset Qualifier</label>'+
+        '<select id="acc-qualifier" style="'+h.input+'">'+
+          '<option value="439"'+h.sel(a.qualifier||'439','439')+'>439 — Accident</option>'+
+          '<option value="431"'+h.sel(a.qualifier,'431')+'>431 — Onset of Symptoms</option>'+
+          '<option value="484"'+h.sel(a.qualifier,'484')+'>484 — Last Menstrual Period</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 11b — Other Claim ID (Casualty Payer)</div>'+
+    '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:end;margin-bottom:6px">'+
+      '<div><label style="'+h.lbl+'">Qualifier</label>'+
+        '<input type="text" value="Y4" readonly style="'+h.mono+';background:#f0eee6;color:#5e5d59;text-align:center;font-weight:700">'+
+      '</div>'+
+      '<div><label style="'+h.lbl+'">Casualty Claim #</label>'+
+        '<input type="text" id="acc-claim-number" value="'+h.esc(a.claimNumber)+'" placeholder="e.g. 0123456789012345" style="'+h.mono+'">'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#87867f;margin-bottom:16px">EDI 837P: <code style="background:#f5f4ed;padding:1px 4px;border-radius:3px">REF*Y4*&lt;number&gt;</code></div>'+
+    '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Adjuster &amp; Contact <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#87867f">(internal only)</span></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div><label style="'+h.lbl+'">Adjuster Name</label><input type="text" id="acc-adjuster-name" value="'+h.esc(a.adjusterName)+'" style="'+h.input+'"></div>'+
+      '<div><label style="'+h.lbl+'">Adjuster Phone</label><input type="text" id="acc-adjuster-phone" value="'+h.esc(a.adjusterPhone)+'" placeholder="800-000-0000" style="'+h.mono+'"></div>'+
+      '<div><label style="'+h.lbl+'">Adjuster Email</label><input type="text" id="acc-adjuster-email" value="'+h.esc(a.adjusterEmail)+'" style="'+h.input+'"></div>'+
+      '<div><label style="'+h.lbl+'">Policy # (Auto)</label><input type="text" id="acc-policy" value="'+h.esc(a.policyNumber)+'" style="'+h.mono+'"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Attorney <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#87867f">(optional)</span></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div><label style="'+h.lbl+'">Attorney Name / Firm</label><input type="text" id="acc-attorney-name" value="'+h.esc(a.attorneyName)+'" style="'+h.input+'"></div>'+
+      '<div><label style="'+h.lbl+'">Attorney Phone</label><input type="text" id="acc-attorney-phone" value="'+h.esc(a.attorneyPhone)+'" style="'+h.mono+'"></div>'+
+    '</div>'+
+    '<div><label style="'+h.lbl+'">Description / Notes</label><textarea id="acc-description" rows="2" style="'+h.input+';resize:vertical;min-height:56px">'+h.esc(a.description)+'</textarea></div>'+
+    '<div id="acc-pip-warn" style="'+((a.autoAccident==='Y' && (a.state==='FL' || !a.state))?'':'display:none;')+'margin-top:14px;padding:10px 14px;background:#fef7ee;border:1px solid #fed7aa;border-radius:8px;font-size:11px;color:#9a3412"><strong>⚠ FL PIP notice:</strong> Patient must be treated within 14 days. $10K statutory limit. Confirm PIP payer ID.</div>';
+}
 
 function _ceToggleAutoState(){
   var isAuto = document.getElementById('acc-auto')?.value === 'Y';
   var stateEl = document.getElementById('acc-state');
   if(stateEl && !isAuto) stateEl.value = '';
-  // Show/hide FL PIP warning
   var pipEl = document.getElementById('acc-pip-warn');
   var state = stateEl?.value || '';
   if(pipEl) pipEl.style.display = (isAuto && (state==='FL' || !state)) ? '' : 'none';
 }
 
-function _ceSaveAccident(claimId){
+// ── Save handler ──
+function _ceSaveMore(claimId, lineIdx){
   var db=getDB();
   var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
   if(idx<0){ toast('Claim not found','err'); return; }
-  var val=function(id){ return (document.getElementById(id)?.value||'').trim(); };
   var claim=db.claims[idx];
-  claim.accident = {
-    employment: val('acc-employment') || 'N',
-    autoAccident: val('acc-auto') || 'N',
-    otherAccident: val('acc-other') || 'N',
-    state: val('acc-state'),
-    date: val('acc-date'),
-    qualifier: val('acc-qualifier') || '439',
-    claimNumber: val('acc-claim-number'),
-    adjusterName: val('acc-adjuster-name'),
-    adjusterPhone: val('acc-adjuster-phone'),
-    adjusterEmail: val('acc-adjuster-email'),
-    policyNumber: val('acc-policy'),
-    attorneyName: val('acc-attorney-name'),
-    attorneyPhone: val('acc-attorney-phone'),
-    description: val('acc-description'),
-    updatedAt: Date.now()
-  };
-  // Mirror to top-level fields for backward compat with existing export/validation code
-  claim.emp = claim.accident.employment;
-  claim.auto = claim.accident.autoAccident;
+  claim.more = claim.more || {};
+  claim.more.lines = claim.more.lines || {};
+  lineIdx = parseInt(lineIdx)||0;
+  var lineData = claim.more.lines[lineIdx] = claim.more.lines[lineIdx] || {};
+  var val=function(id){ return (document.getElementById(id)?.value||'').trim(); };
+  var chk=function(id){ return !!document.getElementById(id)?.checked; };
+  var tab = window._ceMoreTab || 'measurements';
+
+  if (tab === 'measurements') {
+    lineData.measurements = {
+      identifier: val('mea-identifier'),
+      qualifier: val('mea-qualifier'),
+      value: val('mea-value'),
+      updatedAt: Date.now()
+    };
+  }
+  else if (tab === 'drug') {
+    lineData.drug = {
+      code: val('drug-code'),
+      unit: val('drug-unit') || 'UN',
+      quantity: val('drug-qty'),
+      name: val('drug-name'),
+      updatedAt: Date.now()
+    };
+  }
+  else if (tab === 'epsdt') {
+    lineData.epsdt = {
+      indicator: val('epsdt-indicator'),
+      referral: val('epsdt-referral'),
+      familyPlanning: val('epsdt-familyplan'),
+      updatedAt: Date.now()
+    };
+  }
+  else if (tab === 'anesthesia') {
+    var fh = val('anes-from-h'), fm = val('anes-from-m'), th = val('anes-to-h'), tm = val('anes-to-m');
+    var mins = (parseInt(th)*60+parseInt(tm)) - (parseInt(fh)*60+parseInt(fm));
+    if(mins < 0) mins += 24*60;
+    lineData.anesthesia = {
+      fromHours: fh, fromMinutes: fm,
+      toHours: th, toMinutes: tm,
+      totalMinutes: mins,
+      totalUnits: Math.ceil(mins/15),
+      updatedAt: Date.now()
+    };
+  }
+  else if (tab === 'other') {
+    var applyAll = chk('oth-applyall');
+    var ord = val('oth-ordering');
+    lineData.other = {
+      lastSeen: val('oth-lastseen'),
+      emergency: val('oth-emergency'),
+      serviceProvidedTime: chk('oth-svc-time'),
+      description: val('oth-description'),
+      localUse: val('oth-local'),
+      orderingProvider: ord,
+      applyAll: applyAll,
+      updatedAt: Date.now()
+    };
+    // Propagate ordering provider to all other lines if requested
+    if(applyAll && ord) {
+      var lines = claim.lines || claim.cpts || [];
+      for(var i=0;i<lines.length;i++) {
+        if(i===lineIdx) continue;
+        claim.more.lines[i] = claim.more.lines[i] || {};
+        claim.more.lines[i].other = claim.more.lines[i].other || {};
+        claim.more.lines[i].other.orderingProvider = ord;
+        claim.more.lines[i].other.updatedAt = Date.now();
+      }
+    }
+  }
+  else if (tab === 'accident') {
+    claim.more.accident = {
+      employment: val('acc-employment') || 'N',
+      autoAccident: val('acc-auto') || 'N',
+      otherAccident: val('acc-other') || 'N',
+      state: val('acc-state'),
+      date: val('acc-date'),
+      qualifier: val('acc-qualifier') || '439',
+      claimNumber: val('acc-claim-number'),
+      adjusterName: val('acc-adjuster-name'),
+      adjusterPhone: val('acc-adjuster-phone'),
+      adjusterEmail: val('acc-adjuster-email'),
+      policyNumber: val('acc-policy'),
+      attorneyName: val('acc-attorney-name'),
+      attorneyPhone: val('acc-attorney-phone'),
+      description: val('acc-description'),
+      updatedAt: Date.now()
+    };
+    // Backward-compat mirroring
+    claim.accident = claim.more.accident;
+    claim.emp = claim.more.accident.employment;
+    claim.auto = claim.more.accident.autoAccident;
+  }
+
   saveDB(db);
-  toast('Accident info saved','ok');
-  document.getElementById('modal-ce-accident')?.remove();
+  toast('Saved','ok');
+  document.getElementById('modal-ce-more')?.remove();
   renderClaimEditor();
 }
 
-function _ceClearAccident(claimId){
-  if(!confirm('Clear all accident information for this claim?\n\nThis cannot be undone.')) return;
+// Back-compat aliases
+window._ceSaveAccident = function(claimId){ window._ceMoreTab='accident'; _ceSaveMore(claimId, 0); };
+window._ceClearAccident = function(claimId){
+  if(!confirm('Clear all Additional Info for this claim?\n\nThis includes Accident + all per-line details (Measurements, Drug, EPSDT, Anesthesia, Other).')) return;
   var db=getDB();
   var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
   if(idx<0) return;
+  db.claims[idx].more = {};
   db.claims[idx].accident = {};
   db.claims[idx].emp = 'N';
   db.claims[idx].auto = 'N';
   saveDB(db);
-  toast('Accident info cleared','ok');
-  document.getElementById('modal-ce-accident')?.remove();
+  toast('Cleared','ok');
+  document.getElementById('modal-ce-more')?.remove();
   renderClaimEditor();
-}
+};
+
+
 
 function _ceSave(claimId, opts){
   opts = opts || {};
