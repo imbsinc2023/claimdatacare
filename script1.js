@@ -3057,12 +3057,12 @@ function _ceOpenMoreModal(claimId, lineIdx){
 
   // ── Tab definitions ──
   var tabs = [
-    { id:'measurements', label:'Measurements',   icon:'ruler',          hasData: !!(lineData.measurements && lineData.measurements.value),   scope:'per-line' },
-    { id:'drug',         label:'Drug / NDC',     icon:'pill',           hasData: !!(lineData.drug && lineData.drug.code),                     scope:'per-line' },
-    { id:'epsdt',        label:'EPSDT / CHCUP',  icon:'baby',           hasData: !!(lineData.epsdt && lineData.epsdt.indicator),              scope:'per-line' },
-    { id:'anesthesia',   label:'Anesthesia',     icon:'clock',          hasData: !!(lineData.anesthesia && (lineData.anesthesia.fromHours||lineData.anesthesia.toHours)), scope:'per-line' },
-    { id:'other',        label:'Other Details',  icon:'settings-2',     hasData: !!(lineData.other && (lineData.other.lastSeen||lineData.other.emergency||lineData.other.description||lineData.other.orderingProvider)), scope:'per-line' },
-    { id:'accident',     label:'Accident / Casualty', icon:'car',       hasData: !!(a.claimNumber||a.date||a.state||a.adjusterName),           scope:'claim' }
+    { id:'measurements', label:'Measurements',        icon:'ruler',       hasData: !!(lineData.measurements && lineData.measurements.value) },
+    { id:'drug',         label:'Drug / NDC',          icon:'pill',        hasData: !!(lineData.drug && lineData.drug.code) },
+    { id:'epsdt',        label:'EPSDT / CHCUP',       icon:'baby',        hasData: !!(lineData.epsdt && lineData.epsdt.indicator) },
+    { id:'anesthesia',   label:'Anesthesia',          icon:'clock',       hasData: !!(lineData.anesthesia && (lineData.anesthesia.fromHours||lineData.anesthesia.toHours)) },
+    { id:'other',        label:'Other Details',       icon:'settings-2',  hasData: !!(lineData.other && (lineData.other.lastSeen||lineData.other.emergency||lineData.other.description||lineData.other.orderingProvider)) },
+    { id:'accident',     label:'Accident / Casualty', icon:'car',         hasData: !!(a.claimNumber||a.date||a.state||a.adjusterName) }
   ];
   var activeTab = window._ceMoreTab || 'measurements';
   if(!tabs.find(function(t){return t.id===activeTab;})) activeTab = 'measurements';
@@ -3075,12 +3075,12 @@ function _ceOpenMoreModal(claimId, lineIdx){
     '</select></div>';
   }
 
-  // Build sidebar
+  // Build sidebar — icon + label only, no scope description
   var sidebar = tabs.map(function(t){
     var isActive = t.id === activeTab;
-    return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#c96442':'#5e5d59')+';cursor:pointer;border-left:3px solid '+(isActive?'#c96442':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
-      '<i data-lucide="'+t.icon+'" class="lci" style="width:14px;height:14px;flex-shrink:0"></i>'+
-      '<span style="flex:1;line-height:1.2">'+t.label+'<div style="font-size:9px;font-weight:400;color:#87867f;margin-top:2px">'+t.scope+'</div></span>'+
+    return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:11px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#c96442':'#5e5d59')+';cursor:pointer;border-left:3px solid '+(isActive?'#c96442':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
+      '<i data-lucide="'+t.icon+'" class="lci" style="width:15px;height:15px;flex-shrink:0"></i>'+
+      '<span style="flex:1;line-height:1.2">'+t.label+'</span>'+
       (t.hasData ? '<span style="width:8px;height:8px;background:#c96442;border-radius:50%;flex-shrink:0" title="Has data"></span>' : '')+
     '</button>';
   }).join('');
@@ -3095,18 +3095,12 @@ function _ceOpenMoreModal(claimId, lineIdx){
   else if (activeTab === 'accident')content = _ceMoreTabAccident(claim, isCasualty, payerName);
   else content = '<div style="padding:24px;color:#87867f;font-size:12px">Coming soon.</div>';
 
-  var subtitle = activeTab === 'accident'
-    ? 'Applies to entire claim &nbsp;·&nbsp; Bill# '+(claim.billNum||'—')
-    : 'Line '+(lineIdx+1)+' of '+lineCount+(cptLabel?' — CPT <strong>'+cptLabel+'</strong>':'')+' &nbsp;·&nbsp; Bill# '+(claim.billNum||'—');
-
   overlay.innerHTML =
-    '<div style="background:#fff;border-radius:12px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
-    // Header (terracotta)
-    '<div style="padding:14px 22px;background:#c96442;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
-      '<div>'+
-        '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="file-plus-2" class="lci" style="width:18px;height:18px"></i> CPT Additional Details</div>'+
-        '<div style="font-size:11px;opacity:.9;margin-top:2px">'+subtitle+'</div>'+
-      '</div>'+
+    // Static height 700px (fits typical laptop viewports); shrinks only if viewport <92vh
+    '<div style="background:#fff;border-radius:12px;width:100%;max-width:820px;height:700px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
+    // Header (terracotta) — title only, no subtitle
+    '<div style="padding:16px 22px;background:#c96442;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
+      '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="file-plus-2" class="lci" style="width:18px;height:18px"></i> CPT Additional Details</div>'+
       '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
     '</div>'+
     // Body: sidebar + content
@@ -3353,8 +3347,7 @@ function _ceMoreTabAccident(claim, isCasualty, payerName){
   var a = claim.more.accident || {};
   var states = ['','AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
 
-  return '<div style="'+h.sect+'">Accident / Casualty <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 10a-c, 11b, 14 — claim-level)</span></div>'+
-    '<div style="padding:10px 14px;background:#fef7ee;border:1px solid #fed7aa;border-radius:8px;margin-bottom:14px;font-size:12px;color:#9a3412"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> This tab applies to the <strong>entire claim</strong>, not just the current CPT line.</div>'+
+  return '<div style="'+h.sect+'">Accident / Casualty <span style="color:#87867f;font-weight:600;text-transform:none;letter-spacing:0">(Box 10a-c, 11b, 14)</span></div>'+
     (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #f0d4c8;border-radius:8px;margin-bottom:14px;font-size:12px;color:#c96442;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # required for EDI submission.</span></div>' : '')+
     '<div style="font-size:11px;font-weight:700;color:#5e5d59;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 10 — Condition Related To</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'+
@@ -3431,108 +3424,90 @@ function _ceToggleAutoState(){
 
 // ── Save handler ──
 function _ceSaveMore(claimId, lineIdx){
-  var db=getDB();
-  var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
-  if(idx<0){ toast('Claim not found','err'); return; }
-  var claim=db.claims[idx];
-  claim.more = claim.more || {};
-  claim.more.lines = claim.more.lines || {};
-  lineIdx = parseInt(lineIdx)||0;
-  var lineData = claim.more.lines[lineIdx] = claim.more.lines[lineIdx] || {};
+  // Close the modal FIRST so user always sees it dismiss on Save,
+  // even if the save logic throws or renderClaimEditor fails.
+  var modal = document.getElementById('modal-ce-more');
   var val=function(id){ return (document.getElementById(id)?.value||'').trim(); };
   var chk=function(id){ return !!document.getElementById(id)?.checked; };
   var tab = window._ceMoreTab || 'measurements';
 
-  if (tab === 'measurements') {
-    lineData.measurements = {
-      identifier: val('mea-identifier'),
-      qualifier: val('mea-qualifier'),
-      value: val('mea-value'),
-      updatedAt: Date.now()
-    };
-  }
-  else if (tab === 'drug') {
-    lineData.drug = {
-      code: val('drug-code'),
-      unit: val('drug-unit') || 'UN',
-      quantity: val('drug-qty'),
-      name: val('drug-name'),
-      updatedAt: Date.now()
-    };
-  }
-  else if (tab === 'epsdt') {
-    lineData.epsdt = {
-      indicator: val('epsdt-indicator'),
-      referral: val('epsdt-referral'),
-      familyPlanning: val('epsdt-familyplan'),
-      updatedAt: Date.now()
-    };
-  }
-  else if (tab === 'anesthesia') {
-    var fh = val('anes-from-h'), fm = val('anes-from-m'), th = val('anes-to-h'), tm = val('anes-to-m');
-    var mins = (parseInt(th)*60+parseInt(tm)) - (parseInt(fh)*60+parseInt(fm));
-    if(mins < 0) mins += 24*60;
-    lineData.anesthesia = {
-      fromHours: fh, fromMinutes: fm,
-      toHours: th, toMinutes: tm,
-      totalMinutes: mins,
-      totalUnits: Math.ceil(mins/15),
-      updatedAt: Date.now()
-    };
-  }
-  else if (tab === 'other') {
-    var applyAll = chk('oth-applyall');
-    var ord = val('oth-ordering');
-    lineData.other = {
-      lastSeen: val('oth-lastseen'),
-      emergency: val('oth-emergency'),
-      serviceProvidedTime: chk('oth-svc-time'),
-      description: val('oth-description'),
-      localUse: val('oth-local'),
-      orderingProvider: ord,
-      applyAll: applyAll,
-      updatedAt: Date.now()
-    };
-    // Propagate ordering provider to all other lines if requested
-    if(applyAll && ord) {
-      var lines = claim.lines || claim.cpts || [];
-      for(var i=0;i<lines.length;i++) {
-        if(i===lineIdx) continue;
-        claim.more.lines[i] = claim.more.lines[i] || {};
-        claim.more.lines[i].other = claim.more.lines[i].other || {};
-        claim.more.lines[i].other.orderingProvider = ord;
-        claim.more.lines[i].other.updatedAt = Date.now();
+  // Read every field BEFORE removing the modal (once removed, ids are gone)
+  var snap = {
+    mea: { identifier:val('mea-identifier'), qualifier:val('mea-qualifier'), value:val('mea-value') },
+    drug:{ code:val('drug-code'), unit:val('drug-unit')||'UN', quantity:val('drug-qty'), name:val('drug-name') },
+    epsdt:{ indicator:val('epsdt-indicator'), referral:val('epsdt-referral'), familyPlanning:val('epsdt-familyplan') },
+    anes:{ fh:val('anes-from-h'), fm:val('anes-from-m'), th:val('anes-to-h'), tm:val('anes-to-m') },
+    other:{ lastSeen:val('oth-lastseen'), emergency:val('oth-emergency'), serviceProvidedTime:chk('oth-svc-time'),
+            description:val('oth-description'), localUse:val('oth-local'), orderingProvider:val('oth-ordering'),
+            applyAll:chk('oth-applyall') },
+    acc:{ employment:val('acc-employment')||'N', autoAccident:val('acc-auto')||'N', otherAccident:val('acc-other')||'N',
+          state:val('acc-state'), date:val('acc-date'), qualifier:val('acc-qualifier')||'439',
+          claimNumber:val('acc-claim-number'), adjusterName:val('acc-adjuster-name'),
+          adjusterPhone:val('acc-adjuster-phone'), adjusterEmail:val('acc-adjuster-email'),
+          policyNumber:val('acc-policy'), attorneyName:val('acc-attorney-name'),
+          attorneyPhone:val('acc-attorney-phone'), description:val('acc-description') }
+  };
+  if(modal) modal.remove();
+
+  try {
+    var db=getDB();
+    var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
+    if(idx<0){ toast('Claim not found','err'); return; }
+    var claim=db.claims[idx];
+    claim.more = claim.more || {};
+    claim.more.lines = claim.more.lines || {};
+    lineIdx = parseInt(lineIdx)||0;
+    var lineData = claim.more.lines[lineIdx] = claim.more.lines[lineIdx] || {};
+
+    if (tab === 'measurements') {
+      lineData.measurements = Object.assign({}, snap.mea, { updatedAt: Date.now() });
+    }
+    else if (tab === 'drug') {
+      lineData.drug = Object.assign({}, snap.drug, { updatedAt: Date.now() });
+    }
+    else if (tab === 'epsdt') {
+      lineData.epsdt = Object.assign({}, snap.epsdt, { updatedAt: Date.now() });
+    }
+    else if (tab === 'anesthesia') {
+      var mins = (parseInt(snap.anes.th)*60+parseInt(snap.anes.tm)) - (parseInt(snap.anes.fh)*60+parseInt(snap.anes.fm));
+      if(mins < 0) mins += 24*60;
+      lineData.anesthesia = {
+        fromHours: snap.anes.fh, fromMinutes: snap.anes.fm,
+        toHours: snap.anes.th, toMinutes: snap.anes.tm,
+        totalMinutes: mins,
+        totalUnits: Math.ceil(mins/15),
+        updatedAt: Date.now()
+      };
+    }
+    else if (tab === 'other') {
+      lineData.other = Object.assign({}, snap.other, { updatedAt: Date.now() });
+      // Propagate ordering provider to all other lines if requested
+      if(snap.other.applyAll && snap.other.orderingProvider) {
+        var lns = claim.lines || claim.cpts || [];
+        for(var i=0;i<lns.length;i++) {
+          if(i===lineIdx) continue;
+          claim.more.lines[i] = claim.more.lines[i] || {};
+          claim.more.lines[i].other = claim.more.lines[i].other || {};
+          claim.more.lines[i].other.orderingProvider = snap.other.orderingProvider;
+          claim.more.lines[i].other.updatedAt = Date.now();
+        }
       }
     }
-  }
-  else if (tab === 'accident') {
-    claim.more.accident = {
-      employment: val('acc-employment') || 'N',
-      autoAccident: val('acc-auto') || 'N',
-      otherAccident: val('acc-other') || 'N',
-      state: val('acc-state'),
-      date: val('acc-date'),
-      qualifier: val('acc-qualifier') || '439',
-      claimNumber: val('acc-claim-number'),
-      adjusterName: val('acc-adjuster-name'),
-      adjusterPhone: val('acc-adjuster-phone'),
-      adjusterEmail: val('acc-adjuster-email'),
-      policyNumber: val('acc-policy'),
-      attorneyName: val('acc-attorney-name'),
-      attorneyPhone: val('acc-attorney-phone'),
-      description: val('acc-description'),
-      updatedAt: Date.now()
-    };
-    // Backward-compat mirroring
-    claim.accident = claim.more.accident;
-    claim.emp = claim.more.accident.employment;
-    claim.auto = claim.more.accident.autoAccident;
-  }
+    else if (tab === 'accident') {
+      claim.more.accident = Object.assign({}, snap.acc, { updatedAt: Date.now() });
+      // Backward-compat mirroring
+      claim.accident = claim.more.accident;
+      claim.emp = claim.more.accident.employment;
+      claim.auto = claim.more.accident.autoAccident;
+    }
 
-  saveDB(db);
-  toast('Saved','ok');
-  document.getElementById('modal-ce-more')?.remove();
-  renderClaimEditor();
+    saveDB(db);
+    toast('Saved','ok');
+    renderClaimEditor();
+  } catch(e) {
+    console.error('_ceSaveMore error:', e);
+    toast('Save failed: '+(e.message||e),'err');
+  }
 }
 
 // Back-compat aliases
@@ -3871,8 +3846,35 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     f.other_ins_plan_name = ins2.name||ins2.payerName||'';
   }
 
-  // Box 10 — condition related to (no claim-level tracking yet — default NO)
-  f.employment='/NO'; f.pt_auto_accident='/NO'; f.other_accident='/NO';
+  // Box 10 — condition related to (from claim.more.accident, migrated from legacy claim.accident)
+  var accData = (claim.more && claim.more.accident) || claim.accident || {};
+  f.employment       = accData.employment === 'Y' ? '/YES' : '/NO';
+  f.pt_auto_accident = accData.autoAccident === 'Y' ? '/YES' : '/NO';
+  f.other_accident   = accData.otherAccident === 'Y' ? '/YES' : '/NO';
+
+  // Box 10b — accident place (state) — try multiple common field names
+  if (accData.autoAccident === 'Y' && accData.state) {
+    f.place = accData.state;         // common in many templates
+    f.acc_place = accData.state;
+    f.accident_state = accData.state;
+  }
+
+  // Box 14 — date of current injury / accident (with onset qualifier)
+  if (accData.date) {
+    var accDp = _cms1500DateParts(accData.date);
+    f.cur_ill_mm = accDp.mm; f.cur_ill_dd = accDp.dd; f.cur_ill_yy = accDp.yy;
+    // Some templates have a qualifier field for Box 14 (default 439 = accident)
+    f.qual_14 = accData.qualifier || '439';
+    f.date_qual = accData.qualifier || '439';
+  }
+
+  // Box 11b — Other Claim ID (Y4 qualifier + casualty claim #)
+  if (accData.claimNumber) {
+    f.emp_ins_plan_name = 'Y4 ' + accData.claimNumber;   // common template mapping
+    f.other_claim_id    = accData.claimNumber;
+    f.y4_other_id       = accData.claimNumber;
+    f.qual_11b          = 'Y4';
+  }
 
   // Box 11 — insured policy/group + plan name + other coverage flag
   f.ins_policy    = (ins1 && (ins1.groupNum||ins1.memberId)) || '';
@@ -3899,6 +3901,7 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   f.prior_auth = claim.auth || '';
 
   // Box 24 — up to 6 service lines
+  var moreLines = (claim.more && claim.more.lines) || {};
   (claim.lines||[]).slice(0,6).forEach(function(l,i){
     var n=i+1;
     var from=_cms1500DateParts(l.dos||claim.dos);
@@ -3912,7 +3915,72 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     f['ch'+n]    = parseFloat(l.charge||0).toFixed(2);
     f['day'+n]   = String(l.units||1);
     f['local'+n] = rend.npi||'';
+
+    // Additional per-line data from claim.more.lines[i]
+    var md = moreLines[i] || {};
+
+    // Box 24A shaded — NDC drug code (try multiple common field names)
+    if (md.drug && md.drug.code) {
+      var ndcDisplay = md.drug.code + (md.drug.unit ? (' '+md.drug.unit+' '+(md.drug.quantity||'')).trim() : '');
+      f['sh_ndc'+n] = ndcDisplay;
+      f['l_ndc'+n]  = ndcDisplay;
+      f['ndc'+n]    = md.drug.code;
+      // The full "N4<ndc> <unit> <qty>" line, some templates use this
+      f['drug'+n]   = 'N4'+md.drug.code+' '+(md.drug.unit||'UN')+' '+(md.drug.quantity||'1');
+    }
+
+    // Box 24C — Emergency indicator (Y)
+    if (md.other && md.other.emergency === 'Y') {
+      f['emg'+n] = 'Y';
+      f['pt_emg'+n] = 'Y';
+    }
+
+    // Box 24H — EPSDT / Family Planning indicator
+    if (md.epsdt && md.epsdt.indicator) {
+      f['epsdt'+n] = md.epsdt.indicator;
+      f['ep'+n]    = md.epsdt.indicator;
+    }
+    // Family Planning is a separate small box on some templates
+    if (md.epsdt && md.epsdt.familyPlanning) {
+      f['fp'+n] = md.epsdt.familyPlanning;
+    }
+
+    // Anesthesia — override units with the calculated 15-min block count
+    if (md.anesthesia && md.anesthesia.totalUnits) {
+      f['day'+n] = String(md.anesthesia.totalUnits);
+    }
+
+    // Measurements (Loop 2400 MEA) — not on the paper form directly; would go on an attachment
+    // We stash into Box 24 shaded row if space allows
+    if (md.measurements && md.measurements.value && !f['sh_ndc'+n]) {
+      f['sh_ndc'+n] = 'MEA '+(md.measurements.identifier||'')+' '+(md.measurements.qualifier||'')+' '+md.measurements.value;
+    }
   });
+
+  // Box 19 — Additional Claim Info. Aggregate description/notes from line 0 and accident description.
+  var line0More = moreLines[0] || {};
+  var box19Parts = [];
+  if (line0More.other && line0More.other.description) box19Parts.push(line0More.other.description);
+  if (line0More.other && line0More.other.localUse) box19Parts.push(line0More.other.localUse);
+  if (accData.description) box19Parts.push('ACC: '+accData.description);
+  if (box19Parts.length) {
+    var box19Text = box19Parts.join(' | ').substring(0,80); // 80 char limit for Box 19
+    f.local_use_19 = box19Text;
+    f.reserved_for_local_use = box19Text;
+    f.local = box19Text;
+  }
+
+  // Box 15 — Other Date (from Other Details "Last Seen Date")
+  if (line0More.other && line0More.other.lastSeen) {
+    var lsDp = _cms1500DateParts(line0More.other.lastSeen);
+    f.last_seen_mm = lsDp.mm; f.last_seen_dd = lsDp.dd; f.last_seen_yy = lsDp.yy;
+    f.other_date_mm = lsDp.mm; f.other_date_dd = lsDp.dd; f.other_date_yy = lsDp.yy;
+  }
+
+  // Ordering Provider (17 or 24J supplement) — from Other Details, applies across lines
+  if (line0More.other && line0More.other.orderingProvider) {
+    f.ordering_provider = line0More.other.orderingProvider;
+  }
 
   // Box 25 — Tax ID (billing provider)
   f.tax_id = (prov.taxid||'').replace(/\D/g,'');
@@ -3972,6 +4040,17 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var form = pdfDoc.getForm();
   var values = _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db);
 
+  // Load the standard Courier font (one of the 14 PDF base fonts — no embed cost)
+  // The CMS-1500 form is designed for monospaced OCR-friendly input, and every
+  // clearinghouse's OCR is calibrated for Courier, so we override each text
+  // field's default appearance to render in Courier.
+  var courierFont = null;
+  try {
+    courierFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
+  } catch(fontErr) {
+    console.warn('[CMS1500] could not load Courier font — falling back to template default', fontErr);
+  }
+
 // Some CMS-1500 "radio-like" fields (Sex M/F, Self/Spouse/Child/Other,
 // Employment Yes/No, SSN/EIN, etc.) are exposed by pdf-lib as a single
 // PDFCheckBox with MULTIPLE widgets sharing one field name, rather than a
@@ -4016,6 +4095,10 @@ function _cms1500SetCheckbox(field, PDFLib, targetValue) {
       // every name-based comparison and filled 0 fields.
       if (field instanceof PDFLib.PDFTextField) {
         field.setText(String(val));
+        // Force Courier font on this field's appearance
+        if (courierFont) {
+          try { field.updateAppearances(courierFont); } catch(e) {}
+        }
         filledCount++;
       } else if (field instanceof PDFLib.PDFRadioGroup) {
         var optVal = String(val).replace(/^\//,'');
@@ -4038,7 +4121,13 @@ function _cms1500SetCheckbox(field, PDFLib, targetValue) {
     throw new Error('Loaded the PDF but filled 0 fields — the template\'s form fields may not match (check console for details).');
   }
 
-  try { form.updateFieldAppearances(); } catch(e) {}
+  // Second pass: force Courier on every text field's global appearance
+  // (belt-and-suspenders; ensures fields we didn't explicitly touch still render in Courier)
+  if (courierFont) {
+    try { form.updateFieldAppearances(courierFont); } catch(e) { console.warn('[CMS1500] appearance update failed:', e); }
+  } else {
+    try { form.updateFieldAppearances(); } catch(e) {}
+  }
   return await pdfDoc.save();
 }
 
