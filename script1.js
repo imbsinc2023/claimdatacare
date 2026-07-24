@@ -1597,12 +1597,9 @@ function _renderClaimEditorInner(){
     }).join('')+
   '</div>'+
 
-  // ── VALIDATION STRIP removed — all validation now shows in Claim Check box at bottom ──
+  // ── VALIDATION STRIP removed — all validation now shows in Claim Check box at bottom-right ──
   '<div id="ce-scrub" style="display:none"></div>'+
   '<div id="ce-scrub-list" style="display:none"></div>'+
-
-  // ── STATIC CLAIM CHECK panel (always visible, live validation) ──
-  '<div id="ce-claim-check-static" style="flex-shrink:0;padding:6px 12px"></div>'+
 
   // ── MAIN BODY (Services tab) ──
   (activeTab==='services'?_ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2Name,billed,paid,priAmt,secAmt,adjAmt,patPaid,patPortion,copay,deductible,balance,icd10,cptCat,claimId,db,statusOpts,errs):'')+
@@ -1776,36 +1773,15 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       var linePaid    = (priAmt+secAmt) * shareRatio;
       var due = Math.max(0, lineCharge - lineAdj - linePaid - patPaid*shareRatio);
       var ptr = (l.dxPtr||'').toUpperCase();
-      // Draggable ICD chips: (1) chips currently linked in order (draggable to reorder),
-      // (2) available letters not yet linked (click to add).
-      var linkedLetters = ptr.split('').filter(function(ch){
-        var idx = dxLetters.indexOf(ch);
-        return idx >= 0 && claim.dx && claim.dx[idx];
-      });
-      var availableLetters = [];
-      for(var d=0; d<8; d++){
-        var letter = dxLetters[d];
-        if(claim.dx && claim.dx[d] && linkedLetters.indexOf(letter) < 0) availableLetters.push(letter);
-      }
-      var linkedChips = linkedLetters.map(function(letter, ord){
-        return '<span draggable="true" '+
-          'ondragstart="_ceDxDragStart(event,'+li+','+ord+')" '+
-          'ondragover="event.preventDefault();this.style.background=\'#f0d4c8\'" '+
-          'ondragleave="this.style.background=\'\'" '+
-          'ondrop="_ceDxDrop(event,\''+claimId+'\','+li+','+ord+')" '+
-          'onclick="_ceDxUnlink(\''+claimId+'\','+li+',\''+letter+'\')" '+
-          'title="Drag to reorder · Click to remove" '+
-          'style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;background:'+S.terracotta+';color:#fff;font-size:10px;font-weight:700;font-family:monospace;border-radius:10px;cursor:grab;user-select:none">'+
-          (ord+1)+'.'+letter+
-        '</span>';
-      }).join('');
-      var availChips = availableLetters.map(function(letter){
-        return '<span onclick="_ceDxLink(\''+claimId+'\','+li+',\''+letter+'\')" '+
-          'title="Click to link" '+
-          'style="display:inline-flex;align-items:center;padding:2px 6px;background:'+S.ivory+';color:'+S.stoneGray+';font-size:10px;font-weight:600;font-family:monospace;border:1px dashed '+S.borderWarm+';border-radius:10px;cursor:pointer;user-select:none">+'+letter+'</span>';
-      }).join('');
-      var dxChipsHtml = '<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-width:60px;justify-content:flex-start">'+(linkedChips||'')+(availChips||'')+'</div>';
-
+      // Simple editable string: user types the letters in desired order
+      // (e.g. "A", "AB", "DCB", "HGC"). Letters map to Dx A-H from the ICDs box above.
+      // Auto-uppercases, keeps only A-H, and drops duplicates while preserving order.
+      var dxInputHtml = '<input type="text" id="ce-ln-dxptr-'+li+'" value="'+ptr+'" '+
+        'oninput="var v=this.value.toUpperCase().replace(/[^A-H]/g,\'\');'+
+                 'var seen={},out=\'\';for(var i=0;i<v.length;i++){if(!seen[v[i]]){seen[v[i]]=1;out+=v[i];}}'+
+                 'this.value=out;" '+
+        'placeholder="A" maxlength="8" '+
+        'style="width:76px;font-size:11px;font-family:monospace;font-weight:700;color:'+S.terracotta+';padding:3px 5px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';text-align:center;letter-spacing:.08em">';
       var rowBg = li%2===0 ? S.ivory : S.parchment;
       return '<tr draggable="true" ondragstart="_ceLineDragStart(event,'+li+')" ondragover="event.preventDefault()" ondrop="_ceLineDrop(event,\''+claimId+'\','+li+')" style="background:'+rowBg+'" data-line-idx="'+li+'">'
         +'<td style="'+tcStyle+';width:18px;padding:0;text-align:center;cursor:grab;color:'+S.stoneGray+'" title="Drag to reorder line"><i data-lucide="grip-vertical" class="lci" style="width:12px;height:12px"></i></td>'
@@ -1817,7 +1793,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod2-'+li+'" value="'+(l.mod2||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod3-'+li+'" value="'+(l.mod3||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
         +'<td style="'+tcStyle+'"><input type="text" id="ce-ln-mod4-'+li+'" value="'+(l.mod4||'')+'" style="width:26px;font-size:11px;font-family:monospace;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+'"></td>'
-        +'<td style="'+tcStyle+'">'+dxChipsHtml+'</td>'
+        +'<td style="'+tcStyle+'">'+dxInputHtml+'</td>'
         +'<td style="'+tcStyle+'"><select id="ce-ln-type-'+li+'" style="font-size:10px;padding:2px 3px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option value="Units"'+((!l.type||l.type==='Units')?' selected':'')+'>Units</option><option value="Minutes"'+(l.type==='Minutes'?' selected':'')+'>Min</option></select></td>'
         +'<td style="'+tcStyle+'"><input type="number" id="ce-ln-units-'+li+'" value="'+(l.units||1)+'" min="1" style="width:34px;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';text-align:center"></td>'
         +'<td style="'+tcStyle+';font-family:monospace;color:'+S.stoneGray+'">'+lineAdj.toFixed(2)+'</td>'
@@ -1845,9 +1821,9 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'</tr>';
     }).join('')+
     '<tr style="background:'+S.parchment+';border-top:2px solid '+S.borderWarm+'">'
-    +'<td colspan="3" style="padding:4px 6px;font-size:11px;font-weight:700;color:'+S.nearBlack+'">TOTAL</td>'
+    +'<td colspan="4" style="padding:4px 6px;font-size:11px;font-weight:700;color:'+S.nearBlack+';text-align:right">TOTAL</td>'
     +'<td style="padding:4px 6px;font-family:monospace;font-weight:700;font-size:12px;color:'+S.terracotta+';text-align:right">'+totalCharge.toFixed(2)+'</td>'
-    +'<td colspan="15"></td></tr>'
+    +'<td colspan="14"></td></tr>'
     +'</tbody></table>'
   :
     '<div style="text-align:center;padding:24px;color:'+S.stoneGray+';font-size:12px">No service lines — click Add More to add CPT codes.</div>';
@@ -1936,9 +1912,9 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +fieldWrap('Ref. Pvdr','<select id="ce-ref" style="'+selStyle+'"></select>')
         +fieldWrap('Supervising Pvdr','<input type="text" id="ce-supervising" value="'+(claim.supervisingId||'')+'" style="'+inputStyle+'">')
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px">'
-        +fieldWrap('DOS From','<input type="text" id="ce-dos" value="'+(claim.dos||'')+'" style="'+inputStyle+'">')
-        +fieldWrap('DOS To','<input type="text" id="ce-dos-to" value="'+(claim.dosTo||claim.dos||'')+'" style="'+inputStyle+'">')
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">'
+        +'<input type="hidden" id="ce-dos" value="'+(claim.dos||'')+'">'
+        +'<input type="hidden" id="ce-dos-to" value="'+(claim.dosTo||claim.dos||'')+'">'
         +fieldWrap('POS','<select id="ce-pos" style="'+selStyle+'"></select>')
         +fieldWrap('Status','<select id="ce-status" style="'+selStyle+'"></select>')
         +fieldWrap('Auth #','<input type="text" id="ce-auth" value="'+(claim.auth||'')+'" style="'+inputStyle+'">')
@@ -1980,20 +1956,19 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
           +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
           +(canDel?'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:7px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete</button>':'')
         +'</div>'
-        // RIGHT: unified Claim Check box (validation + scrub rules)
-        +'<div id="ce-check-box" style="margin-left:auto;min-width:240px;max-width:420px;background:#fff;border:1px solid '+badgeBdr+';border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
+        // RIGHT: unified Claim Check box (validation + scrub rules) — always expanded
+        +'<div id="ce-check-box" style="margin-left:auto;min-width:280px;max-width:460px;background:#fff;border:1px solid '+badgeBdr+';border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
           +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
             +'<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:'+badgeColor+'"><i data-lucide="'+badgeIco+'" class="lci" style="width:13px;height:13px"></i>Claim Check <span style="background:'+badgeBg+';color:'+badgeColor+';padding:1px 7px;border-radius:10px;font-size:10px">'+badgeText+'</span></div>'
-            +(hasErrs?'<button onclick="_ceToggleCheckDetails()" id="ce-check-toggle" style="background:none;border:none;color:'+S.stoneGray+';cursor:pointer;font-size:11px;padding:0">Details ▾</button>':'')
+            +((hasErrs && canBypass) ? '<button onclick="_ceBypassValidation(\''+claimId+'\')" title="Bypass validation (privilege required)" style="background:none;border:1px solid '+badgeBdr+';border-radius:4px;padding:2px 6px;cursor:pointer;color:'+badgeColor+';display:inline-flex;align-items:center;gap:3px;font-size:10px"><i data-lucide="shield-off" class="lci" style="width:10px;height:10px"></i>Bypass</button>' : '')
           +'</div>'
           +(hasErrs?
-            '<div id="ce-check-details" style="display:none;font-size:11px;color:'+S.stoneGray+';padding-top:4px;border-top:1px dashed '+S.borderCream+';max-height:120px;overflow-y:auto">'
+            '<div style="font-size:11px;color:'+S.stoneGray+';padding-top:4px;margin-top:2px;border-top:1px dashed '+S.borderCream+';max-height:160px;overflow-y:auto">'
               +(errs||[]).map(function(e){
                 var isCrit = critical.indexOf(e)>=0;
-                return '<div style="display:flex;align-items:center;gap:6px;padding:2px 0"><i data-lucide="'+(isCrit?'x':'alert-triangle')+'" class="lci" style="width:10px;height:10px;color:'+(isCrit?'#b53333':'#d97706')+';flex-shrink:0"></i><span style="flex:1">'+e+'</span></div>';
+                return '<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0"><i data-lucide="'+(isCrit?'x-circle':'alert-triangle')+'" class="lci" style="width:11px;height:11px;color:'+(isCrit?'#b53333':'#d97706')+';flex-shrink:0;margin-top:1px"></i><span style="flex:1;line-height:1.4">'+e+'</span></div>';
               }).join('')
-              +(hasCritical?'<div style="margin-top:6px;padding-top:6px;border-top:1px dashed '+S.borderCream+';font-size:10px;color:#b53333">'+critical.length+' critical issue(s) must be fixed before saving.</div>':'')
-              +(minor.length&&canBypass?'<button onclick="_ceBypassMinor(\''+claimId+'\')" style="margin-top:6px;padding:3px 10px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:5px;font-size:10px;cursor:pointer">Bypass warnings & Save</button>':'')
+              +(hasCritical?'<div style="margin-top:6px;padding-top:6px;border-top:1px dashed '+S.borderCream+';font-size:10px;color:#b53333;font-weight:600">'+critical.length+' critical issue(s) must be fixed before saving.</div>':'')
             +'</div>'
           :'')
         +'</div>'
@@ -3670,12 +3645,14 @@ function _ceSave(claimId, opts){
     if(dosEl) l.dos=dosEl.value||l.dos;
     var dosToEl=document.getElementById('ce-ln-dos-to-'+li);
     if(dosToEl) l.dosTo=dosToEl.value||l.dosTo;
-    var ptr='';
-    'ABCDEFGH'.split('').forEach(function(letter){
-      var cb=document.getElementById('ce-ln-dxptr-'+li+'-'+letter);
-      if(cb&&cb.checked) ptr+=letter;
-    });
-    l.dxPtr=ptr;
+    // ICD sequence input — read the single text input containing the ordered letters
+    var dxPtrEl = document.getElementById('ce-ln-dxptr-'+li);
+    if (dxPtrEl) {
+      var ptr = (dxPtrEl.value||'').toUpperCase().replace(/[^A-H]/g,'');
+      var seen = {}, out = '';
+      for (var pi=0; pi<ptr.length; pi++){ if (!seen[ptr[pi]]) { seen[ptr[pi]]=1; out+=ptr[pi]; } }
+      l.dxPtr = out;
+    }
   });
   claim.totalCharge=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0).toFixed(2);
   claim.updatedAt=Date.now();
@@ -3725,67 +3702,68 @@ function _ceValidate(claimId, opts){
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
   if(!claim) return;
   var errs=validateClaim(claim);
-  // Legacy scrub el (still supported for older layouts)
+  // Legacy scrub elements — force hidden. All validation now shows in the
+  // bottom-right #ce-check-box (rendered inside the editor layout).
   var scrubEl=document.getElementById('ce-scrub');
   var listEl=document.getElementById('ce-scrub-list');
-  if(scrubEl) scrubEl.style.display='block';
-  if(listEl){
-    if(!errs.length){
-      scrubEl&&(scrubEl.style.background='var(--green-bg)');
-      listEl.innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);padding:4px 12px"><i data-lucide="check-circle" class="lci" style="width:12px;height:12px"></i> Claim passes all validation checks.</div>';
-    } else {
-      scrubEl&&(scrubEl.style.background='var(--red-bg)');
-      listEl.style.display='block';
-      listEl.innerHTML='<div style="font-size:11px;color:var(--red);padding:4px 12px"><strong>'+errs.length+' error(s):</strong> '+errs.join(' · ')+'</div>';
-    }
-  }
-  // Static persistent claim-check panel (new)
+  if(scrubEl) scrubEl.style.display='none';
+  if(listEl){ listEl.style.display='none'; listEl.innerHTML=''; }
+  // Also hide the mid-page static panel; the bottom-right box is the only
+  // place validation results should render.
   var staticPanel = document.getElementById('ce-claim-check-static');
-  if(staticPanel){
-    _ceRenderStaticClaimCheck(claimId, errs);
-  }
-  // Store latest errors for the static panel to consult on re-render
+  if(staticPanel){ staticPanel.style.display='none'; staticPanel.innerHTML=''; }
+  // Refresh the bottom-right box in place (does not re-render the editor)
+  _ceRefreshCheckBox(claimId, errs);
   window._ceValidationErrs = window._ceValidationErrs || {};
   window._ceValidationErrs[claimId] = errs;
   if(!opts.silent) setTimeout(_renderLucideIcons, 20);
   return errs;
 }
 
-// ── Static Claim Check panel renderer ──
-function _ceRenderStaticClaimCheck(claimId, errs){
-  var panel = document.getElementById('ce-claim-check-static');
-  if(!panel) return;
-  errs = errs || (window._ceValidationErrs && window._ceValidationErrs[claimId]) || [];
+// Refresh the existing bottom-right #ce-check-box in place, no editor re-render.
+// Errors + critical/minor classification + bypass icon.
+function _ceRefreshCheckBox(claimId, errs){
+  var box = document.getElementById('ce-check-box');
+  if(!box) return;
+  errs = errs || [];
+  var critical = errs.filter(function(e){ return /not found|missing|empty|Invalid|must be|No primary|required/i.test(e); });
+  var minor    = errs.filter(function(e){ return critical.indexOf(e) < 0; });
   var canBypass = _ceUserCanBypass();
   var bypassed = window._ceBypassed && window._ceBypassed[claimId];
+  var hasErrs = errs.length > 0;
 
-  if(!errs.length){
-    panel.innerHTML =
-      '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0f8f2;border:1px solid #c9e2d1;border-radius:6px">'+
-        '<i data-lucide="shield-check" class="lci" style="width:16px;height:16px;color:#2d7a4f;flex-shrink:0"></i>'+
-        '<div style="flex:1;font-size:12px;color:#2d7a4f;font-weight:600">Claim Check — all validations passed</div>'+
-      '</div>';
-  } else {
-    var status = bypassed ? 'Bypassed' : (errs.length + ' issue' + (errs.length>1?'s':''));
-    var color  = bypassed ? '#87867f' : '#c96442';
-    var bg     = bypassed ? '#f5f4ed' : '#fff3ee';
-    var bdr    = bypassed ? '#e8e6dc' : '#f0d4c8';
-    panel.innerHTML =
-      '<div style="padding:8px 14px;background:'+bg+';border:1px solid '+bdr+';border-radius:6px">'+
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
-          '<i data-lucide="shield-alert" class="lci" style="width:16px;height:16px;color:'+color+';flex-shrink:0"></i>'+
-          '<div style="flex:1;font-size:12px;color:'+color+';font-weight:700">Claim Check — '+status+'</div>'+
-          (canBypass && !bypassed && errs.length ?
-            '<button onclick="_ceBypassValidation(\''+claimId+'\')" title="Bypass validation (requires privilege)" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#fff;color:'+color+';border:1px solid '+bdr+';border-radius:4px;cursor:pointer;padding:0"><i data-lucide="shield-off" class="lci" style="width:12px;height:12px"></i></button>'
-            : '')+
-          (bypassed ? '<button onclick="_ceUnbypassValidation(\''+claimId+'\')" title="Re-enable validation" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#fff;color:'+color+';border:1px solid '+bdr+';border-radius:4px;cursor:pointer;padding:0"><i data-lucide="undo-2" class="lci" style="width:12px;height:12px"></i></button>' : '')+
-        '</div>'+
-        (bypassed ? '' :
-          '<ul style="margin:0;padding:0 0 0 22px;list-style:disc;font-size:11px;color:'+color+';line-height:1.6">'+
-            errs.map(function(e){return '<li>'+e+'</li>';}).join('')+
-          '</ul>')+
+  var badgeColor = !hasErrs ? '#2d7a4f' : bypassed ? '#87867f' : '#c96442';
+  var badgeBg    = !hasErrs ? '#f0f8f2' : bypassed ? '#f5f4ed' : '#fff3ee';
+  var badgeBdr   = !hasErrs ? '#c9e2d1' : bypassed ? '#e8e6dc' : '#f0d4c8';
+  var badgeIco   = !hasErrs ? 'shield-check' : 'shield-alert';
+  var badgeText  = !hasErrs ? 'Passing' : bypassed ? 'Bypassed' : (errs.length + ' issue' + (errs.length>1?'s':''));
+
+  box.style.border = '1px solid '+badgeBdr;
+  box.style.background = '#fff';
+
+  var html =
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+      '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:'+badgeColor+'">'+
+        '<i data-lucide="'+badgeIco+'" class="lci" style="width:13px;height:13px"></i>Claim Check '+
+        '<span style="background:'+badgeBg+';color:'+badgeColor+';padding:1px 7px;border-radius:10px;font-size:10px">'+badgeText+'</span>'+
+      '</div>'+
+      (hasErrs ? (bypassed
+        ? '<button onclick="_ceUnbypassValidation(\''+claimId+'\')" title="Re-enable validation" style="background:none;border:1px solid '+badgeBdr+';border-radius:4px;padding:2px 6px;cursor:pointer;color:'+badgeColor+';display:inline-flex;align-items:center;gap:3px;font-size:10px"><i data-lucide="undo-2" class="lci" style="width:10px;height:10px"></i>Undo</button>'
+        : (canBypass ? '<button onclick="_ceBypassValidation(\''+claimId+'\')" title="Bypass validation (privilege required)" style="background:none;border:1px solid '+badgeBdr+';border-radius:4px;padding:2px 6px;cursor:pointer;color:'+badgeColor+';display:inline-flex;align-items:center;gap:3px;font-size:10px"><i data-lucide="shield-off" class="lci" style="width:10px;height:10px"></i>Bypass</button>' : '')
+      ) : '')+
+    '</div>';
+
+  if(hasErrs && !bypassed){
+    html +=
+      '<div style="font-size:11px;color:#5e5d59;padding-top:4px;margin-top:4px;border-top:1px dashed #e8e6dc;max-height:160px;overflow-y:auto">'+
+        errs.map(function(e){
+          var isCrit = critical.indexOf(e) >= 0;
+          return '<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0"><i data-lucide="'+(isCrit?'x-circle':'alert-triangle')+'" class="lci" style="width:11px;height:11px;color:'+(isCrit?'#b53333':'#d97706')+';flex-shrink:0;margin-top:1px"></i><span style="flex:1;line-height:1.4">'+e+'</span></div>';
+        }).join('')+
+        (critical.length ? '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e8e6dc;font-size:10px;color:#b53333;font-weight:600">'+critical.length+' critical issue(s) must be fixed before saving.</div>' : '')+
       '</div>';
   }
+  box.innerHTML = html;
   setTimeout(_renderLucideIcons, 20);
 }
 
