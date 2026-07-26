@@ -26992,7 +26992,7 @@ function renderCMClients() {
     list.map(function(c){
       return '<tr>'+
         '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'—')+'</td>'+
-        '<td style="font-weight:600">'+c.last+', '+c.first+'</td>'+
+        '<td style="font-weight:600"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+c.last+', '+c.first+'</a></td>'+
         '<td style="font-size:12px">'+(c.dob||'—')+'</td>'+
         '<td style="font-size:12px">'+(c.medicaidId||'—')+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(c.workerId)+'</td>'+
@@ -27000,7 +27000,8 @@ function renderCMClients() {
         '<td style="font-size:12px">'+(c.authEnd||'—')+'</td>'+
         '<td style="font-size:12px">'+(c.phone||'')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
-        '<button class="btn-icon sm" onclick="editCMClient(\''+c.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm" onclick="openCMClientChart(\''+c.id+'\')" title="Open Chart" style="color:var(--brand)"><i data-lucide="folder-open" class="lci" style="width:12px;height:12px"></i></button>'+
+        '<button class="btn-icon sm" onclick="editCMClient(\''+c.id+'\')" title="Edit Info"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
         '<button class="btn-icon sm danger" onclick="delCMClient(\''+c.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
         '</div></td></tr>';
     }).join('')+
@@ -27122,12 +27123,16 @@ function openCMClientModal(editId) {
     '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Case Management</div>'+
     '<div class="fg g2">'+
       '<div class="field"><label>Assigned Case Worker</label><select id="cmc-worker">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
+      '<div class="field"><label>Supervisor</label><select id="cmc-sup">'+_cmSupervisorOpts(c.supervisorId||'')+'</select></div>'+
+    '</div>'+
+    '<div class="fg g2">'+
       '<div class="field"><label>Status</label><select id="cmc-status">'+
         '<option value="Active"'+sel(c.status||'Active','Active')+'>Active</option>'+
         '<option value="Inactive"'+sel(c.status,'Inactive')+'>Inactive</option>'+
         '<option value="On-Hold"'+sel(c.status,'On-Hold')+'>On-Hold</option>'+
         '<option value="Discharged"'+sel(c.status,'Discharged')+'>Discharged</option>'+
       '</select></div>'+
+      '<div class="field"><label>&nbsp;</label><div style="font-size:11px;color:var(--text3);padding-top:8px">Supervisor receives approval requests from this client.</div></div>'+
     '</div>'+
     '<div class="fg g2">'+
       '<div class="field"><label>Admission Date</label><input id="cmc-admit" type="date" value="'+esc(c.admissionDate)+'"></div>'+
@@ -27180,6 +27185,7 @@ function saveCMClient(id) {
     referralSource: val('cmc-refsrc'),
     language: val('cmc-lang'),
     workerId: val('cmc-worker'),
+    supervisorId: val('cmc-sup'),
     status: val('cmc-status') || 'Active',
     admissionDate: val('cmc-admit'),
     dischargeDate: val('cmc-discharge'),
@@ -27873,6 +27879,7 @@ function saveCMPlan(id) {
   } else {
     obj.id = _cmId();
     obj.createdAt = _cmNowISO();
+    if (!obj.supervisorStatus) obj.supervisorStatus = 'Draft';
     d.plans.push(obj);
   }
   saveCMData(d);
@@ -29396,6 +29403,7 @@ function saveCMAssessment(id) {
   } else {
     obj.id = _cmId();
     obj.createdAt = _cmNowISO();
+    if (!obj.supervisorStatus) obj.supervisorStatus = 'Draft';
     d.assessments.push(obj);
   }
   saveCMData(d);
@@ -30608,7 +30616,9 @@ function renderCMDashboard() {
   var billableThisMonth = monthEncounters.filter(function(n){return n.billable;}).length;
   var totalBilled = (d.billing||[]).reduce(function(s,b){return s+(b.total||0);},0);
   var billingReady = (d.billing||[]).filter(function(b){return b.status==='Ready';}).length;
+  var myWork = _cmBuildMyWorkPanel(d);
   el.innerHTML =
+    myWork +
     // Quick Actions
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+
     '<button class="btn btn-sm" onclick="openCMEncounterModal()" style="display:flex;align-items:center;gap:4px"><i data-lucide="notebook-pen" class="lci" style="width:13px;height:13px"></i> New Note</button>'+
@@ -30669,6 +30679,473 @@ function _cmIsSupervisor() {
   var d = getCMData();
   return d.workers.some(function(w){return w.email===s.email;});
 }
+
+// ── CM: Supervisor helpers ────────────────────────────────────
+function _cmSupervisorOpts(currentId) {
+  // Supervisors = workers whose title/credential contains "sup" OR flagged
+  // isSupervisor:true. Fallback: all active workers with no supervisorId set.
+  var d = getCMData();
+  var isSup = function(w){
+    if (w.isSupervisor) return true;
+    var c = (w.credential||'').toLowerCase();
+    return c.indexOf('sup') >= 0 || c.indexOf('lcsw') >= 0 || c.indexOf('lmhc') >= 0;
+  };
+  var sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive' && isSup(w); });
+  if (!sups.length) sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive'; });
+  var opts = '<option value="">— None —</option>';
+  sups.forEach(function(w){
+    opts += '<option value="'+w.id+'"'+(w.id===currentId?' selected':'')+'>'+w.first+' '+w.last+(w.credential?' — '+w.credential:'')+'</option>';
+  });
+  return opts;
+}
+
+function _cmCurrentUserWorkerId() {
+  var s = getSession(); if (!s) return '';
+  var d = getCMData();
+  var w = (d.workers||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
+  return w ? w.id : '';
+}
+
+// Personalized "My Work" dashboard panel — shows pending items for the logged-in user
+function _cmBuildMyWorkPanel(d) {
+  var s = getSession(); if (!s) return '';
+  var myWid = _cmCurrentUserWorkerId();
+  var isSA = s.role === 'Super Admin';
+
+  // Items I need to REVIEW (I am supervisor for these clients OR I'm SA)
+  var pendingReview = (d.encounters||[]).filter(function(n){
+    if (n.supervisorStatus !== 'Pending' && n.supervisorStatus) return false;
+    if (!n.supervisorStatus) return false; // only count explicit Pending
+    if (isSA) return true;
+    var cli = (d.clients||[]).find(function(c){ return c.id === n.clientId; });
+    return cli && cli.supervisorId === myWid;
+  });
+  var pendingPlans = (d.plans||[]).filter(function(p){
+    if (p.supervisorStatus !== 'Pending') return false;
+    if (isSA) return true;
+    var cli = (d.clients||[]).find(function(c){ return c.id === p.clientId; });
+    return cli && cli.supervisorId === myWid;
+  });
+  var pendingAssess = (d.assessments||[]).filter(function(a){
+    if (a.supervisorStatus !== 'Pending') return false;
+    if (isSA) return true;
+    var cli = (d.clients||[]).find(function(c){ return c.id === a.clientId; });
+    return cli && cli.supervisorId === myWid;
+  });
+
+  // Items ASSIGNED to me
+  var myClients = (d.clients||[]).filter(function(c){ return c.workerId === myWid && c.status==='Active'; });
+  var myTasks = (d.tasks||[]).filter(function(t){ return t.workerId === myWid && t.status==='Open'; });
+  var now = new Date();
+  var myOverdue = myTasks.filter(function(t){ return t.dueDate && new Date(t.dueDate) < now; });
+
+  // Items RETURNED to me for correction
+  var myReturned = (d.encounters||[]).filter(function(n){ return n.supervisorStatus==='Returned' && n.workerId === myWid; });
+  var myReturnedPlans = (d.plans||[]).filter(function(p){ return p.supervisorStatus==='Returned' && p.workerId === myWid; });
+
+  var totalReview = pendingReview.length + pendingPlans.length + pendingAssess.length;
+  var totalReturned = myReturned.length + myReturnedPlans.length;
+
+  if (!myWid && !isSA) return '';
+
+  var userName = ((s.first||'') + ' ' + (s.last||'')).trim() || s.email || 'User';
+
+  return '<div class="card" style="margin-bottom:14px;padding:14px 18px;background:linear-gradient(135deg,var(--brand-bg) 0%,var(--bg2) 100%);border:1px solid var(--brand-bdr)">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+      '<div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.08em">My Work</div>'+
+        '<div style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px">'+userName+'</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--text3)">'+(new Date()).toLocaleDateString()+'</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-supervisor\')" title="Items awaiting your approval">'+
+        '<div style="font-size:22px;font-weight:800;color:'+(totalReview?'var(--amber)':'var(--text3)')+'">'+totalReview+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">To Review</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-encounters\')" title="Items returned to you">'+
+        '<div style="font-size:22px;font-weight:800;color:'+(totalReturned?'var(--red)':'var(--text3)')+'">'+totalReturned+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">Returned</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-clients\')" title="Your active clients">'+
+        '<div style="font-size:22px;font-weight:800;color:var(--brand)">'+myClients.length+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">My Clients</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-tasks\')" title="Your open tasks">'+
+        '<div style="font-size:22px;font-weight:800;color:var(--text)">'+myTasks.length+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">My Tasks</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-tasks\')" title="Your overdue tasks">'+
+        '<div style="font-size:22px;font-weight:800;color:'+(myOverdue.length?'var(--red)':'var(--text3)')+'">'+myOverdue.length+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">Overdue</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+// ── CM: Generic "Submit for Approval" workflow ────────────────
+// Works for encounters, plans, assessments — anything with supervisorStatus
+function submitCMEntityForApproval(kind, id) {
+  var d = getCMData();
+  var arr = d[kind];
+  if (!arr) { toast('Unknown entity','err'); return; }
+  var item = arr.find(function(x){ return x.id === id; });
+  if (!item) { toast('Item not found','err'); return; }
+  if (item.supervisorStatus === 'Pending') { toast('Already submitted','warn'); return; }
+  var s = getSession();
+  var submitter = ((s.first||'')+' '+(s.last||'')).trim() || s.email || '';
+  if (!confirm('Submit this '+kind.replace(/s$/,'')+' to your supervisor for approval?')) return;
+  item.supervisorStatus = 'Pending';
+  item.submittedAt = _cmNowISO();
+  item.submittedBy = submitter;
+  item.updatedAt = _cmNowISO();
+  saveCMData(d);
+  // Refresh whatever list is visible
+  ['renderCMEncounters','renderCMPlans','renderCMAssessments','renderCMSupervisor'].forEach(function(fn){
+    if (typeof window[fn] === 'function') try { window[fn](); } catch(e){}
+  });
+  if (_cmChartClientId) _renderCMChartTab(_cmChartTabActive);
+  toast('Submitted for approval');
+}
+
+// ═════════════════════════════════════════════════════════════
+// CM CLIENT CHART — visual mirror of Patient Chart, simpler content
+// ═════════════════════════════════════════════════════════════
+var _cmChartClientId = null;
+var _cmChartTabActive = 'summary';
+
+function openCMClientChart(clientId) {
+  _cmChartClientId = clientId;
+  _cmChartTabActive = 'summary';
+  var existing = document.getElementById('cm-chart-overlay');
+  if (existing) existing.remove();
+  var d = getCMData();
+  var cli = (d.clients||[]).find(function(c){ return c.id === clientId; });
+  if (!cli) { toast('Client not found','err'); return; }
+  var overlay = document.createElement('div');
+  overlay.className = 'pt-chart-overlay';
+  overlay.id = 'cm-chart-overlay';
+  overlay.style.cssText = 'position:absolute;inset:0;z-index:500;overflow:hidden;background:var(--bg,#f5f4ed)';
+  overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">'+_buildCMChartShell(cli, d)+'</div>';
+  (document.querySelector('.main')||document.querySelector('.app-shell')||document.body).appendChild(overlay);
+  _renderCMChartTab('summary');
+  setTimeout(_renderLucideIcons, 30);
+}
+
+function _buildCMChartShell(cli, d) {
+  var TABS = [
+    {id:'summary',      label:'Summary',      icon:'layout-dashboard'},
+    {id:'demographics', label:'Info',         icon:'user'},
+    {id:'coverage',     label:'Coverage',     icon:'shield-check'},
+    {id:'auth',         label:'Authorization',icon:'share-2'},
+    {id:'contacts',     label:'Contacts',     icon:'contact'},
+    {id:'schedule',     label:'Schedule',     icon:'calendar-days'},
+    {id:'records',      label:'Records',      icon:'folder-open'},
+    {id:'encounters',   label:'Encounters',   icon:'stethoscope'},
+    {id:'plans',        label:'Care Plans',   icon:'clipboard-list'},
+    {id:'tasks',        label:'Tasks',        icon:'list-checks'},
+    {id:'billing',      label:'Billing',      icon:'receipt'}
+  ];
+  var tabsHTML = TABS.map(function(t){
+    return '<div class="ptc-tab" id="cmc-tab-'+t.id+'" onclick="_renderCMChartTab(\''+t.id+'\')"><i data-lucide="'+t.icon+'" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>'+t.label+'</div>';
+  }).join('');
+  var meta = '<span style="font-weight:700;font-size:13px">'+(cli.last||'').toUpperCase()+', '+(cli.first||'').toUpperCase()+'</span>'+
+             '<span style="opacity:.8">File #'+(cli.fileNo||'—')+'</span>'+
+             '<span style="opacity:.8">DOB '+(cli.dob||'—')+'</span>'+
+             '<span style="opacity:.8">'+(cli.status||'Active')+'</span>';
+  return '<div class="ptc-banner" id="cmc-banner">'+
+    '<span class="ptc-banner-title">CLIENT FILE</span>'+
+    '<span class="ptc-banner-sep">|</span>'+
+    '<span style="display:contents">'+meta+'</span>'+
+    '<span class="ptc-banner-sep">|</span>'+
+    '<div class="ptc-tabs-inline">'+tabsHTML+'</div>'+
+    '<button onclick="editCMClient(\''+cli.id+'\')" title="Edit Info" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="pencil" class="lci" style="width:14px;height:14px;pointer-events:none"></i></button>'+
+    '<button class="ptc-banner-close" onclick="document.getElementById(\'cm-chart-overlay\').remove()" title="Close">&times;</button>'+
+  '</div>'+
+  '<div style="flex:1;overflow-y:auto;padding:14px 16px" id="cmc-main"></div>';
+}
+
+function _renderCMChartTab(tabId) {
+  _cmChartTabActive = tabId;
+  document.querySelectorAll('#cm-chart-overlay .ptc-tab').forEach(function(t){ t.classList.remove('active'); });
+  var el = document.getElementById('cmc-tab-'+tabId);
+  if (el) el.classList.add('active');
+  var main = document.getElementById('cmc-main');
+  if (!main) return;
+  var d = getCMData();
+  var cli = (d.clients||[]).find(function(c){ return c.id === _cmChartClientId; });
+  if (!cli) return;
+  var html = '';
+  switch (tabId) {
+    case 'summary':      html = _cmChartSummary(cli, d); break;
+    case 'demographics': html = _cmChartDemo(cli, d); break;
+    case 'coverage':     html = _cmChartCoverage(cli, d); break;
+    case 'auth':         html = _cmChartAuth(cli, d); break;
+    case 'contacts':     html = _cmChartContacts(cli, d); break;
+    case 'schedule':     html = _cmChartSchedule(cli, d); break;
+    case 'records':      html = _cmChartRecords(cli, d); break;
+    case 'encounters':   html = _cmChartEncounters(cli, d); break;
+    case 'plans':        html = _cmChartPlans(cli, d); break;
+    case 'tasks':        html = _cmChartTasks(cli, d); break;
+    case 'billing':      html = _cmChartBilling(cli, d); break;
+    default: html = '<div class="ptc-panel" style="padding:30px;text-align:center;color:var(--text3)">Coming soon.</div>';
+  }
+  main.innerHTML = html;
+  setTimeout(_renderLucideIcons, 20);
+}
+
+// ── Small helpers ──
+function _cmChartCard(title, body, actions) {
+  return '<div class="card" style="margin-bottom:14px">'+
+    '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+      '<div style="font-weight:700;font-size:13px">'+title+'</div>'+
+      '<div style="display:flex;gap:6px">'+(actions||'')+'</div>'+
+    '</div>'+
+    '<div style="padding:14px">'+body+'</div>'+
+  '</div>';
+}
+function _cmChartField(label, value) {
+  return '<div style="display:flex;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="width:170px;color:var(--text3);font-weight:600">'+label+'</span><span style="flex:1;color:var(--text)">'+(value||'—')+'</span></div>';
+}
+function _cmApprovalBadge(status) {
+  if (!status || status === 'Draft') return '<span class="badge b-gray">Draft</span>';
+  if (status === 'Pending') return '<span class="badge b-amber">Pending Review</span>';
+  if (status === 'Approved') return '<span class="badge b-green">Approved</span>';
+  if (status === 'Returned') return '<span class="badge b-red">Returned</span>';
+  return '<span class="badge b-gray">'+status+'</span>';
+}
+
+// ── Tab: Summary ──
+function _cmChartSummary(cli, d) {
+  var worker = (d.workers||[]).find(function(w){ return w.id===cli.workerId; });
+  var sup = (d.workers||[]).find(function(w){ return w.id===cli.supervisorId; });
+  var encCount = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id; }).length;
+  var pendingCount = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id && (n.supervisorStatus==='Pending'||!n.supervisorStatus && n.billable); }).length;
+  var planCount = (d.plans||[]).filter(function(p){ return p.clientId===cli.id; }).length;
+  var openTasks = (d.tasks||[]).filter(function(t){ return t.clientId===cli.id && t.status==='Open'; }).length;
+  var docsCount = (cli.documents||[]).length;
+  var authExpiring = '';
+  if (cli.authEnd) {
+    var days = Math.round((new Date(cli.authEnd) - new Date()) / 86400000);
+    if (days < 0) authExpiring = '<div style="padding:8px 12px;background:#fef2f2;border-left:3px solid var(--red);border-radius:6px;margin-bottom:10px;font-size:12px;color:var(--red)"><i data-lucide="alert-triangle" class="lci" style="width:12px;height:12px"></i> Authorization expired '+Math.abs(days)+' days ago</div>';
+    else if (days < 30) authExpiring = '<div style="padding:8px 12px;background:#fef3c7;border-left:3px solid var(--amber);border-radius:6px;margin-bottom:10px;font-size:12px;color:var(--text)"><i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i> Authorization expires in '+days+' days ('+cli.authEnd+')</div>';
+  }
+  var stats = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">'+
+    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'encounters\')"><div style="font-size:22px;font-weight:800;color:var(--brand)">'+encCount+'</div><div style="font-size:10px;color:var(--text3)">Encounters</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'encounters\')"><div style="font-size:22px;font-weight:800;color:'+(pendingCount?'var(--amber)':'var(--text3)')+'">'+pendingCount+'</div><div style="font-size:10px;color:var(--text3)">Pending Review</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'plans\')"><div style="font-size:22px;font-weight:800;color:var(--green)">'+planCount+'</div><div style="font-size:10px;color:var(--text3)">Care Plans</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'tasks\')"><div style="font-size:22px;font-weight:800;color:var(--text)">'+openTasks+'</div><div style="font-size:10px;color:var(--text3)">Open Tasks</div></div>'+
+    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'records\')"><div style="font-size:22px;font-weight:800;color:var(--text)">'+docsCount+'</div><div style="font-size:10px;color:var(--text3)">Documents</div></div>'+
+  '</div>';
+  var overview = _cmChartField('Case Worker', worker ? worker.first+' '+worker.last+(worker.credential?' — '+worker.credential:'') : '—') +
+                 _cmChartField('Supervisor', sup ? sup.first+' '+sup.last : '<span style="color:var(--red)">Not assigned</span>') +
+                 _cmChartField('Status', cli.status||'Active') +
+                 _cmChartField('Level of Care', cli.levelOfCare||'—') +
+                 _cmChartField('Primary Dx', cli.primaryDx||'—') +
+                 _cmChartField('Payer / MCO', cli.payer||'—') +
+                 _cmChartField('Medicaid ID', cli.medicaidId||'—') +
+                 _cmChartField('Admission Date', cli.admissionDate||'—');
+  return authExpiring + stats + _cmChartCard('Case Overview', overview);
+}
+
+// ── Tab: Demographics ──
+function _cmChartDemo(cli, d) {
+  var body = _cmChartField('First Name', cli.first) +
+             _cmChartField('Last Name', cli.last) +
+             _cmChartField('DOB', cli.dob) +
+             _cmChartField('Sex', cli.sex) +
+             _cmChartField('SSN (last 4)', cli.ssn4 ? '***-**-'+cli.ssn4 : '') +
+             _cmChartField('Phone', cli.phone) +
+             _cmChartField('Email', cli.email) +
+             _cmChartField('Address', cli.address) +
+             _cmChartField('City / State / ZIP', [cli.city, cli.state, cli.zip].filter(Boolean).join(', ')) +
+             _cmChartField('Language', cli.language) +
+             _cmChartField('Referral Source', cli.referralSource);
+  var actions = '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>';
+  return _cmChartCard('Client Information', body, actions);
+}
+
+// ── Tab: Coverage ──
+function _cmChartCoverage(cli, d) {
+  var body = _cmChartField('Medicaid ID', cli.medicaidId) +
+             _cmChartField('Payer / MCO', cli.payer) +
+             _cmChartField('Level of Care', cli.levelOfCare) +
+             _cmChartField('Primary Dx (ICD-10)', cli.primaryDx);
+  return _cmChartCard('Insurance & Coverage', body, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>');
+}
+
+// ── Tab: Authorization ──
+function _cmChartAuth(cli, d) {
+  var basic = _cmChartField('Auth Start', cli.authStart) +
+              _cmChartField('Auth End', cli.authEnd) +
+              _cmChartField('Auth Units', cli.authUnits||'—');
+  var authList = (d.authorizations||[]).filter(function(a){ return a.clientId === cli.id; });
+  var authBody = authList.length ?
+    '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Auth #</th><th style="text-align:left;padding:6px">Start</th><th style="text-align:left;padding:6px">End</th><th style="text-align:left;padding:6px">Units</th><th style="text-align:left;padding:6px">Status</th></tr></thead><tbody>'+
+    authList.map(function(a){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px;font-family:var(--mono)">'+(a.authNumber||'—')+'</td><td style="padding:6px">'+(a.startDate||'')+'</td><td style="padding:6px">'+(a.endDate||'')+'</td><td style="padding:6px">'+(a.units||'')+'</td><td style="padding:6px">'+_cmStatusBadge(a.status||'Active')+'</td></tr>'; }).join('')+
+    '</tbody></table>' :
+    '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No authorizations on file.</div>';
+  return _cmChartCard('Primary Authorization', basic, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>') +
+         _cmChartCard('All Authorizations', authBody, '<button class="btn btn-sm" onclick="openCMAuthModal()"><i data-lucide="plus" class="lci"></i> New</button>');
+}
+
+// ── Tab: Contacts ──
+function _cmChartContacts(cli, d) {
+  var g = _cmChartField('Guardian Name', cli.guardianName) +
+          _cmChartField('Relationship', cli.guardianRel) +
+          _cmChartField('Phone', cli.guardianPhone) +
+          _cmChartField('Email', cli.guardianEmail);
+  return _cmChartCard('Guardian / Legal Representative', g, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>');
+}
+
+// ── Tab: Schedule ──
+function _cmChartSchedule(cli, d) {
+  var upcoming = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id && n.date && new Date(n.date) >= new Date(); }).sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
+  var body = upcoming.length ?
+    '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Date</th><th style="text-align:left;padding:6px">Type</th><th style="text-align:left;padding:6px">Worker</th></tr></thead><tbody>'+
+    upcoming.slice(0,20).map(function(n){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">'+(n.date||'')+'</td><td style="padding:6px">'+(n.contactType||'—')+'</td><td style="padding:6px">'+_cmWorkerName(n.workerId)+'</td></tr>'; }).join('')+
+    '</tbody></table>' :
+    '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No upcoming appointments scheduled.</div>';
+  return _cmChartCard('Upcoming Appointments', body);
+}
+
+// ── Tab: Records / Documents ──
+function _cmChartRecords(cli, d) {
+  var docs = cli.documents || [];
+  var body = docs.length ?
+    docs.map(function(doc){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px">'+
+        '<i data-lucide="file-text" class="lci" style="width:14px;height:14px;color:var(--text3)"></i>'+
+        '<div style="flex:1"><div style="font-weight:600">'+(doc.name||'Document')+'</div><div style="color:var(--text3);font-size:11px">'+(doc.category||'')+' · '+(doc.date||'')+'</div></div>'+
+      '</div>';
+    }).join('') :
+    '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No documents uploaded.</div>';
+  return _cmChartCard('Client Documents', body, '<button class="btn btn-sm" onclick="_cmChartUploadDoc(\''+cli.id+'\')"><i data-lucide="upload" class="lci"></i> Upload</button>');
+}
+
+function _cmChartUploadDoc(clientId) {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,.pdf,.doc,.docx';
+  input.onchange = function(e){
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var d = getCMData();
+      var cli = (d.clients||[]).find(function(c){ return c.id===clientId; });
+      if (!cli) return;
+      if (!cli.documents) cli.documents = [];
+      var name = prompt('Document name:', file.name) || file.name;
+      var category = prompt('Category (e.g. Consent, ID, Insurance, Clinical):', 'Clinical') || 'Other';
+      cli.documents.unshift({
+        id: _cmId(),
+        name: name,
+        category: category,
+        type: file.type,
+        data: ev.target.result,
+        date: (new Date()).toISOString().slice(0,10),
+        uploadedAt: _cmNowISO()
+      });
+      saveCMData(d);
+      _renderCMChartTab('records');
+      toast('Document uploaded');
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// ── Tab: Encounters ──
+function _cmChartEncounters(cli, d) {
+  var list = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id; }).sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  if (!list.length) {
+    return _cmChartCard('Encounters', '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No encounters recorded.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="openCMEncounterModal&&openCMEncounterModal()"><i data-lucide="plus" class="lci"></i> New Note</button>');
+  }
+  var body = '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><th style="text-align:left;padding:6px">Date</th><th style="text-align:left;padding:6px">Type</th><th style="text-align:left;padding:6px">Worker</th><th style="text-align:left;padding:6px">Billable</th><th style="text-align:left;padding:6px">Approval</th><th style="width:120px"></th></tr></thead><tbody>'+
+    list.map(function(n){
+      var canSubmit = (!n.supervisorStatus || n.supervisorStatus==='Draft' || n.supervisorStatus==='Returned');
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:6px">'+(n.date||'')+'</td>'+
+        '<td style="padding:6px">'+(n.contactType||'—')+'</td>'+
+        '<td style="padding:6px">'+_cmWorkerName(n.workerId)+'</td>'+
+        '<td style="padding:6px">'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
+        '<td style="padding:6px">'+_cmApprovalBadge(n.supervisorStatus)+'</td>'+
+        '<td style="padding:6px;text-align:right">'+
+          (canSubmit?'<button class="btn btn-xs" onclick="submitCMEntityForApproval(\'encounters\',\''+n.id+'\')" title="Submit to Supervisor"><i data-lucide="send" class="lci"></i></button> ':'')+
+          '<button class="btn btn-xs" onclick="viewCMEncounter&&viewCMEncounter(\''+n.id+'\')"><i data-lucide="eye" class="lci"></i></button>'+
+        '</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+  return _cmChartCard('Encounters ('+list.length+')', body,
+    '<button class="btn btn-sm btn-primary" onclick="openCMEncounterModal&&openCMEncounterModal()"><i data-lucide="plus" class="lci"></i> New Note</button>');
+}
+
+// ── Tab: Care Plans ──
+function _cmChartPlans(cli, d) {
+  var list = (d.plans||[]).filter(function(p){ return p.clientId===cli.id; }).sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
+  if (!list.length) {
+    return _cmChartCard('Care Plans', '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No care plans yet.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="openCMPlanModal()"><i data-lucide="plus" class="lci"></i> New Plan</button>');
+  }
+  var body = '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><th style="text-align:left;padding:6px">Created</th><th style="text-align:left;padding:6px">Next Review</th><th style="text-align:left;padding:6px">Goals</th><th style="text-align:left;padding:6px">Status</th><th style="text-align:left;padding:6px">Approval</th><th style="width:120px"></th></tr></thead><tbody>'+
+    list.map(function(p){
+      var canSubmit = (!p.supervisorStatus || p.supervisorStatus==='Draft' || p.supervisorStatus==='Returned');
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:6px">'+(p.createdDate||'')+'</td>'+
+        '<td style="padding:6px">'+(p.nextReview||'')+'</td>'+
+        '<td style="padding:6px">'+((p.goals||[]).length)+'</td>'+
+        '<td style="padding:6px">'+_cmStatusBadge(p.status||'Active')+'</td>'+
+        '<td style="padding:6px">'+_cmApprovalBadge(p.supervisorStatus)+'</td>'+
+        '<td style="padding:6px;text-align:right">'+
+          (canSubmit?'<button class="btn btn-xs" onclick="submitCMEntityForApproval(\'plans\',\''+p.id+'\')" title="Submit to Supervisor"><i data-lucide="send" class="lci"></i></button> ':'')+
+          '<button class="btn btn-xs" onclick="editCMPlan(\''+p.id+'\')"><i data-lucide="pencil" class="lci"></i></button>'+
+        '</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+  return _cmChartCard('Care Plans ('+list.length+')', body,
+    '<button class="btn btn-sm btn-primary" onclick="openCMPlanModal()"><i data-lucide="plus" class="lci"></i> New Plan</button>');
+}
+
+// ── Tab: Tasks ──
+function _cmChartTasks(cli, d) {
+  var list = (d.tasks||[]).filter(function(t){ return t.clientId===cli.id; }).sort(function(a,b){
+    if (a.status !== b.status) return a.status==='Open' ? -1 : 1;
+    return new Date(a.dueDate||0) - new Date(b.dueDate||0);
+  });
+  if (!list.length) {
+    return _cmChartCard('Tasks & Follow-Ups', '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No tasks for this client.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="openCMTaskModal()"><i data-lucide="plus" class="lci"></i> New Task</button>');
+  }
+  var body = '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><th style="text-align:left;padding:6px">Title</th><th style="text-align:left;padding:6px">Due</th><th style="text-align:left;padding:6px">Priority</th><th style="text-align:left;padding:6px">Worker</th><th style="text-align:left;padding:6px">Status</th></tr></thead><tbody>'+
+    list.map(function(t){
+      var overdue = t.status==='Open' && t.dueDate && new Date(t.dueDate) < new Date();
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:6px;font-weight:600">'+(t.title||'')+'</td>'+
+        '<td style="padding:6px;color:'+(overdue?'var(--red)':'inherit')+'">'+(t.dueDate||'—')+'</td>'+
+        '<td style="padding:6px">'+_cmStatusBadge(t.priority||'Medium')+'</td>'+
+        '<td style="padding:6px">'+_cmWorkerName(t.workerId)+'</td>'+
+        '<td style="padding:6px">'+_cmStatusBadge(t.status||'Open')+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+  return _cmChartCard('Tasks & Follow-Ups ('+list.length+')', body,
+    '<button class="btn btn-sm btn-primary" onclick="openCMTaskModal()"><i data-lucide="plus" class="lci"></i> New Task</button>');
+}
+
+// ── Tab: Billing ──
+function _cmChartBilling(cli, d) {
+  var list = (d.billing||[]).filter(function(b){ return b.clientId===cli.id; }).sort(function(a,b){ return new Date(b.dos||0)-new Date(a.dos||0); });
+  var total = list.reduce(function(s,b){ return s + (b.total||0); }, 0);
+  var body = list.length ?
+    '<div style="padding:8px 12px;background:var(--brand-bg);border-radius:6px;margin-bottom:10px;font-size:12px;display:flex;justify-content:space-between"><span style="color:var(--text3)">Total billed</span><strong>'+_cmFmtMoney(total)+'</strong></div>'+
+    '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><th style="text-align:left;padding:6px">DOS</th><th style="text-align:left;padding:6px">Code</th><th style="text-align:left;padding:6px">Units</th><th style="text-align:left;padding:6px">Total</th><th style="text-align:left;padding:6px">Status</th></tr></thead><tbody>'+
+    list.map(function(b){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">'+(b.dos||'')+'</td><td style="padding:6px;font-family:var(--mono)">'+(b.code||'')+'</td><td style="padding:6px">'+(b.units||'')+'</td><td style="padding:6px">'+_cmFmtMoney(b.total)+'</td><td style="padding:6px">'+_cmStatusBadge(b.status||'Draft')+'</td></tr>'; }).join('')+
+    '</tbody></table>' :
+    '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No billing entries for this client.</div>';
+  return _cmChartCard('CM Billing ('+list.length+')', body);
+}
+
 
 document.addEventListener("DOMContentLoaded", async function() {
   // Hydrate the cache from IndexedDB FIRST — before applyTheme/getDB/render —
