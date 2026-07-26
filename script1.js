@@ -1,4 +1,4 @@
-// CDC BUILD 2026-07-26 CM-CHART v2 — openCMClientChart, supervisor, approval workflow
+// CDC BUILD 2026-07-26 CM-CHART v3 — font sizes + auto-supervisor + name in dashboard
 console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#c96442;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
 // Global error trap — catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
@@ -27124,8 +27124,8 @@ function openCMClientModal(editId) {
     '<div class="sep"></div>'+
     '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Case Management</div>'+
     '<div class="fg g2">'+
-      '<div class="field"><label>Assigned Case Worker</label><select id="cmc-worker">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
-      '<div class="field"><label>Supervisor</label><select id="cmc-sup">'+_cmSupervisorOpts(c.supervisorId||'')+'</select></div>'+
+      '<div class="field"><label>Assigned Case Worker</label><select id="cmc-worker" onchange="_cmAutoFillSupervisor(this.value)">'+workerOpts.replace('value="'+(c.workerId||'')+'"','value="'+(c.workerId||'')+'" selected')+'</select></div>'+
+      '<div class="field"><label>Supervisor <span style="font-size:10px;color:var(--text3);font-weight:400">(auto-filled from Case Worker)</span></label><select id="cmc-sup">'+_cmSupervisorOpts(c.supervisorId||'')+'</select></div>'+
     '</div>'+
     '<div class="fg g2">'+
       '<div class="field"><label>Status</label><select id="cmc-status">'+
@@ -27664,7 +27664,7 @@ function openCMWorkerModal(editId) {
     '<div class="field"><label>Capacity (max clients)</label><input id="cmw-cap" type="number" value="'+(w.capacity||20)+'"></div></div>'+
     '<div class="fg g2"><div class="field"><label>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
     '<div class="field"><label>Phone</label><input id="cmw-phone" value="'+(w.phone||'')+'"></div></div>'+
-    '<div class="field"><label>Supervisor</label><select id="cmw-sup">'+supOpts+'</select></div>'+
+    '<div class="fg g2">'+      '<div class="field"><label>Supervisor</label><select id="cmw-sup">'+supOpts+'</select></div>'+      '<div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-top:8px;cursor:pointer"><input type="checkbox" id="cmw-issup"'+(w.isSupervisor?' checked':'')+' style="accent-color:var(--brand)"> This worker IS a supervisor</label></div>'+    '</div>'+
     '<div class="fg g2"><div class="field"><label>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div>'+
     '<div class="field"><label>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div></div>'+
     '</div>'+
@@ -27686,6 +27686,7 @@ function saveCMWorker(id) {
     email: document.getElementById('cmw-email')?.value||'',
     phone: document.getElementById('cmw-phone')?.value||'',
     supervisorId: document.getElementById('cmw-sup')?.value||'',
+    isSupervisor: !!document.getElementById('cmw-issup')?.checked,
     hireDate: document.getElementById('cmw-hire')?.value||'',
     status: document.getElementById('cmw-status')?.value||'Active',
     updatedAt: _cmNowISO()
@@ -30684,21 +30685,35 @@ function _cmIsSupervisor() {
 
 // ── CM: Supervisor helpers ────────────────────────────────────
 function _cmSupervisorOpts(currentId) {
-  // Supervisors = workers whose title/credential contains "sup" OR flagged
-  // isSupervisor:true. Fallback: all active workers with no supervisorId set.
+  // Supervisors = workers explicitly flagged isSupervisor:true.
+  // Fallback: workers whose credential contains "sup"/LCSW/LMHC.
+  // Last resort: all active workers.
   var d = getCMData();
-  var isSup = function(w){
-    if (w.isSupervisor) return true;
-    var c = (w.credential||'').toLowerCase();
-    return c.indexOf('sup') >= 0 || c.indexOf('lcsw') >= 0 || c.indexOf('lmhc') >= 0;
-  };
-  var sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive' && isSup(w); });
+  var sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive' && w.isSupervisor; });
+  if (!sups.length) {
+    var isSup = function(w){
+      var c = (w.credential||'').toLowerCase();
+      return c.indexOf('sup') >= 0 || c.indexOf('lcsw') >= 0 || c.indexOf('lmhc') >= 0;
+    };
+    sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive' && isSup(w); });
+  }
   if (!sups.length) sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive'; });
   var opts = '<option value="">— None —</option>';
   sups.forEach(function(w){
     opts += '<option value="'+w.id+'"'+(w.id===currentId?' selected':'')+'>'+w.first+' '+w.last+(w.credential?' — '+w.credential:'')+'</option>';
   });
   return opts;
+}
+
+function _cmAutoFillSupervisor(workerId) {
+  if (!workerId) return;
+  var d = getCMData();
+  var w = (d.workers||[]).find(function(x){ return x.id === workerId; });
+  if (!w || !w.supervisorId) return;
+  var supSel = document.getElementById('cmc-sup');
+  if (!supSel) return;
+  // Only overwrite if empty — respect explicit user choice
+  if (!supSel.value) supSel.value = w.supervisorId;
 }
 
 function _cmCurrentUserWorkerId() {
@@ -30750,7 +30765,21 @@ function _cmBuildMyWorkPanel(d) {
 
   if (!myWid && !isSA) return '';
 
-  var userName = ((s.first||'') + ' ' + (s.last||'')).trim() || s.email || 'User';
+  // Resolve the user's display name: session first/last → CM worker record by email → user record → email prefix
+  var userName = ((s.first||'') + ' ' + (s.last||'')).trim();
+  if (!userName && s.email) {
+    var wkr = (d.workers||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
+    if (wkr) userName = (wkr.first||'')+' '+(wkr.last||'');
+  }
+  if (!userName && s.email) {
+    try {
+      var db2 = getDB();
+      var u = (db2.users||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
+      if (u) userName = (u.first||u.firstName||'')+' '+(u.last||u.lastName||'');
+    } catch(e) {}
+  }
+  userName = (userName||'').trim();
+  if (!userName) userName = (s.email||'User').split('@')[0];
 
   return '<div class="card" style="margin-bottom:14px;padding:14px 18px;background:linear-gradient(135deg,var(--brand-bg) 0%,var(--bg2) 100%);border:1px solid var(--brand-bdr)">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
@@ -30851,10 +30880,10 @@ function _buildCMChartShell(cli, d) {
   var tabsHTML = TABS.map(function(t){
     return '<div class="ptc-tab" id="cmc-tab-'+t.id+'" onclick="_renderCMChartTab(\''+t.id+'\')"><i data-lucide="'+t.icon+'" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>'+t.label+'</div>';
   }).join('');
-  var meta = '<span style="font-weight:700;font-size:13px">'+(cli.last||'').toUpperCase()+', '+(cli.first||'').toUpperCase()+'</span>'+
-             '<span style="opacity:.8">File #'+(cli.fileNo||'—')+'</span>'+
-             '<span style="opacity:.8">DOB '+(cli.dob||'—')+'</span>'+
-             '<span style="opacity:.8">'+(cli.status||'Active')+'</span>';
+  var meta = '<span style="font-weight:700;font-size:12px">'+(cli.last||'').toUpperCase()+', '+(cli.first||'').toUpperCase()+'</span>'+
+             '<span style="opacity:.75;font-size:11px">File #'+(cli.fileNo||'—')+'</span>'+
+             '<span style="opacity:.75;font-size:11px">DOB '+(cli.dob||'—')+'</span>'+
+             '<span style="opacity:.75;font-size:11px">'+(cli.status||'Active')+'</span>';
   return '<div class="ptc-banner" id="cmc-banner">'+
     '<span class="ptc-banner-title">CLIENT FILE</span>'+
     '<span class="ptc-banner-sep">|</span>'+
@@ -30953,9 +30982,9 @@ function _cmChartSummary(cli, d) {
   // Row helper (matches patient chart R)
   var R=function(l,v,bold){
     if (!v && v!==0) return '';
-    return '<div style="display:grid;grid-template-columns:130px 1fr;padding:4px 0;border-bottom:1px solid #f0eee6;font-size:11.5px;align-items:baseline">'+
+    return '<div style="display:grid;grid-template-columns:130px 1fr;padding:4px 0;border-bottom:1px solid #f0eee6;align-items:baseline">'+
       '<span style="color:#87867f;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">'+l+'</span>'+
-      '<span style="color:'+(bold?'#141413':'#3d3c38')+';font-weight:'+(bold?'700':'400')+'">'+v+'</span>'+
+      '<span style="color:'+(bold?'#141413':'#3d3c38')+';font-weight:'+(bold?'700':'400')+';font-size:12px">'+v+'</span>'+
     '</div>';
   };
 
@@ -31123,16 +31152,25 @@ function _cmChartCoverage(cli, d) {
 
 // ── Tab: Authorization ──
 function _cmChartAuth(cli, d) {
+  var worker = (d.workers||[]).find(function(w){return w.id===cli.workerId;})||{};
+  var sup = (d.workers||[]).find(function(w){return w.id===cli.supervisorId;})||{};
+  var cmAssign = _cmChartField('Case Manager', worker.first?worker.first+' '+worker.last+(worker.credential?' — '+worker.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
+                 _cmChartField('Supervisor',  sup.first?sup.first+' '+sup.last+(sup.credential?' — '+sup.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
+                 _cmChartField('Case Worker Email', worker.email||'') +
+                 _cmChartField('Supervisor Email', sup.email||'');
   var basic = _cmChartField('Auth Start', cli.authStart) +
               _cmChartField('Auth End', cli.authEnd) +
-              _cmChartField('Auth Units', cli.authUnits||'—');
+              _cmChartField('Auth Units', cli.authUnits||'—') +
+              _cmChartField('Payer / MCO', cli.payer||'') +
+              _cmChartField('Medicaid ID', cli.medicaidId||'');
   var authList = (d.authorizations||[]).filter(function(a){ return a.clientId === cli.id; });
   var authBody = authList.length ?
     '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Auth #</th><th style="text-align:left;padding:6px">Start</th><th style="text-align:left;padding:6px">End</th><th style="text-align:left;padding:6px">Units</th><th style="text-align:left;padding:6px">Status</th></tr></thead><tbody>'+
     authList.map(function(a){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px;font-family:var(--mono)">'+(a.authNumber||'—')+'</td><td style="padding:6px">'+(a.startDate||'')+'</td><td style="padding:6px">'+(a.endDate||'')+'</td><td style="padding:6px">'+(a.units||'')+'</td><td style="padding:6px">'+_cmStatusBadge(a.status||'Active')+'</td></tr>'; }).join('')+
     '</tbody></table>' :
     '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No authorizations on file.</div>';
-  return _cmChartCard('Primary Authorization', basic, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>') +
+  return _cmChartCard('Case Management Assignment', cmAssign, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Change</button>') +
+         _cmChartCard('Primary Authorization', basic, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Edit</button>') +
          _cmChartCard('All Authorizations', authBody, '<button class="btn btn-sm" onclick="openCMAuthModal()"><i data-lucide="plus" class="lci"></i> New</button>');
 }
 
