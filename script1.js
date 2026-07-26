@@ -26991,7 +26991,7 @@ function renderCMClients() {
     '</tr></thead><tbody>'+
     list.map(function(c){
       return '<tr>'+
-        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'—')+'</td>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+(c.fileNo||'—')+'</a></td>'+
         '<td style="font-weight:600"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+c.last+', '+c.first+'</a></td>'+
         '<td style="font-size:12px">'+(c.dob||'—')+'</td>'+
         '<td style="font-size:12px">'+(c.medicaidId||'—')+'</td>'+
@@ -30915,37 +30915,182 @@ function _cmApprovalBadge(status) {
   return '<span class="badge b-gray">'+status+'</span>';
 }
 
-// ── Tab: Summary ──
+// ── Tab: Summary ── (mirrors Patient Chart visual)
 function _cmChartSummary(cli, d) {
-  var worker = (d.workers||[]).find(function(w){ return w.id===cli.workerId; });
-  var sup = (d.workers||[]).find(function(w){ return w.id===cli.supervisorId; });
-  var encCount = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id; }).length;
-  var pendingCount = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id && (n.supervisorStatus==='Pending'||!n.supervisorStatus && n.billable); }).length;
-  var planCount = (d.plans||[]).filter(function(p){ return p.clientId===cli.id; }).length;
-  var openTasks = (d.tasks||[]).filter(function(t){ return t.clientId===cli.id && t.status==='Open'; }).length;
-  var docsCount = (cli.documents||[]).length;
-  var authExpiring = '';
-  if (cli.authEnd) {
-    var days = Math.round((new Date(cli.authEnd) - new Date()) / 86400000);
-    if (days < 0) authExpiring = '<div style="padding:8px 12px;background:#fef2f2;border-left:3px solid var(--red);border-radius:6px;margin-bottom:10px;font-size:12px;color:var(--red)"><i data-lucide="alert-triangle" class="lci" style="width:12px;height:12px"></i> Authorization expired '+Math.abs(days)+' days ago</div>';
-    else if (days < 30) authExpiring = '<div style="padding:8px 12px;background:#fef3c7;border-left:3px solid var(--amber);border-radius:6px;margin-bottom:10px;font-size:12px;color:var(--text)"><i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i> Authorization expires in '+days+' days ('+cli.authEnd+')</div>';
-  }
-  var stats = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">'+
-    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'encounters\')"><div style="font-size:22px;font-weight:800;color:var(--brand)">'+encCount+'</div><div style="font-size:10px;color:var(--text3)">Encounters</div></div>'+
-    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'encounters\')"><div style="font-size:22px;font-weight:800;color:'+(pendingCount?'var(--amber)':'var(--text3)')+'">'+pendingCount+'</div><div style="font-size:10px;color:var(--text3)">Pending Review</div></div>'+
-    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'plans\')"><div style="font-size:22px;font-weight:800;color:var(--green)">'+planCount+'</div><div style="font-size:10px;color:var(--text3)">Care Plans</div></div>'+
-    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'tasks\')"><div style="font-size:22px;font-weight:800;color:var(--text)">'+openTasks+'</div><div style="font-size:10px;color:var(--text3)">Open Tasks</div></div>'+
-    '<div class="card" style="padding:12px;text-align:center;cursor:pointer" onclick="_renderCMChartTab(\'records\')"><div style="font-size:22px;font-weight:800;color:var(--text)">'+docsCount+'</div><div style="font-size:10px;color:var(--text3)">Documents</div></div>'+
-  '</div>';
-  var overview = _cmChartField('Case Worker', worker ? worker.first+' '+worker.last+(worker.credential?' — '+worker.credential:'') : '—') +
-                 _cmChartField('Supervisor', sup ? sup.first+' '+sup.last : '<span style="color:var(--red)">Not assigned</span>') +
-                 _cmChartField('Status', cli.status||'Active') +
-                 _cmChartField('Level of Care', cli.levelOfCare||'—') +
-                 _cmChartField('Primary Dx', cli.primaryDx||'—') +
-                 _cmChartField('Payer / MCO', cli.payer||'—') +
-                 _cmChartField('Medicaid ID', cli.medicaidId||'—') +
-                 _cmChartField('Admission Date', cli.admissionDate||'—');
-  return authExpiring + stats + _cmChartCard('Case Overview', overview);
+  var worker = (d.workers||[]).find(function(w){return w.id===cli.workerId;})||{};
+  var sup = (d.workers||[]).find(function(w){return w.id===cli.supervisorId;})||{};
+  var initials = ((cli.first||'?')[0]+(cli.last||'?')[0]).toUpperCase();
+  var age = cli.dob ? Math.floor((new Date() - new Date(cli.dob))/31557600000) : '';
+  var gender = cli.sex==='M'?'Male':cli.sex==='F'?'Female':cli.sex||'';
+
+  // A/R Aging from CM Billing entries
+  var today = new Date();
+  var bkts = [30,60,90,120,Infinity];
+  var patA=[0,0,0,0,0], insA=[0,0,0,0,0];
+  (d.billing||[]).filter(function(b){return b.clientId===cli.id;}).forEach(function(b){
+    var dos = b.dos?new Date(b.dos):null;
+    if (!dos) return;
+    var days = Math.floor((today-dos)/86400000);
+    var bi = Math.max(0, bkts.findIndex(function(x){return days<=x;}));
+    var bal = (parseFloat(b.total)||0) - (parseFloat(b.paid)||0);
+    if (bal>0) {
+      if (b.status==='Submitted'||b.status==='Ready') insA[bi]+=bal; else patA[bi]+=bal;
+    }
+  });
+  var totIns=insA.reduce(function(a,b){return a+b;},0);
+  var totPat=patA.reduce(function(a,b){return a+b;},0);
+  var totAll=totIns+totPat;
+  var $v=function(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
+  var cell=function(v){return '<td style="text-align:right;font-family:var(--mono);color:'+(v>0?'#dc2626':'#87867f')+'">'+$v(v)+'</td>';};
+
+  // Upcoming/past appointments (using encounters as visits)
+  var visits = (d.encounters||[]).filter(function(n){return n.clientId===cli.id;}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var past = visits.filter(function(v){return v.date <= today.toISOString().slice(0,10);});
+  var future = visits.filter(function(v){return v.date > today.toISOString().slice(0,10);});
+
+  // Row helper (matches patient chart R)
+  var R=function(l,v,bold){
+    if (!v && v!==0) return '';
+    return '<div style="display:grid;grid-template-columns:130px 1fr;padding:4px 0;border-bottom:1px solid #f0eee6;font-size:11.5px;align-items:baseline">'+
+      '<span style="color:#87867f;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">'+l+'</span>'+
+      '<span style="color:'+(bold?'#141413':'#3d3c38')+';font-weight:'+(bold?'700':'400')+'">'+v+'</span>'+
+    '</div>';
+  };
+
+  // ── Panel: Client Details (matches "Patient Details") ──
+  var detailsPanel =
+    '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc">'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#c96442"></i>Client Details</span>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button class="btn-icon sm" onclick="_renderCMChartTab(\'demographics\')" title="View Info"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i></button>'+
+          '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="padding:12px 14px">'+
+        '<div style="display:grid;grid-template-columns:80px 1fr;gap:0 16px;align-items:start">'+
+          '<div style="text-align:center">'+
+            '<div style="width:70px;height:70px;border:2px solid #e8e6dc;border-radius:8px;background:#f5f4ed;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--text2);overflow:hidden;margin:0 auto">'+
+              (cli.photo?'<img src="'+cli.photo+'" style="width:100%;height:100%;object-fit:cover">':initials)+
+            '</div>'+
+            '<button class="btn-icon" title="Photo" style="margin-top:4px;width:100%"><i data-lucide="camera" class="lci" style="width:14px;height:14px"></i></button>'+
+          '</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">'+
+            '<div>'+
+              R('File#',cli.fileNo||'',true)+
+              R('Name (L,F,M)',((cli.last||'').toUpperCase()+', '+(cli.first||'').toUpperCase()),true)+
+              R('Address',cli.address||'')+
+              R('',[cli.city,cli.state].filter(Boolean).join(', ')+(cli.zip?' - '+cli.zip:''))+
+              R('Status',cli.status||'Active')+
+              R('Phone',cli.phone?'('+cli.phone.slice(0,3)+') '+cli.phone.slice(3,6)+'-'+cli.phone.slice(6):'')+
+            '</div>'+
+            '<div>'+
+              R('DOB',cli.dob||'')+
+              R('Age',age?age+' yrs':'')+
+              R('Sex',gender)+
+              R('E-Mail',cli.email||'')+
+              R('Language',cli.language||'')+
+              R('SSN',cli.ssn4?'***-**-'+cli.ssn4:'')+
+            '</div>'+
+            '<div>'+
+              R('Case Worker',worker.first?worker.first+' '+worker.last:'—')+
+              R('Supervisor',sup.first?sup.first+' '+sup.last:'<span style="color:#dc2626">Not assigned</span>')+
+              R('Level of Care',cli.levelOfCare||'')+
+              R('Primary Dx',cli.primaryDx||'')+
+              R('Referral',cli.referralSource||'')+
+              R('Admission',cli.admissionDate||'')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  // ── Panel: Insurance / Coverage (mirrors patient primary insurance) ──
+  var insPanel =
+    '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc">'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#c96442"></i>Client Insurance & Coverage</span>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button class="btn-icon sm" onclick="_renderCMChartTab(\'coverage\')" title="Coverage Detail"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px"></i></button>'+
+          '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="padding:12px 14px">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">'+
+          '<div>'+
+            R('Name',(cli.last||'')+', '+(cli.first||''))+
+            R('DOB',cli.dob||'')+
+            R('Sex',gender)+
+            R('Address',cli.address||'')+
+            R('Contact',cli.phone||'')+
+          '</div>'+
+          '<div>'+
+            R('Payer / MCO',cli.payer||'',true)+
+            R('Medicaid ID',cli.medicaidId||'',true)+
+            R('Level of Care',cli.levelOfCare||'')+
+            R('Primary Dx',cli.primaryDx||'')+
+            R('Relation','Self')+
+          '</div>'+
+          '<div>'+
+            R('Auth Start',cli.authStart||'')+
+            R('Auth End',cli.authEnd||'')+
+            R('Auth Units',cli.authUnits||'0')+
+            R('Status',cli.status||'Active')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  // ── Panel: Guardian / Contacts (extra card since CM often has minors) ──
+  var guardianPanel = (cli.guardianName||cli.guardianPhone) ?
+    '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc">'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="contact" class="lci" style="width:12px;height:12px;color:#c96442"></i>Guardian / Legal Representative</span>'+
+        '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
+      '</div>'+
+      '<div style="padding:12px 14px">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">'+
+          '<div>'+R('Name',cli.guardianName||'',true)+R('Relationship',cli.guardianRel||'')+'</div>'+
+          '<div>'+R('Phone',cli.guardianPhone||'')+R('Email',cli.guardianEmail||'')+'</div>'+
+          '<div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>' : '';
+
+  // ── Panel: Billing Statement (A/R Aging) ──
+  var billingPanel =
+    '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
+      '<div style="padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#c96442"></i>Billing Statement</div>'+
+      '<div style="overflow-x:auto">'+
+        '<table class="ptc-aging-table" style="width:100%">'+
+          '<thead><tr><th style="text-align:left;padding:6px 10px">A/R Aging (days)</th><th>0-30</th><th>31-60</th><th>61-90</th><th>91-120</th><th>Over 120</th><th>Total</th></tr></thead>'+
+          '<tbody>'+
+            '<tr><td style="text-align:left;padding:6px 10px;font-weight:600">Client Aging</td>'+patA.map(cell).join('')+cell(totPat)+'</tr>'+
+            '<tr><td style="text-align:left;padding:6px 10px;font-weight:600">Insurance Aging</td>'+insA.map(cell).join('')+cell(totIns)+'</tr>'+
+          '</tbody>'+
+          '<tfoot><tr><td style="text-align:left;padding:6px 10px;font-weight:700">Total</td>'+[0,1,2,3,4].map(function(i){return cell(patA[i]+insA[i]);}).join('')+cell(totAll)+'</tr></tfoot>'+
+        '</table>'+
+        '<div style="display:flex;justify-content:flex-end;gap:24px;padding:6px 12px;font-size:12px;font-weight:700;border-top:1px solid #e8e6dc">'+
+          '<span>Net A/R: <span style="color:'+(totAll>0?'#dc2626':'#87867f')+'">'+$v(totAll)+'</span></span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  // ── Panel: Schedule / Visits ──
+  var visitRow=function(v){
+    return '<tr style="border-bottom:1px solid #f0eee6"><td style="padding:6px 10px;font-size:12px">'+(v.date||'')+'</td><td style="padding:6px 10px;font-size:12px">'+(v.contactType||'—')+'</td><td style="padding:6px 10px;font-size:12px">'+_cmWorkerName(v.workerId)+'</td><td style="padding:6px 10px">'+(v.billable?'<span class="badge b-green">Bill</span>':'<span class="badge b-gray">—</span>')+'</td><td style="padding:6px 10px">'+_cmApprovalBadge(v.supervisorStatus)+'</td></tr>';
+  };
+  var visitsPanel =
+    '<div style="background:#faf9f5;border:1px solid #e8e6dc;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
+      '<div style="padding:9px 14px;background:#f0eee6;border-bottom:1px solid #e8e6dc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e5d59;display:flex;align-items:center;gap:6px"><i data-lucide="calendar-days" class="lci" style="width:12px;height:12px;color:#c96442"></i>Schedule / Visits</div>'+
+      (visits.length ?
+        '<table style="width:100%"><thead><tr style="background:#f5f4ed;font-size:10px;text-transform:uppercase;color:#87867f"><th style="text-align:left;padding:6px 10px">Date</th><th style="text-align:left;padding:6px 10px">Type</th><th style="text-align:left;padding:6px 10px">Worker</th><th style="text-align:left;padding:6px 10px">Billable</th><th style="text-align:left;padding:6px 10px">Approval</th></tr></thead><tbody>'+
+        visits.slice(0,15).map(visitRow).join('')+
+        '</tbody></table>' :
+        '<div style="padding:20px;text-align:center;font-size:12px;color:#87867f">No visits recorded.</div>')+
+    '</div>';
+
+  return '<div style="padding:0">'+detailsPanel+insPanel+guardianPanel+billingPanel+visitsPanel+'</div>';
 }
 
 // ── Tab: Demographics ──
