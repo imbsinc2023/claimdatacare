@@ -1,3 +1,5 @@
+// CDC BUILD 2026-07-26 CM-CHART v2 — openCMClientChart, supervisor, approval workflow
+console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#c96442;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
 // Global error trap — catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
   console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
