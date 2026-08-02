@@ -1,4 +1,4 @@
-// CDC BUILD 2026-07-27 CM-CLI v7 — CM Client = Patient parity (same fields + columns) — + Y4 claim number (Box 11b) — PCN + per-line dates + accident + 12 lines + attachments — admin-only Settings + Supervisor=Rendering
+// CDC BUILD 2026-07-27 LOGIN-FLASH v9 — loading overlay + pre-set specialty + force user menu closed — provider switch revalidates specialty — CM Client = Patient parity (same fields + columns) — + Y4 claim number (Box 11b) — PCN + per-line dates + accident + 12 lines + attachments — admin-only Settings + Supervisor=Rendering
 console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#c96442;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
 // Global error trap — catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
@@ -106,7 +106,67 @@ function rebuildProvSel() {
     }
   }
 }
-function switchProvider(id){ activeProviderId=id; renderDashboard(); updateBadges(); if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); try{ _applyProviderCHKeyGate(); }catch(e){} try{ _renderTopnavSpecialtyChip(); }catch(e){} }
+function switchProvider(id){
+  activeProviderId=id;
+  // Revalidate active specialty against the NEW provider's specialtyDefs.
+  // If the current active specialty is not offered by the new provider,
+  // switch to the first available one (or clear it). This prevents e.g.
+  // Case Management dashboard from staying visible after switching to a
+  // provider that doesn't have that specialty enabled.
+  try {
+    var _db = getDB();
+    var _prov = (_db.providers||[]).find(function(p){ return p.id===id; }) || {};
+    var _provSpecNames = ((_prov.specialtyDefs||[]).map(function(sd){ return String(sd.name||'').toLowerCase().trim(); }));
+    var _sess = getSession();
+    if (_sess) {
+      if (_sess.role === 'Super Admin') {
+        // SA: if preview override is set but not offered by new provider, clear it
+        var _sa = window._saActiveSpecialty || '';
+        if (_sa && _provSpecNames.indexOf(String(_sa).toLowerCase().trim()) < 0) {
+          window._saActiveSpecialty = null;
+        }
+      } else {
+        // Regular user: find intersection of user's specialties and provider's specialties
+        var _email = (_sess.email||'').toLowerCase();
+        var _dbUser = (_db.users||[]).find(function(u){ return (u.email||'').toLowerCase() === _email; });
+        var _userSpecs = _specNamesOf((_dbUser && _dbUser.specialties) || _sess.specialties || []);
+        var _userSpecsLC = _userSpecs.map(function(n){ return String(n).toLowerCase().trim(); });
+        var _eligible = _userSpecs.filter(function(n, i){
+          return _provSpecNames.indexOf(_userSpecsLC[i]) >= 0;
+        });
+        var _cur = _sess.activeSpecialty || '';
+        var _curLC = String(_cur).toLowerCase().trim();
+        var _curOk = _cur && _provSpecNames.indexOf(_curLC) >= 0 && _userSpecsLC.indexOf(_curLC) >= 0;
+        if (!_curOk) {
+          // Current specialty not offered on the new provider — switch to first eligible or clear
+          var _newSpec = _eligible.length ? _eligible[0] : '';
+          _sess.activeSpecialty = _newSpec;
+          setSession(_sess);
+          setDB(function(db2){
+            var u = (db2.users||[]).find(function(x){ return (x.email||'').toLowerCase()===_email; });
+            if (u) u.activeSpecialty = _newSpec;
+          });
+        }
+      }
+    }
+    // If we're currently on a Case Management page and the new provider doesn't
+    // have CM active anymore, navigate away to the general dashboard.
+    var _wasCMActive = false;
+    try { _wasCMActive = _isCMSpecialtyActive(); } catch(e) {}
+    if (!_wasCMActive) {
+      var _activeSec = document.querySelector('.section.active');
+      var _secId = _activeSec ? _activeSec.id : '';
+      if (_secId && _secId.indexOf('sec-cm-') === 0 || _secId === 'sec-intake-center' || _secId === 'sec-intake-clients' || _secId === 'sec-intake-forms' || _secId === 'sec-intake-eval') {
+        try { go('dashboard'); } catch(e) {}
+      }
+    }
+  } catch(e) { console.warn('[CDC] switchProvider specialty revalidate:', e); }
+  renderDashboard();
+  updateBadges();
+  if(typeof applyActiveSpecialty==='function') applyActiveSpecialty();
+  try{ _applyProviderCHKeyGate(); }catch(e){}
+  try{ _renderTopnavSpecialtyChip(); }catch(e){}
+}
 
 // \u2500\u2500 Navigation \u2500\u2500
 const NAV_TITLES={dashboard:'Dashboard',claims:'Claims',patients:'Patients',services:'Services / CPT',export:'Export / Submit',providers:'Providers',facilities:'Facilities',rendering:'Rendering',referring:'Referring',validate:'Validate',reports:'Reports'};
@@ -338,10 +398,67 @@ function _injectCriticalCSS() {
   document.head.appendChild(s);
 }
 
+
+// ── Login/App Loading Overlay ──────────────────────────────────────────────
+// Full-screen animated spinner shown while login shell + first paint are
+// being prepared. Prevents the general-dashboard flash for CM-only users.
+function _showLoginLoader(msg){
+  var existing = document.getElementById('cdc-login-loader');
+  if (existing) { existing.style.display = 'flex'; return; }
+  var ov = document.createElement('div');
+  ov.id = 'cdc-login-loader';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)';
+  ov.innerHTML =
+    '<style>@keyframes cdc-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}@keyframes cdc-pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>' +
+    '<div style="width:64px;height:64px;position:relative">' +
+      '<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#c96442" stroke-width="2.5" stroke-linecap="round" style="animation:cdc-spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>' +
+    '</div>' +
+    '<div style="font-size:14px;font-weight:600;color:#4d4c48;letter-spacing:-.01em;animation:cdc-pulse 1.5s ease-in-out infinite" id="cdc-login-loader-msg">' + (msg || 'Loading your workspace...') + '</div>';
+  document.body.appendChild(ov);
+}
+function _hideLoginLoader(){
+  var ov = document.getElementById('cdc-login-loader');
+  if (!ov) return;
+  ov.style.opacity = '0';
+  ov.style.transition = 'opacity .25s ease';
+  setTimeout(function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }, 260);
+}
+// Force the user menu closed. Called defensively during login to prevent
+// any race condition from leaving it open.
+function _forceCloseUserMenu(){
+  try {
+    var m = document.getElementById('tn-user-menu');
+    if (m) m.style.display = 'none';
+    var sm = document.getElementById('tn-specialty-menu');
+    if (sm) sm.style.display = 'none';
+  } catch(e){}
+}
+
 function showApp(username) {
   _injectCriticalCSS();
   const session = getSession();
   if (!session) { renderLoginScreen(); return; }
+
+  // Show loading overlay to hide the shell paint + dashboard flash.
+  try { _showLoginLoader(); } catch(e){}
+
+  // Pre-set session.activeSpecialty from user's assigned specialties BEFORE
+  // go('dashboard') runs. This ensures _isCMSpecialtyActive() returns the
+  // correct value on first paint, so CM users land on cm-dashboard directly
+  // instead of briefly seeing the general dashboard.
+  try {
+    if (session.role !== 'Super Admin' && !session.activeSpecialty) {
+      var _specs = session.specialties || [];
+      if (_specs.length) {
+        var _first = _specs[0];
+        var _name = (typeof _first === 'string') ? _first : (_first && _first.name) ? _first.name : '';
+        if (_name) {
+          session.activeSpecialty = _name;
+          setSession(session);
+        }
+      }
+    }
+  } catch(e){}
 
   var root = document.getElementById('root');
   root.innerHTML = '';
@@ -431,6 +548,10 @@ function showApp(username) {
   try{_afterLoad();}catch(e){}
   try{_injectMissingModals();}catch(e){}
   try{_migrateEOBDataV2();}catch(e){console.warn('[Migration] EOB v2 failed:',e);}
+  // Defensive: force user menu closed after all shell setup runs.
+  try { _forceCloseUserMenu(); } catch(e){}
+  setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 100);
+  setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 800);
 }
 
 
@@ -11988,6 +12109,10 @@ function _afterLoad() {
     } catch(e) {}
   }
   updateAdminUI();
+  // Hide the loading overlay once the shell + data are ready.
+  // Delayed slightly to let the final render paint.
+  try { _forceCloseUserMenu(); } catch(e){}
+  setTimeout(function(){ try { _hideLoginLoader(); _forceCloseUserMenu(); } catch(e){} }, 250);
 }
 
 // Try to resolve username/email to a known user
@@ -12077,6 +12202,7 @@ if (!_localUser) {
   } catch(_e) {}
 }
 if (!_localUser) {
+try { _hideLoginLoader(); } catch(_){}
 alertEl.innerHTML = '<div class="alert al-error" style="background:#fdecec;border:1px solid #dc2626;color:#b91c1c;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Incorrect email or password.</div>';
 btn.textContent = 'Sign In'; btn.disabled = false; return;
 }
@@ -12116,6 +12242,7 @@ if (_localUser.twoFA) {
   loadFromFirestore().then(_afterLoad).catch(_afterLoad);
 }
 } catch(e) {
+try { _hideLoginLoader(); } catch(_){}
 alertEl.innerHTML = `<div class="alert al-error">Login error: ${e.message}</div>`;
 btn.textContent = 'Sign In'; btn.disabled = false;
 }
