@@ -33965,3 +33965,2069 @@ function getAuditLogs() {
 }
 
 
+/* =============================================================================
+ * CDC Case Management — Cedrus-style modules (v2)
+ * -----------------------------------------------------------------------------
+ * Se pega al final de script1.js y agrega:
+ *   1) CDC.ProgressNote  — Session/Progress Note (video 4 de Cedrus)
+ *      • Guarda en d.notes[] via getCMData/saveCMData (mismo storage que ya usas)
+ *      • Auto-carga plantilla T1017 desde CPT_ENGINE al seleccionar el código
+ *      • Al firmar → crea entrada en d.billing[] (mismo shape que generateCMBilling)
+ *   2) CDC.Assessment    — Limited Functional Assessment (video 3 de Cedrus)
+ *      • H0031 — Mental health assessment
+ *      • Guarda en d.assessments[]
+ *      • 10 escalas de severidad tipo CANS/CAFAS
+ *   3) Botones "Cedrus-style" inyectados en sec-cm-notes y sec-cm-assessments
+ *      cuando se navega ahí (via patch de go()).
+ *
+ * Todo usa las CSS vars existentes (var(--brand), var(--bg), etc.) para
+ * heredar tu B&W design system.
+ * =========================================================================== */
+
+(function () {
+  'use strict';
+
+  window.CDC = window.CDC || {};
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Helpers compartidos
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function _needCM() {
+    if (typeof getCMData !== 'function') {
+      console.error('[CDC] getCMData no disponible — asegúrate que este módulo se carga DESPUÉS de script1.js');
+      return null;
+    }
+    return getCMData();
+  }
+
+  function _saveCM(d) {
+    if (typeof saveCMData === 'function') saveCMData(d);
+  }
+
+  function _uid() {
+    return (typeof _cmId === 'function') ? _cmId() : 'x_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function _nowISO() {
+    return (typeof _cmNowISO === 'function') ? _cmNowISO() : new Date().toISOString();
+  }
+
+  function _rate(d, code) {
+    return (typeof _cmRateFor === 'function') ? _cmRateFor(d, code) : 12.5;
+  }
+
+  function _toast(msg, kind) {
+    if (typeof toast === 'function') return toast(msg, kind || 'ok');
+    console.log('[toast]', msg);
+  }
+
+  function _icons() {
+    if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
+  }
+
+  function _sess() {
+    return (typeof getSession === 'function') ? (getSession() || {}) : {};
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function _diffMin(start, end) {
+    if (!start || !end) return 0;
+    var s = start.split(':').map(Number);
+    var e = end.split(':').map(Number);
+    return Math.max(0, (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]));
+  }
+
+  function _todayISO() {
+    var d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+
+  function _clientOpts(d, selectedId) {
+    var opts = '<option value="">— Select Client —</option>';
+    (d.clients || []).slice().sort(function (a, b) {
+      return (a.last || '').localeCompare(b.last || '');
+    }).forEach(function (c) {
+      var label = (c.last || '') + ', ' + (c.first || '') + (c.fileNo ? ' (#' + c.fileNo + ')' : '');
+      opts += '<option value="' + c.id + '"' + (selectedId === c.id ? ' selected' : '') + '>' + esc(label) + '</option>';
+    });
+    return opts;
+  }
+
+  function _workerOpts(d, selectedId) {
+    var opts = '<option value="">— None —</option>';
+    (d.workers || []).filter(function (w) { return w.status !== 'Inactive'; })
+      .forEach(function (w) {
+        opts += '<option value="' + w.id + '"' + (selectedId === w.id ? ' selected' : '') +
+          '>' + esc((w.first || '') + ' ' + (w.last || '')) + '</option>';
+      });
+    return opts;
+  }
+
+  function _closeOverlay(el) {
+    var ov = el.closest('[data-cdc-overlay]');
+    if (ov) ov.remove();
+  }
+
+  // Overlay wrapper con look consistente
+  function _overlay(innerHTML, opts) {
+    opts = opts || {};
+    var maxW = opts.maxWidth || '960px';
+    var ov = document.createElement('div');
+    ov.setAttribute('data-cdc-overlay', '1');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;' +
+      'display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+    ov.onclick = function (e) {
+      if (e.target === ov) {
+        if (confirm('¿Cerrar sin guardar los cambios?')) ov.remove();
+      }
+    };
+    ov.innerHTML =
+      '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:' + maxW +
+      ';box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:92vh">' +
+      innerHTML + '</div>';
+    document.body.appendChild(ov);
+    _icons();
+    return ov;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1) CDC.ProgressNote — Session / Progress Note (Cedrus style)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var PN = CDC.ProgressNote = {};
+
+  var POS_LIST = [
+    { code: '11', label: '11 — Office' },
+    { code: '12', label: '12 — Home' },
+    { code: '02', label: '02 — Telehealth (patient home)' },
+    { code: '10', label: '10 — Telehealth (in home)' },
+    { code: '03', label: '03 — School' },
+    { code: '53', label: '53 — Community Mental Health' },
+    { code: '99', label: '99 — Other' },
+  ];
+
+  var INTERVENTIONS = [
+    'Assessment of needs',
+    'Care coordination with provider',
+    'Referral to community resources',
+    'Advocacy on behalf of client',
+    'Crisis intervention',
+    'Psychoeducation',
+    'Monitoring of service plan',
+    'Assistance accessing benefits',
+    'Family/caregiver contact',
+    'Documentation/records review',
+  ];
+
+  var RESPONSE_LEVELS = [
+    'Engaged actively',
+    'Engaged with prompting',
+    'Minimally engaged',
+    'Declined to participate',
+  ];
+
+  function _emptyNote() {
+    return {
+      id: null,
+      clientId: '',
+      workerId: '',
+      date: _todayISO(),
+      startTime: '',
+      endTime: '',
+      duration: 0,
+      units: 0,
+      code: 'T1017',
+      pos: '11',
+      dx1: '',
+      dxList: [],
+      presenting: '',
+      interventions: [],
+      goalsAddressed: '',
+      responseLevel: '',
+      response: '',
+      plan: '',
+      barriers: '',
+      status: 'Draft',           // Draft | Signed | Billed
+      billable: true,
+      _billed: false,
+      signedAt: null,
+      signedBy: null,
+      signatureText: '',
+      attested: false,
+      billingId: null,
+      cedrusStyle: true,          // marca para diferenciar de notas legacy
+      createdAt: null,
+      updatedAt: null,
+    };
+  }
+
+  PN.open = function (opts) {
+    opts = opts || {};
+    var d = _needCM();
+    if (!d) return;
+    var note = opts.note || _emptyNote();
+    if (opts.clientId) note.clientId = opts.clientId;
+    if (opts.workerId) note.workerId = opts.workerId;
+
+    // Pre-cargar worker si el usuario logueado es case worker
+    if (!note.workerId) {
+      var sess = _sess();
+      var me = (d.workers || []).find(function (w) {
+        return w.userId === sess.uid || w.email === sess.email;
+      });
+      if (me) note.workerId = me.id;
+    }
+
+    var html =
+      '<div style="padding:16px 22px;border-bottom:1px solid var(--border);' +
+      'background:var(--bg3);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      'Case Management' + (note.id ? ' • Note ' + note.id.slice(-6) : ' • New Note') + '</div>' +
+      '<div style="font-size:16px;font-weight:700;color:var(--text)">Progress Note</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;align-items:center">' +
+      '<span id="pn-status-chip" style="font-size:10px;padding:4px 10px;border-radius:999px;' +
+      'border:1px solid var(--border2);color:var(--text2);text-transform:uppercase;letter-spacing:.06em">' +
+      esc(note.status) + '</span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="CDC.ProgressNote._close(this)">&times;</button>' +
+      '</div>' +
+      '</div>' +
+
+      '<div id="pn-body" style="padding:20px 22px;overflow-y:auto;flex:1;display:grid;gap:16px">' +
+
+      // Client + worker + date
+      _sectionOpen('Client & Date') +
+      '<div class="fg g3">' +
+      '<div class="field"><label>Client *</label>' +
+      '<select id="pn-client">' + _clientOpts(d, note.clientId) + '</select></div>' +
+      '<div class="field"><label>Case Worker</label>' +
+      '<select id="pn-worker">' + _workerOpts(d, note.workerId) + '</select></div>' +
+      '<div class="field"><label>Date of Service *</label>' +
+      '<input id="pn-date" type="date" value="' + esc(note.date) + '"></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      // Service
+      _sectionOpen('Service Information') +
+      '<div class="fg g4">' +
+      '<div class="field"><label>CPT / HCPCS *</label>' +
+      '<select id="pn-code" onchange="CDC.ProgressNote._onCodeChange()">' + _codeOpts(note.code) + '</select></div>' +
+      '<div class="field"><label>Place of Service *</label>' +
+      '<select id="pn-pos">' + _posOpts(note.pos) + '</select></div>' +
+      '<div class="field"><label>Start Time</label>' +
+      '<input id="pn-start" type="time" value="' + esc(note.startTime) + '" onchange="CDC.ProgressNote._recalc()"></div>' +
+      '<div class="field"><label>End Time</label>' +
+      '<input id="pn-end" type="time" value="' + esc(note.endTime) + '" onchange="CDC.ProgressNote._recalc()"></div>' +
+      '</div>' +
+      '<div class="fg g3">' +
+      '<div class="field"><label>Duration</label>' +
+      '<input id="pn-duration" readonly style="background:var(--bg3);color:var(--text2)" value="' + note.duration + ' min"></div>' +
+      '<div class="field"><label>Units (15-min)</label>' +
+      '<input id="pn-units" type="number" min="1" step="1" value="' + (note.units || 1) + '" ' +
+      'style="font-weight:700;color:var(--brand)"></div>' +
+      '<div class="field"><label>Primary Diagnosis (ICD-10) *</label>' +
+      '<input id="pn-dx1" placeholder="F411" value="' + esc(note.dx1) + '" ' +
+      'oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\')"></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      // Clinical
+      _sectionOpen('Clinical Documentation',
+        '<button class="btn btn-xs" onclick="CDC.ProgressNote._loadTemplate()" ' +
+        'title="Auto-fill from CPT template">' +
+        '<i data-lucide="wand-sparkles" class="lci"></i> Load Template</button>') +
+      '<div class="field"><label>Presenting Concerns / Reason for Contact *</label>' +
+      '<textarea id="pn-presenting" rows="3" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(note.presenting) + '</textarea></div>' +
+
+      '<div class="field"><label>Interventions Provided *</label>' +
+      '<div id="pn-interventions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;' +
+      'padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">' +
+      INTERVENTIONS.map(function (i, idx) {
+        var checked = note.interventions.indexOf(i) >= 0 ? ' checked' : '';
+        return '<label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;color:var(--text)">' +
+          '<input type="checkbox" data-int="' + esc(i) + '"' + checked + ' ' +
+          'style="accent-color:var(--brand)"> ' + esc(i) + '</label>';
+      }).join('') +
+      '</div></div>' +
+
+      '<div class="fg g2">' +
+      '<div class="field"><label>Engagement Level</label>' +
+      '<select id="pn-response-level"><option value="">Select…</option>' +
+      RESPONSE_LEVELS.map(function (r) {
+        return '<option value="' + esc(r) + '"' + (r === note.responseLevel ? ' selected' : '') + '>' + esc(r) + '</option>';
+      }).join('') + '</select></div>' +
+      '<div class="field"><label>Goals / Objectives Addressed</label>' +
+      '<input id="pn-goals" value="' + esc(note.goalsAddressed) + '" placeholder="e.g. Housing stability, medication adherence"></div>' +
+      '</div>' +
+
+      '<div class="field"><label>Client Response / Progress *</label>' +
+      '<textarea id="pn-response" rows="2" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(note.response) + '</textarea></div>' +
+
+      '<div class="field"><label>Barriers Identified</label>' +
+      '<textarea id="pn-barriers" rows="2" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical" ' +
+      'placeholder="Transportation, housing, financial, insurance, etc.">' + esc(note.barriers) + '</textarea></div>' +
+
+      '<div class="field"><label>Plan for Next Contact *</label>' +
+      '<textarea id="pn-plan" rows="2" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(note.plan) + '</textarea></div>' +
+      _sectionClose() +
+
+      // Signature
+      _sectionOpen('Signature & Billing') +
+      '<div style="display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg3);' +
+      'border:1px solid var(--border);border-radius:var(--r)">' +
+      '<input type="checkbox" id="pn-attest"' + (note.attested ? ' checked' : '') + ' ' +
+      'style="accent-color:var(--brand);margin-top:2px;flex-shrink:0">' +
+      '<label for="pn-attest" style="font-size:12px;color:var(--text2);cursor:pointer;line-height:1.5">' +
+      'I attest that the information documented above is true and accurate, ' +
+      'and that the services billed were personally rendered by me on the date indicated. ' +
+      'Signing this note will generate a billing entry.</label>' +
+      '</div>' +
+      '<div class="fg g2">' +
+      '<div class="field"><label>Electronic Signature *</label>' +
+      '<input id="pn-sig" placeholder="Type your full name" value="' + esc(note.signatureText) + '"></div>' +
+      '<div class="field"><label>Sign Date</label>' +
+      '<input readonly style="background:var(--bg3);color:var(--text2)" value="' + _todayISO() + '"></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      '</div>' + // /body
+
+      // Footer
+      '<div style="padding:14px 22px;border-top:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div style="font-size:11px;color:var(--text3)">' +
+      (note.id ? 'Draft ID: ' + note.id.slice(-8) : 'Not saved yet') + '</div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn" onclick="CDC.ProgressNote._close(this)">Cancel</button>' +
+      '<button class="btn" onclick="CDC.ProgressNote._save(false)">' +
+      '<i data-lucide="save" class="lci"></i> Save Draft</button>' +
+      '<button class="btn btn-primary" onclick="CDC.ProgressNote._save(true)">' +
+      '<i data-lucide="check-circle" class="lci"></i> Sign &amp; Bill</button>' +
+      '</div></div>';
+
+    _overlay(html, { maxWidth: '1000px' });
+    PN._current = note;
+    PN._recalc();
+  };
+
+  function _codeOpts(sel) {
+    if (typeof _CM_CPT_CATALOG === 'undefined') {
+      return '<option value="T1017"' + (sel === 'T1017' ? ' selected' : '') +
+        '>T1017 — Targeted Case Management</option>';
+    }
+    return _CM_CPT_CATALOG.map(function (x) {
+      return '<option value="' + x.code + '"' + (sel === x.code ? ' selected' : '') +
+        '>' + x.code + ' — ' + esc(x.desc) + '</option>';
+    }).join('');
+  }
+
+  function _posOpts(sel) {
+    return POS_LIST.map(function (p) {
+      return '<option value="' + p.code + '"' + (sel === p.code ? ' selected' : '') + '>' + esc(p.label) + '</option>';
+    }).join('');
+  }
+
+  function _sectionOpen(title, extra) {
+    return '<div style="padding:14px 16px;border:1px solid var(--border);border-radius:var(--r);' +
+      'background:var(--bg);display:grid;gap:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;' +
+      'border-bottom:1px solid var(--border);padding-bottom:8px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);' +
+      'text-transform:uppercase;letter-spacing:.05em">' + title + '</div>' +
+      (extra || '') + '</div>';
+  }
+  function _sectionClose() { return '</div>'; }
+
+  PN._recalc = function () {
+    var start = document.getElementById('pn-start');
+    var end = document.getElementById('pn-end');
+    var dur = document.getElementById('pn-duration');
+    var units = document.getElementById('pn-units');
+    if (!start || !end || !dur || !units) return;
+    var mins = _diffMin(start.value, end.value);
+    dur.value = mins + ' min';
+    if (mins > 0) units.value = Math.ceil(mins / 15);
+  };
+
+  PN._onCodeChange = function () {
+    var sel = document.getElementById('pn-code');
+    if (!sel) return;
+    var code = sel.value;
+    // Auto-suggest carga de plantilla
+    var pres = document.getElementById('pn-presenting');
+    if (pres && !pres.value.trim() && typeof CPT_ENGINE !== 'undefined' && CPT_ENGINE[code]) {
+      if (confirm('¿Cargar plantilla clínica para ' + code + '?')) PN._loadTemplate();
+    }
+  };
+
+  PN._loadTemplate = function () {
+    var code = document.getElementById('pn-code').value;
+    if (typeof CPT_ENGINE === 'undefined' || !CPT_ENGINE[code]) {
+      _toast('No hay plantilla para ' + code, 'info'); return;
+    }
+    var engine = CPT_ENGINE[code];
+    var tpl = (engine.templates && engine.templates[0]) || {};
+
+    var pres = document.getElementById('pn-presenting');
+    var resp = document.getElementById('pn-response');
+    var plan = document.getElementById('pn-plan');
+    var bar = document.getElementById('pn-barriers');
+
+    if (pres && !pres.value.trim() && tpl.presenting_needs) pres.value = tpl.presenting_needs;
+    if (resp && !resp.value.trim() && tpl.member_response) resp.value = tpl.member_response;
+    if (plan && !plan.value.trim() && tpl.follow_up) plan.value = tpl.follow_up;
+    if (bar && !bar.value.trim() && tpl.barriers) bar.value = tpl.barriers;
+
+    // Pre-check interventions relevantes para case management
+    if (code === 'T1017') {
+      ['Assessment of needs', 'Care coordination with provider', 'Referral to community resources',
+        'Monitoring of service plan', 'Advocacy on behalf of client'].forEach(function (label) {
+          var cb = document.querySelector('#pn-interventions input[data-int="' + label + '"]');
+          if (cb && !cb.checked) cb.checked = true;
+        });
+    }
+    _toast('Plantilla ' + code + ' cargada', 'ok');
+  };
+
+  PN._collect = function () {
+    var n = PN._current;
+    n.clientId = document.getElementById('pn-client').value;
+    n.workerId = document.getElementById('pn-worker').value;
+    n.date = document.getElementById('pn-date').value;
+    n.code = document.getElementById('pn-code').value;
+    n.pos = document.getElementById('pn-pos').value;
+    n.startTime = document.getElementById('pn-start').value;
+    n.endTime = document.getElementById('pn-end').value;
+    n.duration = _diffMin(n.startTime, n.endTime);
+    n.units = parseInt(document.getElementById('pn-units').value || '1', 10);
+    n.dx1 = document.getElementById('pn-dx1').value;
+    n.presenting = document.getElementById('pn-presenting').value;
+    n.responseLevel = document.getElementById('pn-response-level').value;
+    n.goalsAddressed = document.getElementById('pn-goals').value;
+    n.response = document.getElementById('pn-response').value;
+    n.barriers = document.getElementById('pn-barriers').value;
+    n.plan = document.getElementById('pn-plan').value;
+    n.attested = document.getElementById('pn-attest').checked;
+    n.signatureText = document.getElementById('pn-sig').value.trim();
+    n.interventions = Array.from(document.querySelectorAll('#pn-interventions input:checked'))
+      .map(function (cb) { return cb.getAttribute('data-int'); });
+    return n;
+  };
+
+  PN._validate = function (n, forSigning) {
+    var errs = [];
+    if (!n.clientId) errs.push('Falta cliente');
+    if (!n.date) errs.push('Falta fecha');
+    if (!n.code) errs.push('Falta CPT');
+    if (!n.pos) errs.push('Falta Place of Service');
+    if (n.units < 1) errs.push('Units debe ser ≥ 1');
+    if (forSigning) {
+      if (!n.dx1) errs.push('Falta ICD-10');
+      if (!n.presenting.trim()) errs.push('Falta Presenting');
+      if (!n.interventions.length) errs.push('Falta al menos 1 intervención');
+      if (!n.response.trim()) errs.push('Falta Client Response');
+      if (!n.plan.trim()) errs.push('Falta Plan');
+      if (!n.attested) errs.push('Debes marcar "I attest"');
+      if (!n.signatureText) errs.push('Falta firma');
+    }
+    return errs;
+  };
+
+  PN._save = function (signAndBill) {
+    var d = _needCM();
+    if (!d) return;
+    var n = PN._collect();
+    var errs = PN._validate(n, signAndBill);
+    if (errs.length) { _toast('No se puede: ' + errs[0], 'error'); return; }
+
+    var now = _nowISO();
+    if (!n.id) {
+      n.id = _uid();
+      n.createdAt = now;
+    }
+    n.updatedAt = now;
+
+    if (signAndBill) {
+      n.status = 'Signed';
+      n.signedAt = now;
+      n.signedBy = _sess().uid || null;
+    }
+
+    d.notes = d.notes || [];
+    var existing = d.notes.findIndex(function (x) { return x.id === n.id; });
+    if (existing >= 0) d.notes[existing] = n;
+    else d.notes.push(n);
+
+    // Sign & Bill → crear entrada de billing
+    if (signAndBill && n.billable && !n._billed) {
+      d.billing = d.billing || [];
+      var alreadyBilled = d.billing.find(function (b) { return b.noteId === n.id; });
+      if (!alreadyBilled) {
+        var rate = _rate(d, n.code);
+        var billingEntry = {
+          id: _uid(),
+          noteId: n.id,
+          clientId: n.clientId,
+          workerId: n.workerId,
+          serviceDate: n.date,
+          code: n.code,
+          pos: n.pos,
+          dx1: n.dx1,
+          units: n.units,
+          rate: rate,
+          total: n.units * rate,
+          duration: n.duration,
+          status: 'Ready',
+          notes: 'Auto-generated from Progress Note (Cedrus flow)',
+          createdAt: now,
+          updatedAt: now,
+        };
+        d.billing.push(billingEntry);
+        n._billed = true;
+        n.billingId = billingEntry.id;
+        n.status = 'Billed';
+      }
+    }
+
+    _saveCM(d);
+
+    // Refrescar vistas si están abiertas
+    if (typeof renderCMNotes === 'function') try { renderCMNotes(); } catch (e) {}
+    if (typeof renderCMBilling === 'function') try { renderCMBilling(); } catch (e) {}
+
+    if (signAndBill) {
+      _toast('Nota firmada y billing $' + (n.units * _rate(d, n.code)).toFixed(2) + ' creado', 'ok');
+    } else {
+      _toast('Draft guardado', 'ok');
+    }
+
+    var chip = document.getElementById('pn-status-chip');
+    if (chip) chip.textContent = n.status;
+
+    if (signAndBill) {
+      setTimeout(function () {
+        var ov = document.querySelector('[data-cdc-overlay]');
+        if (ov) ov.remove();
+      }, 400);
+    }
+  };
+
+  PN._close = function (btn) {
+    var d = _needCM();
+    var n = PN._current;
+    if (n && n.status === 'Draft' && !n.id) {
+      if (!confirm('¿Cerrar sin guardar?')) return;
+    }
+    _closeOverlay(btn);
+  };
+
+  PN.edit = function (noteId) {
+    var d = _needCM(); if (!d) return;
+    var n = (d.notes || []).find(function (x) { return x.id === noteId; });
+    if (!n) { _toast('Nota no encontrada', 'error'); return; }
+    if (n.status !== 'Draft') {
+      if (!confirm('Esta nota está ' + n.status + '. ¿Ver/editar de todos modos?')) return;
+    }
+    PN.open({ note: JSON.parse(JSON.stringify(n)) });
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2) CDC.Assessment — Limited Functional Assessment (video 3)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var AS = CDC.Assessment = {};
+
+  // 10 dominios estilo CANS/CAFAS con escala 0-3
+  var DOMAINS = [
+    { key: 'motor', label: 'Motor Function' },
+    { key: 'sensory', label: 'Sensory Processing' },
+    { key: 'activities', label: 'Activities of Daily Living' },
+    { key: 'communication', label: 'Communication' },
+    { key: 'social', label: 'Social Interaction' },
+    { key: 'cognitive', label: 'Cognitive / Learning' },
+    { key: 'behavioral', label: 'Behavioral Regulation' },
+    { key: 'emotional', label: 'Emotional Functioning' },
+    { key: 'family', label: 'Family / Caregiver Relationships' },
+    { key: 'community', label: 'Community Living Skills' },
+  ];
+
+  var SEVERITY = [
+    { v: 0, label: '0 — No Problem' },
+    { v: 1, label: '1 — Mild Problem' },
+    { v: 2, label: '2 — Moderate Problem' },
+    { v: 3, label: '3 — Severe Problem' },
+  ];
+
+  function _emptyAssessment() {
+    var scores = {};
+    DOMAINS.forEach(function (dm) { scores[dm.key] = null; });
+    return {
+      id: null,
+      clientId: '',
+      workerId: '',
+      date: _todayISO(),
+      code: 'H0031',
+      dx1: '',
+      scores: scores,
+      totalScore: 0,
+      severityLevel: '',
+      clinicalImpression: '',
+      strengths: '',
+      needs: '',
+      recommendations: '',
+      status: 'Draft',      // Draft | Completed | Signed
+      signedAt: null,
+      signedBy: null,
+      signatureText: '',
+      attested: false,
+      cedrusStyle: true,
+      createdAt: null,
+      updatedAt: null,
+    };
+  }
+
+  AS.open = function (opts) {
+    opts = opts || {};
+    var d = _needCM(); if (!d) return;
+    var a = opts.assessment || _emptyAssessment();
+    if (opts.clientId) a.clientId = opts.clientId;
+
+    var html =
+      '<div style="padding:16px 22px;border-bottom:1px solid var(--border);' +
+      'background:var(--bg3);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      'Case Management' + (a.id ? ' • Assessment ' + a.id.slice(-6) : ' • New Assessment') + '</div>' +
+      '<div style="font-size:16px;font-weight:700;color:var(--text)">Limited Functional Assessment</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;align-items:center">' +
+      '<span id="as-status-chip" style="font-size:10px;padding:4px 10px;border-radius:999px;' +
+      'border:1px solid var(--border2);color:var(--text2);text-transform:uppercase;letter-spacing:.06em">' +
+      esc(a.status) + '</span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="CDC.Assessment._close(this)">&times;</button>' +
+      '</div>' +
+      '</div>' +
+
+      '<div id="as-body" style="padding:20px 22px;overflow-y:auto;flex:1;display:grid;gap:16px">' +
+
+      _sectionOpen('Client Information') +
+      '<div class="fg g4">' +
+      '<div class="field"><label>Client *</label>' +
+      '<select id="as-client">' + _clientOpts(d, a.clientId) + '</select></div>' +
+      '<div class="field"><label>Assessor</label>' +
+      '<select id="as-worker">' + _workerOpts(d, a.workerId) + '</select></div>' +
+      '<div class="field"><label>Assessment Date *</label>' +
+      '<input id="as-date" type="date" value="' + esc(a.date) + '"></div>' +
+      '<div class="field"><label>Primary Dx (ICD-10) *</label>' +
+      '<input id="as-dx1" placeholder="F411" value="' + esc(a.dx1) + '" ' +
+      'oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\')"></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      _sectionOpen('Severity Ratings',
+        '<div style="font-size:11px;color:var(--text3)">Score each domain 0–3</div>') +
+      '<div id="as-scores" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px">' +
+      DOMAINS.map(function (dm) {
+        return '<div class="field" style="margin:0">' +
+          '<label>' + esc(dm.label) + '</label>' +
+          '<select data-domain="' + dm.key + '" onchange="CDC.Assessment._recalc()">' +
+          '<option value="">Not rated</option>' +
+          SEVERITY.map(function (s) {
+            return '<option value="' + s.v + '"' + (a.scores[dm.key] === s.v ? ' selected' : '') +
+              '>' + esc(s.label) + '</option>';
+          }).join('') +
+          '</select></div>';
+      }).join('') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;' +
+      'padding:12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">' +
+      '<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      'Total Score</div>' +
+      '<div id="as-total" style="font-size:22px;font-weight:700;color:var(--brand)">' + a.totalScore + '</div></div>' +
+      '<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      'Severity Level</div>' +
+      '<div id="as-severity" style="font-size:14px;font-weight:600;color:var(--text)">' +
+      esc(a.severityLevel || '—') + '</div></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      _sectionOpen('Clinical Narrative') +
+      '<div class="field"><label>Clinical Impression *</label>' +
+      '<textarea id="as-impression" rows="3" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(a.clinicalImpression) + '</textarea></div>' +
+      '<div class="fg g2">' +
+      '<div class="field"><label>Strengths</label>' +
+      '<textarea id="as-strengths" rows="3" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(a.strengths) + '</textarea></div>' +
+      '<div class="field"><label>Needs</label>' +
+      '<textarea id="as-needs" rows="3" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(a.needs) + '</textarea></div>' +
+      '</div>' +
+      '<div class="field"><label>Recommendations *</label>' +
+      '<textarea id="as-recommendations" rows="3" ' +
+      'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'font-family:var(--font);font-size:13px;resize:vertical">' + esc(a.recommendations) + '</textarea></div>' +
+      _sectionClose() +
+
+      _sectionOpen('Signature') +
+      '<div style="display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg3);' +
+      'border:1px solid var(--border);border-radius:var(--r)">' +
+      '<input type="checkbox" id="as-attest"' + (a.attested ? ' checked' : '') + ' ' +
+      'style="accent-color:var(--brand);margin-top:2px;flex-shrink:0">' +
+      '<label for="as-attest" style="font-size:12px;color:var(--text2);cursor:pointer;line-height:1.5">' +
+      'I attest that this assessment is a true and accurate reflection of my clinical judgment based on ' +
+      'the information gathered from the client, family, records, and direct observation.</label>' +
+      '</div>' +
+      '<div class="fg g2">' +
+      '<div class="field"><label>Electronic Signature *</label>' +
+      '<input id="as-sig" placeholder="Type your full name" value="' + esc(a.signatureText) + '"></div>' +
+      '<div class="field"><label>Sign Date</label>' +
+      '<input readonly style="background:var(--bg3);color:var(--text2)" value="' + _todayISO() + '"></div>' +
+      '</div>' +
+      _sectionClose() +
+
+      '</div>' + // /body
+
+      '<div style="padding:14px 22px;border-top:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div style="font-size:11px;color:var(--text3)">' +
+      (a.id ? 'ID: ' + a.id.slice(-8) : 'Not saved yet') + '</div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn" onclick="CDC.Assessment._close(this)">Cancel</button>' +
+      '<button class="btn" onclick="CDC.Assessment._save(false)">' +
+      '<i data-lucide="save" class="lci"></i> Save Draft</button>' +
+      '<button class="btn btn-primary" onclick="CDC.Assessment._save(true)">' +
+      '<i data-lucide="check-circle" class="lci"></i> Sign &amp; Complete</button>' +
+      '</div></div>';
+
+    _overlay(html, { maxWidth: '1000px' });
+    AS._current = a;
+    AS._recalc();
+  };
+
+  AS._recalc = function () {
+    var total = 0, rated = 0;
+    DOMAINS.forEach(function (dm) {
+      var sel = document.querySelector('#as-scores select[data-domain="' + dm.key + '"]');
+      if (sel && sel.value !== '') { total += parseInt(sel.value, 10); rated++; }
+    });
+    var avg = rated ? (total / rated) : 0;
+    var level = '—';
+    if (rated > 0) {
+      if (avg < 0.5) level = 'Minimal impairment';
+      else if (avg < 1.5) level = 'Mild impairment';
+      else if (avg < 2.5) level = 'Moderate impairment';
+      else level = 'Severe impairment';
+    }
+    var totalEl = document.getElementById('as-total');
+    var sevEl = document.getElementById('as-severity');
+    if (totalEl) totalEl.textContent = total;
+    if (sevEl) sevEl.textContent = level;
+    if (AS._current) {
+      AS._current.totalScore = total;
+      AS._current.severityLevel = level;
+    }
+  };
+
+  AS._collect = function () {
+    var a = AS._current;
+    a.clientId = document.getElementById('as-client').value;
+    a.workerId = document.getElementById('as-worker').value;
+    a.date = document.getElementById('as-date').value;
+    a.dx1 = document.getElementById('as-dx1').value;
+    a.clinicalImpression = document.getElementById('as-impression').value;
+    a.strengths = document.getElementById('as-strengths').value;
+    a.needs = document.getElementById('as-needs').value;
+    a.recommendations = document.getElementById('as-recommendations').value;
+    a.attested = document.getElementById('as-attest').checked;
+    a.signatureText = document.getElementById('as-sig').value.trim();
+    var scores = {};
+    DOMAINS.forEach(function (dm) {
+      var sel = document.querySelector('#as-scores select[data-domain="' + dm.key + '"]');
+      scores[dm.key] = (sel && sel.value !== '') ? parseInt(sel.value, 10) : null;
+    });
+    a.scores = scores;
+    return a;
+  };
+
+  AS._save = function (sign) {
+    var d = _needCM(); if (!d) return;
+    var a = AS._collect();
+    var errs = [];
+    if (!a.clientId) errs.push('Falta cliente');
+    if (!a.date) errs.push('Falta fecha');
+    if (sign) {
+      if (!a.dx1) errs.push('Falta ICD-10');
+      if (!a.clinicalImpression.trim()) errs.push('Falta Clinical Impression');
+      if (!a.recommendations.trim()) errs.push('Falta Recommendations');
+      var rated = 0;
+      Object.keys(a.scores).forEach(function (k) { if (a.scores[k] !== null) rated++; });
+      if (rated < 5) errs.push('Al menos 5 dominios deben ser calificados');
+      if (!a.attested) errs.push('Debes marcar "I attest"');
+      if (!a.signatureText) errs.push('Falta firma');
+    }
+    if (errs.length) { _toast('No se puede: ' + errs[0], 'error'); return; }
+
+    var now = _nowISO();
+    if (!a.id) { a.id = _uid(); a.createdAt = now; }
+    a.updatedAt = now;
+    if (sign) {
+      a.status = 'Signed';
+      a.signedAt = now;
+      a.signedBy = _sess().uid || null;
+    }
+
+    d.assessments = d.assessments || [];
+    var idx = d.assessments.findIndex(function (x) { return x.id === a.id; });
+    if (idx >= 0) d.assessments[idx] = a;
+    else d.assessments.push(a);
+
+    _saveCM(d);
+
+    if (typeof renderCMAssessments === 'function') try { renderCMAssessments(); } catch (e) {}
+
+    _toast(sign ? 'Assessment firmado ✓' : 'Draft guardado', 'ok');
+    var chip = document.getElementById('as-status-chip');
+    if (chip) chip.textContent = a.status;
+
+    if (sign) {
+      setTimeout(function () {
+        var ov = document.querySelector('[data-cdc-overlay]');
+        if (ov) ov.remove();
+      }, 400);
+    }
+  };
+
+  AS._close = function (btn) {
+    var a = AS._current;
+    if (a && a.status === 'Draft' && !a.id) {
+      if (!confirm('¿Cerrar sin guardar?')) return;
+    }
+    _closeOverlay(btn);
+  };
+
+  AS.edit = function (id) {
+    var d = _needCM(); if (!d) return;
+    var a = (d.assessments || []).find(function (x) { return x.id === id; });
+    if (!a) { _toast('Assessment no encontrado', 'error'); return; }
+    AS.open({ assessment: JSON.parse(JSON.stringify(a)) });
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3) Inyección de botones "Cedrus style" en secciones existentes
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function _injectButtons() {
+    // sec-cm-notes → botón al lado de "+ New Note"
+    var notesHdr = document.querySelector('#sec-cm-notes .page-hdr > div:last-child');
+    if (notesHdr && !document.getElementById('btn-pn-cedrus')) {
+      var btn = document.createElement('button');
+      btn.id = 'btn-pn-cedrus';
+      btn.className = 'btn btn-primary btn-sm';
+      btn.style.marginRight = '6px';
+      btn.innerHTML = '<i data-lucide="notebook-pen" class="lci"></i> + Note (Cedrus)';
+      btn.title = 'Full clinical progress note with signature + auto-billing';
+      btn.onclick = function () { CDC.ProgressNote.open(); };
+      notesHdr.insertBefore(btn, notesHdr.firstChild);
+      _icons();
+    }
+    // sec-cm-assessments → botón al lado de "+ New Assessment"
+    var asHdr = document.querySelector('#sec-cm-assessments .page-hdr > div:last-child');
+    if (!asHdr) {
+      // Si el header no tiene el segundo div, busca el botón existente y usa su padre
+      var existingBtn = document.querySelector('#sec-cm-assessments .page-hdr button');
+      if (existingBtn) asHdr = existingBtn.parentElement;
+    }
+    if (asHdr && !document.getElementById('btn-as-cedrus')) {
+      var b2 = document.createElement('button');
+      b2.id = 'btn-as-cedrus';
+      b2.className = 'btn btn-primary btn-sm';
+      b2.style.marginRight = '6px';
+      b2.innerHTML = '<i data-lucide="clipboard-check" class="lci"></i> + Assessment (Cedrus)';
+      b2.title = 'Limited Functional Assessment with severity scoring';
+      b2.onclick = function () { CDC.Assessment.open(); };
+      asHdr.insertBefore(b2, asHdr.firstChild);
+      _icons();
+    }
+  }
+
+  // Patch go() para inyectar al navegar
+  function _patchGo() {
+    if (typeof window.go !== 'function' || window.go.__cdcPatched) return;
+    var orig = window.go;
+    window.go = function () {
+      var r = orig.apply(this, arguments);
+      setTimeout(_injectButtons, 50);
+      return r;
+    };
+    window.go.__cdcPatched = true;
+  }
+
+  // Reintentar hasta que go() esté disponible
+  var tries = 0;
+  var iv = setInterval(function () {
+    tries++;
+    if (typeof window.go === 'function') {
+      _patchGo();
+      _injectButtons();
+      clearInterval(iv);
+    } else if (tries > 40) {
+      clearInterval(iv);
+      console.warn('[CDC] go() no encontrado — botones Cedrus no se autoinyectarán');
+    }
+  }, 250);
+
+  // También ejecuta al DOMContentLoaded por si go() ya se llamó
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(_injectButtons, 500); });
+  } else {
+    setTimeout(_injectButtons, 500);
+  }
+
+  console.log('[CDC] Cedrus-style modules cargados ✓ (ProgressNote + Assessment)');
+})();
+/* =============================================================================
+ * CDC Case Management — Cedrus-style modules (v3)
+ * -----------------------------------------------------------------------------
+ * Agrega:
+ *   1) CDC.Dashboard    — Dashboard con KPIs grandes (video 1 de Cedrus)
+ *      Clients / Cases / Employees / Documents + Units This Week/Month
+ *      Renderiza sobre #cm-dash-content SIN pisar tu renderCMDashboard()
+ *      (auto-inyecta botón "Cedrus View" en sec-cm-dashboard)
+ *
+ *   2) CDC.PatientCard  — Ficha de paciente con tabs (video 2 de Cedrus)
+ *      Demographics / Eligibility / Diagnoses / Referral / Emergency Contact /
+ *      Legal Guardian / Client Portal / Documents
+ *      Se abre desde CM Clients con botón "View (Cedrus)"
+ *
+ *   3) CDC.IntakeForms  — Grid de formularios clínicos (video 3 final)
+ *      Pre Admission Medication / Consent Treatment / No Duplicate Services /
+ *      Consumer Rights / HIPAA / Advance Directive / Coordination of Care /
+ *      Assessor List / Foreign Language / Discharge Summary
+ *      Cada card muestra status (Pending / Signed) y permite firmar.
+ * =========================================================================== */
+
+(function () {
+  'use strict';
+  window.CDC = window.CDC || {};
+
+  // Reusa helpers de v2 si están; si no, define fallbacks
+  function _CM() { return (typeof getCMData === 'function') ? getCMData() : null; }
+  function _saveCM(d) { if (typeof saveCMData === 'function') saveCMData(d); }
+  function _uid() { return (typeof _cmId === 'function') ? _cmId() : 'x_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+  function _now() { return (typeof _cmNowISO === 'function') ? _cmNowISO() : new Date().toISOString(); }
+  function _toast(m, k) { if (typeof toast === 'function') toast(m, k || 'ok'); }
+  function _icons() { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30); }
+  function _sess() { return (typeof getSession === 'function') ? (getSession() || {}) : {}; }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function _today() { return new Date().toISOString().slice(0, 10); }
+
+  // Overlay wrapper
+  function _overlay(innerHTML, maxWidth) {
+    var ov = document.createElement('div');
+    ov.setAttribute('data-cdc-overlay', '1');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;' +
+      'display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    ov.innerHTML = '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:' +
+      (maxWidth || '1000px') + ';box-shadow:0 20px 60px rgba(0,0,0,.35);' +
+      'display:flex;flex-direction:column;max-height:92vh">' + innerHTML + '</div>';
+    document.body.appendChild(ov);
+    _icons();
+    return ov;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1) CDC.Dashboard — KPIs grandes estilo Cedrus (video 1)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var DASH = CDC.Dashboard = {};
+
+  DASH.render = function (targetId) {
+    var d = _CM(); if (!d) return;
+    var el = document.getElementById(targetId || 'cm-dash-content');
+    if (!el) return;
+
+    // Contar entidades
+    var clients = (d.clients || []).filter(function (c) { return c.status !== 'Inactive' && c.status !== 'Discharged'; }).length;
+    var totalClients = (d.clients || []).length;
+    var openCases = (d.notes || []).length ? _countOpenCases(d) : 0;
+    var employees = (d.workers || []).filter(function (w) { return w.status !== 'Inactive'; }).length;
+    var docs = _countDocs(d);
+
+    // Units this week / this month
+    var now = new Date();
+    var wStart = new Date(now); wStart.setDate(now.getDate() - now.getDay());
+    var mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    var weekUnits = 0, monthUnits = 0;
+    (d.notes || []).forEach(function (n) {
+      if (!n.date) return;
+      var dt = new Date(n.date);
+      var u = parseInt(n.units || 0, 10) || 0;
+      if (dt >= mStart) monthUnits += u;
+      if (dt >= wStart) weekUnits += u;
+    });
+
+    // Note status breakdown
+    var draftN = 0, signedN = 0, billedN = 0;
+    (d.notes || []).forEach(function (n) {
+      var s = (n.status || 'Draft').toLowerCase();
+      if (s === 'billed') billedN++;
+      else if (s === 'signed') signedN++;
+      else draftN++;
+    });
+
+    // Billing KPIs
+    var totalBilled = 0, totalPaid = 0, pendingBill = 0;
+    (d.billing || []).forEach(function (b) {
+      var amt = parseFloat(b.total || 0) || 0;
+      totalBilled += amt;
+      var s = (b.status || '').toLowerCase();
+      if (s === 'paid') totalPaid += amt;
+      else if (s === 'draft' || s === 'ready' || s === 'submitted') pendingBill += amt;
+    });
+
+    el.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">' +
+      _kpiCard('Clients', clients, totalClients + ' total', 'users') +
+      _kpiCard('Open Cases', openCases, '', 'briefcase') +
+      _kpiCard('Case Workers', employees, '', 'user-check') +
+      _kpiCard('Documents', docs, '', 'folder') +
+      '</div>' +
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+      _sectionCard('Units This Week', weekUnits, 'week', d, 'week') +
+      _sectionCard('Units This Month', monthUnits, 'month', d, 'month') +
+      '</div>' +
+
+      '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">' +
+      '<div class="card" style="padding:16px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;' +
+      'letter-spacing:.06em;margin-bottom:12px">Billing Overview</div>' +
+      _billingBar('Total Billed', totalBilled, totalBilled) +
+      _billingBar('Total Paid', totalPaid, totalBilled) +
+      _billingBar('Pending', pendingBill, totalBilled) +
+      '</div>' +
+
+      '<div class="card" style="padding:16px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;' +
+      'letter-spacing:.06em;margin-bottom:12px">Note Status</div>' +
+      _donutSVG(draftN, signedN, billedN) +
+      '<div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px">' +
+      '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px"></span> Draft ' + draftN + '</div>' +
+      '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text2);border-radius:2px"></span> Signed ' + signedN + '</div>' +
+      '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+
+    _icons();
+  };
+
+  function _kpiCard(label, value, sub, ico) {
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' +
+      esc(label) + '</div>' +
+      '<div style="width:32px;height:32px;background:var(--brand-bg);border-radius:8px;' +
+      'display:flex;align-items:center;justify-content:center">' +
+      '<i data-lucide="' + ico + '" class="lci" style="width:15px;height:15px;color:var(--brand)"></i>' +
+      '</div>' +
+      '</div>' +
+      '<div style="font-size:30px;font-weight:700;color:var(--text);line-height:1">' + value + '</div>' +
+      (sub ? '<div style="font-size:11px;color:var(--text3);margin-top:4px">' + esc(sub) + '</div>' : '') +
+      '</div>';
+  }
+
+  function _sectionCard(title, mainValue, period, d, key) {
+    // Mini distribución por CPT en el periodo
+    var now = new Date();
+    var start = (key === 'week')
+      ? (function () { var s = new Date(now); s.setDate(now.getDate() - now.getDay()); return s; })()
+      : new Date(now.getFullYear(), now.getMonth(), 1);
+    var byCode = {};
+    (d.notes || []).forEach(function (n) {
+      if (!n.date) return;
+      var dt = new Date(n.date);
+      if (dt < start) return;
+      var c = n.code || 'T1017';
+      byCode[c] = (byCode[c] || 0) + (parseInt(n.units || 0, 10) || 0);
+    });
+    var codes = Object.keys(byCode).sort(function (a, b) { return byCode[b] - byCode[a]; }).slice(0, 4);
+    var total = codes.reduce(function (s, c) { return s + byCode[c]; }, 0) || 1;
+
+    return '<div class="card" style="padding:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">' +
+      esc(title) + '</div>' +
+      '<div style="font-size:26px;font-weight:700;color:var(--brand)">' + mainValue + '</div>' +
+      '</div>' +
+      (codes.length
+        ? codes.map(function (c) {
+            var pct = Math.round((byCode[c] / total) * 100);
+            return '<div style="margin-bottom:8px">' +
+              '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">' +
+              '<span style="font-family:var(--mono);font-weight:600">' + esc(c) + '</span>' +
+              '<span>' + byCode[c] + ' units</span>' +
+              '</div>' +
+              '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">' +
+              '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div>' +
+              '</div></div>';
+          }).join('')
+        : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">No units yet</div>') +
+      '</div>';
+  }
+
+  function _billingBar(label, value, max) {
+    var pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return '<div style="margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">' +
+      '<span style="font-weight:600">' + esc(label) + '</span>' +
+      '<span style="font-family:var(--mono);color:var(--text)">$' + value.toFixed(2) + '</span>' +
+      '</div>' +
+      '<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">' +
+      '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div>' +
+      '</div></div>';
+  }
+
+  function _donutSVG(a, b, c) {
+    var total = a + b + c;
+    if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:30px 0;font-size:12px">No data</div>';
+    var r = 45, cx = 60, cy = 60;
+    var C = 2 * Math.PI * r;
+    var pa = (a / total) * C;
+    var pb = (b / total) * C;
+    var pc = (c / total) * C;
+    return '<svg viewBox="0 0 120 120" style="width:100%;max-width:180px;display:block;margin:0 auto">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--bg3)" stroke-width="14"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--text3)" ' +
+      'stroke-width="14" stroke-dasharray="' + pa + ' ' + (C - pa) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--text2)" ' +
+      'stroke-width="14" stroke-dasharray="' + pb + ' ' + (C - pb) + '" ' +
+      'stroke-dashoffset="' + (-pa) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--brand)" ' +
+      'stroke-width="14" stroke-dasharray="' + pc + ' ' + (C - pc) + '" ' +
+      'stroke-dashoffset="' + (-(pa + pb)) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' +
+      '<text x="60" y="65" text-anchor="middle" font-size="18" font-weight="700" fill="var(--text)">' + total + '</text>' +
+      '</svg>';
+  }
+
+  function _countOpenCases(d) {
+    // Un "case" abierto = cliente activo con al menos 1 nota o auth en los últimos 90 días
+    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+    var byClient = {};
+    (d.notes || []).forEach(function (n) {
+      if (!n.date || !n.clientId) return;
+      if (new Date(n.date) >= cutoff) byClient[n.clientId] = 1;
+    });
+    return Object.keys(byClient).length;
+  }
+
+  function _countDocs(d) {
+    var n = 0;
+    (d.clients || []).forEach(function (c) { n += ((c.documents || []).length); });
+    n += (d.assessments || []).length;
+    n += (d.notes || []).length;
+    return n;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2) CDC.PatientCard — Ficha con tabs (video 2)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var PC = CDC.PatientCard = {};
+  PC._tab = 'demographics';
+
+  PC.open = function (clientId) {
+    var d = _CM(); if (!d) return;
+    var c = (d.clients || []).find(function (x) { return x.id === clientId; });
+    if (!c) { _toast('Cliente no encontrado', 'error'); return; }
+    PC._client = c;
+    PC._tab = 'demographics';
+
+    var name = ((c.first || '') + ' ' + (c.last || '')).trim() || 'Client';
+    var status = c.status || 'Active';
+    var age = _age(c.dob);
+
+    var html =
+      '<div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div style="display:flex;align-items:center;gap:14px">' +
+      '<div style="width:52px;height:52px;border-radius:50%;background:var(--brand-bg);' +
+      'display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--brand)">' +
+      esc((c.first || '?').charAt(0).toUpperCase() + (c.last || '').charAt(0).toUpperCase()) + '</div>' +
+      '<div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      'File #' + esc(c.fileNo || '—') + '</div>' +
+      '<div style="font-size:18px;font-weight:700;color:var(--text)">' + esc(name) + '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:2px">' +
+      (age !== null ? age + ' y/o • ' : '') + esc(c.sex || '—') + ' • DOB ' + esc(c.dob || '—') +
+      '</div></div></div>' +
+      '<div style="display:flex;gap:10px;align-items:center">' +
+      '<span style="font-size:10px;padding:4px 10px;border-radius:999px;background:var(--brand);color:#fff;' +
+      'text-transform:uppercase;letter-spacing:.06em;font-weight:700">' + esc(status) + '</span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cdc-overlay]\').remove()">&times;</button>' +
+      '</div></div>' +
+
+      // Tabs
+      '<div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0;' +
+      'overflow-x:auto;background:var(--bg2)" id="pc-tabs">' +
+      _tabBtn('demographics', 'Demographics', 'user') +
+      _tabBtn('eligibility', 'Eligibility', 'shield-check') +
+      _tabBtn('diagnoses', 'Diagnoses', 'activity') +
+      _tabBtn('referral', 'Referral', 'send') +
+      _tabBtn('emergency', 'Emergency Contact', 'phone') +
+      _tabBtn('guardian', 'Legal Guardian', 'shield') +
+      _tabBtn('portal', 'Client Portal', 'globe') +
+      _tabBtn('history', 'Notes History', 'file-text') +
+      _tabBtn('forms', 'Intake Forms', 'file-signature') +
+      '</div>' +
+
+      '<div id="pc-panel" style="padding:20px 22px;overflow-y:auto;flex:1"></div>' +
+
+      '<div style="padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:flex-end;gap:8px;flex-shrink:0">' +
+      '<button class="btn" onclick="this.closest(\'[data-cdc-overlay]\').remove()">Close</button>' +
+      '<button class="btn btn-primary" onclick="CDC.PatientCard._save()">' +
+      '<i data-lucide="save" class="lci"></i> Save Changes</button>' +
+      '</div>';
+
+    _overlay(html, '1100px');
+    PC._render();
+  };
+
+  function _tabBtn(key, label, ico) {
+    return '<button data-tab="' + key + '" onclick="CDC.PatientCard._setTab(\'' + key + '\')" ' +
+      'style="padding:10px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;' +
+      'color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center">' +
+      '<i data-lucide="' + ico + '" class="lci" style="width:12px;height:12px"></i>' + esc(label) + '</button>';
+  }
+
+  PC._setTab = function (t) {
+    PC._tab = t;
+    document.querySelectorAll('#pc-tabs button').forEach(function (b) {
+      var on = b.getAttribute('data-tab') === t;
+      b.style.color = on ? 'var(--brand)' : 'var(--text2)';
+      b.style.borderBottomColor = on ? 'var(--brand)' : 'transparent';
+    });
+    PC._render();
+  };
+
+  PC._render = function () {
+    var c = PC._client;
+    var panel = document.getElementById('pc-panel');
+    if (!panel) return;
+
+    var t = PC._tab;
+    if (t === 'demographics') panel.innerHTML = _demoTab(c);
+    else if (t === 'eligibility') panel.innerHTML = _eligTab(c);
+    else if (t === 'diagnoses') panel.innerHTML = _dxTab(c);
+    else if (t === 'referral') panel.innerHTML = _refTab(c);
+    else if (t === 'emergency') panel.innerHTML = _emergTab(c);
+    else if (t === 'guardian') panel.innerHTML = _guardTab(c);
+    else if (t === 'portal') panel.innerHTML = _portalTab(c);
+    else if (t === 'history') panel.innerHTML = _histTab(c);
+    else if (t === 'forms') panel.innerHTML = _formsTab(c);
+
+    // Sync active tab styles
+    PC._setTabStyle();
+    _icons();
+  };
+
+  PC._setTabStyle = function () {
+    document.querySelectorAll('#pc-tabs button').forEach(function (b) {
+      var on = b.getAttribute('data-tab') === PC._tab;
+      b.style.color = on ? 'var(--brand)' : 'var(--text2)';
+      b.style.borderBottomColor = on ? 'var(--brand)' : 'transparent';
+    });
+  };
+
+  function _row(label, id, value, opts) {
+    opts = opts || {};
+    var type = opts.type || 'text';
+    if (opts.readonly) {
+      return '<div class="field"><label>' + esc(label) + '</label>' +
+        '<div style="padding:8px 10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);' +
+        'font-size:13px;color:var(--text2);min-height:20px">' + esc(value || '—') + '</div></div>';
+    }
+    if (opts.textarea) {
+      return '<div class="field"><label>' + esc(label) + '</label>' +
+        '<textarea id="' + id + '" rows="' + (opts.rows || 3) + '" ' +
+        'style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+        'font-family:var(--font);font-size:13px;resize:vertical">' + esc(value || '') + '</textarea></div>';
+    }
+    return '<div class="field"><label>' + esc(label) + '</label>' +
+      '<input id="' + id + '" type="' + type + '" value="' + esc(value || '') + '"' +
+      (opts.placeholder ? ' placeholder="' + esc(opts.placeholder) + '"' : '') + '></div>';
+  }
+
+  function _sec(title, inner, extra) {
+    return '<div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);' +
+      'padding:16px 18px;margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;' +
+      'border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:14px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em">' +
+      esc(title) + '</div>' + (extra || '') + '</div>' + inner + '</div>';
+  }
+
+  function _demoTab(c) {
+    return _sec('Personal Information',
+      '<div class="fg g3">' +
+      _row('First Name', 'pc-first', c.first) +
+      _row('Middle Name', 'pc-middle', c.middle) +
+      _row('Last Name', 'pc-last', c.last) +
+      _row('Date of Birth', 'pc-dob', c.dob, { type: 'date' }) +
+      _row('Sex', 'pc-sex', c.sex) +
+      _row('SSN (last 4)', 'pc-ssn', c.ssn4, { placeholder: '####' }) +
+      _row('Phone', 'pc-phone', c.phone, { type: 'tel' }) +
+      _row('Email', 'pc-email', c.email, { type: 'email' }) +
+      _row('Preferred Language', 'pc-lang', c.language || 'English') +
+      '</div>'
+    ) +
+    _sec('Address',
+      '<div class="fg g2">' +
+      _row('Street Address', 'pc-addr1', c.address) +
+      _row('Apt / Unit', 'pc-addr2', c.address2) +
+      _row('City', 'pc-city', c.city) +
+      _row('State', 'pc-state', c.state) +
+      _row('ZIP', 'pc-zip', c.zip) +
+      _row('County', 'pc-county', c.county) +
+      '</div>'
+    );
+  }
+
+  function _eligTab(c) {
+    var cov = c.coverage || {};
+    return _sec('Primary Insurance',
+      '<div class="fg g2">' +
+      _row('Payer Name', 'pc-payer-name', cov.payerName || 'FL MEDICAID') +
+      _row('Payer ID', 'pc-payer-id', cov.payerId) +
+      _row('Member ID', 'pc-member-id', c.medicaidId || cov.memberId) +
+      _row('Plan Name', 'pc-plan', cov.plan) +
+      _row('Group #', 'pc-group', cov.group) +
+      _row('Effective Date', 'pc-eff', cov.effectiveDate, { type: 'date' }) +
+      '</div>',
+      '<button class="btn btn-primary btn-sm" onclick="CDC.PatientCard._runEligibility()">' +
+      '<i data-lucide="refresh-cw" class="lci"></i> Run Eligibility</button>'
+    ) +
+    _sec('Latest Eligibility Response',
+      '<div id="pc-elig-result" style="padding:14px;background:var(--bg3);border-radius:var(--r);' +
+      'font-size:12px;color:var(--text2);min-height:60px">' +
+      (c.eligibilityResponse
+        ? _renderElig(c.eligibilityResponse)
+        : '<em style="color:var(--text3)">No eligibility check performed yet.</em>') +
+      '</div>'
+    );
+  }
+
+  function _renderElig(r) {
+    return '<div style="display:flex;gap:20px;margin-bottom:10px">' +
+      '<div><strong>Status:</strong> ' + esc(r.status || 'Active') + '</div>' +
+      '<div><strong>Checked:</strong> ' + esc(r.checkedAt || '—') + '</div>' +
+      '</div>' +
+      (r.plans && r.plans.length
+        ? '<div style="margin-top:8px"><strong>Plans:</strong><ul style="margin:6px 0 0 20px">' +
+        r.plans.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>'
+        : '');
+  }
+
+  PC._runEligibility = function () {
+    var c = PC._client;
+    // Placeholder: en producción llamarías a tu endpoint de Medicaid API
+    var mock = {
+      status: 'Active',
+      checkedAt: new Date().toLocaleString(),
+      plans: [
+        'MEDICAID FL - ' + (c.medicaidId || 'XXXXXXX'),
+        'Targeted Case Management authorized',
+        'Behavioral health services authorized'
+      ]
+    };
+    c.eligibilityResponse = mock;
+    var d = _CM();
+    var idx = (d.clients || []).findIndex(function (x) { return x.id === c.id; });
+    if (idx >= 0) { d.clients[idx] = c; _saveCM(d); }
+    document.getElementById('pc-elig-result').innerHTML = _renderElig(mock);
+    _toast('Eligibility verificada ✓', 'ok');
+  };
+
+  function _dxTab(c) {
+    var dxs = c.diagnoses || [];
+    var rows = dxs.length
+      ? dxs.map(function (dx, i) {
+          return '<tr>' +
+            '<td style="padding:8px;font-family:var(--mono);font-weight:600">' + esc(dx.code) + '</td>' +
+            '<td style="padding:8px">' + esc(dx.description || '—') + '</td>' +
+            '<td style="padding:8px">' + esc(dx.type || 'Primary') + '</td>' +
+            '<td style="padding:8px">' + esc(dx.date || '—') + '</td>' +
+            '<td style="padding:8px;text-align:right">' +
+            '<button class="btn btn-xs" onclick="CDC.PatientCard._removeDx(' + i + ')">Remove</button>' +
+            '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">No diagnoses on file</td></tr>';
+
+    return _sec('ICD-10 Diagnoses',
+      '<table style="width:100%;font-size:12px;border-collapse:collapse">' +
+      '<thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">' +
+      '<th style="text-align:left;padding:8px">Code</th>' +
+      '<th style="text-align:left;padding:8px">Description</th>' +
+      '<th style="text-align:left;padding:8px">Type</th>' +
+      '<th style="text-align:left;padding:8px">Date</th>' +
+      '<th style="text-align:right;padding:8px;width:80px"></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div style="display:grid;grid-template-columns:1fr 2fr 1fr 1fr auto;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' +
+      '<input id="pc-dx-code" placeholder="F411" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\')">' +
+      '<input id="pc-dx-desc" placeholder="Description">' +
+      '<select id="pc-dx-type"><option>Primary</option><option>Secondary</option><option>Rule Out</option></select>' +
+      '<input id="pc-dx-date" type="date" value="' + _today() + '">' +
+      '<button class="btn btn-primary btn-sm" onclick="CDC.PatientCard._addDx()">+ Add</button>' +
+      '</div>'
+    );
+  }
+
+  PC._addDx = function () {
+    var c = PC._client;
+    var code = document.getElementById('pc-dx-code').value.trim();
+    if (!code) return _toast('Falta código ICD', 'error');
+    c.diagnoses = c.diagnoses || [];
+    c.diagnoses.push({
+      code: code,
+      description: document.getElementById('pc-dx-desc').value,
+      type: document.getElementById('pc-dx-type').value,
+      date: document.getElementById('pc-dx-date').value,
+    });
+    var d = _CM();
+    var idx = (d.clients || []).findIndex(function (x) { return x.id === c.id; });
+    if (idx >= 0) { d.clients[idx] = c; _saveCM(d); }
+    PC._render();
+  };
+
+  PC._removeDx = function (i) {
+    var c = PC._client;
+    if (!confirm('¿Eliminar este diagnóstico?')) return;
+    c.diagnoses.splice(i, 1);
+    var d = _CM();
+    var idx = (d.clients || []).findIndex(function (x) { return x.id === c.id; });
+    if (idx >= 0) { d.clients[idx] = c; _saveCM(d); }
+    PC._render();
+  };
+
+  function _refTab(c) {
+    var r = c.referral || {};
+    return _sec('Referral Source',
+      '<div class="fg g2">' +
+      _row('Source Type', 'pc-ref-type', r.sourceType, { placeholder: 'e.g. PCP, School, Self, Court' }) +
+      _row('Source Name', 'pc-ref-name', r.sourceName) +
+      _row('Referring Provider NPI', 'pc-ref-npi', r.npi) +
+      _row('Referral Date', 'pc-ref-date', r.date, { type: 'date' }) +
+      _row('Referral Reason', 'pc-ref-reason', r.reason, { textarea: true, rows: 3 }) +
+      _row('Notes', 'pc-ref-notes', r.notes, { textarea: true, rows: 2 }) +
+      '</div>'
+    );
+  }
+
+  function _emergTab(c) {
+    var e = c.emergencyContact || {};
+    return _sec('Emergency Contact',
+      '<div class="fg g2">' +
+      _row('Name', 'pc-em-name', e.name) +
+      _row('Relationship', 'pc-em-rel', e.relationship) +
+      _row('Phone (primary)', 'pc-em-phone1', e.phone1, { type: 'tel' }) +
+      _row('Phone (secondary)', 'pc-em-phone2', e.phone2, { type: 'tel' }) +
+      _row('Email', 'pc-em-email', e.email, { type: 'email' }) +
+      _row('Address', 'pc-em-addr', e.address) +
+      '</div>'
+    );
+  }
+
+  function _guardTab(c) {
+    var g = c.legalGuardian || {};
+    return _sec('Legal Guardian / Representative',
+      '<div class="fg g2">' +
+      _row('Guardian Name', 'pc-lg-name', g.name) +
+      _row('Relationship', 'pc-lg-rel', g.relationship) +
+      _row('Type of Guardianship', 'pc-lg-type', g.type, { placeholder: 'Parent, Court-appointed, Power of Attorney, etc.' }) +
+      _row('Phone', 'pc-lg-phone', g.phone, { type: 'tel' }) +
+      _row('Email', 'pc-lg-email', g.email, { type: 'email' }) +
+      _row('Address', 'pc-lg-addr', g.address) +
+      _row('Court Order # (if any)', 'pc-lg-court', g.courtOrder) +
+      _row('Effective Date', 'pc-lg-eff', g.effectiveDate, { type: 'date' }) +
+      '</div>'
+    );
+  }
+
+  function _portalTab(c) {
+    var p = c.portal || {};
+    var enabled = !!p.enabled;
+    return _sec('Client Portal Access',
+      '<div style="padding:14px;background:' + (enabled ? 'var(--brand-bg)' : 'var(--bg3)') + ';' +
+      'border-radius:var(--r);border:1px solid ' + (enabled ? 'var(--brand)' : 'var(--border)') +
+      ';margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<div>' +
+      '<div style="font-weight:700;color:' + (enabled ? 'var(--brand)' : 'var(--text)') + '">' +
+      (enabled ? 'Portal Access ENABLED' : 'Portal Access Disabled') + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' +
+      (enabled ? 'Client can log in at ' + (p.portalUrl || 'client portal') : 'Enable to grant access') +
+      '</div></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="CDC.PatientCard._togglePortal()">' +
+      (enabled ? 'Disable' : 'Enable Access') + '</button>' +
+      '</div></div>' +
+
+      '<div class="fg g2">' +
+      _row('Portal Username', 'pc-pt-user', p.username, { placeholder: c.email || 'auto' }) +
+      _row('Last Login', 'pc-pt-last', p.lastLogin ? new Date(p.lastLogin).toLocaleString() : '—', { readonly: true }) +
+      _row('Password Reset Link Sent', 'pc-pt-reset', p.resetSent ? new Date(p.resetSent).toLocaleString() : 'Never', { readonly: true }) +
+      _row('Access Level', 'pc-pt-level', p.accessLevel || 'View only', { readonly: true }) +
+      '</div>' +
+
+      '<div style="display:flex;gap:8px;margin-top:12px">' +
+      '<button class="btn btn-sm" onclick="CDC.PatientCard._sendReset()">' +
+      '<i data-lucide="mail" class="lci"></i> Send Password Reset</button>' +
+      '<button class="btn btn-sm" onclick="CDC.PatientCard._copyLink()">' +
+      '<i data-lucide="link" class="lci"></i> Copy Portal Link</button>' +
+      '</div>'
+    );
+  }
+
+  PC._togglePortal = function () {
+    var c = PC._client;
+    c.portal = c.portal || {};
+    c.portal.enabled = !c.portal.enabled;
+    if (c.portal.enabled && !c.portal.username) c.portal.username = c.email || (c.first + c.last).toLowerCase();
+    _persistClient(c);
+    PC._render();
+    _toast('Portal ' + (c.portal.enabled ? 'habilitado' : 'deshabilitado'), 'ok');
+  };
+  PC._sendReset = function () {
+    var c = PC._client;
+    c.portal = c.portal || {};
+    c.portal.resetSent = _now();
+    _persistClient(c);
+    _toast('Reset link enviado (simulado)', 'ok');
+    PC._render();
+  };
+  PC._copyLink = function () {
+    var link = window.location.origin + '/portal?client=' + PC._client.id;
+    if (navigator.clipboard) navigator.clipboard.writeText(link);
+    _toast('Link copiado: ' + link, 'ok');
+  };
+
+  function _persistClient(c) {
+    var d = _CM();
+    var idx = (d.clients || []).findIndex(function (x) { return x.id === c.id; });
+    if (idx >= 0) { d.clients[idx] = c; _saveCM(d); }
+  }
+
+  function _histTab(c) {
+    var d = _CM();
+    var notes = (d.notes || []).filter(function (n) { return n.clientId === c.id; })
+      .sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    var assessments = (d.assessments || []).filter(function (a) { return a.clientId === c.id; })
+      .sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+    var notesRows = notes.length
+      ? notes.slice(0, 25).map(function (n) {
+          return '<tr>' +
+            '<td style="padding:6px 8px">' + esc(n.date || '—') + '</td>' +
+            '<td style="padding:6px 8px;font-family:var(--mono)">' + esc(n.code || '—') + '</td>' +
+            '<td style="padding:6px 8px">' + (n.units || 0) + '</td>' +
+            '<td style="padding:6px 8px">' +
+            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:var(--bg3);color:var(--text2)">' +
+            esc(n.status || 'Draft') + '</span></td>' +
+            '<td style="padding:6px 8px;text-align:right">' +
+            (n.id && window.CDC && CDC.ProgressNote
+              ? '<button class="btn btn-xs" onclick="CDC.ProgressNote.edit(\'' + n.id + '\')">Open</button>'
+              : '—') +
+            '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">No notes yet</td></tr>';
+
+    return _sec('Progress Notes (' + notes.length + ')',
+      '<table style="width:100%;font-size:12px;border-collapse:collapse">' +
+      '<thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">' +
+      '<th style="text-align:left;padding:6px 8px">Date</th>' +
+      '<th style="text-align:left;padding:6px 8px">Code</th>' +
+      '<th style="text-align:left;padding:6px 8px">Units</th>' +
+      '<th style="text-align:left;padding:6px 8px">Status</th>' +
+      '<th style="padding:6px 8px"></th>' +
+      '</tr></thead><tbody>' + notesRows + '</tbody></table>'
+    ) +
+    _sec('Assessments (' + assessments.length + ')',
+      assessments.length
+        ? assessments.map(function (a) {
+            return '<div style="padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;' +
+              'display:flex;justify-content:space-between;align-items:center">' +
+              '<div>' +
+              '<div style="font-weight:600">' + esc(a.date || '—') + ' — Limited Functional Assessment</div>' +
+              '<div style="font-size:11px;color:var(--text3)">Total: ' + (a.totalScore || 0) +
+              ' • ' + esc(a.severityLevel || '—') + '</div>' +
+              '</div>' +
+              (a.id && window.CDC && CDC.Assessment
+                ? '<button class="btn btn-xs" onclick="CDC.Assessment.edit(\'' + a.id + '\')">Open</button>' : '') +
+              '</div>';
+          }).join('')
+        : '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No assessments yet</div>'
+    );
+  }
+
+  function _formsTab(c) {
+    return '<div id="pc-forms-embed">' +
+      '<button class="btn btn-primary" onclick="CDC.IntakeForms.open(\'' + c.id + '\')">' +
+      '<i data-lucide="file-signature" class="lci"></i> Manage Intake &amp; Legal Forms</button>' +
+      '<div style="margin-top:14px;font-size:12px;color:var(--text3)">' +
+      'Opens the full forms grid — HIPAA, Consent for Treatment, Consumer Rights, etc.</div>' +
+      '</div>';
+  }
+
+  PC._save = function () {
+    var c = PC._client;
+
+    // Recolectar campos según tab activo
+    var tab = PC._tab;
+    var pick = function (id) { var el = document.getElementById(id); return el ? el.value : undefined; };
+
+    if (tab === 'demographics') {
+      if (pick('pc-first') !== undefined) c.first = pick('pc-first');
+      if (pick('pc-middle') !== undefined) c.middle = pick('pc-middle');
+      if (pick('pc-last') !== undefined) c.last = pick('pc-last');
+      if (pick('pc-dob') !== undefined) c.dob = pick('pc-dob');
+      if (pick('pc-sex') !== undefined) c.sex = pick('pc-sex');
+      if (pick('pc-ssn') !== undefined) c.ssn4 = pick('pc-ssn');
+      if (pick('pc-phone') !== undefined) c.phone = pick('pc-phone');
+      if (pick('pc-email') !== undefined) c.email = pick('pc-email');
+      if (pick('pc-lang') !== undefined) c.language = pick('pc-lang');
+      if (pick('pc-addr1') !== undefined) c.address = pick('pc-addr1');
+      if (pick('pc-addr2') !== undefined) c.address2 = pick('pc-addr2');
+      if (pick('pc-city') !== undefined) c.city = pick('pc-city');
+      if (pick('pc-state') !== undefined) c.state = pick('pc-state');
+      if (pick('pc-zip') !== undefined) c.zip = pick('pc-zip');
+      if (pick('pc-county') !== undefined) c.county = pick('pc-county');
+    } else if (tab === 'eligibility') {
+      c.coverage = c.coverage || {};
+      if (pick('pc-payer-name') !== undefined) c.coverage.payerName = pick('pc-payer-name');
+      if (pick('pc-payer-id') !== undefined) c.coverage.payerId = pick('pc-payer-id');
+      if (pick('pc-member-id') !== undefined) { c.medicaidId = pick('pc-member-id'); c.coverage.memberId = c.medicaidId; }
+      if (pick('pc-plan') !== undefined) c.coverage.plan = pick('pc-plan');
+      if (pick('pc-group') !== undefined) c.coverage.group = pick('pc-group');
+      if (pick('pc-eff') !== undefined) c.coverage.effectiveDate = pick('pc-eff');
+    } else if (tab === 'referral') {
+      c.referral = c.referral || {};
+      ['type', 'name', 'npi', 'date', 'reason', 'notes'].forEach(function (k) {
+        var mapK = { type: 'sourceType', name: 'sourceName', npi: 'npi', date: 'date', reason: 'reason', notes: 'notes' }[k];
+        var v = pick('pc-ref-' + k); if (v !== undefined) c.referral[mapK] = v;
+      });
+    } else if (tab === 'emergency') {
+      c.emergencyContact = c.emergencyContact || {};
+      ['name', 'rel', 'phone1', 'phone2', 'email', 'addr'].forEach(function (k) {
+        var mapK = { name: 'name', rel: 'relationship', phone1: 'phone1', phone2: 'phone2', email: 'email', addr: 'address' }[k];
+        var v = pick('pc-em-' + k); if (v !== undefined) c.emergencyContact[mapK] = v;
+      });
+    } else if (tab === 'guardian') {
+      c.legalGuardian = c.legalGuardian || {};
+      ['name', 'rel', 'type', 'phone', 'email', 'addr', 'court', 'eff'].forEach(function (k) {
+        var mapK = { name: 'name', rel: 'relationship', type: 'type', phone: 'phone', email: 'email', addr: 'address', court: 'courtOrder', eff: 'effectiveDate' }[k];
+        var v = pick('pc-lg-' + k); if (v !== undefined) c.legalGuardian[mapK] = v;
+      });
+    } else if (tab === 'portal') {
+      c.portal = c.portal || {};
+      if (pick('pc-pt-user') !== undefined) c.portal.username = pick('pc-pt-user');
+    }
+
+    _persistClient(c);
+    if (typeof renderCMClients === 'function') try { renderCMClients(); } catch (e) {}
+    _toast('Cambios guardados ✓', 'ok');
+  };
+
+  function _age(dob) {
+    if (!dob) return null;
+    try {
+      var d = new Date(dob);
+      if (isNaN(d)) return null;
+      var t = new Date();
+      var a = t.getFullYear() - d.getFullYear();
+      var m = t.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--;
+      return a;
+    } catch (e) { return null; }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3) CDC.IntakeForms — Grid de formularios clínicos (video 3 final)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var IF = CDC.IntakeForms = {};
+
+  var FORM_TEMPLATES = [
+    { key: 'universal_referral', label: 'Universal Referral', icon: 'send', required: true },
+    { key: 'intake', label: 'Intake', icon: 'file-plus', required: true },
+    { key: 'pre_admission_medication', label: 'Pre Admission Medication', icon: 'pill', required: true },
+    { key: 'consent_treatment', label: 'Consent for Treatment', icon: 'file-signature', required: true },
+    { key: 'no_duplicate_services', label: 'No Duplicate Services', icon: 'ban', required: true },
+    { key: 'consumer_rights', label: 'Consumer Rights', icon: 'shield-check', required: true },
+    { key: 'advance_directive', label: 'Advance Directive', icon: 'file-check', required: true },
+    { key: 'hipaa', label: 'HIPAA Acknowledgment', icon: 'lock', required: true },
+    { key: 'foreign_language', label: 'Foreign Language', icon: 'globe', required: false },
+    { key: 'coordination_of_care', label: 'Coordination of Care', icon: 'users', required: false },
+    { key: 'assessor_list', label: 'Assessor List', icon: 'clipboard-list', required: false },
+    { key: 'discharge_summary', label: 'Discharge Summary', icon: 'file-text', required: false },
+  ];
+
+  IF.open = function (clientId) {
+    var d = _CM(); if (!d) return;
+    var c = (d.clients || []).find(function (x) { return x.id === clientId; });
+    if (!c) { _toast('Cliente no encontrado', 'error'); return; }
+    IF._client = c;
+
+    var name = ((c.first || '') + ' ' + (c.last || '')).trim() || 'Client';
+    var forms = c.forms || {};
+
+    // Contador
+    var signed = 0, required = 0;
+    FORM_TEMPLATES.forEach(function (t) {
+      if (t.required) required++;
+      if (forms[t.key] && forms[t.key].status === 'Signed') signed++;
+    });
+    var pct = required > 0 ? Math.round((signed / FORM_TEMPLATES.length) * 100) : 0;
+
+    var html =
+      '<div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      esc(name) + ' • File #' + esc(c.fileNo || '—') + '</div>' +
+      '<div style="font-size:18px;font-weight:700;color:var(--text)">Intake &amp; Legal Forms</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:14px;align-items:center">' +
+      '<div style="text-align:right">' +
+      '<div style="font-size:20px;font-weight:700;color:var(--brand)">' + signed + '/' + FORM_TEMPLATES.length + '</div>' +
+      '<div style="font-size:10px;color:var(--text3);text-transform:uppercase">Signed</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cdc-overlay]\').remove()">&times;</button>' +
+      '</div></div>' +
+
+      // Progress bar
+      '<div style="padding:12px 20px;background:var(--bg2);flex-shrink:0">' +
+      '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">' +
+      '<div style="height:100%;background:var(--brand);width:' + pct + '%;transition:width .3s"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px">Overall completion: ' + pct + '%</div>' +
+      '</div>' +
+
+      // Cards grid
+      '<div style="padding:18px 20px;overflow-y:auto;flex:1;' +
+      'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">' +
+      FORM_TEMPLATES.map(function (t) { return _formCard(t, forms[t.key]); }).join('') +
+      '</div>' +
+
+      '<div style="padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div style="font-size:11px;color:var(--text3)">Click any card to sign or view</div>' +
+      '<button class="btn" onclick="this.closest(\'[data-cdc-overlay]\').remove()">Close</button>' +
+      '</div>';
+
+    _overlay(html, '1000px');
+  };
+
+  function _formCard(t, form) {
+    var status = form && form.status ? form.status : 'Pending';
+    var isSigned = status === 'Signed';
+    var color = isSigned ? 'var(--brand)' : 'var(--text3)';
+    var bg = isSigned ? 'var(--brand-bg)' : 'var(--bg)';
+    var badge = t.required ? '<span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Required</span>' : '';
+    var signedDate = form && form.signedAt ? new Date(form.signedAt).toLocaleDateString() : '';
+
+    return '<div onclick="CDC.IntakeForms._openForm(\'' + t.key + '\')" ' +
+      'style="cursor:pointer;padding:16px;background:' + bg + ';border:1.5px solid ' + (isSigned ? 'var(--brand)' : 'var(--border)') + ';' +
+      'border-radius:12px;transition:all .15s;display:flex;flex-direction:column;gap:10px;min-height:120px" ' +
+      'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.08)\'" ' +
+      'onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+      '<div style="width:36px;height:36px;background:' + (isSigned ? 'rgba(255,255,255,.6)' : 'var(--bg3)') + ';' +
+      'border-radius:8px;display:flex;align-items:center;justify-content:center">' +
+      '<i data-lucide="' + t.icon + '" class="lci" style="width:16px;height:16px;color:' + color + '"></i>' +
+      '</div>' +
+      (isSigned
+        ? '<i data-lucide="check-circle" class="lci" style="width:16px;height:16px;color:var(--brand)"></i>'
+        : '<i data-lucide="circle" class="lci" style="width:16px;height:16px;color:var(--text3)"></i>') +
+      '</div>' +
+
+      '<div style="flex:1">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px">' + esc(t.label) + '</div>' +
+      badge +
+      '</div>' +
+
+      '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3)">' +
+      '<span style="text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:' + color + '">' + esc(status) + '</span>' +
+      (signedDate ? '<span>' + esc(signedDate) + '</span>' : '') +
+      '</div>' +
+
+      '</div>';
+  }
+
+  IF._openForm = function (key) {
+    var t = FORM_TEMPLATES.find(function (x) { return x.key === key; });
+    if (!t) return;
+    var c = IF._client;
+    c.forms = c.forms || {};
+    var form = c.forms[key] || { key: key, status: 'Pending' };
+
+    var html =
+      '<div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">' +
+      esc(((c.first || '') + ' ' + (c.last || '')).trim()) + '</div>' +
+      '<div style="font-size:16px;font-weight:700;color:var(--text)">' + esc(t.label) + '</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cdc-overlay]\').remove()">&times;</button>' +
+      '</div>' +
+
+      '<div style="padding:20px 22px;overflow-y:auto;flex:1;display:grid;gap:14px">' +
+      _sec('Document Content', _formBodyFor(t.key, form)) +
+      _sec('Notes / Additions',
+        '<textarea id="frm-notes" rows="3" ' +
+        'style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);' +
+        'font-family:var(--font);font-size:13px">' + esc(form.notes || '') + '</textarea>'
+      ) +
+      _sec('Signature',
+        '<div style="display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg3);' +
+        'border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px">' +
+        '<input type="checkbox" id="frm-attest"' + (form.attested ? ' checked' : '') + ' ' +
+        'style="accent-color:var(--brand);margin-top:2px;flex-shrink:0">' +
+        '<label for="frm-attest" style="font-size:12px;color:var(--text2);line-height:1.5;cursor:pointer">' +
+        'I have read and acknowledge the contents of this document, and I understand my rights and responsibilities as documented above.</label>' +
+        '</div>' +
+        '<div class="fg g2">' +
+        '<div class="field"><label>Signature (Client / Guardian)</label>' +
+        '<input id="frm-sig-client" value="' + esc(form.signatureClient || '') + '" placeholder="Full name"></div>' +
+        '<div class="field"><label>Sign Date</label>' +
+        '<input id="frm-sig-date" type="date" value="' + esc(form.signedAtDate || _today()) + '"></div>' +
+        '<div class="field"><label>Signature (Case Worker)</label>' +
+        '<input id="frm-sig-worker" value="' + esc(form.signatureWorker || '') + '" placeholder="Full name"></div>' +
+        '<div class="field"><label>Worker Sign Date</label>' +
+        '<input id="frm-sig-worker-date" type="date" value="' + esc(form.workerSignedAtDate || _today()) + '"></div>' +
+        '</div>'
+      ) +
+      '</div>' +
+
+      '<div style="padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3);' +
+      'display:flex;justify-content:space-between;align-items:center;flex-shrink:0">' +
+      '<div style="font-size:11px;color:var(--text3)">Status: <strong>' + esc(form.status) + '</strong></div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn" onclick="this.closest(\'[data-cdc-overlay]\').remove()">Cancel</button>' +
+      '<button class="btn" onclick="CDC.IntakeForms._saveForm(\'' + key + '\', false)">' +
+      '<i data-lucide="save" class="lci"></i> Save Draft</button>' +
+      '<button class="btn btn-primary" onclick="CDC.IntakeForms._saveForm(\'' + key + '\', true)">' +
+      '<i data-lucide="check-circle" class="lci"></i> Mark as Signed</button>' +
+      '</div></div>';
+
+    _overlay(html, '900px');
+    IF._currentForm = { key: key, form: form };
+  };
+
+  function _formBodyFor(key, form) {
+    // Contenido genérico + prefills según tipo
+    var content = {
+      universal_referral: 'This universal referral form collects the client\'s demographic, insurance, and clinical referral information for coordinating case management services across providers and community resources.',
+      intake: 'Complete intake documentation including presenting concerns, treatment history, current supports, and initial service needs. This information forms the basis for the individualized service plan.',
+      pre_admission_medication: 'Documentation of all medications the client is currently taking, including prescription medications, over-the-counter drugs, supplements, and PRN medications. Client medication reconciliation.',
+      consent_treatment: 'Client (or legal guardian) provides informed consent for behavioral health / case management services, having been informed of the nature, purpose, risks, benefits, and alternatives to treatment.',
+      no_duplicate_services: 'Attestation that the client is not simultaneously receiving the same targeted case management services from another Medicaid-enrolled provider or agency.',
+      consumer_rights: 'Documentation acknowledging that the consumer has been informed of their rights including: right to dignified treatment, confidentiality, informed consent, grievance procedures, and freedom from discrimination.',
+      advance_directive: 'Client has been informed of the right to execute an advance directive for healthcare decisions. Client indicates whether an advance directive is in place and whether a copy has been provided.',
+      hipaa: 'Notice of Privacy Practices — client acknowledges receipt of the HIPAA Notice describing how their protected health information may be used and disclosed.',
+      foreign_language: 'Language interpretation services have been offered to the client. Client\'s preferred language and interpretation preferences documented.',
+      coordination_of_care: 'Authorization to coordinate care with other treating providers, community agencies, family/caregivers as identified by the client in support of the service plan.',
+      assessor_list: 'List of qualified professionals authorized to conduct assessments and evaluations for this client under the individualized service plan.',
+      discharge_summary: 'Summary of services rendered, progress toward goals, current status at discharge, and recommendations for continued care or aftercare.',
+    };
+    return '<div style="padding:14px;background:var(--bg3);border-radius:var(--r);' +
+      'border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--text2)">' +
+      esc(content[key] || 'Standard clinical documentation form.') +
+      '</div>';
+  }
+
+  IF._saveForm = function (key, sign) {
+    var c = IF._client;
+    var form = c.forms[key] || { key: key };
+    form.notes = document.getElementById('frm-notes').value;
+    form.attested = document.getElementById('frm-attest').checked;
+    form.signatureClient = document.getElementById('frm-sig-client').value.trim();
+    form.signedAtDate = document.getElementById('frm-sig-date').value;
+    form.signatureWorker = document.getElementById('frm-sig-worker').value.trim();
+    form.workerSignedAtDate = document.getElementById('frm-sig-worker-date').value;
+
+    if (sign) {
+      if (!form.attested) { _toast('Debes marcar el acknowledgment', 'error'); return; }
+      if (!form.signatureClient) { _toast('Falta firma del cliente/guardian', 'error'); return; }
+      form.status = 'Signed';
+      form.signedAt = _now();
+      form.signedBy = _sess().uid || null;
+    } else {
+      if (form.status !== 'Signed') form.status = 'Draft';
+    }
+
+    c.forms = c.forms || {};
+    c.forms[key] = form;
+    _persistClient(c);
+
+    _toast(sign ? 'Formulario firmado ✓' : 'Draft guardado', 'ok');
+
+    // Cierra este modal y refresca el grid
+    var overlays = document.querySelectorAll('[data-cdc-overlay]');
+    if (overlays.length) overlays[overlays.length - 1].remove();
+    setTimeout(function () {
+      var stillOpen = document.querySelector('[data-cdc-overlay]');
+      if (stillOpen) stillOpen.remove();
+      IF.open(c.id);
+    }, 100);
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Auto-inyección de botones
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function _inject() {
+    // Botón "Cedrus View" en Case Management Dashboard
+    var dashHdr = document.querySelector('#sec-cm-dashboard .page-hdr');
+    if (dashHdr && !document.getElementById('btn-dash-cedrus')) {
+      var wrap = dashHdr.querySelector('div:last-child');
+      if (!wrap || wrap === dashHdr.querySelector('div:first-child')) {
+        wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.gap = '6px';
+        dashHdr.appendChild(wrap);
+      }
+      var b = document.createElement('button');
+      b.id = 'btn-dash-cedrus';
+      b.className = 'btn btn-primary btn-sm';
+      b.innerHTML = '<i data-lucide="layout-dashboard" class="lci"></i> Cedrus View';
+      b.onclick = function () { CDC.Dashboard.render('cm-dash-content'); };
+      wrap.appendChild(b);
+      _icons();
+    }
+
+    // Botón "View (Cedrus)" en la lista de CM Clients — hook en renderCMClients
+    // Se hace via delegation en clicks sobre botones con clase específica
+    if (!window._cdcPCDelegated) {
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-cdc-pc]');
+        if (btn) {
+          var cid = btn.getAttribute('data-cdc-pc');
+          if (cid) CDC.PatientCard.open(cid);
+        }
+        var btn2 = e.target.closest('[data-cdc-if]');
+        if (btn2) {
+          var cid2 = btn2.getAttribute('data-cdc-if');
+          if (cid2) CDC.IntakeForms.open(cid2);
+        }
+      });
+      window._cdcPCDelegated = true;
+    }
+
+    // Inyecta botones en filas de la tabla de clientes (después de que render corra)
+    _augmentClientRows();
+  }
+
+  function _augmentClientRows() {
+    var tbl = document.getElementById('cm-clients-tbl');
+    if (!tbl) return;
+    var rows = tbl.querySelectorAll('tr[data-client-id], tr[data-id]');
+    // Como tu render exacto puede variar, buscamos filas con botones onclick que contengan un ID
+    if (!rows.length) {
+      rows = tbl.querySelectorAll('tbody tr');
+    }
+    rows.forEach(function (r) {
+      if (r._cdcAugmented) return;
+      var actionCell = r.querySelector('td:last-child');
+      if (!actionCell) return;
+      // Extrae ID buscando en botones existentes con openCMClientModal(...)
+      var existingBtn = actionCell.querySelector('button[onclick*="openCMClientModal"], button[onclick*="editCMClient"], button[onclick*="viewCMClient"]');
+      var idMatch = null;
+      if (existingBtn) {
+        var m = (existingBtn.getAttribute('onclick') || '').match(/['"]([\w_-]+)['"]/);
+        if (m) idMatch = m[1];
+      }
+      if (!idMatch) {
+        // Segundo intento: dataset
+        idMatch = r.getAttribute('data-client-id') || r.getAttribute('data-id');
+      }
+      if (!idMatch) return;
+      var b1 = document.createElement('button');
+      b1.className = 'btn btn-xs';
+      b1.style.marginRight = '4px';
+      b1.title = 'Full patient card (Cedrus style)';
+      b1.setAttribute('data-cdc-pc', idMatch);
+      b1.innerHTML = '<i data-lucide="id-card" class="lci" style="width:11px;height:11px"></i>';
+      var b2 = document.createElement('button');
+      b2.className = 'btn btn-xs';
+      b2.style.marginRight = '4px';
+      b2.title = 'Intake &amp; Legal Forms';
+      b2.setAttribute('data-cdc-if', idMatch);
+      b2.innerHTML = '<i data-lucide="file-signature" class="lci" style="width:11px;height:11px"></i>';
+      actionCell.insertBefore(b2, actionCell.firstChild);
+      actionCell.insertBefore(b1, actionCell.firstChild);
+      r._cdcAugmented = true;
+    });
+    _icons();
+  }
+
+  // Patch go() y renderCMClients para reinyectar
+  function _patch() {
+    if (typeof window.go === 'function' && !window.go.__cdcV3Patched) {
+      var origGo = window.go;
+      window.go = function () {
+        var r = origGo.apply(this, arguments);
+        setTimeout(_inject, 60);
+        return r;
+      };
+      window.go.__cdcV3Patched = true;
+    }
+    if (typeof window.renderCMClients === 'function' && !window.renderCMClients.__cdcPatched) {
+      var origRender = window.renderCMClients;
+      window.renderCMClients = function () {
+        var r = origRender.apply(this, arguments);
+        setTimeout(_augmentClientRows, 50);
+        return r;
+      };
+      window.renderCMClients.__cdcPatched = true;
+    }
+  }
+
+  var tries = 0;
+  var iv = setInterval(function () {
+    tries++;
+    if (typeof window.go === 'function') {
+      _patch();
+      _inject();
+      clearInterval(iv);
+    } else if (tries > 40) clearInterval(iv);
+  }, 250);
+
+  if (document.readyState !== 'loading') setTimeout(_inject, 500);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(_inject, 500); });
+
+  console.log('[CDC] v3 modules cargados ✓ (Dashboard + PatientCard + IntakeForms)');
+})();
