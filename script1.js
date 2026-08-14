@@ -2109,10 +2109,12 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
         +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Primary Insurance</span>'
         +'<select id="ce-ins1" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+          +'<option value="">— Select —</option>'
           +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
             pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
-              var isPri=(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
-              return '<option value="'+i+'"'+(isPri?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
+              var key=(iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||'Ins '+i);
+              var isPri=claim.primaryPayerKey?(claim.primaryPayerKey===key):(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
+              return '<option value="'+key.replace(/"/g,'&quot;')+'"'+(isPri?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
             }).join(''):
             '<option>'+(pat.payerName||'—')+'</option>')
         +'</select>'
@@ -2125,8 +2127,9 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
           +'<option value="">— Select —</option>'
           +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
             pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
-              var isSec=(iv.insType||iv.type||'').toLowerCase().includes('secondary');
-              return '<option value="'+i+'"'+(isSec?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
+              var key=(iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||'Ins '+i);
+              var isSec=claim.hasOwnProperty('secondaryPayerKey')?(claim.secondaryPayerKey===key):(iv.insType||iv.type||'').toLowerCase().includes('secondary');
+              return '<option value="'+key.replace(/"/g,'&quot;')+'"'+(isSec?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
             }).join(''):
             '')
         +'</select>'
@@ -3749,6 +3752,35 @@ function _ceSave(claimId, opts){
   claim.apptDate=g('ce-appt')||claim.apptDate;
   claim.admitDate=g('ce-admit')||claim.admitDate;
   claim.dischargeDate=g('ce-discharge')||claim.dischargeDate;
+  // Primary/Secondary Insurance overrides (per-claim, not patient-wide)
+  var _ins1El=document.getElementById('ce-ins1');
+  if(_ins1El){
+    var _pk=_ins1El.value||'';
+    claim.primaryPayerKey=_pk;
+    var _pat=(db.patients||[]).find(function(p){return p.id===claim.patientId;});
+    var _pins=(_pat&&_pat.insurances||[]).filter(function(iv){return !iv.inactive;});
+    var _pmatch=_pins.find(function(iv){return ((iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||''))===_pk;});
+    if(_pmatch){
+      claim.primaryPayerId=_pmatch.payerId||_pmatch.payerid||'';
+      claim.primaryPayerName=_pmatch.name||_pmatch.payerName||'';
+    } else if(!_pk){
+      claim.primaryPayerId=''; claim.primaryPayerName='';
+    }
+  }
+  var _ins2El=document.getElementById('ce-ins2');
+  if(_ins2El){
+    var _sk=_ins2El.value||'';
+    claim.secondaryPayerKey=_sk;
+    var _pat2=(db.patients||[]).find(function(p){return p.id===claim.patientId;});
+    var _pins2=(_pat2&&_pat2.insurances||[]).filter(function(iv){return !iv.inactive;});
+    var _smatch=_pins2.find(function(iv){return ((iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||''))===_sk;});
+    if(_smatch){
+      claim.secondaryPayerId=_smatch.payerId||_smatch.payerid||'';
+      claim.secondaryPayerName=_smatch.name||_smatch.payerName||'';
+    } else if(!_sk){
+      claim.secondaryPayerId=''; claim.secondaryPayerName='';
+    }
+  }
   for(var dxi=0;dxi<8;dxi++){
     var inp=document.getElementById('ce-dx'+(dxi+1));
     if(inp) claim.dx[dxi]=inp.value.trim().toUpperCase();
@@ -35540,4 +35572,763 @@ function getAuditLogs() {
     };
     window.go.__wrappedForTicketBadge = true;
   }
+})();
+/* =============================================================================
+ * Rendering / Supervisor Provider — Enhanced modal
+ * -----------------------------------------------------------------------------
+ * Reemplaza openRenderingModal y saveRendering:
+ *   • Elimina el bug de "undefined" en todos los inputs (usa strings vacíos)
+ *   • Layout mejorado con cards (estilo mprov-card ya usado en Billing Provider)
+ *   • Integración real con NPPES NPI Registry
+ *     (https://npiregistry.cms.hhs.gov/api/?version=2.1&number=XXXXXXXXXX)
+ *     Auto-completa: First, Last, Taxonomy, dirección, teléfono
+ *   • Nuevo checkbox: "Medical Director"
+ *   • Mantiene el checkbox existente: "Case Management Supervisor"
+ * =========================================================================== */
+
+(function () {
+  'use strict';
+
+  function _needDB() {
+    if (typeof getDB !== 'function') { console.error('getDB no disponible'); return null; }
+    return getDB();
+  }
+
+  function _toast(m, k) { if (typeof toast === 'function') toast(m, k || 'ok'); }
+  function _icons() { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Reemplaza (si existe) el modal-rendering en el DOM con nuestra versión mejorada
+  function _ensureModal() {
+    var oldModal = document.getElementById('modal-rendering');
+    if (oldModal && oldModal.getAttribute('data-enhanced') === '1') return oldModal;
+    if (oldModal) oldModal.parentNode.removeChild(oldModal);
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.id = 'modal-rendering';
+    ov.setAttribute('data-enhanced', '1');
+    ov.innerHTML =
+      '<div class="modal" style="max-width:680px;width:100%">' +
+      '<div class="modal-hdr">' +
+      '<div>' +
+      '<div class="modal-t" id="mrend-title">New Rendering / Supervisor</div>' +
+      '<div class="modal-sub">Auto-fill from NPPES NPI Registry</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')">' +
+      '<i data-lucide="x" class="lci"></i></button>' +
+      '</div>' +
+
+      '<div class="modal-body" style="padding:22px;background:var(--bg2)">' +
+      '<input type="hidden" id="mrend-id">' +
+
+      // NPI Lookup section (estilo mprov-npi-lookup-section)
+      '<div style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;' +
+      'padding:16px 18px;margin-bottom:16px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;' +
+      'display:flex;align-items:center;gap:6px">' +
+      '<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> ' +
+      'NPI Lookup — Auto-fill from NPPES Registry' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;align-items:flex-end">' +
+      '<div style="flex:1">' +
+      '<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">' +
+      'NPI Number (10 digits) *</label>' +
+      '<input id="mrend-npi" maxlength="10" placeholder="Enter 10-digit NPI" ' +
+      'oninput="this.value=this.value.replace(/\\D/g,\'\');' +
+      'if(this.value.length===10)__rendLookupNPI(this.value)" ' +
+      'style="width:100%;padding:9px 12px;border:1.5px solid var(--border2);' +
+      'border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;' +
+      'background:var(--bg)">' +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm" ' +
+      'onclick="__rendLookupNPI(document.getElementById(\'mrend-npi\').value)" ' +
+      'style="white-space:nowrap;flex-shrink:0">' +
+      '<i data-lucide="search" class="lci"></i> Look Up' +
+      '</button>' +
+      '</div>' +
+      '<div id="mrend-npi-result" style="margin-top:8px"></div>' +
+      '</div>' +
+
+      // Identification card
+      '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;' +
+      'padding:16px 18px;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<div style="width:30px;height:30px;background:var(--brand-bg);border-radius:9px;' +
+      'display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="user" class="lci" style="width:15px;height:15px;color:var(--brand)"></i>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text)">Identification</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      '<div class="field"><label>Last Name *</label><input id="mrend-last"></div>' +
+      '<div class="field"><label>First Name *</label><input id="mrend-first"></div>' +
+      '<div class="field"><label>Middle Initial</label><input id="mrend-middle" maxlength="1"></div>' +
+      '<div class="field"><label>Credentials <span style="font-size:10px;color:var(--text3);' +
+      'font-weight:400">(e.g. MD, DO, LCSW)</span></label>' +
+      '<input id="mrend-credentials" placeholder="MD"></div>' +
+      '<div class="field"><label>Taxonomy Code</label>' +
+      '<input id="mrend-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X" ' +
+      'style="font-family:var(--mono)"></div>' +
+      '<div class="field"><label>Tax ID <span style="font-size:10px;color:var(--text3);' +
+      'font-weight:400">(if different)</span></label>' +
+      '<input id="mrend-taxid" maxlength="9" style="font-family:var(--mono)"></div>' +
+      '</div>' +
+      '</div>' +
+
+      // Contact card
+      '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;' +
+      'padding:16px 18px;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<div style="width:30px;height:30px;background:var(--brand-bg);border-radius:9px;' +
+      'display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text)">Contact & Address</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      '<div class="field"><label>Email <span style="font-size:10px;color:var(--text3);' +
+      'font-weight:400">(for supervisor login match)</span></label>' +
+      '<input id="mrend-email" type="email" placeholder="provider@practice.com"></div>' +
+      '<div class="field"><label>Phone</label>' +
+      '<input id="mrend-phone" maxlength="10" placeholder="3051234567"></div>' +
+      '<div class="field" style="grid-column:1/-1"><label>Street Address</label>' +
+      '<input id="mrend-addr1" placeholder="123 Main St"></div>' +
+      '<div class="field"><label>City</label><input id="mrend-city"></div>' +
+      '<div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      '<div><label>State</label><input id="mrend-state" maxlength="2" placeholder="FL"></div>' +
+      '<div><label>ZIP</label><input id="mrend-zip" maxlength="10"></div>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+
+      // Roles card (Supervisor + Medical Director)
+      '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;' +
+      'padding:16px 18px;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<div style="width:30px;height:30px;background:var(--brand-bg);border-radius:9px;' +
+      'display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="shield-check" class="lci" style="width:15px;height:15px;color:var(--brand)"></i>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text)">Roles & Permissions</div>' +
+      '</div>' +
+
+      '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;' +
+      'background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--r);margin-bottom:10px;' +
+      'transition:all .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" ' +
+      'onmouseout="this.style.borderColor=\'var(--border2)\'">' +
+      '<input type="checkbox" id="mrend-issup" style="width:16px;height:16px;accent-color:var(--brand);' +
+      'margin-top:2px;flex-shrink:0">' +
+      '<div style="flex:1">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">' +
+      'Case Management Supervisor</div>' +
+      '<div style="font-size:11px;color:var(--text3);line-height:1.5">' +
+      'Supervisors approve CM notes and appear in the client Supervisor dropdown.</div>' +
+      '</div>' +
+      '</label>' +
+
+      '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;' +
+      'background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--r);' +
+      'transition:all .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" ' +
+      'onmouseout="this.style.borderColor=\'var(--border2)\'">' +
+      '<input type="checkbox" id="mrend-ismd" style="width:16px;height:16px;accent-color:var(--brand);' +
+      'margin-top:2px;flex-shrink:0">' +
+      '<div style="flex:1">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">' +
+      'Medical Director</div>' +
+      '<div style="font-size:11px;color:var(--text3);line-height:1.5">' +
+      'Medical directors sign off on treatment plans and clinical decisions requiring physician oversight.</div>' +
+      '</div>' +
+      '</label>' +
+
+      '</div>' +
+
+      '</div>' + // /modal-body
+
+      '<div class="modal-ftr">' +
+      '<button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button>' +
+      '<button class="btn btn-primary" onclick="__rendSave()">' +
+      '<i data-lucide="save" class="lci"></i> Save Provider' +
+      '</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    return ov;
+  }
+
+  // Open modal
+  function _openRenderingModal(idx) {
+    var db = _needDB(); if (!db) return;
+    _ensureModal();
+
+    var isNew = (idx === undefined || idx === null || idx === -1 || idx === '-1');
+    var r = (!isNew && db.rendering && db.rendering[idx]) ? db.rendering[idx] : {};
+
+    // Title
+    var titleEl = document.getElementById('mrend-title');
+    if (titleEl) titleEl.textContent = isNew ? 'New Rendering / Supervisor' : 'Edit Rendering / Supervisor';
+
+    // Set id
+    var idEl = document.getElementById('mrend-id');
+    if (idEl) idEl.value = isNew ? '-1' : String(idx);
+
+    // Fill fields with EMPTY STRING fallback (no more "undefined")
+    var fields = {
+      'mrend-npi': r.npi || '',
+      'mrend-last': r.last || '',
+      'mrend-first': r.first || '',
+      'mrend-middle': r.middle || r.mid || '',
+      'mrend-credentials': r.credentials || '',
+      'mrend-taxonomy': r.taxonomy || '',
+      'mrend-taxid': r.taxid || '',
+      'mrend-email': r.email || '',
+      'mrend-phone': r.phone || '',
+      'mrend-addr1': r.addr1 || r.address || '',
+      'mrend-city': r.city || '',
+      'mrend-state': r.state || '',
+      'mrend-zip': r.zip || '',
+    };
+    Object.keys(fields).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = fields[id];
+    });
+
+    // Checkboxes
+    var cb1 = document.getElementById('mrend-issup');
+    if (cb1) cb1.checked = !!r.isSupervisor;
+    var cb2 = document.getElementById('mrend-ismd');
+    if (cb2) cb2.checked = !!r.isMedicalDirector;
+
+    // Clear result area
+    var res = document.getElementById('mrend-npi-result');
+    if (res) res.innerHTML = '';
+
+    if (typeof openModal === 'function') openModal('modal-rendering');
+    _icons();
+  }
+
+  // NPPES NPI Registry lookup (real API)
+  window.__rendLookupNPI = function (npi) {
+    npi = String(npi || '').replace(/\D/g, '');
+    var res = document.getElementById('mrend-npi-result');
+    if (!res) return;
+    if (npi.length !== 10) {
+      res.innerHTML = '<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;' +
+        'border-radius:var(--r);font-size:12px;color:#991b1b">NPI must be exactly 10 digits</div>';
+      return;
+    }
+    res.innerHTML = '<div style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);' +
+      'border-radius:var(--r);font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px">' +
+      '<div style="width:12px;height:12px;border:2px solid var(--brand);border-top-color:transparent;' +
+      'border-radius:50%;animation:spin 0.6s linear infinite"></div> ' +
+      'Consultando NPPES Registry...</div>' +
+      '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+
+    var url = 'https://npiregistry.cms.hhs.gov/api/?version=2.1&number=' + encodeURIComponent(npi);
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.results || !data.results.length) {
+          res.innerHTML = '<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;' +
+            'border-radius:var(--r);font-size:12px;color:#991b1b">' +
+            '<i data-lucide="x-circle" class="lci" style="width:12px;height:12px"></i> ' +
+            'NPI no encontrado en NPPES Registry</div>';
+          _icons();
+          return;
+        }
+        var rec = data.results[0];
+        var basic = rec.basic || {};
+        var addrs = rec.addresses || [];
+        var taxonomies = rec.taxonomies || [];
+        var primaryTax = taxonomies.find(function (t) { return t.primary; }) || taxonomies[0] || {};
+        var addr = addrs.find(function (a) { return a.address_purpose === 'LOCATION'; }) ||
+                   addrs.find(function (a) { return a.address_purpose === 'MAILING'; }) ||
+                   addrs[0] || {};
+
+        var fName, lName, mName, credentials, orgName;
+        if (rec.enumeration_type === 'NPI-1') {
+          // Individual
+          fName = basic.first_name || '';
+          lName = basic.last_name || '';
+          mName = (basic.middle_name || '').charAt(0);
+          credentials = basic.credential || '';
+        } else {
+          // Organization — pon el nombre en Last, deja First vacío
+          orgName = basic.organization_name || basic.name || '';
+          lName = orgName;
+          fName = '';
+          mName = '';
+          credentials = '';
+        }
+
+        // Rellenar campos
+        var setVal = function (id, val) {
+          var el = document.getElementById(id);
+          if (el) el.value = val || '';
+        };
+        setVal('mrend-first', fName);
+        setVal('mrend-last', lName);
+        setVal('mrend-middle', mName);
+        setVal('mrend-credentials', credentials);
+        setVal('mrend-taxonomy', primaryTax.code || '');
+        setVal('mrend-phone', (addr.telephone_number || '').replace(/\D/g, '').slice(0, 10));
+        setVal('mrend-addr1', ((addr.address_1 || '') + (addr.address_2 ? ' ' + addr.address_2 : '')).trim());
+        setVal('mrend-city', addr.city || '');
+        setVal('mrend-state', addr.state || '');
+        setVal('mrend-zip', (addr.postal_code || '').slice(0, 10));
+
+        var typeLabel = rec.enumeration_type === 'NPI-1' ? 'Individual' : 'Organization';
+        var summary = '<div style="padding:10px 12px;background:#ecfdf5;border:1px solid #a7f3d0;' +
+          'border-radius:var(--r);font-size:12px;color:#065f46">' +
+          '<div style="font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px">' +
+          '<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> ' +
+          'Encontrado en NPPES Registry</div>' +
+          '<div style="font-size:11px;color:#047857;line-height:1.6">' +
+          '<strong>' + esc(orgName || (fName + ' ' + lName + (credentials ? ', ' + credentials : ''))) + '</strong> · ' +
+          esc(typeLabel) +
+          (primaryTax.desc ? '<br>Taxonomy: ' + esc(primaryTax.desc) + ' (' + esc(primaryTax.code) + ')' : '') +
+          (addr.city ? '<br>Address: ' + esc(addr.city) + ', ' + esc(addr.state || '') : '') +
+          '</div></div>';
+        res.innerHTML = summary;
+        _icons();
+        _toast('NPI encontrado ✓', 'ok');
+      })
+      .catch(function (err) {
+        console.error('[NPPES] fetch error', err);
+        res.innerHTML = '<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;' +
+          'border-radius:var(--r);font-size:12px;color:#991b1b">' +
+          '<i data-lucide="x-circle" class="lci" style="width:12px;height:12px"></i> ' +
+          'Error al consultar NPPES: ' + esc(err.message || 'network error') +
+          '</div>';
+        _icons();
+      });
+  };
+
+  // Save
+  window.__rendSave = function () {
+    var db = _needDB(); if (!db) return;
+    var val = function (id) {
+      var el = document.getElementById(id);
+      return el ? (el.value || '').trim() : '';
+    };
+    var chk = function (id) {
+      var el = document.getElementById(id);
+      return el ? !!el.checked : false;
+    };
+
+    var npi = val('mrend-npi');
+    var last = val('mrend-last');
+    var first = val('mrend-first');
+
+    if (!npi) { _toast('NPI requerido', 'error'); return; }
+    if (npi.length !== 10) { _toast('NPI debe tener 10 dígitos', 'error'); return; }
+    if (!last) { _toast('Last Name (o nombre de organización) requerido', 'error'); return; }
+
+    var idxRaw = val('mrend-id');
+    var idx = parseInt(idxRaw, 10);
+    var isNew = isNaN(idx) || idx < 0;
+
+    var uidFn = (typeof uid === 'function') ? uid :
+                function () { return 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); };
+
+    db.rendering = db.rendering || [];
+
+    var existing = (!isNew && db.rendering[idx]) ? db.rendering[idx] : {};
+    var r = {
+      id: existing.id || uidFn(),
+      providerId: existing.providerId || (typeof activeProviderId !== 'undefined' ? activeProviderId : null),
+      npi: npi,
+      last: last,
+      first: first,
+      middle: val('mrend-middle'),
+      credentials: val('mrend-credentials'),
+      taxonomy: val('mrend-taxonomy'),
+      taxid: val('mrend-taxid'),
+      email: val('mrend-email'),
+      phone: val('mrend-phone'),
+      addr1: val('mrend-addr1'),
+      city: val('mrend-city'),
+      state: val('mrend-state'),
+      zip: val('mrend-zip'),
+      isSupervisor: chk('mrend-issup'),
+      isMedicalDirector: chk('mrend-ismd'),
+    };
+
+    if (typeof setDB === 'function') {
+      setDB(function (db2) {
+        db2.rendering = db2.rendering || [];
+        if (isNew) db2.rendering.push(r);
+        else db2.rendering[idx] = r;
+      });
+    }
+
+    if (typeof closeModal === 'function') closeModal('modal-rendering');
+    if (typeof renderRendering === 'function') try { renderRendering(); } catch (e) {}
+    _toast('Provider guardado ✓', 'ok');
+  };
+
+  // Install override — espera a que la función original exista
+  function _install() {
+    window.openRenderingModal = _openRenderingModal;
+    window.saveRendering = window.__rendSave;
+  }
+
+  if (typeof getDB === 'function') {
+    _install();
+  } else {
+    var tries = 0;
+    var iv = setInterval(function () {
+      tries++;
+      if (typeof getDB === 'function') {
+        _install();
+        clearInterval(iv);
+      } else if (tries > 50) clearInterval(iv);
+    }, 100);
+  }
+})();
+/* =============================================================================
+ * Service Group — Per-patient insurance (Bill To) selection
+ * -----------------------------------------------------------------------------
+ * Adds a "Bill To" dropdown for each patient inside a Service Group, so you can
+ * choose which of the patient's insurances (Primary, Secondary, or any
+ * coverage) should be billed for services from this group.
+ *
+ * Example: patient has dual plan (Preferred + Sunshine LTC). You can now
+ * pick "Sunshine LTC" for this Service Group and every claim generated from
+ * it will be billed to Sunshine instead of the primary.
+ *
+ * Storage:
+ *   _sgForm.patients[i].payerOverride = {
+ *     source: 'primary' | 'secondary' | 'coverage:<idx>',
+ *     payerId, payerName, memberId, plan, group,
+ *     subscriberFirst, subscriberLast, subscriberDob, subscriberSex
+ *   }
+ *
+ * On runBatch generation, each claim receives:
+ *   claim.overridePayerId, .overridePayerName, .overrideMemberId, .overridePlan,
+ *   .overrideGroup, .overrideSubscriberFirst, .overrideSubscriberLast,
+ *   .overrideSubscriberDob, .overrideSubscriberSex
+ * =========================================================================== */
+
+(function () {
+  'use strict';
+
+  function _toast(m, k) { if (typeof toast === 'function') toast(m, k || 'ok'); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Build list of all insurances available to a patient
+  // Returns: [{ source, payerId, payerName, memberId, plan, group, subscriberFirst, ..., label }]
+  function _patientInsurances(pat) {
+    if (!pat) return [];
+    var out = [];
+
+    // Primary — from top-level fields
+    if (pat.payerid || pat.payername) {
+      out.push({
+        source: 'primary',
+        payerId: pat.payerid || '',
+        payerName: pat.payername || '',
+        memberId: pat.insnum || '',
+        plan: pat.plan || '',
+        group: pat.group || '',
+        subscriberFirst: pat.insf || pat.first || '',
+        subscriberLast: pat.insl || pat.last || '',
+        subscriberDob: pat.insdob || pat.dob || '',
+        subscriberSex: pat.inssex || pat.sex || '',
+        label: 'Primary — ' + (pat.payername || pat.payerid || 'Unknown'),
+      });
+    }
+
+    // Secondary — from secondaryPayer* fields
+    if (pat.secondaryPayerId || pat.secondaryPayerName) {
+      out.push({
+        source: 'secondary',
+        payerId: pat.secondaryPayerId || '',
+        payerName: pat.secondaryPayerName || '',
+        memberId: pat.secondaryInsnum || pat.secondaryMemberId || '',
+        plan: pat.secondaryPlan || '',
+        group: pat.secondaryGroup || '',
+        subscriberFirst: pat.secondaryInsf || pat.first || '',
+        subscriberLast: pat.secondaryInsl || pat.last || '',
+        subscriberDob: pat.secondaryInsdob || pat.dob || '',
+        subscriberSex: pat.secondaryInssex || pat.sex || '',
+        label: 'Secondary — ' + (pat.secondaryPayerName || pat.secondaryPayerId || 'Unknown'),
+      });
+    }
+
+    // Coverages array (pat.coverages[])
+    if (Array.isArray(pat.coverages)) {
+      pat.coverages.forEach(function (c, i) {
+        if (!c || c.active === false) return;
+        // Skip if it's essentially the same as primary/secondary already added
+        var payerName = c.payerName || c.payername || '';
+        var payerId = c.payerId || c.payerid || '';
+        if (!payerName && !payerId) return;
+        // Dedup vs primary/secondary
+        var dupPrimary = out[0] && out[0].source === 'primary' &&
+          ((payerId && payerId === out[0].payerId) || (payerName && payerName === out[0].payerName));
+        var dupSec = out.find(function (x) {
+          return x.source === 'secondary' &&
+            ((payerId && payerId === x.payerId) || (payerName && payerName === x.payerName));
+        });
+        if (dupPrimary || dupSec) return;
+
+        var typeLabel = c.type || 'Other';
+        out.push({
+          source: 'coverage:' + i,
+          payerId: payerId,
+          payerName: payerName,
+          memberId: c.memberId || c.insnum || '',
+          plan: c.plan || c.planName || '',
+          group: c.group || '',
+          subscriberFirst: c.subscriberFirst || pat.first || '',
+          subscriberLast: c.subscriberLast || pat.last || '',
+          subscriberDob: c.subscriberDob || pat.dob || '',
+          subscriberSex: c.subscriberSex || pat.sex || '',
+          label: typeLabel + ' — ' + (payerName || payerId),
+        });
+      });
+    }
+
+    return out;
+  }
+
+  // Build the dropdown for a patient row in SG editor
+  function _billToDropdown(pat, currentOverride, patientIdx) {
+    var options = _patientInsurances(pat);
+    var currentSource = currentOverride && currentOverride.source ? currentOverride.source : '';
+
+    if (!options.length) {
+      return '<div style="font-size:10px;color:#87867f;padding:6px 8px;background:#fef7ee;' +
+        'border:1px solid #fed7aa;border-radius:6px">' +
+        '<i data-lucide="alert-triangle" class="lci" style="width:11px;height:11px"></i> ' +
+        'No insurance on file — add insurance to the patient</div>';
+    }
+
+    var opts = '<option value="">— Primary (default)</option>' +
+      options.map(function (o) {
+        return '<option value="' + esc(o.source) + '"' +
+          (o.source === currentSource ? ' selected' : '') + '>' +
+          esc(o.label) + (o.memberId ? ' · ' + esc(o.memberId) : '') +
+          '</option>';
+      }).join('');
+
+    return '<select data-sg-payer-idx="' + patientIdx + '" ' +
+      'onchange="__sgPayerChange(' + patientIdx + ',this.value)" ' +
+      'style="width:100%;padding:5px 8px;border:1.5px solid #c96442;border-radius:6px;' +
+      'font-size:11px;background:#fff;color:#141413;cursor:pointer;font-weight:600" ' +
+      'title="Which of this patient\'s insurances should be billed for this Service Group?">' +
+      opts +
+      '</select>';
+  }
+
+  // Global handler wired into the dropdown
+  window.__sgPayerChange = function (patientIdx, sourceValue) {
+    if (typeof _sgForm === 'undefined' || !_sgForm || !_sgForm.patients) return;
+    var asgn = _sgForm.patients[patientIdx];
+    if (!asgn) return;
+    if (!sourceValue) {
+      delete asgn.payerOverride;
+      _toast('Restaurado al insurance primario', 'ok');
+      return;
+    }
+    var db = getDB();
+    var pat = db.patients.find(function (p) { return p.id === asgn.patientId; });
+    if (!pat) return;
+    var options = _patientInsurances(pat);
+    var picked = options.find(function (o) { return o.source === sourceValue; });
+    if (!picked) return;
+    asgn.payerOverride = {
+      source: picked.source,
+      payerId: picked.payerId,
+      payerName: picked.payerName,
+      memberId: picked.memberId,
+      plan: picked.plan,
+      group: picked.group,
+      subscriberFirst: picked.subscriberFirst,
+      subscriberLast: picked.subscriberLast,
+      subscriberDob: picked.subscriberDob,
+      subscriberSex: picked.subscriberSex,
+    };
+    _toast('Bill To → ' + picked.payerName, 'ok');
+  };
+
+  // ─── Wrap renderSGPatients: inject dropdown into each card ──────────────────
+  function _installRenderSGPatientsWrap() {
+    if (typeof window.renderSGPatients !== 'function') return false;
+    if (window.renderSGPatients.__wrappedForPayer) return true;
+
+    var orig = window.renderSGPatients;
+    window.renderSGPatients = function () {
+      var r = orig.apply(this, arguments);
+      // After original render, inject the dropdown into each card
+      setTimeout(function () {
+        if (typeof _sgForm === 'undefined' || !_sgForm || !_sgForm.patients) return;
+        var host = document.getElementById('sg-patients');
+        if (!host) return;
+        var cards = host.querySelectorAll('.sg-pat-card');
+        var db = getDB();
+        cards.forEach(function (card) {
+          var idx = parseInt(card.getAttribute('data-sg-idx'), 10);
+          if (isNaN(idx)) return;
+          var asgn = _sgForm.patients[idx];
+          if (!asgn) return;
+          // Skip if already injected (defensive)
+          if (card.querySelector('[data-sg-billto-row]')) return;
+          var pat = db.patients.find(function (p) { return p.id === asgn.patientId; }) || {};
+
+          // Inject a new row inside the card, below the existing grid
+          var billRow = document.createElement('div');
+          billRow.setAttribute('data-sg-billto-row', '1');
+          billRow.style.cssText = 'padding:7px 10px;border-top:1px dashed #e4e1d8;' +
+            'background:#fefdfb;display:flex;align-items:center;gap:8px';
+          billRow.innerHTML =
+            '<label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;' +
+            'color:#c96442;white-space:nowrap;display:flex;align-items:center;gap:4px">' +
+            '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" ' +
+            'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>' +
+            'Bill To</label>' +
+            '<div style="flex:1;min-width:0">' +
+            _billToDropdown(pat, asgn.payerOverride, idx) +
+            '</div>';
+          card.appendChild(billRow);
+        });
+        // Icons
+        if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
+      }, 20);
+      return r;
+    };
+    window.renderSGPatients.__wrappedForPayer = true;
+    return true;
+  }
+
+  // ─── Wrap renderSGBatchPatients: show resolved payer inline ─────────────────
+  function _installRenderSGBatchPatientsWrap() {
+    if (typeof window.renderSGBatchPatients !== 'function') return false;
+    if (window.renderSGBatchPatients.__wrappedForPayer) return true;
+
+    var orig = window.renderSGBatchPatients;
+    window.renderSGBatchPatients = function (sg) {
+      var r = orig.apply(this, arguments);
+      setTimeout(function () {
+        if (!sg || !sg.patients) return;
+        var host = document.getElementById('mb-sg-pat-rows');
+        if (!host) return;
+        // Each patient block — find by looking for the checkbox pattern
+        var rows = host.children;
+        Array.prototype.forEach.call(rows, function (row, i) {
+          var asgn = sg.patients[i];
+          if (!asgn) return;
+          if (row.querySelector('[data-sg-billto-chip]')) return;
+          var label = asgn.payerOverride
+            ? asgn.payerOverride.payerName + (asgn.payerOverride.memberId ? ' · ' + asgn.payerOverride.memberId : '')
+            : null;
+          if (!label) return;
+          // Inject a colored chip near the patient header
+          var hdr = row.querySelector('div[style*="border-bottom:1px solid #f0ede5"]') ||
+                    row.querySelector('div[style*="padding:9px 14px"]');
+          if (!hdr) return;
+          var chip = document.createElement('span');
+          chip.setAttribute('data-sg-billto-chip', '1');
+          chip.style.cssText = 'font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;' +
+            'background:#fef7ee;color:#9a3412;border:1px solid #fed7aa;margin-left:6px;flex-shrink:0;' +
+            'display:inline-flex;align-items:center;gap:4px';
+          chip.innerHTML =
+            '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" ' +
+            'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>' +
+            'Bill: ' + esc(label);
+          // Insert before the last INCLUDE/SKIP badge
+          var badge = hdr.querySelector('span[style*="INCLUDE"],span[style*="SKIP"]');
+          if (badge) hdr.insertBefore(chip, badge);
+          else hdr.appendChild(chip);
+        });
+      }, 20);
+      return r;
+    };
+    window.renderSGBatchPatients.__wrappedForPayer = true;
+    return true;
+  }
+
+  // ─── Wrap runBatch: transfer payerOverride from SG.patients into claims ────
+  function _installRunBatchWrap() {
+    if (typeof window.runBatch !== 'function') return false;
+    if (window.runBatch.__wrappedForPayer) return true;
+
+    var orig = window.runBatch;
+    window.runBatch = function () {
+      // Snapshot which SG is being used + its patient overrides BEFORE calling orig
+      var sgPanel = document.getElementById('mb-panel-sg');
+      var isSGMode = sgPanel && sgPanel.style.display !== 'none';
+      var sgOverrideMap = {};
+      if (isSGMode) {
+        var sgId = document.getElementById('mb-sg-sel')?.value;
+        var db = getDB();
+        var sg = (db.serviceGroups || []).find(function (g) { return g.id === sgId; });
+        if (sg && sg.patients) {
+          sg.patients.forEach(function (asgn) {
+            if (asgn.payerOverride) sgOverrideMap[asgn.patientId] = asgn.payerOverride;
+          });
+        }
+      }
+
+      // Capture current DB length before runBatch adds claims
+      var claimsBefore = (getDB().claims || []).length;
+
+      // Run original
+      var result = orig.apply(this, arguments);
+
+      // If we have overrides, patch new claims after they were saved
+      if (isSGMode && Object.keys(sgOverrideMap).length) {
+        setTimeout(function () {
+          if (typeof setDB !== 'function') return;
+          setDB(function (db2) {
+            (db2.claims || []).slice(claimsBefore).forEach(function (c) {
+              var ov = sgOverrideMap[c.patId];
+              if (!ov) return;
+              c.overridePayerId = ov.payerId;
+              c.overridePayerName = ov.payerName;
+              c.overrideMemberId = ov.memberId;
+              c.overridePlan = ov.plan;
+              c.overrideGroup = ov.group;
+              c.overrideSubscriberFirst = ov.subscriberFirst;
+              c.overrideSubscriberLast = ov.subscriberLast;
+              c.overrideSubscriberDob = ov.subscriberDob;
+              c.overrideSubscriberSex = ov.subscriberSex;
+              c.overridePayerSource = ov.source;
+            });
+          });
+          if (typeof renderClaims === 'function') try { renderClaims(); } catch (e) {}
+        }, 100);
+      }
+      return result;
+    };
+    window.runBatch.__wrappedForPayer = true;
+    return true;
+  }
+
+  // ─── Wire everything up ────────────────────────────────────────────────────
+  function _tryInstall() {
+    var a = _installRenderSGPatientsWrap();
+    var b = _installRenderSGBatchPatientsWrap();
+    var c = _installRunBatchWrap();
+    return a && b && c;
+  }
+
+  if (_tryInstall()) return;
+  var tries = 0;
+  var iv = setInterval(function () {
+    tries++;
+    if (_tryInstall() || tries > 50) clearInterval(iv);
+  }, 100);
 })();
