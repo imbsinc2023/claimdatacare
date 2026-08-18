@@ -1652,9 +1652,8 @@ function _renderClaimEditorInner(){
   var cptCat=db.cpt||[];
   if(!claim.lines) claim.lines=[];
   if(!claim.dx) claim.dx=['','','','','','','',''];
-  // Insurance
-  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
-  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  // Insurance (honors per-claim primary/secondary override)
+  var _riIE=_resolveClaimIns(claim,pat); var ins1=_riIE.ins1; var ins2=_riIE.ins2;
   var ins1Name=ins1?ins1.name||(ins1.payerId?'Payer '+ins1.payerId:'—'):(pat.payerName||'—');
   var ins2Name=ins2?(ins2.name||'—'):'—';
   // Financials
@@ -3738,7 +3737,7 @@ function _ceSave(claimId, opts){
   var _oldClone = _oldSnap ? JSON.parse(JSON.stringify(_oldSnap)) : null;
   var db=getDB();
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
-  if(!claim){toast('Claim not found','err');return;}
+  if(!claim){ if(!opts.silent) toast('Claim not found','err'); return; }
   var g=function(id){var el=document.getElementById(id);return el?el.value:'';};
   claim.dos=g('ce-dos')||claim.dos;
   claim.dosTo=g('ce-dos-to')||claim.dosTo;
@@ -3757,7 +3756,7 @@ function _ceSave(claimId, opts){
   if(_ins1El){
     var _pk=_ins1El.value||'';
     claim.primaryPayerKey=_pk;
-    var _pat=(db.patients||[]).find(function(p){return p.id===claim.patientId;});
+    var _pat=(db.patients||[]).find(function(p){return p.id===claim.patId;});
     var _pins=(_pat&&_pat.insurances||[]).filter(function(iv){return !iv.inactive;});
     var _pmatch=_pins.find(function(iv){return ((iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||''))===_pk;});
     if(_pmatch){
@@ -3771,7 +3770,7 @@ function _ceSave(claimId, opts){
   if(_ins2El){
     var _sk=_ins2El.value||'';
     claim.secondaryPayerKey=_sk;
-    var _pat2=(db.patients||[]).find(function(p){return p.id===claim.patientId;});
+    var _pat2=(db.patients||[]).find(function(p){return p.id===claim.patId;});
     var _pins2=(_pat2&&_pat2.insurances||[]).filter(function(iv){return !iv.inactive;});
     var _smatch=_pins2.find(function(iv){return ((iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||''))===_sk;});
     if(_smatch){
@@ -4098,6 +4097,31 @@ function _loadPdfLib(cb, fallback) {
 }
 
 // ── CMS-1500 field value mapping ───────────────────────────────────────────
+// ── Resolve claim's primary/secondary insurance (respects claim overrides) ──
+// Returns {ins1, ins2} using claim.primaryPayerKey / claim.secondaryPayerKey
+// when set on the claim, otherwise falls back to insType-based detection.
+function _resolveClaimIns(claim, pat){
+  var all = (pat && pat.insurances) || [];
+  var active = all.filter(function(iv){return !iv.inactive;});
+  var byKey = function(k){
+    if (!k) return null;
+    return active.find(function(iv){
+      return ((iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||''))===k;
+    })||null;
+  };
+  var ins1 = (claim && claim.primaryPayerKey && byKey(claim.primaryPayerKey))
+    || active.find(function(iv){return (iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})
+    || active[0]
+    || null;
+  var ins2;
+  if (claim && Object.prototype.hasOwnProperty.call(claim,'secondaryPayerKey')){
+    ins2 = claim.secondaryPayerKey ? byKey(claim.secondaryPayerKey) : null;
+  } else {
+    ins2 = active.find(function(iv){return (iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  }
+  return {ins1:ins1, ins2:ins2};
+}
+
 function _cms1500DateParts(d) {
   if (!d) return {mm:'',dd:'',yy:''};
   var s = String(d).trim();
@@ -4456,8 +4480,7 @@ function _ceDownloadCMS1500(claimId, filename) {
   var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
   var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
   var prov = (db.providers||[]).find(function(p){return p.id===(pat.providerId||activeProviderId);}) || {};
-  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
-  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  var _ri1=_resolveClaimIns(claim,pat); var ins1=_ri1.ins1; var ins2=_ri1.ins2;
 
   toast('Generating CMS-1500…','info');
   _loadPdfLib(function(){
@@ -4486,8 +4509,7 @@ function _ceGenerateCMS1500(claimId) {
   var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
   var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
   var prov = (db.providers||[]).find(function(p){return p.id===(pat.providerId||activeProviderId);}) || {};
-  var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
-  var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  var _ri2=_resolveClaimIns(claim,pat); var ins1=_ri2.ins1; var ins2=_ri2.ins2;
 
   toast('Generating CMS-1500…','info');
   _loadPdfLib(function(){
@@ -4547,8 +4569,7 @@ function _ceTransmitSingle(claimId){
             var rend = (db.rendering||[]).find(function(r){return r.id===claim.renderingId;}) || {};
             var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
             var ref = (db.referring||[]).find(function(r){return r.id===claim.referringId;}) || {};
-            var ins1=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(iv){return !iv.inactive;})||null;
-            var ins2=(pat.insurances||[]).find(function(iv){return !iv.inactive&&(iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+            var _ri3=_resolveClaimIns(claim,pat); var ins1=_ri3.ins1; var ins2=_ri3.ins2;
             _fillCMS1500(claim, pat, provider, rend, fac, ref, ins1, ins2, db).then(function(bytes){
               var blob = new Blob([bytes], {type:'application/pdf'});
               var url = URL.createObjectURL(blob);
@@ -8620,6 +8641,7 @@ const rendId = st.rendId || asgn.renderingId || sg.renderingProviderId || global
 const facId = st.facId || asgn.facilityId || sg.facilityId || globalFac;
 const refId = st.refId || asgn.referringId || globalRef;
 const pos = facId ? (getDB().facilities.find(f=>f.id===facId)?.pos||'11') : '11';
+const _insFields = _sgBuildInsFields(pat, st.insChoice);
 
 const groupMode = document.getElementById('mb-group-dates')?.checked;
 
@@ -8722,6 +8744,7 @@ if (groupMode) {
         status: 'pending', multiDate: _batchDates.length > 1,
         createdAt: Date.now(), updatedAt: Date.now(),
         apptId: '', auth: st.auth || asgn.auth || '',
+        ..._insFields,
       });
     });
   } else {
@@ -8734,6 +8757,7 @@ if (groupMode) {
       status: 'pending', multiDate: true,
       createdAt: Date.now(), updatedAt: Date.now(),
       apptId: '', auth: st.auth || asgn.auth || '',
+      ..._insFields,
     });
   }
 } else {
@@ -8762,6 +8786,7 @@ if (groupMode) {
       status: 'pending',
       createdAt: Date.now(), updatedAt: Date.now(),
       apptId: '', auth: st.auth || asgn.auth || '',
+      ..._insFields,
     });
   }
 }
@@ -10421,6 +10446,37 @@ return days;
 }
 
 
+// ── SG Batch: insurance choice handler + fields builder ──────────────────
+// Called from the Primary/Secondary chip buttons in the patient row header.
+window._sgSetInsChoice = function(pid, choice){
+  if (!_sgBatchState[pid]) _sgBatchState[pid] = { included:true, dates:getSGBatchDates().map(d=>({...d,on:true})), rendId:'', refId:'', facId:'' };
+  _sgBatchState[pid].insChoice = choice;
+  var db = getDB();
+  var sgId = document.getElementById('mb-sg-sel')?.value;
+  var sg = (db.serviceGroups||[]).find(function(g){return g.id===sgId;});
+  if (sg) renderSGBatchPatients(sg);
+};
+// Returns fields to attach to a claim so print/transmit bill the right payer.
+// Honors _sgBatchState[pid].insChoice; defaults: primary → secondary → self-pay.
+function _sgBuildInsFields(pat, insChoice){
+  var active = (pat && pat.insurances || []).filter(function(iv){return !iv.inactive;});
+  var pri = active.find(function(iv){return (iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})
+    || active.find(function(iv){return !(iv.insType||iv.type||'').toLowerCase().includes('secondary');});
+  var sec = active.find(function(iv){return (iv.insType||iv.type||'').toLowerCase().includes('secondary');});
+  var choice = insChoice || (pri ? 'primary' : (sec ? 'secondary' : 'selfpay'));
+  if (choice==='selfpay' || (!pri && !sec)) {
+    return { selfPay:true, primaryPayerKey:'', primaryPayerId:'', primaryPayerName:'' };
+  }
+  var picked = (choice==='secondary') ? (sec || pri) : (pri || sec);
+  var key = (picked.payerId||picked.payerid||'')+'|'+(picked.name||picked.payerName||'');
+  return {
+    selfPay:false,
+    primaryPayerKey: key,
+    primaryPayerId: picked.payerId || picked.payerid || '',
+    primaryPayerName: picked.name || picked.payerName || ''
+  };
+}
+
 function renderSGBatchPatients(sg) {
 // Reset state if SG changed
 if (window._lastSGId !== sg.id) {
@@ -10447,6 +10503,32 @@ if (!_sgBatchState[asgn.patientId]) _sgBatchState[asgn.patientId] = { included:t
 const stRef = _sgBatchState[asgn.patientId];
 const pid = asgn.patientId;
 const dxArr = asgn.dx ? asgn.dx.split(',').map(d=>d.trim()).filter(Boolean) : [];
+
+// ── Insurance options: which one to bill (Primary vs Secondary vs Self-Pay) ──
+const _actIns = (pat.insurances||[]).filter(iv => !iv.inactive);
+const _priIns = _actIns.find(iv => (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'))
+  || _actIns.find(iv => !(iv.insType||iv.type||'').toLowerCase().includes('secondary'));
+const _secIns = _actIns.find(iv => (iv.insType||iv.type||'').toLowerCase().includes('secondary'));
+if (!stRef.insChoice) {
+  stRef.insChoice = _priIns ? 'primary' : (_secIns ? 'secondary' : 'selfpay');
+}
+let _insHtml = '';
+if (_priIns && _secIns) {
+  const _pName = (_priIns.name||_priIns.payerName||'').replace(/"/g,'&quot;');
+  const _sName = (_secIns.name||_secIns.payerName||'').replace(/"/g,'&quot;');
+  const _priOn = stRef.insChoice==='primary';
+  const _secOn = stRef.insChoice==='secondary';
+  _insHtml = `<span style="display:inline-flex;gap:3px;margin-left:8px" onclick="event.stopPropagation()">`+
+    `<button type="button" title="${_pName}" onclick="_sgSetInsChoice('${pid}','primary')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_priOn?'#c96442':'#e4e1d8'};background:${_priOn?'#c96442':'#fff'};color:${_priOn?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">1° ${(_priIns.name||_priIns.payerName||'').slice(0,16)}</button>`+
+    `<button type="button" title="${_sName}" onclick="_sgSetInsChoice('${pid}','secondary')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_secOn?'#c96442':'#e4e1d8'};background:${_secOn?'#c96442':'#fff'};color:${_secOn?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">2° ${(_secIns.name||_secIns.payerName||'').slice(0,16)}</button>`+
+  `</span>`;
+} else if (_priIns || _secIns) {
+  const _only = _priIns || _secIns;
+  const _role = _priIns ? '1°' : '2°';
+  _insHtml = `<span style="font-size:11px;color:#87867f;margin-left:6px">· <b style="color:#141413">${_role}</b> ${_only.name||_only.payerName||''}</span>`;
+} else {
+  _insHtml = `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#fef3c7;color:#92400e;margin-left:8px;border:1px solid #fde68a">SELF PAY</span>`;
+}
 
 const dateChips = (stRef.dates || []).map((d, di) => `
 <span class="dchip ${d.on ? 'on' : ''}"
@@ -10475,7 +10557,7 @@ onchange="_sgBatchState['${pid}'].included=this.checked;renderSGBatchPatients(sg
 <div style="flex:1;min-width:0">
   <span style="font-size:13px;font-weight:700;color:#141413">${(pat.last||'').toUpperCase()}, ${pat.first||''}</span>
   <span style="font-size:11px;color:#87867f;margin-left:8px">File #${pat.acct}</span>
-  <span style="font-size:11px;color:#87867f;margin-left:6px">· ${pat.payerName||pat.payerid||''}</span>
+  ${_insHtml}
   ${dxArr.length ? `<span style="font-size:10px;color:#c96442;margin-left:8px;font-weight:600">Dx: ${dxArr.slice(0,3).join(', ')}${dxArr.length>3?'…':''}</span>` : '<span style="font-size:10px;color:#d97706;margin-left:8px;font-weight:600">No Dx — edit group</span>'}
 </div>
 <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;flex-shrink:0;background:${stRef.included?'#f0fdf4':'#f8f6f0'};color:${stRef.included?'#16a34a':'#87867f'};border:1px solid ${stRef.included?'#bbf7d0':'#e4e1d8'}">${stRef.included?'INCLUDE':'SKIP'}</span>
@@ -14021,7 +14103,8 @@ function buildClaimJSON(claim, prov, db) {
   const ref = d.referring.find(function(x){ return x.id===claim.referringId; }) || {};
 
   const allIns = pat.insurances || [];
-  const ins1 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('primary'); })
+  const _riTx = _resolveClaimIns(claim, pat);
+  const ins1 = _riTx.ins1
     || (pat.payerName||pat.payerid ? {
         name:pat.payerName||'', payerId:pat.payerid||'',
         memberId:pat.subNum||'', group:pat.groupNum||'',
@@ -14029,7 +14112,7 @@ function buildClaimJSON(claim, prov, db) {
         sex:pat.sex||'', addr1:pat.addr1||'', city:pat.city||'',
         state:pat.state||'', zip:pat.zip||'', relation:pat.relation||'18'
     } : {});
-  const ins2 = allIns.find(function(i){ return (i.insType||i.type||'').toLowerCase().includes('secondary'); });
+  const ins2 = _riTx.ins2;
 
   const dx = (claim.dx||[]).filter(Boolean);
   const lines = Array.isArray(claim.lines) ? claim.lines : [];
@@ -14337,10 +14420,10 @@ const rend = d.rendering.find(x=>x.id===claim.renderingId) || {};
 const fac = d.facilities.find(x=>x.id===claim.facilityId) || {};
 const ref = d.referring.find(x=>x.id===claim.referringId) || {};
 
-// Insurance — primary
+// Insurance — honors per-claim override, with self-pay/manual fallback
 const allIns = pat.insurances || [];
-const ins1 = allIns.find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('primary'))
-|| allIns.find(i=>!i.inactive)
+const _riCSV = _resolveClaimIns(claim, pat);
+const ins1 = _riCSV.ins1
 || (pat.payerName||pat.payerid ? {
 name:pat.payerName||'', payerId:pat.payerid||'',
 memberId:pat.subNum||'', group:pat.groupNum||'',
@@ -14350,7 +14433,7 @@ addr1:pat.addr1||'', addr2:pat.addr2||'',
 city:pat.city||'', state:pat.state||'', zip:pat.zip||'',
 relation:pat.relation||'18', plan:'', phone:''
 } : {});
-const ins2 = allIns.find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
+const ins2 = _riCSV.ins2;
 
 const dx = (claim.dx||[]).filter(Boolean);
 const lines = Array.isArray(claim.lines) ? claim.lines : [];
@@ -15140,7 +15223,8 @@ byPat.forEach(function(patClaims,patId){
     var rend = db.rendering.find(function(r){return r.id===claim.renderingId;})||{};
     var ref  = db.referring.find(function(r){return r.id===claim.referringId;})||{};
     var fac  = db.facilities.find(function(f){return f.id===claim.facilityId;})||{};
-    var ins1 = (pat.insurances||[]).find(function(i){return !i.inactive&&(i.insType||i.type||'').toLowerCase().includes('primary');})||(pat.insurances||[]).find(function(i){return !i.inactive;})||(pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
+    var _riSTM=_resolveClaimIns(claim,pat);
+    var ins1 = _riSTM.ins1 || (pat.payerName?{name:pat.payerName,payerId:pat.payerid,policy:pat.subNum,group:pat.group,lname:pat.subLast,fname:pat.subFirst,dob:pat.subDob,relation:pat.rel||'18'}:null);
     var lines = Array.isArray(claim.lines)?claim.lines:[];
     var dxArr = Array.isArray(claim.dx)?claim.dx.filter(Boolean):[];
     var total = claimTotal(claim);
