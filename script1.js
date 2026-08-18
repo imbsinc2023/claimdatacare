@@ -400,23 +400,144 @@ function _injectCriticalCSS() {
 
 
 // ── Login/App Loading Overlay ──────────────────────────────────────────────
-// Full-screen animated spinner shown while login shell + first paint are
-// being prepared. Prevents the general-dashboard flash for CM-only users.
+// Skeleton preview of the app shell (topnav, sidebar, content cards) with
+// shimmer animation, plus a centered spinner. Gives users context that the
+// app is materializing instead of showing a blank spinner on a beige page.
 function _showLoginLoader(msg){
   var existing = document.getElementById('cdc-login-loader');
-  if (existing) { existing.style.display = 'flex'; return; }
+  if (existing) { existing.style.display = 'block'; return; }
   var ov = document.createElement('div');
   ov.id = 'cdc-login-loader';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)';
-  ov.innerHTML =
-    '<style>@keyframes cdc-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}@keyframes cdc-pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>' +
-    '<div style="width:64px;height:64px;position:relative">' +
-      '<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#c96442" stroke-width="2.5" stroke-linecap="round" style="animation:cdc-spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>' +
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#faf9f5;font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif);overflow:hidden';
+
+  // Skeleton palette
+  var sk = '#e8e6dc';       // skeleton base
+  var skD = '#d8d5c8';      // darker skeleton (for stronger blocks)
+  var brand = '#c96442';
+
+  // Reusable skeleton bar CSS via shimmer overlay
+  var css =
+    '@keyframes cdc-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}' +
+    '@keyframes cdc-pulse{0%,100%{opacity:.55}50%{opacity:1}}' +
+    '@keyframes cdc-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}' +
+    '#cdc-login-loader .sk{background:'+sk+';border-radius:4px;position:relative;overflow:hidden}' +
+    '#cdc-login-loader .sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);animation:cdc-shimmer 1.8s infinite}' +
+    '#cdc-login-loader .skD{background:'+skD+'}' +
+    '#cdc-login-loader .skDark{background:rgba(255,255,255,.08);border-radius:6px;position:relative;overflow:hidden}' +
+    '#cdc-login-loader .skDark::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.12) 50%,transparent 100%);animation:cdc-shimmer 1.8s infinite}';
+
+  // ── Skeleton layout: topnav + sidebar + content cards ──
+  var topnav =
+    '<div style="height:44px;background:#141413;display:flex;align-items:center;gap:6px;padding:0 14px">'+
+      // Logo dot + brand shape
+      '<div style="width:22px;height:22px;border-radius:6px;background:'+brand+';display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800">+</div>'+
+      '<div class="skDark" style="width:110px;height:14px;margin-right:14px"></div>'+
+      // Nav items
+      '<div class="skDark" style="width:60px;height:22px"></div>'+
+      '<div class="skDark" style="width:75px;height:22px"></div>'+
+      '<div class="skDark" style="width:65px;height:22px"></div>'+
+      '<div class="skDark" style="width:55px;height:22px;background:rgba(201,100,66,.35)"></div>'+
+      '<div class="skDark" style="width:45px;height:22px"></div>'+
+      '<div class="skDark" style="width:60px;height:22px"></div>'+
+      '<div class="skDark" style="width:75px;height:22px"></div>'+
+      '<div class="skDark" style="width:60px;height:22px"></div>'+
+      '<div class="skDark" style="width:65px;height:22px"></div>'+
+      '<div class="skDark" style="width:55px;height:22px"></div>'+
+      '<div style="flex:1"></div>'+
+      // Right cluster (provider select + user)
+      '<div class="skDark" style="width:26px;height:26px;border-radius:50%"></div>'+
+      '<div class="skDark" style="width:26px;height:26px;border-radius:50%"></div>'+
+      '<div class="skDark" style="width:180px;height:28px;border-radius:6px"></div>'+
+      '<div class="skDark" style="width:100px;height:28px;border-radius:6px"></div>'+
+    '</div>';
+
+  var sidebar =
+    '<div style="width:260px;flex-shrink:0;background:#f5f4ed;border-right:1px solid #e4e1d8;padding:18px 14px;display:flex;flex-direction:column;gap:14px">'+
+      '<div class="sk skD" style="height:16px;width:140px;margin-bottom:4px"></div>'+
+      '<div class="sk" style="height:36px;border-radius:6px"></div>'+
+      '<div class="sk" style="height:36px;border-radius:6px"></div>'+
+      '<div class="sk" style="height:36px;border-radius:6px"></div>'+
+      '<div class="sk skD" style="height:14px;width:100px;margin-top:14px"></div>'+
+      '<div class="sk" style="height:70px;border-radius:8px"></div>'+
+      '<div class="sk" style="height:70px;border-radius:8px"></div>'+
+      '<div class="sk" style="height:70px;border-radius:8px"></div>'+
+    '</div>';
+
+  var contentRow = function(){
+    return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #eeece3">'+
+      '<div class="sk" style="width:80px;height:14px"></div>'+
+      '<div class="sk" style="width:140px;height:14px"></div>'+
+      '<div class="sk" style="width:100px;height:14px"></div>'+
+      '<div class="sk" style="flex:1;height:14px"></div>'+
+      '<div class="sk" style="width:80px;height:14px"></div>'+
+      '<div class="sk" style="width:60px;height:14px"></div>'+
+    '</div>';
+  };
+
+  var content =
+    '<div style="flex:1;padding:22px 26px;overflow:hidden">'+
+      // Page title
+      '<div class="sk skD" style="height:22px;width:220px;margin-bottom:6px"></div>'+
+      '<div class="sk" style="height:12px;width:340px;margin-bottom:22px"></div>'+
+      // Stat cards row
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">'+
+        '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:16px">'+
+          '<div class="sk" style="height:10px;width:70px;margin-bottom:10px"></div>'+
+          '<div class="sk skD" style="height:24px;width:100px"></div>'+
+        '</div>'+
+        '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:16px">'+
+          '<div class="sk" style="height:10px;width:80px;margin-bottom:10px"></div>'+
+          '<div class="sk skD" style="height:24px;width:90px"></div>'+
+        '</div>'+
+        '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:16px">'+
+          '<div class="sk" style="height:10px;width:60px;margin-bottom:10px"></div>'+
+          '<div class="sk skD" style="height:24px;width:110px"></div>'+
+        '</div>'+
+        '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:16px">'+
+          '<div class="sk" style="height:10px;width:75px;margin-bottom:10px"></div>'+
+          '<div class="sk skD" style="height:24px;width:80px"></div>'+
+        '</div>'+
+      '</div>'+
+      // Table card
+      '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:18px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+          '<div class="sk skD" style="height:16px;width:150px"></div>'+
+          '<div class="sk" style="height:28px;width:110px;border-radius:6px"></div>'+
+        '</div>'+
+        contentRow()+contentRow()+contentRow()+contentRow()+contentRow()+contentRow()+
+      '</div>'+
+    '</div>';
+
+  var shell =
+    '<style>'+css+'</style>'+
+    topnav +
+    '<div style="display:flex;height:calc(100vh - 44px)">'+
+      sidebar +
+      content +
     '</div>' +
-    '<div style="font-size:14px;font-weight:600;color:#4d4c48;letter-spacing:-.01em;animation:cdc-pulse 1.5s ease-in-out infinite" id="cdc-login-loader-msg">' + (msg || 'Loading your workspace...') + '</div>';
+    // Centered spinner + status message overlay (subtle backdrop)
+    '<div style="position:absolute;inset:44px 0 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(245,244,237,.55);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);pointer-events:none">'+
+      '<div style="background:#fff;border:1px solid #e4e1d8;border-radius:14px;padding:20px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 6px 24px rgba(20,20,19,.08)">'+
+        '<svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="'+brand+'" stroke-width="2.5" stroke-linecap="round" style="animation:cdc-spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'+
+        '<div style="font-size:13px;font-weight:600;color:#4d4c48;letter-spacing:-.01em;animation:cdc-pulse 1.5s ease-in-out infinite" id="cdc-login-loader-msg">' + (msg || 'Loading your workspace...') + '</div>'+
+      '</div>'+
+    '</div>';
+
+  ov.innerHTML = shell;
   document.body.appendChild(ov);
+
+  // Safety net: if loader stays up more than 15s, surface a Reload button
+  // so users aren't trapped on a hang (workspace fetch stalled, network drop, etc.).
+  try { if (window._cdcLoaderStuckTimer) clearTimeout(window._cdcLoaderStuckTimer); } catch(e){}
+  window._cdcLoaderStuckTimer = setTimeout(function(){
+    var m = document.getElementById('cdc-login-loader-msg');
+    if (!m || !document.getElementById('cdc-login-loader')) return;
+    m.innerHTML = 'This is taking longer than usual…<br><button onclick="location.reload()" style="margin-top:10px;padding:6px 14px;background:'+brand+';color:#fff;border:0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Reload</button>';
+    m.style.animation = 'none';
+  }, 15000);
 }
 function _hideLoginLoader(){
+  try { if (window._cdcLoaderStuckTimer) { clearTimeout(window._cdcLoaderStuckTimer); window._cdcLoaderStuckTimer = null; } } catch(e){}
   var ov = document.getElementById('cdc-login-loader');
   if (!ov) return;
   ov.style.opacity = '0';
