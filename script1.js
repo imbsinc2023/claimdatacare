@@ -558,13 +558,17 @@ function showApp(username) {
   if(!_adminUser&&session.role==='Super Admin') _adminUser={email:session.email,uid:session.id};
   setTimeout(function(){setFbStatus('','green');updateAdminUI();},0);
   go('dashboard');
-  try{_afterLoad();}catch(e){}
+  try{_afterLoad();}catch(e){ console.warn('[CDC] _afterLoad threw:', e); }
   try{_injectMissingModals();}catch(e){}
   try{_migrateEOBDataV2();}catch(e){console.warn('[Migration] EOB v2 failed:',e);}
   // Defensive: force user menu closed after all shell setup runs.
   try { _forceCloseUserMenu(); } catch(e){}
   setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 100);
   setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 800);
+  // Hard safety: shell is on-screen — hide the loader even if _afterLoad threw
+  // or an async Firestore reload never resolves. Idempotent, so if _afterLoad
+  // already scheduled a hide, this just short-circuits.
+  setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 500);
 }
 
 
@@ -9901,6 +9905,7 @@ function clearSession() {
 
 // ?? Login screen ?????????????????????????????????????
 function renderLoginScreen() {
+try { _hideLoginLoader(); } catch(_){}
 document.getElementById('root').innerHTML = `
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
 background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);padding:20px">
@@ -12182,7 +12187,7 @@ btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
 function _afterLoad() {
   const db2 = getDB();
   const sess = getSession();
-  if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); return; }
+  if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); try { _hideLoginLoader(); } catch(_){} return; }
   console.log('[CDC] _afterLoad: providers='+(db2.providers||[]).length+' session.pid='+sess.activeBillingProviderId);
   if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
 
