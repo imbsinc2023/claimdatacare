@@ -10584,6 +10584,10 @@ function _sgBuildInsFields(pat, insChoice){
   var pri = active.find(function(iv){return (iv.insType||iv.type||'Primary').toLowerCase().includes('primary');})
     || active.find(function(iv){return !(iv.insType||iv.type||'').toLowerCase().includes('secondary');});
   var sec = active.find(function(iv){return (iv.insType||iv.type||'').toLowerCase().includes('secondary');});
+  // Legacy fallback: single-payer stored inline on the patient record
+  if (!pri && !sec && pat && (pat.payerName || pat.payerid)) {
+    pri = { name: pat.payerName||'', payerId: pat.payerid||'', payerid: pat.payerid||'', insType:'Primary', _legacy:true };
+  }
   var choice = insChoice || (pri ? 'primary' : (sec ? 'secondary' : 'selfpay'));
   if (choice==='selfpay' || (!pri && !sec)) {
     return { selfPay:true, primaryPayerKey:'', primaryPayerId:'', primaryPayerName:'' };
@@ -10627,9 +10631,13 @@ const dxArr = asgn.dx ? asgn.dx.split(',').map(d=>d.trim()).filter(Boolean) : []
 
 // ── Insurance options: which one to bill (Primary vs Secondary vs Self-Pay) ──
 const _actIns = (pat.insurances||[]).filter(iv => !iv.inactive);
-const _priIns = _actIns.find(iv => (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'))
+let _priIns = _actIns.find(iv => (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'))
   || _actIns.find(iv => !(iv.insType||iv.type||'').toLowerCase().includes('secondary'));
 const _secIns = _actIns.find(iv => (iv.insType||iv.type||'').toLowerCase().includes('secondary'));
+// Legacy fallback: single-payer stored inline on the patient record
+if (!_priIns && !_secIns && (pat.payerName || pat.payerid)) {
+  _priIns = { name: pat.payerName||'', payerId: pat.payerid||'', payerid: pat.payerid||'', insType:'Primary', _legacy:true };
+}
 if (!stRef.insChoice) {
   stRef.insChoice = _priIns ? 'primary' : (_secIns ? 'secondary' : 'selfpay');
 }
@@ -10646,7 +10654,12 @@ if (_priIns && _secIns) {
 } else if (_priIns || _secIns) {
   const _only = _priIns || _secIns;
   const _role = _priIns ? '1°' : '2°';
-  _insHtml = `<span style="font-size:11px;color:#87867f;margin-left:6px">· <b style="color:#141413">${_role}</b> ${_only.name||_only.payerName||''}</span>`;
+  const _onSelf = stRef.insChoice==='selfpay';
+  // Show insurance chip (clickable to toggle self-pay) + separate self-pay chip
+  _insHtml = `<span style="display:inline-flex;gap:3px;margin-left:8px" onclick="event.stopPropagation()">`+
+    `<button type="button" title="${(_only.name||_only.payerName||'').replace(/"/g,'&quot;')}" onclick="_sgSetInsChoice('${pid}','${_priIns?'primary':'secondary'}')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${!_onSelf?'#c96442':'#e4e1d8'};background:${!_onSelf?'#c96442':'#fff'};color:${!_onSelf?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">${_role} ${(_only.name||_only.payerName||'').slice(0,18)}</button>`+
+    `<button type="button" title="Bill as self-pay" onclick="_sgSetInsChoice('${pid}','selfpay')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_onSelf?'#92400e':'#e4e1d8'};background:${_onSelf?'#fef3c7':'#fff'};color:${_onSelf?'#92400e':'#87867f'};cursor:pointer;font-weight:700;line-height:1.3">SELF PAY</button>`+
+  `</span>`;
 } else {
   _insHtml = `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#fef3c7;color:#92400e;margin-left:8px;border:1px solid #fde68a">SELF PAY</span>`;
 }
