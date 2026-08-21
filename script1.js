@@ -565,10 +565,6 @@ function showApp(username) {
   try { _forceCloseUserMenu(); } catch(e){}
   setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 100);
   setTimeout(function(){ try { _forceCloseUserMenu(); } catch(e){} }, 800);
-  // Hard safety: shell is on-screen — hide the loader even if _afterLoad threw
-  // or an async Firestore reload never resolves. Idempotent, so if _afterLoad
-  // already scheduled a hide, this just short-circuits.
-  setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 500);
 }
 
 
@@ -2117,14 +2113,14 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   +'</div>'  // /LEFT COLUMN
 
   // RIGHT PANEL
-  +'<div style="width:270px;flex-shrink:0;border-right:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column;order:-1">'
+  +'<div style="width:280px;flex-shrink:0;flex-grow:0;border-right:2px solid '+S.borderWarm+';overflow-y:auto;background:'+S.ivory+';display:flex;flex-direction:column;order:-1;scrollbar-gutter:stable">'
 
     // Insurance section
     +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
       // Primary
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
-        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Primary Insurance</span>'
-        +'<select id="ce-ins1" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:88px;flex-shrink:0">Primary Ins</span>'
+        +'<select id="ce-ins1" title="Primary Insurance" style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis">'
           +'<option value="">— Select —</option>'
           +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
             pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
@@ -2134,39 +2130,46 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
             }).join(''):
             '<option>'+(pat.payerName||'—')+'</option>')
         +'</select>'
-        +'<button onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')" style="font-size:10px;padding:2px 6px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+'">Verify</button>'
+        +'<button onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')" style="font-size:10px;padding:2px 5px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+';flex-shrink:0">Verify</button>'
       +'</div>'
       // Secondary
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
-        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Secondary Insurance</span>'
-        +'<select id="ce-ins2" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:88px;flex-shrink:0">Secondary Ins</span>'
+        +'<select id="ce-ins2" title="Secondary Insurance" style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis">'
           +'<option value="">— Select —</option>'
-          +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
-            pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
+          +(function(){
+            var actives = (pat.insurances||[]).filter(function(iv){return !iv.inactive;});
+            var priKey = claim.primaryPayerKey || (function(){
+              var p = actives.find(function(iv){return (iv.insType||iv.type||'Primary').toLowerCase().includes('primary');}) || actives[0];
+              return p ? ((p.payerId||p.payerid||'')+'|'+(p.name||p.payerName||'')) : '';
+            })();
+            return actives.map(function(iv,i){
               var key=(iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||'Ins '+i);
+              // Never show the primary as a secondary option — user reported same insurance appearing twice
+              if (key === priKey) return '';
               var isSec=claim.hasOwnProperty('secondaryPayerKey')?(claim.secondaryPayerKey===key):(iv.insType||iv.type||'').toLowerCase().includes('secondary');
               return '<option value="'+key.replace(/"/g,'&quot;')+'"'+(isSec?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
-            }).join(''):
-            '')
+            }).join('');
+          })()
         +'</select>'
-        +'<button onclick="_ceVerifyIns(\'secondary\',\''+claimId+'\')" style="font-size:10px;padding:2px 6px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+'">Verify</button>'
+        +'<button onclick="_ceVerifyIns(\'secondary\',\''+claimId+'\')" style="font-size:10px;padding:2px 5px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+';flex-shrink:0">Verify</button>'
       +'</div>'
       // Tertiary
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
-        +'<span style="font-size:11px;color:'+S.stoneGray+';min-width:120px">Tertiary Insurance</span>'
-        +'<select style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option>— Select —</option></select>'
+        +'<span style="font-size:11px;color:'+S.stoneGray+';min-width:88px;flex-shrink:0">Tertiary Ins</span>'
+        +'<select style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis"><option>— Select —</option></select>'
       +'</div>'
       // Self Pay
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
         +'<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:'+S.nearBlack+'">'
           +'<input type="checkbox" style="accent-color:'+S.terracotta+'"'+(claim.selfPay?' checked':'')+'>Self Pay'
         +'</label>'
-        +'<button onclick="_ceSelfPayBill(\''+claimId+'\')" style="margin-left:auto;font-size:10px;padding:2px 8px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;color:'+S.charcoalWarm+'">Self Pay Bill</button>'
+        +'<button onclick="_ceSelfPayBill(\''+claimId+'\')" style="margin-left:auto;font-size:10px;padding:2px 8px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;color:'+S.charcoalWarm+';flex-shrink:0">Self Pay Bill</button>'
       +'</div>'
       // Bill Status
       +'<div style="display:flex;align-items:center;gap:4px">'
-        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:120px">Bill Status</span>'
-        +'<select id="ce-bill-status" style="flex:1;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
+        +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:88px;flex-shrink:0">Bill Status</span>'
+        +'<select id="ce-bill-status" style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'">'
           +statusOpts.map(function(s){return '<option value="'+s+'"'+(s===claim.status?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g,' ')+'</option>';}).join('')
         +'</select>'
       +'</div>'
@@ -4135,6 +4138,14 @@ function _resolveClaimIns(claim, pat){
     ins2 = claim.secondaryPayerKey ? byKey(claim.secondaryPayerKey) : null;
   } else {
     ins2 = active.find(function(iv){return (iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
+  }
+  // Don't return the same insurance as both primary and secondary — if ins2
+  // resolved to the same record picked for ins1, drop it.
+  if (ins1 && ins2 && ins1 === ins2) ins2 = null;
+  if (ins1 && ins2) {
+    var k1 = (ins1.payerId||ins1.payerid||'')+'|'+(ins1.name||ins1.payerName||'');
+    var k2 = (ins2.payerId||ins2.payerid||'')+'|'+(ins2.name||ins2.payerName||'');
+    if (k1 === k2) ins2 = null;
   }
   return {ins1:ins1, ins2:ins2};
 }
@@ -8658,7 +8669,6 @@ const rendId = st.rendId || asgn.renderingId || sg.renderingProviderId || global
 const facId = st.facId || asgn.facilityId || sg.facilityId || globalFac;
 const refId = st.refId || asgn.referringId || globalRef;
 const pos = facId ? (getDB().facilities.find(f=>f.id===facId)?.pos||'11') : '11';
-const _insFields = _sgBuildInsFields(pat, st.insChoice);
 
 const groupMode = document.getElementById('mb-group-dates')?.checked;
 
@@ -8761,7 +8771,7 @@ if (groupMode) {
         status: 'pending', multiDate: _batchDates.length > 1,
         createdAt: Date.now(), updatedAt: Date.now(),
         apptId: '', auth: st.auth || asgn.auth || '',
-        ..._insFields,
+
       });
     });
   } else {
@@ -8774,7 +8784,7 @@ if (groupMode) {
       status: 'pending', multiDate: true,
       createdAt: Date.now(), updatedAt: Date.now(),
       apptId: '', auth: st.auth || asgn.auth || '',
-      ..._insFields,
+
     });
   }
 } else {
@@ -8803,7 +8813,7 @@ if (groupMode) {
       status: 'pending',
       createdAt: Date.now(), updatedAt: Date.now(),
       apptId: '', auth: st.auth || asgn.auth || '',
-      ..._insFields,
+
     });
   }
 }
@@ -10525,41 +10535,10 @@ if (!_sgBatchState[asgn.patientId]) _sgBatchState[asgn.patientId] = { included:t
 const stRef = _sgBatchState[asgn.patientId];
 const pid = asgn.patientId;
 const dxArr = asgn.dx ? asgn.dx.split(',').map(d=>d.trim()).filter(Boolean) : [];
-
-// ── Insurance options: which one to bill (Primary vs Secondary vs Self-Pay) ──
-const _actIns = (pat.insurances||[]).filter(iv => !iv.inactive);
-let _priIns = _actIns.find(iv => (iv.insType||iv.type||'Primary').toLowerCase().includes('primary'))
-  || _actIns.find(iv => !(iv.insType||iv.type||'').toLowerCase().includes('secondary'));
-const _secIns = _actIns.find(iv => (iv.insType||iv.type||'').toLowerCase().includes('secondary'));
-// Legacy fallback: single-payer stored inline on the patient record
-if (!_priIns && !_secIns && (pat.payerName || pat.payerid)) {
-  _priIns = { name: pat.payerName||'', payerId: pat.payerid||'', payerid: pat.payerid||'', insType:'Primary', _legacy:true };
-}
-if (!stRef.insChoice) {
-  stRef.insChoice = _priIns ? 'primary' : (_secIns ? 'secondary' : 'selfpay');
-}
-let _insHtml = '';
-if (_priIns && _secIns) {
-  const _pName = (_priIns.name||_priIns.payerName||'').replace(/"/g,'&quot;');
-  const _sName = (_secIns.name||_secIns.payerName||'').replace(/"/g,'&quot;');
-  const _priOn = stRef.insChoice==='primary';
-  const _secOn = stRef.insChoice==='secondary';
-  _insHtml = `<span style="display:inline-flex;gap:3px;margin-left:8px" onclick="event.stopPropagation()">`+
-    `<button type="button" title="${_pName}" onclick="_sgSetInsChoice('${pid}','primary')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_priOn?'#c96442':'#e4e1d8'};background:${_priOn?'#c96442':'#fff'};color:${_priOn?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">1° ${(_priIns.name||_priIns.payerName||'').slice(0,16)}</button>`+
-    `<button type="button" title="${_sName}" onclick="_sgSetInsChoice('${pid}','secondary')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_secOn?'#c96442':'#e4e1d8'};background:${_secOn?'#c96442':'#fff'};color:${_secOn?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">2° ${(_secIns.name||_secIns.payerName||'').slice(0,16)}</button>`+
-  `</span>`;
-} else if (_priIns || _secIns) {
-  const _only = _priIns || _secIns;
-  const _role = _priIns ? '1°' : '2°';
-  const _onSelf = stRef.insChoice==='selfpay';
-  // Show insurance chip (clickable to toggle self-pay) + separate self-pay chip
-  _insHtml = `<span style="display:inline-flex;gap:3px;margin-left:8px" onclick="event.stopPropagation()">`+
-    `<button type="button" title="${(_only.name||_only.payerName||'').replace(/"/g,'&quot;')}" onclick="_sgSetInsChoice('${pid}','${_priIns?'primary':'secondary'}')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${!_onSelf?'#c96442':'#e4e1d8'};background:${!_onSelf?'#c96442':'#fff'};color:${!_onSelf?'#fff':'#525252'};cursor:pointer;font-weight:700;line-height:1.3">${_role} ${(_only.name||_only.payerName||'').slice(0,18)}</button>`+
-    `<button type="button" title="Bill as self-pay" onclick="_sgSetInsChoice('${pid}','selfpay')" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${_onSelf?'#92400e':'#e4e1d8'};background:${_onSelf?'#fef3c7':'#fff'};color:${_onSelf?'#92400e':'#87867f'};cursor:pointer;font-weight:700;line-height:1.3">SELF PAY</button>`+
-  `</span>`;
-} else {
-  _insHtml = `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#fef3c7;color:#92400e;margin-left:8px;border:1px solid #fde68a">SELF PAY</span>`;
-}
+// Insurance selection lives in the SG editor (per-assignment payerOverride).
+// The "Bill: XXX" chip is auto-injected by _installRenderSGBatchPatientsWrap
+// when an override exists. Nothing to render here.
+const _insHtml = '';
 
 const dateChips = (stRef.dates || []).map((d, di) => `
 <span class="dchip ${d.on ? 'on' : ''}"
@@ -14320,6 +14299,15 @@ async function transmitDirect(filter) {
     return;
   }
 
+  // ClaimMD hard limit — warn if any claim has more than 50 service lines
+  // (extra lines would be silently truncated by the CSV builder).
+  var overLimit = claims.filter(function(c){ return (c.lines||[]).filter(function(l){return l.cpt;}).length > 50; });
+  if (overLimit.length) {
+    var pcns = overLimit.map(function(c){ return c.pcn||c.id; }).slice(0,3).join(', ');
+    var more = overLimit.length > 3 ? ' +'+(overLimit.length-3)+' more' : '';
+    if (!confirm('Warning: '+overLimit.length+' claim(s) exceed the 50-line ClaimMD limit ('+pcns+more+'). Only the first 50 lines will be sent. Split the claim first or continue anyway?')) return;
+  }
+
   // Build CSV — this is what Clearinghouse accepts via file upload
   const rows = claims.map(function(c) {
     return buildCSVRow(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
@@ -14688,8 +14676,8 @@ row.claimid = '';
 row.resubmission_code = claim.correctedClaimFlag ? '7' : '';
 row.original_claim_number = (claim.correctedClaimFlag && claim.originalClaimNumber) ? String(claim.originalClaimNumber).trim() : '';
 
-// Service Lines (up to 12) — 837P supports up to 50, ClaimMD CSV up to 12
-for (let li=0; li<12; li++) {
+// Service Lines (up to 50 — 837P and ClaimMD CSV both support 50 per claim)
+for (let li=0; li<50; li++) {
   const n = li+1;
   const l = lines[li];
   if (l && l.cpt) {
@@ -32028,7 +32016,8 @@ document.addEventListener("DOMContentLoaded", async function() {
   // ─────────────────────────────────────────────────────────────
 
   function _afterLoad() {
-    var db2 = getDB(); var s = getSession(); if (!s) return;
+    var db2 = getDB(); var s = getSession();
+    if (!s) { try { _hideLoginLoader(); } catch(_){} return; }
     if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
     if (db2.providers && db2.providers.length) {
       var savedId = s.activeBillingProviderId;
@@ -32069,6 +32058,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (_renderFns) { _renderFns(); updateBadges(); }
       }
     } catch(e) { go('dashboard'); }
+    // Sync complete — hide the loading overlay. Delayed slightly so the
+    // fresh render can paint under it before it fades out.
+    setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 200);
   }
 
   // ── Check landing page pending login ──────────────────────────
@@ -32095,7 +32087,7 @@ document.addEventListener("DOMContentLoaded", async function() {
       window._sessionVerified = true;
       sessionStorage.setItem('cdc_verified', 'yes');
       showApp(sess.name || sess.email);
-      Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
+      Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ try { _hideLoginLoader(); } catch(_){} go('dashboard'); });
       return;
     }
   }
@@ -32106,7 +32098,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Re-stamp verified token in case sessionStorage lost it
     sessionStorage.setItem('cdc_verified', 'yes');
     showApp(existSess.name || existSess.email);
-    Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ go('dashboard'); });
+    Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ try { _hideLoginLoader(); } catch(_){} go('dashboard'); });
     return;
   }
   checkVerifyToken();
@@ -36235,7 +36227,9 @@ function getAuditLogs() {
           (o.source === currentSource ? ' selected' : '') + '>' +
           esc(o.label) + (o.memberId ? ' · ' + esc(o.memberId) : '') +
           '</option>';
-      }).join('');
+      }).join('') +
+      '<option value="selfpay"' + (currentSource === 'selfpay' ? ' selected' : '') + '>' +
+      '— Self Pay (no insurance) —</option>';
 
     return '<select data-sg-payer-idx="' + patientIdx + '" ' +
       'onchange="__sgPayerChange(' + patientIdx + ',this.value)" ' +
@@ -36254,6 +36248,11 @@ function getAuditLogs() {
     if (!sourceValue) {
       delete asgn.payerOverride;
       _toast('Restaurado al insurance primario', 'ok');
+      return;
+    }
+    if (sourceValue === 'selfpay') {
+      asgn.payerOverride = { source:'selfpay', payerId:'__selfpay__', payerName:'Self Pay', memberId:'', plan:'', group:'', subscriberFirst:'', subscriberLast:'', subscriberDob:'', subscriberSex:'' };
+      _toast('Bill To → Self Pay', 'ok');
       return;
     }
     var db = getDB();
@@ -36411,6 +36410,20 @@ function getAuditLogs() {
             (db2.claims || []).slice(claimsBefore).forEach(function (c) {
               var ov = sgOverrideMap[c.patId];
               if (!ov) return;
+              // Self-pay override
+              if (ov.source === 'selfpay' || ov.payerId === '__selfpay__') {
+                c.selfPay = true;
+                c.primaryPayerKey = '';
+                c.primaryPayerId = '';
+                c.primaryPayerName = '';
+              } else {
+                // Write to the fields print (CMS-1500), transmit (CSV), and CSV export all read.
+                c.primaryPayerKey  = (ov.payerId || '') + '|' + (ov.payerName || '');
+                c.primaryPayerId   = ov.payerId || '';
+                c.primaryPayerName = ov.payerName || '';
+                c.selfPay = false;
+              }
+              // Keep the legacy override fields for anything else that might read them
               c.overridePayerId = ov.payerId;
               c.overridePayerName = ov.payerName;
               c.overrideMemberId = ov.memberId;
