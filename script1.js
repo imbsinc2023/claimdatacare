@@ -9372,6 +9372,7 @@ setTimeout(_renderLucideIcons, 20);
 
 
 function openSGModal(sgId) {
+try {
 const db = getDB();
 const sg = sgId ? db.serviceGroups.find(g => g.id === sgId) : null;
 _sgForm = sg ? JSON.parse(JSON.stringify(sg)) : {
@@ -9379,26 +9380,45 @@ id: '', providerId: activeProviderId, name: '', renderingProviderId: '',
 facilityId: '', status: 'Active', lines: [], patients: []
 };
 
+// Safety: if the modal DOM was somehow wiped, rebuild it via _injectMissingModals
+if (!document.getElementById('modal-sg')) {
+  try { if (typeof _injectMissingModals === 'function') _injectMissingModals(); } catch(e){}
+}
+var _rendEl = document.getElementById('sg-rend');
+var _facEl  = document.getElementById('sg-fac');
+var _nameEl = document.getElementById('sg-name');
+var _statEl = document.getElementById('sg-status');
+var _titEl  = document.getElementById('sg-title');
+if (!_rendEl || !_facEl || !_nameEl || !_statEl) {
+  toast('Service Group editor not ready — please reload the page','err');
+  console.error('[CDC] openSGModal: modal DOM missing after inject attempt');
+  return;
+}
+
 const rends = db.rendering.filter(r => r.providerId === activeProviderId);
-document.getElementById('sg-rend').innerHTML =
+_rendEl.innerHTML =
 '<option value="">— Select rendering —</option>' +
 rends.map(r => `<option value="${r.id}" ${r.id===_sgForm.renderingProviderId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
 
 const facs = db.facilities.filter(f => f.providerId === activeProviderId);
-document.getElementById('sg-fac').innerHTML =
+_facEl.innerHTML =
 '<option value="">— None —</option>' +
 facs.map(f => `<option value="${f.id}" ${f.id===_sgForm.facilityId?'selected':''}>${f.name}</option>`).join('');
 
-document.getElementById('sg-name').value = _sgForm.name;
-document.getElementById('sg-status').value = _sgForm.status;
-document.getElementById('sg-title').textContent = sg ? 'Edit Service Group' : 'New Service Group';
-renderSGLines();
-renderSGPatients();
+_nameEl.value = _sgForm.name;
+_statEl.value = _sgForm.status;
+if (_titEl) _titEl.textContent = sg ? 'Edit Service Group' : 'New Service Group';
+try { renderSGLines(); } catch(e){ console.warn('[CDC] renderSGLines threw:', e); }
+try { renderSGPatients(); } catch(e){ console.warn('[CDC] renderSGPatients threw:', e); }
 openModal('modal-sg');
 
   // Restore multidate checkbox
   var cbMD = document.getElementById('sg-multidate');
   if (cbMD) cbMD.checked = !!(_sgForm.multiDate);
+} catch(e) {
+  console.error('[CDC] openSGModal failed:', e);
+  toast('Could not open editor — check console (F12)','err');
+}
 }
 
 function renderSGLines() {
@@ -36209,50 +36229,66 @@ function getAuditLogs() {
     return out;
   }
 
-  // Build the dropdown for a patient row in SG editor
+  // Build the Bill To chip row for a patient in SG editor (visual checkmarks, not a dropdown)
   function _billToDropdown(pat, currentOverride, patientIdx) {
     var options = _patientInsurances(pat);
     var currentSource = currentOverride && currentOverride.source ? currentOverride.source : '';
 
     if (!options.length) {
-      return '<div style="font-size:10px;color:#87867f;padding:6px 8px;background:#fef7ee;' +
-        'border:1px solid #fed7aa;border-radius:6px">' +
-        '<i data-lucide="alert-triangle" class="lci" style="width:11px;height:11px"></i> ' +
-        'No insurance on file — add insurance to the patient</div>';
+      // No insurance on file — force Self Pay chip (auto-selected, but user can confirm)
+      var spOn = currentSource === 'selfpay';
+      return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
+        '<span style="font-size:10px;color:#87867f;font-style:italic">No insurance on file →</span>' +
+        _chipBtn(patientIdx, 'selfpay', 'Self Pay', spOn, '#92400e', '#fef3c7', '#fde68a') +
+      '</div>';
     }
 
-    var opts = '<option value="">— Primary (default)</option>' +
-      options.map(function (o) {
-        return '<option value="' + esc(o.source) + '"' +
-          (o.source === currentSource ? ' selected' : '') + '>' +
-          esc(o.label) + (o.memberId ? ' · ' + esc(o.memberId) : '') +
-          '</option>';
-      }).join('') +
-      '<option value="selfpay"' + (currentSource === 'selfpay' ? ' selected' : '') + '>' +
-      '— Self Pay (no insurance) —</option>';
+    var chips = '';
+    // Default/Primary chip (source='')
+    chips += _chipBtn(patientIdx, '', 'Primary (default)', currentSource === '', '#c96442', '#fff', '#e4e1d8');
+    // One chip per real insurance option
+    options.forEach(function (o) {
+      var lbl = o.label.replace(/^Primary — |^Secondary — |^[^—]+—\s*/, '');  // strip prefix, keep payer name
+      var role = o.source === 'primary' ? '1°' : (o.source === 'secondary' ? '2°' : '•');
+      chips += _chipBtn(patientIdx, o.source, role + ' ' + lbl + (o.memberId ? ' · ' + o.memberId : ''),
+                        o.source === currentSource, '#c96442', '#fff', '#e4e1d8');
+    });
+    // Self Pay chip
+    chips += _chipBtn(patientIdx, 'selfpay', 'Self Pay', currentSource === 'selfpay', '#92400e', '#fef3c7', '#fde68a');
 
-    return '<select data-sg-payer-idx="' + patientIdx + '" ' +
-      'onchange="__sgPayerChange(' + patientIdx + ',this.value)" ' +
-      'style="width:100%;padding:5px 8px;border:1.5px solid #c96442;border-radius:6px;' +
-      'font-size:11px;background:#fff;color:#141413;cursor:pointer;font-weight:600" ' +
-      'title="Which of this patient\'s insurances should be billed for this Service Group?">' +
-      opts +
-      '</select>';
+    return '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">' + chips + '</div>';
+  }
+
+  // Reusable checkmark-style chip button
+  function _chipBtn(patientIdx, value, label, isOn, onColor, offBg, offBorder) {
+    var check = isOn
+      ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.4"><circle cx="12" cy="12" r="9"/></svg>';
+    var bg = isOn ? onColor : offBg;
+    var color = isOn ? '#fff' : '#525252';
+    var border = isOn ? onColor : offBorder;
+    return '<button type="button" onclick="__sgPayerChange(' + patientIdx + ',\'' + esc(value) + '\')" ' +
+      'style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:600;' +
+      'border:1.5px solid ' + border + ';border-radius:14px;background:' + bg + ';color:' + color + ';' +
+      'cursor:pointer;line-height:1.2;white-space:nowrap;transition:all .12s">' + check + label + '</button>';
   }
 
   // Global handler wired into the dropdown
   window.__sgPayerChange = function (patientIdx, sourceValue) {
+    try {
     if (typeof _sgForm === 'undefined' || !_sgForm || !_sgForm.patients) return;
     var asgn = _sgForm.patients[patientIdx];
     if (!asgn) return;
     if (!sourceValue) {
       delete asgn.payerOverride;
       _toast('Restaurado al insurance primario', 'ok');
+      if (typeof window.renderSGPatients === 'function') try { window.renderSGPatients(); } catch(e){}
       return;
     }
     if (sourceValue === 'selfpay') {
       asgn.payerOverride = { source:'selfpay', payerId:'__selfpay__', payerName:'Self Pay', memberId:'', plan:'', group:'', subscriberFirst:'', subscriberLast:'', subscriberDob:'', subscriberSex:'' };
       _toast('Bill To → Self Pay', 'ok');
+      if (typeof window.renderSGPatients === 'function') try { window.renderSGPatients(); } catch(e){}
       return;
     }
     var db = getDB();
@@ -36274,6 +36310,9 @@ function getAuditLogs() {
       subscriberSex: picked.subscriberSex,
     };
     _toast('Bill To → ' + picked.payerName, 'ok');
+    // Re-render so the chip check state updates immediately
+    if (typeof window.renderSGPatients === 'function') try { window.renderSGPatients(); } catch(e){}
+    } catch(e){ console.error('[CDC] __sgPayerChange failed:', e); }
   };
 
   // ─── Wrap renderSGPatients: inject dropdown into each card ──────────────────
@@ -36283,10 +36322,11 @@ function getAuditLogs() {
 
     var orig = window.renderSGPatients;
     window.renderSGPatients = function () {
-      var r = orig.apply(this, arguments);
-      // After original render, inject the dropdown into each card
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[CDC][sg-wrap] orig renderSGPatients threw:', e); return; }
       setTimeout(function () {
-        if (typeof _sgForm === 'undefined' || !_sgForm || !_sgForm.patients) return;
+        try {
+          if (typeof _sgForm === 'undefined' || !_sgForm || !_sgForm.patients) return;
         var host = document.getElementById('sg-patients');
         if (!host) return;
         var cards = host.querySelectorAll('.sg-pat-card');
@@ -36319,6 +36359,7 @@ function getAuditLogs() {
         });
         // Icons
         if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
+        } catch(e){ console.warn('[CDC][sg-wrap] chip inject failed:', e); }
       }, 20);
       return r;
     };
@@ -36333,40 +36374,63 @@ function getAuditLogs() {
 
     var orig = window.renderSGBatchPatients;
     window.renderSGBatchPatients = function (sg) {
-      var r = orig.apply(this, arguments);
+      var r;
+      try { r = orig.apply(this, arguments); } catch(e){ console.warn('[CDC][sg-batch-wrap] orig threw:', e); return; }
       setTimeout(function () {
+        try {
         if (!sg || !sg.patients) return;
         var host = document.getElementById('mb-sg-pat-rows');
         if (!host) return;
-        // Each patient block — find by looking for the checkbox pattern
+        var db = getDB();
         var rows = host.children;
         Array.prototype.forEach.call(rows, function (row, i) {
           var asgn = sg.patients[i];
           if (!asgn) return;
           if (row.querySelector('[data-sg-billto-chip]')) return;
-          var label = asgn.payerOverride
-            ? asgn.payerOverride.payerName + (asgn.payerOverride.memberId ? ' · ' + asgn.payerOverride.memberId : '')
-            : null;
+
+          // Resolve what will actually be billed (read-only in the batch panel).
+          var pat = (db.patients||[]).find(function(p){return p.id===asgn.patientId;});
+          var isSelfPay = false;
+          var label = '';
+          if (asgn.payerOverride) {
+            if (asgn.payerOverride.source === 'selfpay' || asgn.payerOverride.payerId === '__selfpay__') {
+              isSelfPay = true;
+              label = 'Self Pay';
+            } else {
+              label = asgn.payerOverride.payerName + (asgn.payerOverride.memberId ? ' · ' + asgn.payerOverride.memberId : '');
+            }
+          } else if (pat) {
+            // Default: patient's primary insurance
+            var actives = (pat.insurances||[]).filter(function(iv){return !iv.inactive;});
+            var pri = actives.find(function(iv){return (iv.insType||iv.type||'Primary').toLowerCase().includes('primary');}) || actives[0];
+            if (pri) label = (pri.name || pri.payerName || '') + (pri.memberId ? ' · ' + pri.memberId : '');
+            else if (pat.payerName || pat.payerid) label = pat.payerName || pat.payerid;
+            else { isSelfPay = true; label = 'Self Pay'; }
+          }
           if (!label) return;
-          // Inject a colored chip near the patient header
+
           var hdr = row.querySelector('div[style*="border-bottom:1px solid #f0ede5"]') ||
                     row.querySelector('div[style*="padding:9px 14px"]');
           if (!hdr) return;
           var chip = document.createElement('span');
           chip.setAttribute('data-sg-billto-chip', '1');
+          chip.title = 'Set in Edit Service Group — not editable here';
+          var bg = isSelfPay ? '#fef3c7' : '#fef7ee';
+          var color = isSelfPay ? '#92400e' : '#9a3412';
+          var border = isSelfPay ? '#fde68a' : '#fed7aa';
           chip.style.cssText = 'font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;' +
-            'background:#fef7ee;color:#9a3412;border:1px solid #fed7aa;margin-left:6px;flex-shrink:0;' +
-            'display:inline-flex;align-items:center;gap:4px';
+            'background:'+bg+';color:'+color+';border:1px solid '+border+';margin-left:6px;flex-shrink:0;' +
+            'display:inline-flex;align-items:center;gap:4px;cursor:default;user-select:none';
           chip.innerHTML =
             '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" ' +
             'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
             '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>' +
             'Bill: ' + esc(label);
-          // Insert before the last INCLUDE/SKIP badge
           var badge = hdr.querySelector('span[style*="INCLUDE"],span[style*="SKIP"]');
           if (badge) hdr.insertBefore(chip, badge);
           else hdr.appendChild(chip);
         });
+        } catch(e){ console.warn('[CDC][sg-batch-wrap] chip inject failed:', e); }
       }, 20);
       return r;
     };
