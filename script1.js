@@ -34836,10 +34836,10 @@ function getAuditLogs() {
 
     el.innerHTML =
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">' +
-      _kpi('Care Team', employees, '', 'user-cog', '#3f4a38') +
-      _kpi('Clients', clients, totalClients + ' total', 'heart-handshake', '#c96442') +
-      _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e') +
-      _kpi('Archive', docs, '', 'folder', '#b8863c') +
+      _kpi('Care Team', employees, '', 'user-cog', '#3f4a38', 'cm-workers') +
+      _kpi('Clients', clients, totalClients + ' total', 'heart-handshake', '#c96442', 'cm-clients') +
+      _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e', 'cm-encounters') +
+      _kpi('Archive', docs, '', 'folder', '#b8863c', 'cm-assessments') +
       '</div>' +
 
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">' +
@@ -34916,14 +34916,20 @@ function getAuditLogs() {
     });
   };
 
-  function _kpi(label, value, sub, ico, color) {
+  function _kpi(label, value, sub, ico, color, route) {
     color = color || '#c96442';
-    return '<div style="background:' + color + ';border-radius:12px;padding:16px 18px;position:relative;overflow:hidden">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
+    var clickable = !!route;
+    return '<div style="background:' + color + ';border-radius:12px;padding:16px 18px;position:relative;overflow:hidden' +
+      (clickable ? ';cursor:pointer;transition:transform .14s,box-shadow .14s,filter .14s' : '') + '"' +
+      (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 10px 24px rgba(0,0,0,.22)\';this.style.filter=\'brightness(1.06)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
+      '>' +
+      '<div style="position:absolute;top:-34px;right:-34px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;position:relative">' +
       '<div style="font-size:11px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' + esc(label) + '</div>' +
-      '<i data-lucide="' + ico + '" class="lci" style="width:16px;height:16px;color:rgba(255,255,255,.6)"></i></div>' +
-      '<div style="font-size:30px;font-weight:600;font-family:\'Fraunces\',serif;color:#fff;line-height:1">' + value + '</div>' +
-      (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px">' + esc(sub) + '</div>' : '') +
+      '<i data-lucide="' + ico + '" class="lci" style="width:17px;height:17px;color:rgba(255,255,255,.8)"></i></div>' +
+      '<div style="font-size:30px;font-weight:600;font-family:\'Fraunces\',serif;color:#fff;line-height:1;position:relative">' + value + '</div>' +
+      (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;position:relative">' + esc(sub) + '</div>' : '') +
+      (clickable ? '<i data-lucide="chevron-right" class="lci" style="position:absolute;bottom:14px;right:14px;width:15px;height:15px;color:rgba(255,255,255,.55)"></i>' : '') +
       '</div>';
   }
 
