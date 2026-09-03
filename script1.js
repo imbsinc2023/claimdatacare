@@ -34764,10 +34764,10 @@ function getAuditLogs() {
 
     el.innerHTML =
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">' +
-      _kpi('Clients', clients, totalClients + ' total', 'users') +
-      _kpi('Open Cases', openCases, '90-day activity', 'briefcase') +
-      _kpi('Case Workers', employees, '', 'user-check') +
-      _kpi('Documents', docs, '', 'folder') +
+      _kpi('Care Team', employees, '', 'user-cog', '#3f4a38') +
+      _kpi('Clients', clients, totalClients + ' total', 'heart-handshake', '#c96442') +
+      _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e') +
+      _kpi('Archive', docs, '', 'folder', '#b8863c') +
       '</div>' +
 
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
@@ -34795,14 +34795,14 @@ function getAuditLogs() {
     _icons();
   }
 
-  function _kpi(label, value, sub, ico) {
-    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px">' +
+  function _kpi(label, value, sub, ico, color) {
+    color = color || '#c96442';
+    return '<div style="background:' + color + ';border-radius:12px;padding:16px 18px;position:relative;overflow:hidden">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
-      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' + esc(label) + '</div>' +
-      '<div style="width:32px;height:32px;background:var(--brand-bg);border-radius:8px;display:flex;align-items:center;justify-content:center">' +
-      '<i data-lucide="' + ico + '" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div></div>' +
-      '<div style="font-size:30px;font-weight:700;color:var(--text);line-height:1">' + value + '</div>' +
-      (sub ? '<div style="font-size:11px;color:var(--text3);margin-top:4px">' + esc(sub) + '</div>' : '') +
+      '<div style="font-size:11px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' + esc(label) + '</div>' +
+      '<i data-lucide="' + ico + '" class="lci" style="width:16px;height:16px;color:rgba(255,255,255,.6)"></i></div>' +
+      '<div style="font-size:30px;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
+      (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px">' + esc(sub) + '</div>' : '') +
       '</div>';
   }
 
