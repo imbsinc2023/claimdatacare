@@ -34718,6 +34718,13 @@ function getAuditLogs() {
     var el = document.getElementById('cm-dash-content');
     if (!el) return;
 
+    if (!document.getElementById('cm-dash-arial-style')) {
+      var st = document.createElement('style');
+      st.id = 'cm-dash-arial-style';
+      st.textContent = '.cm-dash-arial, .cm-dash-arial *{font-family:Arial,Helvetica,sans-serif!important;}';
+      document.head.appendChild(st);
+    }
+
     var clients = (d.clients || []).filter(function (c) { return c.status !== 'Inactive' && c.status !== 'Discharged'; }).length;
     var totalClients = (d.clients || []).length;
     var employees = (d.workers || []).filter(function (w) { return w.status !== 'Inactive'; }).length;
@@ -34837,9 +34844,9 @@ function getAuditLogs() {
     }
 
     el.innerHTML =
-      '<div style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;align-items:start">' +
+      '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;align-items:stretch">' +
 
-      '<div style="display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;flex-direction:column;gap:12px;height:100%">' +
       _kpi('Care Team', employees, '', 'user-cog', '#3f4a38', 'cm-workers') +
       _kpi('Clients', clients, totalClients + ' total', 'user-round', '#c96442', 'cm-clients') +
       _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e', 'cm-encounters') +
@@ -34975,18 +34982,20 @@ function getAuditLogs() {
     color = color || '#c96442';
     var colorD = _kpiGradients(color);
     var clickable = !!route;
-    return '<div style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden' +
+    return '<div style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:90px' +
       (clickable ? ';cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,filter .16s' : '') + '"' +
       (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 14px 28px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
       '<div style="position:absolute;inset:0;background:radial-gradient(circle at 88% -10%, rgba(255,255,255,.20), transparent 50%);pointer-events:none"></div>' +
       '<div style="position:absolute;right:-34px;bottom:-34px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;position:relative">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11px;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.05em;font-weight:700">' + esc(label) + '</div>' +
-      '<div style="width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-      '<i data-lucide="' + ico + '" class="lci" style="width:11px;height:11px;color:#fff"></i></div></div>' +
-      '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:#fff;line-height:1;position:relative">' + value + '</div>' +
-      (sub ? '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px;color:rgba(255,255,255,.78);margin-top:5px;position:relative">' + esc(sub) + '</div>' : '') +
+      '<div style="width:15px;height:15px;border-radius:4px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="' + ico + '" class="lci" style="width:8px;height:8px;color:#fff"></i></div></div>' +
+      '<div style="position:relative">' +
+      '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
+      (sub ? '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px;color:rgba(255,255,255,.78);margin-top:5px">' + esc(sub) + '</div>' : '') +
+      '</div>' +
       (clickable ? '<i data-lucide="chevron-right" class="lci kpi-arrow" style="position:absolute;bottom:14px;right:14px;width:14px;height:14px;color:rgba(255,255,255,.55);transition:transform .16s,color .16s"></i>' : '') +
       '</div>';
   }
