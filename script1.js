@@ -34734,6 +34734,9 @@ function getAuditLogs() {
         '.cm-bill-card .cm-bill-icon{width:clamp(30px,17cqi,42px)!important;height:clamp(30px,17cqi,42px)!important;}' +
         '.cm-bill-card .cm-bill-ico-svg{width:clamp(14px,8cqi,19px)!important;height:clamp(14px,8cqi,19px)!important;}' +
         '.cm-bill-card .cm-bill-amt{font-size:clamp(14px,8.5cqi,20px)!important;}' +
+        '.cm-units-card{container-type:inline-size;}' +
+        '.cm-units-card .cm-units-num{font-size:clamp(22px,11cqi,34px)!important;}' +
+        '.cm-units-card .cm-units-toggle button{font-size:clamp(10px,3cqi,12px)!important;padding:6px 9px!important;}' +
         '#sec-cm-dashboard .page-hdr{flex-wrap:wrap;row-gap:10px;}';
       document.head.appendChild(st);
     }
@@ -34751,8 +34754,8 @@ function getAuditLogs() {
         '<select id="cmdf-status" onchange="_cmDashFilterChange()" title="Client Status" style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text)">' +
         '<option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option>' +
         '</select>' +
-        '<button onclick="_cmDashFilterClear()" title="Clear filters" style="border:none;background:var(--bg3);color:var(--text3);border-radius:8px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="x" class="lci" style="width:13px;height:13px"></i></button>' +
-        '<button onclick="_cmExportDashboardPDF()" title="Export dashboard as PDF" style="border:none;background:var(--brand);color:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:2px"><i data-lucide="file-down" class="lci" style="width:16px;height:16px"></i></button>' +
+        '<button onclick="_cmDashFilterClear()" title="Clear filters" style="border:none;background:var(--bg3);color:var(--text3);border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i></button>' +
+        '<button onclick="_cmExportDashboardPDF()" title="Export dashboard as PDF" style="border:none;background:linear-gradient(155deg,#c96442 0%,#a9502f 100%);color:#fff;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:2px;box-shadow:0 2px 6px rgba(201,100,66,.35);transition:transform .12s,box-shadow .12s" onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 4px 10px rgba(201,100,66,.45)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'0 2px 6px rgba(201,100,66,.35)\'"><i data-lucide="file-text" class="lci" style="width:15px;height:15px"></i></button>' +
         '</div>';
       hdrWrap.insertAdjacentHTML('beforeend', filtersHTML);
       _icons();
@@ -34963,6 +34966,14 @@ function getAuditLogs() {
           '</div>');
     }
 
+    function unitsAvgLabel(data) {
+      var series = data.series || [];
+      if (!series.length) return '';
+      var avg = data.total / series.length;
+      var unit = series.length <= 12 ? '/month avg' : '/day avg';
+      return (Math.round(avg * 10) / 10) + unit;
+    }
+
     function clientDonut(a, b, c) {
       var total = a + b + c;
       if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:16px 0;font-size:12px">No data</div>';
@@ -34992,51 +35003,54 @@ function getAuditLogs() {
 
       '<div style="display:flex;flex-direction:column;gap:8px;height:100%">' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0">' +
+      '<div style="display:grid;grid-template-columns:0.8fr 1fr 1.25fr;gap:8px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<div class="card" style="padding:10px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#c96442;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Client Status</div></div>' +
-      '<div style="display:flex;align-items:center;gap:16px;flex:1">' +
+      '<div style="display:flex;align-items:center;gap:14px;flex:1">' +
       clientDonut(activeCt, inactiveCt, dischargedCt) +
-      '<div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)">' +
+      '<div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text2)">' +
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c96442;margin-right:6px"></span>Active (' + activeCt + ')</div>' +
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7d7a4e;margin-right:6px"></span>Inactive (' + inactiveCt + ')</div>' +
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#b8863c;margin-right:6px"></span>Discharged (' + dischargedCt + ')</div>' +
       '</div></div></div>' +
 
-      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">' +
+      '<div class="card cm-units-card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#7d7a4e;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Units</div></div>' +
-      '<div style="display:flex;background:var(--bg3);border-radius:9px;padding:2px">' +
+      '<div class="cm-units-toggle" style="display:flex;background:var(--bg3);border-radius:9px;padding:2px">' +
       unitsToggleBtn('week', 'Week', true) +
       unitsToggleBtn('month', 'Month', false) +
       unitsToggleBtn('year', 'Year', false) +
       unitsToggleBtn('lastyear', 'Last Year', false) +
       '</div></div>' +
-      '<div id="cm-units-value" style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:var(--brand);line-height:1;margin-bottom:12px">' + periods.week.total + '</div>' +
+      '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">' +
+      '<div id="cm-units-value" class="cm-units-num" style="font-family:Arial,Helvetica,sans-serif!important;font-weight:700;color:var(--brand);line-height:1">' + periods.week.total + '</div>' +
+      '<div id="cm-units-avg" style="font-size:11.5px;color:var(--text3)">' + unitsAvgLabel(periods.week) + '</div>' +
+      '</div>' +
       '<div id="cm-units-bars" style="flex:1">' + unitChart(periods.week.series) + '</div>' +
       '</div>' +
 
       '<div class="card cm-bill-card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Billing Overview</div></div>' +
-      '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:3px 8px">' +
+      '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:3px 9px">' +
       '<i data-lucide="trending-up" class="lci" style="width:11px;height:11px;color:#3f4a38"></i>' +
-      '<span style="font-size:10.5px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
+      '<span style="font-size:11px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
       '</div></div>' +
-      '<div style="height:10px;border-radius:6px;overflow:hidden;display:flex;background:var(--bg3);margin-bottom:16px">' +
+      '<div style="height:9px;border-radius:5px;overflow:hidden;display:flex;background:var(--bg3);margin-bottom:10px;flex-shrink:0">' +
       (totalBilled > 0
         ? '<div style="width:' + Math.round(totalPaid / totalBilled * 100) + '%;background:#3f4a38"></div>' +
           '<div style="width:' + Math.round(pendingBill / totalBilled * 100) + '%;background:#b8863c"></div>'
         : '') +
       '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:10px;flex:1">' +
+      '<div style="display:flex;flex-direction:column;gap:8px;flex:1;justify-content:space-between">' +
       _billStat('receipt', '#c96442', 'Total Billed', totalBilled, totalBilled) +
       _billStat('check-circle', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
       _billStat('clock', '#b8863c', 'Pending', pendingBill, totalBilled) +
@@ -35047,54 +35061,54 @@ function getAuditLogs() {
 
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<div class="card" style="padding:10px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Note Status</div></div>' +
       '<div style="flex:1;display:flex;flex-direction:column;justify-content:center">' +
       _donut(draftN, signedN, billedN) +
-      '<div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px;flex-wrap:wrap">' +
+      '<div style="display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:11px;flex-wrap:wrap">' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px"></span> Draft ' + draftN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text2);border-radius:2px"></span> Signed ' + signedN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
       '</div></div></div>' +
 
-      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<div class="card" style="padding:10px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Care Team Activity</div></div>' +
       '<button class="btn btn-xs" onclick="go(\'cm-workers\')" style="display:flex;align-items:center;gap:5px;font-family:Arial,Helvetica,sans-serif!important">View All <i data-lucide="chevron-right" class="lci" style="width:11px;height:11px"></i></button>' +
       '</div>' +
-      '<div style="flex:1">' +
+      '<div style="flex:1;min-height:0;overflow-y:auto">' +
       (topWorkers.length
         ? topWorkers.map(function (w) {
-            return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-              '<div style="width:26px;height:26px;border-radius:50%;background:#3f4a38;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + esc((w.first || '?').charAt(0) + (w.last || '').charAt(0)) + '</div>' +
+            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+              '<div style="width:24px;height:24px;border-radius:50%;background:#3f4a38;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + esc((w.first || '?').charAt(0) + (w.last || '').charAt(0)) + '</div>' +
               '<div style="flex:1;min-width:0">' +
-              '<div style="font-size:12.5px;font-weight:600;color:var(--text)">' + esc(w.first + ' ' + w.last) + '</div>' +
-              '<div style="font-size:11px;color:var(--text3)">' + esc(w.credential || 'Case Worker') + '</div>' +
+              '<div style="font-size:12px;font-weight:600;color:var(--text)">' + esc(w.first + ' ' + w.last) + '</div>' +
+              '<div style="font-size:10.5px;color:var(--text3)">' + esc(w.credential || 'Case Worker') + '</div>' +
               '</div>' +
               '<div style="text-align:right;flex-shrink:0">' +
               '<div style="font-size:12px;font-weight:700;color:var(--text)">' + w.caseload + '</div>' +
-              '<div style="font-size:10px;color:var(--text3)">caseload</div>' +
+              '<div style="font-size:9.5px;color:var(--text3)">caseload</div>' +
               '</div></div>';
           }).join('')
         : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">No case workers yet</div>') +
       '</div>' +
       '</div>' +
 
-      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">' +
+      '<div class="card" style="padding:10px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:' + complianceColor + ';flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Documentation Compliance</div></div>' +
-      '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">' +
-      '<svg viewBox="0 0 108 108" style="width:80px;height:80px">' +
+      '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">' +
+      '<svg viewBox="0 0 108 108" style="width:64px;height:64px">' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="' + complianceColor + '" stroke-width="13" stroke-linecap="round" stroke-dasharray="' + (complianceRate / 100 * 2 * Math.PI * 42) + ' ' + (2 * Math.PI * 42) + '" transform="rotate(-90 54 54)"/>' +
       '<text x="54" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">' + complianceRate + '%</text>' +
       '</svg>' +
-      '<div style="font-size:11px;color:var(--text3);text-align:center">Notes signed or billed<br>(' + (signedN + billedN) + ' of ' + totalNotesN + ')</div>' +
+      '<div style="font-size:10.5px;color:var(--text3);text-align:center">Notes signed or billed<br>(' + (signedN + billedN) + ' of ' + totalNotesN + ')</div>' +
       '</div>' +
       '</div>' +
 
@@ -35126,14 +35140,10 @@ function getAuditLogs() {
   };
 
   window._cmExportDashboardPDF = function () {
-    function build() {
-      var s = window._cmDashSummary;
-      if (!s) { toast('Dashboard not ready yet', 'err'); return; }
-      var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-      var doc = new jsPDFctor({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+    function buildTextSummary(doc, s) {
       var y = 50;
-      doc.setFont(undefined, 'bold'); doc.setFontSize(18); doc.setTextColor(20, 20, 19);
-      doc.text('Case Management Dashboard Summary', 40, y); y += 20;
+      doc.setFont(undefined, 'bold'); doc.setFontSize(16); doc.setTextColor(20, 20, 19);
+      doc.text('Case Management Dashboard — Data Summary', 40, y); y += 20;
       doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(110, 105, 96);
       doc.text('Generated ' + s.generatedAt.toLocaleString(), 40, y); y += 14;
       var fx = s.filters || {};
@@ -35201,26 +35211,70 @@ function getAuditLogs() {
           row(w.first + ' ' + w.last + ' (' + (w.credential || 'Case Worker') + ')', w.caseload + ' clients');
         });
       }
-
-      doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
     }
 
-    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
-      toast('Preparing PDF...', 'info');
-      var s1 = document.createElement('script');
-      s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      s1.onload = build;
-      s1.onerror = function () {
-        var s2 = document.createElement('script');
-        s2.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
-        s2.onload = build;
-        s2.onerror = function () { toast('Could not load PDF library', 'err'); };
-        document.head.appendChild(s2);
-      };
-      document.head.appendChild(s1);
-    } else {
-      build();
+    function build() {
+      var s = window._cmDashSummary;
+      var target = document.getElementById('cm-dash-content');
+      if (!s || !target) { toast('Dashboard not ready yet', 'err'); return; }
+
+      window.html2canvas(target, { scale: 2, backgroundColor: '#f5f4ed', useCORS: true }).then(function (canvas) {
+        var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+        var doc = new jsPDFctor({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+        var pageW = doc.internal.pageSize.getWidth();
+        var pageH = doc.internal.pageSize.getHeight();
+        var margin = 30;
+
+        doc.setFont(undefined, 'bold'); doc.setFontSize(16); doc.setTextColor(20, 20, 19);
+        doc.text('Case Management Dashboard', margin, 34);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(110, 105, 96);
+        doc.text('Generated ' + s.generatedAt.toLocaleString(), margin, 48);
+
+        var imgW = pageW - margin * 2;
+        var imgH = canvas.height * (imgW / canvas.width);
+        var top = 60;
+        if (imgH > pageH - top - margin) {
+          var scale = (pageH - top - margin) / imgH;
+          imgW *= scale; imgH *= scale;
+        }
+        doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, top, imgW, imgH);
+
+        doc.addPage();
+        buildTextSummary(doc, s);
+
+        doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
+      }).catch(function (err) {
+        console.error('PDF export error:', err);
+        toast('PDF export failed', 'err');
+      });
     }
+
+    function loadScript(url) {
+      return new Promise(function (resolve, reject) {
+        var el = document.createElement('script');
+        el.src = url; el.onload = resolve; el.onerror = reject;
+        document.head.appendChild(el);
+      });
+    }
+    function ensureLib(check, urls) {
+      if (check()) return Promise.resolve();
+      var i = 0;
+      function next() {
+        if (i >= urls.length) return Promise.reject(new Error('load failed'));
+        return loadScript(urls[i++]).catch(next);
+      }
+      return next();
+    }
+
+    toast('Preparing PDF...', 'info');
+    Promise.all([
+      ensureLib(function () { return typeof window.jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'; },
+        ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js']),
+      ensureLib(function () { return typeof window.html2canvas !== 'undefined'; },
+        ['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'])
+    ]).then(build).catch(function () {
+      toast('Could not load PDF libraries', 'err');
+    });
   };
 
   window._cmUnitsSwitch = function (period) {
@@ -35228,6 +35282,17 @@ function getAuditLogs() {
     if (!data) return;
     var valEl = document.getElementById('cm-units-value');
     if (valEl) valEl.textContent = data.total;
+    var avgEl = document.getElementById('cm-units-avg');
+    if (avgEl) {
+      var series0 = data.series || [];
+      if (series0.length) {
+        var avg = data.total / series0.length;
+        var unit = series0.length <= 12 ? '/month avg' : '/day avg';
+        avgEl.textContent = (Math.round(avg * 10) / 10) + unit;
+      } else {
+        avgEl.textContent = '';
+      }
+    }
     var barsEl = document.getElementById('cm-units-bars');
     if (barsEl) {
       var series = data.series || [];
@@ -35266,7 +35331,7 @@ function getAuditLogs() {
     color = color || '#c96442';
     var colorD = _kpiGradients(color);
     var clickable = !!route;
-    return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:72px' +
+    return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:14px;padding:14px 14px 12px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:58px' +
       (clickable ? ';cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,filter .16s' : '') + '"' +
       (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 14px 28px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
