@@ -34729,27 +34729,88 @@ function getAuditLogs() {
         '.cm-kpi-card .cm-kpi-num{font-size:clamp(18px,15cqi,32px)!important;}' +
         '.cm-kpi-card .cm-kpi-sub{font-size:clamp(9px,6cqi,12px)!important;}' +
         '.cm-kpi-card .cm-kpi-bgicon{width:clamp(36px,42cqi,72px)!important;height:clamp(36px,42cqi,72px)!important;}' +
-        '.cm-kpi-card .cm-kpi-arrow{width:clamp(10px,8cqi,15px)!important;height:clamp(10px,8cqi,15px)!important;}';
+        '.cm-kpi-card .cm-kpi-arrow{width:clamp(10px,8cqi,15px)!important;height:clamp(10px,8cqi,15px)!important;}' +
+        '.cm-bill-card{container-type:inline-size;}' +
+        '.cm-bill-card .cm-bill-icon{width:clamp(30px,17cqi,42px)!important;height:clamp(30px,17cqi,42px)!important;}' +
+        '.cm-bill-card .cm-bill-ico-svg{width:clamp(14px,8cqi,19px)!important;height:clamp(14px,8cqi,19px)!important;}' +
+        '.cm-bill-card .cm-bill-amt{font-size:clamp(14px,8.5cqi,20px)!important;}' +
+        '#sec-cm-dashboard .page-hdr{flex-wrap:wrap;row-gap:10px;}';
       document.head.appendChild(st);
     }
 
-    var clients = (d.clients || []).filter(function (c) { return c.status !== 'Inactive' && c.status !== 'Discharged'; }).length;
-    var totalClients = (d.clients || []).length;
-    var employees = (d.workers || []).filter(function (w) { return w.status !== 'Inactive'; }).length;
+    var hdrWrap = document.querySelector('#sec-cm-dashboard .page-hdr');
+    if (hdrWrap && !document.getElementById('cm-dash-filters')) {
+      var workerOpts = '<option value="">All Case Workers</option>' +
+        (d.workers || []).map(function (w) { return '<option value="' + w.id + '">' + esc(w.first + ' ' + w.last) + '</option>'; }).join('');
+      var filtersHTML =
+        '<div id="cm-dash-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:Arial,Helvetica,sans-serif!important">' +
+        '<input type="date" id="cmdf-from" onchange="_cmDashFilterChange()" title="From date" style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text)">' +
+        '<span style="color:var(--text3);font-size:12px">to</span>' +
+        '<input type="date" id="cmdf-to" onchange="_cmDashFilterChange()" title="To date" style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text)">' +
+        '<select id="cmdf-worker" onchange="_cmDashFilterChange()" title="Case Worker" style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text)">' + workerOpts + '</select>' +
+        '<select id="cmdf-status" onchange="_cmDashFilterChange()" title="Client Status" style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text)">' +
+        '<option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option>' +
+        '</select>' +
+        '<button onclick="_cmDashFilterClear()" title="Clear filters" style="border:none;background:var(--bg3);color:var(--text3);border-radius:8px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="x" class="lci" style="width:13px;height:13px"></i></button>' +
+        '<button onclick="_cmExportDashboardPDF()" title="Export dashboard as PDF" style="border:none;background:var(--brand);color:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:2px"><i data-lucide="file-down" class="lci" style="width:16px;height:16px"></i></button>' +
+        '</div>';
+      hdrWrap.insertAdjacentHTML('beforeend', filtersHTML);
+      _icons();
+    }
+
+    var filt = window._cmDashFilters || {};
+    var fFrom = filt.from ? new Date(filt.from) : null;
+    var fTo = filt.to ? new Date(filt.to) : null;
+    if (fTo) fTo.setHours(23, 59, 59, 999);
+    var fWorkerId = filt.workerId || '';
+    var fStatus = filt.status || '';
+
+    var fClients = (d.clients || []).filter(function (c) {
+      if (fWorkerId && c.workerId !== fWorkerId) return false;
+      if (fStatus && (c.status || 'Active') !== fStatus) return false;
+      return true;
+    });
+    var fClientIds = {}; fClients.forEach(function (c) { fClientIds[c.id] = 1; });
+
+    var fWorkers = (d.workers || []).filter(function (w) {
+      return !fWorkerId || w.id === fWorkerId;
+    });
+
+    var fNotes = (d.notes || []).filter(function (n) {
+      if (fWorkerId && n.workerId !== fWorkerId) return false;
+      if (n.clientId && !fClientIds[n.clientId]) return false;
+      if (fFrom && n.date && new Date(n.date) < fFrom) return false;
+      if (fTo && n.date && new Date(n.date) > fTo) return false;
+      return true;
+    });
+
+    var fBilling = (d.billing || []).filter(function (b) {
+      if (fWorkerId && b.workerId !== fWorkerId) return false;
+      if (b.clientId && !fClientIds[b.clientId]) return false;
+      return true;
+    });
+
+    var fAssessments = (d.assessments || []).filter(function (a) {
+      return !a.clientId || fClientIds[a.clientId];
+    });
+
+    var clients = (fClients).filter(function (c) { return c.status !== 'Inactive' && c.status !== 'Discharged'; }).length;
+    var totalClients = (fClients).length;
+    var employees = (fWorkers).filter(function (w) { return w.status !== 'Inactive'; }).length;
     var docs = 0;
-    (d.clients || []).forEach(function (c) { docs += ((c.documents || []).length); });
-    docs += (d.assessments || []).length + (d.notes || []).length;
+    (fClients).forEach(function (c) { docs += ((c.documents || []).length); });
+    docs += (fAssessments).length + (fNotes).length;
 
     var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
     var byClient = {};
-    (d.notes || []).forEach(function (n) {
+    (fNotes).forEach(function (n) {
       if (!n.date || !n.clientId) return;
       if (new Date(n.date) >= cutoff) byClient[n.clientId] = 1;
     });
     var openCases = Object.keys(byClient).length;
 
     var activeCt = 0, inactiveCt = 0, dischargedCt = 0;
-    (d.clients || []).forEach(function (c) {
+    (fClients).forEach(function (c) {
       var s = c.status || 'Active';
       if (s === 'Discharged') dischargedCt++;
       else if (s === 'Inactive') inactiveCt++;
@@ -34765,7 +34826,7 @@ function getAuditLogs() {
 
     function periodUnits(start, end) {
       var byCode = {}, total = 0;
-      (d.notes || []).forEach(function (n) {
+      (fNotes).forEach(function (n) {
         if (!n.date) return;
         var dt = new Date(n.date);
         if (dt < start) return;
@@ -34780,16 +34841,48 @@ function getAuditLogs() {
       return { total: total, codes: codes };
     }
 
+    var DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function daySeries(start, end) {
+      var days = [];
+      var cur = new Date(start);
+      while (cur < end) { days.push({ label: DOW[cur.getDay()], units: 0 }); cur.setDate(cur.getDate() + 1); }
+      (fNotes).forEach(function (n) {
+        if (!n.date) return;
+        var dt = new Date(n.date);
+        if (dt < start || dt >= end) return;
+        var idx = Math.floor((dt - start) / 86400000);
+        if (days[idx]) days[idx].units += parseInt(n.units || 0, 10) || 0;
+      });
+      return days;
+    }
+
+    function monthSeries(yr) {
+      var months = MON.map(function (m) { return { label: m, units: 0 }; });
+      (fNotes).forEach(function (n) {
+        if (!n.date) return;
+        var dt = new Date(n.date);
+        if (dt.getFullYear() !== yr) return;
+        months[dt.getMonth()].units += parseInt(n.units || 0, 10) || 0;
+      });
+      return months;
+    }
+
     var periods = {
       week: periodUnits(wStart, null),
       month: periodUnits(mStart, null),
       year: periodUnits(yStart, null),
       lastyear: periodUnits(lyStart, lyEnd)
     };
+    periods.week.series = daySeries(wStart, new Date(wStart.getTime() + 7 * 86400000));
+    periods.month.series = daySeries(mStart, new Date(now.getFullYear(), now.getMonth() + 1, 1));
+    periods.year.series = monthSeries(now.getFullYear());
+    periods.lastyear.series = monthSeries(now.getFullYear() - 1);
     window._cmUnitsPeriods = periods;
 
     var draftN = 0, signedN = 0, billedN = 0;
-    (d.notes || []).forEach(function (n) {
+    (fNotes).forEach(function (n) {
       var s = (n.status || 'Draft').toLowerCase();
       if (s === 'billed') billedN++;
       else if (s === 'signed') signedN++;
@@ -34800,7 +34893,7 @@ function getAuditLogs() {
     var complianceColor = complianceRate >= 80 ? '#3f4a38' : (complianceRate >= 50 ? '#b8863c' : '#a9502f');
 
     var totalBilled = 0, totalPaid = 0, pendingBill = 0;
-    (d.billing || []).forEach(function (b) {
+    (fBilling).forEach(function (b) {
       var amt = parseFloat(b.total || 0) || 0;
       totalBilled += amt;
       var s = (b.status || '').toLowerCase();
@@ -34808,14 +34901,32 @@ function getAuditLogs() {
       else if (s === 'draft' || s === 'ready' || s === 'submitted') pendingBill += amt;
     });
 
-    var topWorkers = (d.workers || [])
+    var topWorkers = (fWorkers)
       .filter(function (w) { return w.status !== 'Inactive'; })
       .map(function (w) {
-        var cnt = (d.clients || []).filter(function (c) { return c.workerId === w.id && c.status === 'Active'; }).length;
+        var cnt = (fClients).filter(function (c) { return c.workerId === w.id && c.status === 'Active'; }).length;
         return { first: w.first, last: w.last, credential: w.credential, caseload: cnt, capacity: w.capacity };
       })
       .sort(function (a, b) { return b.caseload - a.caseload; })
       .slice(0, 5);
+
+    window._cmDashSummary = {
+      generatedAt: new Date(),
+      filters: filt,
+      careTeam: employees,
+      clients: clients,
+      totalClients: totalClients,
+      activeCases: openCases,
+      archive: docs,
+      clientStatus: { active: activeCt, inactive: inactiveCt, discharged: dischargedCt },
+      unitsWeek: periods.week.total,
+      unitsMonth: periods.month.total,
+      unitsYear: periods.year.total,
+      unitsLastYear: periods.lastyear.total,
+      billing: { billed: totalBilled, paid: totalPaid, pending: pendingBill },
+      notesStatus: { draft: draftN, signed: signedN, billed: billedN, complianceRate: complianceRate },
+      topWorkers: topWorkers
+    };
 
     function unitsToggleBtn(key, label, active) {
       return '<button id="cm-utab-' + key + '" onclick="_cmUnitsSwitch(\'' + key + '\')" style="border:none;cursor:pointer;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;background:' +
@@ -34837,6 +34948,21 @@ function getAuditLogs() {
         : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No units yet</div>';
     }
 
+    function unitChart(series) {
+      var max = Math.max.apply(null, series.map(function (s) { return s.units; })) || 1;
+      var dense = series.length > 12;
+      return '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:48px">' +
+        series.map(function (s) {
+          var h = s.units > 0 ? Math.max(4, Math.round(s.units / max * 100)) : 2;
+          return '<div title="' + esc(s.label) + ': ' + s.units + ' units" style="flex:1;background:var(--brand);opacity:' + (s.units > 0 ? 1 : .18) + ';border-radius:3px 3px 0 0;height:' + h + '%;min-height:2px"></div>';
+        }).join('') +
+        '</div>' +
+        (dense ? '' :
+          '<div style="display:flex;gap:5px;margin-top:5px">' +
+          series.map(function (s) { return '<div style="flex:1;text-align:center;font-size:9px;color:var(--text3)">' + esc(s.label) + '</div>'; }).join('') +
+          '</div>');
+    }
+
     function clientDonut(a, b, c) {
       var total = a + b + c;
       if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:16px 0;font-size:12px">No data</div>';
@@ -34855,20 +34981,20 @@ function getAuditLogs() {
     }
 
     el.innerHTML =
-      '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;padding-bottom:16px;align-items:stretch;height:100%;box-sizing:border-box">' +
+      '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:10px;margin-top:6px;padding-top:2px;padding-bottom:6px;align-items:stretch;height:100%;box-sizing:border-box">' +
 
-      '<div style="display:flex;flex-direction:column;gap:12px;height:100%">' +
+      '<div style="display:flex;flex-direction:column;gap:8px;height:100%">' +
       _kpi('Care Team', employees, '', 'user-plus', '#3f4a38', 'cm-workers') +
       _kpi('Clients', clients, totalClients + ' total', 'user-round', '#c96442', 'cm-clients') +
       _kpi('Active Cases', openCases, '', 'briefcase', '#7d7a4e', 'cm-encounters') +
       _kpi('Archive', docs, '', 'folder', '#b8863c', 'cm-assessments') +
       '</div>' +
 
-      '<div style="display:flex;flex-direction:column;gap:14px;height:100%">' +
+      '<div style="display:flex;flex-direction:column;gap:8px;height:100%">' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#c96442;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Client Status</div></div>' +
@@ -34880,7 +35006,7 @@ function getAuditLogs() {
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#b8863c;margin-right:6px"></span>Discharged (' + dischargedCt + ')</div>' +
       '</div></div></div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#7d7a4e;flex-shrink:0"></span>' +
@@ -34892,19 +35018,25 @@ function getAuditLogs() {
       unitsToggleBtn('lastyear', 'Last Year', false) +
       '</div></div>' +
       '<div id="cm-units-value" style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:var(--brand);line-height:1;margin-bottom:12px">' + periods.week.total + '</div>' +
-      '<div id="cm-units-bars" style="flex:1">' + unitBars(periods.week.codes) + '</div>' +
+      '<div id="cm-units-bars" style="flex:1">' + unitChart(periods.week.series) + '</div>' +
       '</div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">' +
+      '<div class="card cm-bill-card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Billing Overview</div></div>' +
       '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:3px 8px">' +
       '<i data-lucide="trending-up" class="lci" style="width:11px;height:11px;color:#3f4a38"></i>' +
-      '<span style="font-size:10.5px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '%</span>' +
+      '<span style="font-size:10.5px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
       '</div></div>' +
-      '<div style="display:flex;flex-direction:column;gap:8px;flex:1">' +
+      '<div style="height:10px;border-radius:6px;overflow:hidden;display:flex;background:var(--bg3);margin-bottom:16px">' +
+      (totalBilled > 0
+        ? '<div style="width:' + Math.round(totalPaid / totalBilled * 100) + '%;background:#3f4a38"></div>' +
+          '<div style="width:' + Math.round(pendingBill / totalBilled * 100) + '%;background:#b8863c"></div>'
+        : '') +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;flex:1">' +
       _billStat('receipt', '#c96442', 'Total Billed', totalBilled, totalBilled) +
       _billStat('check-circle', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
       _billStat('clock', '#b8863c', 'Pending', pendingBill, totalBilled) +
@@ -34913,9 +35045,9 @@ function getAuditLogs() {
 
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Note Status</div></div>' +
@@ -34927,7 +35059,7 @@ function getAuditLogs() {
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
       '</div></div></div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
@@ -34952,12 +35084,12 @@ function getAuditLogs() {
       '</div>' +
       '</div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div class="card" style="padding:12px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:' + complianceColor + ';flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Documentation Compliance</div></div>' +
       '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">' +
-      '<svg viewBox="0 0 108 108" style="width:100px;height:100px">' +
+      '<svg viewBox="0 0 108 108" style="width:80px;height:80px">' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="' + complianceColor + '" stroke-width="13" stroke-linecap="round" stroke-dasharray="' + (complianceRate / 100 * 2 * Math.PI * 42) + ' ' + (2 * Math.PI * 42) + '" transform="rotate(-90 54 54)"/>' +
       '<text x="54" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">' + complianceRate + '%</text>' +
@@ -34975,6 +35107,122 @@ function getAuditLogs() {
     _icons();
   }
 
+  window._cmDashFilterChange = function () {
+    var from = (document.getElementById('cmdf-from') || {}).value || '';
+    var to = (document.getElementById('cmdf-to') || {}).value || '';
+    var workerId = (document.getElementById('cmdf-worker') || {}).value || '';
+    var status = (document.getElementById('cmdf-status') || {}).value || '';
+    window._cmDashFilters = { from: from, to: to, workerId: workerId, status: status };
+    if (typeof renderCMDashboard === 'function') renderCMDashboard();
+  };
+
+  window._cmDashFilterClear = function () {
+    window._cmDashFilters = {};
+    ['cmdf-from', 'cmdf-to', 'cmdf-worker', 'cmdf-status'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    if (typeof renderCMDashboard === 'function') renderCMDashboard();
+  };
+
+  window._cmExportDashboardPDF = function () {
+    function build() {
+      var s = window._cmDashSummary;
+      if (!s) { toast('Dashboard not ready yet', 'err'); return; }
+      var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      var doc = new jsPDFctor({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+      var y = 50;
+      doc.setFont(undefined, 'bold'); doc.setFontSize(18); doc.setTextColor(20, 20, 19);
+      doc.text('Case Management Dashboard Summary', 40, y); y += 20;
+      doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(110, 105, 96);
+      doc.text('Generated ' + s.generatedAt.toLocaleString(), 40, y); y += 14;
+      var fx = s.filters || {};
+      if (fx.from || fx.to || fx.workerId || fx.status) {
+        var parts = [];
+        if (fx.from) parts.push('From ' + fx.from);
+        if (fx.to) parts.push('To ' + fx.to);
+        if (fx.status) parts.push('Status: ' + fx.status);
+        if (fx.workerId) parts.push('Case worker filtered');
+        doc.text('Filters applied: ' + parts.join('  |  '), 40, y); y += 14;
+      }
+      y += 10;
+
+      function section(title) {
+        doc.setFont(undefined, 'bold'); doc.setFontSize(12); doc.setTextColor(20, 20, 19);
+        doc.text(title, 40, y); y += 6;
+        doc.setDrawColor(220, 218, 210); doc.line(40, y, 572, y); y += 16;
+        doc.setFont(undefined, 'normal');
+      }
+      function row(label, value) {
+        doc.setFontSize(10); doc.setTextColor(90, 88, 84);
+        doc.text(String(label), 46, y);
+        doc.setTextColor(20, 20, 19);
+        doc.text(String(value), 320, y);
+        y += 16;
+      }
+
+      section('Key Metrics');
+      row('Care Team (active)', s.careTeam);
+      row('Clients (active / total)', s.clients + ' / ' + s.totalClients);
+      row('Active Cases (90-day)', s.activeCases);
+      row('Archive items', s.archive);
+      y += 8;
+
+      section('Client Status');
+      row('Active', s.clientStatus.active);
+      row('Inactive', s.clientStatus.inactive);
+      row('Discharged', s.clientStatus.discharged);
+      y += 8;
+
+      section('Units');
+      row('This Week', s.unitsWeek);
+      row('This Month', s.unitsMonth);
+      row('This Year', s.unitsYear);
+      row('Last Year', s.unitsLastYear);
+      y += 8;
+
+      section('Billing Overview');
+      row('Total Billed', '$' + s.billing.billed.toFixed(2));
+      row('Total Paid', '$' + s.billing.paid.toFixed(2));
+      row('Pending', '$' + s.billing.pending.toFixed(2));
+      row('Collected %', (s.billing.billed > 0 ? Math.round(s.billing.paid / s.billing.billed * 100) : 0) + '%');
+      y += 8;
+
+      section('Note Status / Documentation Compliance');
+      row('Draft', s.notesStatus.draft);
+      row('Signed', s.notesStatus.signed);
+      row('Billed', s.notesStatus.billed);
+      row('Compliance Rate', s.notesStatus.complianceRate + '%');
+
+      if (s.topWorkers && s.topWorkers.length) {
+        y += 8;
+        section('Care Team Caseload');
+        s.topWorkers.forEach(function (w) {
+          row(w.first + ' ' + w.last + ' (' + (w.credential || 'Case Worker') + ')', w.caseload + ' clients');
+        });
+      }
+
+      doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
+    }
+
+    if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+      toast('Preparing PDF...', 'info');
+      var s1 = document.createElement('script');
+      s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s1.onload = build;
+      s1.onerror = function () {
+        var s2 = document.createElement('script');
+        s2.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+        s2.onload = build;
+        s2.onerror = function () { toast('Could not load PDF library', 'err'); };
+        document.head.appendChild(s2);
+      };
+      document.head.appendChild(s1);
+    } else {
+      build();
+    }
+  };
+
   window._cmUnitsSwitch = function (period) {
     var data = window._cmUnitsPeriods && window._cmUnitsPeriods[period];
     if (!data) return;
@@ -34982,18 +35230,19 @@ function getAuditLogs() {
     if (valEl) valEl.textContent = data.total;
     var barsEl = document.getElementById('cm-units-bars');
     if (barsEl) {
-      var total = data.codes.reduce(function (s, c) { return s + c.units; }, 0) || 1;
-      barsEl.innerHTML = data.codes.length
-        ? data.codes.map(function (c) {
-            var pct = Math.round((c.units / total) * 100);
-            return '<div style="margin-bottom:8px">' +
-              '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">' +
-              '<span style="font-family:var(--mono);font-weight:600">' + c.code + '</span>' +
-              '<span>' + c.units + ' units</span></div>' +
-              '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">' +
-              '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div></div></div>';
-          }).join('')
-        : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No units yet</div>';
+      var series = data.series || [];
+      var max = Math.max.apply(null, series.map(function (s) { return s.units; })) || 1;
+      var dense = series.length > 12;
+      barsEl.innerHTML = '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:48px">' +
+        series.map(function (s) {
+          var h = s.units > 0 ? Math.max(4, Math.round(s.units / max * 100)) : 2;
+          return '<div title="' + s.label + ': ' + s.units + ' units" style="flex:1;background:var(--brand);opacity:' + (s.units > 0 ? 1 : .18) + ';border-radius:3px 3px 0 0;height:' + h + '%;min-height:2px"></div>';
+        }).join('') +
+        '</div>' +
+        (dense ? '' :
+          '<div style="display:flex;gap:5px;margin-top:5px">' +
+          series.map(function (s) { return '<div style="flex:1;text-align:center;font-size:9px;color:var(--text3)">' + s.label + '</div>'; }).join('') +
+          '</div>');
     }
     ['week', 'month', 'year', 'lastyear'].forEach(function (k) {
       var b = document.getElementById('cm-utab-' + k);
@@ -35017,7 +35266,7 @@ function getAuditLogs() {
     color = color || '#c96442';
     var colorD = _kpiGradients(color);
     var clickable = !!route;
-    return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:90px' +
+    return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:72px' +
       (clickable ? ';cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,filter .16s' : '') + '"' +
       (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 14px 28px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
@@ -35070,15 +35319,15 @@ function getAuditLogs() {
 
   function _billStat(icon, color, label, value, max) {
     var pct = max > 0 ? Math.round((value / max) * 100) : 0;
-    return '<div style="background:var(--bg3);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:10px">' +
-      '<div style="width:26px;height:26px;border-radius:8px;background:' + color + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-      '<i data-lucide="' + icon + '" class="lci" style="width:13px;height:13px;color:' + color + '"></i></div>' +
+    return '<div style="background:var(--bg3);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;flex:1">' +
+      '<div class="cm-bill-icon" style="border-radius:9px;background:' + color + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="' + icon + '" class="lci cm-bill-ico-svg" style="color:' + color + '"></i></div>' +
       '<div style="flex:1;min-width:0">' +
-      '<div style="font-size:10px;color:var(--text3)">' + esc(label) + '</div>' +
-      '<div style="height:4px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:3px">' +
+      '<div style="font-size:10.5px;color:var(--text3);margin-bottom:4px">' + esc(label) + '</div>' +
+      '<div class="cm-bill-amt" style="font-weight:700;color:var(--text);line-height:1">$' + value.toFixed(2) + '</div>' +
+      '<div style="height:4px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:6px">' +
       '<div style="height:100%;width:' + pct + '%;background:' + color + '"></div></div>' +
       '</div>' +
-      '<div style="font-size:14px;font-weight:700;color:var(--text);flex-shrink:0">$' + value.toFixed(2) + '</div>' +
       '</div>';
   }
 
