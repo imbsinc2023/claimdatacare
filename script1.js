@@ -34954,7 +34954,7 @@ function getAuditLogs() {
     function unitChart(series) {
       var max = Math.max.apply(null, series.map(function (s) { return s.units; })) || 1;
       var dense = series.length > 12;
-      return '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:48px">' +
+      return '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:38px">' +
         series.map(function (s) {
           var h = s.units > 0 ? Math.max(4, Math.round(s.units / max * 100)) : 2;
           return '<div title="' + esc(s.label) + ': ' + s.units + ' units" style="flex:1;background:var(--brand);opacity:' + (s.units > 0 ? 1 : .18) + ';border-radius:3px 3px 0 0;height:' + h + '%;min-height:2px"></div>';
@@ -34979,7 +34979,7 @@ function getAuditLogs() {
       if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:16px 0;font-size:12px">No data</div>';
       var r = 42, C = 2 * Math.PI * r;
       var pa = (a / total) * C, pb = (b / total) * C, pc = (c / total) * C;
-      return '<svg viewBox="0 0 108 108" style="width:108px;height:108px;flex-shrink:0">' +
+      return '<svg viewBox="0 0 108 108" style="width:76px;height:76px;flex-shrink:0">' +
         '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
         '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#c96442" stroke-width="13" ' +
         'stroke-dasharray="' + pa + ' ' + (C - pa) + '" transform="rotate(-90 54 54)"/>' +
@@ -35103,7 +35103,7 @@ function getAuditLogs() {
       '<span style="width:8px;height:8px;border-radius:50%;background:' + complianceColor + ';flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Documentation Compliance</div></div>' +
       '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">' +
-      '<svg viewBox="0 0 108 108" style="width:64px;height:64px">' +
+      '<svg viewBox="0 0 108 108" style="width:56px;height:56px">' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
       '<circle cx="54" cy="54" r="42" fill="none" stroke="' + complianceColor + '" stroke-width="13" stroke-linecap="round" stroke-dasharray="' + (complianceRate / 100 * 2 * Math.PI * 42) + ' ' + (2 * Math.PI * 42) + '" transform="rotate(-90 54 54)"/>' +
       '<text x="54" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">' + complianceRate + '%</text>' +
@@ -35140,113 +35140,199 @@ function getAuditLogs() {
   };
 
   window._cmExportDashboardPDF = function () {
-    function buildTextSummary(doc, s) {
-      var y = 50;
-      doc.setFont(undefined, 'bold'); doc.setFontSize(16); doc.setTextColor(20, 20, 19);
-      doc.text('Case Management Dashboard — Data Summary', 40, y); y += 20;
-      doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(110, 105, 96);
-      doc.text('Generated ' + s.generatedAt.toLocaleString(), 40, y); y += 14;
-      var fx = s.filters || {};
-      if (fx.from || fx.to || fx.workerId || fx.status) {
-        var parts = [];
-        if (fx.from) parts.push('From ' + fx.from);
-        if (fx.to) parts.push('To ' + fx.to);
-        if (fx.status) parts.push('Status: ' + fx.status);
-        if (fx.workerId) parts.push('Case worker filtered');
-        doc.text('Filters applied: ' + parts.join('  |  '), 40, y); y += 14;
-      }
-      y += 10;
-
-      function section(title) {
-        doc.setFont(undefined, 'bold'); doc.setFontSize(12); doc.setTextColor(20, 20, 19);
-        doc.text(title, 40, y); y += 6;
-        doc.setDrawColor(220, 218, 210); doc.line(40, y, 572, y); y += 16;
-        doc.setFont(undefined, 'normal');
-      }
-      function row(label, value) {
-        doc.setFontSize(10); doc.setTextColor(90, 88, 84);
-        doc.text(String(label), 46, y);
-        doc.setTextColor(20, 20, 19);
-        doc.text(String(value), 320, y);
-        y += 16;
-      }
-
-      section('Key Metrics');
-      row('Care Team (active)', s.careTeam);
-      row('Clients (active / total)', s.clients + ' / ' + s.totalClients);
-      row('Active Cases (90-day)', s.activeCases);
-      row('Archive items', s.archive);
-      y += 8;
-
-      section('Client Status');
-      row('Active', s.clientStatus.active);
-      row('Inactive', s.clientStatus.inactive);
-      row('Discharged', s.clientStatus.discharged);
-      y += 8;
-
-      section('Units');
-      row('This Week', s.unitsWeek);
-      row('This Month', s.unitsMonth);
-      row('This Year', s.unitsYear);
-      row('Last Year', s.unitsLastYear);
-      y += 8;
-
-      section('Billing Overview');
-      row('Total Billed', '$' + s.billing.billed.toFixed(2));
-      row('Total Paid', '$' + s.billing.paid.toFixed(2));
-      row('Pending', '$' + s.billing.pending.toFixed(2));
-      row('Collected %', (s.billing.billed > 0 ? Math.round(s.billing.paid / s.billing.billed * 100) : 0) + '%');
-      y += 8;
-
-      section('Note Status / Documentation Compliance');
-      row('Draft', s.notesStatus.draft);
-      row('Signed', s.notesStatus.signed);
-      row('Billed', s.notesStatus.billed);
-      row('Compliance Rate', s.notesStatus.complianceRate + '%');
-
-      if (s.topWorkers && s.topWorkers.length) {
-        y += 8;
-        section('Care Team Caseload');
-        s.topWorkers.forEach(function (w) {
-          row(w.first + ' ' + w.last + ' (' + (w.credential || 'Case Worker') + ')', w.caseload + ' clients');
-        });
-      }
-    }
+    var C = {
+      terracotta: [201, 100, 66], terracottaD: [169, 80, 47],
+      forest: [63, 74, 56], forestD: [44, 53, 39],
+      olive: [125, 122, 78], oliveD: [101, 97, 56],
+      ochre: [184, 134, 60], ochreD: [150, 105, 42],
+      wine: [122, 59, 59],
+      ink: [20, 20, 19], ink2: [90, 88, 84], ink3: [130, 126, 118],
+      track: [237, 234, 224], white: [255, 255, 255],
+      green: [63, 74, 56], amber: [184, 134, 60], red: [169, 80, 47]
+    };
 
     function build() {
       var s = window._cmDashSummary;
-      var target = document.getElementById('cm-dash-content');
-      if (!s || !target) { toast('Dashboard not ready yet', 'err'); return; }
+      if (!s) { toast('Dashboard not ready yet', 'err'); return; }
+      var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      var doc = new jsPDFctor({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+      var M = 40, PW = 612, CW = PW - M * 2;
+      var y = M;
 
-      window.html2canvas(target, { scale: 2, backgroundColor: '#f5f4ed', useCORS: true }).then(function (canvas) {
-        var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-        var doc = new jsPDFctor({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-        var pageW = doc.internal.pageSize.getWidth();
-        var pageH = doc.internal.pageSize.getHeight();
-        var margin = 30;
+      function sc(rgb) { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
+      function tc(rgb) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
+      function dc(rgb) { doc.setDrawColor(rgb[0], rgb[1], rgb[2]); }
 
-        doc.setFont(undefined, 'bold'); doc.setFontSize(16); doc.setTextColor(20, 20, 19);
-        doc.text('Case Management Dashboard', margin, 34);
-        doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(110, 105, 96);
-        doc.text('Generated ' + s.generatedAt.toLocaleString(), margin, 48);
+      // ── Header ─────────────────────────────────────────────
+      doc.setFont(undefined, 'bold'); doc.setFontSize(19); tc(C.ink);
+      doc.text('Case Management Dashboard', M, y + 18);
+      doc.setFont(undefined, 'normal'); doc.setFontSize(9); tc(C.ink3);
+      doc.text('Generated ' + s.generatedAt.toLocaleString(), M, y + 33);
+      var fx = s.filters || {};
+      var fParts = [];
+      if (fx.from) fParts.push('From ' + fx.from);
+      if (fx.to) fParts.push('To ' + fx.to);
+      if (fx.status) fParts.push('Status: ' + fx.status);
+      if (fx.workerId) fParts.push('Case worker filtered');
+      if (fParts.length) { doc.text('Filters: ' + fParts.join('   '), M, y + 45); }
+      y += 62;
 
-        var imgW = pageW - margin * 2;
-        var imgH = canvas.height * (imgW / canvas.width);
-        var top = 60;
-        if (imgH > pageH - top - margin) {
-          var scale = (pageH - top - margin) / imgH;
-          imgW *= scale; imgH *= scale;
-        }
-        doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, top, imgW, imgH);
+      function sectionTitle(title, color) {
+        sc(color); doc.circle(M + 3, y - 3, 3, 'F');
+        doc.setFont(undefined, 'bold'); doc.setFontSize(11); tc(C.ink);
+        doc.text(title.toUpperCase(), M + 12, y);
+        y += 12;
+      }
 
-        doc.addPage();
-        buildTextSummary(doc, s);
+      function kpiBox(x, w, h, label, value, sub, color, colorD) {
+        var grad = doc.setFillColor ? null : null;
+        sc(color); doc.roundedRect(x, y, w, h, 7, 7, 'F');
+        doc.setFont(undefined, 'bold'); doc.setFontSize(8.5); tc(C.white);
+        doc.text(label.toUpperCase(), x + 10, y + 16);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(21);
+        doc.text(String(value), x + 10, y + h - 14);
+        if (sub) { doc.setFont(undefined, 'normal'); doc.setFontSize(7.5); doc.text(sub, x + 10, y + h - 5); }
+      }
 
-        doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
-      }).catch(function (err) {
-        console.error('PDF export error:', err);
-        toast('PDF export failed', 'err');
+      // ── KPI row ────────────────────────────────────────────
+      var kw = (CW - 30) / 4, kh = 62;
+      kpiBox(M, kw, kh, 'Care Team', s.careTeam, '', C.forest);
+      kpiBox(M + (kw + 10), kw, kh, 'Clients', s.clients, s.totalClients + ' total', C.terracotta);
+      kpiBox(M + (kw + 10) * 2, kw, kh, 'Active Cases', s.activeCases, '90-day', C.olive);
+      kpiBox(M + (kw + 10) * 3, kw, kh, 'Archive', s.archive, '', C.ochre);
+      y += kh + 22;
+
+      function stackedBar(x, w, h, segs) {
+        var total = segs.reduce(function (a, sg) { return a + sg.value; }, 0) || 1;
+        sc(C.track); doc.roundedRect(x, y, w, h, h / 2, h / 2, 'F');
+        var cx = x;
+        segs.forEach(function (sg) {
+          var sw = (sg.value / total) * w;
+          if (sw > 0) { sc(sg.color); doc.rect(cx, y, sw, h, 'F'); cx += sw; }
+        });
+      }
+      function legendRow(items) {
+        var lx = M;
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        items.forEach(function (it) {
+          sc(it.color); doc.circle(lx + 4, y - 3, 3.5, 'F');
+          tc(C.ink2);
+          var label = it.label + ' (' + it.value + ')';
+          doc.text(label, lx + 12, y);
+          lx += doc.getTextWidth(label) + 28;
+        });
+      }
+
+      // ── Client Status ──────────────────────────────────────
+      sectionTitle('Client Status', C.terracotta);
+      stackedBar(M, CW, 10, [
+        { value: s.clientStatus.active, color: C.terracotta },
+        { value: s.clientStatus.inactive, color: C.olive },
+        { value: s.clientStatus.discharged, color: C.ochre }
+      ]);
+      y += 20;
+      legendRow([
+        { label: 'Active', value: s.clientStatus.active, color: C.terracotta },
+        { label: 'Inactive', value: s.clientStatus.inactive, color: C.olive },
+        { label: 'Discharged', value: s.clientStatus.discharged, color: C.ochre }
+      ]);
+      y += 24;
+
+      // ── Units ──────────────────────────────────────────────
+      sectionTitle('Units', C.olive);
+      doc.setFont(undefined, 'bold'); doc.setFontSize(9); tc(C.ink2);
+      var uCols = [
+        ['This Week', s.unitsWeek], ['This Month', s.unitsMonth],
+        ['This Year', s.unitsYear], ['Last Year', s.unitsLastYear]
+      ];
+      var ucw = CW / 4;
+      uCols.forEach(function (c, i) {
+        var cx = M + i * ucw;
+        doc.setFont(undefined, 'normal'); doc.setFontSize(8.5); tc(C.ink3);
+        doc.text(c[0], cx, y);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(16); tc(C.olive);
+        doc.text(String(c[1]), cx, y + 16);
       });
+      y += 34;
+
+      // ── Billing Overview ───────────────────────────────────
+      sectionTitle('Billing Overview', C.ochre);
+      var collected = s.billing.billed > 0 ? Math.round(s.billing.paid / s.billing.billed * 100) : 0;
+      doc.setFont(undefined, 'normal'); doc.setFontSize(9); tc(C.ink2);
+      doc.text(collected + '% collected', M + CW - 70, y - 12);
+      stackedBar(M, CW, 10, [
+        { value: s.billing.paid, color: C.forest },
+        { value: s.billing.pending, color: C.ochre }
+      ]);
+      y += 22;
+      var bCols = [
+        ['Total Billed', s.billing.billed, C.terracotta],
+        ['Total Paid', s.billing.paid, C.forest],
+        ['Pending', s.billing.pending, C.ochre]
+      ];
+      var bcw = CW / 3;
+      bCols.forEach(function (c, i) {
+        var cx = M + i * bcw;
+        sc(c[2]); doc.circle(cx + 3, y - 3, 3, 'F');
+        doc.setFont(undefined, 'normal'); doc.setFontSize(8.5); tc(C.ink3);
+        doc.text(c[0], cx + 10, y);
+        doc.setFont(undefined, 'bold'); doc.setFontSize(13); tc(C.ink);
+        doc.text('$' + c[1].toFixed(2), cx + 10, y + 15);
+      });
+      y += 32;
+
+      // ── Note Status + Compliance ───────────────────────────
+      sectionTitle('Note Status & Documentation Compliance', C.forest);
+      stackedBar(M, CW * 0.6, 10, [
+        { value: s.notesStatus.draft, color: C.ink3 },
+        { value: s.notesStatus.signed, color: C.ink2 },
+        { value: s.notesStatus.billed, color: C.terracotta }
+      ]);
+      y += 20;
+      legendRow([
+        { label: 'Draft', value: s.notesStatus.draft, color: C.ink3 },
+        { label: 'Signed', value: s.notesStatus.signed, color: C.ink2 },
+        { label: 'Billed', value: s.notesStatus.billed, color: C.terracotta }
+      ]);
+      y += 22;
+      var compColor = s.notesStatus.complianceRate >= 80 ? C.green : (s.notesStatus.complianceRate >= 50 ? C.amber : C.red);
+      doc.setFont(undefined, 'normal'); doc.setFontSize(9); tc(C.ink2);
+      doc.text('Compliance rate (notes signed or billed):', M, y);
+      doc.setFont(undefined, 'bold'); doc.setFontSize(13); tc(compColor);
+      doc.text(s.notesStatus.complianceRate + '%', M + 230, y);
+      y += 8;
+      stackedBar(M, CW, 8, [
+        { value: s.notesStatus.complianceRate, color: compColor },
+        { value: 100 - s.notesStatus.complianceRate, color: C.track }
+      ]);
+      y += 26;
+
+      // ── Care Team Caseload table ───────────────────────────
+      if (s.topWorkers && s.topWorkers.length) {
+        sectionTitle('Care Team Caseload', C.forest);
+        sc(C.forest); doc.rect(M, y - 10, CW, 18, 'F');
+        doc.setFont(undefined, 'bold'); doc.setFontSize(8.5); tc(C.white);
+        doc.text('CASE WORKER', M + 8, y + 2);
+        doc.text('CREDENTIAL', M + 230, y + 2);
+        doc.text('CASELOAD', M + CW - 60, y + 2);
+        y += 8;
+        s.topWorkers.forEach(function (w, i) {
+          var rowH = 20;
+          if (i % 2 === 1) { sc(C.track); doc.rect(M, y, CW, rowH, 'F'); }
+          doc.setFont(undefined, 'normal'); doc.setFontSize(9.5); tc(C.ink);
+          doc.text(w.first + ' ' + w.last, M + 8, y + 14);
+          tc(C.ink2);
+          doc.text(w.credential || 'Case Worker', M + 230, y + 14);
+          doc.setFont(undefined, 'bold'); tc(C.ink);
+          doc.text(String(w.caseload), M + CW - 60, y + 14);
+          y += rowH;
+        });
+      }
+
+      doc.setFont(undefined, 'normal'); doc.setFontSize(7.5); tc(C.ink3);
+      doc.text('ClaimDataCare — Case Management Dashboard', M, 780);
+
+      doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
     }
 
     function loadScript(url) {
@@ -35267,13 +35353,10 @@ function getAuditLogs() {
     }
 
     toast('Preparing PDF...', 'info');
-    Promise.all([
-      ensureLib(function () { return typeof window.jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'; },
-        ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js']),
-      ensureLib(function () { return typeof window.html2canvas !== 'undefined'; },
-        ['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'])
-    ]).then(build).catch(function () {
-      toast('Could not load PDF libraries', 'err');
+    ensureLib(function () { return typeof window.jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'; },
+      ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js']
+    ).then(build).catch(function () {
+      toast('Could not load PDF library', 'err');
     });
   };
 
@@ -35298,7 +35381,7 @@ function getAuditLogs() {
       var series = data.series || [];
       var max = Math.max.apply(null, series.map(function (s) { return s.units; })) || 1;
       var dense = series.length > 12;
-      barsEl.innerHTML = '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:48px">' +
+      barsEl.innerHTML = '<div style="display:flex;align-items:flex-end;gap:' + (dense ? '2px' : '5px') + ';height:38px">' +
         series.map(function (s) {
           var h = s.units > 0 ? Math.max(4, Math.round(s.units / max * 100)) : 2;
           return '<div title="' + s.label + ': ' + s.units + ' units" style="flex:1;background:var(--brand);opacity:' + (s.units > 0 ? 1 : .18) + ';border-radius:3px 3px 0 0;height:' + h + '%;min-height:2px"></div>';
@@ -35411,7 +35494,7 @@ function getAuditLogs() {
     if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:30px 0;font-size:12px">No data</div>';
     var r = 45, C = 2 * Math.PI * r;
     var pa = (a / total) * C, pb = (b / total) * C, pc = (c / total) * C;
-    return '<svg viewBox="0 0 120 120" style="width:100%;max-width:180px;display:block;margin:0 auto">' +
+    return '<svg viewBox="0 0 120 120" style="width:100%;max-width:76px;display:block;margin:0 auto">' +
       '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="var(--bg3)" stroke-width="14"/>' +
       '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="var(--text3)" stroke-width="14" ' +
       'stroke-dasharray="' + pa + ' ' + (C - pa) + '" transform="rotate(-90 60 60)"/>' +
