@@ -34722,7 +34722,14 @@ function getAuditLogs() {
     if (!document.getElementById('cm-dash-arial-style')) {
       var st = document.createElement('style');
       st.id = 'cm-dash-arial-style';
-      st.textContent = '.cm-dash-arial, .cm-dash-arial *{font-family:Arial,Helvetica,sans-serif!important;}';
+      st.textContent =
+        '#cm-dash-content, #cm-dash-content *, #sec-cm-dashboard .page-hdr h1{font-family:Arial,Helvetica,sans-serif!important;}' +
+        '.cm-kpi-card{container-type:inline-size;}' +
+        '.cm-kpi-card .cm-kpi-label{font-size:clamp(9px,7cqi,12px)!important;}' +
+        '.cm-kpi-card .cm-kpi-num{font-size:clamp(18px,15cqi,32px)!important;}' +
+        '.cm-kpi-card .cm-kpi-sub{font-size:clamp(9px,6cqi,12px)!important;}' +
+        '.cm-kpi-card .cm-kpi-bgicon{width:clamp(36px,42cqi,72px)!important;height:clamp(36px,42cqi,72px)!important;}' +
+        '.cm-kpi-card .cm-kpi-arrow{width:clamp(10px,8cqi,15px)!important;height:clamp(10px,8cqi,15px)!important;}';
       document.head.appendChild(st);
     }
 
@@ -34788,6 +34795,9 @@ function getAuditLogs() {
       else if (s === 'signed') signedN++;
       else draftN++;
     });
+    var totalNotesN = draftN + signedN + billedN;
+    var complianceRate = totalNotesN > 0 ? Math.round((signedN + billedN) / totalNotesN * 100) : 0;
+    var complianceColor = complianceRate >= 80 ? '#3f4a38' : (complianceRate >= 50 ? '#b8863c' : '#a9502f');
 
     var totalBilled = 0, totalPaid = 0, pendingBill = 0;
     (d.billing || []).forEach(function (b) {
@@ -34848,9 +34858,9 @@ function getAuditLogs() {
       '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;padding-bottom:16px;align-items:stretch;height:100%;box-sizing:border-box">' +
 
       '<div style="display:flex;flex-direction:column;gap:12px;height:100%">' +
-      _kpi('Care Team', employees, '', 'user-cog', '#3f4a38', 'cm-workers') +
+      _kpi('Care Team', employees, '', 'user-plus', '#3f4a38', 'cm-workers') +
       _kpi('Clients', clients, totalClients + ' total', 'user-round', '#c96442', 'cm-clients') +
-      _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e', 'cm-encounters') +
+      _kpi('Active Cases', openCases, '', 'briefcase', '#7d7a4e', 'cm-encounters') +
       _kpi('Archive', docs, '', 'folder', '#b8863c', 'cm-assessments') +
       '</div>' +
 
@@ -34903,7 +34913,7 @@ function getAuditLogs() {
 
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0">' +
 
       '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
@@ -34922,7 +34932,7 @@ function getAuditLogs() {
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Care Team Activity</div></div>' +
-      '<button class="btn btn-xs" onclick="go(\'cm-workers\')" style="display:flex;align-items:center;gap:5px">View All <i data-lucide="chevron-right" class="lci" style="width:11px;height:11px"></i></button>' +
+      '<button class="btn btn-xs" onclick="go(\'cm-workers\')" style="display:flex;align-items:center;gap:5px;font-family:Arial,Helvetica,sans-serif!important">View All <i data-lucide="chevron-right" class="lci" style="width:11px;height:11px"></i></button>' +
       '</div>' +
       '<div style="flex:1">' +
       (topWorkers.length
@@ -34939,6 +34949,20 @@ function getAuditLogs() {
               '</div></div>';
           }).join('')
         : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">No case workers yet</div>') +
+      '</div>' +
+      '</div>' +
+
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + complianceColor + ';flex-shrink:0"></span>' +
+      '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Documentation Compliance</div></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">' +
+      '<svg viewBox="0 0 108 108" style="width:100px;height:100px">' +
+      '<circle cx="54" cy="54" r="42" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
+      '<circle cx="54" cy="54" r="42" fill="none" stroke="' + complianceColor + '" stroke-width="13" stroke-linecap="round" stroke-dasharray="' + (complianceRate / 100 * 2 * Math.PI * 42) + ' ' + (2 * Math.PI * 42) + '" transform="rotate(-90 54 54)"/>' +
+      '<text x="54" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">' + complianceRate + '%</text>' +
+      '</svg>' +
+      '<div style="font-size:11px;color:var(--text3);text-align:center">Notes signed or billed<br>(' + (signedN + billedN) + ' of ' + totalNotesN + ')</div>' +
       '</div>' +
       '</div>' +
 
@@ -34993,21 +35017,21 @@ function getAuditLogs() {
     color = color || '#c96442';
     var colorD = _kpiGradients(color);
     var clickable = !!route;
-    return '<div style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:90px' +
+    return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:90px' +
       (clickable ? ';cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,filter .16s' : '') + '"' +
       (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 14px 28px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
       '<div style="position:absolute;inset:0;background:radial-gradient(circle at 88% -10%, rgba(255,255,255,.20), transparent 50%);pointer-events:none"></div>' +
       '<div style="position:absolute;right:-16px;bottom:-16px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>' +
-      '<i data-lucide="' + ico + '" class="lci" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;color:#fff;opacity:.16;pointer-events:none"></i>' +
+      '<i data-lucide="' + ico + '" class="lci cm-kpi-bgicon" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;opacity:.16;pointer-events:none"></i>' +
       '<div style="position:relative">' +
-      '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11px;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.05em;font-weight:700">' + esc(label) + '</div>' +
+      '<div class="cm-kpi-label" style="font-family:Arial,Helvetica,sans-serif!important;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.05em;font-weight:700">' + esc(label) + '</div>' +
       '</div>' +
       '<div style="position:relative">' +
-      '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
-      (sub ? '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px;color:rgba(255,255,255,.78);margin-top:5px">' + esc(sub) + '</div>' : '') +
+      '<div class="cm-kpi-num" style="font-family:Arial,Helvetica,sans-serif!important;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
+      (sub ? '<div class="cm-kpi-sub" style="font-family:Arial,Helvetica,sans-serif!important;color:rgba(255,255,255,.78);margin-top:5px">' + esc(sub) + '</div>' : '') +
       '</div>' +
-      (clickable ? '<i data-lucide="chevron-right" class="lci kpi-arrow" style="position:absolute;bottom:14px;right:14px;width:14px;height:14px;color:rgba(255,255,255,.55);transition:transform .16s,color .16s"></i>' : '') +
+      (clickable ? '<i data-lucide="chevron-right" class="lci cm-kpi-arrow" style="position:absolute;bottom:14px;right:14px;color:rgba(255,255,255,.55);transition:transform .16s,color .16s"></i>' : '') +
       '</div>';
   }
 
