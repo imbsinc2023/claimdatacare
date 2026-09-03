@@ -31171,6 +31171,13 @@ function openCMPatientSummary(clientId) {
 }
 
 // ── CM: ENHANCED DASHBOARD ─────────────────────────────────────
+function _cmKpiCard(route,color,icon,value,label,urgent){
+  return '<div class="cm-kpi" style="background:'+color+';border-radius:var(--r-lg);padding:16px 16px 14px;cursor:pointer;position:relative;overflow:hidden;transition:transform .12s,box-shadow .12s" onclick="go(\''+route+'\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 18px rgba(0,0,0,.16)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">'+
+    (urgent?'<span style="position:absolute;top:12px;right:14px;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3)"></span>':'<i data-lucide="'+icon+'" class="lci" style="position:absolute;top:14px;right:14px;width:16px;height:16px;color:rgba(255,255,255,.55)"></i>')+
+    '<div style="font-size:26px;font-weight:800;color:#fff;line-height:1">'+value+'</div>'+
+    '<div style="font-size:11px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.85);margin-top:6px">'+label+'</div>'+
+    '</div>';
+}
 function renderCMDashboard() {
   if (!_isCMRole()) { go('dashboard'); return; }
   var el = document.getElementById('cm-dash-content');
@@ -31225,13 +31232,13 @@ function renderCMDashboard() {
     '</div>'+
     // Alerts
     alertHtml+
-    // Stats — clickable drill-down cards
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">'+
-    '<div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:transform .1s,box-shadow .1s" onclick="go(\'cm-clients\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div style="font-size:24px;font-weight:800;color:var(--brand)">'+activeClients.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Active Clients →</div></div>'+
-    '<div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:transform .1s,box-shadow .1s" onclick="go(\'cm-workers\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div style="font-size:24px;font-weight:800;color:var(--green)">'+activeWorkers.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Active Workers →</div></div>'+
-    '<div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:transform .1s,box-shadow .1s" onclick="go(\'cm-supervisor\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div style="font-size:24px;font-weight:800;color:'+(pendingNotes.length?'var(--amber)':'var(--text)')+'">'+pendingNotes.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Pending Review →</div></div>'+
-    '<div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:transform .1s,box-shadow .1s" onclick="go(\'cm-authorizations\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div style="font-size:24px;font-weight:800;color:'+(expiringAuths.length?'var(--red)':'var(--text)')+'">'+expiringAuths.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Expiring Auths →</div></div>'+
-    '<div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:transform .1s,box-shadow .1s" onclick="go(\'cm-billing\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"><div style="font-size:24px;font-weight:800;color:'+(billingReady?'var(--brand)':'var(--text)')+'">'+billingReady+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Billing Ready →</div></div>'+
+    // Stats: clickable drill-down cards
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">'+
+    _cmKpiCard('cm-workers','#3f4a38','user-cog',activeWorkers.length,'Care Team')+
+    _cmKpiCard('cm-clients','#c96442','heart-handshake',activeClients.length,'Clients')+
+    _cmKpiCard('cm-supervisor','#7d7a4e','clock',pendingNotes.length,'Pending Review',pendingNotes.length>0)+
+    _cmKpiCard('cm-authorizations','#b8863c','shield-alert',expiringAuths.length,'Expiring Auths',expiringAuths.length>0)+
+    _cmKpiCard('cm-billing','#7a3b3b','dollar-sign',billingReady,'Billing Ready')+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div class="card"><div style="font-weight:700;font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span>Recent Notes</span><span style="font-weight:400;font-size:11px;color:var(--text3)">This month: '+monthEncounters.length+' ('+billableThisMonth+' billable)</span></div>'+
