@@ -34856,7 +34856,7 @@ function getAuditLogs() {
 
       '<div style="display:flex;flex-direction:column;gap:14px;height:100%">' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0">' +
 
       '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
@@ -34885,22 +34885,22 @@ function getAuditLogs() {
       '<div id="cm-units-bars" style="flex:1">' + unitBars(periods.week.codes) + '</div>' +
       '</div>' +
 
-      '</div>' +
-
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;flex:1;min-height:0;display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Billing Overview</div></div>' +
-      '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:4px 10px">' +
-      '<i data-lucide="trending-up" class="lci" style="width:12px;height:12px;color:#3f4a38"></i>' +
-      '<span style="font-size:11px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
+      '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:3px 8px">' +
+      '<i data-lucide="trending-up" class="lci" style="width:11px;height:11px;color:#3f4a38"></i>' +
+      '<span style="font-size:10.5px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '%</span>' +
       '</div></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;flex:1">' +
+      '<div style="display:flex;flex-direction:column;gap:8px;flex:1">' +
       _billStat('receipt', '#c96442', 'Total Billed', totalBilled, totalBilled) +
       _billStat('check-circle', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
       _billStat('clock', '#b8863c', 'Pending', pendingBill, totalBilled) +
       '</div>' +
+      '</div>' +
+
       '</div>' +
 
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0">' +
@@ -34998,11 +34998,11 @@ function getAuditLogs() {
       (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 14px 28px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
       '<div style="position:absolute;inset:0;background:radial-gradient(circle at 88% -10%, rgba(255,255,255,.20), transparent 50%);pointer-events:none"></div>' +
-      '<div style="position:absolute;right:-34px;bottom:-34px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">' +
+      '<div style="position:absolute;right:-16px;bottom:-16px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>' +
+      '<i data-lucide="' + ico + '" class="lci" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;color:#fff;opacity:.16;pointer-events:none"></i>' +
+      '<div style="position:relative">' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11px;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.05em;font-weight:700">' + esc(label) + '</div>' +
-      '<div style="width:15px;height:15px;border-radius:4px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-      '<i data-lucide="' + ico + '" class="lci" style="width:8px;height:8px;color:#fff"></i></div></div>' +
+      '</div>' +
       '<div style="position:relative">' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
       (sub ? '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px;color:rgba(255,255,255,.78);margin-top:5px">' + esc(sub) + '</div>' : '') +
@@ -35046,13 +35046,15 @@ function getAuditLogs() {
 
   function _billStat(icon, color, label, value, max) {
     var pct = max > 0 ? Math.round((value / max) * 100) : 0;
-    return '<div style="background:var(--bg3);border-radius:12px;padding:12px">' +
-      '<div style="width:30px;height:30px;border-radius:9px;background:' + color + '22;display:flex;align-items:center;justify-content:center;margin-bottom:10px">' +
-      '<i data-lucide="' + icon + '" class="lci" style="width:14px;height:14px;color:' + color + '"></i></div>' +
-      '<div style="font-size:17px;font-weight:700;color:var(--text);line-height:1">$' + value.toFixed(2) + '</div>' +
-      '<div style="font-size:10.5px;color:var(--text3);margin-top:4px;margin-bottom:8px">' + esc(label) + '</div>' +
-      '<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden">' +
+    return '<div style="background:var(--bg3);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:10px">' +
+      '<div style="width:26px;height:26px;border-radius:8px;background:' + color + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="' + icon + '" class="lci" style="width:13px;height:13px;color:' + color + '"></i></div>' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:10px;color:var(--text3)">' + esc(label) + '</div>' +
+      '<div style="height:4px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:3px">' +
       '<div style="height:100%;width:' + pct + '%;background:' + color + '"></div></div>' +
+      '</div>' +
+      '<div style="font-size:14px;font-weight:700;color:var(--text);flex-shrink:0">$' + value.toFixed(2) + '</div>' +
       '</div>';
   }
 
