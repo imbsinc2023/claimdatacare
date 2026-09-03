@@ -34718,6 +34718,13 @@ function getAuditLogs() {
     var el = document.getElementById('cm-dash-content');
     if (!el) return;
 
+    if (!document.getElementById('cm-dash-fraunces')) {
+      var fl = document.createElement('link');
+      fl.id = 'cm-dash-fraunces'; fl.rel = 'stylesheet';
+      fl.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&display=swap';
+      document.head.appendChild(fl);
+    }
+
     var clients = (d.clients || []).filter(function (c) { return c.status !== 'Inactive' && c.status !== 'Discharged'; }).length;
     var totalClients = (d.clients || []).length;
     var employees = (d.workers || []).filter(function (w) { return w.status !== 'Inactive'; }).length;
@@ -34733,17 +34740,45 @@ function getAuditLogs() {
     });
     var openCases = Object.keys(byClient).length;
 
+    var activeCt = 0, inactiveCt = 0, dischargedCt = 0;
+    (d.clients || []).forEach(function (c) {
+      var s = c.status || 'Active';
+      if (s === 'Discharged') dischargedCt++;
+      else if (s === 'Inactive') inactiveCt++;
+      else activeCt++;
+    });
+
     var now = new Date();
     var wStart = new Date(now); wStart.setDate(now.getDate() - now.getDay());
     var mStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    var wUnits = 0, mUnits = 0;
-    (d.notes || []).forEach(function (n) {
-      if (!n.date) return;
-      var dt = new Date(n.date);
-      var u = parseInt(n.units || 0, 10) || 0;
-      if (dt >= mStart) mUnits += u;
-      if (dt >= wStart) wUnits += u;
-    });
+    var yStart = new Date(now.getFullYear(), 0, 1);
+    var lyStart = new Date(now.getFullYear() - 1, 0, 1);
+    var lyEnd = yStart;
+
+    function periodUnits(start, end) {
+      var byCode = {}, total = 0;
+      (d.notes || []).forEach(function (n) {
+        if (!n.date) return;
+        var dt = new Date(n.date);
+        if (dt < start) return;
+        if (end && dt >= end) return;
+        var u = parseInt(n.units || 0, 10) || 0;
+        var c = n.code || 'T1017';
+        byCode[c] = (byCode[c] || 0) + u;
+        total += u;
+      });
+      var codes = Object.keys(byCode).sort(function (a, b) { return byCode[b] - byCode[a]; }).slice(0, 4)
+        .map(function (c) { return { code: c, units: byCode[c] }; });
+      return { total: total, codes: codes };
+    }
+
+    var periods = {
+      week: periodUnits(wStart, null),
+      month: periodUnits(mStart, null),
+      year: periodUnits(yStart, null),
+      lastyear: periodUnits(lyStart, lyEnd)
+    };
+    window._cmUnitsPeriods = periods;
 
     var draftN = 0, signedN = 0, billedN = 0;
     (d.notes || []).forEach(function (n) {
@@ -34762,25 +34797,83 @@ function getAuditLogs() {
       else if (s === 'draft' || s === 'ready' || s === 'submitted') pendingBill += amt;
     });
 
+    function unitsToggleBtn(key, label, active) {
+      return '<button id="cm-utab-' + key + '" onclick="_cmUnitsSwitch(\'' + key + '\')" style="border:none;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;background:' +
+        (active ? 'var(--brand)' : 'transparent') + ';color:' + (active ? '#fff' : 'var(--text2)') + '">' + esc(label) + '</button>';
+    }
+
+    function unitBars(codes) {
+      var total = codes.reduce(function (s, c) { return s + c.units; }, 0) || 1;
+      return codes.length
+        ? codes.map(function (c) {
+            var pct = Math.round((c.units / total) * 100);
+            return '<div style="margin-bottom:8px">' +
+              '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">' +
+              '<span style="font-family:var(--mono);font-weight:600">' + esc(c.code) + '</span>' +
+              '<span>' + c.units + ' units</span></div>' +
+              '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">' +
+              '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div></div></div>';
+          }).join('')
+        : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No units yet</div>';
+    }
+
+    function clientDonut(a, b, c) {
+      var total = a + b + c;
+      if (total === 0) return '<div style="text-align:center;color:var(--text3);padding:16px 0;font-size:12px">No data</div>';
+      var r = 42, C = 2 * Math.PI * r;
+      var pa = (a / total) * C, pb = (b / total) * C, pc = (c / total) * C;
+      return '<svg viewBox="0 0 108 108" style="width:108px;height:108px;flex-shrink:0">' +
+        '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="var(--bg3)" stroke-width="13"/>' +
+        '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#c96442" stroke-width="13" ' +
+        'stroke-dasharray="' + pa + ' ' + (C - pa) + '" transform="rotate(-90 54 54)"/>' +
+        '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#7d7a4e" stroke-width="13" ' +
+        'stroke-dasharray="' + pb + ' ' + (C - pb) + '" stroke-dashoffset="' + (-pa) + '" transform="rotate(-90 54 54)"/>' +
+        '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#b8863c" stroke-width="13" ' +
+        'stroke-dasharray="' + pc + ' ' + (C - pc) + '" stroke-dashoffset="' + (-(pa + pb)) + '" transform="rotate(-90 54 54)"/>' +
+        '<text x="54" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)" font-family="Fraunces, serif">' + total + '</text>' +
+        '</svg>';
+    }
+
     el.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">' +
       _kpi('Care Team', employees, '', 'user-cog', '#3f4a38') +
       _kpi('Clients', clients, totalClients + ' total', 'heart-handshake', '#c96442') +
       _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e') +
       _kpi('Archive', docs, '', 'folder', '#b8863c') +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
-      _unitsCard('Units This Week', wUnits, d, 'week') +
-      _unitsCard('Units This Month', mUnits, d, 'month') +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">' +
+
+      '<div class="card" style="padding:16px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Client Status</div>' +
+      '<div style="display:flex;align-items:center;gap:16px">' +
+      clientDonut(activeCt, inactiveCt, dischargedCt) +
+      '<div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)">' +
+      '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c96442;margin-right:6px"></span>Active (' + activeCt + ')</div>' +
+      '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7d7a4e;margin-right:6px"></span>Inactive (' + inactiveCt + ')</div>' +
+      '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#b8863c;margin-right:6px"></span>Discharged (' + dischargedCt + ')</div>' +
+      '</div></div></div>' +
+
+      '<div class="card" style="padding:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Units</div>' +
+      '<div style="display:flex;background:var(--bg3);border-radius:9px;padding:2px">' +
+      unitsToggleBtn('week', 'Week', true) +
+      unitsToggleBtn('month', 'Month', false) +
+      unitsToggleBtn('year', 'Year', false) +
+      unitsToggleBtn('lastyear', 'Last Year', false) +
+      '</div></div>' +
+      '<div id="cm-units-value" style="font-family:\'Fraunces\',serif;font-size:32px;font-weight:600;color:var(--brand);line-height:1;margin-bottom:12px">' + periods.week.total + '</div>' +
+      '<div id="cm-units-bars">' + unitBars(periods.week.codes) + '</div>' +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">' +
       '<div class="card" style="padding:16px">' +
       '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Billing Overview</div>' +
       _bar('Total Billed', totalBilled, totalBilled) +
       _bar('Total Paid', totalPaid, totalBilled) +
       _bar('Pending', pendingBill, totalBilled) +
+      '</div>' +
+
       '</div>' +
 
       '<div class="card" style="padding:16px">' +
@@ -34790,10 +34883,38 @@ function getAuditLogs() {
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px"></span> Draft ' + draftN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text2);border-radius:2px"></span> Signed ' + signedN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
-      '</div></div></div>';
+      '</div></div>';
 
     _icons();
   }
+
+  window._cmUnitsSwitch = function (period) {
+    var data = window._cmUnitsPeriods && window._cmUnitsPeriods[period];
+    if (!data) return;
+    var valEl = document.getElementById('cm-units-value');
+    if (valEl) valEl.textContent = data.total;
+    var barsEl = document.getElementById('cm-units-bars');
+    if (barsEl) {
+      var total = data.codes.reduce(function (s, c) { return s + c.units; }, 0) || 1;
+      barsEl.innerHTML = data.codes.length
+        ? data.codes.map(function (c) {
+            var pct = Math.round((c.units / total) * 100);
+            return '<div style="margin-bottom:8px">' +
+              '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">' +
+              '<span style="font-family:var(--mono);font-weight:600">' + c.code + '</span>' +
+              '<span>' + c.units + ' units</span></div>' +
+              '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">' +
+              '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div></div></div>';
+          }).join('')
+        : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No units yet</div>';
+    }
+    ['week', 'month', 'year', 'lastyear'].forEach(function (k) {
+      var b = document.getElementById('cm-utab-' + k);
+      if (!b) return;
+      if (k === period) { b.style.background = 'var(--brand)'; b.style.color = '#fff'; }
+      else { b.style.background = 'transparent'; b.style.color = 'var(--text2)'; }
+    });
+  };
 
   function _kpi(label, value, sub, ico, color) {
     color = color || '#c96442';
@@ -34801,7 +34922,7 @@ function getAuditLogs() {
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
       '<div style="font-size:11px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' + esc(label) + '</div>' +
       '<i data-lucide="' + ico + '" class="lci" style="width:16px;height:16px;color:rgba(255,255,255,.6)"></i></div>' +
-      '<div style="font-size:30px;font-weight:700;color:#fff;line-height:1">' + value + '</div>' +
+      '<div style="font-size:30px;font-weight:600;font-family:\'Fraunces\',serif;color:#fff;line-height:1">' + value + '</div>' +
       (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px">' + esc(sub) + '</div>' : '') +
       '</div>';
   }
