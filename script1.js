@@ -34717,6 +34717,7 @@ function getAuditLogs() {
     var d = _CM(); if (!d) return;
     var el = document.getElementById('cm-dash-content');
     if (!el) return;
+    el.style.height = '100%';
 
     if (!document.getElementById('cm-dash-arial-style')) {
       var st = document.createElement('style');
@@ -34844,7 +34845,7 @@ function getAuditLogs() {
     }
 
     el.innerHTML =
-      '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;align-items:stretch">' +
+      '<div class="cm-dash-arial" style="display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:10px;padding-top:4px;padding-bottom:16px;align-items:stretch;height:100%;box-sizing:border-box">' +
 
       '<div style="display:flex;flex-direction:column;gap:12px;height:100%">' +
       _kpi('Care Team', employees, '', 'user-cog', '#3f4a38', 'cm-workers') +
@@ -34853,15 +34854,15 @@ function getAuditLogs() {
       _kpi('Archive', docs, '', 'folder', '#b8863c', 'cm-assessments') +
       '</div>' +
 
-      '<div style="display:flex;flex-direction:column;gap:14px">' +
+      '<div style="display:flex;flex-direction:column;gap:14px;height:100%">' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#c96442;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Client Status</div></div>' +
-      '<div style="display:flex;align-items:center;gap:16px">' +
+      '<div style="display:flex;align-items:center;gap:16px;flex:1">' +
       clientDonut(activeCt, inactiveCt, dischargedCt) +
       '<div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)">' +
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c96442;margin-right:6px"></span>Active (' + activeCt + ')</div>' +
@@ -34869,7 +34870,7 @@ function getAuditLogs() {
       '<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#b8863c;margin-right:6px"></span>Discharged (' + dischargedCt + ')</div>' +
       '</div></div></div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#7d7a4e;flex-shrink:0"></span>' +
@@ -34881,12 +34882,12 @@ function getAuditLogs() {
       unitsToggleBtn('lastyear', 'Last Year', false) +
       '</div></div>' +
       '<div id="cm-units-value" style="font-family:Arial,Helvetica,sans-serif!important;font-size:28px;font-weight:700;color:var(--brand);line-height:1;margin-bottom:12px">' + periods.week.total + '</div>' +
-      '<div id="cm-units-bars">' + unitBars(periods.week.codes) + '</div>' +
+      '<div id="cm-units-bars" style="flex:1">' + unitBars(periods.week.codes) + '</div>' +
       '</div>' +
 
       '</div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;flex:1;min-height:0;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
@@ -34895,33 +34896,35 @@ function getAuditLogs() {
       '<i data-lucide="trending-up" class="lci" style="width:12px;height:12px;color:#3f4a38"></i>' +
       '<span style="font-size:11px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
       '</div></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;flex:1">' +
       _billStat('receipt', '#c96442', 'Total Billed', totalBilled, totalBilled) +
-      _billStat('circle-check-big', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
+      _billStat('check-circle', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
       _billStat('clock', '#b8863c', 'Pending', pendingBill, totalBilled) +
       '</div>' +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0">' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Note Status</div></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center">' +
       _donut(draftN, signedN, billedN) +
       '<div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px;flex-wrap:wrap">' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px"></span> Draft ' + draftN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text2);border-radius:2px"></span> Signed ' + signedN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
-      '</div></div>' +
+      '</div></div></div>' +
 
-      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
+      '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important;display:flex;flex-direction:column">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Care Team Activity</div></div>' +
       '<button class="btn btn-xs" onclick="go(\'cm-workers\')" style="display:flex;align-items:center;gap:5px">View All <i data-lucide="chevron-right" class="lci" style="width:11px;height:11px"></i></button>' +
       '</div>' +
+      '<div style="flex:1">' +
       (topWorkers.length
         ? topWorkers.map(function (w) {
             return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
@@ -34936,6 +34939,7 @@ function getAuditLogs() {
               '</div></div>';
           }).join('')
         : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">No case workers yet</div>') +
+      '</div>' +
       '</div>' +
 
       '</div>' +
