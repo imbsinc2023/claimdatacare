@@ -34887,12 +34887,19 @@ function getAuditLogs() {
       '</div>' +
 
       '<div class="card" style="padding:16px;font-family:Arial,Helvetica,sans-serif!important">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
       '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
       '<div style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Billing Overview</div></div>' +
-      _bar('Total Billed', totalBilled, totalBilled) +
-      _bar('Total Paid', totalPaid, totalBilled) +
-      _bar('Pending', pendingBill, totalBilled) +
+      '<div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border-radius:100px;padding:4px 10px">' +
+      '<i data-lucide="trending-up" class="lci" style="width:12px;height:12px;color:#3f4a38"></i>' +
+      '<span style="font-size:11px;font-weight:700;color:var(--text)">' + (totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0) + '% collected</span>' +
+      '</div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">' +
+      _billStat('receipt', '#c96442', 'Total Billed', totalBilled, totalBilled) +
+      _billStat('circle-check-big', '#3f4a38', 'Total Paid', totalPaid, totalBilled) +
+      _billStat('clock', '#b8863c', 'Pending', pendingBill, totalBilled) +
+      '</div>' +
       '</div>' +
 
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
@@ -35030,6 +35037,18 @@ function getAuditLogs() {
               '<div style="height:100%;background:var(--brand);width:' + pct + '%"></div></div></div>';
           }).join('')
         : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">No units yet</div>') +
+      '</div>';
+  }
+
+  function _billStat(icon, color, label, value, max) {
+    var pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return '<div style="background:var(--bg3);border-radius:12px;padding:12px">' +
+      '<div style="width:30px;height:30px;border-radius:9px;background:' + color + '22;display:flex;align-items:center;justify-content:center;margin-bottom:10px">' +
+      '<i data-lucide="' + icon + '" class="lci" style="width:14px;height:14px;color:' + color + '"></i></div>' +
+      '<div style="font-size:17px;font-weight:700;color:var(--text);line-height:1">$' + value.toFixed(2) + '</div>' +
+      '<div style="font-size:10.5px;color:var(--text3);margin-top:4px;margin-bottom:8px">' + esc(label) + '</div>' +
+      '<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden">' +
+      '<div style="height:100%;width:' + pct + '%;background:' + color + '"></div></div>' +
       '</div>';
   }
 
