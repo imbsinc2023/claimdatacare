@@ -34797,6 +34797,15 @@ function getAuditLogs() {
       else if (s === 'draft' || s === 'ready' || s === 'submitted') pendingBill += amt;
     });
 
+    var topWorkers = (d.workers || [])
+      .filter(function (w) { return w.status !== 'Inactive'; })
+      .map(function (w) {
+        var cnt = (d.clients || []).filter(function (c) { return c.workerId === w.id && c.status === 'Active'; }).length;
+        return { first: w.first, last: w.last, credential: w.credential, caseload: cnt, capacity: w.capacity };
+      })
+      .sort(function (a, b) { return b.caseload - a.caseload; })
+      .slice(0, 5);
+
     function unitsToggleBtn(key, label, active) {
       return '<button id="cm-utab-' + key + '" onclick="_cmUnitsSwitch(\'' + key + '\')" style="border:none;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;background:' +
         (active ? 'var(--brand)' : 'transparent') + ';color:' + (active ? '#fff' : 'var(--text2)') + '">' + esc(label) + '</button>';
@@ -34835,9 +34844,9 @@ function getAuditLogs() {
     }
 
     el.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:10px;margin-bottom:20px;padding-top:4px">' +
       _kpi('Care Team', employees, '', 'user-cog', '#3f4a38', 'cm-workers') +
-      _kpi('Clients', clients, totalClients + ' total', 'heart-handshake', '#c96442', 'cm-clients') +
+      _kpi('Clients', clients, totalClients + ' total', 'user-round', '#c96442', 'cm-clients') +
       _kpi('Active Cases', openCases, '90-day activity', 'briefcase', '#7d7a4e', 'cm-encounters') +
       _kpi('Archive', docs, '', 'folder', '#b8863c', 'cm-assessments') +
       '</div>' +
@@ -34845,7 +34854,9 @@ function getAuditLogs() {
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">' +
 
       '<div class="card" style="padding:16px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Client Status</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:#c96442;flex-shrink:0"></span>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Client Status</div></div>' +
       '<div style="display:flex;align-items:center;gap:16px">' +
       clientDonut(activeCt, inactiveCt, dischargedCt) +
       '<div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)">' +
@@ -34856,7 +34867,9 @@ function getAuditLogs() {
 
       '<div class="card" style="padding:16px">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Units</div>' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:#7d7a4e;flex-shrink:0"></span>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Units</div></div>' +
       '<div style="display:flex;background:var(--bg3);border-radius:9px;padding:2px">' +
       unitsToggleBtn('week', 'Week', true) +
       unitsToggleBtn('month', 'Month', false) +
@@ -34868,7 +34881,9 @@ function getAuditLogs() {
       '</div>' +
 
       '<div class="card" style="padding:16px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Billing Overview</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:#b8863c;flex-shrink:0"></span>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Billing Overview</div></div>' +
       _bar('Total Billed', totalBilled, totalBilled) +
       _bar('Total Paid', totalPaid, totalBilled) +
       _bar('Pending', pendingBill, totalBilled) +
@@ -34876,14 +34891,44 @@ function getAuditLogs() {
 
       '</div>' +
 
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+
       '<div class="card" style="padding:16px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Note Status</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Note Status</div></div>' +
       _donut(draftN, signedN, billedN) +
       '<div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px;flex-wrap:wrap">' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px"></span> Draft ' + draftN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--text2);border-radius:2px"></span> Signed ' + signedN + '</div>' +
       '<div><span style="display:inline-block;width:10px;height:10px;background:var(--brand);border-radius:2px"></span> Billed ' + billedN + '</div>' +
-      '</div></div>';
+      '</div></div>' +
+
+      '<div class="card" style="padding:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:#3f4a38;flex-shrink:0"></span>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em">Care Team Activity</div></div>' +
+      '<button class="btn btn-xs" onclick="go(\'cm-workers\')" style="display:flex;align-items:center;gap:5px">View All <i data-lucide="chevron-right" class="lci" style="width:11px;height:11px"></i></button>' +
+      '</div>' +
+      (topWorkers.length
+        ? topWorkers.map(function (w) {
+            var pct = Math.round((w.caseload / (w.capacity || 20)) * 100);
+            return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+              '<div style="width:28px;height:28px;border-radius:50%;background:var(--forest,#3f4a38);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + esc((w.first || '?').charAt(0) + (w.last || '').charAt(0)) + '</div>' +
+              '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:12.5px;font-weight:600;color:var(--text)">' + esc(w.first + ' ' + w.last) + '</div>' +
+              '<div style="font-size:11px;color:var(--text3)">' + esc(w.credential || 'Case Worker') + '</div>' +
+              '</div>' +
+              '<div style="text-align:right;flex-shrink:0">' +
+              '<div style="font-size:12px;font-weight:700;color:var(--text)">' + w.caseload + '</div>' +
+              '<div style="font-size:10px;color:var(--text3)">caseload</div>' +
+              '</div></div>';
+          }).join('')
+        : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">No case workers yet</div>') +
+      '</div>' +
+
+      '</div>';
 
     _icons();
   }
@@ -34916,20 +34961,33 @@ function getAuditLogs() {
     });
   };
 
+  function _kpiGradients(color) {
+    var map = {
+      '#3f4a38': '#2c3527', // forest
+      '#c96442': '#a9502f', // terracotta
+      '#7d7a4e': '#656138', // olive
+      '#b8863c': '#96692a'  // ochre
+    };
+    return map[color] || color;
+  }
+
   function _kpi(label, value, sub, ico, color, route) {
     color = color || '#c96442';
+    var colorD = _kpiGradients(color);
     var clickable = !!route;
-    return '<div style="background:' + color + ';border-radius:12px;padding:16px 18px;position:relative;overflow:hidden' +
-      (clickable ? ';cursor:pointer;transition:transform .14s,box-shadow .14s,filter .14s' : '') + '"' +
-      (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 10px 24px rgba(0,0,0,.22)\';this.style.filter=\'brightness(1.06)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
+    return '<div style="background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:16px;padding:20px 20px 18px;position:relative;overflow:hidden;min-height:126px' +
+      (clickable ? ';cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,filter .16s' : '') + '"' +
+      (clickable ? ' onclick="go(\'' + route + '\')" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 16px 32px -8px rgba(0,0,0,.28)\';this.style.filter=\'brightness(1.05)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.filter=\'\'"' : '') +
       '>' +
-      '<div style="position:absolute;top:-34px;right:-34px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>' +
+      '<div style="position:absolute;inset:0;background:radial-gradient(circle at 88% -10%, rgba(255,255,255,.22), transparent 55%);pointer-events:none"></div>' +
+      '<div style="position:absolute;right:-38px;bottom:-38px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none"></div>' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;position:relative">' +
-      '<div style="font-size:11px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.06em;font-weight:600">' + esc(label) + '</div>' +
-      '<i data-lucide="' + ico + '" class="lci" style="width:17px;height:17px;color:rgba(255,255,255,.8)"></i></div>' +
-      '<div style="font-size:30px;font-weight:600;font-family:\'Fraunces\',serif;color:#fff;line-height:1;position:relative">' + value + '</div>' +
-      (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;position:relative">' + esc(sub) + '</div>' : '') +
-      (clickable ? '<i data-lucide="chevron-right" class="lci" style="position:absolute;bottom:14px;right:14px;width:15px;height:15px;color:rgba(255,255,255,.55)"></i>' : '') +
+      '<div style="font-size:11px;color:rgba(255,255,255,.88);text-transform:uppercase;letter-spacing:.05em;font-weight:700">' + esc(label) + '</div>' +
+      '<div style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+      '<i data-lucide="' + ico + '" class="lci" style="width:15px;height:15px;color:#fff"></i></div></div>' +
+      '<div style="font-size:32px;font-weight:600;font-family:\'Fraunces\',serif;color:#fff;line-height:1;position:relative">' + value + '</div>' +
+      (sub ? '<div style="font-size:11.5px;color:rgba(255,255,255,.78);margin-top:5px;position:relative">' + esc(sub) + '</div>' : '') +
+      (clickable ? '<i data-lucide="chevron-right" class="lci kpi-arrow" style="position:absolute;bottom:16px;right:16px;width:15px;height:15px;color:rgba(255,255,255,.55);transition:transform .16s,color .16s"></i>' : '') +
       '</div>';
   }
 
