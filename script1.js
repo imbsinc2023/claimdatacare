@@ -36905,54 +36905,33 @@ function getAuditLogs() {
   }
 
   // Build the Bill To chip row for a patient in SG editor (visual checkmarks, not a dropdown)
-  function _billToDropdown(pat, currentOverride, patientIdx) {
+  function _billToSelect(pat, currentOverride, patientIdx) {
     var options = _patientInsurances(pat);
     var currentSource = currentOverride && currentOverride.source ? currentOverride.source : '';
+    var kindLabel = { primary: 'Primary', secondary: 'Secondary', tertiary: 'Tertiary', other: 'Other' };
+
+    var opts = '';
+    var colorNow = '#c96442'; // Default (Primary) accent
 
     if (!options.length) {
-      var spOn = currentSource === 'selfpay';
-      return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
-        '<span style="font-size:10.5px;color:#9a988f;font-style:italic">No insurance on file</span>' +
-        _chipBtn(patientIdx, 'selfpay', 'Self Pay', 'wallet', spOn, '#92400e', '#a9502f') +
-      '</div>';
+      opts += '<option value="selfpay">Self Pay (no insurance on file)</option>';
+      colorNow = '#92400e';
+    } else {
+      opts += '<option value=""' + (currentSource === '' ? ' selected' : '') + '>Default (Primary)</option>';
+      options.forEach(function (o) {
+        var payerName = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
+        var lbl = (kindLabel[o.kind] || 'Other') + ' · ' + payerName + (o.memberId ? ' · ' + o.memberId : '');
+        opts += '<option value="' + esc(o.source) + '"' + (o.source === currentSource ? ' selected' : '') + '>' + esc(lbl) + '</option>';
+        if (o.source === currentSource) colorNow = o.kind === 'secondary' ? '#7d7a4e' : (o.kind === 'tertiary' ? '#b8863c' : '#c96442');
+      });
+      opts += '<option value="selfpay"' + (currentSource === 'selfpay' ? ' selected' : '') + '>Self Pay</option>';
+      if (currentSource === 'selfpay') colorNow = '#92400e';
     }
 
-    var kindMeta = {
-      primary: { color: '#c96442', colorD: '#a9502f', label: 'Primary', icon: 'shield' },
-      secondary: { color: '#7d7a4e', colorD: '#656138', label: 'Secondary', icon: 'shield-plus' },
-      tertiary: { color: '#b8863c', colorD: '#96692a', label: 'Tertiary', icon: 'shield-plus' },
-      other: { color: '#8a7e6e', colorD: '#6f6457', label: 'Other', icon: 'shield' }
-    };
-
-    var chips = '';
-    chips += _chipBtn(patientIdx, '', 'Default (Primary)', 'circle-dot', currentSource === '', '#c96442', '#a9502f');
-    options.forEach(function (o) {
-      var payerName = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
-      var meta = kindMeta[o.kind] || kindMeta.other;
-      var label = meta.label + ' · ' + payerName + (o.memberId ? ' · ' + o.memberId : '');
-      chips += _chipBtn(patientIdx, o.source, label, meta.icon, o.source === currentSource, meta.color, meta.colorD);
-    });
-
-    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">' + chips +
-      '<span style="width:1px;height:18px;background:#ddd8cc;margin:0 3px"></span>' +
-      _chipBtn(patientIdx, 'selfpay', 'Self Pay', 'wallet', currentSource === 'selfpay', '#92400e', '#7a3410') +
-      '</div>';
-  }
-
-  // Reusable pill-style chip button — gradient fill when selected, matching the
-  // app's KPI-card visual language, so this reads as one design system.
-  function _chipBtn(patientIdx, value, label, icon, isOn, color, colorD) {
-    var iconHtml = '<i data-lucide="' + icon + '" class="lci" style="width:11px;height:11px;flex-shrink:0"></i>';
-    var bg = isOn ? 'linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%)' : '#fff';
-    var textColor = isOn ? '#fff' : '#4a4740';
-    var border = isOn ? color : '#ddd8cc';
-    var shadow = isOn ? '0 2px 6px ' + color + '55' : 'none';
-    return '<button type="button" onclick="__sgPayerChange(' + patientIdx + ',\'' + esc(value) + '\')" ' +
-      'style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;font-size:11px;font-weight:600;' +
-      'border:1px solid ' + border + ';border-radius:100px;background:' + bg + ';color:' + textColor + ';' +
-      'box-shadow:' + shadow + ';cursor:pointer;line-height:1.2;white-space:nowrap;transition:transform .12s,box-shadow .12s"' +
-      ' onmouseover="this.style.transform=\'translateY(-1px)\'"' +
-      ' onmouseout="this.style.transform=\'\'">' + iconHtml + label + '</button>';
+    return '<select onchange="__sgPayerChange(' + patientIdx + ',this.value)" ' +
+      'style="font-size:11px;font-weight:700;padding:6px 9px;border:1.5px solid ' + colorNow + '55;border-radius:8px;' +
+      'background:' + colorNow + '14;color:' + colorNow + ';cursor:pointer;max-width:200px;flex-shrink:0" ' +
+      'title="Bill to">' + opts + '</select>';
   }
 
   // Global handler wired into the dropdown
@@ -37019,32 +36998,21 @@ function getAuditLogs() {
           var asgn = _sgForm.patients[idx];
           if (!asgn) return;
           // Skip if already injected (defensive)
-          if (card.querySelector('[data-sg-billto-row]')) return;
+          if (card.querySelector('[data-sg-billto-select]')) return;
           var pat = db.patients.find(function (p) { return p.id === asgn.patientId; }) || {};
 
           var nameHeader = card.firstElementChild;
           if (!nameHeader) return;
 
-          // Restructure the header into two stacked rows that share the SAME block —
-          // identity on top, Bill To right under it — instead of a separate strip
-          // with its own background bolted on below. The header keeps its one
-          // background/border; nothing new is drawn around the chips.
-          var topRow = document.createElement('div');
-          topRow.style.cssText = 'display:flex;align-items:center;gap:8px';
-          while (nameHeader.firstChild) topRow.appendChild(nameHeader.firstChild);
-          nameHeader.style.display = 'flex';
-          nameHeader.style.flexDirection = 'column';
-          nameHeader.style.alignItems = 'stretch';
-          nameHeader.style.gap = '7px';
-          nameHeader.appendChild(topRow);
-
-          var billRow = document.createElement('div');
-          billRow.setAttribute('data-sg-billto-row', '1');
-          billRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:34px';
-          billRow.innerHTML =
-            '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#a89e8c;white-space:nowrap;flex-shrink:0">Bill to</span>' +
-            _billToDropdown(pat, asgn.payerOverride, idx);
-          nameHeader.appendChild(billRow);
+          // Drop the picker directly into the existing name row, right before the
+          // remove button — one compact control, no wrapping chip row underneath.
+          var wrap = document.createElement('div');
+          wrap.setAttribute('data-sg-billto-select', '1');
+          wrap.style.cssText = 'flex-shrink:0';
+          wrap.innerHTML = _billToSelect(pat, asgn.payerOverride, idx);
+          var deleteBtn = nameHeader.lastElementChild;
+          if (deleteBtn) nameHeader.insertBefore(wrap, deleteBtn);
+          else nameHeader.appendChild(wrap);
         });
         // Icons
         if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
