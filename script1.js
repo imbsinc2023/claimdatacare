@@ -9360,7 +9360,7 @@ ${fac ? ' · '+fac.name : ''}
 </div>
 <div style="display:flex;gap:6px;align-items:center">
 <span class="cdc-tip" data-tip="Generate Claims"><button class="btn btn-primary btn-sm" onclick="openBulkFromSG('${g.id}')" style="padding:6px 10px"><i data-lucide="zap" class="lci" style="width:14px;height:14px"></i></button></span>
-<span class="cdc-tip" data-tip="Edit"><button class="btn btn-sm" onclick="openSGModal('${g.id}')" style="padding:6px 10px"><i data-lucide="pencil" class="lci" style="width:14px;height:14px"></i></button></span>
+<span class="cdc-tip" data-tip="Edit"><button class="btn btn-sm" onclick="try{openSGModal('${g.id}')}catch(e){console.error('[CDC] Edit button failed:',e);toast('Could not open editor — check console (F12)','err')}" style="padding:6px 10px"><i data-lucide="pencil" class="lci" style="width:14px;height:14px"></i></button></span>
 <span class="cdc-tip" data-tip="Copy"><button class="btn btn-sm" onclick="copySG('${g.id}')" style="padding:6px 10px"><i data-lucide="copy" class="lci" style="width:14px;height:14px"></i></button></span>
 <span class="cdc-tip" data-tip="Delete"><button class="btn btn-xs btn-danger" onclick="deleteSG('${g.id}')" style="padding:6px 10px"><i data-lucide="x" class="lci" style="width:14px;height:14px"></i></button></span>
 </div>
@@ -36910,48 +36910,49 @@ function getAuditLogs() {
     var currentSource = currentOverride && currentOverride.source ? currentOverride.source : '';
 
     if (!options.length) {
-      // No insurance on file — force Self Pay chip (auto-selected, but user can confirm)
       var spOn = currentSource === 'selfpay';
       return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
-        '<span style="font-size:10.5px;color:#9a988f">No insurance on file</span>' +
-        _chipBtn(patientIdx, 'selfpay', 'Self Pay', spOn, '#92400e', '#fef3c7', '#fde68a') +
+        '<span style="font-size:10.5px;color:#9a988f;font-style:italic">No insurance on file</span>' +
+        _chipBtn(patientIdx, 'selfpay', 'Self Pay', 'wallet', spOn, '#92400e', '#a9502f') +
       '</div>';
     }
 
-    var kindColor = { primary: '#c96442', secondary: '#7d7a4e', tertiary: '#b8863c', other: '#8a7e6e' };
+    var kindMeta = {
+      primary: { color: '#c96442', colorD: '#a9502f', label: 'Primary', icon: 'shield' },
+      secondary: { color: '#7d7a4e', colorD: '#656138', label: 'Secondary', icon: 'shield-plus' },
+      tertiary: { color: '#b8863c', colorD: '#96692a', label: 'Tertiary', icon: 'shield-plus' },
+      other: { color: '#8a7e6e', colorD: '#6f6457', label: 'Other', icon: 'shield' }
+    };
 
     var chips = '';
-    // Default/Primary chip (source='') — follows whatever the patient's primary is
-    chips += _chipBtn(patientIdx, '', 'Default', currentSource === '', '#c96442', '#fff', '#ddd8cc');
-    // One chip per real insurance option, color-coded by role
+    chips += _chipBtn(patientIdx, '', 'Default (Primary)', 'circle-dot', currentSource === '', '#c96442', '#a9502f');
     options.forEach(function (o) {
-      var lbl = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
-      var role = o.kind === 'primary' ? '1°' : (o.kind === 'secondary' ? '2°' : (o.kind === 'tertiary' ? '3°' : '•'));
-      var c = kindColor[o.kind] || kindColor.other;
-      chips += _chipBtn(patientIdx, o.source, role + ' ' + lbl + (o.memberId ? ' · ' + o.memberId : ''),
-                        o.source === currentSource, c, '#fff', '#ddd8cc');
+      var payerName = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
+      var meta = kindMeta[o.kind] || kindMeta.other;
+      var label = meta.label + ' · ' + payerName + (o.memberId ? ' · ' + o.memberId : '');
+      chips += _chipBtn(patientIdx, o.source, label, meta.icon, o.source === currentSource, meta.color, meta.colorD);
     });
 
-    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px">' + chips +
-      '<span style="width:1px;height:16px;background:#e4e1d8;margin:0 2px"></span>' +
-      _chipBtn(patientIdx, 'selfpay', 'Self Pay', currentSource === 'selfpay', '#92400e', '#fef3c7', '#fde68a') +
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">' + chips +
+      '<span style="width:1px;height:18px;background:#ddd8cc;margin:0 3px"></span>' +
+      _chipBtn(patientIdx, 'selfpay', 'Self Pay', 'wallet', currentSource === 'selfpay', '#92400e', '#7a3410') +
       '</div>';
   }
 
-  // Reusable checkmark-style chip button
-  function _chipBtn(patientIdx, value, label, isOn, onColor, offBg, offBorder) {
-    var check = isOn
-      ? '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'
-      : '<span style="width:6px;height:6px;border-radius:50%;background:' + onColor + ';opacity:.45;flex-shrink:0"></span>';
-    var bg = isOn ? onColor : offBg;
-    var color = isOn ? '#fff' : '#4a4740';
-    var border = isOn ? onColor : offBorder;
+  // Reusable pill-style chip button — gradient fill when selected, matching the
+  // app's KPI-card visual language, so this reads as one design system.
+  function _chipBtn(patientIdx, value, label, icon, isOn, color, colorD) {
+    var iconHtml = '<i data-lucide="' + icon + '" class="lci" style="width:11px;height:11px;flex-shrink:0"></i>';
+    var bg = isOn ? 'linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%)' : '#fff';
+    var textColor = isOn ? '#fff' : '#4a4740';
+    var border = isOn ? color : '#ddd8cc';
+    var shadow = isOn ? '0 2px 6px ' + color + '55' : 'none';
     return '<button type="button" onclick="__sgPayerChange(' + patientIdx + ',\'' + esc(value) + '\')" ' +
-      'style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:600;' +
-      'border:1px solid ' + border + ';border-radius:100px;background:' + bg + ';color:' + color + ';' +
-      'cursor:pointer;line-height:1.2;white-space:nowrap;transition:transform .1s,box-shadow .1s"' +
-      ' onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 2px 6px rgba(0,0,0,.1)\'"' +
-      ' onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' + check + label + '</button>';
+      'style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;font-size:11px;font-weight:600;' +
+      'border:1px solid ' + border + ';border-radius:100px;background:' + bg + ';color:' + textColor + ';' +
+      'box-shadow:' + shadow + ';cursor:pointer;line-height:1.2;white-space:nowrap;transition:transform .12s,box-shadow .12s"' +
+      ' onmouseover="this.style.transform=\'translateY(-1px)\'"' +
+      ' onmouseout="this.style.transform=\'\'">' + iconHtml + label + '</button>';
   }
 
   // Global handler wired into the dropdown
@@ -37021,21 +37022,29 @@ function getAuditLogs() {
           if (card.querySelector('[data-sg-billto-row]')) return;
           var pat = db.patients.find(function (p) { return p.id === asgn.patientId; }) || {};
 
-          // Inject the row right under the patient name header, above the ICD-10/Auth/
-          // Referring/Facility grid — so Bill To is the first thing visible for the patient,
-          // not buried below all the other fields.
+          var nameHeader = card.firstElementChild;
+          if (!nameHeader) return;
+
+          // Restructure the header into two stacked rows that share the SAME block —
+          // identity on top, Bill To right under it — instead of a separate strip
+          // with its own background bolted on below. The header keeps its one
+          // background/border; nothing new is drawn around the chips.
+          var topRow = document.createElement('div');
+          topRow.style.cssText = 'display:flex;align-items:center;gap:8px';
+          while (nameHeader.firstChild) topRow.appendChild(nameHeader.firstChild);
+          nameHeader.style.display = 'flex';
+          nameHeader.style.flexDirection = 'column';
+          nameHeader.style.alignItems = 'stretch';
+          nameHeader.style.gap = '7px';
+          nameHeader.appendChild(topRow);
+
           var billRow = document.createElement('div');
           billRow.setAttribute('data-sg-billto-row', '1');
-          billRow.style.cssText = 'padding:7px 10px;border-bottom:1px solid #ede9df;' +
-            'background:#f8f6f0;display:flex;align-items:center;gap:9px;flex-wrap:wrap';
+          billRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:34px';
           billRow.innerHTML =
-            '<span style="font-size:10.5px;font-weight:600;color:#8a7e6e;white-space:nowrap">Bill to</span>' +
-            '<div style="flex:1;min-width:0">' +
-            _billToDropdown(pat, asgn.payerOverride, idx) +
-            '</div>';
-          var nameHeader = card.firstElementChild;
-          if (nameHeader) nameHeader.insertAdjacentElement('afterend', billRow);
-          else card.appendChild(billRow);
+            '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#a89e8c;white-space:nowrap;flex-shrink:0">Bill to</span>' +
+            _billToDropdown(pat, asgn.payerOverride, idx);
+          nameHeader.appendChild(billRow);
         });
         // Icons
         if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
