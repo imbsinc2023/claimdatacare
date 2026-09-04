@@ -35181,7 +35181,7 @@ function getAuditLogs() {
         sc(color); doc.circle(M + 3, y - 3, 3, 'F');
         doc.setFont(undefined, 'bold'); doc.setFontSize(11); tc(C.ink);
         doc.text(title.toUpperCase(), M + 12, y);
-        y += 12;
+        y += 22;
       }
 
       function kpiBox(x, w, h, label, value, sub, color, colorD) {
@@ -35195,12 +35195,12 @@ function getAuditLogs() {
       }
 
       // ── KPI row ────────────────────────────────────────────
-      var kw = (CW - 30) / 4, kh = 62;
+      var kw = (CW - 30) / 4, kh = 68;
       kpiBox(M, kw, kh, 'Care Team', s.careTeam, '', C.forest);
       kpiBox(M + (kw + 10), kw, kh, 'Clients', s.clients, s.totalClients + ' total', C.terracotta);
-      kpiBox(M + (kw + 10) * 2, kw, kh, 'Active Cases', s.activeCases, '90-day', C.olive);
+      kpiBox(M + (kw + 10) * 2, kw, kh, 'Active Cases', s.activeCases, '', C.olive);
       kpiBox(M + (kw + 10) * 3, kw, kh, 'Archive', s.archive, '', C.ochre);
-      y += kh + 22;
+      y += kh + 32;
 
       function stackedBar(x, w, h, segs) {
         var total = segs.reduce(function (a, sg) { return a + sg.value; }, 0) || 1;
@@ -35230,13 +35230,13 @@ function getAuditLogs() {
         { value: s.clientStatus.inactive, color: C.olive },
         { value: s.clientStatus.discharged, color: C.ochre }
       ]);
-      y += 20;
+      y += 26;
       legendRow([
         { label: 'Active', value: s.clientStatus.active, color: C.terracotta },
         { label: 'Inactive', value: s.clientStatus.inactive, color: C.olive },
         { label: 'Discharged', value: s.clientStatus.discharged, color: C.ochre }
       ]);
-      y += 24;
+      y += 34;
 
       // ── Units ──────────────────────────────────────────────
       sectionTitle('Units', C.olive);
@@ -35251,20 +35251,20 @@ function getAuditLogs() {
         doc.setFont(undefined, 'normal'); doc.setFontSize(8.5); tc(C.ink3);
         doc.text(c[0], cx, y);
         doc.setFont(undefined, 'bold'); doc.setFontSize(16); tc(C.olive);
-        doc.text(String(c[1]), cx, y + 16);
+        doc.text(String(c[1]), cx, y + 18);
       });
-      y += 34;
+      y += 44;
 
       // ── Billing Overview ───────────────────────────────────
       sectionTitle('Billing Overview', C.ochre);
       var collected = s.billing.billed > 0 ? Math.round(s.billing.paid / s.billing.billed * 100) : 0;
       doc.setFont(undefined, 'normal'); doc.setFontSize(9); tc(C.ink2);
-      doc.text(collected + '% collected', M + CW - 70, y - 12);
+      doc.text(collected + '% collected', M + CW - 70, y - 22);
       stackedBar(M, CW, 10, [
         { value: s.billing.paid, color: C.forest },
         { value: s.billing.pending, color: C.ochre }
       ]);
-      y += 22;
+      y += 30;
       var bCols = [
         ['Total Billed', s.billing.billed, C.terracotta],
         ['Total Paid', s.billing.paid, C.forest],
@@ -35277,9 +35277,9 @@ function getAuditLogs() {
         doc.setFont(undefined, 'normal'); doc.setFontSize(8.5); tc(C.ink3);
         doc.text(c[0], cx + 10, y);
         doc.setFont(undefined, 'bold'); doc.setFontSize(13); tc(C.ink);
-        doc.text('$' + c[1].toFixed(2), cx + 10, y + 15);
+        doc.text('$' + c[1].toFixed(2), cx + 10, y + 17);
       });
-      y += 32;
+      y += 42;
 
       // ── Note Status + Compliance ───────────────────────────
       sectionTitle('Note Status & Documentation Compliance', C.forest);
@@ -35288,36 +35288,36 @@ function getAuditLogs() {
         { value: s.notesStatus.signed, color: C.ink2 },
         { value: s.notesStatus.billed, color: C.terracotta }
       ]);
-      y += 20;
+      y += 26;
       legendRow([
         { label: 'Draft', value: s.notesStatus.draft, color: C.ink3 },
         { label: 'Signed', value: s.notesStatus.signed, color: C.ink2 },
         { label: 'Billed', value: s.notesStatus.billed, color: C.terracotta }
       ]);
-      y += 22;
+      y += 30;
       var compColor = s.notesStatus.complianceRate >= 80 ? C.green : (s.notesStatus.complianceRate >= 50 ? C.amber : C.red);
       doc.setFont(undefined, 'normal'); doc.setFontSize(9); tc(C.ink2);
       doc.text('Compliance rate (notes signed or billed):', M, y);
       doc.setFont(undefined, 'bold'); doc.setFontSize(13); tc(compColor);
-      doc.text(s.notesStatus.complianceRate + '%', M + 230, y);
-      y += 8;
+      doc.text(s.notesStatus.complianceRate + '%', M + 240, y - 3);
+      y += 14;
       stackedBar(M, CW, 8, [
         { value: s.notesStatus.complianceRate, color: compColor },
         { value: 100 - s.notesStatus.complianceRate, color: C.track }
       ]);
-      y += 26;
+      y += 36;
 
       // ── Care Team Caseload table ───────────────────────────
       if (s.topWorkers && s.topWorkers.length) {
         sectionTitle('Care Team Caseload', C.forest);
-        sc(C.forest); doc.rect(M, y - 10, CW, 18, 'F');
+        sc(C.forest); doc.rect(M, y - 12, CW, 20, 'F');
         doc.setFont(undefined, 'bold'); doc.setFontSize(8.5); tc(C.white);
         doc.text('CASE WORKER', M + 8, y + 2);
         doc.text('CREDENTIAL', M + 230, y + 2);
         doc.text('CASELOAD', M + CW - 60, y + 2);
-        y += 8;
+        y += 14;
         s.topWorkers.forEach(function (w, i) {
-          var rowH = 20;
+          var rowH = 22;
           if (i % 2 === 1) { sc(C.track); doc.rect(M, y, CW, rowH, 'F'); }
           doc.setFont(undefined, 'normal'); doc.setFontSize(9.5); tc(C.ink);
           doc.text(w.first + ' ' + w.last, M + 8, y + 14);
@@ -36805,10 +36805,45 @@ function getAuditLogs() {
     if (!pat) return [];
     var out = [];
 
-    // Primary — from top-level fields
+    // Primary data model: pat.insurances[] with insType Primary/Secondary/Tertiary
+    // (this is what the Coverage tab and Quick Batch already read from — the SG editor
+    // dropdown was still reading legacy top-level fields, which is why secondary/tertiary
+    // insurances that live in pat.insurances[] never showed up as selectable chips here.)
+    if (Array.isArray(pat.insurances) && pat.insurances.length) {
+      pat.insurances.forEach(function (iv) {
+        if (!iv || iv.inactive) return;
+        var payerName = iv.name || iv.payerName || iv.payername || '';
+        var payerId = iv.payerId || iv.payerid || '';
+        if (!payerName && !payerId) return;
+        var typeRaw = (iv.insType || iv.type || '').toLowerCase();
+        var kind = typeRaw.indexOf('secondary') !== -1 ? 'secondary'
+          : typeRaw.indexOf('tertiary') !== -1 ? 'tertiary'
+          : 'primary';
+        var srcKey = kind;
+        var n = 2;
+        while (out.some(function (x) { return x.source === srcKey; })) { srcKey = kind + n; n++; }
+        out.push({
+          source: srcKey,
+          kind: kind,
+          payerId: payerId,
+          payerName: payerName,
+          memberId: iv.memberId || iv.insnum || '',
+          plan: iv.plan || iv.planName || '',
+          group: iv.group || '',
+          subscriberFirst: iv.subscriberFirst || pat.first || '',
+          subscriberLast: iv.subscriberLast || pat.last || '',
+          subscriberDob: iv.subscriberDob || pat.dob || '',
+          subscriberSex: iv.subscriberSex || pat.sex || '',
+          label: (kind.charAt(0).toUpperCase() + kind.slice(1)) + ' — ' + (payerName || payerId),
+        });
+      });
+      if (out.length) return out;
+    }
+
+    // Legacy fallback — only used if the patient has no pat.insurances[] entries
     if (pat.payerid || pat.payername) {
       out.push({
-        source: 'primary',
+        source: 'primary', kind: 'primary',
         payerId: pat.payerid || '',
         payerName: pat.payername || '',
         memberId: pat.insnum || '',
@@ -36821,11 +36856,9 @@ function getAuditLogs() {
         label: 'Primary — ' + (pat.payername || pat.payerid || 'Unknown'),
       });
     }
-
-    // Secondary — from secondaryPayer* fields
     if (pat.secondaryPayerId || pat.secondaryPayerName) {
       out.push({
-        source: 'secondary',
+        source: 'secondary', kind: 'secondary',
         payerId: pat.secondaryPayerId || '',
         payerName: pat.secondaryPayerName || '',
         memberId: pat.secondaryInsnum || pat.secondaryMemberId || '',
@@ -36838,16 +36871,12 @@ function getAuditLogs() {
         label: 'Secondary — ' + (pat.secondaryPayerName || pat.secondaryPayerId || 'Unknown'),
       });
     }
-
-    // Coverages array (pat.coverages[])
     if (Array.isArray(pat.coverages)) {
       pat.coverages.forEach(function (c, i) {
         if (!c || c.active === false) return;
-        // Skip if it's essentially the same as primary/secondary already added
         var payerName = c.payerName || c.payername || '';
         var payerId = c.payerId || c.payerid || '';
         if (!payerName && !payerId) return;
-        // Dedup vs primary/secondary
         var dupPrimary = out[0] && out[0].source === 'primary' &&
           ((payerId && payerId === out[0].payerId) || (payerName && payerName === out[0].payerName));
         var dupSec = out.find(function (x) {
@@ -36855,10 +36884,9 @@ function getAuditLogs() {
             ((payerId && payerId === x.payerId) || (payerName && payerName === x.payerName));
         });
         if (dupPrimary || dupSec) return;
-
         var typeLabel = c.type || 'Other';
         out.push({
-          source: 'coverage:' + i,
+          source: 'coverage:' + i, kind: 'other',
           payerId: payerId,
           payerName: payerName,
           memberId: c.memberId || c.insnum || '',
@@ -36885,39 +36913,45 @@ function getAuditLogs() {
       // No insurance on file — force Self Pay chip (auto-selected, but user can confirm)
       var spOn = currentSource === 'selfpay';
       return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">' +
-        '<span style="font-size:10px;color:#87867f;font-style:italic">No insurance on file →</span>' +
+        '<span style="font-size:10.5px;color:#9a988f">No insurance on file</span>' +
         _chipBtn(patientIdx, 'selfpay', 'Self Pay', spOn, '#92400e', '#fef3c7', '#fde68a') +
       '</div>';
     }
 
-    var chips = '';
-    // Default/Primary chip (source='')
-    chips += _chipBtn(patientIdx, '', 'Primary (default)', currentSource === '', '#c96442', '#fff', '#e4e1d8');
-    // One chip per real insurance option
-    options.forEach(function (o) {
-      var lbl = o.label.replace(/^Primary — |^Secondary — |^[^—]+—\s*/, '');  // strip prefix, keep payer name
-      var role = o.source === 'primary' ? '1°' : (o.source === 'secondary' ? '2°' : '•');
-      chips += _chipBtn(patientIdx, o.source, role + ' ' + lbl + (o.memberId ? ' · ' + o.memberId : ''),
-                        o.source === currentSource, '#c96442', '#fff', '#e4e1d8');
-    });
-    // Self Pay chip
-    chips += _chipBtn(patientIdx, 'selfpay', 'Self Pay', currentSource === 'selfpay', '#92400e', '#fef3c7', '#fde68a');
+    var kindColor = { primary: '#c96442', secondary: '#7d7a4e', tertiary: '#b8863c', other: '#8a7e6e' };
 
-    return '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">' + chips + '</div>';
+    var chips = '';
+    // Default/Primary chip (source='') — follows whatever the patient's primary is
+    chips += _chipBtn(patientIdx, '', 'Default', currentSource === '', '#c96442', '#fff', '#ddd8cc');
+    // One chip per real insurance option, color-coded by role
+    options.forEach(function (o) {
+      var lbl = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
+      var role = o.kind === 'primary' ? '1°' : (o.kind === 'secondary' ? '2°' : (o.kind === 'tertiary' ? '3°' : '•'));
+      var c = kindColor[o.kind] || kindColor.other;
+      chips += _chipBtn(patientIdx, o.source, role + ' ' + lbl + (o.memberId ? ' · ' + o.memberId : ''),
+                        o.source === currentSource, c, '#fff', '#ddd8cc');
+    });
+
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px">' + chips +
+      '<span style="width:1px;height:16px;background:#e4e1d8;margin:0 2px"></span>' +
+      _chipBtn(patientIdx, 'selfpay', 'Self Pay', currentSource === 'selfpay', '#92400e', '#fef3c7', '#fde68a') +
+      '</div>';
   }
 
   // Reusable checkmark-style chip button
   function _chipBtn(patientIdx, value, label, isOn, onColor, offBg, offBorder) {
     var check = isOn
-      ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.4"><circle cx="12" cy="12" r="9"/></svg>';
+      ? '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<span style="width:6px;height:6px;border-radius:50%;background:' + onColor + ';opacity:.45;flex-shrink:0"></span>';
     var bg = isOn ? onColor : offBg;
-    var color = isOn ? '#fff' : '#525252';
+    var color = isOn ? '#fff' : '#4a4740';
     var border = isOn ? onColor : offBorder;
     return '<button type="button" onclick="__sgPayerChange(' + patientIdx + ',\'' + esc(value) + '\')" ' +
       'style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:600;' +
-      'border:1.5px solid ' + border + ';border-radius:14px;background:' + bg + ';color:' + color + ';' +
-      'cursor:pointer;line-height:1.2;white-space:nowrap;transition:all .12s">' + check + label + '</button>';
+      'border:1px solid ' + border + ';border-radius:100px;background:' + bg + ';color:' + color + ';' +
+      'cursor:pointer;line-height:1.2;white-space:nowrap;transition:transform .1s,box-shadow .1s"' +
+      ' onmouseover="this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 2px 6px rgba(0,0,0,.1)\'"' +
+      ' onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' + check + label + '</button>';
   }
 
   // Global handler wired into the dropdown
@@ -36987,22 +37021,21 @@ function getAuditLogs() {
           if (card.querySelector('[data-sg-billto-row]')) return;
           var pat = db.patients.find(function (p) { return p.id === asgn.patientId; }) || {};
 
-          // Inject a new row inside the card, below the existing grid
+          // Inject the row right under the patient name header, above the ICD-10/Auth/
+          // Referring/Facility grid — so Bill To is the first thing visible for the patient,
+          // not buried below all the other fields.
           var billRow = document.createElement('div');
           billRow.setAttribute('data-sg-billto-row', '1');
-          billRow.style.cssText = 'padding:7px 10px;border-top:1px dashed #e4e1d8;' +
-            'background:#fefdfb;display:flex;align-items:center;gap:8px';
+          billRow.style.cssText = 'padding:7px 10px;border-bottom:1px solid #ede9df;' +
+            'background:#f8f6f0;display:flex;align-items:center;gap:9px;flex-wrap:wrap';
           billRow.innerHTML =
-            '<label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;' +
-            'color:#c96442;white-space:nowrap;display:flex;align-items:center;gap:4px">' +
-            '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" ' +
-            'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-            '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>' +
-            'Bill To</label>' +
+            '<span style="font-size:10.5px;font-weight:600;color:#8a7e6e;white-space:nowrap">Bill to</span>' +
             '<div style="flex:1;min-width:0">' +
             _billToDropdown(pat, asgn.payerOverride, idx) +
             '</div>';
-          card.appendChild(billRow);
+          var nameHeader = card.firstElementChild;
+          if (nameHeader) nameHeader.insertAdjacentElement('afterend', billRow);
+          else card.appendChild(billRow);
         });
         // Icons
         if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 30);
