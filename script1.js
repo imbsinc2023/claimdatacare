@@ -19130,6 +19130,34 @@ function _isCMSpecialtyActive(){
   return lc.indexOf('case management') >= 0 || lc.indexOf('case-management') >= 0;
 }
 
+// ── CM worker role → module gating ─────────────────────────────────────────
+// Matches the logged-in session to a CM Worker record by email (case-
+// insensitive). Super Admin always sees every CM module regardless of any
+// worker record, so this never narrows access for the account that manages
+// the whole system — it only applies once a specific worker (with an
+// email matching a real login) is the one signed in.
+// If no matching worker record exists, nothing is hidden (unchanged
+// behavior) — this only ever narrows access, never grants it beyond what
+// the specialty allowlist already showed.
+function _cmApplyWorkerRoleGating(){
+  var sess = getSession();
+  if (!sess || sess.role === 'Super Admin') return;
+  if (!sess.email) return;
+  var d;
+  try { d = getCMData(); } catch(e) { return; }
+  if (!d || !Array.isArray(d.workers)) return;
+  var email = String(sess.email).toLowerCase();
+  var worker = d.workers.find(function(w){ return w.email && String(w.email).toLowerCase() === email; });
+  if (!worker) return; // no CM worker record tied to this login — leave menus as the specialty allowlist set them
+
+  var roles = worker.roles || (worker.isSupervisor ? ['Case Manager','Supervisor'] : ['Case Manager']);
+  var canReview = roles.indexOf('Supervisor') >= 0 || roles.indexOf('Billing') >= 0 || roles.indexOf('Quality Assurance') >= 0 || roles.indexOf('Administrator') >= 0;
+  var reviewGroup = document.getElementById('tng-cm-review');
+  if (reviewGroup) reviewGroup.style.display = canReview ? '' : 'none';
+  var mobReview = document.getElementById('mob-grp-cm-review');
+  if (mobReview) mobReview.style.display = canReview ? '' : 'none';
+}
+
 // Expand a menus allowlist to include the new CM groups if it contains the
 // legacy 'tng-cm' entry — backward compat for existing provider configs.
 function _expandLegacyMenus(menus){
@@ -20075,6 +20103,7 @@ function applyActiveSpecialty() {
     setGroupDisplay('tnav-dashboard', true);
     setGroupDisplay('tng-config', true);
     _enforceRoleGates();
+    try { _cmApplyWorkerRoleGating(); } catch(e) {}
     try { _renderTopnavSpecialtyChip(); } catch(e) {}
     return;
   }
@@ -28236,42 +28265,197 @@ function renderCMWorkers() {
     '</tbody></table></div>';
   setTimeout(_renderLucideIcons, 20);
 }
+var CM_ROLE_DEFS = [
+  { key: 'Administrator', desc: 'Settings, full access', icon: 'settings', color: '#3f4a38', colorD: '#2c3527' },
+  { key: 'Billing', desc: 'Billing readiness, claims', icon: 'receipt', color: '#b8863c', colorD: '#96692a' },
+  { key: 'Case Manager', desc: 'Clients, Care, Workflow', icon: 'user-round', color: '#c96442', colorD: '#a9502f' },
+  { key: 'Clerk', desc: 'Data entry, scheduling', icon: 'clipboard-list', color: '#8a7e6e', colorD: '#6f6457' },
+  { key: 'Quality Assurance', desc: 'Chart audits, compliance', icon: 'badge-check', color: '#7d7a4e', colorD: '#656138' },
+  { key: 'Supervisor', desc: 'Review, bills as rendering provider', icon: 'shield-check', color: '#7a3b3b', colorD: '#5f2e2e' }
+];
+
+function _cmRoleCard(def, checked) {
+  var bg = checked ? 'linear-gradient(155deg,' + def.color + ' 0%,' + def.colorD + ' 100%)' : '#fff';
+  var textColor = checked ? '#fff' : 'var(--text)';
+  var descColor = checked ? 'rgba(255,255,255,.8)' : 'var(--text3)';
+  var border = checked ? def.color : 'var(--border2)';
+  return '<label class="cmw-role-card" data-role="' + esc(def.key) + '" ' +
+    'style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid ' + border + ';' +
+    'background:' + bg + ';cursor:pointer;transition:transform .12s,box-shadow .12s" ' +
+    'onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'\'">' +
+    '<input type="checkbox" class="cmw-role-chk" value="' + esc(def.key) + '"' + (checked ? ' checked' : '') +
+    ' style="display:none" onchange="_cmwRoleToggle(this)">' +
+    '<div style="width:30px;height:30px;border-radius:9px;background:' + (checked ? 'rgba(255,255,255,.2)' : def.color + '18') + ';' +
+    'display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+    '<i data-lucide="' + def.icon + '" class="lci" style="width:15px;height:15px;color:' + (checked ? '#fff' : def.color) + '"></i></div>' +
+    '<div style="min-width:0">' +
+    '<div style="font-size:12.5px;font-weight:700;color:' + textColor + '">' + esc(def.key) + '</div>' +
+    '<div style="font-size:10.5px;color:' + descColor + ';margin-top:1px">' + esc(def.desc) + '</div>' +
+    '</div></label>';
+}
+
+window._cmwRoleToggle = function (chk) {
+  var card = chk.closest('.cmw-role-card');
+  var def = CM_ROLE_DEFS.find(function (r) { return r.key === chk.value; });
+  if (card && def) {
+    card.style.background = chk.checked ? 'linear-gradient(155deg,' + def.color + ' 0%,' + def.colorD + ' 100%)' : '#fff';
+    card.style.borderColor = chk.checked ? def.color : 'var(--border2)';
+    var iconWrap = card.children[1];
+    var textBlock = card.children[2];
+    iconWrap.style.background = chk.checked ? 'rgba(255,255,255,.2)' : def.color + '18';
+    iconWrap.querySelector('i').style.color = chk.checked ? '#fff' : def.color;
+    textBlock.children[0].style.color = chk.checked ? '#fff' : 'var(--text)';
+    textBlock.children[1].style.color = chk.checked ? 'rgba(255,255,255,.8)' : 'var(--text3)';
+  }
+  var supBlock = document.getElementById('cmw-npi-block');
+  var isSup = !!document.querySelector('.cmw-role-chk[value="Supervisor"]:checked');
+  if (supBlock) supBlock.style.display = isSup ? 'grid' : 'none';
+};
+
+window._cmwPhotoFile = function (input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (e) { _cmwSetPhoto(e.target.result); };
+  reader.readAsDataURL(file);
+};
+
+window._cmwSetPhoto = function (dataUrl) {
+  document.getElementById('cmw-photo-data').value = dataUrl;
+  var preview = document.getElementById('cmw-photo-preview');
+  if (preview) preview.innerHTML = '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+};
+
+window._cmwClearPhoto = function () {
+  document.getElementById('cmw-photo-data').value = '';
+  var preview = document.getElementById('cmw-photo-preview');
+  if (preview) preview.innerHTML = '<i data-lucide="user-round" class="lci" style="width:26px;height:26px;color:#fff"></i>';
+  setTimeout(_renderLucideIcons, 10);
+};
+
+window._cmwOpenCamera = function () {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Camera not available on this device — try Upload instead', 'warn');
+    return;
+  }
+  var cam = document.createElement('div');
+  cam.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10001;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
+  cam.innerHTML =
+    '<video id="cmw-cam-video" autoplay playsinline style="max-width:90vw;max-height:70vh;border-radius:12px;background:#000"></video>' +
+    '<canvas id="cmw-cam-canvas" style="display:none"></canvas>' +
+    '<div style="display:flex;gap:10px">' +
+    '<button id="cmw-cam-shot" style="background:linear-gradient(155deg,#c96442 0%,#a9502f 100%);color:#fff;border:none;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;cursor:pointer">Capture</button>' +
+    '<button id="cmw-cam-cancel" style="background:#fff;color:#333;border:none;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>' +
+    '</div>';
+  document.body.appendChild(cam);
+  var stream;
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }).then(function (s) {
+    stream = s;
+    document.getElementById('cmw-cam-video').srcObject = s;
+  }).catch(function () {
+    toast('Could not access camera — check browser permissions', 'err');
+    cam.remove();
+  });
+  function stop() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); cam.remove(); }
+  cam.querySelector('#cmw-cam-cancel').onclick = stop;
+  cam.querySelector('#cmw-cam-shot').onclick = function () {
+    var v = document.getElementById('cmw-cam-video');
+    var c = document.getElementById('cmw-cam-canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    _cmwSetPhoto(c.toDataURL('image/jpeg', 0.9));
+    stop();
+  };
+};
+
 function openCMWorkerModal(editId) {
   var d = getCMData();
   var w = editId ? d.workers.find(function(x){return x.id===editId;}) : {};
+  var roles = w.roles || (w.isSupervisor ? ['Case Manager', 'Supervisor'] : (editId ? ['Case Manager'] : []));
   var supOpts = '<option value="">— None —</option>'+d.workers.filter(function(x){return x.id!==editId;}).map(function(x){
     return '<option value="'+x.id+'"'+(x.id===(w.supervisorId||'')?' selected':'')+'>'+x.first+' '+x.last+'</option>';
   }).join('');
+  var isSupNow = roles.indexOf('Supervisor') !== -1;
   var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
   overlay.innerHTML =
-    '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
-    '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Worker':'New Worker')+'</div></div>'+
-    '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
-    '<div style="padding:16px 20px">'+
+    '<div style="background:var(--bg2);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.4)">' +
+
+    '<div style="padding:20px 24px;background:linear-gradient(155deg,#c96442 0%,#a9502f 100%);border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)"></div>' +
+    '<div style="position:relative;z-index:1"><div style="font-size:17px;font-weight:700;color:#fff">'+(editId?'Edit Worker':'New Worker')+'</div>' +
+    '<div style="font-size:11.5px;color:rgba(255,255,255,.8);margin-top:2px">Roles determine which modules this person can access</div></div>' +
+    '<button style="position:relative;z-index:1;border:none;background:rgba(255,255,255,.18);color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>' +
+
+    '<div style="padding:22px 24px">' +
+
+    // Photo
+    '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">' +
+    '<div id="cmw-photo-preview" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(155deg,#7d7a4e 0%,#656138 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)">' +
+    (w.photo ? '<img src="'+w.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<i data-lucide="user-round" class="lci" style="width:26px;height:26px;color:#fff"></i>') +
+    '</div>' +
+    '<div>' +
+    '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Photo (optional)</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<input type="file" id="cmw-photo-file" accept="image/*" style="display:none" onchange="_cmwPhotoFile(this)">' +
+    '<button type="button" class="btn btn-sm" onclick="document.getElementById(\'cmw-photo-file\').click()"><i data-lucide="upload" class="lci" style="width:12px;height:12px"></i> Upload</button>' +
+    '<button type="button" class="btn btn-sm" onclick="_cmwOpenCamera()"><i data-lucide="camera" class="lci" style="width:12px;height:12px"></i> Take Photo</button>' +
+    '<button type="button" class="btn btn-sm btn-ghost" onclick="_cmwClearPhoto()">Clear</button>' +
+    '</div></div>' +
+    '<input type="hidden" id="cmw-photo-data" value="'+(w.photo||'')+'">' +
+    '</div>' +
+
     '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmw-first" class="no-upper" value="'+(w.first||'')+'"></div>'+
     '<div class="field"><label>Last Name</label><input id="cmw-last" class="no-upper" value="'+(w.last||'')+'"></div></div>'+
     '<div class="fg g2"><div class="field"><label>Credential (LSW, LCSW, etc.)</label><input id="cmw-cred" value="'+(w.credential||'')+'"></div>'+
     '<div class="field"><label>Capacity (max clients)</label><input id="cmw-cap" type="number" value="'+(w.capacity||20)+'"></div></div>'+
     '<div class="fg g2"><div class="field"><label>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
     '<div class="field"><label>Phone</label><input id="cmw-phone" value="'+(w.phone||'')+'"></div></div>'+
-    '<div class="fg g2">'+      '<div class="field"><label>Supervisor</label><select id="cmw-sup">'+supOpts+'</select></div>'+      '<div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-top:8px;cursor:pointer"><input type="checkbox" id="cmw-issup"'+(w.isSupervisor?' checked':'')+' style="accent-color:var(--brand)"> This worker IS a supervisor</label></div>'+    '</div>'+
-    '<div class="fg g2"><div class="field"><label>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div>'+
-    '<div class="field"><label>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Reports To</label><select id="cmw-sup">'+supOpts+'</select></div>'+
+    '<div class="field"><label>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div></div>'+
+    '<div class="fg g2"><div class="field"><label>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div><div></div></div>'+
+
+    // Roles
+    '<div style="margin:20px 0 8px">' +
+    '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Roles</div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-top:2px">A worker can hold more than one role — each enables its modules in the menu</div>' +
+    '</div>' +
+    '<div id="cmw-roles-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    CM_ROLE_DEFS.map(function(def){ return _cmRoleCard(def, roles.indexOf(def.key) !== -1); }).join('') +
+    '</div>' +
+
+    // NPI/Taxonomy (conditional on Supervisor)
+    '<div id="cmw-npi-block" style="display:'+(isSupNow?'grid':'none')+';grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;padding:14px;background:#fdf5f0;border:1.5px solid #f0d5c4;border-radius:12px">' +
+    '<div style="grid-column:1/-1;font-size:11px;color:#a9502f;display:flex;align-items:center;gap:6px">' +
+    '<i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i>' +
+    'Required for supervisors — used as the rendering provider on CM claims' +
+    '</div>' +
+    '<div class="field" style="margin:0"><label>NPI *</label><input id="cmw-npi" maxlength="10" value="'+(w.npi||'')+'" placeholder="10 digits"></div>' +
+    '<div class="field" style="margin:0"><label>Taxonomy Code *</label><input id="cmw-taxonomy" maxlength="10" value="'+(w.taxonomy||'')+'" placeholder="e.g. 104100000X"></div>' +
+    '</div>' +
+
     '</div>'+
-    '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
+    '<div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">'+
     '<button class="btn" onclick="this.closest(\'[data-cm]\').remove()">Cancel</button>'+
     '<button class="btn btn-primary" onclick="saveCMWorker(\''+(editId||'')+'\')">Save</button></div></div>';
   overlay.setAttribute('data-cm','1');
   document.body.appendChild(overlay);
+  setTimeout(_renderLucideIcons, 20);
 }
 function saveCMWorker(id) {
   var d = getCMData();
   var first = document.getElementById('cmw-first')?.value||'';
   var last = document.getElementById('cmw-last')?.value||'';
   if (!first || !last) { toast('First and last name required','warn'); return; }
+  var roles = Array.from(document.querySelectorAll('.cmw-role-chk:checked')).map(function(c){return c.value;});
+  var isSupervisor = roles.indexOf('Supervisor') !== -1;
+  var npi = document.getElementById('cmw-npi')?.value.trim()||'';
+  var taxonomy = document.getElementById('cmw-taxonomy')?.value.trim()||'';
+  if (isSupervisor && (!npi || !taxonomy)) {
+    toast('NPI and Taxonomy are required for the Supervisor role','warn');
+    return;
+  }
   var obj = {
     first: first.trim(), last: last.trim(),
     credential: document.getElementById('cmw-cred')?.value||'',
@@ -28279,7 +28463,11 @@ function saveCMWorker(id) {
     email: document.getElementById('cmw-email')?.value||'',
     phone: document.getElementById('cmw-phone')?.value||'',
     supervisorId: document.getElementById('cmw-sup')?.value||'',
-    isSupervisor: !!document.getElementById('cmw-issup')?.checked,
+    roles: roles,
+    isSupervisor: isSupervisor,
+    npi: isSupervisor ? npi : (npi||''),
+    taxonomy: isSupervisor ? taxonomy : (taxonomy||''),
+    photo: document.getElementById('cmw-photo-data')?.value||'',
     hireDate: document.getElementById('cmw-hire')?.value||'',
     status: document.getElementById('cmw-status')?.value||'Active',
     updatedAt: _cmNowISO()
@@ -28295,6 +28483,7 @@ function saveCMWorker(id) {
   saveCMData(d);
   document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
   renderCMWorkers();
+  if (typeof _cmApplyWorkerRoleGating === 'function') _cmApplyWorkerRoleGating();
   toast('Worker saved');
 }
 function editCMWorker(id) { openCMWorkerModal(id); }
