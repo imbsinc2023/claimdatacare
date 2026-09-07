@@ -28275,6 +28275,7 @@ var CM_ROLE_DEFS = [
 ];
 
 function _cmRoleCard(def, checked) {
+  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
   var bg = checked ? 'linear-gradient(155deg,' + def.color + ' 0%,' + def.colorD + ' 100%)' : '#fff';
   var textColor = checked ? '#fff' : 'var(--text)';
   var descColor = checked ? 'rgba(255,255,255,.8)' : 'var(--text3)';
