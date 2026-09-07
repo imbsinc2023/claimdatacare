@@ -6561,7 +6561,7 @@ Show Paid
 </div>
 
 <div class="section" id="sec-cm-workers">
-<div class="page-hdr"><div><h1>Users</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add User</button></div>
+<div class="page-hdr"><div><h1>Users</h1></div><button class="btn btn-primary btn-sm" id="btn-add-cm-user" onclick="openCMWorkerModal()">+ Add User</button></div>
 <div class="page-body">
 <div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>
 <div id="cm-workers-tbl"></div>
@@ -19153,7 +19153,33 @@ function _isCMSpecialtyActive(){
 // If no matching worker record exists, nothing is hidden (unchanged
 // behavior) — this only ever narrows access, never grants it beyond what
 // the specialty allowlist already showed.
+// True only for Super Admin, or a logged-in CM worker whose roles include
+// Administrator. Users creation/editing and the Users list itself are
+// restricted to this check — no other role may see or manage them.
+function _cmCurrentWorkerIsAdmin(){
+  var sess = getSession();
+  if (!sess) return false;
+  if (sess.role === 'Super Admin') return true;
+  if (!sess.email) return false;
+  var d;
+  try { d = getCMData(); } catch(e) { return false; }
+  if (!d || !Array.isArray(d.workers)) return false;
+  var email = String(sess.email).toLowerCase();
+  var worker = d.workers.find(function(w){ return w.email && String(w.email).toLowerCase() === email; });
+  if (!worker) return false;
+  var roles = worker.roles || (worker.isSupervisor ? ['Supervisor'] : []);
+  return roles.indexOf('Administrator') >= 0;
+}
+
 function _cmApplyWorkerRoleGating(){
+  var isAdminNow = _cmCurrentWorkerIsAdmin();
+  var usersNavItem = document.getElementById('tnd-cm-workers');
+  if (usersNavItem) usersNavItem.style.display = isAdminNow ? '' : 'none';
+  var mobUsersNav = document.getElementById('mob-item-cm-workers');
+  if (mobUsersNav) mobUsersNav.style.display = isAdminNow ? '' : 'none';
+  var addUserBtn = document.getElementById('btn-add-cm-user');
+  if (addUserBtn) addUserBtn.style.display = isAdminNow ? '' : 'none';
+
   var sess = getSession();
   if (!sess || sess.role === 'Super Admin') return;
   if (!sess.email) return;
@@ -28267,6 +28293,10 @@ function renderCMWorkers() {
   if (!_isCMRole()) return;
   var el = document.getElementById('cm-workers-tbl');
   if (!el) return;
+  if (!_cmCurrentWorkerIsAdmin()) {
+    el.innerHTML = '<div class="empty"><h3>Administrator access only</h3><p style="font-size:12px;color:var(--text3)">Users can only be viewed and managed by an Administrator.</p></div>';
+    return;
+  }
   var d = getCMData();
   var q = (document.getElementById('cm-wkr-q')?.value||'').toLowerCase().trim();
   var list = d.workers;
@@ -28317,33 +28347,38 @@ function _cmRoleCard(def, checked) {
     '<input type="checkbox" class="cmw-role-chk" value="' + _cmwEsc(def.key) + '"' + (checked ? ' checked' : '') +
     ' onchange="_cmwRoleToggle()">' +
     '<span class="cmw-role-ico"><i data-lucide="' + def.icon + '" class="lci"></i></span>' +
-    '<span class="cmw-role-text">' +
     '<span class="cmw-role-title">' + _cmwEsc(def.key) + '</span>' +
-    '<span class="cmw-role-desc">' + _cmwEsc(def.desc) + '</span>' +
-    '</span></label>';
+    '</label>';
 }
 
 if (!document.getElementById('cmw-role-style')) {
   var _cmwStyle = document.createElement('style');
   _cmwStyle.id = 'cmw-role-style';
   _cmwStyle.textContent =
-    '.cmw-role-card{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:12px;' +
-    'border:1.5px solid var(--border2);background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}' +
-    '.cmw-role-card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.08)}' +
+    '.cmw-role-card{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 8px;border-radius:14px;' +
+    'border:1.5px solid #e6e0d3;background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}' +
+    '.cmw-role-card:hover{transform:translateY(-3px);box-shadow:0 6px 14px rgba(0,0,0,.1)}' +
     '.cmw-role-card input{display:none}' +
-    '.cmw-role-ico{width:28px;height:28px;border-radius:9px;background:color-mix(in srgb, var(--rc) 12%, white);' +
+    '.cmw-role-ico{width:36px;height:36px;border-radius:11px;background:color-mix(in srgb, var(--rc) 12%, white);' +
     'display:flex;align-items:center;justify-content:center;flex-shrink:0}' +
-    '.cmw-role-ico .lci{width:14px;height:14px;color:var(--rc)}' +
-    '.cmw-role-title{display:block;font-size:12.5px;font-weight:700;color:#141413}' +
-    '.cmw-role-desc{display:block;font-size:10.5px;color:#8a857a;margin-top:1px}' +
-    '.cmw-role-card:has(input:checked){background:linear-gradient(155deg,var(--rc) 0%,var(--rcd) 100%);border-color:var(--rc)}' +
+    '.cmw-role-ico .lci{width:17px;height:17px;color:var(--rc)}' +
+    '.cmw-role-title{font-size:12px;font-weight:700;color:#141413;text-align:center;min-height:29px;display:flex;align-items:center;justify-content:center;line-height:1.2}' +
+    '.cmw-role-card:has(input:checked){background:linear-gradient(155deg,var(--rc) 0%,var(--rcd) 100%);border-color:var(--rc);box-shadow:0 4px 12px color-mix(in srgb, var(--rc) 40%, transparent)}' +
     '.cmw-role-card:has(input:checked) .cmw-role-ico{background:rgba(255,255,255,.22)}' +
     '.cmw-role-card:has(input:checked) .cmw-role-ico .lci{color:#fff}' +
     '.cmw-role-card:has(input:checked) .cmw-role-title{color:#fff}' +
-    '.cmw-role-card:has(input:checked) .cmw-role-desc{color:rgba(255,255,255,.82)}' +
-    '#cmw-modal .field label{color:#141413!important;font-weight:700!important}' +
-    '#cmw-modal .field input,#cmw-modal .field select{color:#141413!important;font-weight:600}' +
-    '#cmw-modal .fg{margin-bottom:14px}';
+    '#cmw-modal .field label{color:#141413!important;font-weight:700!important;display:flex;align-items:center;gap:5px}' +
+    '#cmw-modal .field label .cmw-fico{width:11px;height:11px;color:#c96442;flex-shrink:0}' +
+    '#cmw-modal .field input,#cmw-modal .field select{color:#141413!important;font-weight:400!important;' +
+    'background:#fff!important;border:1.5px solid #ddd8cc!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.03)}' +
+    '#cmw-modal .field input:focus,#cmw-modal .field select:focus{border-color:#c96442!important}' +
+    '#cmw-modal .fg,#cmw-modal .fg3{margin-bottom:14px}' +
+    '#cmw-modal .cmw-sect{margin:18px 0 8px;font-size:10px;font-weight:700;color:#8a857a;text-transform:uppercase;letter-spacing:.05em}' +
+    '#cmw-modal .cmw-sect:first-child{margin-top:0}' +
+    '.cmw-icobtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;' +
+    'border:1.5px solid #ddd8cc;background:#fff;cursor:pointer;color:#4a4740;transition:border-color .12s,color .12s}' +
+    '.cmw-icobtn:hover{border-color:#c96442;color:#c96442}' +
+    '.cmw-icobtn .lci{width:14px;height:14px}';
   document.head.appendChild(_cmwStyle);
 }
 
@@ -28351,34 +28386,54 @@ window._cmwRoleToggle = function () {
   var isSup = !!document.querySelector('.cmw-role-chk[value="Supervisor"]:checked');
   var supBlock = document.getElementById('cmw-npi-block');
   if (supBlock) supBlock.style.display = isSup ? 'grid' : 'none';
+  // TCM supervisors are capped at a 12-client caseload, well below the
+  // 20-client default for case managers — nudge the field to that ceiling
+  // the moment Supervisor is checked, without overriding a value someone
+  // already typed on purpose above 12... unless it's still just the
+  // untouched 20 default, in which case snap it down.
+  var capEl = document.getElementById('cmw-cap');
+  if (capEl) {
+    if (isSup) {
+      capEl.max = '12';
+      if (!capEl.value || parseInt(capEl.value, 10) >= 20) capEl.value = '12';
+    } else {
+      capEl.removeAttribute('max');
+    }
+  }
   _cmwRefreshReportsTo();
 };
 
-// Only Supervisors are valid "Reports To" targets — a Case Manager reports
-// to a Supervisor, never the other way around, and Supervisors don't report
-// within the CM hierarchy. Rebuilt live so it reflects role changes made in
-// this same modal before saving.
+// Reporting hierarchy: Case Manager reports to a Supervisor; a Supervisor
+// reports to an Administrator. Rebuilt live so it reflects role changes
+// made in this same modal before saving.
 window._cmwRefreshReportsTo = function () {
   var sel = document.getElementById('cmw-sup');
   if (!sel) return;
   var currentId = sel.getAttribute('data-current') || '';
   var isSupNow = !!document.querySelector('.cmw-role-chk[value="Supervisor"]:checked');
+  var targetRole = isSupNow ? 'Administrator' : 'Supervisor';
   var d = getCMData();
   var editId = sel.getAttribute('data-edit-id') || '';
   var opts = '<option value="">None</option>';
-  if (!isSupNow) {
-    (d.workers || []).filter(function (x) {
-      if (x.id === editId) return false;
-      var r = x.roles || (x.isSupervisor ? ['Supervisor'] : []);
-      return r.indexOf('Supervisor') !== -1;
-    }).forEach(function (x) {
-      opts += '<option value="' + x.id + '"' + (x.id === currentId ? ' selected' : '') + '>' + x.first + ' ' + x.last + '</option>';
-    });
-  }
+  var matchFound = false;
+  (d.workers || []).filter(function (x) {
+    if (x.id === editId) return false;
+    var r = x.roles || (x.isSupervisor ? ['Supervisor'] : []);
+    return r.indexOf(targetRole) !== -1;
+  }).forEach(function (x) {
+    var sel2 = x.id === currentId;
+    if (sel2) matchFound = true;
+    opts += '<option value="' + x.id + '"' + (sel2 ? ' selected' : '') + '>' + x.first + ' ' + x.last + '</option>';
+  });
+  // The previously-assigned reports-to no longer qualifies for the target
+  // role (e.g. it pointed at a Supervisor but this worker just became one
+  // themselves, so the target flipped to Administrator) — drop it rather
+  // than leave a stale reference selected against the wrong role.
+  if (currentId && !matchFound) sel.setAttribute('data-current', '');
   sel.innerHTML = opts;
-  sel.disabled = isSupNow;
+  sel.disabled = false;
   var hint = document.getElementById('cmw-sup-hint');
-  if (hint) hint.textContent = isSupNow ? 'Supervisors do not report to anyone in Case Management' : 'Only Supervisors appear here';
+  if (hint) hint.textContent = isSupNow ? 'Only Administrators appear here' : 'Only Supervisors appear here';
 };
 
 window._cmwPhotoFile = function (input) {
@@ -28438,30 +28493,29 @@ window._cmwOpenCamera = function () {
 };
 
 function openCMWorkerModal(editId) {
+  if (!_cmCurrentWorkerIsAdmin()) { toast('Only an Administrator can create or edit users', 'warn'); return; }
   var d = getCMData();
   var w = editId ? d.workers.find(function(x){return x.id===editId;}) : {};
   var roles = w.roles || (w.isSupervisor ? ['Case Manager', 'Supervisor'] : (editId ? ['Case Manager'] : []));
   var isSupNow = roles.indexOf('Supervisor') !== -1;
+  var supTargetRole = isSupNow ? 'Administrator' : 'Supervisor';
   var supOpts = '<option value="">None</option>';
-  if (!isSupNow) {
-    supOpts += d.workers.filter(function(x){
-      if (x.id === editId) return false;
-      var r = x.roles || (x.isSupervisor ? ['Supervisor'] : []);
-      return r.indexOf('Supervisor') !== -1;
-    }).map(function(x){
-      return '<option value="'+x.id+'"'+(x.id===(w.supervisorId||'')?' selected':'')+'>'+x.first+' '+x.last+'</option>';
-    }).join('');
-  }
+  supOpts += d.workers.filter(function(x){
+    if (x.id === editId) return false;
+    var r = x.roles || (x.isSupervisor ? ['Supervisor'] : []);
+    return r.indexOf(supTargetRole) !== -1;
+  }).map(function(x){
+    return '<option value="'+x.id+'"'+(x.id===(w.supervisorId||'')?' selected':'')+'>'+x.first+' '+x.last+'</option>';
+  }).join('');
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
   overlay.innerHTML =
-    '<div id="cmw-modal" style="background:var(--bg2);border-radius:16px;width:100%;max-width:600px;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.4)">' +
+    '<div id="cmw-modal" style="background:var(--bg2);border-radius:16px;width:100%;max-width:740px;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.4)">' +
 
-    '<div style="padding:16px 22px;background:linear-gradient(155deg,#c96442 0%,#a9502f 100%);border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden">' +
+    '<div style="padding:16px 22px;background:linear-gradient(155deg,#3f4a38 0%,#2c3527 100%);border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden">' +
     '<div style="position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.08)"></div>' +
-    '<div style="position:relative;z-index:1"><div style="font-size:16px;font-weight:700;color:#fff">'+(editId?'Edit User':'New User')+'</div>' +
-    '<div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:1px">Roles determine which modules this person can access</div></div>' +
+    '<div style="position:relative;z-index:1;font-size:17px;font-weight:700;color:#fff">'+(editId?'Edit User':'New User')+'</div>' +
     '<button style="position:relative;z-index:1;border:none;background:rgba(255,255,255,.18);color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>' +
 
     '<div style="padding:18px 22px">' +
@@ -28475,28 +28529,41 @@ function openCMWorkerModal(editId) {
     '<div style="font-size:10px;font-weight:700;color:#8a857a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Photo (optional)</div>' +
     '<div style="display:flex;gap:6px">' +
     '<input type="file" id="cmw-photo-file" accept="image/*" style="display:none" onchange="_cmwPhotoFile(this)">' +
-    '<button type="button" class="btn btn-sm" onclick="document.getElementById(\'cmw-photo-file\').click()"><i data-lucide="upload" class="lci" style="width:12px;height:12px"></i> Upload</button>' +
-    '<button type="button" class="btn btn-sm" onclick="_cmwOpenCamera()"><i data-lucide="camera" class="lci" style="width:12px;height:12px"></i> Take Photo</button>' +
-    '<button type="button" class="btn btn-sm btn-ghost" onclick="_cmwClearPhoto()">Clear</button>' +
+    '<button type="button" class="cmw-icobtn" title="Upload" onclick="document.getElementById(\'cmw-photo-file\').click()"><i data-lucide="upload" class="lci"></i></button>' +
+    '<button type="button" class="cmw-icobtn" title="Take Photo" onclick="_cmwOpenCamera()"><i data-lucide="camera" class="lci"></i></button>' +
+    '<button type="button" class="cmw-icobtn" title="Clear" onclick="_cmwClearPhoto()"><i data-lucide="x" class="lci"></i></button>' +
     '</div></div>' +
     '<input type="hidden" id="cmw-photo-data" value="'+(w.photo||'')+'">' +
     '</div>' +
 
-    '<div class="fg g2"><div class="field"><label>First Name</label><input id="cmw-first" class="no-upper" value="'+(w.first||'')+'"></div>'+
-    '<div class="field"><label>Last Name</label><input id="cmw-last" class="no-upper" value="'+(w.last||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Credential (LSW, LCSW, etc.)</label><input id="cmw-cred" value="'+(w.credential||'')+'"></div>'+
-    '<div class="field"><label>Capacity (max clients)</label><input id="cmw-cap" type="number" value="'+(w.capacity||20)+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
-    '<div class="field"><label>Phone</label><input id="cmw-phone" value="'+(w.phone||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Reports To</label><select id="cmw-sup" data-current="'+(w.supervisorId||'')+'" data-edit-id="'+(editId||'')+'"'+(isSupNow?' disabled':'')+'>'+supOpts+'</select><div id="cmw-sup-hint" style="font-size:10px;color:#8a857a;margin-top:2px">'+(isSupNow?'Supervisors do not report to anyone in Case Management':'Only Supervisors appear here')+'</div></div>'+
-    '<div class="field"><label>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div></div>'+
-    '<div class="fg g2"><div class="field"><label>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div><div></div></div>'+
+    '<div class="cmw-sect">Basic Info</div>' +
+    '<div class="fg3"><div class="field"><label><i data-lucide="user" class="lci cmw-fico"></i>First Name</label><input id="cmw-first" class="no-upper" value="'+(w.first||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="user" class="lci cmw-fico"></i>Middle Name</label><input id="cmw-mid" class="no-upper" value="'+(w.middle||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="user" class="lci cmw-fico"></i>Last Name</label><input id="cmw-last" class="no-upper" value="'+(w.last||'')+'"></div></div>'+
+    '<div class="fg"><div class="field"><label><i data-lucide="cake" class="lci cmw-fico"></i>Date of Birth</label><input id="cmw-dob" type="date" value="'+(w.dob||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="venus-and-mars" class="lci cmw-fico"></i>Gender</label><select id="cmw-gender"><option value=""'+(!w.gender?' selected':'')+'>—</option><option value="Male"'+(w.gender==='Male'?' selected':'')+'>Male</option><option value="Female"'+(w.gender==='Female'?' selected':'')+'>Female</option><option value="Other"'+(w.gender==='Other'?' selected':'')+'>Other</option><option value="Prefer not to say"'+(w.gender==='Prefer not to say'?' selected':'')+'>Prefer not to say</option></select></div></div>'+
+
+    '<div class="cmw-sect">Contact</div>' +
+    '<div class="fg"><div class="field"><label><i data-lucide="mail" class="lci cmw-fico"></i>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="phone" class="lci cmw-fico"></i>Phone</label><input id="cmw-phone" value="'+(w.phone||'')+'"></div></div>'+
+    '<div class="fg"><div class="field"><label><i data-lucide="map-pin" class="lci cmw-fico"></i>Address Line 1</label><input id="cmw-addr1" value="'+(w.addr1||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="map-pin" class="lci cmw-fico"></i>Address Line 2</label><input id="cmw-addr2" value="'+(w.addr2||'')+'"></div></div>'+
+    '<div class="fg3"><div class="field"><label><i data-lucide="building-2" class="lci cmw-fico"></i>City</label><input id="cmw-city" value="'+(w.city||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="map" class="lci cmw-fico"></i>State</label><input id="cmw-state" maxlength="2" value="'+(w.state||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="hash" class="lci cmw-fico"></i>ZIP</label><input id="cmw-zip" maxlength="10" value="'+(w.zip||'')+'"></div></div>'+
+
+    '<div class="cmw-sect">Employment</div>' +
+    '<div class="fg"><div class="field"><label><i data-lucide="id-card" class="lci cmw-fico"></i>Employee ID</label><input id="cmw-empid" value="'+(w.empId||'')+'" placeholder="Optional"></div>'+
+    '<div class="field"><label><i data-lucide="award" class="lci cmw-fico"></i>Credential (LSW, LCSW, etc.)</label><input id="cmw-cred" value="'+(w.credential||'')+'"></div></div>'+
+    '<div class="fg"><div class="field"><label><i data-lucide="badge-check" class="lci cmw-fico"></i>License Number</label><input id="cmw-licnum" value="'+(w.licenseNumber||'')+'" placeholder="Optional"></div>'+
+    '<div class="field"><label><i data-lucide="calendar-clock" class="lci cmw-fico"></i>License Expiration</label><input id="cmw-licexp" type="date" value="'+(w.licenseExpiration||'')+'"></div></div>'+
+    '<div class="fg"><div class="field"><label><i data-lucide="users" class="lci cmw-fico"></i>Capacity (max clients)</label><input id="cmw-cap" type="number"'+(isSupNow?' max="12"':'')+' value="'+(w.capacity||(isSupNow?12:20))+'"></div>'+
+    '<div class="field"><label><i data-lucide="corner-down-right" class="lci cmw-fico"></i>Reports To</label><select id="cmw-sup" data-current="'+(w.supervisorId||'')+'" data-edit-id="'+(editId||'')+'">'+supOpts+'</select><div id="cmw-sup-hint" style="font-size:10px;color:#8a857a;margin-top:2px">'+(isSupNow?'Only Administrators appear here':'Only Supervisors appear here')+'</div></div></div>'+
+    '<div class="fg"><div class="field"><label><i data-lucide="calendar" class="lci cmw-fico"></i>Hire Date</label><input id="cmw-hire" type="date" value="'+(w.hireDate||'')+'"></div>'+
+    '<div class="field"><label><i data-lucide="activity" class="lci cmw-fico"></i>Status</label><select id="cmw-status"><option value="Active"'+(w.status!=='Inactive'?' selected':'')+'>Active</option><option value="Inactive"'+(w.status==='Inactive'?' selected':'')+'>Inactive</option></select></div></div>'+
 
     // Roles
-    '<div style="margin:18px 0 8px">' +
-    '<div style="font-size:10px;font-weight:700;color:#8a857a;text-transform:uppercase;letter-spacing:.05em">Roles</div>' +
-    '<div style="font-size:11px;color:#8a857a;margin-top:2px">A worker can hold more than one role — each enables its modules in the menu</div>' +
-    '</div>' +
+    '<div class="cmw-sect">Roles</div>' +
     '<div id="cmw-roles-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
     CM_ROLE_DEFS.map(function(def){ return _cmRoleCard(def, roles.indexOf(def.key) !== -1); }).join('') +
     '</div>' +
@@ -28507,8 +28574,8 @@ function openCMWorkerModal(editId) {
     '<i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i>' +
     'Required for supervisors — used as the rendering provider on CM claims' +
     '</div>' +
-    '<div class="field" style="margin:0"><label>NPI *</label><input id="cmw-npi" maxlength="10" value="'+(w.npi||'')+'" placeholder="10 digits"></div>' +
-    '<div class="field" style="margin:0"><label>Taxonomy Code *</label><input id="cmw-taxonomy" maxlength="10" value="'+(w.taxonomy||'')+'" placeholder="e.g. 104100000X"></div>' +
+    '<div class="field" style="margin:0"><label><i data-lucide="hash" class="lci cmw-fico"></i>NPI *</label><input id="cmw-npi" maxlength="10" value="'+(w.npi||'')+'" placeholder="10 digits"></div>' +
+    '<div class="field" style="margin:0"><label><i data-lucide="tag" class="lci cmw-fico"></i>Taxonomy Code *</label><input id="cmw-taxonomy" maxlength="10" value="'+(w.taxonomy||'')+'" placeholder="e.g. 104100000X"></div>' +
     '</div>' +
 
     '</div>'+
@@ -28520,6 +28587,7 @@ function openCMWorkerModal(editId) {
   setTimeout(_renderLucideIcons, 20);
 }
 function saveCMWorker(id) {
+  if (!_cmCurrentWorkerIsAdmin()) { toast('Only an Administrator can save users', 'warn'); return; }
   var d = getCMData();
   var first = document.getElementById('cmw-first')?.value||'';
   var last = document.getElementById('cmw-last')?.value||'';
@@ -28534,11 +28602,22 @@ function saveCMWorker(id) {
   }
   var obj = {
     first: first.trim(), last: last.trim(),
+    middle: document.getElementById('cmw-mid')?.value||'',
+    dob: document.getElementById('cmw-dob')?.value||'',
+    gender: document.getElementById('cmw-gender')?.value||'',
     credential: document.getElementById('cmw-cred')?.value||'',
+    licenseNumber: document.getElementById('cmw-licnum')?.value||'',
+    licenseExpiration: document.getElementById('cmw-licexp')?.value||'',
+    empId: document.getElementById('cmw-empid')?.value||'',
     capacity: parseInt(document.getElementById('cmw-cap')?.value)||20,
     email: document.getElementById('cmw-email')?.value||'',
     phone: document.getElementById('cmw-phone')?.value||'',
-    supervisorId: isSupervisor ? '' : (document.getElementById('cmw-sup')?.value||''),
+    addr1: document.getElementById('cmw-addr1')?.value||'',
+    addr2: document.getElementById('cmw-addr2')?.value||'',
+    city: document.getElementById('cmw-city')?.value||'',
+    state: document.getElementById('cmw-state')?.value||'',
+    zip: document.getElementById('cmw-zip')?.value||'',
+    supervisorId: document.getElementById('cmw-sup')?.value||'',
     roles: roles,
     isSupervisor: isSupervisor,
     npi: isSupervisor ? npi : (npi||''),
@@ -28564,6 +28643,7 @@ function saveCMWorker(id) {
 }
 function editCMWorker(id) { openCMWorkerModal(id); }
 function delCMWorker(id) {
+  if (!_cmCurrentWorkerIsAdmin()) { toast('Only an Administrator can delete users', 'warn'); return; }
   if (!confirm('Delete this worker?')) return;
   var d = getCMData();
   d.workers = d.workers.filter(function(x){return x.id!==id;});
