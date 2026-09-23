@@ -21816,7 +21816,7 @@ function eeToggleMacros(sectionKey, btn) {
 function eeOpenSignature() {
   const notes = getNotes();
   const n = notes.find(x => x.id === _eeNoteId);
-  if (!n) return;
+  if (!n) { toast('Could not find this encounter — please reopen it and try again', 'err'); return; }
   const db = getDB();
   const pat = db.patients.find(p => p.id === n.patId) || {};
   const rend = db.rendering.find(r => r.id === n.renderingId) || {};
@@ -21828,46 +21828,55 @@ function eeOpenSignature() {
   if (old) old.remove();
   document.body.insertAdjacentHTML('beforeend', `
   <div class="overlay" id="modal-ee-sig" style="display:flex;z-index:6000">
-  <div class="modal" style="max-width:440px;width:94%">
-    <div class="modal-hdr"><div><div class="modal-t">Signature — ${sigName}</div></div>
-    <button title="Close" class="btn btn-ghost btn-sm" onclick="this.closest('.overlay').remove()"><i data-lucide="x" class="lci"></i></button></div>
-    <div class="modal-body" style="min-height:300px">
-      <div style="margin-bottom:12px">
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button id="ee-sig-tab-draw" class="btn btn-sm btn-primary" onclick="eeSigTab('draw')"><i data-lucide="pen" class="lci"></i> Draw</button>
-          <button id="ee-sig-tab-upload" class="btn btn-sm" onclick="eeSigTab('upload')"><i data-lucide="upload" class="lci"></i> Upload</button>
-          <button id="ee-sig-tab-electronic" class="btn btn-sm" onclick="eeSigTab('electronic')"><i data-lucide="check" class="lci"></i> Electronic</button>
+  <div class="modal" style="max-width:460px;width:94%">
+    <div class="modal-hdr">
+      <div><div class="modal-t">Signature</div><div class="modal-sub">${sigName}</div></div>
+      <button title="Close" class="btn btn-ghost btn-sm" onclick="this.closest('.overlay').remove()"><i data-lucide="x" class="lci"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <div class="ee-sig-tabs">
+        <button id="ee-sig-tab-draw" class="ee-sig-tab active" onclick="eeSigTab('draw')"><i data-lucide="pen" class="lci"></i> Draw</button>
+        <button id="ee-sig-tab-upload" class="ee-sig-tab" onclick="eeSigTab('upload')"><i data-lucide="upload" class="lci"></i> Upload</button>
+        <button id="ee-sig-tab-electronic" class="ee-sig-tab" onclick="eeSigTab('electronic')"><i data-lucide="check" class="lci"></i> Electronic</button>
+      </div>
+
+      <div id="ee-sig-panel-draw" class="ee-sig-panel" style="display:block">
+        <div class="ee-sig-hint">Sign inside the box below with your mouse or finger</div>
+        <div class="ee-sig-canvas-wrap">
+          <canvas id="ee-sig-canvas" class="ee-sig-canvas" width="400" height="160"></canvas>
+          <div class="ee-sig-canvas-line"></div>
+          <span class="ee-sig-canvas-placeholder" id="ee-sig-placeholder">Sign here</span>
         </div>
-        <div id="ee-sig-panel-draw" style="display:block">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Draw your signature below:</div>
-          <canvas id="ee-sig-canvas" class="ee-sig-canvas" width="380" height="160"></canvas>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-sm" onclick="eeSigClear()"><i data-lucide="eraser" class="lci"></i> Clear</button>
-          </div>
-        </div>
-        <div id="ee-sig-panel-upload" style="display:none">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Upload a signature image (PNG, JPG):</div>
-          <label class="ee-sig-upload" id="ee-sig-upload-label">
-            <i data-lucide="cloud-upload" class="lci" style="width:28px;height:28px;display:block;margin:0 auto 6px;color:var(--text3)"></i>
-            Click to select image
-            <input type="file" accept="image/png,image/jpeg,image/gif" style="display:none" onchange="eeSigUploaded(this)">
-          </label>
-          <img id="ee-sig-upload-preview" class="ee-sig-preview" style="display:none">
-        </div>
-        <div id="ee-sig-panel-electronic" style="display:none">
-          <label style="display:flex;align-items:center;gap:8px;padding:14px;background:var(--bg3);border-radius:var(--r);cursor:pointer;font-size:13px">
-            <input type="checkbox" id="ee-sig-electronic-cb" ${n.electronicSig?'checked':''} style="accent-color:var(--brand);width:18px;height:18px">
-            <span>Electronically sign as <strong>${sigName}</strong></span>
-          </label>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px;padding:8px 14px;background:var(--amber-bg);border-radius:var(--r);border:1px solid var(--amber-bdr)">
-            <i data-lucide="info" class="lci" style="width:12px;height:12px;display:inline;vertical-align:middle"></i>
-            Electronic signature confirms identity and intent to sign.
-          </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-sm btn-ghost" onclick="eeSigClear()"><i data-lucide="eraser" class="lci"></i> Clear</button>
         </div>
       </div>
-      ${existingSig ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Current Signature</div>
-        <img src="${existingSig}" style="max-width:200px;max-height:50px;border-radius:6px;border:1px solid var(--border)">
+
+      <div id="ee-sig-panel-upload" class="ee-sig-panel" style="display:none">
+        <div class="ee-sig-hint">Upload a signature image (PNG, JPG)</div>
+        <label class="ee-sig-upload" id="ee-sig-upload-label">
+          <i data-lucide="cloud-upload" class="lci" style="width:26px;height:26px;color:var(--text3)"></i>
+          <span>Click to select an image</span>
+          <input type="file" accept="image/png,image/jpeg,image/gif" style="display:none" onchange="eeSigUploaded(this)">
+        </label>
+        <img id="ee-sig-upload-preview" class="ee-sig-preview" style="display:none">
+      </div>
+
+      <div id="ee-sig-panel-electronic" class="ee-sig-panel" style="display:none">
+        <label class="ee-sig-electronic-box">
+          <input type="checkbox" id="ee-sig-electronic-cb" ${n.electronicSig?'checked':''}>
+          <span>Electronically sign as <strong>${sigName}</strong></span>
+        </label>
+        <div class="ee-sig-note">
+          <i data-lucide="info" class="lci" style="width:12px;height:12px"></i>
+          Electronic signature confirms identity and intent to sign.
+        </div>
+      </div>
+
+      ${existingSig ? `<div class="ee-sig-current">
+        <div class="ee-sig-current-label">Current Signature on File</div>
+        <img src="${existingSig}">
       </div>` : ''}
     </div>
     <div class="modal-ftr">
@@ -21883,11 +21892,12 @@ function eeOpenSignature() {
   }, 50);
 }
 
-let _eeSigCtx = null, _eeSigDrawing = false;
+let _eeSigCtx = null, _eeSigDrawing = false, _eeSigHasDrawn = false;
 
 function eeSigInitCanvas(canvas) {
   const ctx = canvas.getContext('2d');
   _eeSigCtx = ctx;
+  _eeSigHasDrawn = false;
   ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
@@ -21898,7 +21908,15 @@ function eeSigInitCanvas(canvas) {
     const t = e.touches ? e.touches[0] : e;
     return { x: (t.clientX - r.left) * (canvas.width / r.width), y: (t.clientY - r.top) * (canvas.height / r.height) };
   };
-  const start = e => { _eeSigDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const start = e => {
+    _eeSigDrawing = true;
+    if (!_eeSigHasDrawn) {
+      _eeSigHasDrawn = true;
+      const ph = document.getElementById('ee-sig-placeholder');
+      if (ph) ph.style.display = 'none';
+    }
+    const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  };
   const move = e => { if (!_eeSigDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
   const end = () => { _eeSigDrawing = false; };
   canvas.addEventListener('mousedown', start);
@@ -21912,7 +21930,7 @@ function eeSigInitCanvas(canvas) {
 
 function eeSigTab(tab) {
   ['draw','upload','electronic'].forEach(t => {
-    document.getElementById(`ee-sig-tab-${t}`).className = 'btn btn-sm' + (t === tab ? ' btn-primary' : '');
+    document.getElementById(`ee-sig-tab-${t}`).className = 'ee-sig-tab' + (t === tab ? ' active' : '');
     document.getElementById(`ee-sig-panel-${t}`).style.display = t === tab ? 'block' : 'none';
   });
 }
@@ -21921,6 +21939,9 @@ function eeSigClear() {
   if (!_eeSigCtx) return;
   const canvas = document.getElementById('ee-sig-canvas');
   _eeSigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  _eeSigHasDrawn = false;
+  const ph = document.getElementById('ee-sig-placeholder');
+  if (ph) ph.style.display = '';
 }
 
 function eeSigUploaded(input) {
@@ -21935,37 +21956,58 @@ function eeSigUploaded(input) {
   reader.readAsDataURL(input.files[0]);
 }
 
+// Every failure path here now shows a toast — previously a stale/missing
+// note reference (or an empty canvas) would fail with `return` and no
+// feedback at all, which looked exactly like "the button doesn't work."
 function eeSigSave() {
-  const notes = getNotes();
-  const n = notes.find(x => x.id === _eeNoteId);
-  if (!n) return;
-  let sigData = '';
-  let sigType = '';
-  if (document.getElementById('ee-sig-panel-draw')?.style.display !== 'none') {
-    const canvas = document.getElementById('ee-sig-canvas');
-    sigData = canvas.toDataURL('image/png');
-    sigType = 'drawn';
-  } else if (document.getElementById('ee-sig-panel-upload')?.style.display !== 'none') {
-    const img = document.getElementById('ee-sig-upload-preview');
-    if (img?.src && img.style.display !== 'none') { sigData = img.src; sigType = 'uploaded'; }
-    else { toast('Please upload a signature image first','warn'); return; }
-  } else {
-    const cb = document.getElementById('ee-sig-electronic-cb');
-    sigType = 'electronic';
-    sigData = cb?.checked ? 'electronic' : '';
-    if (!sigData) { toast('Please check the electronic signature box','warn'); return; }
+  try {
+    if (!_eeNoteId) {
+      toast('This encounter is not open anymore — please reopen it and try again', 'err');
+      console.error('[CDC] eeSigSave: _eeNoteId is empty');
+      return;
+    }
+    const notes = getNotes();
+    const n = notes.find(x => x.id === _eeNoteId);
+    if (!n) {
+      toast('Could not find this encounter — please reopen it and try again', 'err');
+      console.error('[CDC] eeSigSave: no note matches _eeNoteId=', _eeNoteId);
+      return;
+    }
+    let sigData = '';
+    let sigType = '';
+    const drawActive = document.getElementById('ee-sig-panel-draw')?.style.display !== 'none';
+    const uploadActive = document.getElementById('ee-sig-panel-upload')?.style.display !== 'none';
+    if (drawActive) {
+      if (!_eeSigHasDrawn) { toast('Please draw your signature in the box first', 'warn'); return; }
+      const canvas = document.getElementById('ee-sig-canvas');
+      if (!canvas) { toast('Signature pad not ready — please close and reopen this window', 'err'); return; }
+      sigData = canvas.toDataURL('image/png');
+      sigType = 'drawn';
+    } else if (uploadActive) {
+      const img = document.getElementById('ee-sig-upload-preview');
+      if (img?.src && img.style.display !== 'none') { sigData = img.src; sigType = 'uploaded'; }
+      else { toast('Please upload a signature image first', 'warn'); return; }
+    } else {
+      const cb = document.getElementById('ee-sig-electronic-cb');
+      sigType = 'electronic';
+      sigData = cb?.checked ? 'electronic' : '';
+      if (!sigData) { toast('Please check the electronic signature box', 'warn'); return; }
+    }
+    setNotes(arr => {
+      const x = arr.find(m => m.id === _eeNoteId);
+      if (x) { x.signatureData = sigData; x.signatureType = sigType; x.signedAt = Date.now(); x.updatedAt = Date.now(); }
+    });
+    document.getElementById('modal-ee-sig')?.remove();
+    _eeDirty = true;
+    eeMarkDirty();
+    toast('Signature saved');
+    const navEl = document.querySelector('.ee-nav-item[data-key="sig"]');
+    if (navEl) navEl.innerHTML = '<i data-lucide="pen-box" class="lci" style="width:14px;height:14px"></i> Signature ✓';
+    setTimeout(_renderLucideIcons, 10);
+  } catch (e) {
+    console.error('[CDC] eeSigSave failed:', e);
+    toast('Could not save the signature — check console (F12) for details', 'err');
   }
-  setNotes(arr => {
-    const x = arr.find(m => m.id === _eeNoteId);
-    if (x) { x.signatureData = sigData; x.signatureType = sigType; x.signedAt = Date.now(); x.updatedAt = Date.now(); }
-  });
-  document.getElementById('modal-ee-sig')?.remove();
-  _eeDirty = true;
-  eeMarkDirty();
-  toast('Signature saved');
-  const navEl = document.querySelector('.ee-nav-item[data-key="sig"]');
-  if (navEl) navEl.innerHTML = '<i data-lucide="pen-box" class="lci" style="width:14px;height:14px"></i> Signature ✓';
-  setTimeout(_renderLucideIcons, 10);
 }
 
 // ?? Unlock Workflow ????????????????????????????????????????????????????

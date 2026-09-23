@@ -839,3 +839,58 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 
 .ee-macro-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
 .ee-macro-btn:hover{background:var(--brand-bg);color:var(--brand);border-color:var(--brand)}
+
+/* ── Encounter Editor: two-pane interactive layout ─────────────────── */
+/* This was previously undefined entirely, so every section rendered
+   stacked on one page instead of behaving like left-nav / right-content
+   tabs. Structure is intentionally generic (SOAP-style + sidebar list),
+   not tied to any one specialty — it works the same for medical, TCM,
+   psychiatry, or any future encounter type defined in ENCOUNTER_TYPES. */
+#encounter-editor{overflow:hidden}
+.enc-editor-body{display:flex;flex:1;min-height:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+
+.enc-editor-sidebar{width:230px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0}
+.ee-nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:12.5px;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ee-nav-item:hover{background:var(--bg3);color:var(--text)}
+.ee-nav-item.active{background:var(--brand-bg);color:var(--brand);font-weight:700;box-shadow:inset 3px 0 0 var(--brand)}
+.ee-nav-divider{height:1px;background:var(--border);margin:6px 14px}
+
+.enc-editor-content{flex:1;min-width:0;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column}
+.ee-section{display:none;flex:1;flex-direction:column;min-height:0}
+.ee-section.active{display:flex}
+.ee-section textarea{flex:1;min-height:140px;width:100%;padding:10px 44px 10px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:var(--font);line-height:1.5;resize:none;box-sizing:border-box;background:var(--bg2);color:var(--text)}
+.ee-section textarea:focus{outline:none;border-color:var(--brand)}
+
+.enc-editor-preview{display:none;width:380px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:18px;background:var(--bg2);font-size:12.5px;line-height:1.7;color:var(--text2)}
+.enc-editor-preview.show{display:block}
+
+.enc-editor-toolbar{flex-shrink:0}
+.enc-editor-ftr{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);background:var(--bg2)}
+
+/* ── Signature modal ────────────────────────────────────────────────── */
+/* .ee-sig-canvas, .ee-sig-upload and .ee-sig-preview had zero CSS before —
+   that's why the signing box looked like a bare, borderless rectangle. */
+.ee-sig-tabs{display:flex;background:var(--bg3);border-radius:10px;padding:3px;margin-bottom:16px;gap:2px}
+.ee-sig-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:none;background:transparent;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;transition:background .12s,color .12s}
+.ee-sig-tab:hover{color:var(--text)}
+.ee-sig-tab.active{background:var(--brand);color:#fff}
+
+.ee-sig-panel{margin-bottom:4px}
+.ee-sig-hint{font-size:11.5px;color:var(--text3);margin-bottom:8px}
+
+.ee-sig-canvas-wrap{position:relative;border:1.5px solid var(--border2);border-radius:10px;background:#fff;overflow:hidden}
+.ee-sig-canvas{display:block;width:100%;height:160px;cursor:crosshair;touch-action:none}
+.ee-sig-canvas-line{position:absolute;left:20px;right:20px;bottom:34px;height:1px;background:var(--border)}
+.ee-sig-canvas-placeholder{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text3);opacity:.5;pointer-events:none;font-style:italic}
+
+.ee-sig-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:32px 16px;border:2px dashed var(--border2);border-radius:10px;background:var(--bg3);color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer;text-align:center;transition:border-color .12s,background .12s}
+.ee-sig-upload:hover{border-color:var(--brand);background:var(--brand-bg)}
+.ee-sig-preview{display:block;max-width:100%;max-height:140px;margin-top:10px;border:1.5px solid var(--border2);border-radius:10px;padding:8px;background:#fff}
+
+.ee-sig-electronic-box{display:flex;align-items:center;gap:10px;padding:14px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;cursor:pointer;font-size:13px}
+.ee-sig-electronic-box input{width:18px;height:18px;accent-color:var(--brand);flex-shrink:0}
+.ee-sig-note{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--amber,#a9502f);margin-top:10px;padding:8px 12px;background:var(--amber-bg,#fdf5f0);border:1px solid var(--amber-bdr,#f0d5c4);border-radius:8px}
+
+.ee-sig-current{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.ee-sig-current-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.ee-sig-current img{max-width:220px;max-height:56px;border:1px solid var(--border2);border-radius:8px;background:#fff;padding:6px}
