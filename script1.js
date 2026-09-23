@@ -21437,6 +21437,7 @@ function openEncounterEditor(noteId, encType) {
           <textarea id="ee-txt-${s.key}" ${ro?'readonly':''}
             oninput="eeMarkDirty()" placeholder="Enter ${s.label.toLowerCase()}...">${n.body?.[s.key]||''}</textarea>
           ${ro?'':`<button class="ee-macro-btn" onclick="eeToggleMacros('${s.key}',this)" title="Quick phrases">+</button>`}
+          ${ro?'':`<button class="ee-macro-btn" onclick="eeFixCasing('${s.key}')" title="Fix ALL CAPS text" style="right:38px">Aa</button>`}
         </div>
       </div>`).join('')}
     <div class="ee-section" id="ee-sec-dx">
@@ -21510,6 +21511,25 @@ function eeMarkDirty() {
   _eeAutoSaveTimer = setTimeout(() => { if (_eeDirty) eeSave(); }, 3000);
   const previewEl = document.getElementById('ee-preview');
   if (previewEl?.classList.contains('show')) eeUpdatePreview();
+}
+
+// Converts ALL-CAPS or SHOUTY text (common from voice dictation) into
+// normal sentence case: lowercase everything, then capitalize the first
+// letter of each sentence and standalone "I". Doesn't touch text that's
+// already mixed-case, so it's safe to run on notes that are fine as-is.
+function eeFixCasing(key) {
+  const ta = document.getElementById('ee-txt-' + key);
+  if (!ta || !ta.value) return;
+  const text = ta.value;
+  const upperRatio = (text.match(/[A-Z]/g) || []).length / Math.max(1, (text.match(/[A-Za-z]/g) || []).length);
+  if (upperRatio < 0.6) { toast('This text doesn\'t look like ALL CAPS — left as-is'); return; }
+  const fixed = text.toLowerCase()
+    .replace(/(^\s*[a-z]|[.!?]\s+[a-z])/g, m => m.toUpperCase())
+    .replace(/\bi\b/g, 'I')
+    .replace(/\bi'/g, "I'");
+  ta.value = fixed;
+  eeMarkDirty();
+  toast('Casing fixed — review before saving');
 }
 
 function eeSave(andFinalize) {
@@ -22026,53 +22046,53 @@ if (prov.logo) {
 }
 const hx = prov.logo ? M + _encLogoH + 6 : M;
 t(prov.name||'',hx,M+8,{bold:true,size:10,color:DARK,maxWidth:90});
-t(`NPI: ${rend.npi||prov.npi||''} · EIN: ${prov.taxid||''}`,hx,M+14,{size:7.5,color:MID});
-t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,color:MID});
-// Document label
+t(`NPI: ${rend.npi||prov.npi||''} · EIN: ${prov.taxid||''}`,hx,M+14,{size:7.5,color:MID,maxWidth:100});
+t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,color:MID,maxWidth:100});
+// Document label — just "ENCOUNTER NOTE", no encounter-type or CPT-service
+// subline; the status line (Draft/Finalized) stays since that's the one
+// piece of this header that actually matters operationally.
 const eType = n.encounterType || 'medical';
-const eLabel = (ENCOUNTER_TYPES[eType]||ENCOUNTER_TYPES.medical).label;
-t(eLabel.toUpperCase(),RX,M+9,{bold:true,size:14,color:DARK,align:'right'});
 const cptLabel=(CPT_ENGINE[n.cpt]||CPT_ENGINE['DEFAULT']).label;
-t(cptLabel,RX,M+15,{size:8,color:BLUE,align:'right'});
-t(n.status==='finalized'?'FINALIZED':'DRAFT — Not for Billing',RX,M+21,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
+t('Encounter Note',RX,M+10,{bold:true,size:14,color:DARK,align:'right'});
+t(n.status==='finalized'?'Finalized':'Draft — Not for Billing',RX,M+16,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
 let y=M+_encLogoH+8;
 hln(y,BORDER,0.5); y+=5;
 
 // ?? Patient / Encounter Information Block ????????????????????????????
 fill(M,y,CW,26,LIGHT);
 fill(M,y,3,26,BLUE);
-t('PATIENT & ENCOUNTER INFORMATION',M+6,y+5,{size:7,bold:true,color:MID});
+t('Patient & Encounter Information',M+6,y+5,{size:7,bold:true,color:MID});
 // Row 1
 t('Patient Name:',M+6,y+10,{size:7.5,color:MID});
-t(`${pat.last||'?'}, ${pat.first||''}`,M+36,y+10,{size:8.5,bold:true,color:DARK});
+t(`${pat.last||'?'}, ${pat.first||''}`,M+36,y+10,{size:8.5,bold:true,color:DARK,maxWidth:60});
 t('Date of Birth:',M+100,y+10,{size:7.5,color:MID});
-t(pat.dob||'',M+126,y+10,{size:8.5,bold:true,color:DARK});
+t(pat.dob||'',M+126,y+10,{size:8.5,bold:true,color:DARK,maxWidth:RX-M-126});
 // Row 2
 t('Account #:',M+6,y+15.5,{size:7.5,color:MID});
-t(pat.acct||'',M+36,y+15.5,{size:8.5,color:DARK});
+t(pat.acct||'',M+36,y+15.5,{size:8.5,color:DARK,maxWidth:60});
 t('Date of Service:',M+100,y+15.5,{size:7.5,color:MID});
-t(n.dos,M+130,y+15.5,{size:8.5,bold:true,color:BLUE});
+t(n.dos,M+130,y+15.5,{size:8.5,bold:true,color:BLUE,maxWidth:RX-M-130});
 // Row 3
 t('Insurance:',M+6,y+21,{size:7.5,color:MID});
 t(`${pat.payerName||''} · ID: ${pat.subNum||''}`,M+36,y+21,{size:8,color:DARK,maxWidth:60});
 t('POS:',M+100,y+21,{size:7.5,color:MID});
-t(n.pos||'',M+115,y+21,{size:8,color:DARK});
+t(n.pos||'',M+115,y+21,{size:8,color:DARK,maxWidth:RX-M-115});
 y+=30;
 
 // ?? Service & Provider Information Block ?????????????????????????????
 fill(M,y,CW,26,BGBLUE);
 fill(M,y,3,26,BLUE);
-t('SERVICE & PROVIDER INFORMATION',M+6,y+5,{size:7,bold:true,color:MID});
+t('Service & Provider Information',M+6,y+5,{size:7,bold:true,color:MID});
 t('CPT Code(s):',M+6,y+10,{size:7.5,color:MID});
-t((n.cptAll||[n.cpt]).join(', '),M+36,y+10,{size:8.5,bold:true,color:BLUE});
+t((n.cptAll||[n.cpt]).join(', '),M+36,y+10,{size:8.5,bold:true,color:BLUE,maxWidth:60});
 t('Service Type:',M+100,y+10,{size:7.5,color:MID});
-t(cptLabel,M+126,y+10,{size:8,color:DARK,maxWidth:60});
+t(cptLabel,M+126,y+10,{size:8,color:DARK,maxWidth:RX-M-126});
 t('Rendering Provider:',M+6,y+15.5,{size:7.5,color:MID});
-t(rend.last?`${rend.last}, ${rend.first||''}`:(prov.name||''),M+42,y+15.5,{size:8.5,bold:true,color:DARK});
+t(rend.last?`${rend.last}, ${rend.first||''}`:(prov.name||''),M+42,y+15.5,{size:8.5,bold:true,color:DARK,maxWidth:54});
 t('NPI:',M+100,y+15.5,{size:7.5,color:MID});
-t(rend.npi||prov.npi||'',M+112,y+15.5,{size:8,color:DARK});
+t(rend.npi||prov.npi||'',M+112,y+15.5,{size:8,color:DARK,maxWidth:RX-M-112});
 t('Diagnosis (ICD-10):',M+6,y+21,{size:7.5,color:MID});
-t((n.dx||[]).filter(Boolean).map((d,i)=>`${String.fromCharCode(65+i)}) ${d}`).join(' '),M+42,y+21,{size:8,color:DARK,maxWidth:130});
+t((n.dx||[]).filter(Boolean).map((d,i)=>`${String.fromCharCode(65+i)}) ${d}`).join(' '),M+42,y+21,{size:8,color:DARK,maxWidth:CW-42-4});
 y+=30;
 hln(y,BORDER,0.4); y+=5;
 
@@ -22080,48 +22100,53 @@ hln(y,BORDER,0.4); y+=5;
 const eSections = (ENCOUNTER_TYPES[eType]||ENCOUNTER_TYPES.medical).sections;
 const clinSections = eSections.map(s => ({
   key: s.key,
-  label: s.label.toUpperCase(),
+  label: s.label,
   highlight: s.key === 'mn_statement' || s.key === 'interventions' || s.key === 'barriers',
 }));
 
 clinSections.forEach(sec=>{
 const text=n.body?.[sec.key]||'Not documented.';
-const lines=doc.splitTextToSize(text, CW-10);
-const secH=lines.length*4.8+12;
+const lines=doc.splitTextToSize(text, CW-14);
+const secH=lines.length*4.8+24;
 y=newPageIfNeeded(secH,y);
 // Section label bar
 fill(M,y,CW,8,sec.highlight?BGBLUE:LIGHT);
 fill(M,y,3,8,BLUE);
 t(sec.label,M+6,y+5.5,{size:7.5,bold:true,color:sec.highlight?BLUE:MID});
-y+=10;
+y+=13;
 // Text content
 doc.setFont('helvetica','normal');
 doc.setFontSize(9);
 doc.setTextColor(...DARK);
-doc.text(lines,M+2,y);
-y+=lines.length*4.8+4;
-hln(y,[230,234,240],0.2); y+=3;
+doc.text(lines,M+6,y);
+y+=lines.length*4.8+6;
+hln(y,[230,234,240],0.2); y+=5;
 });
 
-// ?? Signature Block ??????????????????????????????????????????????????
-y=newPageIfNeeded(20,y);
+// ── Signature Block ──────────────────────────────────────────────────
+y=newPageIfNeeded(24,y);
 y+=3;
-const sigH = (n.signatureData && n.signatureData !== 'electronic') ? 20 : 16;
+const hasSigImg = (n.signatureData && n.signatureData !== 'electronic');
+const sigH = hasSigImg ? 26 : 20;
 fill(M,y,CW,sigH,LIGHT);
 fill(M,y,3,sigH,BLUE);
 const now=new Date();
 const sigName=rend.last?`${rend.last}, ${rend.first||''} ${rend.cred||''}`.trim():prov.name||'';
-t('PROVIDER AUTHENTICATION',M+6,y+5,{size:6.5,bold:true,color:MID});
-// Draw signature image if available (not electronic-only)
-if (n.signatureData && n.signatureData !== 'electronic') {
-  try { doc.addImage(n.signatureData, 'PNG', M+48, y+3, 40, 14); } catch(e) {
-    // fallback: if image fails, just show name text
-    t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
+t('Provider Authentication',M+6,y+5,{size:6.5,bold:true,color:MID});
+// Draw signature image if available (not electronic-only), with an explicit
+// "signed electronically by" line either way — the name alone wasn't
+// enough of a clear attestation statement.
+if (hasSigImg) {
+  try {
+    doc.addImage(n.signatureData, 'PNG', M+6, y+7, 40, 14);
+    t(`Signed electronically by: ${sigName}`,M+6,y+sigH-3,{font:'courier',size:7.5,color:DARK});
+  } catch(e) {
+    t(`Signed electronically by: ${sigName}`,M+6,y+11,{font:'courier',bold:true,size:9,color:DARK});
   }
 } else {
-  t(sigName,M+46,y+10,{font:'courier',bold:true,size:9,color:DARK});
+  t(`Signed electronically by: ${sigName}`,M+6,y+11,{font:'courier',bold:true,size:9,color:DARK});
 }
-t(`Signed: ${n.signedAt?new Date(n.signedAt).toLocaleString():n.dos+' '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`,RX,y+10,{font:'courier',size:7.5,color:MID,align:'right'});
+t(`Signed: ${n.signedAt?new Date(n.signedAt).toLocaleString():n.dos+' '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`,RX,y+11,{font:'courier',size:7.5,color:MID,align:'right'});
 if(rend.npi) t(`NPI: ${rend.npi}`,M+6,y+sigH-5,{font:'courier',size:7.5,color:MID});
 if(n.finalizedAt) t(`Finalized: ${new Date(n.finalizedAt).toLocaleString()}`,RX,y+sigH-5,{font:'courier',size:7.5,color:[0,140,70],align:'right'});
 // Generate note-specific QR for verification
@@ -22142,7 +22167,7 @@ if(claim){
 _drawNoteFooter(doc,prov,fill,t,BGDARK,BLUE,WHITE,MID,W,M,RX);
 doc.addPage(); fill(0,0,W,2,BLUE); y=M;
 fill(M,y,CW,10,BGBLUE); fill(M,y,3,10,BLUE);
-t('SUPERBILL ATTACHMENT',M+6,y+7,{bold:true,size:10,color:BLUE});
+t('Superbill Attachment',M+6,y+7,{bold:true,size:10,color:BLUE});
 t(`PCN: ${claim.pcn} · Total: $${fmtMoney(claimTotal(claim))}`,RX,y+7,{size:8,color:DARK,align:'right'});
 y+=14;
 // Services
@@ -22163,7 +22188,7 @@ hln(y+5.5,BORDER,0.2); y+=7;
 });
 y+=3;
 fill(M,y,CW,10,BGBLUE); fill(M,y,3,10,BLUE);
-t('TOTAL CHARGES',M+6,y+7,{bold:true,size:9,color:BLUE});
+t('Total Charges',M+6,y+7,{bold:true,size:9,color:BLUE});
 t(`$${fmtMoney(claimTotal(claim))}`,RX,y+7,{size:11,bold:true,color:BLUE,align:'right'});
 }
 }

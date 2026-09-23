@@ -836,3 +836,6 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   margin: auto;
   object-fit: contain;
 }
+
+.ee-macro-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
+.ee-macro-btn:hover{background:var(--brand-bg);color:var(--brand);border-color:var(--brand)}
