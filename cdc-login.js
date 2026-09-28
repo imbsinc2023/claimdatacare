@@ -427,28 +427,47 @@
   }
 
   /* ---------------- show / hide ---------------- */
-  function show() {
-    if (shown) return;
-    shown = true;
-    root.hidden = false;
-    root.classList.remove('cdcx-out');
+  var needsReset = true;
+  var tfaSeen = false;
+  function resetForm() {
     setBusy(false);
     var saved = getSavedEmail();
     $('cdcx-email').value = saved;
     $('cdcx-remember').checked = !!saved;
     $('cdcx-pw').value = '';
-    $('cdcx-forgot').hidden = !(orig && orig.forgot);
     if (getGuard().until > Date.now()) startLockCountdown(); else showAlert('');
     setTimeout(function () { try { (saved ? $('cdcx-pw') : $('cdcx-email')).focus(); } catch (e) {} }, 60);
   }
-  function hide(instant) {
+  function show() {
+    if (shown) return;
+    shown = true;
+    root.hidden = false;
+    root.classList.remove('cdcx-out');
+    $('cdcx-forgot').hidden = !(orig && orig.forgot);
+    if (needsReset) { needsReset = false; resetForm(); }
+  }
+  // conceal: step aside for the app's own loader / 2FA window, keeping the form state
+  function conceal() {
     if (!shown) return;
+    shown = false;
+    root.hidden = true;
+  }
+  function hide(instant) {
+    needsReset = true;
+    if (!shown) { root.hidden = true; return; }
     shown = false;
     $('cdcx-pw').value = '';
     clearInterval(lockTimer); lockTimer = null;
     if (instant) { root.hidden = true; return; }
     root.classList.add('cdcx-out');
     setTimeout(function () { if (!shown) root.hidden = true; }, 260);
+  }
+  function appWindowOpen() {
+    var t = document.getElementById('modal-2fa');
+    if (t && t.isConnected) return '2fa';
+    var l = document.getElementById('cdc-login-loader');
+    if (l && isVisible(l)) return 'loader';
+    return '';
   }
 
   /* ---------------- watcher ---------------- */
@@ -497,7 +516,11 @@
   function tick() {
     scheduled = false;
     if (!root) return;
-    if (pending) { evalPending(); return; }
+    var win = appWindowOpen();
+    if (win === '2fa') { tfaSeen = true; if (pending) { pending = null; setBusy(false); needsReset = true; } }
+    if (pending) evalPending();
+    if (win) { conceal(); return; }        // app's loader or 2FA code window on screen
+    if (pending) return;
     var o = findOriginal();
     if (o) {
       orig = o;
@@ -506,7 +529,8 @@
     } else {
       suspended = false;
       if (backPill) backPill.hidden = true;
-      if (shown) hide(false);
+      if (tfaSeen) { tfaSeen = false; registerSuccess(); }   // signed in after the 2FA code
+      if (shown) hide(false); else needsReset = true;
     }
   }
 
