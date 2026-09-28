@@ -322,7 +322,38 @@
 
   function _esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function _isInactive(u) { return !!u && (u.inactive === true || String(u.status || '').toLowerCase() === 'inactive'); }
-  function _isOwnerEmail(e) { try { return String(e || '').toLowerCase() === String(SUPER_ADMIN_EMAIL).toLowerCase(); } catch (x) { return false; } }
+  function _lc(e) { return String(e || '').toLowerCase(); }
+  function _isOwnerEmail(e) {
+    try { if (typeof _cdcIsOwnerEmail === 'function') return _cdcIsOwnerEmail(e); } catch (x) {}
+    try { return _lc(e) === _lc(SUPER_ADMIN_EMAIL); } catch (x) { return false; }
+  }
+
+  // Links a user record to the Firebase account that just signed in, so the person can
+  // change the email shown in Users & Account and keep signing in with it.
+  // Saves: firebaseUid, authEmail (the account's sign-in email) and ownerAccount.
+  // If the record's email differs from the account's, Firebase is asked to switch the
+  // account to the new email (a confirmation link goes to the new address, once a day).
+  async function _linkAccount(rec, fbUser) {
+    try {
+      var list = getUsers();
+      var u = list.find(function (x) { return (rec.id && x.id === rec.id) || (_lc(x.email) === _lc(rec.email)); });
+      if (!u) return;
+      var isOwner = u.ownerAccount === true || _lc(fbUser.email) === _lc(SUPER_ADMIN_EMAIL);
+      var changed = false;
+      if (u.firebaseUid !== fbUser.uid) { u.firebaseUid = fbUser.uid; changed = true; }
+      if (_lc(u.authEmail) !== _lc(fbUser.email)) { u.authEmail = fbUser.email; changed = true; }
+      if (isOwner && u.ownerAccount !== true) { u.ownerAccount = true; changed = true; }
+      var wantsNewEmail = u.email && _lc(u.email) !== _lc(fbUser.email);
+      if (wantsNewEmail && typeof fbUser.verifyBeforeUpdateEmail === 'function' && Date.now() - (u.authEmailChangeSentAt || 0) > 24 * 3600 * 1000) {
+        try {
+          await fbUser.verifyBeforeUpdateEmail(u.email);
+          u.authEmailChangeSentAt = Date.now(); changed = true;
+          setTimeout(function () { try { toast('We sent a confirmation link to ' + u.email + ' to finish changing your sign-in email.', 'info'); } catch (e) {} }, 2500);
+        } catch (e) { console.warn('[CDC] email change request:', e && e.code); }
+      }
+      if (changed) { _usersCache = list; saveUsers(list); }
+    } catch (e) { console.warn('[CDC] account link:', e && e.message); }
+  }
 
   // The user record for a Firebase account: read from the cloud user list (now allowed, the
   // person is authenticated); the local list only if the cloud read fails.
@@ -333,9 +364,17 @@
       if (d.exists) { list = d.data().list || []; _usersCache = list; }
     } catch (e) {}
     if (!list) { try { list = getUsers(); } catch (e) { list = []; } }
-    var u = (list || []).find(function (x) { return String(x.email || '').toLowerCase() === email; });
+    list = list || [];
+    var u = list.find(function (x) { return x.firebaseUid && x.firebaseUid === fbUser.uid; }) ||
+            list.find(function (x) { return _lc(x.authEmail) === email; }) ||
+            list.find(function (x) { return _lc(x.email) === email; });
     if (u) return u;
-    if (_isOwnerEmail(email)) return Object.assign({}, DEFAULT_ADMIN, { email: fbUser.email });
+    if (_lc(email) === _lc(SUPER_ADMIN_EMAIL)) {
+      // The owner's account: use the owner's record even if its email was changed
+      return list.find(function (x) { return x.ownerAccount === true; }) ||
+             list.find(function (x) { return x.id === DEFAULT_ADMIN.id; }) ||
+             Object.assign({}, DEFAULT_ADMIN, { email: fbUser.email });
+    }
     return null;
   }
 
@@ -592,20 +631,33 @@
 
     try {
       var _localUsers = typeof getUsers === 'function' ? getUsers() : (_usersCache || []);
-      var _allUsers = [DEFAULT_ADMIN].concat(_localUsers.filter(function (u) { return u.id !== DEFAULT_ADMIN.id; }));
+      // The owner's saved record (with any email change) wins over the built-in default
+      var _storedOwner = _localUsers.find(function (u) { return u.id === DEFAULT_ADMIN.id; });
+      var _ownerRec = _storedOwner ? Object.assign({}, DEFAULT_ADMIN, _storedOwner) : DEFAULT_ADMIN;
+      var _allUsers = [_ownerRec].concat(_localUsers.filter(function (u) { return u.id !== DEFAULT_ADMIN.id; }));
       var _matchFn = function (u) {
-        return (u.email || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
+        return (u.email || '').toLowerCase() === loginId || (u.authEmail || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
       };
       var _resolvedUser = _allUsers.find(_matchFn);
       var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
 
       // 1) Firebase account
       if (_auth && _fbReady && _fbEmail) {
-        var fbUser = null;
-        try { fbUser = (await _auth.signInWithEmailAndPassword(_fbEmail, pass)).user; } catch (e) { /* not a Firebase account or wrong password: try the app's own users */ }
+        var fbUser = null, viaLinked = false;
+        try { fbUser = (await _auth.signInWithEmailAndPassword(_fbEmail, pass)).user; } catch (e) { /* not a Firebase account or wrong password */ }
+        // The email shown in Users & Account was changed but the sign-in account still uses
+        // its original email: sign in to that account (same password is still required).
+        if (!fbUser && _resolvedUser) {
+          var _linked = _resolvedUser.authEmail ||
+            ((_resolvedUser.ownerAccount === true || _resolvedUser.id === DEFAULT_ADMIN.id || _resolvedUser.role === 'Super Admin') ? SUPER_ADMIN_EMAIL : '');
+          if (_linked && _lc(_linked) !== _lc(_fbEmail)) {
+            try { fbUser = (await _auth.signInWithEmailAndPassword(_lc(_linked), pass)).user; viaLinked = true; } catch (e) {}
+          }
+        }
         if (fbUser) {
-          var rec = await _userForFirebase(fbUser);
+          var rec = viaLinked ? _resolvedUser : await _userForFirebase(fbUser);
           if (!rec || _isInactive(rec)) { try { await _auth.signOut(); } catch (e) {} fail('This account is not active. Contact your administrator.'); return; }
+          _linkAccount(rec, fbUser);
           finish(rec, fbUser.uid);
           return;
         }

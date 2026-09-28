@@ -50,7 +50,7 @@ function rebuildProvSel() {
   if (!sel) return;
   var wrap = document.getElementById('prov-sel-wrap');
   var session = getSession ? getSession() : {};
-  var isSA = session && session.email === SUPER_ADMIN_EMAIL;
+  var isSA = session && _cdcIsOwnerEmail(session.email);
 
   var providers = db.providers || [];
 
@@ -9100,7 +9100,7 @@ function isAdmin() { const s = getSession(); return !!(s && s.role === 'Super Ad
 function hasPermission(permName) {
   var s = getSession();
   if (!s) return false;
-  if (s.role === 'Super Admin' || s.email === SUPER_ADMIN_EMAIL) return true;
+  if (s.role === 'Super Admin' || _cdcIsOwnerEmail(s.email)) return true;
   var db = getDB();
   var u = (db.users||[]).find(function(x){ return x.email === s.email; });
   return !!(u && Array.isArray(u.permissions) && u.permissions.indexOf(permName) >= 0);
@@ -9872,6 +9872,21 @@ toast(`Service group "${sg.name}" loaded — select dates and submit`);
 // AUTH SYSTEM — Login required, session persisted
 // ???????????????????????????????????????????????????????
 const SUPER_ADMIN_EMAIL = 'imbsinc2023@gmail.com';
+// Owner check that survives an email change (2026-09-28): the owner is the original
+// owner email OR the user record linked to the owner's sign-in account (ownerAccount,
+// set by cdc-login.js at sign-in). Use this instead of comparing to SUPER_ADMIN_EMAIL.
+function _cdcIsOwnerEmail(e) {
+  e = String(e || '').toLowerCase();
+  if (!e) return false;
+  if (e === SUPER_ADMIN_EMAIL) return true;
+  try {
+    var list = (typeof _usersCache !== 'undefined' && _usersCache) ? _usersCache : [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].ownerAccount === true && String(list[i].email || '').toLowerCase() === e) return true;
+    }
+  } catch (x) {}
+  return false;
+}
 const SESSION_KEY = 'rcmpro_session';
 window._cdcQRCache = null; // replaced with inline SVG QR
 const USERS_KEY = 'rcmpro_users_v2'; // v2 forces fresh cache
@@ -12981,11 +12996,11 @@ function renderUserManagement() {
 
   // Only show users belonging to the active billing provider
   var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
+  var isSuperAdmin = session && _cdcIsOwnerEmail(session.email);
 
   var users = allUsers.filter(function(u) {
     // Super admin (no providerId) always shows for the master account
-    var isSystemAdmin = u.email === SUPER_ADMIN_EMAIL;
+    var isSystemAdmin = _cdcIsOwnerEmail(u.email);
     if (isSystemAdmin) return _userTab === 'active'; // always show in active tab only
 
     if (!isSuperAdmin) {
@@ -13038,7 +13053,7 @@ function renderUserManagement() {
   };
 
   el.innerHTML = users.map(function(u) {
-    var isAdmin = (u.email||'') === SUPER_ADMIN_EMAIL;
+    var isAdmin = _cdcIsOwnerEmail(u.email);
     var roles   = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : ['User']);
     var roleTag = roles.slice(0,2).map(function(r){
       return '<span class="badge ' + (roleColors[r]||'b-gray') + '" style="font-size:10px;margin-right:2px">' + r + '</span>';
@@ -33559,7 +33574,7 @@ function openAddUserModal(existingUser) {
   function _findSpecEntry(name) { return userSpecs.find(function(s){ return _specEntryName(s) === name; }); }
 
   var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && session.email === SUPER_ADMIN_EMAIL;
+  var isSuperAdmin = session && _cdcIsOwnerEmail(session.email);
   var availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(function(r){ return r !== 'Super Admin'; });
 
   // Style helpers
