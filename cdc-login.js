@@ -20,7 +20,7 @@
     var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\\/?#]*([?#].*)?$/, '') : '';
     if (!document.getElementById('cdcl-loader-js')) {
       var _ls = document.createElement('script');
-      _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=2';
+      _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=3';
       document.head.appendChild(_ls);
     }
   } catch (e) {}
