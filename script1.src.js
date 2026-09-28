@@ -12432,6 +12432,7 @@ function _performLogout() {
   // removed. Per-provider acctKeys live on each provider record only.
   clearSession();
   if (_auth) _auth.signOut().catch(function(){});
+  try { _wipeLocalData(); } catch(e) {}
   renderLoginScreen();
 }
 
@@ -27458,10 +27459,11 @@ function getCMData() {
       if (parsed && typeof parsed === 'object') {
         if (!_localDB) _localDB = {};
         _localDB.cm = Object.assign(_cmEmpty(), parsed);
-        // Kick off async Firestore write so it propagates to other devices
-        _saveCMToFirestore(_localDB.cm);
-        // Clear old key so migration only happens once
-        try { localStorage.removeItem(CM_KEY); } catch(e) {}
+        // Migrate only once the cloud has been read (loadFromFirestore does it otherwise)
+        if (window._cmCloudLoaded) {
+          _saveCMToFirestore(_localDB.cm);
+          try { localStorage.removeItem(CM_KEY); } catch(e) {}
+        }
         console.log('[CDC] CM data migrated from localStorage to Firestore');
         return _localDB.cm;
       }
@@ -27486,6 +27488,14 @@ function saveCMData(d) {
 // Async Firestore write for CM data (stored as a single meta document)
 function _saveCMToFirestore(d) {
   if (!_fbReady || !_db || !d) return;
+  // CLOUD-FIRST guard: meta/cmData is one document holding ALL case-management
+  // data. Never write it before this session has read it from Firestore, or a
+  // half-loaded screen could overwrite the real data with an empty copy.
+  if (!window._cmCloudLoaded) {
+    console.warn('[CDC] CM save skipped — data still loading from the cloud');
+    try { toast('Still loading data from the cloud — please try again in a moment', 'warn'); } catch(e) {}
+    return;
+  }
   try {
     _db.collection('meta').doc('cmData').set(d).catch(function(e){
       console.warn('[CDC] CM Firestore write failed:', e.message);
@@ -33072,17 +33082,29 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 // Records present in remote but not local are added (multi-device additions).
 // Records deleted locally via _fsDeleteDoc are already gone from Firestore.
 function _mergeByUpdatedAt(local, remote) {
-  var map = {};
-  (local||[]).forEach(function(r){ if(r&&r.id) map[r.id]=r; });
-  (remote||[]).forEach(function(r){
-    if(!r||!r.id) return;
-    var existing = map[r.id];
-    if(!existing) { map[r.id]=r; return; } // new record from another device
-    var remoteTs = r.updatedAt||r.createdAt||0;
-    var localTs  = existing.updatedAt||existing.createdAt||0;
-    if(remoteTs>=localTs) map[r.id]=r; // Firestore wins on tie or newer
+  // CLOUD-FIRST (2026-09-28): Firestore is the source of truth.
+  //  - Record in both: the newer one wins (Firestore on tie).
+  //  - Record only in the cloud: added.
+  //  - Record only on this device: kept only if created/edited in the last
+  //    30 minutes (may still be uploading); older ones were deleted elsewhere.
+  //  - Cloud returned nothing but this device has data: treated as a failed
+  //    read, local list kept so the screen never goes blank.
+  local = local || []; remote = remote || [];
+  if (!remote.length && local.length) return local.slice();
+  function _ms(v){ if (typeof v === 'number') return v; var t = Date.parse(v||''); return isNaN(t) ? 0 : t; }
+  var map = {}, order = [];
+  remote.forEach(function(r){ if (!r || !r.id) return; if (!map[r.id]) order.push(r.id); map[r.id] = r; });
+  var fresh = Date.now() - 30 * 60 * 1000;
+  local.forEach(function(l){
+    if (!l || !l.id) return;
+    var r = map[l.id];
+    if (r) {
+      if (_ms(l.updatedAt||l.createdAt) > _ms(r.updatedAt||r.createdAt)) map[l.id] = l;
+    } else if (_ms(l.updatedAt||l.createdAt) >= fresh) {
+      map[l.id] = l; order.push(l.id);
+    }
   });
-  return Object.values(map);
+  return order.map(function(id){ return map[id]; });
 }
 
 function getDB() {
@@ -33304,74 +33326,45 @@ function _idbScheduleWrite() {
 // from IndexedDB, and on first run migrates the old localStorage cache over,
 // then frees the localStorage space.
 async function _idbBootLoad() {
-  try {
-    await _idbOpen();
-    var stored = await _idbGet(_IDB_KEY);      // JSON string or null
-    if (stored) {
-      try { _idbCacheSnapshot = JSON.parse(stored); } catch(e) { _idbCacheSnapshot = null; }
-    }
-    // One-time migration: old localStorage cache → IndexedDB
-    if (!_idbCacheSnapshot) {
-      var legacy = '';
-      try { legacy = localStorage.getItem(CACHE_KEY) || ''; } catch(e) {}
-      if (legacy) {
-        try { _idbCacheSnapshot = JSON.parse(legacy); } catch(e) { _idbCacheSnapshot = null; }
-        if (_idbCacheSnapshot) {
-          try { await _idbSet(_IDB_KEY, legacy); console.log('[CDC] Cache migrated localStorage → IndexedDB ('+(legacy.length/1024/1024).toFixed(2)+'MB)'); } catch(e) {}
-        }
-      }
-    }
-    window._idbReady = true;
-    // Free the old localStorage cache — it lives in IndexedDB now.
-    try { if (localStorage.getItem(CACHE_KEY)) { localStorage.removeItem(CACHE_KEY); console.log('[CDC] Legacy localStorage cache cleared (space freed)'); } } catch(e) {}
-    if (typeof _hideStorageFullWarning === 'function') _hideStorageFullWarning();
-  } catch(e) {
-    // IndexedDB unavailable (e.g. some private-mode configs) — app keeps working
-    // on the old localStorage path via the fallback in _saveCache/_loadCache.
-    console.warn('[CDC] IndexedDB unavailable, using localStorage fallback:', e && e.message);
-    window._idbReady = false;
-  }
+  // CLOUD-FIRST (2026-09-28): patient data is no longer stored in the browser.
+  // Everything loads from Firestore after sign-in and lives only in memory.
+  // Any copy left by older versions (IndexedDB or localStorage) is erased here.
+  _idbCacheSnapshot = null;
+  try { localStorage.removeItem(CACHE_KEY); } catch(e) {}
+  try { await _idbOpen(); await _idbWipeCache(); } catch(e) {}
+  window._idbReady = false;
+  if (typeof _hideStorageFullWarning === 'function') _hideStorageFullWarning();
+}
+
+// Deletes the stored cache entry from IndexedDB (never throws).
+function _idbWipeCache() {
+  return new Promise(function(resolve){
+    try {
+      if (!_idbDB) { resolve(); return; }
+      var tx = _idbDB.transaction(_IDB_STORE, 'readwrite');
+      tx.objectStore(_IDB_STORE).delete(_IDB_KEY);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ resolve(); };
+      tx.onabort = function(){ resolve(); };
+    } catch(e) { resolve(); }
+  });
+}
+
+// Removes everything this app keeps in the browser (used at sign-out).
+function _wipeLocalData() {
+  // legacy CM copy is removed only if it was already migrated to the cloud
+  if (window._cmCloudLoaded) { try { localStorage.removeItem(CM_KEY); } catch(e) {} }
+  window._cmCloudLoaded = false;
+  _idbCacheSnapshot = null;
+  _localDB = null;
+  try { localStorage.removeItem(CACHE_KEY); } catch(e) {}
+  _idbWipeCache();
 }
 
 function _saveCache(db) {
-  // Build the lean snapshot (heavy audit/ERA collections excluded — see notes).
-  var lean = {};
-  for (var k in db) { if (_CACHE_EXCLUDED_KEYS.indexOf(k) === -1) lean[k] = db[k]; }
-  // Keep the synchronous mirror fresh so the next first-paint _loadCache() is current.
-  _idbCacheSnapshot = lean;
-
-  // Primary path: IndexedDB (no ~5MB quota — this is the whole point of the migration).
-  if (window._idbReady && _idbDB) {
-    _idbScheduleWrite();
-    return;
-  }
-
-  // ?? Fallback: IndexedDB unavailable → old localStorage behavior, unchanged ??
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(lean));
-    if (window._cacheSaveFailed) { window._cacheSaveFailed = false; _hideStorageFullWarning(); }
-  } catch(e) {
-    // localStorage has a fixed ~5-10MB quota per origin. Detect the overflow,
-    // do a reduced save so core records survive a refresh, and warn loudly.
-    window._cacheSaveFailed = true;
-    console.error('[CDC] CRITICAL: localStorage cache save failed (IndexedDB also unavailable) —', e.name, e.message);
-    try {
-      var lean2 = {};
-      for (var k2 in db) { if (_CACHE_EXCLUDED_KEYS.indexOf(k2) === -1) lean2[k2] = db[k2]; }
-      var trimmed = JSON.parse(JSON.stringify(lean2));
-      var strippedCount = 0;
-      (trimmed.patients||[]).forEach(function(p){
-        if (p.photo && p.photo.indexOf('data:')===0) { p.photo=''; strippedCount++; }
-        (p.documents||[]).forEach(function(d){ if (d.data) { d.data = null; d._strippedForSpace = true; strippedCount++; } });
-        (p.superbills||[]).forEach(function(sb){ if (sb.data) { sb.data = null; sb._strippedForSpace = true; strippedCount++; } });
-      });
-      localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
-      console.warn('[CDC] Saved a reduced cache (stripped '+strippedCount+' attachment(s)) to avoid total data loss.');
-    } catch(e2) {
-      console.error('[CDC] Even the reduced cache save failed:', e2.message);
-    }
-    _showStorageFullWarning();
-  }
+  // CLOUD-FIRST (2026-09-28): keep the in-memory mirror only. Nothing is
+  // written to the browser's disk; Firestore holds the data (see setDB).
+  _idbCacheSnapshot = db;
 }
 
 // Diagnostic — run _inspectCacheSize() from the console to see exactly which
@@ -33504,9 +33497,11 @@ async function loadFromFirestore() {
 
     // Load CM data from Firestore (merged with empty template to ensure all keys exist)
     if (cmDoc.exists) {
+      window._cmCloudLoaded = true;   // CM document read from Firestore → saves allowed
       _localDB.cm = Object.assign(_cmEmpty(), cmDoc.data());
       console.log('[CDC] CM data loaded from Firestore: ' + (_localDB.cm.clients||[]).length + ' clients');
     } else {
+      window._cmCloudLoaded = true;   // cloud has no CM document yet → first save allowed
       // Check if there is legacy data in localStorage to migrate
       try {
         var _cmLegacy = localStorage.getItem(CM_KEY);
@@ -33522,6 +33517,7 @@ async function loadFromFirestore() {
       } catch(e) {}
       if (!_localDB.cm) _localDB.cm = _cmEmpty();
     }
+    window._cmCloudLoaded = true;
 
     setFbStatus('', 'green');
     console.log('Core loaded: ' + patients.length + ' patients, ' + claims.length + ' claims');
@@ -33712,9 +33708,15 @@ for (var _ci = 0; _ci < _syncColls.length; _ci++) {
 var coll = _syncColls[_ci];
 const prev = before[coll] || [];
 const next = db[coll] || [];
-if (JSON.stringify(prev) !== JSON.stringify(next)) {
+if (!Array.isArray(next)) continue; // 'settings' is an object — synced below
+// CLOUD-FIRST (2026-09-28): upload only new/changed records, never the whole
+// collection. Rewriting every record overwrote newer edits made on other devices.
+var _prevById = {};
+(Array.isArray(prev) ? prev : []).forEach(function(r){ if (r && r.id != null) _prevById[r.id] = JSON.stringify(r); });
+var _changed = next.filter(function(r){ return r && r.id != null && _prevById[r.id] !== JSON.stringify(r); });
+if (_changed.length) {
 window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
-_fsSyncCollection(coll, next)
+_fsWriteCollection(coll, _changed)
   .catch(e => { console.warn(`Firestore ${coll} sync failed:`, e.message); window._lastSyncError = coll+': '+e.message; })
   .finally(() => { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
 }
@@ -33725,16 +33727,21 @@ const objColls = [['claimLogs','claimLogs'],['claimEOB','claimEOB']];
 for (const [key, coll] of objColls) {
 if (JSON.stringify(before[key]) !== JSON.stringify(db[key])) {
 const obj = db[key] || {};
+const prevObj = before[key] || {};
+// Only the claims whose log/EOB entries changed (not every claim)
+const _chg = Object.entries(obj).filter(([id, entries]) => JSON.stringify(prevObj[id]) !== JSON.stringify(entries));
+for (let _i = 0; _i < _chg.length; _i += BATCH_SIZE) {
 const batch = _db.batch();
-Object.entries(obj).forEach(([id, entries]) => {
+_chg.slice(_i, _i + BATCH_SIZE).forEach(([id, entries]) => {
 batch.set(_db.collection(coll).doc(String(id)), { entries: entries || [] });
 });
 batch.commit().catch(e => console.warn(`${coll} sync failed:`, e.message));
 }
 }
+}
 // Sync settings object as single Firestore document
 if (JSON.stringify(before.settings) !== JSON.stringify(db.settings)) {
-  _db.collection('appdata').doc('settings').set(db.settings||{})
+  _db.collection('appdata').doc('settings').set(db.settings||{}, { merge: true })
     .catch(function(e){ console.warn('settings sync failed:', e.message); });
 }
 }
@@ -37601,4 +37608,4 @@ function getAuditLogs() {
 })();
 
 // ─── Login nuevo (archivo aparte: cdc-login.js) ───
-;(function(){try{var c=document.currentScript,b=c&&c.src?c.src.replace(/[^\/?#]*([?#].*)?$/,''):'';var s=document.createElement('script');s.src=b+'cdc-login.js?v=2';s.async=true;document.head.appendChild(s);}catch(e){}})();
+;(function(){try{var c=document.currentScript,b=c&&c.src?c.src.replace(/[^\/?#]*([?#].*)?$/,''):'';var s=document.createElement('script');s.src=b+'cdc-login.js?v=4';s.async=true;document.head.appendChild(s);}catch(e){}})();

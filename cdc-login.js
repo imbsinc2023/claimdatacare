@@ -516,6 +516,10 @@
   function tick() {
     scheduled = false;
     if (!root) return;
+    // The app's logout clears floating layers from <body>; put ours back if that happened.
+    if (!root.isConnected) { shown = false; needsReset = true; root.hidden = true; document.body.appendChild(root); }
+    if (backPill && !backPill.isConnected) { backPill.hidden = true; document.body.appendChild(backPill); }
+    if (styleEl && !styleEl.isConnected) document.head.appendChild(styleEl);
     var win = appWindowOpen();
     if (win === '2fa') { tfaSeen = true; if (pending) { pending = null; setBusy(false); needsReset = true; } }
     if (pending) evalPending();
@@ -568,6 +572,31 @@
     setInterval(schedule, 1000);   // safety net
     tick();
   }
+
+  /* ---------------- favicon ---------------- */
+  // Points the tab icon to the new favicon.svg (?v= forces browsers to drop the old cached icon)
+  function setFavicon() {
+    try {
+      var href = 'favicon.svg?v=3';
+      var links = document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]');
+      if (!links.length) {
+        var l = document.createElement('link');
+        l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = href;
+        document.head.appendChild(l);
+      } else {
+        for (var i = 0; i < links.length; i++) {
+          if (links[i].rel.indexOf('apple') === -1) { links[i].type = 'image/svg+xml'; links[i].href = href; }
+        }
+      }
+      var nav = document.getElementById('nav-logo-main');
+      if (nav && nav.getAttribute('src') && nav.getAttribute('src').indexOf('favicon.svg?v=') === -1) nav.setAttribute('src', href);
+    } catch (e) {}
+  }
+  setFavicon();
+  setInterval(function () {
+    var nav = document.getElementById('nav-logo-main');
+    if (nav && (nav.getAttribute('src') || '').indexOf('favicon.svg?v=') === -1) setFavicon();
+  }, 2000);
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
