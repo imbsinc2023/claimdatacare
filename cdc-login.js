@@ -1,20 +1,14 @@
 /*
- * ClaimDataCare • Sign-in screen (standalone module)
- * File: cdc-login.js  ·  v1.0
+ * ClaimDataCare  •  Sign-in screens (standalone module)
+ * File: cdc-login.js  •  v3.0
  *
- * How it works (non-invasive):
- *  - Detects the existing sign-in form of the app (email + password + Sign In button).
- *  - Draws the new sign-in screen on top of it.
- *  - On submit, it passes the email/password to the ORIGINAL form and presses the ORIGINAL
- *    button, so the existing Firebase login, auto-login (F5), loader and HIPAA logout keep
- *    working exactly as before.
- *  - When the app signs in (original form disappears) this screen removes itself.
- *    When the app signs out (form appears again) this screen comes back.
- *  - If the original form can't be found, it does nothing: the old login stays.
+ * Everything about signing in lives here (removed from script1.js): the screens, the
+ * sign-in engine (doLogin), two-step verification and password reset.
+ * script1.js only calls window._cdcRenderLogin() / window._cdcRenderForgot().
  *
- * Kill switch (fallback to the classic login without redeploying):
- *    add ?classiclogin=1 to the URL, or run in the console:
- *    localStorage.setItem('cdcx_login_off','1')
+ * Adds: attempt lockout (5 fails → 30s, then 2m, 5m, 15m), Caps Lock warning,
+ * show/hide password, no autofill of anything stored in the browser.
+ * Also loads cdc-loader.js (animated loading screen) and sets the favicon.
  */
 (function () {
   'use strict';
@@ -23,7 +17,7 @@
 
   // Load the animated workspace loader (separate file, same folder as this one)
   try {
-    var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
+    var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\\/?#]*([?#].*)?$/, '') : '';
     if (!document.getElementById('cdcl-loader-js')) {
       var _ls = document.createElement('script');
       _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=2';
@@ -31,115 +25,21 @@
     }
   } catch (e) {}
 
-  try {
-    if (/[?&]classiclogin=1\b/.test(location.search)) return;
-    if (localStorage.getItem('cdcx_login_off') === '1') return;
-  } catch (e) { /* storage blocked: continue */ }
-
   var GUARD_KEY = 'cdcx_login_guard';
-  var EMAIL_KEY = 'cdcx_login_email';
-  // Lockout (seconds) by number of consecutive failures
-  function lockSeconds(fails) {
-    if (fails < 5) return 0;
-    if (fails === 5) return 30;
-    if (fails === 6) return 120;
-    if (fails === 7) return 300;
-    return 900;
-  }
+  try { localStorage.removeItem('cdcx_login_email'); } catch (e) {}   // left by older versions
 
-  var SIGNIN_RX = /\b(sign\s*-?\s*in|log\s*-?\s*in|login|entrar|iniciar|acceder|ingresar)\b/i;
-  var FORGOT_RX = /(forgot|olvid|reset\s*password|recuperar)/i;
-  var ERR_RX = /(invalid|incorrect|wrong|not\s*found|no\s*user|failed|error|denied|disabled|too\s*many|inv[aá]lid|incorrect[oa]|fall[oó]|bloquead|deshabilitad|no\s*existe|credential)/i;
-  var RATE_RX = /(too\s*many|demasiados|temporarily|temporalmente)/i;
-  var NET_RX = /(network|offline|connection|conexi[oó]n|internet)/i;
-
-  var root = null, styleEl = null, backPill = null;
-  var orig = null;          // {pw, email, btn, forgot, scope, form}
-  var shown = false;
-  var suspended = false;    // true while the user is in the original "forgot password" flow
-  var pending = null;       // {t0, errFound}
-  var lockTimer = null;
-  var scheduled = false;
-
-  /* ---------------- storage helpers ---------------- */
-  function getGuard() {
-    try { var g = JSON.parse(localStorage.getItem(GUARD_KEY) || '{}'); return { f: g.f | 0, until: +g.until || 0 }; }
-    catch (e) { return { f: 0, until: 0 }; }
-  }
+  function lockSeconds(f) { return f < 5 ? 0 : f === 5 ? 30 : f === 6 ? 120 : f === 7 ? 300 : 900; }
+  function getGuard() { try { var g = JSON.parse(localStorage.getItem(GUARD_KEY) || '{}'); return { f: g.f | 0, until: +g.until || 0 }; } catch (e) { return { f: 0, until: 0 }; } }
   function setGuard(g) { try { localStorage.setItem(GUARD_KEY, JSON.stringify(g)); } catch (e) {} }
-  // Nothing personal is kept in the browser: erase the email saved by older versions
-  try { localStorage.removeItem(EMAIL_KEY); } catch (e) {}
+  function $(id) { return document.getElementById(id); }
 
-  /* ---------------- detection of the original form ---------------- */
-  function isVisible(el) {
-    if (!el || !el.isConnected) return false;
-    if (root && root.contains(el)) return false;
-    if (!el.getClientRects().length) return false;
-    var cs = window.getComputedStyle(el);
-    return cs.visibility !== 'hidden' && cs.display !== 'none';
-  }
-  function textOf(el) {
-    return ((el.innerText || el.textContent || el.value || el.getAttribute('aria-label') || el.title || '') + '').trim();
-  }
-  function mine(el) { return !!(el && ((root && root.contains(el)) || (backPill && backPill.contains(el)))); }
-  function q1(scope, sel) {
-    var l = scope.querySelectorAll(sel);
-    for (var i = 0; i < l.length; i++) if (!mine(l[i])) return l[i];
-    return null;
-  }
-  function findEmail(scope) {
-    return q1(scope, 'input[type=email]') ||
-      q1(scope, 'input[autocomplete=username],input[autocomplete=email]') ||
-      q1(scope, 'input[name*=mail i],input[id*=mail i],input[placeholder*=mail i]') ||
-      q1(scope, 'input[id*=user i],input[name*=user i]') ||
-      q1(scope, 'input[type=text]');
-  }
-  function findButton(scope) {
-    var cands = scope.querySelectorAll('button,input[type=submit],input[type=button],[role=button],a');
-    for (var i = 0; i < cands.length; i++) {
-      if (mine(cands[i])) continue;
-      var t = textOf(cands[i]);
-      if (t && t.length < 40 && SIGNIN_RX.test(t) && !FORGOT_RX.test(t)) return cands[i];
-    }
-    return null;
-  }
-  function findForgot(scope) {
-    var cands = scope.querySelectorAll('a,button,span,[role=button],div');
-    for (var i = 0; i < cands.length; i++) {
-      if (mine(cands[i])) continue;
-      var t = textOf(cands[i]);
-      if (t && t.length < 40 && FORGOT_RX.test(t) && cands[i].children.length === 0) return cands[i];
-    }
-    return null;
-  }
-  function findOriginal() {
-    var pws = document.querySelectorAll('input[type=password]');
-    for (var i = 0; i < pws.length; i++) {
-      var pw = pws[i];
-      if (!isVisible(pw)) continue;
-      var form = pw.closest('form');
-      var scope = form || pw.parentElement, depth = 0;
-      while (scope && scope !== document.documentElement && depth < 8) {
-        var em = findEmail(scope), bt = findButton(scope);
-        if (em && em !== pw && bt) {
-          var fg = findForgot(scope) || (scope.parentElement ? findForgot(scope.parentElement) : null);
-          return { pw: pw, email: em, btn: bt, forgot: fg, scope: scope, form: form };
-        }
-        scope = scope.parentElement; depth++;
-      }
-    }
-    return null;
-  }
-
-  /* ---------------- UI ---------------- */
   var ICON_EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   var ICON_EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   var ICON_SHIELD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
   var ICON_LOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   var ICON_CLOCK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-
   var CSS = [
-    '#cdcx-login{position:fixed;inset:0;z-index:2147483000;display:flex;background:#F6F8FB;font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:#0B1526;-webkit-font-smoothing:antialiased;opacity:1;transition:opacity .25s ease}',
+    '#cdcx-login{position:fixed;inset:0;z-index:10;display:flex;background:#F6F8FB;font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:#0B1526;-webkit-font-smoothing:antialiased;opacity:1;transition:opacity .25s ease}',
     '#cdcx-login[hidden]{display:none}',
     '#cdcx-login.cdcx-out{opacity:0;pointer-events:none}',
     '#cdcx-login *{box-sizing:border-box}',
@@ -195,10 +95,23 @@
     '@keyframes cdcxdraw{to{stroke-dashoffset:0}}',
     '@media (prefers-reduced-motion:reduce){.cdcx-pulse-main{animation:none;stroke-dashoffset:0}#cdcx-login{transition:none}}',
     '@media (max-width:980px){.cdcx-art{display:none}.cdcx-panel{flex:1 1 auto;padding:48px 28px 28px}.cdcx-main{max-width:440px;width:100%;margin:0 auto}}',
-    '#cdcx-back{position:fixed;left:16px;bottom:16px;z-index:2147483001;display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:0;border-radius:999px;background:#0B1526;color:#fff;font:600 13px "IBM Plex Sans",system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 24px -8px rgba(11,21,38,.5)}',
-    '#cdcx-back[hidden]{display:none}'
+    '#login-alert:empty,#fp-alert:empty{display:none}',
+    '#modal-2fa{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(11,21,38,.72);font-family:"IBM Plex Sans",system-ui,sans-serif;color:#0B1526}',
+    '#modal-2fa *{box-sizing:border-box}',
+    '.cdcx-tfa{position:relative;overflow:hidden;width:100%;max-width:420px;background:#fff;border-radius:22px;padding:36px 32px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}',
+    '.cdcx-tfa h2{margin:0;font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:700;font-size:24px;letter-spacing:-.02em}',
+    '.cdcx-tfa .cdcx-lead{margin:0;font-size:14.5px}',
+    '.cdcx-tfa-ico{width:54px;height:54px;border-radius:16px;background:#F4F0FD;color:#4B1699;display:flex;align-items:center;justify-content:center}',
+    '.cdcx-code{height:60px;font-size:28px!important;font-weight:700;letter-spacing:12px;text-align:center}',
+    '.cdcx-tfa-row{display:flex;justify-content:space-between;align-items:center}',
+    '.cdcx-muted{color:#586579!important}',
+    '#tfa-alert:empty{display:none}',
+    '#tfa-alert .alert{display:block!important;margin:0!important;padding:11px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
+    '#tfa-alert .al-success{background:#E3F5FB!important;color:#065E7C!important}',
+    '#login-alert .alert,#fp-alert .alert{display:flex!important;gap:8px!important;align-items:center!important;margin:0!important;padding:12px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
+    '#fp-alert .al-success{background:#E3F5FB!important;color:#065E7C!important}',
+    '.cdcx-alert.cdcx-lock{background:#F4F0FD;color:#4B1699}'
   ].join('\n');
-
   var ART_SVG = [
     '<svg class="cdcx-bg" viewBox="0 0 920 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">',
     '<defs>',
@@ -236,8 +149,7 @@
     '<rect x="836" y="200" width="64" height="28" rx="14" fill="url(#cdcx-pill)"/>',
     '<text x="868" y="218" text-anchor="middle" font-family="Sora, sans-serif" font-size="12.5" font-weight="600" fill="#fff">Paid</text>',
     '</svg>'
-  ].join('');
-
+  ].join('');  var LOGO = '<svg width="40" height="44" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcx-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#E8367A"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcx-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
   function node(x, y, label, dir, w) {
     var ly1 = dir === 'up' ? y - 12 : y + 12, ly2 = dir === 'up' ? y - 42 : y + 49;
     var ry = dir === 'up' ? y - 68 : y + 49;
@@ -248,355 +160,537 @@
       '<text x="' + x + '" y="' + (ry + 17) + '" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="500" fill="#E6EBF3">' + label + '</text>';
   }
 
-  var LOGO = '<svg width="40" height="44" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcx-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#E8367A"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcx-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
-
-  function buildUI() {
+  function injectCSS() {
     if (!document.getElementById('cdcx-fonts')) {
       var lk = document.createElement('link');
       lk.id = 'cdcx-fonts'; lk.rel = 'stylesheet';
       lk.href = 'https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap';
       document.head.appendChild(lk);
     }
-    styleEl = document.createElement('style');
-    styleEl.id = 'cdcx-style';
-    styleEl.textContent = CSS;
-    document.head.appendChild(styleEl);
-
-    root = document.createElement('div');
-    root.id = 'cdcx-login';
-    root.hidden = true;
-    root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-modal', 'true');
-    root.setAttribute('aria-labelledby', 'cdcx-title');
-    root.innerHTML =
-      '<section class="cdcx-panel">' +
-        '<div class="cdcx-bar"></div>' +
-        '<div class="cdcx-brand">' + LOGO + '<div><div class="cdcx-brand-name">ClaimDataCare</div><div class="cdcx-brand-sub">EHR and billing by IMBS Inc</div></div></div>' +
-        '<div class="cdcx-main">' +
-          '<div><h1 class="cdcx-h1" id="cdcx-title">Welcome back</h1><p class="cdcx-lead">Sign in to your clinical and revenue cycle workspace.</p></div>' +
-          '<form class="cdcx-form" id="cdcx-form" novalidate autocomplete="on">' +
-            '<div class="cdcx-alert" id="cdcx-alert" role="alert" hidden></div>' +
-            '<div class="cdcx-field"><label class="cdcx-label" for="cdcx-email">Email</label>' +
-              '<input class="cdcx-input" id="cdcx-email" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" placeholder="name@practice.com" required></div>' +
-            '<div class="cdcx-field"><div class="cdcx-row"><label class="cdcx-label" for="cdcx-pw">Password</label>' +
-              '<button type="button" class="cdcx-link" id="cdcx-forgot">Forgot password?</button></div>' +
-              '<div class="cdcx-pwwrap"><input class="cdcx-input" id="cdcx-pw" name="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128" placeholder="Enter your password" required>' +
-              '<button type="button" class="cdcx-eye" id="cdcx-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div>' +
-              '<p class="cdcx-caps" id="cdcx-caps" hidden>Caps Lock is on.</p></div>' +
-            '<button type="submit" class="cdcx-btn" id="cdcx-submit">Sign in</button>' +
-          '</form>' +
-          '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 5 minutes of inactivity.</span></div>' +
-        '</div>' +
-        '<footer class="cdcx-foot"><div class="cdcx-badges"><span>' + ICON_SHIELD + 'HIPAA compliant</span><span>' + ICON_LOCK + 'Encrypted in transit and at rest</span></div>' +
-          '<div>© ' + new Date().getFullYear() + ' Integrated Medical Billing Services Inc</div></footer>' +
-      '</section>' +
-      '<aside class="cdcx-art" aria-hidden="true">' + ART_SVG +
-        '<div class="cdcx-chip"><span class="cdcx-dot"></span>Secure connection</div>' +
-        '<div class="cdcx-copy"><div class="cdcx-eyebrow">EHR · REVENUE CYCLE MANAGEMENT</div>' +
-        '<div class="cdcx-headline">From heartbeat<br>to paid claim.</div>' +
-        '<div class="cdcx-sub">Every visit, note and claim connected in one secure workspace.</div></div>' +
-      '</aside>';
-    document.body.appendChild(root);
-
-    backPill = document.createElement('button');
-    backPill.id = 'cdcx-back';
-    backPill.type = 'button';
-    backPill.hidden = true;
-    backPill.title = 'Back to sign in';
-    backPill.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Back to sign in';
-    backPill.addEventListener('click', function () { suspended = false; backPill.hidden = true; schedule(); });
-    document.body.appendChild(backPill);
-
-    wire();
+    if (!document.getElementById('cdcx-style')) {
+      var st = document.createElement('style');
+      st.id = 'cdcx-style'; st.textContent = CSS;
+      document.head.appendChild(st);
+    }
   }
 
-  function $(id) { return document.getElementById(id); }
-
-  function showAlert(msg, isLock) {
-    var a = $('cdcx-alert');
-    a.textContent = msg;
-    a.className = 'cdcx-alert' + (isLock ? ' cdcx-lock' : '');
-    a.hidden = !msg;
+  function art() {
+    return '<aside class="cdcx-art" aria-hidden="true">' + ART_SVG +
+      '<div class="cdcx-chip"><span class="cdcx-dot"></span>Secure connection</div>' +
+      '<div class="cdcx-copy"><div class="cdcx-eyebrow">EHR • REVENUE CYCLE MANAGEMENT</div>' +
+      '<div class="cdcx-headline">From heartbeat<br>to paid claim.</div>' +
+      '<div class="cdcx-sub">Every visit, note and claim connected in one secure workspace.</div></div></aside>';
   }
-  function setBusy(b) {
-    var s = $('cdcx-submit');
-    s.disabled = b;
-    s.innerHTML = b ? '<span class="cdcx-spin" aria-hidden="true"></span>Signing in…' : 'Sign in';
-    $('cdcx-email').readOnly = b;
-    $('cdcx-pw').readOnly = b;
+  function shell(inner) {
+    return '<div id="cdcx-login" role="main"><section class="cdcx-panel"><div class="cdcx-bar"></div>' +
+      '<div class="cdcx-brand">' + LOGO + '<div><div class="cdcx-brand-name">ClaimDataCare</div><div class="cdcx-brand-sub">EHR and billing by IMBS Inc</div></div></div>' +
+      '<div class="cdcx-main">' + inner + '</div>' +
+      '<footer class="cdcx-foot"><div class="cdcx-badges"><span>' + ICON_SHIELD + 'HIPAA compliant</span><span>' + ICON_LOCK + 'Encrypted in transit and at rest</span></div>' +
+      '<div>© ' + new Date().getFullYear() + ' Integrated Medical Billing Services Inc</div></footer></section>' + art() + '</div>';
+  }
+  function setRoot(html) {
+    var root = $('root');
+    if (!root) return false;
+    root.innerHTML = html;
+    return true;
   }
 
-  function wire() {
-    var form = $('cdcx-form'), em = $('cdcx-email'), pw = $('cdcx-pw'), eye = $('cdcx-eye');
+  /* ---------------- Sign in ---------------- */
+  var lockTimer = null, busy = false;
 
+  function showMsg(text, lock) {
+    var a = $('login-alert');
+    if (!a) return;
+    a.innerHTML = text ? '<div class="alert' + (lock ? ' cdcx-lock' : ' al-error') + '"></div>' : '';
+    if (text) a.firstChild.textContent = text;
+  }
+  function lockCountdown() {
+    clearInterval(lockTimer);
+    function upd() {
+      var btn = $('login-btn');
+      if (!btn) { clearInterval(lockTimer); return; }
+      var left = Math.ceil((getGuard().until - Date.now()) / 1000);
+      if (left <= 0) { clearInterval(lockTimer); showMsg(''); btn.disabled = false; return; }
+      showMsg('Too many attempts. Try again in ' + Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2) + '.', true);
+      btn.disabled = true;
+    }
+    upd(); lockTimer = setInterval(upd, 1000);
+  }
+
+  function signedIn() { try { return typeof getSession === 'function' && !!getSession(); } catch (e) { return false; } }
+
+  async function submit() {
+    if (busy) return;
+    if (getGuard().until > Date.now()) { lockCountdown(); return; }
+    var em = $('li-username'), pw = $('li-pass');
+    if (!em || !pw) return;
+    em.value = em.value.trim();
+    if (!em.value || !pw.value) { showMsg('Enter your email and password.'); (em.value ? pw : em).focus(); return; }
+    if (typeof doLogin !== 'function') { showMsg('Sign-in is not ready yet. Reload the page and try again.'); return; }
+    busy = true;
+    try { await doLogin(); } catch (e) { console.warn('[CDC] sign-in:', e && e.message); }
+    busy = false;
+    if (signedIn()) { setGuard({ f: 0, until: 0 }); return; }
+    var a = $('login-alert');
+    if (a && a.textContent.trim()) {                // the app reported a failed attempt
+      var g = getGuard(); g.f += 1;
+      var secs = lockSeconds(g.f);
+      if (secs) g.until = Date.now() + secs * 1000;
+      setGuard(g);
+      if ($('li-pass')) $('li-pass').value = '';
+      if (secs) lockCountdown(); else if ($('li-pass')) $('li-pass').focus();
+    }
+  }
+
+  function renderLogin() {
+    injectCSS();
+    clearInterval(lockTimer);
+    var ok = setRoot(shell(
+      '<div><h1 class="cdcx-h1" id="cdcx-title">Welcome back</h1><p class="cdcx-lead">Sign in to your clinical and revenue cycle workspace.</p></div>' +
+      '<form class="cdcx-form" id="cdcx-form" novalidate autocomplete="on">' +
+        '<div id="login-alert" role="alert"></div>' +
+        '<div class="cdcx-field"><label class="cdcx-label" for="li-username">Email</label>' +
+          '<input class="cdcx-input no-upper" id="li-username" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" placeholder="name@practice.com"></div>' +
+        '<div class="cdcx-field"><div class="cdcx-row"><label class="cdcx-label" for="li-pass">Password</label>' +
+          '<button type="button" class="cdcx-link" id="cdcx-forgot">Forgot password?</button></div>' +
+          '<div class="cdcx-pwwrap"><input class="cdcx-input no-upper" id="li-pass" name="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128" placeholder="Enter your password">' +
+          '<button type="button" class="cdcx-eye" id="li-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div>' +
+          '<p class="cdcx-caps" id="cdcx-caps" hidden>Caps Lock is on.</p></div>' +
+        '<button type="submit" class="cdcx-btn" id="login-btn">Sign in</button>' +
+      '</form>' +
+      '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 5 minutes of inactivity.</span></div>'));
+    if (!ok) return;
+
+    var form = $('cdcx-form'), em = $('li-username'), pw = $('li-pass'), eye = $('li-eye');
+    form.addEventListener('submit', function (e) { e.preventDefault(); submit(); });
+    em.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); pw.focus(); } });
     eye.addEventListener('click', function () {
       var show = pw.type === 'password';
       pw.type = show ? 'text' : 'password';
       var lbl = show ? 'Hide password' : 'Show password';
-      eye.setAttribute('aria-label', lbl); eye.title = lbl;
-      eye.setAttribute('aria-pressed', show ? 'true' : 'false');
+      eye.setAttribute('aria-label', lbl); eye.title = lbl; eye.setAttribute('aria-pressed', show ? 'true' : 'false');
       eye.innerHTML = show ? ICON_EYE_OFF : ICON_EYE;
       pw.focus();
     });
-
     function caps(e) { if (e.getModifierState) $('cdcx-caps').hidden = !e.getModifierState('CapsLock'); }
-    pw.addEventListener('keydown', caps);
-    pw.addEventListener('keyup', caps);
+    pw.addEventListener('keydown', caps); pw.addEventListener('keyup', caps);
     pw.addEventListener('blur', function () { $('cdcx-caps').hidden = true; });
-
-    [em, pw].forEach(function (i) { i.addEventListener('input', function () { i.removeAttribute('aria-invalid'); }); });
-
-    $('cdcx-forgot').addEventListener('click', function () {
-      if (!orig || !orig.forgot) return;
-      var v = em.value.trim();
-      if (v && orig.email) setVal(orig.email, v);
-      suspended = true;
-      hide(true);
-      backPill.hidden = false;
-      try { orig.forgot.click(); } catch (e) {}
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (pending) return;
-      var g = getGuard();
-      if (g.until > Date.now()) { startLockCountdown(); return; }
-
-      var email = em.value.trim().toLowerCase(), pass = pw.value;
-      var bad = false;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) { em.setAttribute('aria-invalid', 'true'); bad = true; }
-      if (!pass) { pw.setAttribute('aria-invalid', 'true'); bad = true; }
-      if (bad) { showAlert('Enter a valid email and your password.'); (em.getAttribute('aria-invalid') ? em : pw).focus(); return; }
-
-      orig = findOriginal() || orig;
-      if (!orig || !orig.pw.isConnected) { showAlert('Sign-in is not available right now. Reload the page and try again.'); return; }
-
-      showAlert('');
-      setBusy(true);
-      pending = { t0: Date.now(), errFound: null };
-
-      setVal(orig.email, email);
-      setVal(orig.pw, pass);
-      pw.value = '';           // never keep the password in our field
-      pass = null;
-      try {
-        if (orig.btn && orig.btn.isConnected) orig.btn.click();
-        else if (orig.form && orig.form.requestSubmit) orig.form.requestSubmit();
-        else orig.pw.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
-      } catch (err) {
-        pending.errFound = 'Unable to sign in. Reload the page and try again.';
-      }
-      schedule();
-    });
+    $('cdcx-forgot').addEventListener('click', function () { if (typeof renderForgotPassword === 'function') renderForgotPassword(); });
+    if (getGuard().until > Date.now()) lockCountdown();
+    setTimeout(function () { try { em.focus(); } catch (e) {} }, 60);
   }
 
-  function setVal(input, v) {
-    try {
-      var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-      d.set.call(input, v);
-    } catch (e) { input.value = v; }
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
-  function startLockCountdown() {
+  /* ---------------- Forgot password ---------------- */
+  function renderForgot() {
+    injectCSS();
     clearInterval(lockTimer);
-    function upd() {
-      var left = Math.ceil((getGuard().until - Date.now()) / 1000);
-      if (left <= 0) { clearInterval(lockTimer); lockTimer = null; showAlert(''); $('cdcx-submit').disabled = false; return; }
-      var m = Math.floor(left / 60), s = left % 60;
-      showAlert('Too many attempts. Try again in ' + m + ':' + (s < 10 ? '0' : '') + s + '.', true);
-      $('cdcx-submit').disabled = true;
-    }
-    upd();
-    lockTimer = setInterval(upd, 1000);
+    var ok = setRoot(shell(
+      '<div><h1 class="cdcx-h1">Reset your password</h1><p class="cdcx-lead">Enter the email you use to sign in and we will send you a reset link.</p></div>' +
+      '<form class="cdcx-form" id="cdcx-fp-form" novalidate>' +
+        '<div id="fp-alert" role="alert"></div>' +
+        '<div class="cdcx-field"><label class="cdcx-label" for="fp-email">Email</label>' +
+          '<input class="cdcx-input no-upper" id="fp-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="name@practice.com"></div>' +
+        '<button type="submit" class="cdcx-btn" id="fp-btn">Send reset link</button>' +
+        '<button type="button" class="cdcx-link" id="cdcx-back-signin" style="align-self:center">Back to sign in</button>' +
+      '</form>'));
+    if (!ok) return;
+    $('cdcx-fp-form').addEventListener('submit', function (e) { e.preventDefault(); if (typeof doForgotPassword === 'function') doForgotPassword(); });
+    $('cdcx-back-signin').addEventListener('click', function () { if (typeof renderLoginScreen === 'function') renderLoginScreen(); });
+    setTimeout(function () { try { $('fp-email').focus(); } catch (e) {} }, 60);
   }
 
-  function registerFailure(msg) {
-    var g = getGuard();
-    g.f += 1;
-    var secs = lockSeconds(g.f);
-    if (secs) g.until = Date.now() + secs * 1000;
-    setGuard(g);
-    setBusy(false);
-    if (orig && orig.pw && orig.pw.isConnected) setVal(orig.pw, '');
-    if (secs) startLockCountdown();
-    else {
-      showAlert(msg);
-      $('cdcx-pw').setAttribute('aria-invalid', 'true');
-      $('cdcx-pw').focus();
-    }
-    try { window.dispatchEvent(new CustomEvent('cdc:login-attempt', { detail: { ok: false, at: Date.now() } })); } catch (e) {}
+
+  /* =====================================================================
+   *  SIGN-IN ENGINE (moved here from script1.js on 2026-09-28)
+   *  Same flow as before (Firebase account first, then the app's own user
+   *  list), with these security fixes:
+   *   1. A Firebase account no longer becomes "Super Admin" automatically:
+   *      the role, practice and specialties come from the user list in the
+   *      cloud; an unknown account is refused (except the owner's email).
+   *   2. Inactive users cannot sign in.
+   *   3. Two-step verification now applies to every sign-in path, and the
+   *      session is created only AFTER the code is verified (before, a
+   *      refresh on the code screen could skip the check).
+   *   4. Codes come from the browser's secure random generator, are no
+   *      longer written in the email subject, allow 5 tries, and "Resend"
+   *      has a 30-second pause.
+   *   5. Old base64 passwords are upgraded to SHA-256 on the next sign-in.
+   *   6. Messages never reveal whether an account exists.
+   * ===================================================================== */
+  var _pending2FA = null;          // { code, email, user, expires, tries, sentAt, onSuccess }
+  var MAX_2FA_TRIES = 5;
+
+  function _esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function _isInactive(u) { return !!u && (u.inactive === true || String(u.status || '').toLowerCase() === 'inactive'); }
+  function _isOwnerEmail(e) { try { return String(e || '').toLowerCase() === String(SUPER_ADMIN_EMAIL).toLowerCase(); } catch (x) { return false; } }
+
+  // The user record for a Firebase account: read from the cloud user list (now allowed, the
+  // person is authenticated); the local list only if the cloud read fails.
+  async function _userForFirebase(fbUser) {
+    var email = String(fbUser.email || '').toLowerCase(), list = null;
+    try {
+      var d = await _db.collection('meta').doc('users').get();
+      if (d.exists) { list = d.data().list || []; _usersCache = list; }
+    } catch (e) {}
+    if (!list) { try { list = getUsers(); } catch (e) { list = []; } }
+    var u = (list || []).find(function (x) { return String(x.email || '').toLowerCase() === email; });
+    if (u) return u;
+    if (_isOwnerEmail(email)) return Object.assign({}, DEFAULT_ADMIN, { email: fbUser.email });
+    return null;
   }
 
-  function registerSuccess() {
-    setGuard({ f: 0, until: 0 });
-    try { window.dispatchEvent(new CustomEvent('cdc:login-attempt', { detail: { ok: true, at: Date.now() } })); } catch (e) {}
+  function generate2FACode() {
+    var a = new Uint32Array(1);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return String(100000 + (a[0] % 900000));
   }
 
-  /* ---------------- show / hide ---------------- */
-  var needsReset = true;
-  var tfaSeen = false;
-  function resetForm() {
-    setBusy(false);
-    var saved = '';
-    $('cdcx-email').value = '';
-    $('cdcx-pw').value = '';
-    if (getGuard().until > Date.now()) startLockCountdown(); else showAlert('');
-    setTimeout(function () { try { (saved ? $('cdcx-pw') : $('cdcx-email')).focus(); } catch (e) {} }, 60);
-  }
-  function show() {
-    if (shown) return;
-    shown = true;
-    root.hidden = false;
-    root.classList.remove('cdcx-out');
-    $('cdcx-forgot').hidden = !(orig && orig.forgot);
-    if (needsReset) { needsReset = false; resetForm(); }
-  }
-  // conceal: step aside for the app's own loader / 2FA window, keeping the form state
-  function conceal() {
-    if (!shown) return;
-    shown = false;
-    root.hidden = true;
-  }
-  function hide(instant) {
-    needsReset = true;
-    if (!shown) { root.hidden = true; return; }
-    shown = false;
-    $('cdcx-pw').value = '';
-    clearInterval(lockTimer); lockTimer = null;
-    if (instant) { root.hidden = true; return; }
-    root.classList.add('cdcx-out');
-    setTimeout(function () { if (!shown) root.hidden = true; }, 260);
-  }
-  function appWindowOpen() {
-    var t = document.getElementById('modal-2fa');
-    if (t && t.isConnected) return '2fa';
-    var l = document.getElementById('cdc-login-loader');
-    if (l && isVisible(l)) return 'loader';
-    return '';
+  function get2FADeviceKey(email) {
+    return 'cdc_2fa_device_' + btoa(email).replace(/=/g,'');
   }
 
-  /* ---------------- watcher ---------------- */
-  function looksLikeError(el) {
-    if (!el || (root && root.contains(el)) || el === backPill) return null;
-    var t = ((el.textContent || '') + '').trim();
-    if (!t || t.length > 300 || !ERR_RX.test(t)) return null;
-    if (RATE_RX.test(t)) return 'rate';
-    if (NET_RX.test(t)) return 'net';
-    return 'auth';
+  function isDeviceRemembered(email) {
+    try {
+      var key = get2FADeviceKey(email);
+      var stored = localStorage.getItem(key);
+      if (!stored) return false;
+      var data = JSON.parse(stored);
+      if (Date.now() > data.expires) { localStorage.removeItem(key); return false; }
+      return true;
+    } catch(e) { return false; }
   }
 
-  function evalPending() {
-    if (!orig || !isVisible(orig.pw)) {          // original form gone => signed in
-      pending = null;
-      registerSuccess();
-      setBusy(false);
-      hide(false);
+  function rememberDevice(email) {
+    try {
+      var key = get2FADeviceKey(email);
+      localStorage.setItem(key, JSON.stringify({
+        email: email,
+        expires: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
+        ts: Date.now(),
+      }));
+    } catch(e) {}
+  }
+
+  async function send2FACode(user) {
+    var code = generate2FACode();
+    var prev = _pending2FA;
+    _pending2FA = { code: code, email: user.email, user: user, expires: Date.now() + 10 * 60 * 1000, tries: 0, sentAt: Date.now(), onSuccess: prev && prev.onSuccess };
+    var html = [
+      '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">',
+      '<div style="background:#0B1526;padding:16px 24px;border-radius:8px 8px 0 0"><h2 style="color:#fff;margin:0;font-size:18px">ClaimDataCare verification code</h2></div>',
+      '<div style="background:#F6F8FB;padding:24px;border-radius:0 0 8px 8px;border:1px solid #E4E9F1">',
+      '<p style="color:#0B1526;font-size:15px">Hello ' + _esc(user.first || user.name || '') + ',</p>',
+      '<p style="color:#0B1526;font-size:14px">Your verification code is:</p>',
+      '<div style="background:#B32660;color:#fff;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
+      '<p style="color:#586579;font-size:13px">This code expires in <strong>10 minutes</strong> and can be used once.</p>',
+      '<p style="color:#586579;font-size:13px">If you did not try to sign in, change your password and contact your administrator.</p>',
+      '</div><p style="color:#8792A4;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare • Secure Medical Billing</p></div>'
+    ].join('');
+    // The code is NOT in the subject (subjects show on lock screens and notifications)
+    return await sendEmail(user.email, 'Your ClaimDataCare verification code', html, 'security');
+  }
+
+  function _tfaMsg(text, ok) {
+    var a = document.getElementById('tfa-alert');
+    if (!a) return;
+    a.innerHTML = text ? '<div class="alert ' + (ok ? 'al-success' : 'al-error') + '"></div>' : '';
+    if (text) a.firstChild.textContent = text;
+  }
+
+  function show2FAScreen(user, onSuccess) {
+    injectCSS();
+    var old = document.getElementById('modal-2fa'); if (old) old.remove();
+    if (_pending2FA) _pending2FA.onSuccess = onSuccess;
+    var ov = document.createElement('div');
+    ov.id = 'modal-2fa';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'tfa-title');
+    ov.innerHTML =
+      '<div class="cdcx-tfa">' +
+        '<div class="cdcx-bar"></div>' +
+        '<div class="cdcx-tfa-ico">' + ICON_SHIELD.replace('width="14" height="14"', 'width="26" height="26"') + '</div>' +
+        '<h2 id="tfa-title">Check your email</h2>' +
+        '<p class="cdcx-lead">We sent a 6-digit code to <b>' + _esc(user.email) + '</b>. It expires in 10 minutes.</p>' +
+        '<div id="tfa-alert" role="alert"></div>' +
+        '<label class="cdcx-label" for="tfa-code">Verification code</label>' +
+        '<input id="tfa-code" class="cdcx-input cdcx-code no-upper" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">' +
+        '<label class="cdcx-check"><input type="checkbox" id="tfa-remember"> Remember this device for 30 days</label>' +
+        '<button type="button" class="cdcx-btn" id="tfa-verify">Verify</button>' +
+        '<div class="cdcx-tfa-row"><button type="button" class="cdcx-link" id="tfa-resend">Resend code</button><button type="button" class="cdcx-link cdcx-muted" id="tfa-cancel">Cancel</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var inp = document.getElementById('tfa-code');
+    inp.addEventListener('input', function () { inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 6); if (inp.value.length === 6) verify2FACode(); });
+    document.getElementById('tfa-verify').addEventListener('click', verify2FACode);
+    document.getElementById('tfa-resend').addEventListener('click', resend2FACode);
+    document.getElementById('tfa-cancel').addEventListener('click', cancelLogin);
+    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 100);
+  }
+
+  function verify2FACode() {
+    var inp = document.getElementById('tfa-code');
+    var code = (inp && inp.value || '').trim();
+    if (!_pending2FA) { _tfaMsg('This sign-in expired. Please sign in again.'); return; }
+    if (Date.now() > _pending2FA.expires) { _tfaMsg('The code expired. Tap "Resend code" to get a new one.'); return; }
+    if (code.length !== 6) { _tfaMsg('Enter the 6-digit code.'); return; }
+    if (code !== _pending2FA.code) {
+      _pending2FA.tries += 1;
+      if (_pending2FA.tries >= MAX_2FA_TRIES) {
+        _pending2FA = null;
+        var ov = document.getElementById('modal-2fa'); if (ov) ov.remove();
+        try { if (_auth) _auth.signOut(); } catch (e) {}
+        if (typeof renderLoginScreen === 'function') renderLoginScreen();
+        setTimeout(function () { var a = document.getElementById('login-alert'); if (a) { a.innerHTML = '<div class="alert al-error">Too many incorrect codes. Please sign in again.</div>'; } }, 120);
+        return;
+      }
+      _tfaMsg('Incorrect code. ' + (MAX_2FA_TRIES - _pending2FA.tries) + ' tries left.');
+      inp.value = ''; inp.focus();
       return;
     }
-    if (pending.errFound) {
-      // short grace period: if the app is actually signing in, the form disappears meanwhile
-      if (!pending.errAt) pending.errAt = Date.now();
-      if (Date.now() - pending.errAt < 600) { setTimeout(schedule, 250); return; }
-      var kind = pending.errFound;
-      pending = null;
-      if (kind === 'net') { setBusy(false); showAlert('Unable to reach the server. Check your connection and try again.'); return; }
-      if (kind === 'rate') {
-        var g = getGuard(); g.f = Math.max(g.f, 5); g.until = Date.now() + 120000; setGuard(g);
-        setBusy(false); startLockCountdown(); return;
+    // Correct code: single use
+    var email = _pending2FA.email, done = _pending2FA.onSuccess;
+    _pending2FA = null;
+    if (document.getElementById('tfa-remember') && document.getElementById('tfa-remember').checked) rememberDevice(email);
+    var ov2 = document.getElementById('modal-2fa'); if (ov2) ov2.remove();
+    if (typeof done === 'function') done();
+  }
+
+  async function resend2FACode() {
+    if (!_pending2FA) return;
+    var wait = 30000 - (Date.now() - (_pending2FA.sentAt || 0));
+    if (wait > 0) { _tfaMsg('You can request a new code in ' + Math.ceil(wait / 1000) + ' seconds.'); return; }
+    _tfaMsg('Sending a new code…', true);
+    var sent = await send2FACode(_pending2FA.user);
+    _tfaMsg(sent ? 'A new code is on its way.' : 'Could not send the code. Try again in a moment.', !!sent);
+    var inp = document.getElementById('tfa-code'); if (inp) { inp.value = ''; inp.focus(); }
+  }
+
+  // No session exists yet while the code screen is open, so cancel just goes back to sign in
+  function cancelLogin() {
+    _pending2FA = null;
+    var ov = document.getElementById('modal-2fa'); if (ov) ov.remove();
+    try { if (_auth) _auth.signOut(); } catch (e) {}
+    if (typeof renderLoginScreen === 'function') renderLoginScreen();
+  }
+
+  async function doLogin() {
+    const loginRaw = (document.getElementById('li-username') && document.getElementById('li-username').value || '').trim();
+    const loginId = loginRaw.toLowerCase();
+    const isEmailFormat = loginId.includes('@') && loginId.includes('.');
+    const pass = document.getElementById('li-pass') && document.getElementById('li-pass').value || '';
+    const alertEl = document.getElementById('login-alert');
+    const btn = document.getElementById('login-btn');
+    function fail(msg) {
+      try { _hideLoginLoader(); } catch (_) {}
+      if (alertEl) { alertEl.innerHTML = '<div class="alert al-error"></div>'; alertEl.firstChild.textContent = msg || 'Incorrect email or password.'; }
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+    }
+    if (!loginRaw || !pass) { fail('Enter your email and password.'); return; }
+    btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
+
+    // Helper: after data loads, set up the UI correctly (unchanged from script1.js)
+    function _afterLoad() {
+      const db2 = getDB();
+      const sess = getSession();
+      if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); try { _hideLoginLoader(); } catch(_){} return; }
+      console.log('[CDC] _afterLoad: providers='+(db2.providers||[]).length+' session.pid='+sess.activeBillingProviderId);
+      if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
+    
+      // Try to set activeProviderId from providers list
+      if (db2.providers && db2.providers.length) {
+        const savedId = sess.activeBillingProviderId;
+        // ── Provider isolation fix ──
+        // For a non-Super-Admin user, ALWAYS honor their assigned provider first.
+        // Previously this fell back to db2.providers[0] when savedId was missing,
+        // which caused users to briefly see another practice's dashboard.
+        let validProv = null;
+        if (sess.role !== 'Super Admin' && sess.providerId) {
+          validProv = db2.providers.find(p => p.id === sess.providerId);
+        }
+        if (!validProv) {
+          validProv = (savedId && db2.providers.find(p => p.id === savedId)) || db2.providers[0];
+        }
+        activeProviderId = validProv.id;
+        sess.activeBillingProviderId = activeProviderId;
+        setSession(sess);
+        console.log('[CDC] _afterLoad: set activeProviderId='+activeProviderId+' from provider "'+(validProv.name||'')+'" (user role='+sess.role+', assigned pid='+sess.providerId+')');
       }
-      if (kind === 'auth') { registerFailure('Email or password is incorrect.'); return; }
-      setBusy(false); showAlert(kind); return;
-    }
-    if (Date.now() - pending.t0 > 6000) {          // fallback: check the original form text
-      var k = looksLikeError(orig.scope);
-      if (k) { pending.errFound = k; return evalPending(); }
-    }
-    if (Date.now() - pending.t0 > 20000) {         // no answer: re-enable without counting
-      pending = null;
-      setBusy(false);
-      showAlert('Sign-in is taking longer than usual. Try again.');
-    }
-  }
-
-  function tick() {
-    scheduled = false;
-    if (!root) return;
-    // The app's logout clears floating layers from <body>; put ours back if that happened.
-    if (!root.isConnected) { shown = false; needsReset = true; root.hidden = true; document.body.appendChild(root); }
-    if (backPill && !backPill.isConnected) { backPill.hidden = true; document.body.appendChild(backPill); }
-    if (styleEl && !styleEl.isConnected) document.head.appendChild(styleEl);
-    var win = appWindowOpen();
-    if (win === '2fa') { tfaSeen = true; if (pending) { pending = null; setBusy(false); needsReset = true; } }
-    if (pending) evalPending();
-    if (win) { conceal(); return; }        // app's loader or 2FA code window on screen
-    if (pending) return;
-    var o = findOriginal();
-    if (o) {
-      orig = o;
-      if (!shown && !suspended) show();
-      if (shown) $('cdcx-forgot').hidden = !orig.forgot;
-    } else {
-      suspended = false;
-      if (backPill) backPill.hidden = true;
-      if (tfaSeen) { tfaSeen = false; registerSuccess(); }   // signed in after the 2FA code
-      if (shown) hide(false); else needsReset = true;
-    }
-  }
-
-  function schedule() {
-    if (scheduled) return;
-    scheduled = true;
-    setTimeout(tick, 120);
-  }
-
-  function start() {
-    try { buildUI(); } catch (e) { return; }   // any problem: keep the classic login
-    var mo = new MutationObserver(function (recs) {
-      if (pending && !pending.errFound) {
-        for (var i = 0; i < recs.length; i++) {
-          var r = recs[i];
-          if (r.type === 'characterData') {
-            var k0 = looksLikeError(r.target.parentElement);
-            if (k0) { pending.errFound = k0; break; }
-          }
-          for (var j = 0; j < r.addedNodes.length; j++) {
-            var n = r.addedNodes[j];
-            var k = looksLikeError(n.nodeType === 1 ? n : n.parentElement);
-            if (k) { pending.errFound = k; break; }
-          }
-          if (pending.errFound) break;
-          if (r.type === 'attributes' && r.target.nodeType === 1) {
-            var k2 = looksLikeError(r.target);
-            if (k2 && isVisible(r.target)) { pending.errFound = k2; break; }
-          }
+    
+      // If still no activeProviderId, detect from claims or patients
+      if (!activeProviderId) {
+        console.log('[CDC] _afterLoad: still NO activeProviderId, deriving from claims/patients');
+        const pIds = [
+          ...new Set([
+            ...(db2.claims||[]).map(c=>c.providerId),
+            ...(db2.patients||[]).map(p=>p.providerId)
+          ].filter(Boolean))
+        ];
+        if (pIds.length) {
+          activeProviderId = pIds[0];
+          sess.activeBillingProviderId = activeProviderId;
+          setSession(sess);
+          console.log('[CDC] _afterLoad: derived activeProviderId='+activeProviderId);
+        } else {
+          console.log('[CDC] _afterLoad: NO claims or patients to derive providerId');
         }
       }
-      schedule();
-    });
-    mo.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
-    setInterval(schedule, 1000);   // safety net
-    tick();
+    
+      rebuildProvSel();
+      console.log('[CDC] _afterLoad: currentSection='+(document.querySelector('.section.active')?.id||'none'));
+      // Always (re)apply specialty-based menu restrictions after data loads,
+      // regardless of which page the user happens to land on.
+      setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
+      // Also explicitly render the topnav specialty chip after data is available.
+      setTimeout(function(){ try { _renderTopnavSpecialtyChip(); } catch(e){ console.warn('spec chip render err:', e); } }, 700);
+      // Only re-render dashboard if it is the currently active section
+      // (prevents redirecting away from a page the user navigated to)
+      var _curActive = document.querySelector('.section.active');
+      if (!_curActive || _curActive.id === 'sec-dashboard') {
+        go('dashboard');
+        try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
+        setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
+      } else {
+        // Re-render current page so it picks up the freshly loaded Firestore data
+        var _curPage = _curActive.id.replace('sec-', '');
+        try {
+          var _invoicesRender = function(){ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} };
+          var _renderFn = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,invoices:_invoicesRender,'cm-dashboard':renderCMDashboard,'cm-clients':renderCMClients,'cm-intake':renderCMIntake,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation,medicaid:renderMedicaid})[_curPage];
+          if (_renderFn) { _renderFn(); updateBadges(); }
+        } catch(e) {}
+      }
+      updateAdminUI();
+      // Hide the loading overlay once the shell + data are ready.
+      // Delayed slightly to let the final render paint.
+      try { _forceCloseUserMenu(); } catch(e){}
+      setTimeout(function(){ try { _hideLoginLoader(); _forceCloseUserMenu(); } catch(e){} }, 250);
+    }
+
+    // Opens the workspace for a verified user (after two-step verification when it applies)
+    function finish(user, sessionId) {
+      const fullName = ((user.first || '') + ' ' + (user.last || '')).trim() || user.name || 'User';
+      const session = { id: sessionId, email: user.email, name: fullName,
+        role: user.role || (_isOwnerEmail(user.email) ? 'Super Admin' : 'User'),
+        activeBillingProviderId: null, providerId: user.providerId || null, specialties: user.specialties || [] };
+      function enter() {
+        setSession(session);
+        window._sessionVerified = true;
+        try { sessionStorage.setItem('cdc_verified', 'yes'); } catch (e) {}
+        setTimeout(function () { try { auditLog('LOGIN', 'User signed in'); } catch (e) {} }, 500);
+        showApp(session.name);
+        loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+      }
+      if (user.twoFA && !isDeviceRemembered(user.email)) {
+        btn.textContent = 'Sending code...';
+        send2FACode(user).then(function (sent) {
+          btn.textContent = 'Sign In'; btn.disabled = false;
+          if (!sent) { try { if (_auth) _auth.signOut(); } catch (e) {} fail('Could not send the verification code. Try again in a moment.'); return; }
+          show2FAScreen(user, enter);
+        });
+      } else {
+        enter();
+      }
+    }
+
+    try {
+      var _localUsers = typeof getUsers === 'function' ? getUsers() : (_usersCache || []);
+      var _allUsers = [DEFAULT_ADMIN].concat(_localUsers.filter(function (u) { return u.id !== DEFAULT_ADMIN.id; }));
+      var _matchFn = function (u) {
+        return (u.email || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
+      };
+      var _resolvedUser = _allUsers.find(_matchFn);
+      var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
+
+      // 1) Firebase account
+      if (_auth && _fbReady && _fbEmail) {
+        var fbUser = null;
+        try { fbUser = (await _auth.signInWithEmailAndPassword(_fbEmail, pass)).user; } catch (e) { /* not a Firebase account or wrong password: try the app's own users */ }
+        if (fbUser) {
+          var rec = await _userForFirebase(fbUser);
+          if (!rec || _isInactive(rec)) { try { await _auth.signOut(); } catch (e) {} fail('This account is not active. Contact your administrator.'); return; }
+          finish(rec, fbUser.uid);
+          return;
+        }
+      }
+
+      // 2) The app's own user list (SHA-256 password hashes)
+      var _hash = await sha256(pass);
+      var _b64 = null; try { _b64 = btoa(pass); } catch (e) {}
+      var _pwOk = function (u) { return !!u.passHash && (u.passHash === _hash || (_b64 && u.passHash === _b64)); };
+      var _localUser = _allUsers.find(function (u) { return _matchFn(u) && _pwOk(u); });
+      if (!_localUser) {
+        // Records stored by the old activation code
+        try {
+          var _dbUsers = (typeof getDB === 'function' ? (getDB().users || []) : []);
+          var _dbUser = _dbUsers.find(function (u) { return _matchFn(u) && _pwOk(u); });
+          if (_dbUser) {
+            var _allU2 = getUsers();
+            var _cacheUser = _allU2.find(function (u) { return u.id === _dbUser.id || (u.email || '').toLowerCase() === (_dbUser.email || '').toLowerCase(); });
+            if (_cacheUser) { _cacheUser.passHash = _dbUser.passHash; if (_dbUser.emailVerified) _cacheUser.emailVerified = true; saveUsers(_allU2); _localUser = _cacheUser; }
+          }
+        } catch (_e) {}
+      }
+      if (!_localUser) { fail(); return; }
+      if (_isInactive(_localUser)) { fail('This account is not active. Contact your administrator.'); return; }
+      // Upgrade an old base64 password to SHA-256
+      if (_b64 && _localUser.passHash === _b64 && _localUser.passHash !== _hash) {
+        try { var _all3 = getUsers(); var _u3 = _all3.find(function (u) { return u.id === _localUser.id; }); if (_u3) { _u3.passHash = _hash; saveUsers(_all3); } } catch (e) {}
+      }
+      finish(_localUser, _localUser.id);
+    } catch (e) {
+      console.warn('[CDC] sign-in error:', e && e.message);
+      fail('Sign-in failed. Please try again.');
+    }
   }
 
+  async function doForgotPassword() {
+  const email = (document.getElementById('fp-email')?.value||'').trim().toLowerCase();
+  const alertEl = document.getElementById('fp-alert');
+  const btn = document.getElementById('fp-btn');
+  alertEl.innerHTML = '';
+  if (!email) { alertEl.innerHTML='<div class="alert al-error">Email is required.</div>'; return; }
+  btn.textContent='Sending...'; btn.disabled=true;
+  try {
+  if (!_auth) throw new Error('Auth not ready');
+  await _auth.sendPasswordResetEmail(email);
+  alertEl.innerHTML='<div class="alert al-success">If an account exists for that email, a reset link is on its way.</div>';
+  btn.textContent='Resend Email'; btn.disabled=false;
+  } catch(e) {
+  // Same answer whether or not the account exists (no account discovery)
+  if (e && e.code === 'auth/user-not-found') {
+    alertEl.innerHTML='<div class="alert al-success">If an account exists for that email, a reset link is on its way.</div>';
+    btn.textContent='Resend Email'; btn.disabled=false; return;
+  }
+  const msgs = {
+  'auth/invalid-email': 'Enter a valid email address.',
+  'auth/too-many-requests': 'Too many requests. Try again later.'
+  };
+  alertEl.innerHTML='<div class="alert al-error">'+(msgs[e && e.code]||'Could not send the reset email. Try again.')+'</div>';
+  btn.textContent='Send Reset Email'; btn.disabled=false;
+  }
+  }
+
+  // Make the engine available to the app (the names script1.js and the screens call)
+  window.doLogin = doLogin;
+  window.doForgotPassword = doForgotPassword;
+  window.show2FAScreen = show2FAScreen;
+  window.verify2FACode = verify2FACode;
+  window.resend2FACode = resend2FACode;
+  window.cancelLogin = cancelLogin;
+  window.send2FACode = send2FACode;
+  window.isDeviceRemembered = isDeviceRemembered;
+  window.rememberDevice = rememberDevice;
+
+  window._cdcRenderLogin = renderLogin;
+  window._cdcRenderForgot = renderForgot;
+
   /* ---------------- favicon ---------------- */
-  // Points the tab icon to the new favicon.svg (?v= forces browsers to drop the old cached icon)
   function setFavicon() {
     try {
       var href = 'favicon.svg?v=3';
-      var links = document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]');
-      if (!links.length) {
-        var l = document.createElement('link');
-        l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = href;
-        document.head.appendChild(l);
-      } else {
-        for (var i = 0; i < links.length; i++) {
-          if (links[i].rel.indexOf('apple') === -1) { links[i].type = 'image/svg+xml'; links[i].href = href; }
-        }
-      }
+      var links = document.querySelectorAll('link[rel~="icon"]');
+      if (!links.length) { var l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = href; document.head.appendChild(l); }
+      else for (var i = 0; i < links.length; i++) { links[i].type = 'image/svg+xml'; links[i].href = href; }
       var nav = document.getElementById('nav-logo-main');
-      if (nav && nav.getAttribute('src') && nav.getAttribute('src').indexOf('favicon.svg?v=') === -1) nav.setAttribute('src', href);
+      if (nav && (nav.getAttribute('src') || '').indexOf('favicon.svg?v=') === -1) nav.setAttribute('src', href);
     } catch (e) {}
   }
   setFavicon();
@@ -604,7 +698,4 @@
     var nav = document.getElementById('nav-logo-main');
     if (nav && (nav.getAttribute('src') || '').indexOf('favicon.svg?v=') === -1) setFavicon();
   }, 2000);
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-  else start();
 })();

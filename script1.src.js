@@ -406,16 +406,16 @@ function _injectCriticalCSS() {
 function _showLoginLoader(msg){
   var existing = document.getElementById('cdc-login-loader');
   if (existing) { existing.style.display = 'flex'; return; }
-  var brand = '#c96442';
+  var brand = '#E8367A';
   var ov = document.createElement('div');
   ov.id = 'cdc-login-loader';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#0B1526;font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif)';
   ov.innerHTML =
     '<style>@keyframes cdc-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}@keyframes cdc-pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>' +
     '<div style="width:64px;height:64px;position:relative">' +
       '<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="'+brand+'" stroke-width="2.5" stroke-linecap="round" style="animation:cdc-spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>' +
     '</div>' +
-    '<div style="font-size:14px;font-weight:600;color:#4d4c48;letter-spacing:-.01em;animation:cdc-pulse 1.5s ease-in-out infinite" id="cdc-login-loader-msg">' + (msg || 'Loading your workspace...') + '</div>';
+    '<div style="font-size:14px;font-weight:600;color:#E6EBF3;letter-spacing:-.01em;animation:cdc-pulse 1.5s ease-in-out infinite" id="cdc-login-loader-msg">' + (msg || 'Loading your workspace...') + '</div>';
   document.body.appendChild(ov);
 
   // Safety net: if the loader stays up more than 15s (workspace fetch stalled,
@@ -9226,7 +9226,7 @@ updateAdminUI();
 toast('Access granted — ' + email);
 
 } catch(e) {
-alertEl.innerHTML = '<div class="alert al-error">Error: ' + e.message + '</div>';
+alertEl.innerHTML = '<div class="alert al-error">Sign-in failed. Please try again.</div>'; console.warn('[CDC] admin login:', e && e.message);
 } finally {
 if (btn) { btn.textContent = 'Access Admin Panel'; btn.disabled = false; }
 }
@@ -9954,172 +9954,45 @@ function clearSession() {
 }
 
 // ?? Login screen ?????????????????????????????????????
-function renderLoginScreen() {
-try { _hideLoginLoader(); } catch(_){}
-document.getElementById('root').innerHTML = `
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(160deg,#f5f4ed 0%,#faf9f5 60%,#e8e6dc 100%);padding:20px">
-
-<div style="background:rgba(255,255,255,.85);backdrop-filter:blur(40px) saturate(180%);
-border:1px solid rgba(255,255,255,.9);border-radius:28px;
-padding:48px 44px;width:100%;max-width:390px;
-box-shadow:0 32px 80px rgba(0,0,0,.12),0 4px 16px rgba(201,100,66,.08),inset 0 1px 0 rgba(255,255,255,.9)">
-
-<!-- Logo -->
-<div style="text-align:center;margin-bottom:36px">
-<div style="display:flex;justify-content:center;margin-bottom:4px">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="72" height="72">
-  <path d="M16 2 L28 7 L28 17 C28 24 22 29 16 31 C10 29 4 24 4 17 L4 7 Z" fill="#c96442"/>
-  <path d="M16 4 L26.5 8.5 L26.5 17 C26.5 23.5 21 27.5 16 29.5 C11 27.5 5.5 23.5 5.5 17 L5.5 8.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-  <rect x="14.5" y="10" width="3" height="12" rx="1.2" fill="white"/>
-  <rect x="10" y="14.5" width="12" height="3" rx="1.2" fill="white"/>
-</svg>
-</div>
-<div style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:var(--text)">ClaimDataCare</div>
-<div style="font-size:13px;color:#87867f;margin-top:4px;font-weight:400;letter-spacing:-0.01em">
-Electronic Health Records
-</div>
-</div>
-
-<div id="login-alert" style="margin-bottom:14px"></div>
-
-<div style="display:flex;flex-direction:column;gap:14px">
-<div>
-<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
-Email
-</label>
-<input id="li-username" type="email" class="no-upper" autocomplete="email"
-placeholder="Email"
-onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()"
-style="width:100%;padding:13px 16px;font-size:15px;
-border:1.5px solid #e8e6dc;border-radius:14px;
-background:rgba(255,255,255,.8);color:var(--text);
-font-family:var(--font);outline:none;
-transition:all .2s cubic-bezier(.4,0,.2,1);
-box-shadow:0 1px 3px rgba(0,0,0,.06) inset;
--webkit-font-smoothing:antialiased"
-onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset'"
-onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
-</div>
-<div>
-<label style="display:block;font-size:12px;font-weight:600;color:#4d4c48;margin-bottom:6px;letter-spacing:-0.01em">
-Password
-</label>
-<div style="position:relative">
-      <input id="li-pass" type="password" class="no-upper" autocomplete="current-password" placeholder="••••••••"
-onkeydown="if(event.key==='Enter')doLogin()"
-style="width:100%;padding:13px 16px;font-size:15px;
-border:1.5px solid #e8e6dc;border-radius:14px;
-background:rgba(255,255,255,.8);color:var(--text);
-font-family:var(--font);outline:none;padding-right:48px;
-transition:all .2s cubic-bezier(.4,0,.2,1);
-box-shadow:0 1px 3px rgba(0,0,0,.06) inset"
-onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 4px rgba(201,100,66,.12),0 1px 3px rgba(0,0,0,.06) inset';this.select()"
-onblur="this.style.borderColor='#e8e6dc';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06) inset'">
-<button id="li-eye" onclick="togglePassVis('li-pass',this)"
-style="position:absolute;right:0;top:0;bottom:0;width:48px;
-background:none;border:none;cursor:pointer;
-display:flex;align-items:center;justify-content:center;color:#87867f;
-transition:color .15s">
-<svg id="li-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-<circle cx="12" cy="12" r="3"/>
-</svg>
-</button>
-</div>
-</div>
-
-<!-- Sign In button -->
-<button onclick="doLogin()" id="login-btn"
-style="width:100%;padding:15px;margin-top:6px;
- background:linear-gradient(135deg,#c96442,#b55330);
-  color:#fff;border:none;border-radius:14px;
-  font-size:16px;font-weight:700;letter-spacing:-0.02em;
-  font-family:var(--font);cursor:pointer;
-  box-shadow:0 6px 20px rgba(201,100,66,.4),inset 0 1px 0 rgba(255,255,255,.15);
-  transition:all .2s cubic-bezier(.4,0,.2,1)"
-  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 10px 30px rgba(201,100,66,.5),inset 0 1px 0 rgba(255,255,255,.15)'"
-  onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 20px rgba(201,100,66,.4),inset 0 1px 0 rgba(255,255,255,.15)'"
-  onmousedown="this.style.transform='scale(0.98)'">
-  Sign In
-</button>
-
-<!-- Forgot Password link -->
-<div style="margin-top:14px;text-align:center">
-<button type="button" onclick="renderForgotPassword()"
-  style="background:none;border:none;cursor:pointer;font-size:12px;color:#c96442;font-family:var(--font);padding:6px 10px;font-weight:600;letter-spacing:.01em;transition:color .15s;text-decoration:none"
-  onmouseover="this.style.color='#a04f33';this.style.textDecoration='underline'"
-  onmouseout="this.style.color='#c96442';this.style.textDecoration='none'">
-  Forgot password?
-</button>
-</div>
-</div>
-
-<div style="margin-top:20px;text-align:center;font-size:11px;color:#87867f;letter-spacing:.01em">
-<span style="color:var(--brand);font-weight:700">ClaimDataCare</span>&nbsp;·&nbsp;Secure &amp; Encrypted
-</div>
-</div>
-</div>`;
-setTimeout(() => { const el=document.getElementById('li-username'); if(el) el.focus(); }, 80);
+// ── Sign-in screens ─────────────────────────────────────────────────────────
+// (2026-09-28) Everything about signing in lives in cdc-login.js: the screens, the
+// sign-in engine, two-step verification and password reset. This file only asks it
+// to draw the screens. While cdc-login.js is still downloading a dark screen is
+// shown; if it cannot load at all, a message with a Reload button appears.
+function _cdcWaitForLoginModule(name, fallback) {
+  var fn = window[name];
+  if (typeof fn === 'function') { fn(); return; }
+  var root = document.getElementById('root');
+  if (root) root.innerHTML = '<div style="position:fixed;inset:0;background:#0B1526"></div>';
+  var t0 = Date.now();
+  (function wait(){
+    if (typeof window[name] === 'function') { window[name](); return; }
+    if (Date.now() - t0 > 5000) { fallback(); return; }
+    setTimeout(wait, 40);
+  })();
 }
-
-
+function _cdcPlainForm(inner) {
+  var root = document.getElementById('root');
+  if (!root) return;
+  root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:system-ui,sans-serif;padding:20px">' +
+    '<div style="width:100%;max-width:380px;background:#fff;border:1px solid #E4E9F1;border-radius:16px;padding:32px">' +
+    '<div style="font-weight:700;font-size:22px;margin-bottom:18px;color:#0B1526">ClaimDataCare</div>' + inner + '</div></div>';
+}
+function _cdcLoginUnavailable() {
+  _cdcPlainForm('<p style="margin:0 0 16px;color:#3A475C;line-height:1.5">Sign-in could not load. Check your internet connection and reload the page.</p>' +
+    '<button type="button" onclick="location.reload()" style="width:100%;padding:13px;border:0;border-radius:10px;background:#B32660;color:#fff;font-weight:700;cursor:pointer">Reload</button>');
+}
+function renderLoginScreen() {
+  try { _hideLoginLoader(); } catch(_){}
+  _cdcWaitForLoginModule('_cdcRenderLogin', _cdcLoginUnavailable);
+}
 
 function renderForgotPassword() {
-document.getElementById('root').innerHTML = `
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px">
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.15)">
-<div style="text-align:center;margin-bottom:28px">
-<div style="width:56px;height:56px;background:var(--bg2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px"></div>
-<div style="font-size:22px;font-weight:800">Forgot Password?</div>
-<div style="font-size:13px;color:var(--text3);margin-top:6px;line-height:1.6">Enter your email and we'll send you<br>a reset link via Firebase.</div>
-</div>
-<div id="fp-alert" style="margin-bottom:12px"></div>
-<div style="display:flex;flex-direction:column;gap:16px">
-<div class="field">
-<label style="font-size:12px;font-weight:600;color:var(--text2)">Email</label>
-<input id="fp-email" class="no-upper" type="email" autocomplete="username"
-onkeydown="if(event.key==='Enter')doForgotPassword()"
-style="font-size:14px;padding:11px 14px;border:1.5px solid var(--border2);border-radius:8px;width:100%;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none"
-onfocus="this.style.borderColor='#c96442'" onblur="this.style.borderColor='var(--border2)'">
-</div>
-<button onclick="doForgotPassword()" id="fp-btn"
-style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;width:100%">
- Send Reset Email
-</button>
-<button onclick="renderLoginScreen()"
-style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);font-family:var(--font);padding:6px;text-align:center">
-← Back to Sign In
-</button>
-</div>
-</div>
-</div>`;
-setTimeout(() => { const el=document.getElementById('fp-email'); if(el) el.focus(); }, 80);
+  _cdcWaitForLoginModule('_cdcRenderForgot', _cdcLoginUnavailable);
 }
 
-async function doForgotPassword() {
-const email = (document.getElementById('fp-email')?.value||'').trim().toLowerCase();
-const alertEl = document.getElementById('fp-alert');
-const btn = document.getElementById('fp-btn');
-alertEl.innerHTML = '';
-if (!email) { alertEl.innerHTML='<div class="alert al-error">Email is required.</div>'; return; }
-btn.textContent='Sending...'; btn.disabled=true;
-try {
-if (!_auth) throw new Error('Auth not ready');
-await _auth.sendPasswordResetEmail(email);
-alertEl.innerHTML='<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> Reset email sent to <strong>'+email+'</strong>.</div>';
-btn.textContent='Resend Email'; btn.disabled=false;
-} catch(e) {
-const msgs = {
-'auth/user-not-found': 'No account found with that email.',
-'auth/invalid-email': 'Invalid email format.',
-'auth/too-many-requests': 'Too many requests. Try again later.'
-};
-alertEl.innerHTML='<div class="alert al-error">'+(msgs[e.code]||e.message)+'</div>';
-btn.textContent='Send Reset Email'; btn.disabled=false;
-}
-}
+
+/* doForgotPassword moved to cdc-login.js */
 
 function _imgDim(b64) {
   try {
@@ -12189,228 +12062,7 @@ svg.innerHTML = showing
 }
 }
 
-async function doLogin() {
-const loginRaw = (document.getElementById('li-username')?.value || '').trim();
-const loginId = loginRaw.toLowerCase();
-const isEmailFormat = loginId.includes('@') && loginId.includes('.');
-const pass = document.getElementById('li-pass')?.value || '';
-const alertEl = document.getElementById('login-alert');
-const btn = document.getElementById('login-btn');
-if (!loginRaw || !pass) {
-alertEl.innerHTML = '<div class="alert al-error">Username/email and password are required.</div>';
-return;
-}
-btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
-
-// Helper: after data loads, set up the UI correctly
-function _afterLoad() {
-  const db2 = getDB();
-  const sess = getSession();
-  if (!sess) { console.log('[CDC] _afterLoad: NO SESSION'); try { _hideLoginLoader(); } catch(_){} return; }
-  console.log('[CDC] _afterLoad: providers='+(db2.providers||[]).length+' session.pid='+sess.activeBillingProviderId);
-  if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
-
-  // Try to set activeProviderId from providers list
-  if (db2.providers && db2.providers.length) {
-    const savedId = sess.activeBillingProviderId;
-    // ── Provider isolation fix ──
-    // For a non-Super-Admin user, ALWAYS honor their assigned provider first.
-    // Previously this fell back to db2.providers[0] when savedId was missing,
-    // which caused users to briefly see another practice's dashboard.
-    let validProv = null;
-    if (sess.role !== 'Super Admin' && sess.providerId) {
-      validProv = db2.providers.find(p => p.id === sess.providerId);
-    }
-    if (!validProv) {
-      validProv = (savedId && db2.providers.find(p => p.id === savedId)) || db2.providers[0];
-    }
-    activeProviderId = validProv.id;
-    sess.activeBillingProviderId = activeProviderId;
-    setSession(sess);
-    console.log('[CDC] _afterLoad: set activeProviderId='+activeProviderId+' from provider "'+(validProv.name||'')+'" (user role='+sess.role+', assigned pid='+sess.providerId+')');
-  }
-
-  // If still no activeProviderId, detect from claims or patients
-  if (!activeProviderId) {
-    console.log('[CDC] _afterLoad: still NO activeProviderId, deriving from claims/patients');
-    const pIds = [
-      ...new Set([
-        ...(db2.claims||[]).map(c=>c.providerId),
-        ...(db2.patients||[]).map(p=>p.providerId)
-      ].filter(Boolean))
-    ];
-    if (pIds.length) {
-      activeProviderId = pIds[0];
-      sess.activeBillingProviderId = activeProviderId;
-      setSession(sess);
-      console.log('[CDC] _afterLoad: derived activeProviderId='+activeProviderId);
-    } else {
-      console.log('[CDC] _afterLoad: NO claims or patients to derive providerId');
-    }
-  }
-
-  rebuildProvSel();
-  console.log('[CDC] _afterLoad: currentSection='+(document.querySelector('.section.active')?.id||'none'));
-  // Always (re)apply specialty-based menu restrictions after data loads,
-  // regardless of which page the user happens to land on.
-  setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
-  // Also explicitly render the topnav specialty chip after data is available.
-  setTimeout(function(){ try { _renderTopnavSpecialtyChip(); } catch(e){ console.warn('spec chip render err:', e); } }, 700);
-  // Only re-render dashboard if it is the currently active section
-  // (prevents redirecting away from a page the user navigated to)
-  var _curActive = document.querySelector('.section.active');
-  if (!_curActive || _curActive.id === 'sec-dashboard') {
-    go('dashboard');
-    try { renderDashboard(); } catch(e) { console.warn('dash err',e); }
-    setTimeout(function(){ try { renderDashboard(); } catch(e) {} }, 500);
-  } else {
-    // Re-render current page so it picks up the freshly loaded Firestore data
-    var _curPage = _curActive.id.replace('sec-', '');
-    try {
-      var _invoicesRender = function(){ try{setInvTab('dashboard',document.getElementById('inv-stab-dashboard'));}catch(_){} };
-      var _renderFn = ({dashboard:renderDashboard,claims:renderClaims,patients:renderPatients,services:renderServices,facilities:renderFacilities,rendering:renderRendering,referring:renderReferring,eob:renderEOBPage,insurances:renderInsurances,validate:renderValidation,export:renderExportSummary,reports:renderReports,'admin-providers':renderAdminProviders,servicegroups:renderServiceGroups,account:renderAccountPage,appointments:renderAppointments,notes:renderNotes,invoices:_invoicesRender,'cm-dashboard':renderCMDashboard,'cm-clients':renderCMClients,'cm-intake':renderCMIntake,'cm-workers':renderCMWorkers,'cm-assessments':renderCMAssessments,'cm-plans':renderCMPlans,'cm-encounters':renderCMEncounters,'cm-tasks':renderCMTasks,'cm-authorizations':renderCMAuths,'cm-referrals':renderCMCommReferrals,'cm-supervisor':renderCMSupervisor,'cm-billing':renderCMBilling,'cm-reports':renderCMReports,'cm-discharge':renderCMDischarges,'intake-center':renderIntakeCenter,'intake-clients':renderIntakeClients,'intake-forms':renderIntakeConsentForms,'intake-eval':renderIntakeEvaluation,medicaid:renderMedicaid})[_curPage];
-      if (_renderFn) { _renderFn(); updateBadges(); }
-    } catch(e) {}
-  }
-  updateAdminUI();
-  // Hide the loading overlay once the shell + data are ready.
-  // Delayed slightly to let the final render paint.
-  try { _forceCloseUserMenu(); } catch(e){}
-  setTimeout(function(){ try { _hideLoginLoader(); _forceCloseUserMenu(); } catch(e){} }, 250);
-}
-
-// Try to resolve username/email to a known user
-var _localUsers = typeof getUsers === 'function' ? getUsers() : (_usersCache||[]);
-var _allUsers = [DEFAULT_ADMIN, ..._localUsers.filter(function(u){ return u.id !== DEFAULT_ADMIN.id; })];
-var _matchFn = function(u) {
-return (u.email||'').toLowerCase() === loginId || (u.name||'').toLowerCase() === loginId || (u.username||'').toLowerCase() === loginId || (u.first||'').toLowerCase() === loginId;
-};
-var _resolvedUser = _allUsers.find(_matchFn);
-var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
-
-// Try Firebase auth if we have a resolved email
-if (_auth && _fbReady && _fbEmail) {
-try {
-var _fbCred = await _auth.signInWithEmailAndPassword(_fbEmail, pass);
-var _fbUser = _fbCred.user;
-var _fbSession = { id:_fbUser.uid, email:_fbUser.email, name:_fbUser.displayName||_fbUser.email.split('@')[0]||'Admin',
-role:'Super Admin', activeBillingProviderId:null };
-setSession(_fbSession);
-showApp(_fbSession.name);
-loadFromFirestore().then(function() {
-  try {
-    var _allU2 = getUsers ? getUsers() : (_usersCache||[]);
-    var _matchU2 = _allU2.find(function(u){ return (u.email||'').toLowerCase() === _fbUser.email.toLowerCase(); });
-    if (_matchU2) {
-      var _fn2 = ((_matchU2.first||'') + ' ' + (_matchU2.last||'')).trim() || _matchU2.name || _fbSession.name;
-      var _sess2 = getSession(); if(_sess2){ _sess2.name=_fn2; setSession(_sess2); }
-      var _tn2 = document.getElementById('tn-user-name');
-      var _mn2 = document.getElementById('tn-menu-name');
-      var _np2 = _fn2.trim().split(/\s+/);
-      var _ini2 = _np2.length>=2 ? (_np2[0][0]+_np2[_np2.length-1][0]).toUpperCase() : _fn2.slice(0,2).toUpperCase();
-      if(_tn2) _tn2.textContent = _np2[0]||_fn2;
-      if(_mn2) _mn2.textContent = _fn2;
-      var _a1=document.getElementById('tn-avatar-initials'), _a2=document.getElementById('tn-avatar-initials2');
-      if(_a1) _a1.textContent=_ini2; if(_a2) _a2.textContent=_ini2;
-    }
-  } catch(e){}
-  _afterLoad();
-}).catch(_afterLoad);
-return;
-} catch(e) {
-// Always fall through to local auth — users created via
-// saveNewUser() may only exist in local password storage
-// and NOT in Firebase Auth. Local auth is the source of truth.
-}
-}
-
-// Local hash auth
-try {
-var _hash = await sha256(pass);
-var _btoaHash = btoa(pass);
-var _localUser = _allUsers.find(function(u) {
-  return _matchFn(u) && (u.passHash === _hash || u.passHash === _btoaHash);
-});
-// If local auth failed but identity matched, try Firebase with resolved email as fallback
-if (!_localUser && _resolvedUser && _resolvedUser.email && _auth && _fbReady) {
-var _fbEmail2 = _resolvedUser.email.toLowerCase();
-try {
-  var _fbCred2 = await _auth.signInWithEmailAndPassword(_fbEmail2, pass);
-  var _fbUser2 = _fbCred2.user;
-  var _fbSession2 = { id:_fbUser2.uid, email:_fbUser2.email, name:_fbUser2.displayName||_fbUser2.email.split('@')[0]||'Admin',
-  role:'Super Admin', activeBillingProviderId:null };
-  setSession(_fbSession2);
-  showApp(_fbSession2.name);
-  loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-  return;
-} catch(e2) {
-  // Continue to local auth fallback regardless of Firebase error
-}
-}
-// Fallback: check _localDB.users for passHashes stored by old activation code
-if (!_localUser) {
-  try {
-    var _dbUsers = (typeof getDB === 'function' ? (getDB().users||[]) : []);
-    var _dbUser = _dbUsers.find(function(u){ return _matchFn(u) && (u.passHash === _hash || u.passHash === _btoaHash); });
-    if (_dbUser && _dbUser.passHash) {
-      // Migrate passHash to users cache
-      var _allU2 = typeof getUsers === 'function' ? getUsers() : [];
-      var _cacheUser = _allU2.find(function(u){ return u.id === _dbUser.id || (u.email||'').toLowerCase() === (_dbUser.email||'').toLowerCase(); });
-      if (_cacheUser) {
-        _cacheUser.passHash = _dbUser.passHash;
-        if (_dbUser.emailVerified) _cacheUser.emailVerified = true;
-        if (typeof saveUsers === 'function') saveUsers(_allU2);
-        _localUser = _cacheUser;
-      }
-    }
-  } catch(_e) {}
-}
-if (!_localUser) {
-try { _hideLoginLoader(); } catch(_){}
-alertEl.innerHTML = '<div class="alert al-error" style="background:#fdecec;border:1px solid #dc2626;color:#b91c1c;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Incorrect email or password.</div>';
-btn.textContent = 'Sign In'; btn.disabled = false; return;
-}
-const _fullName = ((_localUser.first||'') + ' ' + (_localUser.last||'')).trim() || _localUser.name || 'User';
-const _session = { id:_localUser.id, email:_localUser.email, name:_fullName,
-role:_localUser.role||'Super Admin', activeBillingProviderId:null,
-providerId: _localUser.providerId || null,
-specialties: _localUser.specialties || [] };
-setSession(_session);
-window._sessionVerified = true;
-    sessionStorage.setItem('cdc_verified', 'yes');
-    setTimeout(function(){ auditLog("LOGIN", "User logged in via internal auth"); }, 500);
-
-// 2FA check
-if (_localUser.twoFA) {
-  if (isDeviceRemembered(_localUser.email)) {
-    // Device remembered — skip 2FA
-    showApp(_session.name);
-    loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-  } else {
-    // Send code and show 2FA screen
-    btn.textContent = 'Sending code...';
-    send2FACode(_localUser).then(function(sent) {
-      btn.textContent = 'Sign In'; btn.disabled = false;
-      if (!sent) {
-        alertEl.innerHTML = '<div class="alert al-error">Could not send verification code. Check email configuration.</div>';
-        return;
-      }
-      show2FAScreen(_localUser, function() {
-        showApp(_session.name);
-        loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-      });
-    });
-  }
-} else {
-  showApp(_session.name);
-  loadFromFirestore().then(_afterLoad).catch(_afterLoad);
-}
-} catch(e) {
-try { _hideLoginLoader(); } catch(_){}
-alertEl.innerHTML = `<div class="alert al-error">Login error: ${e.message}</div>`;
-btn.textContent = 'Sign In'; btn.disabled = false;
-}
-}
+/* doLogin moved to cdc-login.js */
 
 
 // Warn before closing/refreshing if there's anything not yet confirmed
@@ -13090,146 +12742,25 @@ async function sendEmail(to, subject, html, type) {
   }
 }
 
-function generate2FACode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+/* generate2FACode moved to cdc-login.js */
 
-function get2FADeviceKey(email) {
-  return 'cdc_2fa_device_' + btoa(email).replace(/=/g,'');
-}
+/* get2FADeviceKey moved to cdc-login.js */
 
-function isDeviceRemembered(email) {
-  try {
-    var key = get2FADeviceKey(email);
-    var stored = localStorage.getItem(key);
-    if (!stored) return false;
-    var data = JSON.parse(stored);
-    if (Date.now() > data.expires) { localStorage.removeItem(key); return false; }
-    return true;
-  } catch(e) { return false; }
-}
+/* isDeviceRemembered moved to cdc-login.js */
 
-function rememberDevice(email) {
-  try {
-    var key = get2FADeviceKey(email);
-    localStorage.setItem(key, JSON.stringify({
-      email: email,
-      expires: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
-      ts: Date.now(),
-    }));
-  } catch(e) {}
-}
+/* rememberDevice moved to cdc-login.js */
 
-var _pending2FA = null; // { code, email, user, expires }
+/* _pending2FA moved to cdc-login.js */ // { code, email, user, expires }
 
-async function send2FACode(user) {
-  var code = generate2FACode();
-  _pending2FA = { code: code, email: user.email, user: user, expires: Date.now() + 10 * 60 * 1000 };
+/* send2FACode moved to cdc-login.js */
 
-  var html = [
-    '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">',
-    '<div style="background:#141413;padding:16px 24px;border-radius:8px 8px 0 0">',
-    '<h2 style="color:white;margin:0;font-size:18px">ClaimDataCare — Verification Code</h2>',
-    '</div>',
-    '<div style="background:#f5f4ed;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e8e6dc">',
-    '<p style="color:#141413;font-size:15px">Hello ' + (user.first || user.name || '') + ',</p>',
-    '<p style="color:#141413;font-size:14px">Your verification code is:</p>',
-    '<div style="background:#c96442;color:white;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
-    '<p style="color:#87867f;font-size:13px">This code expires in <strong>10 minutes</strong>.</p>',
-    '<p style="color:#87867f;font-size:13px">If you did not request this, please ignore this email or contact your administrator.</p>',
-    '</div>',
-    '<p style="color:#b0aea5;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare · Secure Medical Billing</p>',
-    '</div>',
-  ].join('');
+/* show2FAScreen moved to cdc-login.js */
 
-  var sent = await sendEmail(user.email, 'ClaimDataCare — Your verification code: ' + code, html, 'security');
-  return sent;
-}
+/* verify2FACode moved to cdc-login.js */
 
-function show2FAScreen(user, onSuccess) {
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-2fa';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+/* resend2FACode moved to cdc-login.js */
 
-  overlay.innerHTML =
-    '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-    '<div style="background:#141413;padding:20px 24px">' +
-      '<div style="color:white;font-weight:700;font-size:17px">Two-Factor Authentication</div>' +
-      '<div style="color:#87867f;font-size:13px;margin-top:4px">A 6-digit code was sent to ' + user.email + '</div>' +
-    '</div>' +
-    '<div style="padding:24px">' +
-      '<div id="tfa-alert" style="margin-bottom:12px"></div>' +
-      '<label style="font-size:12px;font-weight:600;color:#141413;display:block;margin-bottom:8px">Enter verification code</label>' +
-      '<input id="tfa-code" type="text" maxlength="6" placeholder="000000" autocomplete="one-time-code"' +
-        ' style="width:100%;box-sizing:border-box;padding:14px;border:2px solid #e8e6dc;border-radius:8px;font-size:28px;letter-spacing:10px;text-align:center;color:#141413;font-weight:700"' +
-        ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);if(this.value.length===6)verify2FACode()">' +
-      '<div style="margin-top:16px">' +
-        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4d4c48;cursor:pointer">' +
-          '<input type="checkbox" id="tfa-remember" style="width:15px;height:15px;accent-color:#c96442"> ' +
-          'Remember this device for 30 days' +
-        '</label>' +
-      '</div>' +
-      '<div style="display:flex;gap:10px;margin-top:20px">' +
-        '<button onclick="resend2FACode()" style="flex:1;padding:11px;border:1.5px solid var(--brand);background:white;color:var(--brand);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Resend Code</button>' +
-        '<button onclick="verify2FACode()" style="flex:2;padding:11px;background:var(--brand);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Verify</button>' +
-      '</div>' +
-      '<div style="text-align:center;margin-top:14px">' +
-        '<button onclick="cancelLogin()" style="background:none;border:none;color:#87867f;font-size:12px;cursor:pointer">Cancel — Back to Login</button>' +
-      '</div>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(overlay);
-  setTimeout(function(){ document.getElementById('tfa-code')?.focus(); }, 100);
-
-  window._2fa_onSuccess = onSuccess;
-}
-
-function verify2FACode() {
-  var code = (document.getElementById('tfa-code')?.value||'').trim();
-  var alertEl = document.getElementById('tfa-alert');
-
-  if (!_pending2FA) { if(alertEl) alertEl.innerHTML='<div class="alert al-error">Session expired. Please log in again.</div>'; return; }
-  if (Date.now() > _pending2FA.expires) {
-    if(alertEl) alertEl.innerHTML='<div class="alert al-error">Code expired. Click Resend to get a new one.</div>';
-    return;
-  }
-  if (code !== _pending2FA.code) {
-    if(alertEl) alertEl.innerHTML='<div class="alert al-error">Incorrect code. Please try again.</div>';
-    document.getElementById('tfa-code').value = '';
-    document.getElementById('tfa-code').focus();
-    return;
-  }
-
-  // Success
-  if (document.getElementById('tfa-remember')?.checked) {
-    rememberDevice(_pending2FA.email);
-  }
-
-  var overlay = document.getElementById('modal-2fa');
-  if (overlay) overlay.remove();
-  _pending2FA = null;
-
-  if (window._2fa_onSuccess) window._2fa_onSuccess();
-}
-
-async function resend2FACode() {
-  var alertEl = document.getElementById('tfa-alert');
-  if (!_pending2FA) return;
-  if(alertEl) alertEl.innerHTML='<div class="alert al-info">Sending new code...</div>';
-  var sent = await send2FACode(_pending2FA.user);
-  if(alertEl) alertEl.innerHTML = sent
-    ? '<div class="alert al-success">New code sent to ' + _pending2FA.email + '</div>'
-    : '<div class="alert al-error">Failed to send. Check email configuration.</div>';
-  document.getElementById('tfa-code').value = '';
-}
-
-function cancelLogin() {
-  _pending2FA = null;
-  var overlay = document.getElementById('modal-2fa');
-  if (overlay) overlay.remove();
-  doLogout();
-}
+/* cancelLogin moved to cdc-login.js */
 
 // ── Email Verification & Password Setup System ───────────────────
 var VERIFY_BASE_URL = 'https://claimdatacare.com/app.html';
@@ -13384,7 +12915,7 @@ async function confirmVerifyEmail(token, userId) {
   if (_foundU) {
     _foundU.emailVerified = true;
     _foundU.verifiedAt = Date.now();
-    _foundU.passHash = btoa(p1);
+    _foundU.passHash = await sha256(p1);   // SHA-256 (was base64, which is reversible)
     _foundU.mustChangePwd = false;
     delete _foundU.otpHash;
     delete _foundU.verifyToken;
