@@ -65,7 +65,7 @@
     '.cdcx-eye:hover{color:#0B1526;background:#F1F4F9}',
     '.cdcx-link{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:#B8461F;cursor:pointer;text-decoration:none}',
     '.cdcx-link:hover{color:#8F3314;text-decoration:underline}',
-    '.cdcx-caps{font-size:12.5px;color:#8F3314;margin:0}',
+    '.cdcx-caps{position:absolute;right:50px;top:50%;transform:translateY(-50%);margin:0;padding:3px 8px;border-radius:999px;background:#FFEDE6;color:#8F3314;font-size:11.5px;font-weight:600;pointer-events:none}',    '.cdcx-caps[hidden]{display:none}',
     '.cdcx-check{display:flex;align-items:center;gap:10px;font-size:14px;color:#3A475C;cursor:pointer;user-select:none}',
     '.cdcx-check input{width:18px;height:18px;margin:0;accent-color:#D45C37}',
     '.cdcx-btn{height:52px;border:0;border-radius:12px;background:linear-gradient(95deg,#C9431C,#B32660);color:#fff;font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 10px 24px -8px rgba(201,67,28,.55);display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s,transform .05s}',
@@ -95,7 +95,7 @@
     '@keyframes cdcxdraw{to{stroke-dashoffset:0}}',
     '@media (prefers-reduced-motion:reduce){.cdcx-pulse-main{animation:none;stroke-dashoffset:0}#cdcx-login{transition:none}}',
     '@media (max-width:980px){.cdcx-art{display:none}.cdcx-panel{flex:1 1 auto;padding:48px 28px 28px}.cdcx-main{max-width:440px;width:100%;margin:0 auto}}',
-    '#login-alert:empty,#fp-alert:empty{display:none}',
+    '.cdcx-msgslot{height:64px;flex-shrink:0;display:flex;align-items:center}',    '.cdcx-msgslot>.alert{width:100%;max-height:64px;overflow:hidden;animation:cdcxmsg .18s ease-out}',    '@keyframes cdcxmsg{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',    '#login-alert .cdcx-lock{background:#F4F0FD!important;color:#4B1699!important}',    '.cdcx-spotlayer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}',    '.cdcx-spot{position:absolute;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:radial-gradient(circle,rgba(232,54,122,.16),rgba(106,27,219,.09) 38%,rgba(0,163,209,.04) 55%,rgba(0,163,209,0) 70%);opacity:0;transition:opacity .35s ease;will-change:transform}',    '@media (pointer:coarse),(prefers-reduced-motion:reduce){.cdcx-spotlayer{display:none}}',
     '#modal-2fa{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(11,21,38,.72);font-family:"IBM Plex Sans",system-ui,sans-serif;color:#0B1526}',
     '#modal-2fa *{box-sizing:border-box}',
     '.cdcx-tfa{position:relative;overflow:hidden;width:100%;max-width:420px;background:#fff;border-radius:22px;padding:36px 32px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}',
@@ -105,7 +105,7 @@
     '.cdcx-code{height:60px;font-size:28px!important;font-weight:700;letter-spacing:12px;text-align:center}',
     '.cdcx-tfa-row{display:flex;justify-content:space-between;align-items:center}',
     '.cdcx-muted{color:#586579!important}',
-    '#tfa-alert:empty{display:none}',
+
     '#tfa-alert .alert{display:block!important;margin:0!important;padding:11px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
     '#tfa-alert .al-success{background:#E3F5FB!important;color:#065E7C!important}',
     '#login-alert .alert,#fp-alert .alert{display:flex!important;gap:8px!important;align-items:center!important;margin:0!important;padding:12px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
@@ -186,8 +186,27 @@
       '<div class="cdcx-brand">' + LOGO + '<div><div class="cdcx-brand-name">ClaimDataCare</div><div class="cdcx-brand-sub">EHR and billing by IMBS Inc</div></div></div>' +
       '<div class="cdcx-main">' + inner + '</div>' +
       '<footer class="cdcx-foot"><div class="cdcx-badges"><span>' + ICON_SHIELD + 'HIPAA compliant</span><span>' + ICON_LOCK + 'Encrypted in transit and at rest</span></div>' +
-      '<div>© ' + new Date().getFullYear() + ' Integrated Medical Billing Services Inc</div></footer></section>' + art() + '</div>';
+      '<div>© ' + new Date().getFullYear() + ' Integrated Medical Billing Services Inc</div></footer></section>' + art() +
+      '<div class="cdcx-spotlayer" aria-hidden="true"><div class="cdcx-spot"></div></div></div>';
   }
+  // Soft light that follows the mouse pointer (login screens only; off on touch screens)
+  function attachSpot() {
+    var host = $('cdcx-login'), spot = host && host.querySelector('.cdcx-spot');
+    if (!spot) return;
+    var x = 0, y = 0, pending = 0;
+    host.addEventListener('pointermove', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      x = e.clientX; y = e.clientY;
+      if (pending) return;
+      pending = requestAnimationFrame(function () {
+        pending = 0;
+        spot.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+        spot.style.opacity = '1';
+      });
+    });
+    host.addEventListener('pointerleave', function () { spot.style.opacity = '0'; });
+  }
+
   function setRoot(html) {
     var root = $('root');
     if (!root) return false;
@@ -248,14 +267,14 @@
     var ok = setRoot(shell(
       '<div><h1 class="cdcx-h1" id="cdcx-title">Welcome back</h1><p class="cdcx-lead">Sign in to your clinical and revenue cycle workspace.</p></div>' +
       '<form class="cdcx-form" id="cdcx-form" novalidate autocomplete="on">' +
-        '<div id="login-alert" role="alert"></div>' +
+        '<div id="login-alert" class="cdcx-msgslot" role="alert" aria-live="assertive"></div>' +
         '<div class="cdcx-field"><label class="cdcx-label" for="li-username">Email</label>' +
           '<input class="cdcx-input no-upper" id="li-username" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="254" placeholder="name@practice.com"></div>' +
         '<div class="cdcx-field"><div class="cdcx-row"><label class="cdcx-label" for="li-pass">Password</label>' +
           '<button type="button" class="cdcx-link" id="cdcx-forgot">Forgot password?</button></div>' +
           '<div class="cdcx-pwwrap"><input class="cdcx-input no-upper" id="li-pass" name="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128" placeholder="Enter your password">' +
-          '<button type="button" class="cdcx-eye" id="li-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div>' +
-          '<p class="cdcx-caps" id="cdcx-caps" hidden>Caps Lock is on.</p></div>' +
+          '<span class="cdcx-caps" id="cdcx-caps" hidden>Caps Lock on</span>' +
+          '<button type="button" class="cdcx-eye" id="li-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div></div>' +
         '<button type="submit" class="cdcx-btn" id="login-btn">Sign in</button>' +
       '</form>' +
       '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 5 minutes of inactivity.</span></div>'));
@@ -277,6 +296,7 @@
     pw.addEventListener('blur', function () { $('cdcx-caps').hidden = true; });
     $('cdcx-forgot').addEventListener('click', function () { if (typeof renderForgotPassword === 'function') renderForgotPassword(); });
     if (getGuard().until > Date.now()) lockCountdown();
+    attachSpot();
     setTimeout(function () { try { em.focus(); } catch (e) {} }, 60);
   }
 
@@ -287,7 +307,7 @@
     var ok = setRoot(shell(
       '<div><h1 class="cdcx-h1">Reset your password</h1><p class="cdcx-lead">Enter the email you use to sign in and we will send you a reset link.</p></div>' +
       '<form class="cdcx-form" id="cdcx-fp-form" novalidate>' +
-        '<div id="fp-alert" role="alert"></div>' +
+        '<div id="fp-alert" class="cdcx-msgslot" role="alert" aria-live="assertive"></div>' +
         '<div class="cdcx-field"><label class="cdcx-label" for="fp-email">Email</label>' +
           '<input class="cdcx-input no-upper" id="fp-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="name@practice.com"></div>' +
         '<button type="submit" class="cdcx-btn" id="fp-btn">Send reset link</button>' +
@@ -296,6 +316,7 @@
     if (!ok) return;
     $('cdcx-fp-form').addEventListener('submit', function (e) { e.preventDefault(); if (typeof doForgotPassword === 'function') doForgotPassword(); });
     $('cdcx-back-signin').addEventListener('click', function () { if (typeof renderLoginScreen === 'function') renderLoginScreen(); });
+    attachSpot();
     setTimeout(function () { try { $('fp-email').focus(); } catch (e) {} }, 60);
   }
 
@@ -450,7 +471,7 @@
         '<div class="cdcx-tfa-ico">' + ICON_SHIELD.replace('width="14" height="14"', 'width="26" height="26"') + '</div>' +
         '<h2 id="tfa-title">Check your email</h2>' +
         '<p class="cdcx-lead">We sent a 6-digit code to <b>' + _esc(user.email) + '</b>. It expires in 10 minutes.</p>' +
-        '<div id="tfa-alert" role="alert"></div>' +
+        '<div id="tfa-alert" class="cdcx-msgslot" role="alert" aria-live="assertive"></div>' +
         '<label class="cdcx-label" for="tfa-code">Verification code</label>' +
         '<input id="tfa-code" class="cdcx-input cdcx-code no-upper" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">' +
         '<label class="cdcx-check"><input type="checkbox" id="tfa-remember"> Remember this device for 30 days</label>' +
