@@ -26,7 +26,7 @@
     var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
     if (!document.getElementById('cdcl-loader-js')) {
       var _ls = document.createElement('script');
-      _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=1';
+      _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=2';
       document.head.appendChild(_ls);
     }
   } catch (e) {}
@@ -67,8 +67,8 @@
     catch (e) { return { f: 0, until: 0 }; }
   }
   function setGuard(g) { try { localStorage.setItem(GUARD_KEY, JSON.stringify(g)); } catch (e) {} }
-  function getSavedEmail() { try { return localStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; } }
-  function setSavedEmail(v) { try { v ? localStorage.setItem(EMAIL_KEY, v) : localStorage.removeItem(EMAIL_KEY); } catch (e) {} }
+  // Nothing personal is kept in the browser: erase the email saved by older versions
+  try { localStorage.removeItem(EMAIL_KEY); } catch (e) {}
 
   /* ---------------- detection of the original form ---------------- */
   function isVisible(el) {
@@ -283,7 +283,6 @@
               '<div class="cdcx-pwwrap"><input class="cdcx-input" id="cdcx-pw" name="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128" placeholder="Enter your password" required>' +
               '<button type="button" class="cdcx-eye" id="cdcx-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div>' +
               '<p class="cdcx-caps" id="cdcx-caps" hidden>Caps Lock is on.</p></div>' +
-            '<label class="cdcx-check"><input type="checkbox" id="cdcx-remember"> Remember my email on this device</label>' +
             '<button type="submit" class="cdcx-btn" id="cdcx-submit">Sign in</button>' +
           '</form>' +
           '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 5 minutes of inactivity.</span></div>' +
@@ -372,7 +371,6 @@
       orig = findOriginal() || orig;
       if (!orig || !orig.pw.isConnected) { showAlert('Sign-in is not available right now. Reload the page and try again.'); return; }
 
-      setSavedEmail($('cdcx-remember').checked ? email : '');
       showAlert('');
       setBusy(true);
       pending = { t0: Date.now(), errFound: null };
@@ -441,9 +439,8 @@
   var tfaSeen = false;
   function resetForm() {
     setBusy(false);
-    var saved = getSavedEmail();
-    $('cdcx-email').value = saved;
-    $('cdcx-remember').checked = !!saved;
+    var saved = '';
+    $('cdcx-email').value = '';
     $('cdcx-pw').value = '';
     if (getGuard().until > Date.now()) startLockCountdown(); else showAlert('');
     setTimeout(function () { try { (saved ? $('cdcx-pw') : $('cdcx-email')).focus(); } catch (e) {} }, 60);

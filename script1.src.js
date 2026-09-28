@@ -9938,6 +9938,12 @@ function setSession(user) {
   });
   try { sessionStorage.setItem(SESSION_KEY, data); } catch(e) {}
   try { localStorage.setItem(SESSION_KEY, data); } catch(e) {}
+  // F5 FIX (2026-09-28): mark this tab as alive whenever a session is set.
+  // clearSession() removes the mark at sign-out; without re-stamping it here,
+  // signing in again in the same tab (e.g. after the 5-minute HIPAA sign-out)
+  // left the tab unmarked, and the next F5 was treated as a closed tab and
+  // signed the user out.
+  try { sessionStorage.setItem('_cdc_tab_alive', '1'); } catch(e) {}
 }
 
 function clearSession() {
@@ -32445,6 +32451,9 @@ document.addEventListener("DOMContentLoaded", async function() {
   // Hydrate the cache from IndexedDB FIRST — before applyTheme/getDB/render —
   // so the synchronous _loadCache() mirror is ready. One-time-migrates the old
   // localStorage cache and frees that space. Must complete before first paint.
+  // F5: show the loading screen right away (instead of a blank page) when this
+  // tab is already signed in; showApp() keeps it up until the data is loaded.
+  try { if (sessionStorage.getItem('_cdc_tab_alive') && getSession()) _showLoginLoader(); } catch(e) {}
   await _idbBootLoad();
   applyTheme();
 
