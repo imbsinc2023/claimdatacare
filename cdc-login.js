@@ -354,9 +354,13 @@
   // Saves: firebaseUid, authEmail (the account's sign-in email) and ownerAccount.
   // If the record's email differs from the account's, Firebase is asked to switch the
   // account to the new email (a confirmation link goes to the new address, once a day).
+  async function _cloudUsers() {
+    try { var d = await _db.collection('meta').doc('users').get(); return d.exists ? (d.data().list || []) : null; } catch (e) { return null; }
+  }
   async function _linkAccount(rec, fbUser) {
     try {
-      var list = getUsers();
+      var list = await _cloudUsers();          // never save an old copy over the cloud list
+      if (!list) return;
       var u = list.find(function (x) { return (rec.id && x.id === rec.id) || (_lc(x.email) === _lc(rec.email)); });
       if (!u) return;
       var isOwner = u.ownerAccount === true || _lc(fbUser.email) === _lc(SUPER_ADMIN_EMAIL);
@@ -364,6 +368,8 @@
       if (u.firebaseUid !== fbUser.uid) { u.firebaseUid = fbUser.uid; changed = true; }
       if (_lc(u.authEmail) !== _lc(fbUser.email)) { u.authEmail = fbUser.email; changed = true; }
       if (isOwner && u.ownerAccount !== true) { u.ownerAccount = true; changed = true; }
+      if (u.emailVerified !== true) { u.emailVerified = true; changed = true; }
+      if (u.passHash) { delete u.passHash; changed = true; }   // password lives only in Firebase now
       var wantsNewEmail = u.email && _lc(u.email) !== _lc(fbUser.email);
       if (wantsNewEmail && typeof fbUser.verifyBeforeUpdateEmail === 'function' && Date.now() - (u.authEmailChangeSentAt || 0) > 24 * 3600 * 1000) {
         try {
@@ -398,6 +404,17 @@
              Object.assign({}, DEFAULT_ADMIN, { email: fbUser.email });
     }
     return null;
+  }
+
+  // The old app kept a copy of the user list (with password data) in the browser.
+  // Once every user has a Firebase sign-in account that copy is no longer needed.
+  function _dropLegacyUserCache() {
+    try {
+      var l = _usersCache || [];
+      if (l.length && l.every(function (u) { return u.firebaseUid || u.id === DEFAULT_ADMIN.id || u.ownerAccount === true; })) {
+        localStorage.removeItem(USERS_KEY);
+      }
+    } catch (e) {}
   }
 
   function generate2FACode() {
@@ -637,7 +654,7 @@
         try { sessionStorage.setItem('cdc_verified', 'yes'); } catch (e) {}
         setTimeout(function () { try { auditLog('LOGIN', 'User signed in'); } catch (e) {} }, 500);
         showApp(session.name);
-        loadFromFirestore().then(_afterLoad).catch(_afterLoad);
+        loadFromFirestore().then(function () { _dropLegacyUserCache(); _afterLoad(); }).catch(_afterLoad);
       }
       if (user.twoFA && !isDeviceRemembered(user.email)) {
         btn.textContent = 'Sending code...';
@@ -701,17 +718,22 @@
           if (_dbUser) {
             var _allU2 = getUsers();
             var _cacheUser = _allU2.find(function (u) { return u.id === _dbUser.id || (u.email || '').toLowerCase() === (_dbUser.email || '').toLowerCase(); });
-            if (_cacheUser) { _cacheUser.passHash = _dbUser.passHash; if (_dbUser.emailVerified) _cacheUser.emailVerified = true; saveUsers(_allU2); _localUser = _cacheUser; }
+            if (_cacheUser) { _localUser = _cacheUser; }
           }
         } catch (_e) {}
       }
       if (!_localUser) { fail(); return; }
       if (_isInactive(_localUser)) { fail('This account is not active. Contact your administrator.'); return; }
-      // Upgrade an old base64 password to SHA-256
-      if (_b64 && _localUser.passHash === _b64 && _localUser.passHash !== _hash) {
-        try { var _all3 = getUsers(); var _u3 = _all3.find(function (u) { return u.id === _localUser.id; }); if (_u3) { _u3.passHash = _hash; saveUsers(_all3); } } catch (e) {}
+      // One-time move to a Firebase sign-in account, using the password just verified.
+      // After this the user signs in through Firebase and no password data stays in the app.
+      var _sid = _localUser.id;
+      if (_auth && _fbReady && _localUser.email && _localUser.id !== DEFAULT_ADMIN.id) {
+        var _mig = null, _em = _lc(_localUser.email);
+        try { _mig = (await _auth.createUserWithEmailAndPassword(_em, pass)).user; }
+        catch (e) { if (e && e.code === 'auth/email-already-in-use') { try { _mig = (await _auth.signInWithEmailAndPassword(_em, pass)).user; } catch (e2) {} } }
+        if (_mig) { await _linkAccount(_localUser, _mig); _sid = _mig.uid; }
       }
-      finish(_localUser, _localUser.id);
+      finish(_localUser, _sid);
     } catch (e) {
       console.warn('[CDC] sign-in error:', e && e.message);
       fail('Sign-in failed. Please try again.');

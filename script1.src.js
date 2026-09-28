@@ -9925,12 +9925,47 @@ return JSON.parse(JSON.stringify(_usersCache));
 
 function saveUsers(users) {
 _usersCache = users;
-try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
+// CLOUD ONLY (2026-09-28): the user list (with password data) is no longer copied
+// into the browser. Firestore meta/users is the only place it is stored.
 if (_fbReady && _db) {
 return _db.collection('meta').doc('users').set({ list: users })
 .catch(e => console.warn('Firestore users write failed:', e));
 }
 }
+
+// ── Modules loaded on demand (2026-09-28) ─────────────────────────────────
+// Parts of the app that live in their own files are downloaded the first time
+// they are used, so the app starts faster. The entry points below are small
+// placeholders that load the file and then call the real function.
+var _cdcModPromises = {};
+function _cdcLoadModule(file) {
+  if (_cdcModPromises[file]) return _cdcModPromises[file];
+  _cdcModPromises[file] = new Promise(function(resolve, reject){
+    var sc = document.createElement('script');
+    sc.src = (window._cdcBase || '') + file + '?v=1';
+    sc.onload = function(){ resolve(); };
+    sc.onerror = function(){
+      delete _cdcModPromises[file];
+      try { toast('Could not load this section. Check your connection and try again.', 'warn'); } catch(e) {}
+      reject(new Error('load ' + file));
+    };
+    document.head.appendChild(sc);
+  });
+  return _cdcModPromises[file];
+}
+function _cdcLazy(file, names) {
+  names.forEach(function(n){
+    var stub = function(){
+      var args = arguments, self = this;
+      return _cdcLoadModule(file).then(function(){
+        if (window[n] !== stub && typeof window[n] === 'function') return window[n].apply(self, args);
+      }, function(){});
+    };
+    window[n] = stub;
+  });
+}
+// Users & Account module (cdc-users.js)
+_cdcLazy('cdc-users.js', ['renderUserManagement','setUserTab','openUserSearch','openAddUserModal','checkVerifyToken','sendUserVerifyEmail','editUser','deleteUser','openUserInfoView','openUserSpecialtiesModal']);
 
 function getSession() {
   try {
@@ -12581,41 +12616,9 @@ if(wrap) wrap.querySelectorAll('.dchip').forEach(chip=>chip.classList.toggle('on
 updateBatchPreview();
 }
 
-async function doChangePassword() {
-const current=document.getElementById('cp-current')?.value;
-const newPass=document.getElementById('cp-new')?.value;
-const confirm=document.getElementById('cp-confirm')?.value;
-const alertEl=document.getElementById('cp-alert');
-if(!current||!newPass||!confirm){alertEl.innerHTML='<div class="alert al-error">All fields required.</div>';return;}
-if(newPass.length<8){alertEl.innerHTML='<div class="alert al-error">Password must be at least 8 characters.</div>';return;}
-if(newPass!==confirm){alertEl.innerHTML='<div class="alert al-error">Passwords do not match.</div>';return;}
-if(!_auth?.currentUser){alertEl.innerHTML='<div class="alert al-error">Not signed in.</div>';return;}
-try {
-const cred=firebase.auth.EmailAuthProvider.credential(_auth.currentUser.email,current);
-await _auth.currentUser.reauthenticateWithCredential(cred);
-await _auth.currentUser.updatePassword(newPass);
-closeModal('modal-changepass'); toast('Password updated ?');
-} catch(e) {
-const msgs={'auth/wrong-password':'Current password is incorrect.','auth/weak-password':'New password too weak.','auth/requires-recent-login':'Please sign out and back in first.'};
-alertEl.innerHTML='<div class="alert al-error">'+(msgs[e.code]||e.message)+'</div>';
-}
-}
+/* doChangePassword: moved to cdc-users.js */
 
-async function addNewUser() {
-const email=(document.getElementById('nu-email')?.value||'').trim().toLowerCase();
-const pass=document.getElementById('nu-pass')?.value||'';
-const name=document.getElementById('nu-name')?.value?.trim()||'';
-const alertEl=document.getElementById('nu-alert');
-if(!email||!pass||!name){alertEl.innerHTML='<div class="alert al-error">All fields required.</div>';return;}
-if(pass.length<6){alertEl.innerHTML='<div class="alert al-error">Password must be at least 6 characters.</div>';return;}
-const users=getUsers();
-// email duplicate check removed
-const newUser={id:uid(),email,name,role:'Manager',createdAt:Date.now()};
-users.push(newUser); saveUsers(users);
-document.getElementById('nu-email').value=''; document.getElementById('nu-pass').value=''; document.getElementById('nu-name').value='';
-alertEl.innerHTML='<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:14px;height:14px"></i> User saved. Add password in Firebase Console → Authentication → Add user.</div>';
-renderUserManagement(); toast('User '+email+' added ?');
-}
+/* addNewUser: moved to cdc-users.js */
 
 
 const CLEARINGHOUSE_PROXY = 'https://claimmd-proxy.imbsinc2023.workers.dev';
@@ -12780,194 +12783,17 @@ async function sendEmail(to, subject, html, type) {
 // ── Email Verification & Password Setup System ───────────────────
 var VERIFY_BASE_URL = 'https://claimdatacare.com/app.html';
 
-function generateVerifyToken(userId, email) {
-  var raw = userId + '|' + email + '|' + Date.now();
-  return btoa(raw).replace(/[+/=]/g, function(c) {
-    return c === '+' ? '-' : c === '/' ? '_' : '';
-  });
-}
+/* generateVerifyToken: moved to cdc-users.js */
 
-function parseVerifyToken(token) {
-  try {
-    var raw = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
-    var parts = raw.split('|');
-    return { userId: parts[0], email: parts[1], ts: parseInt(parts[2]) };
-  } catch(e) { return null; }
-}
+/* parseVerifyToken: moved to cdc-users.js */
 
-function checkVerifyToken() {
-  var search = window.location.search;
-  if (!search.startsWith('?verify=')) return;
-  var token = search.slice(8);
-  var parsed = parseVerifyToken(token);
-  if (!parsed) return;
+/* checkVerifyToken: moved to cdc-users.js */
 
-  renderLoginScreen();
+/* showVerifyModal: moved to cdc-users.js */
 
-  if (Date.now() - parsed.ts > 48 * 60 * 60 * 1000) {
-    setTimeout(function(){ showVerifyModal('expired', parsed); }, 300);
-    return;
-  }
+/* verifyOTPAndContinue: moved to cdc-users.js */
 
-  setTimeout(function(){
-    var _allU = typeof getUsers === 'function' ? getUsers() : [];
-    var user = _allU.find(function(u) { return u.id === parsed.userId; });
-    showVerifyModal('otp', parsed, user || { id: parsed.userId, email: parsed.email, first: '', name: '' }, token);
-  }, 300);
-}
-
-function showVerifyModal(state, parsed, user, token) {
-  var overlay = document.getElementById('modal-verify-email');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'modal-verify-email';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
-    document.body.appendChild(overlay);
-  }
-
-  var content = '';
-  if (state === 'expired') {
-    content = '<div style="text-align:center;padding:20px">' +
-      '<div style="margin-bottom:16px"><i data-lucide="clock" class="lci" style="width:48px;height:48px;color:var(--text3)"></i></div>' +
-      '<h3 style="color:#141413;margin:0 0 8px">Link Expired</h3>' +
-      '<p style="color:#87867f;font-size:14px">This verification link has expired (48 hours). Please contact your administrator for a new link.</p>' +
-      '</div>';
-  } else if (state === 'otp') {
-    content =
-      '<div style="text-align:center;padding:8px 0 16px">' +
-        '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
-        '</div>' +
-        '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Verify Your Email</h3>' +
-        '<p style="color:#87867f;font-size:13px;margin-bottom:6px">Welcome, <strong>' + (user.first || user.name || '') + '</strong>!</p>' +
-        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Enter the 6-character code sent to <strong>' + (user.email||'') + '</strong></p>' +
-      '</div>' +
-      '<div style="margin-bottom:14px">' +
-        '<input id="verify-otp" type="text" maxlength="6" placeholder="------" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:28px;font-weight:700;text-align:center;letter-spacing:10px;font-family:monospace;text-transform:uppercase">' +
-      '</div>' +
-      '<div id="verify-alert" style="margin-bottom:12px"></div>' +
-      '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Verify Code</button>';
-  } else if (state === 'password') {
-    content =
-      '<div style="text-align:center;padding:8px 0 16px">' +
-        '<div style="width:60px;height:60px;background:rgba(201,100,66,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
-        '</div>' +
-        '<h3 style="color:#141413;margin:0 0 6px;font-size:17px">Set Your Password</h3>' +
-        '<p style="color:#87867f;font-size:13px;margin-bottom:20px">Email verified! Choose a strong password for your account.</p>' +
-      '</div>' +
-      '<div style="margin-bottom:10px">' +
-        '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">New Password <span style="color:#b53333">*</span></label>' +
-        '<input id="verify-pass1" type="password" class="no-upper" placeholder="••••••••" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
-      '</div>' +
-      '<div style="margin-bottom:6px">' +
-        '<label style="font-size:11px;font-weight:600;color:#141413;display:block;margin-bottom:6px">Confirm Password <span style="color:#b53333">*</span></label>' +
-        '<input id="verify-pass2" type="password" class="no-upper" placeholder="••••••••" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:14px">' +
-      '</div>' +
-      '<div style="font-size:11px;color:#87867f;margin-bottom:14px;padding:8px;background:#faf9f5;border-radius:6px;line-height:1.5">' +
-        'Password must have: 8+ characters, 1 uppercase, 1 lowercase, 1 number, 1 special character (!@#$%^&amp;*).' +
-      '</div>' +
-      '<div id="verify-alert" style="margin-bottom:12px"></div>' +
-      '<button id="verify-btn" style="width:100%;padding:12px;background:#c96442;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Activate Account</button>';
-  }
-
-  overlay.innerHTML =
-    '<div style="background:white;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)">' +
-      '<div style="background:#141413;padding:18px 24px;display:flex;align-items:center;gap:12px">' +
-        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"/></svg>' +
-        '<div style="color:white;font-weight:700;font-size:16px">ClaimDataCare</div>' +
-      '</div>' +
-      '<div style="padding:24px">' + content + '</div>' +
-    '</div>';
-
-  if (state === 'otp') {
-    setTimeout(function(){
-      document.getElementById('verify-otp')?.focus();
-      document.getElementById('verify-otp')?.select();
-      var btn = document.getElementById('verify-btn');
-      if (btn) btn.onclick = function(){ verifyOTPAndContinue(token, parsed); };
-    }, 100);
-  } else if (state === 'password') {
-    setTimeout(function(){
-      document.getElementById('verify-pass1')?.focus();
-      var btn = document.getElementById('verify-btn');
-      if (btn) btn.onclick = function(){ confirmVerifyEmail(token, parsed.userId); };
-    }, 100);
-  }
-}
-
-function verifyOTPAndContinue(token, parsed) {
-  var otp = (document.getElementById('verify-otp')?.value||'').trim().toUpperCase();
-  var alertEl = document.getElementById('verify-alert');
-  if (!otp || otp.length !== 6) { alertEl.innerHTML = '<div class="alert al-error">Enter the 6-character verification code.</div>'; return; }
-
-  var _allU = typeof getUsers === 'function' ? getUsers() : [];
-  var user = _allU.find(function(u) { return u.id === parsed.userId; });
-  if (!user) { alertEl.innerHTML = '<div class="alert al-error">User not found. Contact your administrator.</div>'; return; }
-
-  var expectedHash = btoa(otp);
-  if (user.otpHash !== expectedHash) { alertEl.innerHTML = '<div class="alert al-error">Incorrect verification code. Check your email and try again.</div>'; return; }
-
-  // OTP verified — show password step
-  showVerifyModal('password', parsed, user, token);
-}
-
-async function confirmVerifyEmail(token, userId) {
-  var p1 = document.getElementById('verify-pass1')?.value || '';
-  var p2 = document.getElementById('verify-pass2')?.value || '';
-  var alertEl = document.getElementById('verify-alert');
-
-  // Password validation
-  if (p1.length < 8) { alertEl.innerHTML = '<div class="alert al-error">Password must be at least 8 characters.</div>'; return; }
-  if (!/[A-Z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one uppercase letter.</div>'; return; }
-  if (!/[a-z]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one lowercase letter.</div>'; return; }
-  if (!/[0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one number.</div>'; return; }
-  if (!/[^A-Za-z0-9]/.test(p1)) { alertEl.innerHTML = '<div class="alert al-error">Password must contain at least one special character (!@#$%^&amp;*).</div>'; return; }
-  if (p1 !== p2) { alertEl.innerHTML = '<div class="alert al-error">Passwords do not match.</div>'; return; }
-
-  var _allU = typeof getUsers === 'function' ? getUsers() : [];
-  var _foundU = _allU.find(function(u) { return u.id === userId; });
-  if (_foundU) {
-    _foundU.emailVerified = true;
-    _foundU.verifiedAt = Date.now();
-    _foundU.passHash = await sha256(p1);   // SHA-256 (was base64, which is reversible)
-    _foundU.mustChangePwd = false;
-    delete _foundU.otpHash;
-    delete _foundU.verifyToken;
-    if (typeof saveUsers === 'function') await saveUsers(_allU);
-  }
-
-  history.replaceState(null, '', window.location.pathname + window.location.hash);
-
-  var overlay = document.getElementById('modal-verify-email');
-  if (overlay) overlay.remove();
-
-  if (_foundU) {
-    var _fullName = ((_foundU.first||'') + ' ' + (_foundU.last||'')).trim() || _foundU.name || 'User';
-    var _loginUrl = window.location.origin + window.location.pathname;
-    var _logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-    var successHtml = [
-      '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-      '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
-        _logoHtml,
-        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Electronic Health Records &amp; Billing</div></div>',
-      '</div>',
-      '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
-        '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Welcome, ' + _fullName + '!</p>',
-        '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Your ClaimDataCare account has been <strong style="color:#141413">successfully activated</strong>. You can now log in using the credentials you created.</p>',
-        '<div style="text-align:center;margin-bottom:18px">',
-          '<a href="' + _loginUrl + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">Sign In to ClaimDataCare</a>',
-        '</div>',
-        '<p style="color:#87867f;font-size:12px;margin:0 0 6px"><strong>Username:</strong> ' + (_foundU.name||'') + '</p>',
-        '<p style="color:#87867f;font-size:12px;margin:0">Keep your password confidential. If you did not activate this account, contact your administrator.</p>',
-      '</div></div>',
-    ].join('');
-    sendEmail(_foundU.email, 'Your ClaimDataCare Account Has Been Activated', successHtml, 'noreply');
-    toast('Account activated! Check your email for login instructions.', 'ok');
-  } else {
-    toast('Account activated! You can now log in with your new password.', 'ok');
-  }
-}
+/* confirmVerifyEmail: moved to cdc-users.js */
 
 function renderAccountPage() {
   renderUserManagement();
@@ -12989,131 +12815,9 @@ function updateSBDownloadBtn(patId) {
 
 
 
-function renderUserManagement() {
-  var el = document.getElementById('users-list');
-  if (!el) return;
-  var allUsers = getUsers ? getUsers() : (_usersCache || []);
+/* renderUserManagement: moved to cdc-users.js */
 
-  // Only show users belonging to the active billing provider
-  var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && _cdcIsOwnerEmail(session.email);
-
-  var users = allUsers.filter(function(u) {
-    // Super admin (no providerId) always shows for the master account
-    var isSystemAdmin = _cdcIsOwnerEmail(u.email);
-    if (isSystemAdmin) return _userTab === 'active'; // always show in active tab only
-
-    if (!isSuperAdmin) {
-      // Non-super-admin: only show users of the active provider
-      // Users with no providerId are legacy — hide them
-      if (!u.providerId) return false;
-      if (u.providerId !== activeProviderId) return false;
-    } else {
-      // Super admin: filter by active provider unless no provider set
-      if (u.providerId && u.providerId !== activeProviderId) return false;
-    }
-
-    var inactive = u.inactive || u.status === 'inactive';
-    return _userTab === 'inactive' ? inactive : !inactive;
-  });
-
-  // ── Authorization: users without "Manage Users" (and who aren't
-  // Super Admin) may only ever see their own account, never the rest
-  // of the team's. Also hide the Search and Add controls for them.
-  var _canManageUsers2 = isSuperAdmin || hasPermission('Manage Users');
-  var _searchBtn = document.querySelector('#sec-account button[onclick="openUserSearch()"]');
-  var _addBtn = document.querySelector('#sec-account button[onclick="openAddUserModal()"]');
-  if (_searchBtn) _searchBtn.style.display = _canManageUsers2 ? '' : 'none';
-  if (_addBtn) _addBtn.style.display = _canManageUsers2 ? '' : 'none';
-  if (!_canManageUsers2) {
-    var _searchBar = document.getElementById('user-search-bar');
-    if (_searchBar) _searchBar.style.display = 'none';
-    users = users.filter(function(u){ return u.email === session.email; });
-  }
-
-  var qEmail = (document.getElementById('us-email')?.value||'').toLowerCase().trim();
-  var qFirst = (document.getElementById('us-first')?.value||'').toLowerCase().trim();
-  var qLast  = (document.getElementById('us-last')?.value||'').toLowerCase().trim();
-  var qRole  = (document.getElementById('us-role')?.value||'').toLowerCase();
-
-  if (qEmail) users = users.filter(function(u){ return (u.email||u.name||'').toLowerCase().includes(qEmail); });
-  if (qFirst) users = users.filter(function(u){ return (u.name||'').toLowerCase().includes(qFirst); });
-  if (qLast)  users = users.filter(function(u){ return (u.name||'').toLowerCase().includes(qLast); });
-  if (qRole)  users = users.filter(function(u){ return (u.roles||[u.role||'']).join(' ').toLowerCase().includes(qRole); });
-
-  if (!users.length) {
-    el.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">No users found.</td></tr>';
-    return;
-  }
-
-  var roleColors = {
-    'Super Admin':'b-amber','Admin':'b-red','Office Manager':'b-blue',
-    'Billing Manager':'b-green','Billing Staff':'b-green','Clinical Staff':'b-blue',
-    'Front Desk':'b-gray','Reporting':'b-gray','Read Only':'b-gray','User':'b-gray','Manager':'b-blue'
-  };
-
-  el.innerHTML = users.map(function(u) {
-    var isAdmin = _cdcIsOwnerEmail(u.email);
-    var roles   = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : ['User']);
-    var roleTag = roles.slice(0,2).map(function(r){
-      return '<span class="badge ' + (roleColors[r]||'b-gray') + '" style="font-size:10px;margin-right:2px">' + r + '</span>';
-    }).join('') + (roles.length>2 ? '<span style="font-size:10px;color:var(--text3)">+' + (roles.length-2) + '</span>' : '');
-    var created = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
-    var phone   = u.phone || '—';
-    var twoFA   = u.twoFA ? '<span style="color:var(--brand);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>';
-    var verified = u.emailVerified
-      ? '<span style="color:var(--brand);font-size:10px;font-weight:600">Verified</span>'
-      : '<span style="color:#c77c3e;font-size:10px">Pending</span>';
-    var status  = u.inactive
-      ? '<span class="badge b-gray" style="font-size:10px">Inactive</span>'
-      : '<span class="badge b-green" style="font-size:10px">Active</span>';
-    var parts = (u.name||'').trim().split(' ');
-    var nameParts2 = (u.name||'').includes('.') ? (u.name||'').split('.') : (u.name||'').split(' ');
-    var first = u.first || (nameParts2[0]||'');
-    first = first ? first.charAt(0).toUpperCase() + first.slice(1) : '';
-    var last = u.last || nameParts2.slice(1).join(' ');
-    last = last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
-
-    var provName = '';
-    try {
-      var db2 = getDB();
-      var prov2 = (db2.providers||[]).find(function(p){ return p.id === u.providerId; });
-      provName = prov2 ? (prov2.name||'') : (isAdmin ? 'All' : '—');
-    } catch(e) { provName = '—'; }
-
-    return '<tr>' +
-      '<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||u.name||'') + '</td>' +
-      '<td style="font-size:12px">' + first + '</td>' +
-      '<td style="font-size:12px">' + last + '</td>' +
-      '<td style="font-size:12px">' + phone + '</td>' +
-      '<td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + provName + '</td>' +
-      '<td>' + roleTag + '</td>' +
-      '<td>' + status + ' ' + verified + '</td>' +
-      '<td style="text-align:center">' + twoFA + '</td>' +
-      '<td style="font-size:11px;color:var(--text3)">' + created + '</td>' +
-      '<td style="white-space:nowrap"><div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center">' +
-        '<button class="btn btn-xs" onclick="openUserInfoView(\'' + u.id + '\')" title="View info (read-only)" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center;background:#fdf5f0;border:1px solid #c96442;color:#c96442"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>' +
-        '<button class="btn btn-xs" onclick="editUser(\'' + u.id + '\')" title="Edit" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>' +
-        '<button class="btn btn-xs ' + (u.twoFA?'btn-primary':'btn-ghost') + '" onclick="toggle2FA(\'' + u.id + '\')" title="' + (u.twoFA?'2FA Active — Click to disable':'Enable 2FA') + '" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="shield' + (u.twoFA?'-check':'') + '" class="lci" style="width:12px;height:12px"></i></button>' +
-        '<button class="btn btn-xs btn-ghost" onclick="toggleUserStatus(\'' + u.id + '\')" title="' + (u.inactive?'Activate':'Deactivate') + '" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="' + (u.inactive?'user-check':'user-x') + '" class="lci" style="width:12px;height:12px"></i></button>' +
-        (!isAdmin ? '<button class="btn btn-xs btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Delete" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' : '') +
-        (!isAdmin ? '<button class="btn btn-xs btn-ghost" onclick="sendUserVerifyEmail(\'' + u.id + '\')" title="Re-send activation email" style="height:26px;width:26px;padding:0;display:flex;align-items:center;justify-content:center"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i></button>' : '') +
-      '</div></td>' +
-    '</tr>';
-  }).join('');
-  setTimeout(_renderLucideIcons, 30);
-}
-
-function deleteUser(id) {
-const users = getUsers ? getUsers() : (_usersCache || []);
-const u = users.find(x => x.id === id);
-if (!u || !confirm('Delete user ' + u.email + '?')) return;
-const updated = users.filter(x => x.id !== id);
-if (saveUsers) saveUsers(updated);
-else _usersCache = updated;
-renderUserManagement();
-toast('User deleted');
-}
+/* deleteUser: moved to cdc-users.js */
 
 
 function setPatTab(tab, btn) {
@@ -18829,197 +18533,14 @@ function _mprovAddSpecialty() {
 // info). If the viewer cannot edit users, a "Create Ticket" button lets them
 // request changes via the ticket system.
 // ═══════════════════════════════════════════════════════════════════════════
-function openUserInfoView(userId){
-  var users = getUsers ? getUsers() : (_usersCache||[]);
-  var u = users.find(function(x){ return x.id === userId; });
-  if (!u){ toast('User not found','err'); return; }
-  var db = getDB();
-  var sess = getSession();
-  var prov = (db.providers||[]).find(function(p){ return p.id === u.providerId; });
-  var canEdit = !!sess && (sess.role === 'Super Admin' || (typeof hasPermission==='function' && hasPermission('Manage Users')));
-  var fullName = ((u.first||'') + ' ' + (u.last||'')).trim() || u.name || u.email || '?';
-  var initials = fullName.split(/\s+/).map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase();
-
-  // Remove any prior instance
-  var existing = document.getElementById('modal-user-view');
-  if (existing) existing.remove();
-
-  function row(label, value){
-    return '<div style="display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">'+label+'</div>'+
-      '<div style="font-size:13px;color:var(--text);word-break:break-word">'+(value?_escHtml(value):'<span style="color:var(--text3);font-style:italic">Not set</span>')+'</div>'+
-      '</div>';
-  }
-
-  var roleText = Array.isArray(u.roles) && u.roles.length ? u.roles.join(', ') : (u.role || '—');
-  var specText = (u.specialties||[]).map(function(s){
-    var n = _specEntryName(s);
-    var r = _specEntryRole(s);
-    return r ? (n+' — '+r) : n;
-  }).filter(Boolean).join(', ');
-  var permsText = Array.isArray(u.permissions) && u.permissions.length ? u.permissions.join(', ') : '—';
-  var statusText = u.inactive ? 'Inactive' : 'Active';
-  var verifiedText = u.verified ? 'Verified' : 'Pending';
-  var twoFAText = u.twoFA ? 'Enabled' : 'Disabled';
-  var createdText = u.createdAt ? new Date(u.createdAt).toLocaleString() : (u.created || '—');
-
-  var overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.id = 'modal-user-view';
-  overlay.style.display = 'flex';
-  overlay.innerHTML =
-    '<div class="modal" style="max-width:560px;width:96%;display:flex;flex-direction:column;max-height:90vh">'+
-    '<div class="modal-hdr" style="flex-shrink:0">'+
-      '<div style="display:flex;align-items:center;gap:12px">'+
-        '<div style="width:44px;height:44px;border-radius:50%;background:#c96442;color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+initials+'</div>'+
-        '<div>'+
-          '<div class="modal-t">'+_escHtml(fullName)+'</div>'+
-          '<div class="modal-sub">'+_escHtml(u.email||'')+(u.role?' · '+_escHtml(u.role):'')+'</div>'+
-        '</div>'+
-      '</div>'+
-      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'modal-user-view\').remove()"><i data-lucide="x" class="lci"></i></button>'+
-    '</div>'+
-    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:16px 20px">'+
-      // Notice banner
-      '<div style="padding:10px 14px;background:#fdf5f0;border:1px solid #c96442;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;gap:10px">'+
-        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#c96442" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'+
-        '<div style="font-size:12px;color:var(--text2);line-height:1.4">Read-only view. '+(canEdit?'To edit, use the pencil icon on the users list.':'To request changes to your info, submit a support ticket below.')+'</div>'+
-      '</div>'+
-      // Info grid
-      row('Username', u.name)+
-      row('Email', u.email)+
-      row('Phone', u.phone)+
-      (u.phone2 ? row('Secondary Phone', u.phone2) : '')+
-      row('Billing Provider', prov ? prov.name : (u.providerId||'—'))+
-      row('Role(s)', roleText)+
-      row('Specialties', specText)+
-      row('Permissions', permsText)+
-      row('Status', statusText+' · '+verifiedText)+
-      row('Two-Factor Auth', twoFAText)+
-      row('Created', createdText)+
-    '</div>'+
-    '<div class="modal-ftr" style="flex-shrink:0;display:flex;gap:8px;justify-content:'+(canEdit?'flex-end':'space-between')+'">'+
-      (!canEdit ? '<button class="btn btn-primary" onclick="_openTicketForUserInfoChange(\''+userId+'\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>Request Change (Create Ticket)</button>' : '')+
-      '<button class="btn" onclick="document.getElementById(\'modal-user-view\').remove()">Close</button>'+
-    '</div>'+
-    '</div>';
-
-  document.body.appendChild(overlay);
-  setTimeout(_renderLucideIcons, 20);
-}
+/* openUserInfoView: moved to cdc-users.js */
 
 // Bridge from the view-info modal to the tickets modal, preselecting the
 // "User Info Change" category so the user just fills in what they need.
-function _openTicketForUserInfoChange(userId){
-  var m = document.getElementById('modal-user-view');
-  if (m) m.remove();
-  openTicketsModal();
-  setTimeout(function(){
-    window._ticketsTab = 'new';
-    _renderTicketsModal();
-    setTimeout(function(){
-      var cat = document.getElementById('tk-cat');
-      if (cat) cat.value = 'user-info';
-      var subj = document.getElementById('tk-subj');
-      if (subj && !subj.value) subj.value = 'Request to update my info';
-      var msg = document.getElementById('tk-msg');
-      if (msg) msg.focus();
-    }, 50);
-  }, 100);
-}
+/* _openTicketForUserInfoChange: moved to cdc-users.js */
 
 
-function openUserSpecialtiesModal(userId){
-  var sess = getSession();
-  if (!sess || (sess.role !== 'Super Admin' && !hasPermission('Manage Users'))){
-    toast('Only admins can manage specialties','err'); return;
-  }
-  var users = getUsers ? getUsers() : (_usersCache||[]);
-  var u = users.find(function(x){ return x.id === userId; });
-  if (!u){ toast('User not found','err'); return; }
-  var db = getDB();
-
-  // Collect ALL unique specialties across ALL providers the user could work under.
-  // This ensures we always show the full menu — Frank may want to assign a
-  // specialty even from a provider the user isn't currently linked to.
-  var allDefs = [];
-  var seen = {};
-  (db.providers||[]).forEach(function(p){
-    (p.specialtyDefs||[]).forEach(function(sd){
-      var k = String(sd.name||'').toLowerCase().trim();
-      if (!k || seen[k]) return;
-      seen[k] = true;
-      allDefs.push({ name: sd.name, taxonomy: sd.taxonomy||'', providerName: p.name||'' });
-    });
-  });
-
-  var userSpecs = Array.isArray(u.specialties) ? u.specialties : [];
-  var userSpecMap = {};
-  userSpecs.forEach(function(s){
-    var name = _specEntryName(s);
-    if (name) userSpecMap[String(name).toLowerCase().trim()] = { role: _specEntryRole(s), active: (s && typeof s==='object') ? (s.active !== false) : true };
-  });
-
-  // Remove any prior instance
-  var existing = document.getElementById('modal-user-specialties');
-  if (existing) existing.remove();
-
-  var overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.id = 'modal-user-specialties';
-  overlay.style.display = 'flex';
-
-  var items = '';
-  if (!allDefs.length){
-    items = '<div style="padding:32px 20px;text-align:center;color:var(--text3);font-size:12px">'+
-      '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#e4e1d8" stroke-width="1.8" stroke-linecap="round" style="margin:0 auto 10px;display:block"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'+
-      'No specialties defined in any billing provider yet.<br>Add them in <strong>Provider Information → Specialties</strong> first.'+
-      '</div>';
-  } else {
-    items = allDefs.map(function(sd){
-      var key = String(sd.name).toLowerCase().trim();
-      var assignment = userSpecMap[key];
-      var checked = !!assignment;
-      var role = assignment ? assignment.role : '';
-      var escName = String(sd.name).replace(/"/g,'&quot;');
-      return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:'+(checked?'#fdf5f0':'#fff')+';transition:all .15s">'+
-        '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">'+
-          '<input type="checkbox" class="us-spec-cb" data-name="'+escName+'" '+(checked?'checked':'')+' onchange="_usToggleRole(this)" style="accent-color:#c96442;width:16px;height:16px;flex-shrink:0;margin-top:2px">'+
-          '<div style="flex:1;min-width:0">'+
-            '<div style="font-size:13px;font-weight:700;color:var(--text)">'+_escHtml(sd.name)+'</div>'+
-            '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px">'+_escHtml(sd.taxonomy||'')+(sd.providerName?' · '+_escHtml(sd.providerName):'')+'</div>'+
-          '</div>'+
-        '</label>'+
-        '<input type="text" class="us-spec-role" data-name="'+escName+'" placeholder="Role in this specialty (e.g. Therapist, Manager)" value="'+String(role).replace(/"/g,'&quot;')+'" style="width:100%;margin-top:8px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);display:'+(checked?'block':'none')+'">'+
-        '</div>';
-    }).join('');
-  }
-
-  overlay.innerHTML =
-    '<div class="modal" style="max-width:560px;width:96%;display:flex;flex-direction:column;max-height:85vh">'+
-    '<div class="modal-hdr" style="flex-shrink:0">'+
-      '<div>'+
-        '<div class="modal-t" style="display:flex;align-items:center;gap:8px">'+
-          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#c96442" stroke-width="2.2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'+
-          'Manage Specialties'+
-        '</div>'+
-        '<div class="modal-sub">'+_escHtml(((u.first||'')+' '+(u.last||'')).trim()||u.name||u.email)+' — assign or remove specialty access</div>'+
-      '</div>'+
-      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'modal-user-specialties\').remove()"><i data-lucide="x" class="lci"></i></button>'+
-    '</div>'+
-    '<div class="modal-body" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 20px">'+
-      '<input type="hidden" id="us-user-id" value="'+userId+'">'+
-      items+
-    '</div>'+
-    '<div class="modal-ftr" style="flex-shrink:0;display:flex;gap:8px;justify-content:flex-end">'+
-      '<button class="btn" onclick="document.getElementById(\'modal-user-specialties\').remove()">Cancel</button>'+
-      '<button class="btn btn-primary" onclick="saveUserSpecialties()"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i> Save Specialties</button>'+
-    '</div>'+
-    '</div>';
-
-  document.body.appendChild(overlay);
-  setTimeout(_renderLucideIcons, 20);
-}
+/* openUserSpecialtiesModal: moved to cdc-users.js */
 
 // Toggle the role input visibility when the checkbox flips
 function _usToggleRole(cb){
@@ -19030,46 +18551,7 @@ function _usToggleRole(cb){
   if (card) card.style.background = cb.checked ? '#fdf5f0' : '#fff';
 }
 
-function saveUserSpecialties(){
-  var uid = document.getElementById('us-user-id')?.value;
-  if (!uid){ toast('No user id','err'); return; }
-  var users = getUsers ? getUsers() : (_usersCache||[]);
-  var u = users.find(function(x){ return x.id === uid; });
-  if (!u){ toast('User not found','err'); return; }
-
-  var picked = Array.from(document.querySelectorAll('.us-spec-cb:checked')).map(function(cb){
-    var name = cb.getAttribute('data-name');
-    var role = '';
-    try {
-      var ri = document.querySelector('.us-spec-role[data-name="'+String(name).replace(/"/g,'\\"')+'"]');
-      if (ri) role = ri.value.trim();
-    } catch(e){}
-    return { name: name, role: role, active: true };
-  });
-
-  u.specialties = picked;
-  if (typeof saveUsers === 'function') saveUsers(users);
-  // Also push to Firestore users collection so it syncs across devices
-  try {
-    if (typeof _saveUserToFirestore === 'function') _saveUserToFirestore(u);
-  } catch(e){ console.warn('users firestore save err', e); }
-  // If the edited user IS the currently logged-in user, refresh the session
-  // specialties immediately so the topnav chip updates without re-login.
-  try {
-    var sess = getSession();
-    if (sess && (sess.email||'').toLowerCase() === (u.email||'').toLowerCase()){
-      sess.specialties = picked;
-      setSession(sess);
-      try { _renderTopnavSpecialtyChip(); } catch(e){}
-      try { applyActiveSpecialty(); } catch(e){}
-    }
-  } catch(e){}
-
-  toast('Specialties updated','ok');
-  var modal = document.getElementById('modal-user-specialties');
-  if (modal) modal.remove();
-  try { renderUserManagement(); } catch(e){}
-}
+/* saveUserSpecialties: moved to cdc-users.js */
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TICKET SYSTEM — Support tickets for all users, managed by Super Admin only
@@ -32186,29 +31668,12 @@ function sendInvoiceEmail(inv) {
 
 
 // ── User tab state ────────────────────────────────────────────────
-var _userTab = 'active';
-var _userSearchActive = false;
+/* _userTab: moved to cdc-users.js */
+/* _userSearchActive: moved to cdc-users.js */
 
-function setUserTab(tab) {
-  _userTab = tab;
-  ['active','inactive'].forEach(function(t) {
-    var btn = document.getElementById('utab-' + t);
-    if (!btn) return;
-    var on = t === tab;
-    btn.style.borderBottomColor = on ? 'var(--brand)' : 'transparent';
-    btn.style.color = on ? 'var(--brand)' : 'var(--text3)';
-    btn.style.background = on ? 'var(--bg3)' : 'none';
-  });
-  renderUserManagement();
-}
+/* setUserTab: moved to cdc-users.js */
 
-function openUserSearch() {
-  var bar = document.getElementById('user-search-bar');
-  if (!bar) return;
-  _userSearchActive = !_userSearchActive;
-  bar.style.display = _userSearchActive ? '' : 'none';
-  if (_userSearchActive) setTimeout(function(){ document.getElementById('us-email')?.focus(); }, 100);
-}
+/* openUserSearch: moved to cdc-users.js */
 
 // Roles and Permissions
 var USER_ROLES = [
@@ -32223,260 +31688,17 @@ var USER_PERMISSIONS = [
   'View ERA/EOB','Process Payments','View Service Groups','Manage Providers'
 ];
 
-function toggle2FA(userId) {
-  var users = getUsers ? getUsers() : [];
-  var u = users.find(function(x){ return x.id === userId; });
-  if (!u) return;
-  u.twoFA = !u.twoFA;
-  if (saveUsers) saveUsers(users);
-  renderUserManagement();
-  toast(u.twoFA ? '2FA enabled for ' + (u.name||u.email) : '2FA disabled for ' + (u.name||u.email), 'ok');
-}
+/* toggle2FA: moved to cdc-users.js */
 
-function toggleUserStatus(userId) {
-  var users = getUsers ? getUsers() : [];
-  var u = users.find(function(x){ return x.id === userId; });
-  if (!u) return;
-  u.inactive = !u.inactive;
-  if (saveUsers) saveUsers(users);
-  renderUserManagement();
-  toast(u.inactive ? 'User deactivated' : 'User activated', 'ok');
-}
+/* toggleUserStatus: moved to cdc-users.js */
 
-function editUser(userId) {
-  var users = getUsers ? getUsers() : [];
-  var u = users.find(function(x){ return x.id === userId; });
-  if (u) openAddUserModal(u);
-}
+/* editUser: moved to cdc-users.js */
 
 
 
-function sendUserVerifyEmail(userId) {
-  var users = getUsers ? getUsers() : [];
-  var u = users.find(function(x){ return x.id === userId; });
-  if (!u) { toast('User not found', 'error'); return; }
-  if (!u.email) { toast('User has no email', 'error'); return; }
+/* sendUserVerifyEmail: moved to cdc-users.js */
 
-  var _chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  var otpCode = '';
-  for (var _i = 0; _i < 6; _i++) otpCode += _chars.charAt(Math.floor(Math.random() * _chars.length));
-  var verifyToken = generateVerifyToken(u.id, u.email);
-  var _baseUrl = window.location.origin + window.location.pathname;
-  var verifyLink = _baseUrl + '?verify=' + verifyToken;
-
-  u.otpHash = btoa(otpCode);
-  u.verifyToken = verifyToken;
-  u.mustChangePwd = true;
-  u.emailVerified = false;
-  if (typeof saveUsers === 'function') saveUsers(users);
-
-  var _providerName = '';
-  try {
-    var _provDb = getDB();
-    var _provMatch = (_provDb.providers||[]).find(function(p){ return p.id === (u.providerId || activeProviderId); });
-    _providerName = _provMatch ? (_provMatch.name||'') : '';
-  } catch(_e) {}
-
-  var _logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-  var first = (u.first||u.name||'User').split('.')[0];
-  first = first.charAt(0).toUpperCase() + first.slice(1);
-
-  var welcomeHtml = [
-    '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-    '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
-      _logoHtml,
-      '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Electronic Health Records &amp; Billing</div></div>',
-    '</div>',
-    '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
-      '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Welcome, ' + first + '!</p>',
-      '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Your ClaimDataCare account has been created for <strong style="color:#141413">' + _providerName + '</strong>. Click the button below to activate, then enter the code from this email.</p>',
-      '<table style="width:100%;border-collapse:collapse;background:#faf9f5;border:1px solid #e8e6dc;border-radius:8px;overflow:hidden;margin-bottom:18px">',
-        '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;width:130px;background:#f0eee6;font-weight:600">Verification Code</td>',
-            '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;color:#c96442">' + otpCode + '</td></tr>',
-        '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Email</td>',
-            '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + (u.email||'') + '</td></tr>',
-        '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Role</td>',
-            '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + (u.role||'User') + '</td></tr>',
-      '</table>',
-      '<div style="text-align:center;margin-bottom:18px">',
-        '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">Activate Now</a>',
-        '<p style="color:#87867f;font-size:10px;margin-top:8px">Link + code expire in 48 hours. Keep the code confidential.</p>',
-      '</div>',
-      '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">If you did not expect this email, please ignore it or contact your administrator.</p>',
-    '</div></div>',
-  ].join('');
-  sendEmail(u.email, 'ClaimDataCare — Activate Your Account', welcomeHtml, 'onboarding');
-  renderUserManagement();
-  toast('Activation email re-sent to ' + u.email, 'ok');
-}
-
-function saveNewUser() {
-  var alertEl = document.getElementById('nu-alert');
-  var id        = document.getElementById('nu-id')?.value||'';
-  var first     = (document.getElementById('nu-first')?.value||'').trim();
-  var last      = (document.getElementById('nu-last')?.value||'').trim();
-  var name      = (document.getElementById('nu-name')?.value||'').trim();
-  var email     = (document.getElementById('nu-email')?.value||'').trim().toLowerCase();
-  var pass      = document.getElementById('nu-pass')?.value||'';
-  var phone     = (document.getElementById('nu-phone')?.value||'').trim();
-  var phone2    = (document.getElementById('nu-phone2')?.value||'').trim();
-  var inactive  = document.getElementById('nu-inactive')?.value === '1';
-  var trackTime    = !!document.getElementById('nu-track-time')?.checked;
-  var passExpire   = !!document.getElementById('nu-pass-expire')?.checked;
-  var autoInactive = !!document.getElementById('nu-auto-inactive')?.checked;
-  var twoFA        = !!document.getElementById('nu-twofa')?.checked;
-  var specialties = Array.from(document.querySelectorAll('.nu-spec-cb:checked')).map(function(cb){
-    var roleInput = document.querySelector('.nu-spec-role[data-spec="'+cb.value.replace(/"/g,'\\"')+'"]');
-    return {name: cb.value, role: (roleInput?roleInput.value.trim():''), active: true};
-  });
-  var roles       = Array.from(document.querySelectorAll('.nu-role-cb:checked')).map(function(cb){ return cb.value; });
-  var perms       = Array.from(document.querySelectorAll('.nu-perm-cb:checked')).map(function(cb){ return cb.value; });
-
-  // Validate
-  var hasErr = false;
-  alertEl.innerHTML = '';
-  ['nu-name-err','nu-email-err','nu-pass-err','nu-phone-err'].forEach(function(eid){
-    var el = document.getElementById(eid); if (el) el.style.display = 'none';
-  });
-
-  if (!first) { alertEl.innerHTML = '<div class="alert al-error">First name is required.</div>'; return; }
-  if (!last)  { alertEl.innerHTML = '<div class="alert al-error">Last name is required.</div>'; return; }
-
-  // Username validation
-  var nameErr = document.getElementById('nu-name-err');
-  if (!name || !name.includes('.')) {
-    if (nameErr) { nameErr.textContent = 'Username must contain a period (.) — e.g. firstname.lastname'; nameErr.style.display = ''; }
-    hasErr = true;
-  }
-
-  if (!phone) { var pe = document.getElementById('nu-phone-err'); if(pe) pe.style.display=''; hasErr = true; }
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { var ee = document.getElementById('nu-email-err'); if(ee) ee.style.display=''; hasErr = true; }
-  if (!id && (!pass || pass.length < 6)) { var pse = document.getElementById('nu-pass-err'); if(pse) pse.style.display=''; hasErr = true; }
-  if (hasErr) return;
-
-  var users = getUsers ? getUsers() : [];
-
-  // ── Authorization guard ──────────────────────────────────────────
-  // Only Super Admin or a user with the "Manage Users" permission may
-  // create new users or edit OTHER users' accounts. A user editing their
-  // own account without that permission may update their own contact
-  // info/password but cannot change their own role, permissions, or
-  // specialties (that would be self-escalation).
-  var _canManageUsers = isAdmin() || hasPermission('Manage Users');
-  if (!_canManageUsers) {
-    if (!id) {
-      alertEl.innerHTML = '<div class="alert al-error">You do not have permission to create users.</div>';
-      return;
-    }
-    if (!isSelfUserId(id)) {
-      alertEl.innerHTML = '<div class="alert al-error">You do not have permission to edit other users.</div>';
-      return;
-    }
-    // Self-editing without Manage Users — ignore any submitted changes to
-    // role/permissions/specialties and keep the existing values instead.
-    var _existingSelf = users.find(function(x){ return x.id === id; });
-    if (_existingSelf) {
-      roles = Array.isArray(_existingSelf.roles) ? _existingSelf.roles.slice() : (_existingSelf.role ? [_existingSelf.role] : []);
-      perms = Array.isArray(_existingSelf.permissions) ? _existingSelf.permissions.slice() : [];
-      specialties = Array.isArray(_existingSelf.specialties) ? _existingSelf.specialties.slice() : [];
-    }
-  }
-
-  // Check username duplicity
-  var dupName = users.find(function(u){ return (u.name||'').toLowerCase() === name.toLowerCase() && u.id !== id; });
-  if (dupName) {
-    var ne = document.getElementById('nu-name-err');
-    if (ne) { ne.textContent = 'Username "' + name + '" already exists. Choose a different one.'; ne.style.display = ''; }
-    alertEl.innerHTML = '<div class="alert al-error">Username already exists.</div>';
-    return;
-  }
-
-  // Email duplicate check removed per user request
-
-  var primaryRole = roles[0] || 'User';
-
-  if (!id) {
-    users.push({
-      id: uid(), name, first, last, email, phone, phone2,
-      role: primaryRole, roles, permissions: perms, specialties,
-      inactive, trackTime, passExpire, autoInactive, twoFA,
-      providerId: activeProviderId, createdAt: Date.now()
-    });
-    if (saveUsers) saveUsers(users);
-    // Close modal immediately
-    var modal = document.getElementById('modal-add-user');
-    if (modal) modal.remove();
-    toast('User "' + name + '" created — welcome email sent to ' + email, 'ok');
-    renderUserManagement();
-    // Generate activation code (6-char alphanumeric) and verify token
-    var _chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var otpCode = '';
-    for (var _i = 0; _i < 6; _i++) otpCode += _chars.charAt(Math.floor(Math.random() * _chars.length));
-    var verifyToken = generateVerifyToken(users[users.length-1].id, email);
-    var _baseUrl = window.location.origin + window.location.pathname;
-    var verifyLink = _baseUrl + '?verify=' + verifyToken;
-
-    // Look up billing provider for the user
-    var _providerName = '';
-    try {
-      var _provDb = getDB();
-      var _provMatch = (_provDb.providers||[]).find(function(p){ return p.id === activeProviderId; });
-      _providerName = _provMatch ? (_provMatch.name||'') : '';
-    } catch(_e) {}
-
-    // Save OTP hash and verify token to user
-    var _allU = typeof getUsers === 'function' ? getUsers() : [];
-    var _foundU = _allU.find(function(x){ return x.email === email; });
-    if (_foundU) {
-      _foundU.otpHash = btoa(otpCode);
-      _foundU.verifyToken = verifyToken;
-      _foundU.mustChangePwd = true;
-      _foundU.emailVerified = false;
-      if (typeof saveUsers === 'function') saveUsers(_allU);
-    }
-
-    var _logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-
-    var welcomeHtml = [
-      '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-      '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
-        _logoHtml,
-        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Electronic Health Records &amp; Billing</div></div>',
-      '</div>',
-      '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
-        '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Welcome, ' + first + '!</p>',
-        '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Your ClaimDataCare account has been created for <strong style="color:#141413">' + _providerName + '</strong>. Click the button below to activate, then enter the code from this email.</p>',
-        // Summary table with ALL info including OTP
-        '<table style="width:100%;border-collapse:collapse;background:#faf9f5;border:1px solid #e8e6dc;border-radius:8px;overflow:hidden;margin-bottom:18px">',
-          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;width:130px;background:#f0eee6;font-weight:600">Verification Code</td>',
-              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px;color:#c96442">' + otpCode + '</td></tr>',
-          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Username</td>',
-              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px;font-weight:600">' + name + '</td></tr>',
-          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Email</td>',
-              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + email + '</td></tr>',
-          '<tr><td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Role</td>',
-              '<td style="padding:10px 14px;border-bottom:1px solid #f0eee6;color:#141413;font-size:13px">' + primaryRole + '</td></tr>',
-          '<tr><td style="padding:10px 14px;color:#87867f;font-size:12px;background:#f0eee6;font-weight:600">Practice</td>',
-              '<td style="padding:10px 14px;color:#141413;font-size:13px;font-weight:600">' + _providerName + '</td></tr>',
-        '</table>',
-        '<div style="text-align:center;margin-bottom:18px">',
-          '<a href="' + verifyLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">Activate Now</a>',
-          '<p style="color:#87867f;font-size:10px;margin-top:8px">Link + code expire in 48 hours. Keep the code confidential.</p>',
-        '</div>',
-        '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">If you did not expect this email, please ignore it or contact your administrator. &middot; ClaimDataCare &copy; 2025</p>',
-      '</div></div>',
-    ].join('');
-    sendEmail(email, 'Welcome to ClaimDataCare — Activate Your Account', welcomeHtml, 'onboarding');
-  } else {
-    var u2 = users.find(function(x){ return x.id === id; });
-    if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
-    if (saveUsers) saveUsers(users);
-    var m = document.getElementById('modal-add-user');
-    if (m) m.remove();
-    toast('User "' + name + '" updated', 'ok');
-    renderUserManagement();
-  }
-}function fmtPhone(phone) {
+/* saveNewUser: moved to cdc-users.js */function fmtPhone(phone) {
   if (!phone) return '';
   var digits = String(phone).replace(/\D/g, '');
   if (digits.length === 10) {
@@ -33047,7 +32269,7 @@ async function loadFromFirestore() {
 
     if (usersDoc.exists) {
       _usersCache = usersDoc.data().list || [];
-      try { localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache)); } catch(e) {}
+      // cloud only: the user list is not copied into the browser
     }
 
     // Load CM data from Firestore (merged with empty template to ensure all keys exist)
@@ -33525,20 +32747,8 @@ _loadLookups();
 
 
 
-function _suggestUser(first, last) {
-  var f = (first||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  var l = (last||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  if (!f || !l) return '';
-  return f + '.' + l;
-}
-function _suggestUserName() {
-  if (window._nuNameEdited) return;
-  var first = document.getElementById('nu-first')?.value||'';
-  var last = document.getElementById('nu-last')?.value||'';
-  var suggested = _suggestUser(first, last);
-  var nameEl = document.getElementById('nu-name');
-  if (nameEl && suggested) nameEl.value = suggested;
-}
+/* _suggestUser: moved to cdc-users.js */
+/* _suggestUserName: moved to cdc-users.js */
 
 function _nuToggleSpecRole(cb) {
   var wrap = cb.closest('div');
@@ -33546,175 +32756,7 @@ function _nuToggleSpecRole(cb) {
   if (roleInput) roleInput.style.display = cb.checked ? 'block' : 'none';
 }
 
-function openAddUserModal(existingUser) {
-  var prev = document.getElementById('modal-add-user');
-  if (prev) prev.remove();
-
-  var u = existingUser || {};
-  var isEdit = !!u.id;
-
-  // ── Authorization guard ──────────────────────────────────────────
-  var _canManageUsers0 = isAdmin() || hasPermission('Manage Users');
-  var _isSelfEdit0 = isEdit && isSelfUserId(u.id);
-  if (!_canManageUsers0 && !_isSelfEdit0) {
-    toast('You do not have permission to manage users', 'err');
-    return;
-  }
-  // Self-editing without Manage Users: contact info/password OK, but
-  // role/permissions/specialties must stay locked (no self-escalation).
-  var _lockRolePerm = !_canManageUsers0 && _isSelfEdit0;
-
-  var db = getDB();
-  var prov = db.providers.find(function(p2){ return p2.id === activeProviderId; }) || {};
-  var provSpecDefs = (prov.specialtyDefs && prov.specialtyDefs.length) ? prov.specialtyDefs : [];
-  if (!provSpecDefs.length && prov.specialties && prov.specialties.length) {
-    provSpecDefs = prov.specialties.map(function(s){ return { id:s, name:s, taxonomy:'', menus:[] }; });
-  }
-  var userSpecs = Array.isArray(u.specialties) ? u.specialties : (u.specialty ? [u.specialty] : []);
-  function _findSpecEntry(name) { return userSpecs.find(function(s){ return _specEntryName(s) === name; }); }
-
-  var session = getSession ? getSession() : {};
-  var isSuperAdmin = session && _cdcIsOwnerEmail(session.email);
-  var availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(function(r){ return r !== 'Super Admin'; });
-
-  // Style helpers
-  var inp = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;outline:none;transition:border .15s';
-  var secHdr = function(icon, title) {
-    return '<div style="display:flex;align-items:center;gap:7px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--border)">'
-      + '<i data-lucide="'+icon+'" class="lci" style="width:13px;height:13px;color:var(--brand)"></i>'
-      + '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">'+title+'</span>'
-      + '</div>';
-  };
-
-  // Roles
-  var rolesHtml = availableRoles.map(function(r) {
-    var userRoles = Array.isArray(u.roles) ? u.roles : (u.role ? [u.role] : []);
-    var chk = userRoles.indexOf(r) >= 0 ? 'checked' : '';
-    var dis = _lockRolePerm ? 'disabled' : '';
-    return '<label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+(chk?';border-color:var(--brand);background:var(--brand-bg)':'')+'">'+
-      '<input type="checkbox" class="nu-role-cb" value="'+r+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:14px;height:14px;flex-shrink:0"> '+r+'</label>';
-  }).join('');
-
-  // Permissions — 2-col grid
-  var permsHtml = USER_PERMISSIONS.map(function(p3) {
-    var userPerms = u.permissions || [];
-    var chk = userPerms.indexOf(p3) >= 0 ? 'checked' : '';
-    var dis = _lockRolePerm ? 'disabled' : '';
-    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';padding:4px 0;opacity:'+(_lockRolePerm?'.6':'1')+'">'+
-      '<input type="checkbox" class="nu-perm-cb" value="'+p3+'" '+chk+' '+dis+' style="accent-color:var(--brand);width:13px;height:13px;flex-shrink:0"> '+p3+'</label>';
-  }).join('');
-
-  // Specialties
-  var specsHtml = provSpecDefs.length
-    ? provSpecDefs.map(function(sd) {
-        var entry = _findSpecEntry(sd.name);
-        var chk = entry ? 'checked' : '';
-        var roleVal = entry ? _specEntryRole(entry) : '';
-        var dis = _lockRolePerm ? 'disabled' : '';
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+';transition:all .15s">'+
-          '<label style="display:flex;align-items:center;gap:10px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';flex:1;min-width:0">'+
-          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' '+dis+' onchange="_nuToggleSpecRole(this)" style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
-          '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">'+sd.name+'</div>'+
-          (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px">'+sd.taxonomy+'</div>':'')+
-          '</div></label>'+
-          '<input type="text" class="nu-spec-role" data-spec="'+sd.name.replace(/"/g,'&quot;')+'" placeholder="Role (e.g. Therapist)" value="'+roleVal.replace(/"/g,'&quot;')+'" '+dis+' style="width:150px;flex-shrink:0;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);display:'+(chk?'block':'none')+'">'+
-          '</div>';
-      }).join('')
-    : '<div style="padding:14px;text-align:center;background:var(--bg3);border-radius:8px;border:1px dashed var(--border);font-size:12px;color:var(--text3)">No specialties configured.<br>Add them in <strong>Admin → Billing Providers</strong>.</div>';
-
-  var lockNotice = _lockRolePerm
-    ? '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--amber-bg,#fdf3e3);border:1px solid var(--amber-bdr,#e8c468);border-radius:8px;font-size:11px;color:var(--text2);margin-bottom:10px"><i data-lucide="lock" class="lci" style="width:13px;height:13px;flex-shrink:0"></i> Roles, permissions and specialties are locked — only a Super Admin or a user with the Manage Users permission can change these.</div>'
-    : '';
-
-  var passPlaceholder = isEdit ? 'Leave blank to keep current password' : 'Set initial password (min 6 chars)';
-
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-add-user';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
-
-  overlay.innerHTML =
-    '<input type="hidden" id="nu-id" value="'+(u.id||'')+'">'
-    // Modal container
-    + '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.28);overflow:hidden">'
-
-    // ── Header ──
-    + '<div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg3)">'
-      + '<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-        + '<i data-lucide="user-plus" class="lci" style="width:18px;height:18px;color:#fff"></i>'
-      + '</div>'
-      + '<div style="flex:1">'
-        + '<div style="font-size:15px;font-weight:700;color:var(--text)">'+(isEdit?'Edit User':'Add User')+'</div>'
-        + '<div style="font-size:12px;color:var(--text3)">'+(isEdit?'Update user account settings':'Create a new user account')+'</div>'
-      + '</div>'
-      + '<button onclick="document.getElementById(\'modal-add-user\').remove()" style="background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:var(--text3);padding:4px">&times;</button>'
-    + '</div>'
-
-    // ── Alert area ──
-    + '<div id="nu-alert" style="padding:0 20px"></div>'
-
-    // ── Scrollable body ──
-    + '<div style="padding:20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0">'
-
-      // Personal info — 2-col grid
-      + secHdr('user', 'Personal Information')
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">First Name <span style="color:var(--red)">*</span></label><input id="nu-first" class="no-upper" value="'+(u.first||'')+'" oninput="_suggestUserName()" style="'+inp+'"></div>'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Last Name <span style="color:var(--red)">*</span></label><input id="nu-last" class="no-upper" value="'+(u.last||'')+'" oninput="_suggestUserName()" style="'+inp+'"></div>'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Username <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--text3);font-size:10px">must contain .</span></label><input id="nu-name" class="no-upper" value="'+(u.name||_suggestUser(u.first,u.last))+'" oninput="window._nuNameEdited=true" style="'+inp+'"><div id="nu-name-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Email <span style="color:var(--red)">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inp+'"><div id="nu-email-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Phone <span style="color:var(--red)">*</span></label><input id="nu-phone" class="no-upper" value="'+(u.phone||'')+'" style="'+inp+'"><div id="nu-phone-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
-        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Phone 2</label><input id="nu-phone2" class="no-upper" value="'+(u.phone2||'')+'" style="'+inp+'"></div>'
-      + '</div>'
-
-      // Password
-      + '<div style="margin-top:10px"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Password'+(isEdit?'':' <span style="color:var(--red)">*</span>')+'</label>'
-        + '<input id="nu-pass" type="password" class="no-upper" placeholder="'+passPlaceholder+'" style="'+inp+'">'
-        + '<div id="nu-pass-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px">'+(isEdit?'':'Required for new users')+'</div>'
-        + (isEdit?('<div style="margin-top:6px"><button class="btn btn-xs btn-ghost" onclick="sendUserVerifyEmail(\''+(u.id||'')+'\')"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i> Send activation email</button></div>'):'')
-      + '</div>'
-
-      // Roles
-      + lockNotice
-      + secHdr('shield', 'Roles')
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px">'+rolesHtml+'</div>'
-
-      // Permissions — 2-col
-      + secHdr('lock', 'Permissions')
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">'+permsHtml+'</div>'
-
-      // Settings checkboxes
-      + secHdr('settings-2', 'Settings')
-      + '<div style="display:flex;flex-wrap:wrap;gap:10px">'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-track-time" '+(u.trackTime?'checked':'')+' style="accent-color:var(--brand);width:14px;height:14px"> Track Time</label>'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-pass-expire" '+(u.passExpire?'checked':'')+' style="accent-color:var(--brand);width:14px;height:14px"> Password Expires</label>'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-auto-inactive" '+(u.autoInactive?'checked':'')+' style="accent-color:var(--brand);width:14px;height:14px"> Auto Inactive</label>'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-twofa" '+(u.twoFA?'checked':'')+' style="accent-color:var(--brand);width:14px;height:14px"> Two-Factor Auth</label>'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="nu-inactive" '+(u.inactive?'checked':'')+' style="accent-color:var(--brand);width:14px;height:14px"> Inactive</label>'
-      + '</div>'
-
-      // Specialties
-      + secHdr('layers', 'Specialties')
-      + '<div id="nu-specs" style="display:flex;flex-direction:column;gap:6px">'+specsHtml+'</div>'
-
-    + '</div>'
-
-    // ── Footer ──
-    + '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;background:var(--bg3)">'
-      + '<button class="btn" onclick="document.getElementById(\'modal-add-user\').remove()">Cancel</button>'
-      + '<button class="btn btn-primary" onclick="saveNewUser()">'+(isEdit?'Update User':'Create User')+'</button>'
-    + '</div>'
-
-  + '</div>';
-
-  document.body.appendChild(overlay);
-  // Scroll body to top
-  setTimeout(function(){
-    var body = overlay.querySelector('[style*="overflow-y:auto"]');
-    if (body) body.scrollTop = 0;
-    setTimeout(_renderLucideIcons, 30);
-  }, 10);
-}
+/* openAddUserModal: moved to cdc-users.js */
 
 // ── Superbill helpers ─────────────────────────────────────────────────────────
 function _sbBuildPDF(doc, pat) {
@@ -37210,4 +36252,4 @@ function getAuditLogs() {
 })();
 
 // ─── Login nuevo (archivo aparte: cdc-login.js) ───
-;(function(){try{var c=document.currentScript,b=c&&c.src?c.src.replace(/[^\/?#]*([?#].*)?$/,''):'';var s=document.createElement('script');s.src=b+'cdc-login.js?v=4';s.async=true;document.head.appendChild(s);}catch(e){}})();
+;(function(){try{var c=document.currentScript,b=c&&c.src?c.src.replace(/[^\/?#]*([?#].*)?$/,''):'';window._cdcBase=b;var s=document.createElement('script');s.src=b+'cdc-login.js?v=5';s.async=true;document.head.appendChild(s);}catch(e){}})();
