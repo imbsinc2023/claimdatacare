@@ -21,16 +21,6 @@
   if (window.__cdcxLogin) return;
   window.__cdcxLogin = true;
 
-  // Load the public landing page module (separate file, same folder as this one)
-  try {
-    var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\/?#]*([?#].*)?$/, '') : '';
-    if (!document.getElementById('cdxl-loader')) {
-      var _ls = document.createElement('script');
-      _ls.id = 'cdxl-loader'; _ls.async = true; _ls.src = _base + 'cdc-landing.js?v=1';
-      document.head.appendChild(_ls);
-    }
-  } catch (e) {}
-
   try {
     if (/[?&]classiclogin=1\b/.test(location.search)) return;
     if (localStorage.getItem('cdcx_login_off') === '1') return;
