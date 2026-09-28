@@ -33685,65 +33685,111 @@ return merged;
 // ?? Helpers ??????????????????????????????????????????????????????????????????
 
 // Write an array of objects to a Firestore collection using batched writes
-function setDB(fn) {
-const before = JSON.parse(JSON.stringify(getDB()));
-const db = getDB();
-fn(db);
-_localDB = db;
-_saveCache(_localDB);
-
-if (!_fbReady || !_db) return;
-
-// Detect which collections changed and sync only those
-var _syncColls = [
+// PERFORMANCE (2026-09-28): setDB used to deep-copy the WHOLE database
+// (JSON.parse(JSON.stringify(db))) and serialize every collection several times
+// on every single save, so saving got slower as the data grew. Now it keeps a
+// per-record snapshot (id -> JSON) of what was last synced and serializes each
+// record once per save. Same result: only new/changed records are uploaded.
+var _SD_SYNC_COLLS = [
 'providers','facilities','rendering','referring',
 'patients','claims','services','serviceGroups',
 'appointments','notes','invoicingIssuers','invoicingClients','invoices','insurances',
 'intakeClients','intakeForms','intakeSubmissions','evaluations',
-'eobBatches','eobUnmatched','eraPreviewQueue','settings',
+'eobBatches','eobUnmatched','eraPreviewQueue',
 'scheduleGroups','scheduleHours'
 ];
+var _SD_OBJ_COLLS = ['claimLogs','claimEOB'];
+var _sdSnap = {};   // key -> { ref: the array/object seen, ids: { id: json } }  (settings: { ref, json })
 
-for (var _ci = 0; _ci < _syncColls.length; _ci++) {
-var coll = _syncColls[_ci];
-const prev = before[coll] || [];
-const next = db[coll] || [];
-if (!Array.isArray(next)) continue; // 'settings' is an object — synced below
-// CLOUD-FIRST (2026-09-28): upload only new/changed records, never the whole
-// collection. Rewriting every record overwrote newer edits made on other devices.
-var _prevById = {};
-(Array.isArray(prev) ? prev : []).forEach(function(r){ if (r && r.id != null) _prevById[r.id] = JSON.stringify(r); });
-var _changed = next.filter(function(r){ return r && r.id != null && _prevById[r.id] !== JSON.stringify(r); });
-if (_changed.length) {
-window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
-_fsWriteCollection(coll, _changed)
-  .catch(e => { console.warn(`Firestore ${coll} sync failed:`, e.message); window._lastSyncError = coll+': '+e.message; })
-  .finally(() => { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
+function _sdIdsOf(val, isObj) {
+  var ids = {};
+  if (isObj) {
+    if (val && typeof val === 'object') Object.keys(val).forEach(function(k){ ids[k] = JSON.stringify(val[k]); });
+  } else if (Array.isArray(val)) {
+    val.forEach(function(r){ if (r && r.id != null) ids[r.id] = JSON.stringify(r); });
+  }
+  return ids;
 }
+// Make sure a snapshot exists for the CURRENT (pre-change) state of each collection.
+// A collection that was replaced since the last save (e.g. reloaded from the cloud)
+// gets a fresh snapshot, so nothing is uploaded that did not change.
+function _sdEnsureSnapshots(db) {
+  _SD_SYNC_COLLS.forEach(function(c){
+    var cur = db[c], s = _sdSnap[c];
+    if (!s || s.ref !== cur) _sdSnap[c] = { ref: cur, ids: _sdIdsOf(cur, false) };
+  });
+  _SD_OBJ_COLLS.forEach(function(c){
+    var cur = db[c], s = _sdSnap[c];
+    if (!s || s.ref !== cur) _sdSnap[c] = { ref: cur, ids: _sdIdsOf(cur, true) };
+  });
+  var st = _sdSnap.settings;
+  if (!st || st.ref !== db.settings) _sdSnap.settings = { ref: db.settings, json: JSON.stringify(db.settings) };
 }
 
-// Sync claimLogs and claimEOB
-const objColls = [['claimLogs','claimLogs'],['claimEOB','claimEOB']];
-for (const [key, coll] of objColls) {
-if (JSON.stringify(before[key]) !== JSON.stringify(db[key])) {
-const obj = db[key] || {};
-const prevObj = before[key] || {};
-// Only the claims whose log/EOB entries changed (not every claim)
-const _chg = Object.entries(obj).filter(([id, entries]) => JSON.stringify(prevObj[id]) !== JSON.stringify(entries));
-for (let _i = 0; _i < _chg.length; _i += BATCH_SIZE) {
-const batch = _db.batch();
-_chg.slice(_i, _i + BATCH_SIZE).forEach(([id, entries]) => {
-batch.set(_db.collection(coll).doc(String(id)), { entries: entries || [] });
-});
-batch.commit().catch(e => console.warn(`${coll} sync failed:`, e.message));
+function setDB(fn) {
+const db = getDB();
+_sdEnsureSnapshots(db);
+fn(db);
+_localDB = db;
+_saveCache(_localDB);
+
+// Offline: keep the old snapshots, so these changes upload on the next online save.
+if (!_fbReady || !_db) return;
+
+// Array collections: upload only new/changed records
+for (var _ci = 0; _ci < _SD_SYNC_COLLS.length; _ci++) {
+  var coll = _SD_SYNC_COLLS[_ci];
+  var next = db[coll];
+  var snap = _sdSnap[coll] || { ids: {} };
+  if (!Array.isArray(next)) { _sdSnap[coll] = { ref: next, ids: {} }; continue; }
+  var _newIds = {}, _changed = [];
+  for (var _ri = 0; _ri < next.length; _ri++) {
+    var r = next[_ri];
+    if (!r || r.id == null) continue;
+    var j = JSON.stringify(r);
+    _newIds[r.id] = j;
+    if (snap.ids[r.id] !== j) _changed.push(r);
+  }
+  _sdSnap[coll] = { ref: next, ids: _newIds };
+  if (_changed.length) {
+    (function(coll, _changed){
+      window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
+      _fsWriteCollection(coll, _changed)
+        .catch(e => { console.warn(`Firestore ${coll} sync failed:`, e.message); window._lastSyncError = coll+': '+e.message; })
+        .finally(() => { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
+    })(coll, _changed);
+  }
 }
+
+// claimLogs / claimEOB: only the claims whose entries changed
+for (var _oi = 0; _oi < _SD_OBJ_COLLS.length; _oi++) {
+  var key = _SD_OBJ_COLLS[_oi];
+  var obj = db[key] || {};
+  var osnap = _sdSnap[key] || { ids: {} };
+  var _oNew = {}, _chg = [];
+  Object.keys(obj).forEach(function(id){
+    var j = JSON.stringify(obj[id]);
+    _oNew[id] = j;
+    if (osnap.ids[id] !== j) _chg.push([id, obj[id]]);
+  });
+  _sdSnap[key] = { ref: db[key], ids: _oNew };
+  for (let _i = 0; _i < _chg.length; _i += BATCH_SIZE) {
+    const batch = _db.batch();
+    const coll2 = key;
+    _chg.slice(_i, _i + BATCH_SIZE).forEach(([id, entries]) => {
+      batch.set(_db.collection(coll2).doc(String(id)), { entries: entries || [] });
+    });
+    batch.commit().catch(e => console.warn(`${coll2} sync failed:`, e.message));
+  }
 }
-}
-// Sync settings object as single Firestore document
-if (JSON.stringify(before.settings) !== JSON.stringify(db.settings)) {
+
+// Settings object as a single Firestore document
+var _setJson = JSON.stringify(db.settings);
+if (!_sdSnap.settings || _sdSnap.settings.json !== _setJson) {
   _db.collection('appdata').doc('settings').set(db.settings||{}, { merge: true })
     .catch(function(e){ console.warn('settings sync failed:', e.message); });
 }
+_sdSnap.settings = { ref: db.settings, json: _setJson };
 }
 
 // ?? Per-document write helpers (called by save functions) ???????????????????
@@ -36576,10 +36622,11 @@ function getAuditLogs() {
   // 1) Ocultar popup / badge de notificación de tickets
   // ---------------------------------------------------------------------------
   function _hideTicketBadges() {
+    // only touch the style when needed (the page-wide observer calls this very often)
     var b1 = document.getElementById('tn-tickets-badge');
-    if (b1) b1.style.display = 'none';
+    if (b1 && b1.style.display !== 'none') b1.style.display = 'none';
     var b2 = document.getElementById('tnc-admin-tickets');
-    if (b2) b2.style.display = 'none';
+    if (b2 && b2.style.display !== 'none') b2.style.display = 'none';
   }
 
   // Neutraliza updateTicketsBadge para que nunca vuelva a mostrar el badge
