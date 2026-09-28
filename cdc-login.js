@@ -370,7 +370,8 @@
             list.find(function (x) { return _lc(x.email) === email; });
     if (u) return u;
     if (_lc(email) === _lc(SUPER_ADMIN_EMAIL)) {
-      // The owner's account: use the owner's record even if its email was changed
+      // The owner's account: use the owner's record in the app (whatever email it has now);
+      // the built-in default is used only if the app has no owner record yet.
       return list.find(function (x) { return x.ownerAccount === true; }) ||
              list.find(function (x) { return x.id === DEFAULT_ADMIN.id; }) ||
              Object.assign({}, DEFAULT_ADMIN, { email: fbUser.email });
@@ -636,7 +637,7 @@
       var _ownerRec = _storedOwner ? Object.assign({}, DEFAULT_ADMIN, _storedOwner) : DEFAULT_ADMIN;
       var _allUsers = [_ownerRec].concat(_localUsers.filter(function (u) { return u.id !== DEFAULT_ADMIN.id; }));
       var _matchFn = function (u) {
-        return (u.email || '').toLowerCase() === loginId || (u.authEmail || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
+        return (u.email || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
       };
       var _resolvedUser = _allUsers.find(_matchFn);
       var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
@@ -656,6 +657,9 @@
         }
         if (fbUser) {
           var rec = viaLinked ? _resolvedUser : await _userForFirebase(fbUser);
+          // Only the email saved in the user's record in the app is accepted. An old
+          // email that still exists in the sign-in account is refused.
+          if (rec && !_matchFn(rec)) { try { await _auth.signOut(); } catch (e) {} fail(); return; }
           if (!rec || _isInactive(rec)) { try { await _auth.signOut(); } catch (e) {} fail('This account is not active. Contact your administrator.'); return; }
           _linkAccount(rec, fbUser);
           finish(rec, fbUser.uid);
