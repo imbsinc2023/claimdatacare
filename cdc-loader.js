@@ -2,11 +2,9 @@
  * ClaimDataCare  •  Workspace loading screen (standalone module)
  * File: cdc-loader.js  •  v2.0
  *
- * Loaded by cdc-login.js. Nothing is added to script1.js.
- * Replaces the app's loading overlay (_showLoginLoader / _hideLoginLoader) with an
- * animated heart-monitor line over a blurred dashboard. Keeps the same element ids
- * (cdc-login-loader, cdc-login-loader-msg) and the same 15-second Reload safety net,
- * so everything that shows, hides or updates the loader keeps working.
+ * Loaded by app.html right after script1.js. This IS the app's loading screen
+ * (_showLoginLoader / _hideLoginLoader); the old one was removed from script1.js.
+ * Heart-monitor line over a blurred dashboard, with a 15-second Reload safety net.
  *
  * Smoothness (v2.0): the heart-monitor line is drawn by cdc-ecg-worker.js on its own
  * thread (OffscreenCanvas), so it never waits for the app while data is loading. The
@@ -174,7 +172,10 @@
     window._cdcLoaderStuckTimer = setTimeout(function () {
       var m = document.getElementById('cdc-login-loader-msg');
       if (!m || !document.getElementById('cdc-login-loader')) return;
-      m.innerHTML = 'This is taking longer than usual…<br><button type="button" onclick="location.reload()">Reload</button>';
+      var why = (window.__cdclLastError ? String(window.__cdclLastError).slice(0, 140) : '');
+      m.innerHTML = 'This is taking longer than usual…' + (why ? '<br><small style="opacity:.75;font-size:11px"></small>' : '') +
+        '<br><button type="button" onclick="location.reload()">Reload</button> <button type="button" onclick="try{clearSession()}catch(e){};location.reload()" style="background:transparent!important;border:1px solid rgba(255,255,255,.35)">Sign out</button>';
+      if (why) m.querySelector('small').textContent = 'Detail: ' + why;
     }, 15000);
   }
 
@@ -186,13 +187,12 @@
     setTimeout(function () { stopLine(); if (ov.parentNode) ov.parentNode.removeChild(ov); }, 470);
   }
 
+  // Remember the last error while the loading screen is up (shown if it gets stuck)
+  window.addEventListener('error', function (e) { if (document.getElementById('cdc-login-loader')) window.__cdclLastError = (e && (e.message || e.error)) || 'error'; });
+  window.addEventListener('unhandledrejection', function (e) { if (document.getElementById('cdc-login-loader')) window.__cdclLastError = (e && e.reason && (e.reason.message || e.reason)) || 'error'; });
+
   // Take over the app's functions (global names, resolved when they are called)
   window._showLoginLoader = showLoader;
   window._hideLoginLoader = hideLoader;
 
-  // If the old spinner is already on screen (this file arrived late), upgrade it in place
-  try {
-    var old = document.getElementById('cdc-login-loader');
-    if (old && !old.querySelector('.cdcl-linebox')) { injectCSS(); paint(old); }
-  } catch (e) {}
 })();

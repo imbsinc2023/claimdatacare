@@ -29884,7 +29884,13 @@ document.addEventListener("DOMContentLoaded", async function() {
   sessionStorage.setItem('_cdc_tab_alive', '1');
   // ─────────────────────────────────────────────────────────────
 
+  // Always closes the loading screen, even if something below fails
   function _afterLoad() {
+    try { _afterLoadInner(); }
+    catch (e) { console.error('[CDC] after load:', e); try { go('dashboard'); } catch (_) {} }
+    finally { setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 200); }
+  }
+  function _afterLoadInner() {
     var db2 = getDB(); var s = getSession();
     if (!s) { try { _hideLoginLoader(); } catch(_){} return; }
     if (typeof _resetIdleTimer === 'function') _resetIdleTimer();
@@ -30530,7 +30536,9 @@ async function loadFromFirestoreWhenReady() {
       tries++;
       if (tries > 30) { resolve(); return; } // timeout after 3s
       if (_fbReady && _db) {
-        loadFromFirestore().then(resolve).catch(resolve);
+        // never wait forever: continue after 25s even if the cloud does not answer
+        var _t = setTimeout(function(){ console.warn('[CDC] cloud load is slow; continuing'); resolve(); }, 25000);
+        loadFromFirestore().then(function(){ clearTimeout(_t); resolve(); }).catch(function(e){ clearTimeout(_t); console.error('[CDC] cloud load:', e); resolve(); });
       } else {
         setTimeout(attempt, 100);
       }

@@ -644,7 +644,15 @@
         try { sessionStorage.setItem('cdc_verified', 'yes'); } catch (e) {}
         setTimeout(function () { try { auditLog('LOGIN', 'User signed in'); } catch (e) {} }, 500);
         showApp(session.name);
-        loadFromFirestore().then(function () { _dropLegacyUserCache(); _afterLoad(); }).catch(_afterLoad);
+        // Always close the loading screen, even if something fails while preparing the screen
+        var _done = function () {
+          try { _dropLegacyUserCache(); } catch (e) {}
+          try { _afterLoad(); } catch (e) { console.error('[CDC] after sign-in:', e); try { go('dashboard'); } catch (_) {} }
+          setTimeout(function () { try { _hideLoginLoader(); } catch (_) {} }, 300);
+        };
+        var _fired = false, _once = function () { if (_fired) return; _fired = true; _done(); };
+        setTimeout(function () { if (!_fired) console.warn('[CDC] cloud load is slow; continuing'); _once(); }, 25000);
+        loadFromFirestore().then(_once, function (e) { console.error('[CDC] loading data:', e); _once(); });
       }
       if (user.twoFA && !isDeviceRemembered(user.email)) {
         btn.textContent = 'Sending code...';
