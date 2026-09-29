@@ -77,16 +77,15 @@
     '.cdd-tab[disabled]:hover{background:#F1F4F8;color:#586579}',
     /* KPI cards: white, one accent colour only */
     '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:4px}',
-    '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:18px 20px;min-height:122px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 18px 34px -24px rgba(11,21,38,.6);transition:transform .18s,box-shadow .18s}',
-    '.cdd-kpi:hover{transform:translateY(-2px);box-shadow:0 22px 40px -22px rgba(11,21,38,.65)}',
+    '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:20px 22px;min-height:132px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:transform .18s,box-shadow .18s}',
+    '.cdd-kpi:hover{transform:translateY(-2px)}',
     '.cdd-kpi:focus-visible{outline:2px solid #0B1526;outline-offset:3px}',
-    '.cdd-kpi:after{content:"";position:absolute;right:-46px;top:-46px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}',
-    '.cdd-kpi:before{content:"";position:absolute;right:30px;bottom:-60px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}',
-    '.cdd-kpi .hd{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px}',
-    '.cdd-kpi .t{font-size:13px;font-weight:600;opacity:.92}',
-    '.cdd-kpi .ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.18);flex-shrink:0}',
-    '.cdd-kpi .v{position:relative;z-index:1;font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:8px}',
-    '.cdd-kpi .s{position:relative;z-index:1;font-size:11.5px;opacity:.85;margin-top:4px}',
+    '.cdd-kpi:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.13);pointer-events:none}',
+    '.cdd-kpi .t{position:relative;z-index:1;font-size:15px;font-weight:600;text-align:right;opacity:.96}',
+    '.cdd-kpi .row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}',
+    '.cdd-kpi .row svg{opacity:.92;flex-shrink:0}',
+    '.cdd-kpi .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1;text-align:right}',
+    '.cdd-kpi .s{font-size:11.5px;opacity:.88;margin-top:6px;text-align:right}',
     /* panels */
     '.cdd-grid{display:grid;gap:14px;margin-top:14px}',
     '.cdd-g2{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}',
@@ -148,19 +147,20 @@
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>'
   };
-  function ico(k) { return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>'; }
+  function ico(k) { return '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>'; }
+  // Neon order: orange (primary) • violet • blue • magenta
   var GRAD = [
-    'linear-gradient(135deg,#FF6A3D 0%,#D45C37 100%)',   // IMBS orange
-    'linear-gradient(135deg,#0B1526 0%,#24365A 100%)',   // ink navy
-    'linear-gradient(135deg,#6A1BDB 0%,#00A3D1 100%)',   // violet to blue
-    'linear-gradient(135deg,#0B7FA8 0%,#00A3D1 100%)'    // deep blue to blue
+    ['linear-gradient(135deg,#FF8A3D 0%,#FF6A3D 55%,#FF4F2E 100%)', 'rgba(255,106,61,.75)'],
+    ['linear-gradient(135deg,#9B4DFF 0%,#7B2FF7 50%,#5B17D6 100%)', 'rgba(123,47,247,.7)'],
+    ['linear-gradient(135deg,#27C6F5 0%,#00A3D1 55%,#0B7FA8 100%)', 'rgba(0,163,209,.7)'],
+    ['linear-gradient(135deg,#FF5C9E 0%,#E8367A 55%,#C21F63 100%)', 'rgba(232,54,122,.7)']
   ];
   var kpiN = 0;
   function kpi(title, value, sub, icon, route) {
     var g = GRAD[kpiN++ % GRAD.length];
-    return '<div class="cdd-kpi" role="button" tabindex="0" style="background:' + g + '" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')">' +
-      '<div class="hd"><span class="t">' + esc(title) + '</span><span class="ic">' + ico(icon) + '</span></div>' +
-      '<div class="v">' + esc(value) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div>';
+    return '<div class="cdd-kpi" role="button" tabindex="0" style="background:' + g[0] + ';box-shadow:0 18px 34px -20px ' + g[1] + '" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')">' +
+      '<div class="t">' + esc(title) + '</div>' +
+      '<div class="row">' + ico(icon) + '<div><div class="v">' + esc(value) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div></div></div>';
   }
   function alertsStrip(list) {
     var day = '<span class="cdd-date">' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</span>';
@@ -185,7 +185,7 @@
    Row 1: alerts + date | specialty tabs
    Row 2: four gradient KPI cards
    Row 3: recent activity table | ring visual (one ring per group) + status bar        */
-  var RING = ['#FF6A3D', '#00A3D1', '#6A1BDB', '#0B1526', '#B8461F'];
+  var RING = ['#FF6A3D', '#7B2FF7', '#00A3D1', '#E8367A', '#0B1526'];
   var SCOL = { ok: '#00A3D1', att: '#FF6A3D', neu: '#8C98AB' };
 
   function tableCard(title, heads, rows, empty) {
@@ -399,7 +399,6 @@
       s.activeSpecialty = name; setSession(s);
       try { applyActiveSpecialty(); } catch (e) {}
     }
-    try { _renderTopnavSpecialtyChip(); } catch (e) {}
     try { toast('Switched to ' + name, 'ok'); } catch (e) {}
     try { go(isCMName(name) ? 'cm-dashboard' : 'dashboard'); } catch (e) {}
     render(isCMName(name) ? 'sec-cm-dashboard' : 'sec-dashboard');

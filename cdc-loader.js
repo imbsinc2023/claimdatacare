@@ -43,7 +43,7 @@
     '.cdcl-dash{position:absolute;inset:-40px;display:flex;background:#F6F8FB;filter:blur(14px) saturate(1.1);transform:scale(1.04);opacity:.55;contain:strict}',
     '.cdcl-side{width:230px;flex-shrink:0;background:#0B1526;display:flex;flex-direction:column;gap:14px;padding:30px 22px}',
     '.cdcl-side i{display:block;height:12px;border-radius:6px;background:rgba(255,255,255,.18)}',
-    '.cdcl-side i.a{height:34px;width:34px;border-radius:10px;background:linear-gradient(135deg,#FF6A3D,#FF6A3D 45%,#6A1BDB);margin-bottom:18px}',
+    '.cdcl-side i.a{height:34px;width:34px;border-radius:10px;background:linear-gradient(135deg,#FF6A3D,#7B2FF7 55%,#00A3D1);margin-bottom:18px}',
     '.cdcl-main{flex:1;padding:40px 48px;display:flex;flex-direction:column;gap:26px}',
     '.cdcl-top{height:34px;width:38%;border-radius:10px;background:#DCE3EE}',
     '.cdcl-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}',
@@ -52,7 +52,7 @@
     '.cdcl-kpi u{display:block;height:6px;border-radius:4px}',
     '.cdcl-row{flex:1;display:flex;gap:22px;min-height:0}',
     '.cdcl-chart{flex:0 0 42%;border-radius:18px;background:#fff;padding:26px;display:flex;align-items:flex-end;gap:14px}',
-    '.cdcl-chart s{flex:1;border-radius:8px 8px 3px 3px;background:linear-gradient(0deg,#FF6A3D,#FF6A3D 55%,#6A1BDB)}',
+    '.cdcl-chart s{flex:1;border-radius:8px 8px 3px 3px;background:linear-gradient(0deg,#FF6A3D,#7B2FF7 55%,#00A3D1)}',
     '.cdcl-table{flex:1;border-radius:18px;background:#fff;padding:26px;display:flex;flex-direction:column;gap:18px}',
     '.cdcl-table i{display:flex;gap:14px;align-items:center;height:22px}',
     '.cdcl-table i:before{content:"";flex:1;height:12px;border-radius:6px;background:#E4E9F1}',
@@ -85,7 +85,7 @@
     '<div class="cdcl-side"><i class="a"></i><i style="width:80%"></i><i style="width:65%"></i><i style="width:74%"></i><i style="width:58%"></i><i style="width:70%"></i><i style="width:62%"></i></div>' +
     '<div class="cdcl-main"><div class="cdcl-top"></div>' +
       '<div class="cdcl-kpis">' +
-        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#FF6A3D)"></u></div>' +
+        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#7B2FF7)"></u></div>' +
         '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#6A1BDB)"></u></div>' +
         '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#6A1BDB,#00A3D1)"></u></div>' +
         '<div class="cdcl-kpi"><b></b><u style="background:#00A3D1"></u></div>' +

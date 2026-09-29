@@ -258,18 +258,6 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
    Top Navigation Layout (getAppShellHTML)
    ============================================= */
 .app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
-.topnav{height:44px;max-height:44px;background:#FFFFFF;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#0B1526;border-bottom:1px solid #E4E9F1;box-sizing:border-box;z-index:100;overflow:visible}
-.tn-hamburger{display:none;width:32px;height:32px;align-items:center;justify-content:center;color:#586579;border-radius:8px;flex-shrink:0}
-.tn-hamburger:hover{background:#F1F4F8;color:#0B1526}
-.tn-brand{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-right:4px}
-.tn-brand-name{font-size:15px;font-weight:800;letter-spacing:-.03em;color:#0B1526;white-space:nowrap}
-.tn-divider{width:1px;height:22px;background:#E4E9F1;margin:0 6px;flex-shrink:0}
-.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.tn-nav::-webkit-scrollbar{display:none}
-.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#3A475C;white-space:nowrap;transition:all .12s;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}
-.tn-item:hover{background:#F1F4F8;color:#0B1526}
-.tn-item.active{background:rgba(212,92,55,.1);color:#B8461F;font-weight:600}
-.tn-item .lci{width:15px;height:15px}
 .tn-group{position:relative;display:inline-flex}
 .tn-has-dd{gap:4px}
 .tn-has-dd svg:last-child{transition:transform .2s;opacity:.6}
@@ -281,27 +269,10 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 .tn-dd-item .lci{width:14px;height:14px;color:var(--text3)}
 .tn-dd-item:hover .lci{color:var(--brand)}
 .tn-dd-sep{height:1px;background:var(--border);margin:4px 8px}
-.tn-prov-sel{height:32px;min-width:200px;max-width:260px;background:#FFFFFF;color:#0B1526;border:1px solid #E4E9F1;border-radius:8px;padding:0 10px;font-size:11.5px;font-weight:600;letter-spacing:.02em;cursor:pointer;outline:none;font-family:inherit;transition:background .15s,border-color .15s}
-.tn-prov-sel:hover{background:#F8FAFC;border-color:#D5DCE7}
-.tn-prov-sel:focus{border-color:#D45C37;box-shadow:0 0 0 3px rgba(212,92,55,.12)}
-.tn-prov-sel option{background:#FFFFFF;color:#0B1526}
-/* Title bar icon buttons (icon only + tooltip) */
-.tn-icon-btn{position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:#586579;cursor:pointer;flex-shrink:0;transition:background .15s,color .15s}
-.tn-icon-btn:hover{background:#F1F4F8;color:#D45C37}
-.tn-icon-btn:focus-visible,.tn-avatar-btn:focus-visible{outline:2px solid rgba(212,92,55,.5);outline-offset:1px}
-.tn-icon-btn svg,.tn-icon-btn .lci{width:17px!important;height:17px!important}
-.tn-avatar-btn{position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;flex-shrink:0}
-.tn-avatar-btn #tn-user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#FF6A3D,#D45C37);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;box-shadow:0 0 0 2px #FFFFFF,0 0 0 3px #E4E9F1;transition:box-shadow .15s}
-.tn-avatar-btn:hover #tn-user-avatar{box-shadow:0 0 0 2px #FFFFFF,0 0 0 3px #D45C37}
-.tn-spec-chip{display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;max-width:220px;border:1px solid #E4E9F1;border-radius:8px;background:#FFFFFF;color:#0B1526;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.02em;flex-shrink:0;transition:background .15s}
-.tn-spec-chip:hover{background:#F8FAFC}
-/* Tooltip for title bar buttons (opens below, aligned right so it never leaves the screen) */
-.topnav [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;z-index:9500;padding:5px 9px;border-radius:6px;background:#0B1526;border:0;color:#fff;font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 8px 20px -8px rgba(0,0,0,.5)}
 .tn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:8px;padding:0 4px;font-size:9px;font-weight:700;background:var(--brand);color:#fff;margin-left:2px}
-.tn-right{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
 
 /* Main content area */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 44px)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;max-height:calc(100% - 48px)}
 
 /* Mobile drawer */
 .tn-drawer{display:none;position:fixed;inset:0;z-index:5000}
@@ -327,13 +298,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 
 /* Mobile responsive */
 @media(max-width:768px){
-  .tn-hamburger{display:flex}
-  .tn-nav{display:none}
-  .tn-divider{display:none}
-  .tn-brand-name{display:none}
-  .topnav{padding:0 8px}
   .main .content{padding:12px}
-  #prov-sel-wrap{display:none}
 }
 
 
@@ -912,7 +877,6 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 /* ===== ClaimDataCare design refresh (2026-09-29) =====================================
    One design system for the whole app: IMBS palette, Sora headings, IBM Plex Sans text. */
 h1,h2,h3,.page-hdr h1,.modal-hdr h2,.modal-title{font-family:var(--font-head)!important;letter-spacing:-.02em}
-.topnav{position:relative;background:#FFFFFF!important}
 .btn-primary{background:#D45C37!important;border-color:transparent!important;color:#fff!important;box-shadow:0 6px 16px -10px rgba(212,92,55,.8)}
 .btn-primary:hover{background:#B8461F!important}
 .card{border-radius:var(--r-lg);box-shadow:var(--shadow)}

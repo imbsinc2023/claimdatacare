@@ -76,7 +76,7 @@
   var CSS = [
     '#cdm-ov{position:fixed;inset:0;z-index:9500;background:rgba(11,21,38,.55);display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;overflow:auto;font-family:inherit}',
     '.cdm{width:100%;max-width:1060px;background:var(--bg2,#fff);color:var(--text,#0B1526);border-radius:22px;overflow:hidden;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}',
-    '.cdm-bar{height:5px;background:linear-gradient(90deg,#FF6A3D,#FF6A3D 38%,#6A1BDB 70%,#00A3D1)}',
+    '.cdm-bar{height:5px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7 38%,#00A3D1 72%,#E8367A)}',
     '.cdm-top{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border,#E4E9F1)}',
     '.cdm-top h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}',
     '.cdm-top small{display:block;color:var(--text3,#586579);font-size:12.5px;margin-top:2px}',

@@ -34,7 +34,7 @@
     '#cdcx-login.cdcx-out{opacity:0;pointer-events:none}',
     '#cdcx-login *{box-sizing:border-box}',
     '.cdcx-panel{position:relative;flex:0 0 520px;max-width:100%;height:100%;overflow-y:auto;background:#fff;padding:56px 72px 36px;display:flex;flex-direction:column;justify-content:space-between;gap:32px;box-shadow:1px 0 0 #E4E9F1,12px 0 40px rgba(11,21,38,.06);z-index:1}',
-    '.cdcx-bar{position:absolute;left:0;top:0;right:0;height:4px;background:linear-gradient(90deg,#FF6A3D,#FF6A3D 38%,#6A1BDB 70%,#00A3D1)}',
+    '.cdcx-bar{position:absolute;left:0;top:0;right:0;height:4px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7 38%,#00A3D1 72%,#E8367A)}',
     '.cdcx-brand{display:flex;align-items:center;gap:12px}',
     '.cdcx-brand-name{font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:700;font-size:21px;letter-spacing:-.02em}',
     '.cdcx-brand-sub{font-size:12px;color:#586579;margin-top:2px}',
@@ -607,8 +607,6 @@
       // Always (re)apply specialty-based menu restrictions after data loads,
       // regardless of which page the user happens to land on.
       setTimeout(function(){ if(typeof applyActiveSpecialty==='function') applyActiveSpecialty(); }, 600);
-      // Also explicitly render the topnav specialty chip after data is available.
-      setTimeout(function(){ try { _renderTopnavSpecialtyChip(); } catch(e){ console.warn('spec chip render err:', e); } }, 700);
       // Only re-render dashboard if it is the currently active section
       // (prevents redirecting away from a page the user navigated to)
       var _curActive = document.querySelector('.section.active');
