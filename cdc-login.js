@@ -18,6 +18,11 @@
   // Load the animated workspace loader (separate file, same folder as this one)
   try {
     var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\\/?#]*([?#].*)?$/, '') : '';
+    if (!document.getElementById('cdc-cm-js')) {
+      var _cm = document.createElement('script');
+      _cm.id = 'cdc-cm-js'; _cm.src = _base + 'cdc-cm.js?v=1';
+      document.head.appendChild(_cm);
+    }
     if (!document.getElementById('cdcl-loader-js')) {
       var _ls = document.createElement('script');
       _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=3';
