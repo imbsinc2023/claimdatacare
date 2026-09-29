@@ -1,11 +1,11 @@
 /* ClaimDataCare  •  Title bar + user menu  •  cdc-shell.css v1.0
-   Light bar, the menu sits in its own soft tray so it stands out without weight.
+   Very light blue bar; menu items are raised cards (no tray) so the menu stands out without weight.
    Colour order: orange (primary) • violet • blue • magenta, all neon.            */
 
 :root{--neo-orange:#FF6A3D;--neo-orange-d:#D45C37;--neo-violet:#7B2FF7;--neo-violet-d:#6A1BDB;--neo-blue:#00A3D1;--neo-blue-d:#0B7FA8;--neo-magenta:#E8367A;--ink:#0B1526;--ink2:#3A475C;--ink3:#586579;--line:#E4E9F1;--tray:#F4F6FA}
 
 /* Bar */
-.topnav{position:relative;height:48px;min-height:48px;max-height:48px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#fff;color:var(--ink);z-index:100;overflow:visible;box-shadow:0 1px 0 var(--line),0 8px 20px -18px rgba(11,21,38,.45)}
+.topnav{position:relative;height:48px;min-height:48px;max-height:48px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#EEF6FC;color:var(--ink);z-index:100;overflow:visible;box-shadow:0 1px 0 #DCEAF5,0 8px 20px -18px rgba(11,21,38,.45)}
 .topnav::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--neo-orange) 0%,var(--neo-violet) 38%,var(--neo-blue) 72%,var(--neo-magenta) 100%);pointer-events:none}
 .tn-hamburger{display:none;width:34px;height:34px;align-items:center;justify-content:center;border:0;background:none;color:var(--ink3);border-radius:9px;flex-shrink:0;cursor:pointer}
 .tn-hamburger:hover{background:var(--tray);color:var(--ink)}
@@ -13,14 +13,14 @@
 .tn-brand-name{font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--ink);white-space:nowrap}
 .tn-divider{width:1px;height:22px;background:var(--line);margin:0 4px;flex-shrink:0}
 
-/* Menu tray: the navigation reads as one distinct block */
-.tn-nav{display:flex;align-items:center;gap:2px;flex:0 1 auto;min-width:0;margin-right:auto;padding:3px;background:var(--tray);border:1px solid #EDF0F5;border-radius:12px;overflow:visible}
+/* Menu: no tray, items lift on hover and the active one stays raised */
+.tn-nav{display:flex;align-items:center;gap:2px;flex:0 1 auto;min-width:0;margin-right:auto;padding:0;background:none;border:0;overflow:visible}
 .tn-item{display:flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:0;border-radius:9px;background:none;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--ink2);white-space:nowrap;flex-shrink:0;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .tn-item .lci{width:15px;height:15px;color:#8C98AB;transition:color .15s}
-.tn-item:hover{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(11,21,38,.06)}
+.tn-item:hover{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(11,21,38,.1),0 0 0 1px #EEF1F6}
 .tn-item:hover .lci{color:var(--ink2)}
-.tn-group.open>.tn-item{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(11,21,38,.08)}
-.tn-item.active{background:#fff;color:var(--neo-orange-d);font-weight:600;box-shadow:0 1px 3px rgba(11,21,38,.08),inset 0 -2px 0 var(--neo-orange)}
+.tn-group.open>.tn-item{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(11,21,38,.1),0 0 0 1px #EEF1F6}
+.tn-item.active{background:#fff;color:var(--neo-orange-d);font-weight:600;box-shadow:0 2px 6px -1px rgba(11,21,38,.14),0 0 0 1px #EEF1F6,inset 0 -2px 0 var(--neo-orange)}
 .tn-item.active .lci{color:var(--neo-orange)}
 
 /* Right cluster */

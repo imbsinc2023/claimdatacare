@@ -77,14 +77,14 @@
     '.cdd-tab[disabled]:hover{background:#F1F4F8;color:#586579}',
     /* KPI cards: white, one accent colour only */
     '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:4px}',
-    '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:20px 22px;min-height:132px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:transform .18s,box-shadow .18s}',
+    '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:clamp(14px,1.4vw,20px) clamp(16px,1.6vw,22px);min-height:clamp(112px,9vw,132px);background-size:400% 100%;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:transform .18s,box-shadow .18s}',
     '.cdd-kpi:hover{transform:translateY(-2px)}',
     '.cdd-kpi:focus-visible{outline:2px solid #0B1526;outline-offset:3px}',
     '.cdd-kpi:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.13);pointer-events:none}',
-    '.cdd-kpi .t{position:relative;z-index:1;font-size:15px;font-weight:600;text-align:right;opacity:.96}',
+    '.cdd-kpi .t{position:relative;z-index:1;font-size:clamp(13px,1vw,15px);font-weight:600;text-align:right;opacity:.96}',
     '.cdd-kpi .row{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}',
-    '.cdd-kpi .row svg{opacity:.92;flex-shrink:0}',
-    '.cdd-kpi .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1;text-align:right}',
+    '.cdd-kpi .row svg{opacity:.92;flex-shrink:0;width:clamp(22px,2vw,30px);height:auto}',
+    '.cdd-kpi .v{font-size:clamp(24px,2.3vw,34px);font-weight:700;letter-spacing:-.02em;line-height:1;text-align:right}',
     '.cdd-kpi .s{font-size:11.5px;opacity:.88;margin-top:6px;text-align:right}',
     /* panels */
     '.cdd-grid{display:grid;gap:14px;margin-top:14px}',
@@ -105,22 +105,32 @@
     '.cdd-rev-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}',
     '.cdd-rev-hd h3{margin:0}',
     '.cdd-rev-hd small{font-size:11.5px;color:var(--text3,#586579)}',
-    '.cdd-rev-body{display:flex;align-items:center;gap:22px;flex-wrap:wrap}',
-    '.cdd-rings{position:relative;width:280px;height:280px;flex-shrink:0;margin:0 auto}',
-    '.cdd-rings svg{display:block}',
+    '.cdd-rev-body{display:flex;align-items:center;gap:clamp(14px,2vw,24px);flex-wrap:wrap}',
+    '.cdd-key{display:flex;gap:12px;font-size:11px;color:var(--text3,#586579);flex-wrap:wrap}',
+    '.cdd-key span{display:flex;align-items:center;gap:6px}',
+    '.cdd-key i{width:18px;height:6px;border-radius:4px;background:#FF6A3D}',
+    '.cdd-key i.lt{opacity:.25}',
+    '.cdd-rings{position:relative;width:min(280px,100%);aspect-ratio:1;flex-shrink:0;margin:0 auto}',
+    '.cdd-rings svg{display:block;width:100%;height:auto}',
     '.cdd-arc{animation:cddArc 1.1s cubic-bezier(.2,.8,.2,1) both}',
     '@keyframes cddArc{from{stroke-dasharray:0 1200}}',
-    '.cdd-rings .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}',
-    '.cdd-rings .ctr b{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;color:#0B1526}',
-    '.cdd-rings .ctr span{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3,#586579);margin-top:4px}',
-    '.cdd-rings .ctr em{font-style:normal;font-size:11.5px;color:var(--text2,#3A475C);margin-top:6px}',
-    '.cdd-leg{flex:1;min-width:230px;display:flex;flex-direction:column;gap:10px}',
-    '.cdd-leg-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:4px 10px;align-items:center}',
-    '.cdd-leg-row i{width:10px;height:10px;border-radius:3px}',
-    '.cdd-leg-row .n{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.cdd-leg-row .a{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}',
-    '.cdd-leg-row .d{grid-column:2 / 4;display:flex;justify-content:space-between;font-size:11px;color:var(--text3,#586579)}',
-    '.cdd-leg-row .d b{font-weight:700;color:var(--text2,#3A475C)}',
+    '.cdd-rings .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;padding:0 22%}',
+    '.cdd-rings .ctr b{font-size:clamp(24px,2.2vw,32px);font-weight:700;letter-spacing:-.03em;line-height:1;color:#0B1526}',
+    '.cdd-rings .ctr span{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3,#586579);margin-top:4px}',
+    '.cdd-rings .ctr em{font-style:normal;font-size:11px;color:var(--text2,#3A475C);margin-top:6px}',
+    '.cdd-leg{flex:1 1 260px;min-width:0}',
+    '.cdd-leg table{width:100%;border-collapse:collapse;font-size:12px}',
+    '.cdd-leg th{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3,#586579);text-align:right;padding:0 0 8px 8px;white-space:nowrap}',
+    '.cdd-leg th:first-child{text-align:left;padding-left:0}',
+    '.cdd-leg td{padding:8px 0 8px 8px;border-top:1px solid var(--border,#EEF1F6);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}',
+    '.cdd-leg td:first-child{text-align:left;padding-left:0;white-space:normal}',
+    '.cdd-leg .nm{display:flex;align-items:center;gap:8px;font-weight:700;color:#0B1526;min-width:0}',
+    '.cdd-leg .nm i{width:10px;height:10px;border-radius:3px;flex-shrink:0}',
+    '.cdd-leg .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}',
+    '.cdd-leg .nt{display:block;font-size:10.5px;font-weight:500;color:var(--text3,#586579);margin:2px 0 0 18px}',
+    '.cdd-leg .pc{display:inline-block;min-width:38px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:700;text-align:center}',
+    '.cdd-leg .solid{font-weight:700;color:#0B1526}',
+    '.cdd-leg .muted{color:var(--text3,#586579)}',
     '.cdd-stat{margin-top:18px;padding-top:14px;border-top:1px solid var(--border,#EEF1F6)}',
     '.cdd-stat-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#EEF1F6;gap:2px}',
     '.cdd-stat-bar i{display:block;height:100%}',
@@ -128,7 +138,21 @@
     '.cdd-stat-leg span{display:flex;align-items:center;gap:6px}',
     '.cdd-stat-leg i{width:8px;height:8px;border-radius:50%}',
     '.cdd-stat-leg b{font-weight:700;color:#0B1526}',
-    '@media (max-width:1100px){.cdd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-g2{grid-template-columns:minmax(0,1fr)}}',
+    /* aging + trend */
+    '.cdd-g2b{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}',
+    '.cdd-age-bar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:#EEF1F6;gap:2px;margin:6px 0 16px}',
+    '.cdd-age-bar i{display:block;height:100%}',
+    '.cdd-age{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}',
+    '.cdd-age div{border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;padding:10px 12px;border-top:3px solid}',
+    '.cdd-age small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3,#586579)}',
+    '.cdd-age b{display:block;font-size:clamp(15px,1.3vw,18px);font-weight:700;color:#0B1526;margin-top:4px;font-variant-numeric:tabular-nums}',
+    '.cdd-age span{font-size:11px;color:var(--text3,#586579)}',
+    '.cdd-trend svg{display:block;width:100%;height:auto}',
+    '.cdd-pcn{cursor:pointer;font-family:var(--mono,monospace);font-size:11px;color:var(--text3,#586579);text-decoration:none;border-radius:6px;padding:2px 5px;margin-left:-5px;transition:background .15s,color .15s}',
+    '.cdd-pcn:hover{background:rgba(255,106,61,.1);color:#D45C37}',
+    '@media (max-width:1280px){.cdd-g2{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:1100px){.cdd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-g2b{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:620px){.cdd-kpis{grid-template-columns:minmax(0,1fr)}.cdd-age{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-date{display:none}}',
     '@media (max-width:768px){#sec-dashboard,#sec-cm-dashboard{margin:-12px;height:calc(100% + 24px)}.cdd{padding:0 14px 18px}.cdd-top{margin:0 -14px;padding:0 14px}}'
   ].join('\n');
   function injectCSS() {
@@ -148,17 +172,15 @@
     send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>'
   };
   function ico(k) { return '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>'; }
-  // Neon order: orange (primary) • violet • blue • magenta
-  var GRAD = [
-    ['linear-gradient(135deg,#FF8A3D 0%,#FF6A3D 55%,#FF4F2E 100%)', 'rgba(255,106,61,.75)'],
-    ['linear-gradient(135deg,#9B4DFF 0%,#7B2FF7 50%,#5B17D6 100%)', 'rgba(123,47,247,.7)'],
-    ['linear-gradient(135deg,#27C6F5 0%,#00A3D1 55%,#0B7FA8 100%)', 'rgba(0,163,209,.7)'],
-    ['linear-gradient(135deg,#FF5C9E 0%,#E8367A 55%,#C21F63 100%)', 'rgba(232,54,122,.7)']
-  ];
+  // Neon order: orange (primary) • violet • blue • magenta. One continuous gradient runs
+  // across the four cards (each card shows its own slice), so the colours fuse card to card.
+  var FUSE = 'linear-gradient(100deg,#FF8A3D 0%,#FF6A3D 7%,#7B2FF7 36%,#00A3D1 66%,#E8367A 93%,#FF4F9A 100%)';
+  var GLOW = ['rgba(255,106,61,.7)', 'rgba(123,47,247,.65)', 'rgba(0,163,209,.65)', 'rgba(232,54,122,.65)'];
+  var POS = ['0%', '33.333%', '66.667%', '100%'];
   var kpiN = 0;
   function kpi(title, value, sub, icon, route) {
-    var g = GRAD[kpiN++ % GRAD.length];
-    return '<div class="cdd-kpi" role="button" tabindex="0" style="background:' + g[0] + ';box-shadow:0 18px 34px -20px ' + g[1] + '" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')">' +
+    var i = kpiN++ % 4;
+    return '<div class="cdd-kpi" role="button" tabindex="0" style="background-image:' + FUSE + ';background-position:' + POS[i] + ' 0;box-shadow:0 18px 34px -20px ' + GLOW[i] + '" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')">' +
       '<div class="t">' + esc(title) + '</div>' +
       '<div class="row">' + ico(icon) + '<div><div class="v">' + esc(value) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div></div></div>';
   }
@@ -206,7 +228,7 @@
     }
     var maxT = items.reduce(function (m, x) { return Math.max(m, x.total); }, 0) || 1;
     var SW = 10, GAP = 5, R0 = 130, SWEEP = 0.75;
-    var svg = '<svg width="280" height="280" viewBox="0 0 280 280" aria-hidden="true">';
+    var svg = '<svg viewBox="0 0 280 280" aria-hidden="true">';
     items.forEach(function (x, i) {
       var r = R0 - i * (SW + GAP), C = 2 * Math.PI * r, full = C * SWEEP;
       var tl = full * (x.total / maxT), pl = full * Math.min(1, x.part / maxT), col = RING[i % RING.length];
@@ -217,23 +239,71 @@
     });
     svg += '</svg>';
     var rings = '<div class="cdd-rings">' + svg + '<div class="ctr"><b>' + esc(o.big) + '</b><span>' + esc(o.bigLabel) + '</span><em>' + esc(o.bigSub) + '</em></div></div>';
-    var legend = '<div class="cdd-leg">' + (items.length ? items.map(function (x, i) {
-      var pc = x.total > 0 ? Math.round(x.part / x.total * 100) : 0;
-      return '<div class="cdd-leg-row"><i style="background:' + RING[i % RING.length] + '"></i><span class="n" title="' + esc(x.name) + '">' + esc(x.name) + '</span><span class="a">' + esc(x.partTxt) + '</span>' +
-        '<div class="d"><span>' + esc(x.totalTxt) + (x.note ? ' • ' + esc(x.note) : '') + '</span><b>' + pc + '%</b></div></div>';
-    }).join('') : '<div class="cdd-empty">' + esc(o.empty) + '</div>') + '</div>';
+    var legend = '<div class="cdd-leg">' + (items.length ? '<table><thead><tr><th>' + esc(o.cols[0]) + '</th><th>' + esc(o.cols[1]) + '</th><th>' + esc(o.cols[2]) + '</th><th>%</th></tr></thead><tbody>' +
+      items.map(function (x, i) {
+        var pc = x.total > 0 ? Math.round(x.part / x.total * 100) : 0, col = RING[i % RING.length];
+        return '<tr><td><div class="nm"><i style="background:' + col + '"></i><span title="' + esc(x.name) + '">' + esc(x.name) + '</span></div>' + (x.note ? '<span class="nt">' + esc(x.note) + '</span>' : '') + '</td>' +
+          '<td class="solid">' + esc(x.partTxt) + '</td><td class="muted">' + esc(x.totalTxt) + '</td>' +
+          '<td><span class="pc" style="background:' + col + '1f;color:' + col + '">' + pc + '%</span></td></tr>';
+      }).join('') + '</tbody></table>' : '<div class="cdd-empty">' + esc(o.empty) + '</div>') + '</div>';
     var st = o.status.filter(function (x) { return x.count > 0; }), tot = st.reduce(function (a, x) { return a + x.count; }, 0) || 1;
     var stat = '<div class="cdd-stat"><div class="cdd-stat-bar">' + st.map(function (x) {
         return '<i style="width:' + (x.count / tot * 100).toFixed(2) + '%;background:' + SCOL[x.tone] + '" title="' + esc(x.label) + ': ' + x.count + '"></i>';
       }).join('') + '</div><div class="cdd-stat-leg">' + (st.length ? st.map(function (x) {
         return '<span><i style="background:' + SCOL[x.tone] + '"></i>' + esc(x.label) + ' <b>' + x.count + '</b></span>';
       }).join('') : '<span>' + esc(o.statusEmpty) + '</span>') + '</div></div>';
-    return '<div class="cdd-card cdd-rev"><div class="cdd-rev-hd"><h3>' + esc(o.title) + '</h3><small>' + esc(o.hint) + '</small></div>' +
+    return '<div class="cdd-card cdd-rev"><div class="cdd-rev-hd"><h3>' + esc(o.title) + '</h3><div class="cdd-key"><span><i class="lt"></i>' + esc(o.cols[2]) + '</span><span><i></i>' + esc(o.cols[1]) + '</span></div></div>' +
       '<div class="cdd-rev-body">' + rings + legend + '</div>' + stat + '</div>';
   }
 
-  function layout(alerts, kpis, table, rings) {
-    return { alerts: alerts, body: '<div class="cdd-kpis">' + kpis.join('') + '</div>' + '<div class="cdd-grid cdd-g2">' + table + rings + '</div>' };
+  // Buckets: [{ label, value, txt, color }]
+  function agingCard(title, totalTxt, buckets, empty) {
+    var tot = buckets.reduce(function (a, x) { return a + x.value; }, 0);
+    return '<div class="cdd-card"><div class="cdd-rev-hd"><h3>' + esc(title) + '</h3><small>' + esc(totalTxt) + '</small></div>' +
+      (tot > 0 ? '<div class="cdd-age-bar">' + buckets.filter(function (x) { return x.value > 0; }).map(function (x) {
+        return '<i style="width:' + (x.value / tot * 100).toFixed(2) + '%;background:' + x.color + '" title="' + esc(x.label) + ': ' + esc(x.txt) + '"></i>';
+      }).join('') + '</div>' : '<div class="cdd-age-bar"></div>') +
+      '<div class="cdd-age">' + buckets.map(function (x) {
+        return '<div style="border-top-color:' + x.color + '"><small>' + esc(x.label) + '</small><b>' + esc(x.txt) + '</b><span>' + (tot > 0 ? Math.round(x.value / tot * 100) : 0) + '% • ' + x.count + ' ' + esc(x.unit) + '</span></div>';
+      }).join('') + '</div>' + (tot > 0 ? '' : '<div class="cdd-empty">' + esc(empty) + '</div>') + '</div>';
+  }
+
+  // months: [{ label, total, part }]  tint bar = total, solid bar = part
+  function trendCard(title, cols, months, fmt, color) {
+    var max = months.reduce(function (m, x) { return Math.max(m, x.total, x.part); }, 0) || 1;
+    var W = 560, H = 190, PB = 26, PT = 18, bw = 26, step = W / months.length;
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+    [0.5, 1].forEach(function (f) { var y = PT + (H - PB - PT) * (1 - f); svg += '<line x1="0" x2="' + W + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#EEF1F6" stroke-dasharray="3 4"/>'; });
+    months.forEach(function (m, i) {
+      var cx = step * i + step / 2, hT = (H - PB - PT) * (m.total / max), hP = (H - PB - PT) * (m.part / max), base = H - PB;
+      svg += '<rect class="cdd-arc" x="' + (cx - bw - 2) + '" y="' + (base - hT).toFixed(1) + '" width="' + bw + '" height="' + Math.max(hT, 0).toFixed(1) + '" rx="6" fill="' + color + '" fill-opacity=".22"><title>' + esc(m.label + ' ' + cols[0] + ': ' + fmt(m.total)) + '</title></rect>';
+      svg += '<rect x="' + (cx + 2) + '" y="' + (base - hP).toFixed(1) + '" width="' + bw + '" height="' + Math.max(hP, 0).toFixed(1) + '" rx="6" fill="' + color + '"><title>' + esc(m.label + ' ' + cols[1] + ': ' + fmt(m.part)) + '</title></rect>';
+      svg += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#586579" font-family="inherit">' + esc(m.label) + '</text>';
+    });
+    svg += '</svg>';
+    var tT = months.reduce(function (a, x) { return a + x.total; }, 0), tP = months.reduce(function (a, x) { return a + x.part; }, 0);
+    return '<div class="cdd-card cdd-trend"><div class="cdd-rev-hd"><h3>' + esc(title) + '</h3><div class="cdd-key"><span><i class="lt" style="background:' + color + '"></i>' + esc(cols[0]) + ' ' + esc(fmt(tT)) + '</span><span><i style="background:' + color + '"></i>' + esc(cols[1]) + ' ' + esc(fmt(tP)) + '</span></div></div>' + svg + '</div>';
+  }
+
+  function lastMonths(n) {
+    var out = [], d = new Date(); d.setDate(1);
+    for (var i = n - 1; i >= 0; i--) { var m = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push({ y: m.getFullYear(), m: m.getMonth(), label: m.toLocaleDateString('en-US', { month: 'short' }), total: 0, part: 0 }); }
+    return out;
+  }
+  function parseDay(v) {
+    if (!v) return null;
+    var t = String(v), m;
+    if ((m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return new Date(+m[1], +m[2] - 1, +m[3]);
+    if ((m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(+m[3], +m[1] - 1, +m[2]);
+    var d = new Date(t); return isNaN(d) ? null : d;
+  }
+  function daysAgo(d) { return d ? Math.floor((Date.now() - d.getTime()) / 86400000) : null; }
+  var AGE = [['0 to 30 days', 30, '#00A3D1'], ['31 to 60 days', 60, '#7B2FF7'], ['61 to 90 days', 90, '#FF6A3D'], ['Over 90 days', Infinity, '#E8367A']];
+
+  function layout(alerts, kpis, table, rings, aging, trend) {
+    return { alerts: alerts, body: '<div class="cdd-kpis">' + kpis.join('') + '</div>' +
+      '<div class="cdd-grid cdd-g2">' + table + rings + '</div>' +
+      '<div class="cdd-grid cdd-g2b">' + aging + trend + '</div>' };
   }
 
   /* ---------------- Case Management / TCM ---------------- */
@@ -286,13 +356,13 @@
       var mine = mo.filter(function (n) { return n.workerId === w.id; });
       var t = units(mine), ap = units(mine.filter(approved));
       var cnt = activeClients.filter(function (c) { return c.workerId === w.id; }).length;
-      return { name: workerName(w), total: t, part: ap, totalTxt: fmtU(t) + ' this month', partTxt: fmtU(ap), note: 'caseload ' + cnt + '/' + (w.capacity || 20) };
+      return { name: workerName(w), total: t, part: ap, totalTxt: fmtU(t), partTxt: fmtU(ap), note: 'Caseload ' + cnt + ' of ' + (w.capacity || 20) + ' clients' };
     }).sort(function (x, y) { return y.total - x.total; });
     var moPct = moT > 0 ? Math.round(moA / moT * 100) : 0;
     var nst = { Approved: 0, Pending: 0, Returned: 0 };
     mo.forEach(function (n) { var k = n.supervisorStatus || 'Pending'; nst[k] = (nst[k] || 0) + 1; });
     var rings = ringsCard({
-      title: 'Units by care team', hint: 'ring = units this month • solid = approved',
+      title: 'Units by care team', cols: ['Care team', 'Approved', 'Units'],
       items: items, fmt: fmtU, otherName: 'Other members',
       big: moPct + '%', bigLabel: 'approved', bigSub: moA + ' of ' + moT + ' units • week ' + wkA + '/' + wkT,
       empty: 'No care team members yet.',
@@ -300,12 +370,25 @@
       statusEmpty: 'No notes this month.'
     });
 
+    // aging: notes still waiting for supervisor review, by age
+    var cmAge = AGE.map(function (a) { return { label: a[0], value: 0, count: 0, txt: '', color: a[2], unit: 'notes' }; });
+    enc.filter(function (n) { return !n.supervisorStatus || n.supervisorStatus === 'Pending'; }).forEach(function (n) {
+      var dd = daysAgo(parseDay(n.date)); if (dd == null) return;
+      for (var i = 0; i < AGE.length; i++) if (dd <= AGE[i][1]) { cmAge[i].value += parseFloat(n.units) || 0; cmAge[i].count++; break; }
+    });
+    cmAge.forEach(function (x) { x.txt = fmtU(x.value); });
+    var cmPend = cmAge.reduce(function (a, x) { return a + x.value; }, 0);
+    var aging = agingCard('Notes waiting for review', fmtU(cmPend) + ' pending', cmAge, 'Nothing waiting for review.');
+    var cmMo = lastMonths(6);
+    enc.forEach(function (n) { var d = parseDay(n.date); if (!d) return; cmMo.forEach(function (m) { if (m.y === d.getFullYear() && m.m === d.getMonth()) { var u = parseFloat(n.units) || 0; m.total += u; if (approved(n)) m.part += u; } }); });
+    var trend = trendCard('Units • last 6 months', ['Units', 'Approved'], cmMo, fmtU, '#7B2FF7');
+
     return layout(alerts, [
       kpi('Clients', activeClients.length, clients.length + ' total • ' + discharged.length + ' discharged', 'users', 'cm-clients'),
       kpi('Cases', activeCases.length, 'active care plans', 'brief', 'cm-clients'),
       kpi('Care Team', team.length, 'active members', 'team', 'cm-workers'),
       kpi('Documents', docs, 'plans, assessments, files', 'doc', 'cm-clients')
-    ], table, rings);
+    ], table, rings, aging, trend);
   }
 
   /* ---------------- Billing (every other specialty) ---------------- */
@@ -337,7 +420,7 @@
       var p = pts[c.patId] || {};
       var nm = (typeof ptLinkName === 'function') ? ptLinkName(p.id, p.last || '?', p.first || '?') : esc((p.last || '') + ', ' + (p.first || ''));
       var pd = parseFloat(c.paid) || 0;
-      return ['<span style="font-family:var(--mono,monospace);font-size:11px;color:var(--text3,#586579)">' + esc(c.pcn || '') + '</span>', '<b>' + nm + '</b>', esc(c.dos || ''), money(claimTotal(c)), pd ? money(pd) : '•', pill(c.status)];
+      return ['<span class="cdd-pcn" role="button" tabindex="0" title="Edit claim" onclick="openClaimDetail(\'' + esc(c.id) + '\')" onkeydown="if(event.key===\'Enter\')openClaimDetail(\'' + esc(c.id) + '\')">' + esc(c.pcn || '') + '</span>', '<b>' + nm + '</b>', esc(c.dos || ''), money(claimTotal(c)), pd ? money(pd) : '•', pill(c.status)];
     }), '') : tableCard('Recent claims', [], [], 'No claims yet. <button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">New claim</button>');
 
     // rings: billed vs collected per payer
@@ -347,7 +430,7 @@
       .sort(function (x, y) { return y.total - x.total; });
     var ss = {}; claims.forEach(function (c) { ss[c.status] = (ss[c.status] || 0) + 1; });
     var rings = ringsCard({
-      title: 'Revenue by payer', hint: 'ring = billed • solid = collected',
+      title: 'Revenue by payer', cols: ['Payer', 'Collected', 'Billed'],
       items: items, fmt: money, otherName: 'Other payers',
       big: pct + '%', bigLabel: 'collected', bigSub: money(paid) + ' of ' + money(billed),
       empty: 'No payer activity yet.',
@@ -355,12 +438,28 @@
       statusEmpty: 'No claims yet.'
     });
 
+    // A/R aging: open balance of claims already sent, by date of service
+    var OPEN = { submitted: 1, accepted: 1, partially_paid: 1, partial: 1, rejected: 1, denied: 1, on_hold: 1 };
+    var arAge = AGE.map(function (a) { return { label: a[0], value: 0, count: 0, txt: '', color: a[2], unit: 'claims' }; });
+    claims.forEach(function (c) {
+      if (!OPEN[c.status]) return;
+      var bal = Math.max(0, claimTotal(c) - (parseFloat(c.paid) || 0)); if (!bal) return;
+      var dd = daysAgo(parseDay(c.dos)); if (dd == null) return;
+      for (var i = 0; i < AGE.length; i++) if (dd <= AGE[i][1]) { arAge[i].value += bal; arAge[i].count++; break; }
+    });
+    arAge.forEach(function (x) { x.txt = money(x.value); });
+    var arTot = arAge.reduce(function (a, x) { return a + x.value; }, 0);
+    var aging = agingCard('A/R aging', money(arTot) + ' outstanding', arAge, 'No open balances.');
+    var bMo = lastMonths(6);
+    claims.forEach(function (c) { var d = parseDay(c.dos); if (!d) return; bMo.forEach(function (m) { if (m.y === d.getFullYear() && m.m === d.getMonth()) { m.total += claimTotal(c); m.part += parseFloat(c.paid) || 0; } }); });
+    var trend = trendCard('Billed vs collected • last 6 months', ['Billed', 'Collected'], bMo, money, '#FF6A3D');
+
     return layout(alerts, [
       kpi('Total Claims', claims.length, submitted + ' submitted • ' + pending + ' pending', 'file', 'claims'),
       kpi('Collected', money(paid), pct + '% of ' + money(billed) + ' billed', 'cash', 'eob'),
       kpi('Pending', pending, 'waiting to be submitted', 'clock', 'claims'),
       kpi('Submitted', submitted, rejected ? rejected + ' rejected or denied' : 'no rejected claims', 'send', 'claims')
-    ], table, rings);
+    ], table, rings, aging, trend);
   }
 
   /* ---------------- render ---------------- */
