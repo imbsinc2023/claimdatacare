@@ -269,7 +269,7 @@ function _buildICChartShell(c, db) {
     '<div class="ptc-tabs-inline">' + tabsHTML + '</div>' +
     '<button class="ptc-banner-close" id="ic-chart-close" title="Close">&times;</button>' +
     '</div>' +
-    '<div style="flex:1;overflow-y:auto;padding:14px 16px;background:#f4f2ec" id="ic-main"></div>';
+    '<div style="flex:1;overflow-y:auto;padding:14px 16px;background:#F4F6FA" id="ic-main"></div>';
 }
 
 function _icTabIcon(icon) {
@@ -304,10 +304,10 @@ function _renderICTab(tabId) {
 
 // ── Summary Tab ─────────────────────────────────────────────────────────────
 function _buildICSummaryTab(c, db) {
-  var R = function(l,v){ return v ? '<div style="padding:6px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:110px;flex-shrink:0">'+l+'</span><span style="font-size:12px;color:#0B1526;font-weight:600">'+v+'</span></div>' : ''; };
+  var R = function(l,v){ return v ? '<div style="padding:6px 0;border-bottom:1px solid #F1F4F8;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:110px;flex-shrink:0">'+l+'</span><span style="font-size:12px;color:#0B1526;font-weight:600">'+v+'</span></div>' : ''; };
   var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a+''; })() : '';
   var ini = ((c.firstName||'?')[0]+(c.lastName||'?')[0]).toUpperCase();
-  var bg = c.gender==='Female'?'#B32660':c.gender==='Male'?'#2d6a4f':'#3A475C';
+  var bg = c.gender==='Female'?'#D45C37':c.gender==='Male'?'#2d6a4f':'#3A475C';
   var statusColor = c.status==='Signed'?'#16a34a':c.status==='Forms Sent'?'#d97706':'#586579';
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
     // LEFT
@@ -350,8 +350,8 @@ function _buildICSummaryTab(c, db) {
 // ── Demographics Tab ─────────────────────────────────────────────────────────
 function _buildICDemoTab(c, db) {
   var idx = _icChartClientIdx;
-  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>'; };
-  var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
+  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>'; };
+  var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Demographics' +
     '<button class="btn btn-primary btn-sm" onclick="_saveICDemo()">Save Changes</button></div>' +
@@ -364,8 +364,8 @@ function _buildICDemoTab(c, db) {
     '<div class="fg g2">' +
     F('g-name','Guardian Name *',c.guardianName) + F('g-rel','Relationship',c.guardianRel) +
     F('g-phone','Phone',c.guardianPhone) + F('g-phone2','Phone 2',c.guardianPhone2) +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Email</label><input id="icd-g-email" value="'+(c.guardianEmail||'')+'" type="email" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Address</label><input id="icd-addr" value="'+(c.address||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Email</label><input id="icd-g-email" value="'+(c.guardianEmail||'')+'" type="email" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Address</label><input id="icd-addr" value="'+(c.address||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
     F('city','City',c.city) +
     '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Emergency Contact</div>' +
     '<div class="fg g2">' + F('e-name','Name',c.emergName) + F('e-phone','Phone',c.emergPhone) + F('e-rel','Relationship',c.emergRel) + '</div>' +
@@ -375,9 +375,9 @@ function _buildICDemoTab(c, db) {
     F('ins-group','Group',c.insuranceGroup) + F('ref-source','Referral Source',c.referralSource) +
     F('pcp','PCP',c.pcp) + F('school','School',c.school) +
     F('grade','Grade',c.grade) + F('aba-provider','ABA Provider',c.abaProvider) +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
     F('custody','Custody',c.custody) +
-    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
+    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
     '</div></div>';
 }
 
@@ -403,7 +403,7 @@ function _saveICDemo() {
 
 // ── Coverage Tab ─────────────────────────────────────────────────────────────
 function _buildICCoverageTab(c, db) {
-  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#0B1526;font-weight:600">'+(v||'—')+'</span></div>'; };
+  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #F1F4F8;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#0B1526;font-weight:600">'+(v||'—')+'</span></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Primary Insurance' +
     '<button class="btn btn-sm" onclick="_renderICTab(&quot;demographics&quot;)">Edit</button></div>' +
@@ -446,7 +446,7 @@ function _icPreviewPDF(docId) {
   modal.style.cssText = 'background:#fff;border-radius:12px;overflow:hidden;width:90%;max-width:860px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)';
 
   var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f8f6f0;border-bottom:1px solid #e4e1d8;flex-shrink:0';
+  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E4E9F1;flex-shrink:0';
   hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:#0B1526">Document Preview</span><div style="display:flex;gap:6px" id="ic-preview-actions"></div>';
 
   var ifr = document.createElement('iframe');
@@ -504,7 +504,7 @@ async function _loadICRecords() {
     var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
     if (snap.empty) {
       el.innerHTML = '<div style="text-align:center;padding:40px;color:#586579">' +
-        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e4e1d8" stroke-width="1.5" style="display:block;margin:0 auto 12px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>' +
+        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E4E9F1" stroke-width="1.5" style="display:block;margin:0 auto 12px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>' +
         '<div style="font-size:14px;font-weight:600;color:#3A475C">No signed forms yet</div>' +
         '<div style="font-size:12px;margin-top:4px;color:#586579">Signed consent documents will appear here after the guardian signs</div></div>';
       return;
@@ -526,16 +526,16 @@ async function _loadICRecords() {
       var svgPrint = '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>';
       var svgTrash = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>';
       rows +=
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f4f2ec">' +
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F4F6FA">' +
         // Icon
-        '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B32660" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+        '<div style="width:36px;height:36px;border-radius:8px;background:#FFF1EC;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D45C37" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
         '</div>' +
         // Info
         '<div style="flex:1;min-width:0">' +
         '<div style="font-size:13px;font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+fname+'</div>' +
         '<div style="font-size:10px;color:#586579;margin-top:2px">' +
-        (ftype?'<span style="background:#f4f2ec;border-radius:4px;padding:1px 5px;margin-right:6px;font-weight:600">'+ftype+'</span>':'')+
+        (ftype?'<span style="background:#F4F6FA;border-radius:4px;padding:1px 5px;margin-right:6px;font-weight:600">'+ftype+'</span>':'')+
         'Signed: '+ts+
         '</div>' +
         '</div>' +
@@ -583,8 +583,8 @@ function icClientTab(tab) {
   document.getElementById('icp-records').style.display = tab === 'records' ? '' : 'none';
   var btnInfo = document.getElementById('ict-info');
   var btnRec = document.getElementById('ict-records');
-  if (btnInfo) { btnInfo.style.color = tab==='info'?'#B32660':'#586579'; btnInfo.style.borderBottomColor = tab==='info'?'#B32660':'transparent'; }
-  if (btnRec) { btnRec.style.color = tab==='records'?'#B32660':'#586579'; btnRec.style.borderBottomColor = tab==='records'?'#B32660':'transparent'; }
+  if (btnInfo) { btnInfo.style.color = tab==='info'?'#D45C37':'#586579'; btnInfo.style.borderBottomColor = tab==='info'?'#D45C37':'transparent'; }
+  if (btnRec) { btnRec.style.color = tab==='records'?'#D45C37':'#586579'; btnRec.style.borderBottomColor = tab==='records'?'#D45C37':'transparent'; }
   if (tab === 'records') icLoadClientRecords();
 }
 
@@ -607,16 +607,16 @@ async function icLoadClientRecords() {
     snap.forEach(function(doc) {
       var d = doc.data();
       var ts = d.signedTs || (d.signedAt && d.signedAt.toDate ? d.signedAt.toDate().toLocaleString() : '');
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f6f0;border-radius:8px;margin-bottom:8px;border:1px solid #e4e1d8">';
-      html += '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B32660" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border-radius:8px;margin-bottom:8px;border:1px solid #E4E9F1">';
+      html += '<div style="width:36px;height:36px;border-radius:8px;background:#FFF1EC;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D45C37" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="font-size:13px;font-weight:700;color:#0B1526">' + (d.formName || 'Signed Document') + '</div>';
       html += '<div style="font-size:10px;color:#586579;margin-top:2px">Signed: ' + ts + '</div>';
       html += '</div>';
       if (d.pdfData) {
         html += '<a href="' + d.pdfData + '" download="' + (d.formName||'document').replace(/[^a-z0-9]/gi,'_') + '.pdf" ';
-        html += 'style="flex-shrink:0;padding:5px 12px;background:#B32660;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
+        html += 'style="flex-shrink:0;padding:5px 12px;background:#D45C37;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
         html += '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>';
       }
       html += '</div>';
@@ -745,7 +745,7 @@ function icSendIntakeForms() {
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
   var childName = (c.firstName||'') + ' ' + (c.lastName||'');
-  var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
 
   var emailHtml = [
     '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
@@ -763,7 +763,7 @@ function icSendIntakeForms() {
       '</div>',
       (message ? '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + message + '</em></p>' : ''),
       '<div style="text-align:center;margin-bottom:18px">',
-        '<a href="' + intakeLink + '" style="display:inline-block;background:#B32660;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
+        '<a href="' + intakeLink + '" style="display:inline-block;background:#D45C37;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
         '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours. Do not share.</p>',
       '</div>',
       '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">If you did not expect this email, please ignore it. &middot; ClaimDataCare &copy; 2026</p>',
@@ -849,7 +849,7 @@ function icSendDemoLink(idx) {
 
   // Offer copy link or send email
   if (confirm('Send demographic intake link to ' + c.guardianEmail + '?\n\nClick OK to send via email.\nClick Cancel to copy link to clipboard.')) {
-    var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+    var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
     var emailHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
       '<div style="background:#0B1526;padding:20px 28px;display:flex;align-items:center;gap:14px">',
@@ -861,7 +861,7 @@ function icSendDemoLink(idx) {
         '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
         '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5">Please complete the demographic intake form for your child. This collects demographic, contact, and insurance information needed to set up your child\'s record.</p>',
         '<div style="text-align:center;margin-bottom:18px">',
-          '<a href="' + demoLink + '" style="display:inline-block;background:#B32660;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Demographic Intake</a>',
+          '<a href="' + demoLink + '" style="display:inline-block;background:#D45C37;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Demographic Intake</a>',
           '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours.</p>',
         '</div>',
         '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">ClaimDataCare &copy; 2026</p>',
@@ -1652,7 +1652,7 @@ function _icExtractIData() {
 
 function _icTryFirestoreLoad(clientId, callback) {
   if (!_db || !firebase || !firebase.firestore) { callback(false); return; }
-  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
   var db = getDB();
   // Try direct Firestore query for this intake client
   _db.collection('intakeClients').where('id', '==', clientId).get().then(function(snap) {
@@ -1750,7 +1750,7 @@ function checkIntakeToken() {
     }
     if (!c) {
       if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
         // Retries exhausted — try embedded client data from URL (standalone portal)
@@ -1828,8 +1828,8 @@ function renderIntakePortal(client, pendingSubs, token) {
 
 function _icPortalLayout(client, pendingSubs, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#3A475C;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#f0efe8;border:1px solid #E4E9F1;color:#3A475C;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#0B1526}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #E4E9F1;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
+  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#3A475C;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#F1F4F8;border:1px solid #E4E9F1;color:#3A475C;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#0B1526}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #E4E9F1;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
   return [
     '<style>' + css + '</style>',
     '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
@@ -1878,7 +1878,7 @@ function _icPortalFormCard(client, sub, si, token) {
 
   // Form content — collapsible
   if (formContent) {
-    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#B32660;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
+    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#D45C37;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
     formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#3A475C;line-height:1.7;padding:12px;background:#FFFFFF;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #E4E9F1">' + formContent + '</div>';
   }
 
@@ -2315,7 +2315,7 @@ function checkDemographicToken() {
     }
     if (!c) {
       if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
         // Retries exhausted — try embedded client data from URL (standalone portal)
@@ -2349,7 +2349,7 @@ function checkDemographicToken() {
 
 function renderDemographicPortal(client, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
 
   var html = [
     '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
@@ -2417,7 +2417,7 @@ function renderDemographicPortal(client, token) {
 
     // Submit
     '<div style="display:flex;gap:10px;margin-top:20px">',
-    '<button type="submit" id="demo-submit-btn" style="flex:1;padding:12px 20px;background:var(--brand,#B32660);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Submit Demographic Information</button>',
+    '<button type="submit" id="demo-submit-btn" style="flex:1;padding:12px 20px;background:var(--brand,#D45C37);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Submit Demographic Information</button>',
     '</div>',
     '<div id="demo-status" style="margin-top:10px;font-size:12px;color:#586579;text-align:center"></div>',
     '</form>',
@@ -2549,7 +2549,7 @@ function icSubmitDemographic(clientId, token) {
   // Show loading spinner immediately so page is never blank
   var rootEl = document.getElementById('root');
   if (rootEl) {
-    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
+    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
   }
 
   // Wait for Firebase + DB to be ready, then run token check

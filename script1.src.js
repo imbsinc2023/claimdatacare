@@ -1,5 +1,5 @@
 // CDC BUILD 2026-07-27 LOGIN-FLASH v9 — loading overlay + pre-set specialty + force user menu closed — provider switch revalidates specialty — CM Client = Patient parity (same fields + columns) — + Y4 claim number (Box 11b) — PCN + per-line dates + accident + 12 lines + attachments — admin-only Settings + Supervisor=Rendering
-console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#B32660;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
+console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#D45C37;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
 // Global error trap — catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
   console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
@@ -380,11 +380,11 @@ function _injectCriticalCSS() {
     'html,body{height:100%;margin:0}' +
     '#root{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}' +
     '.app-shell{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden}' +
-    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#0B1526;color:#fff;z-index:100;overflow:visible;position:relative}' +
+    '.topnav{height:44px;min-height:44px;max-height:44px;flex-shrink:0;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;background:#FFFFFF;color:#0B1526;border-bottom:1px solid #E4E9F1;box-sizing:border-box;z-index:100;overflow:visible;position:relative}' +
     '.tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:visible}' +
-    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}' +
-    '.tn-item:hover{background:rgba(255,255,255,.1);color:#fff}' +
-    '.tn-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}' +
+    '.tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:#3A475C;white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}' +
+    '.tn-item:hover{background:#F1F4F8;color:#0B1526}' +
+    '.tn-item.active{background:rgba(212,92,55,.1);color:#B8461F;font-weight:600}' +
     '.tn-group{position:relative;display:inline-flex}' +
     '.tn-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:190px;z-index:99999;padding:4px}' +
     '.tn-group.open .tn-dropdown{display:block}' +
@@ -874,7 +874,7 @@ function _injectMissingModals() {
     // Selection info
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--r);margin-bottom:8px;font-size:11px">' +
       '<div id="sgpick-count" style="color:var(--text3)">0 patients</div>' +
-      '<div id="sgpick-selcount" style="color:#B32660;font-weight:700">0 selected</div>' +
+      '<div id="sgpick-selcount" style="color:#D45C37;font-weight:700">0 selected</div>' +
     '</div>' +
     // Results table
     '<div id="sgpick-list" style="border:1px solid var(--border);border-radius:var(--r);max-height:52vh;overflow-y:auto;background:#fff"></div>' +
@@ -1158,7 +1158,7 @@ function renderPatients(){
   });
   var rows = pageList.map(function(p) {
     var cnt = _claimCount[p.id] || 0;
-    var bg = p.sex==='F'?'#B32660':p.sex==='M'?'#2d6a4f':'#3A475C';
+    var bg = p.sex==='F'?'#D45C37':p.sex==='M'?'#2d6a4f':'#3A475C';
     var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
     var isSA = (function(){ var s=getSession(); return s && s.role==='Super Admin'; })();
     var ins = _resolvePatientInsurance(p);
@@ -1179,7 +1179,7 @@ function renderPatients(){
       + '<td>' + dispPayer + '</td>'
       + '<td>' + dispPlan + '</td>'
       + '<td>' + dispRel + '</td>'
-      + '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#fdf3ee':'#f8f6f0')+';color:'+(cnt>0?'#B32660':'#586579')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'
+      + '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#FFF1EC':'#F8FAFC')+';color:'+(cnt>0?'#D45C37':'#586579')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'
       + '<td><div style="display:flex;gap:4px;align-items:center">'
       + '<button class="btn btn-xs" onclick="openPatientChart(\'' + p.id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'
       + (isSA ? '<button class="btn btn-xs btn-danger" onclick="deletePatientConfirm(\'' + p.id + '\')" title="Delete Patient" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)"><i data-lucide="trash-2" class="lci" style="width:13px;height:13px"></i></button>' : '')
@@ -1463,7 +1463,7 @@ function _renderClaimEditorInner(){
   '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px">'+
 
   // ── TOP NAV BAR ──
-  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#B32660;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(179,38,96,.25)">'+
+  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#D45C37;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(212,92,55,.25)">'+
     '<span style="font-size:12px;font-weight:700;color:#fff">Claim Editor</span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
     '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'—')+'</strong></span>'+
@@ -1473,7 +1473,7 @@ function _renderClaimEditorInner(){
     '<div style="flex:1"></div>'+
     '<button class="btn btn-xs" onclick="window.print()" title="Print" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center"><i data-lucide="printer" class="lci" style="width:13px;height:13px"></i></button>'+
     '<button class="btn btn-xs" onclick="_ceDuplicate(\''+claimId+'\')" title="Duplicate" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center"><i data-lucide="copy" class="lci" style="width:13px;height:13px"></i></button>'+
-    '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" title="Save" style="background:#fff;color:#B32660;border:1px solid #fff;border-radius:6px;width:28px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:700"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>'+
+    '<button class="btn btn-xs" onclick="_ceSave(\''+claimId+'\')" title="Save" style="background:#fff;color:#D45C37;border:1px solid #fff;border-radius:6px;width:28px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:700"><i data-lucide="save" class="lci" style="width:14px;height:14px"></i></button>'+
     _closeBtn+
   '</div>'+
 
@@ -1492,7 +1492,7 @@ function _renderClaimEditorInner(){
     ['services','payments','claims','eobs','comments'].map(function(t){
       var labels={services:'ICDs & CPTs',payments:'Payments',claims:'Log',eobs:'EOBs',comments:'Comments'};
       var active=t===activeTab;
-      return '<button data-ce-notrack="1" onclick="_ceSwitchTab(\''+claimId+'\',\''+t+'\')" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#B32660':'var(--text2)')+';border-bottom:3px solid '+(active?'#B32660':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
+      return '<button data-ce-notrack="1" onclick="_ceSwitchTab(\''+claimId+'\',\''+t+'\')" style="padding:7px 14px;font-size:12px;font-weight:'+(active?700:500)+';border:none;background:none;cursor:pointer;color:'+(active?'#D45C37':'var(--text2)')+';border-bottom:3px solid '+(active?'#D45C37':'transparent')+';margin-bottom:-2px;transition:all .15s">'+labels[t]+'</button>';
     }).join('')+
   '</div>'+
 
@@ -1607,7 +1607,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   // ── CSS constants using DESIGN.md palette ──────────────────────────────
   var S = {
     parchment:'#F6F8FB', ivory:'#FFFFFF', nearBlack:'#0B1526',
-    terracotta:'#B32660', coral:'#d97757', oliveGray:'#475467',
+    terracotta:'#D45C37', coral:'#d97757', oliveGray:'#475467',
     stoneGray:'#586579', borderCream:'#EEF1F6', borderWarm:'#E4E9F1',
     darkSurface:'#30302e', warmSilver:'#b0aea5', warmSand:'#E4E9F1',
     charcoalWarm:'#3A475C'
@@ -1850,7 +1850,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
           +'<button onclick="_ceTransmitToPending(\''+claimId+'\')" title="Send to batch (Draft → Pending)" style="padding:7px 14px;background:'+S.nearBlack+';color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700"><i data-lucide="send" class="lci" style="width:12px;height:12px;margin-right:4px"></i>Transmit</button>'
           +'<button onclick="renderClaimEditor()" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Reset</button>'
           +'<button onclick="_ceGenerateCMS1500(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px"><i data-lucide="file-text" class="lci" style="width:12px;height:12px;margin-right:3px"></i>Print</button>'
-          +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:7px 12px;background:#B32660;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px" title="Submit as Corrected Claim"><i data-lucide="refresh-ccw" class="lci" style="width:11px;height:11px;margin-right:3px"></i>Corrected</button>'
+          +'<button onclick="openCorrectedClaimModal(\''+claimId+'\')" style="padding:7px 12px;background:#D45C37;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px" title="Submit as Corrected Claim"><i data-lucide="refresh-ccw" class="lci" style="width:11px;height:11px;margin-right:3px"></i>Corrected</button>'
           +'<button onclick="_ceCancelClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>'
           +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
           +(canDel?'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:7px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete</button>':'')
@@ -2016,7 +2016,7 @@ function _ceBuildPaymentsTab(claim, claimId, db){
     rows.push({
       ts: p.ts || 0,
       date: p.date || (p.ts?new Date(p.ts).toLocaleDateString():''),
-      source: 'Patient', sourceColor:'#B32660',
+      source: 'Patient', sourceColor:'#D45C37',
       payer: 'Patient — '+((claim._patName)||''),
       amount: parseFloat(p.amount||0),
       method: p.method || 'Cash',
@@ -2119,7 +2119,7 @@ function _ceBuildLogTab(claim, claimId, db){
   var logs = showGranular ? allLogs : allLogs.filter(function(l){ return !GRANULAR_TYPES[l.type]; });
   var granularCnt = allLogs.filter(function(l){ return GRANULAR_TYPES[l.type]; }).length;
   var typeIcon = {submission:'send', edit:'pencil', cancel:'ban', corrected:'refresh-ccw', comment:'message-square', snapshot:'file-text', error:'alert-triangle', info:'info', field:'pencil-line', tab:'layout-panel-top', click:'mouse-pointer-click'};
-  var typeColor = {submission:'#2d7a4f', edit:'#475467', cancel:'#b53333', corrected:'#B32660', comment:'#475467', snapshot:'#1565c0', error:'#b53333', info:'#586579', field:'#a3a19a', tab:'#a3a19a', click:'#a3a19a'};
+  var typeColor = {submission:'#2d7a4f', edit:'#475467', cancel:'#b53333', corrected:'#D45C37', comment:'#475467', snapshot:'#1565c0', error:'#b53333', info:'#586579', field:'#a3a19a', tab:'#a3a19a', click:'#a3a19a'};
 
   var header = '<div style="display:flex;gap:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:12px">'+
     '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">PCN</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.pcn||'—')+'</div></div>'+
@@ -2151,7 +2151,7 @@ function _ceBuildLogTab(claim, claimId, db){
   }).join('');
 
   var toggleHtml = granularCnt>0
-    ? '<label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;font-weight:500"><input type="checkbox" '+(showGranular?'checked':'')+' onchange="window._ceLogShowGranular=this.checked;renderClaimEditor()" style="accent-color:#B32660;width:13px;height:13px"> Show granular events ('+granularCnt+')</label>'
+    ? '<label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;font-weight:500"><input type="checkbox" '+(showGranular?'checked':'')+' onchange="window._ceLogShowGranular=this.checked;renderClaimEditor()" style="accent-color:#D45C37;width:13px;height:13px"> Show granular events ('+granularCnt+')</label>'
     : '';
   return '<div style="flex:1;overflow-y:auto;padding:16px">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;flex-wrap:wrap">'+
@@ -2181,7 +2181,7 @@ function _ceBuildEOBsTab(claim, db){
     _ceEobStat('Billed','$'+fmtMoney(billed),'#0B1526')+
     _ceEobStat('Total Paid','$'+fmtMoney(totalPaid),'#2d7a4f')+
     _ceEobStat('Balance','$'+fmtMoney(balance),balance>0?'#b35c00':'#2d7a4f')+
-    _ceEobStat('Pat. Resp','$'+fmtMoney(claim.patientBalance||0),claim.patientBalance>0?'#B32660':'#586579')+
+    _ceEobStat('Pat. Resp','$'+fmtMoney(claim.patientBalance||0),claim.patientBalance>0?'#D45C37':'#586579')+
   '</div>';
 
   if (claim.readyForSecondary) {
@@ -2217,7 +2217,7 @@ function _ceBuildEOBsTab(claim, db){
           '<th style="padding:4px 8px;text-align:right;font-weight:600;color:var(--text3)">Amount</th>'+
         '</tr></thead><tbody>'+
         e.adjLines.map(function(a){
-          var gc = a.group==='CO'?'#475467':a.group==='PR'?'#B32660':'#475467';
+          var gc = a.group==='CO'?'#475467':a.group==='PR'?'#D45C37':'#475467';
           return '<tr style="border-top:1px solid var(--border)">'+
             '<td style="padding:4px 8px;font-weight:700;color:'+gc+'">'+a.group+'</td>'+
             '<td style="padding:4px 8px;font-family:monospace">'+a.group+'-'+a.code+'</td>'+
@@ -2245,9 +2245,9 @@ function _ceBuildEOBsTab(claim, db){
       '</div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px">'+
         _ceEobMini('Contractual (CO)', '$'+fmtMoney(e.adj||0))+
-        _ceEobMini('Deductible', '$'+fmtMoney(e.deductible||0), e.deductible>0?'#B32660':null)+
-        _ceEobMini('Coinsurance', '$'+fmtMoney(e.coinsurance||0), e.coinsurance>0?'#B32660':null)+
-        _ceEobMini('Copay', '$'+fmtMoney(e.copay||0), e.copay>0?'#B32660':null)+
+        _ceEobMini('Deductible', '$'+fmtMoney(e.deductible||0), e.deductible>0?'#D45C37':null)+
+        _ceEobMini('Coinsurance', '$'+fmtMoney(e.coinsurance||0), e.coinsurance>0?'#D45C37':null)+
+        _ceEobMini('Copay', '$'+fmtMoney(e.copay||0), e.copay>0?'#D45C37':null)+
       '</div>'+
       adjTable+
     '</div>';
@@ -2310,7 +2310,7 @@ function _ceSmallField(label, type, id, val){
 function _ceAmtRow(label, val, hasLink, isBlue){
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border)">'+
     '<span style="font-size:11px;color:var(--text2)">'+label+'</span>'+
-    '<span style="font-size:11px;font-family:var(--mono);color:'+(isBlue?'#B32660':'var(--text)')+'">'+val+
+    '<span style="font-size:11px;font-family:var(--mono);color:'+(isBlue?'#D45C37':'var(--text)')+'">'+val+
       (hasLink?' <a href="#" style="font-size:10px;color:var(--brand)" onclick="return false">Details</a>':'')+
     '</span>'+
   '</div>';
@@ -2733,9 +2733,9 @@ function _cePadRender(encounterCpts, svcMap, query) {
     // No catalog match — offer to add whatever the user typed as a raw CPT
     var typed = query.trim().toUpperCase();
     if (/^[0-9A-Z]{4,5}$/.test(typed)) {
-      html += '<div onclick="_cePadAddCpt(\''+typed+'\',\'0.00\')" style="display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer;border-bottom:1px solid #E4E9F1;background:#fff3ee" onmouseover="this.style.background=\'#f0d4c8\'" onmouseout="this.style.background=\'#fff3ee\'">'+
-                '<i data-lucide="plus" class="lci" style="width:12px;height:12px;color:#B32660"></i>'+
-                '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#B32660;font-family:monospace">'+typed+'</div><div style="font-size:9px;color:#586579">Add as new CPT line</div></div>'+
+      html += '<div onclick="_cePadAddCpt(\''+typed+'\',\'0.00\')" style="display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer;border-bottom:1px solid #E4E9F1;background:#fff3ee" onmouseover="this.style.background=\'#FFD2C2\'" onmouseout="this.style.background=\'#fff3ee\'">'+
+                '<i data-lucide="plus" class="lci" style="width:12px;height:12px;color:#D45C37"></i>'+
+                '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#D45C37;font-family:monospace">'+typed+'</div><div style="font-size:9px;color:#586579">Add as new CPT line</div></div>'+
               '</div>';
     } else {
       html += '<div style="padding:12px 8px;text-align:center;font-size:11px;color:#586579;font-style:italic">No CPTs found</div>';
@@ -2752,7 +2752,7 @@ function _cePadItem(code, desc, price, isEncounter) {
     'style="display:flex;align-items:center;gap:5px;padding:6px 8px;cursor:pointer;border-bottom:1px solid #E4E9F1" '+
     'onmouseover="this.style.background=\'#F6F8FB\'" onmouseout="this.style.background=\'\'">'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:11px;font-weight:700;color:'+(isEncounter?'#B32660':'#0B1526')+';font-family:monospace">'+code+'</div>'+
+        '<div style="font-size:11px;font-weight:700;color:'+(isEncounter?'#D45C37':'#0B1526')+';font-family:monospace">'+code+'</div>'+
         (desc?'<div style="font-size:9px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+desc+'</div>':'')+
       '</div>'+
       '<div style="font-size:10px;font-family:monospace;color:#475467;flex-shrink:0">$'+price+'</div>'+
@@ -3047,10 +3047,10 @@ function _ceOpenMoreModal(claimId, lineIdx){
   // Build sidebar — icon + label only, no scope description
   var sidebar = tabs.map(function(t){
     var isActive = t.id === activeTab;
-    return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:11px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#B32660':'#475467')+';cursor:pointer;border-left:3px solid '+(isActive?'#B32660':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
+    return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:11px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#D45C37':'#475467')+';cursor:pointer;border-left:3px solid '+(isActive?'#D45C37':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
       '<i data-lucide="'+t.icon+'" class="lci" style="width:15px;height:15px;flex-shrink:0"></i>'+
       '<span style="flex:1;line-height:1.2">'+t.label+'</span>'+
-      (t.hasData ? '<span style="width:8px;height:8px;background:#B32660;border-radius:50%;flex-shrink:0" title="Has data"></span>' : '')+
+      (t.hasData ? '<span style="width:8px;height:8px;background:#D45C37;border-radius:50%;flex-shrink:0" title="Has data"></span>' : '')+
     '</button>';
   }).join('');
 
@@ -3068,7 +3068,7 @@ function _ceOpenMoreModal(claimId, lineIdx){
     // Static height 700px (fits typical laptop viewports); shrinks only if viewport <92vh
     '<div style="background:#fff;border-radius:12px;width:100%;max-width:820px;height:700px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
     // Header (terracotta) — title only, no subtitle
-    '<div style="padding:16px 22px;background:#B32660;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
+    '<div style="padding:16px 22px;background:#D45C37;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
       '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="file-plus-2" class="lci" style="width:18px;height:18px"></i> CPT Additional Details</div>'+
       '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
     '</div>'+
@@ -3089,7 +3089,7 @@ function _ceOpenMoreModal(claimId, lineIdx){
       '<div style="font-size:11px;color:#475467">'+(activeTab==='accident'?(a.updatedAt?'Last saved '+new Date(a.updatedAt).toLocaleString():'Not yet saved'):((lineData[activeTab]&&lineData[activeTab].updatedAt)?'Last saved '+new Date(lineData[activeTab].updatedAt).toLocaleString():'Not yet saved'))+'</div>'+
       '<div style="display:flex;gap:8px">'+
         '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="padding:8px 16px;background:#fff;color:#475467;border:1.5px solid #E4E9F1;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Cancel</button>'+
-        '<button onclick="_ceSaveMore(\''+claimId+'\','+lineIdx+')" style="padding:8px 18px;background:#B32660;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
+        '<button onclick="_ceSaveMore(\''+claimId+'\','+lineIdx+')" style="padding:8px 18px;background:#D45C37;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer"><i data-lucide="save" class="lci" style="width:12px;height:12px"></i> Save</button>'+
       '</div>'+
     '</div>'+
     '</div>';
@@ -3106,7 +3106,7 @@ function _ceMoreHelpers(){
     input: 'width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:6px;font-size:13px;background:#FFFFFF;color:#0B1526;font-family:inherit',
     mono: 'width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:6px;font-size:13px;background:#FFFFFF;color:#0B1526;font-family:monospace;letter-spacing:.02em',
     lbl:  'display:block;font-size:10px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px',
-    sect: 'font-size:11px;font-weight:800;color:#B32660;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;padding-bottom:6px;border-bottom:1.5px solid #f0d4c8',
+    sect: 'font-size:11px;font-weight:800;color:#D45C37;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;padding-bottom:6px;border-bottom:1.5px solid #FFD2C2',
     esc:  function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); },
     sel:  function(cur,val){ return cur===val ? ' selected' : ''; }
   };
@@ -3250,9 +3250,9 @@ function _ceMoreTabAnesthesia(lineData){
         '</div>'+
       '</div>'+
     '</div>'+
-    '<div style="padding:14px 18px;background:#fff3ee;border:1.5px solid #f0d4c8;border-radius:8px;text-align:center">'+
-      '<div style="font-size:10px;color:#B32660;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Anesthesia Units</div>'+
-      '<div id="anes-total" style="font-size:22px;font-weight:800;color:#B32660;font-family:monospace">0</div>'+
+    '<div style="padding:14px 18px;background:#fff3ee;border:1.5px solid #FFD2C2;border-radius:8px;text-align:center">'+
+      '<div style="font-size:10px;color:#D45C37;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Anesthesia Units</div>'+
+      '<div id="anes-total" style="font-size:22px;font-weight:800;color:#D45C37;font-family:monospace">0</div>'+
       '<div style="font-size:10px;color:#586579;margin-top:3px" id="anes-elapsed">0 minutes ÷ 15</div>'+
     '</div>';
 }
@@ -3317,7 +3317,7 @@ function _ceMoreTabAccident(claim, isCasualty, payerName){
   var states = ['','AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
 
   return '<div style="'+h.sect+'">Accident / Casualty <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 10a-c, 11b, 14)</span></div>'+
-    (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #f0d4c8;border-radius:8px;margin-bottom:14px;font-size:12px;color:#B32660;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # required for EDI submission.</span></div>' : '')+
+    (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #FFD2C2;border-radius:8px;margin-bottom:14px;font-size:12px;color:#D45C37;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # required for EDI submission.</span></div>' : '')+
     '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 10 — Condition Related To</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'+
       '<div><label style="'+h.lbl+'">10a — Employment</label>'+
@@ -3670,9 +3670,9 @@ function _ceRefreshCheckBox(claimId, errs){
   var bypassed = window._ceBypassed && window._ceBypassed[claimId];
   var hasErrs = errs.length > 0;
 
-  var badgeColor = !hasErrs ? '#2d7a4f' : bypassed ? '#586579' : '#B32660';
+  var badgeColor = !hasErrs ? '#2d7a4f' : bypassed ? '#586579' : '#D45C37';
   var badgeBg    = !hasErrs ? '#f0f8f2' : bypassed ? '#F6F8FB' : '#fff3ee';
-  var badgeBdr   = !hasErrs ? '#c9e2d1' : bypassed ? '#E4E9F1' : '#f0d4c8';
+  var badgeBdr   = !hasErrs ? '#c9e2d1' : bypassed ? '#E4E9F1' : '#FFD2C2';
   var badgeIco   = !hasErrs ? 'shield-check' : 'shield-alert';
   var badgeText  = !hasErrs ? 'Passing' : bypassed ? 'Bypassed' : (errs.length + ' issue' + (errs.length>1?'s':''));
 
@@ -4856,7 +4856,7 @@ el.innerHTML =
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'rejected\')"><i data-lucide="x-circle" class="lci"></i> Reject</button>'+
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'export\')"><i data-lucide="download" class="lci"></i> Export 837P</button>'+
 '<button class="btn btn-sm" onclick="bulkClaimAction(\'pdf\')"><i data-lucide="printer" class="lci"></i> Superbills PDF</button>'+
-'<button class="btn btn-sm" onclick="bulkClaimAction(\'transmit\')" style="background:#B32660;color:#fff"><i data-lucide="send" class="lci"></i> Transmit to Clearinghouse</button>'+
+'<button class="btn btn-sm" onclick="bulkClaimAction(\'transmit\')" style="background:#D45C37;color:#fff"><i data-lucide="send" class="lci"></i> Transmit to Clearinghouse</button>'+
 (hasPermission('Delete Claims') ? '<button class="btn btn-sm btn-danger" onclick="bulkClaimAction(\'delete\')"><i data-lucide="trash-2" class="lci"></i> Delete</button>' : '')+
 '</div>'+
 '<button class="btn btn-xs btn-ghost" onclick="selectAllClaims(false)" style="margin-left:auto"><i data-lucide="x" class="lci" style="width:12px;height:12px"></i> Clear</button>'+
@@ -5335,12 +5335,12 @@ function _applyProviderCHKeyGate(){
         if (!existing && parent){
           var warn = document.createElement('div');
           warn.setAttribute('data-ch-key-warn','1');
-          warn.style.cssText = 'padding:14px;background:#fdf5f0;border:1.5px dashed #B32660;border-radius:10px;margin-top:8px';
+          warn.style.cssText = 'padding:14px;background:#FFF1EC;border:1.5px dashed #D45C37;border-radius:10px;margin-top:8px';
           warn.innerHTML =
             '<div style="display:flex;align-items:flex-start;gap:10px">'+
-              '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#B32660" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'+
+              '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#D45C37" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'+
               '<div style="flex:1;min-width:0">'+
-                '<div style="font-size:12px;font-weight:700;color:#B32660;margin-bottom:4px">Transmit Direct not available</div>'+
+                '<div style="font-size:12px;font-weight:700;color:#D45C37;margin-bottom:4px">Transmit Direct not available</div>'+
                 '<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Provider <strong>'+provName.replace(/</g,'&lt;')+'</strong> has no Clearinghouse Account Key configured. Direct transmit, sync status, and ERA import are disabled for this provider. Add a key to enable these operations.</div>'+
                 '<button class="btn btn-sm btn-primary" onclick="go(\'admin-providers\')"><i data-lucide="key" class="lci"></i> Configure API Key</button>'+
               '</div>'+
@@ -7111,7 +7111,7 @@ Select a service group and dates to preview
 </div>`;
 }
 function getShellHeaderHTML(){
-return '<header class="topnav" id="topnav">\n<button class="tn-hamburger" onclick="openTnDrawer()" aria-label="Menu">\n<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="40" y1="80" x2="216" y2="80"/><line x1="40" y1="128" x2="216" y2="128"/><line x1="40" y1="176" x2="216" y2="176"/></svg>\n</button>\n<div class="tn-brand">\n<img src="favicon.svg" id="nav-logo-main" class="nav-favicon" width="20" height="20" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">\n<span class="tn-brand-name">ClaimDataCare</span>\n</div>\n<div class="tn-divider"></div>\n<nav class="tn-nav" id="tn-nav">\n<button class="tn-item" id="tnav-dashboard" onclick="go(\'dashboard\')"><i data-lucide="layout-dashboard" class="lci"></i><span>Home</span></button>\n<div class="tn-group" id="tng-appointments">\n<button class="tn-item tn-has-dd" id="tnav-appointments" onclick="toggleTnDropdown(\'appointments\',event)">\n<i data-lucide="calendar-days" class="lci"></i><span>Schedule</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-appointments">\n<div class="tn-dd-item" id="tnd-appointments" onclick="go(\'appointments\');closeTnDropdown()"><i data-lucide="calendar-days" class="lci"></i><span>Day Schedule</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-schedule-setup" onclick="go(\'schedule-setup\');closeTnDropdown()"><i data-lucide="settings-2" class="lci"></i><span>Schedule Setup</span></div>\n</div>\n</div>\n<button class="tn-item" id="tnav-patients" onclick="go(\'patients\')"><i data-lucide="users" class="lci"></i><span>Patients</span></button>\n<div class="tn-group" id="tng-billing">\n<button class="tn-item tn-has-dd" id="tnav-billing" onclick="toggleTnDropdown(\'billing\',event)">\n<i data-lucide="receipt" class="lci"></i><span>Billing</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-billing">\n<div class="tn-dd-item" id="tnd-claims" onclick="go(\'claims\');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-eob" onclick="go(\'eob\');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>\n<div class="tn-dd-item" id="tnd-validate" onclick="go(\'validate\');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-billing-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-ehr">\n<button class="tn-item tn-has-dd" id="tnav-ehr" onclick="toggleTnDropdown(\'ehr\',event)">\n<i data-lucide="stethoscope" class="lci"></i><span>EHR</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-ehr">\n<div class="tn-dd-item" id="tnd-notes" onclick="go(\'notes\');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters</span></div>\n      <div class="tn-dd-item" id="tnd-services" onclick="go(\'services\');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-clients-group\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-clients-group\" onclick=\"toggleTnDropdown(\'cm-clients-group\',event)\">\n      <i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-clients-group\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-intake\" onclick=\"go(\'cm-intake\');closeTnDropdown()\"><i data-lucide=\"user-plus\" class=\"lci\"></i><span>Intake / Referrals</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-clients\" onclick=\"go(\'cm-clients\');closeTnDropdown()\"><i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-workers\" onclick=\"go(\'cm-workers\');closeTnDropdown()\"><i data-lucide=\"user-cog\" class=\"lci\"></i><span>Users</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-care\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-care\" onclick=\"toggleTnDropdown(\'cm-care\',event)\">\n      <i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Care</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-care\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-assessments\" onclick=\"go(\'cm-assessments\');closeTnDropdown()\"><i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Assessments</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-plans\" onclick=\"go(\'cm-plans\');closeTnDropdown()\"><i data-lucide=\"clipboard-list\" class=\"lci\"></i><span>Care Plans</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-encounters\" onclick=\"go(\'cm-encounters\');closeTnDropdown()\"><i data-lucide=\"notebook-pen\" class=\"lci\"></i><span>Encounters / Notes</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-workflow\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-workflow\" onclick=\"toggleTnDropdown(\'cm-workflow\',event)\">\n      <i data-lucide=\"list-checks\" class=\"lci\"></i><span>Workflow</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-workflow\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-tasks\" onclick=\"go(\'cm-tasks\');closeTnDropdown()\"><i data-lucide=\"list-checks\" class=\"lci\"></i><span>Tasks &amp; Follow-Ups</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-auth\" onclick=\"go(\'cm-authorizations\');closeTnDropdown()\"><i data-lucide=\"file-check\" class=\"lci\"></i><span>Authorizations</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-referrals\" onclick=\"go(\'cm-referrals\');closeTnDropdown()\"><i data-lucide=\"external-link\" class=\"lci\"></i><span>Referrals &amp; Resources</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-review\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-review\" onclick=\"toggleTnDropdown(\'cm-review\',event)\">\n      <i data-lucide=\"eye\" class=\"lci\"></i><span>Review</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-review\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-supervisor\" onclick=\"go(\'cm-supervisor\');closeTnDropdown()\"><i data-lucide=\"eye\" class=\"lci\"></i><span>Supervisor Review</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-billing-readiness\" onclick=\"go(\'cm-billing\');closeTnDropdown()\"><i data-lucide=\"receipt\" class=\"lci\"></i><span>Billing Readiness</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-reports\" onclick=\"go(\'cm-reports\');closeTnDropdown()\"><i data-lucide=\"bar-chart-3\" class=\"lci\"></i><span>Reports</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-discharge\" onclick=\"go(\'cm-discharge\');closeTnDropdown()\"><i data-lucide=\"door-open\" class=\"lci\"></i><span>Discharge</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm\" style=\"display:none\"></div>\n      <div class="tn-group" id="tng-config">\n<button class="tn-item tn-has-dd" id="tnav-config" onclick="toggleTnDropdown(\'config\',event)">\n<i data-lucide="settings" class="lci"></i><span>Settings</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-config">\n<div class="tn-dd-item" id="tnd-settings-users" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-sep" style="height:1px;background:var(--border);margin:4px 0"></div>\n<div class="tn-dd-item" id="tnd-insurances" onclick="go(\'insurances\');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Insurances / Payers</span></div>\n<div class="tn-dd-item" id="tnd-facilities" onclick="go(\'facilities\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Facilities</span></div>\n<div class="tn-dd-item" id="tnd-rendering" onclick="go(\'rendering\');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Rendering Providers</span></div>\n<div class="tn-dd-item" id="tnd-referring" onclick="go(\'referring\');closeTnDropdown()"><i data-lucide="arrow-right-left" class="lci"></i><span>Referring Providers</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-provider-info" onclick="go(\'provider-info\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Provider Information</span></div>\n<div class="tn-dd-item" id="tnd-master-settings" style="display:none" onclick="openMasterSettings();closeTnDropdown()" title="Master Settings (Managers and Super Admin)"><i data-lucide="shield-ellipsis" class="lci"></i><span>Master Settings</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-admin" style="display:none">\n<button class="tn-item tn-has-dd" id="tnav-admin" onclick="toggleTnDropdown(\'admin\',event)">\n<i data-lucide="shield-check" class="lci"></i><span>Admin</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown tn-dd-right" id="tn-dd-admin">\n<div class="tn-dd-item" id="tnd-admin-providers" onclick="go(\'admin-providers\');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>\n<div class="tn-dd-item" id="tnd-servicegroups" onclick="go(\'servicegroups\');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>\n<div class="tn-dd-item" id="tnd-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n<div class="tn-dd-item" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-item" onclick="go(\'reports\');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div><div class="tn-dd-item" onclick="go(\'admin-tickets\');closeTnDropdown()"><i data-lucide="headphones" class="lci"></i><span>Support Tickets <span id="tnc-admin-tickets" class="tn-cnt" style="display:none;background:#dc2626;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-invoices" onclick="go(\'invoices\');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>\n<div class="tn-dd-item" onclick="_storageMigrateClick()"><i data-lucide="upload-cloud" class="lci"></i><span>Free Up Storage</span></div>\n<div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>\n</div>\n</div>\n</div>\n</nav>\n<div class="tn-right">\n<div id="fb-status" style="display:none"></div>\n<div id="prov-sel-wrap" style="display:flex;align-items:center;gap:6px;flex-shrink:0">\n<button id="tn-tickets" type="button" class="tn-icon-btn" onclick="openTicketsModal(event)" data-tip="Support tickets" aria-label="Support tickets"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg><span id="tn-tickets-badge" style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:9px;border:2px solid #0B1526;display:none;align-items:center;justify-content:center;font-family:var(--font);line-height:1">0</span></button><button id="tn-recent-pats" type="button" class="tn-icon-btn" onclick="showRecentPatients(event)" data-tip="Recent patients" aria-label="Recent patients"><i data-lucide="history" class="lci"></i></button><select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)" aria-label="Billing provider"></select>\n</div>\n<!-- Specialty chip (separate switcher) -->\n<div id="tn-specialty-wrap" style="display:none;position:relative;flex-shrink:0"><button id="tn-specialty-chip" onclick="toggleSpecialtyMenu(event)" title="Active Specialty" class="tn-spec-chip"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span id="tn-specialty-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</span><svg id="tn-specialty-chevron" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;opacity:.6"><polyline points="6 9 12 15 18 9"/></svg></button><div id="tn-specialty-menu" onclick="event.stopPropagation()" style="display:none;position:absolute;top:36px;right:0;min-width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.2);z-index:9000;overflow:hidden"><div style="padding:10px 12px;background:#fdf5f0;border-bottom:1px solid #ede9df;font-size:10px;font-weight:700;color:#B32660;text-transform:uppercase;letter-spacing:.06em">Switch Specialty</div><div id="tn-specialty-list" style="padding:8px;display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow-y:auto"></div></div></div>\n\n<!-- User chip with dropdown -->\n<button type="button" id="tn-user-chip" class="tn-avatar-btn" onclick="toggleUserMenu(event)" data-tip="My account" aria-label="My account"><span id="tn-user-avatar"><span id="tn-avatar-initials">?</span></span></button>\n\n<!-- User dropdown menu -->\n<div id="tn-user-menu" onclick="event.stopPropagation()"\n  style="display:none;position:fixed;top:44px;right:10px;\n  background:var(--bg2);border:1px solid var(--border);border-radius:14px;\n  box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">\n\n  <!-- Header with avatar + info -->\n  <div style="padding:14px 16px;background:#0B1526;display:flex;align-items:center;gap:12px">\n    <div style="width:40px;height:40px;border-radius:50%;background:#3A475C;\n      border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;\n      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">\n      <span id="tn-avatar-initials2">?</span>\n    </div>\n    <div style="min-width:0;flex:1">\n      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#fff;\n        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div id="tn-menu-email" style="font-size:10px;color:rgba(255,255,255,.65);\n        margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">\n        <span id="tn-menu-role" style="font-size:9px;font-weight:700;color:rgba(255,255,255,.9);\n          background:rgba(255,255,255,.15);padding:2px 6px;border-radius:10px"></span>\n        <span id="tn-menu-prov" style="font-size:9px;color:rgba(255,255,255,.65);\n          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px"></span>\n      </div>\n      <div id="tn-menu-login-time" style="font-size:9px;color:rgba(255,255,255,.45);margin-top:3px"></div>\n    </div>\n  </div>\n\n  <!-- Specialty switcher (renders when user has 1+ specialties assigned) -->\n  <div id="tn-user-specialty-section" style="display:none"></div>\n\n  <!-- Action buttons grid -->\n  <div style="padding:12px;display:grid;grid-template-columns:1fr;gap:8px;\n    border-bottom:1px solid var(--border)">\n    <button onclick="go(\'account\');toggleUserMenu()"\n      style="display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;\n      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"\n      onmouseover="this.style.background=\'var(--brand-bg)\';this.style.borderColor=\'var(--brand)\'"\n      onmouseout="this.style.background=\'var(--bg3)\';this.style.borderColor=\'var(--border2)\'">\n      <i data-lucide="settings" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n      <span style="font-size:11px;font-weight:600;color:var(--text)">Settings</span>\n    </button>\n  </div>\n\n  <!-- Sign out -->\n  <div style="padding:10px 12px">\n    <button onclick="doLogout()"\n      style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:10px;border:1.5px solid var(--red,#dc2626);border-radius:10px;\n      background:transparent;cursor:pointer;color:var(--red,#dc2626);\n      font-size:12px;font-weight:700;transition:background .15s"\n      onmouseover="this.style.background=\'#fef2f2\'"\n      onmouseout="this.style.background=\'transparent\'">\n      <i data-lucide="log-out" class="lci" style="width:15px;height:15px"></i>\n      Sign Out\n    </button>\n  </div>\n</div>\n</div>\n\n</div>\n</header>';
+return '<header class="topnav" id="topnav">\n<button class="tn-hamburger" onclick="openTnDrawer()" aria-label="Menu">\n<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="40" y1="80" x2="216" y2="80"/><line x1="40" y1="128" x2="216" y2="128"/><line x1="40" y1="176" x2="216" y2="176"/></svg>\n</button>\n<div class="tn-brand">\n<img src="favicon.svg" id="nav-logo-main" class="nav-favicon" width="20" height="20" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">\n<span class="tn-brand-name">ClaimDataCare</span>\n</div>\n<div class="tn-divider"></div>\n<nav class="tn-nav" id="tn-nav">\n<button class="tn-item" id="tnav-dashboard" onclick="go(\'dashboard\')"><i data-lucide="layout-dashboard" class="lci"></i><span>Home</span></button>\n<div class="tn-group" id="tng-appointments">\n<button class="tn-item tn-has-dd" id="tnav-appointments" onclick="toggleTnDropdown(\'appointments\',event)">\n<i data-lucide="calendar-days" class="lci"></i><span>Schedule</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-appointments">\n<div class="tn-dd-item" id="tnd-appointments" onclick="go(\'appointments\');closeTnDropdown()"><i data-lucide="calendar-days" class="lci"></i><span>Day Schedule</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-schedule-setup" onclick="go(\'schedule-setup\');closeTnDropdown()"><i data-lucide="settings-2" class="lci"></i><span>Schedule Setup</span></div>\n</div>\n</div>\n<button class="tn-item" id="tnav-patients" onclick="go(\'patients\')"><i data-lucide="users" class="lci"></i><span>Patients</span></button>\n<div class="tn-group" id="tng-billing">\n<button class="tn-item tn-has-dd" id="tnav-billing" onclick="toggleTnDropdown(\'billing\',event)">\n<i data-lucide="receipt" class="lci"></i><span>Billing</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-billing">\n<div class="tn-dd-item" id="tnd-claims" onclick="go(\'claims\');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-eob" onclick="go(\'eob\');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>\n<div class="tn-dd-item" id="tnd-validate" onclick="go(\'validate\');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-billing-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-ehr">\n<button class="tn-item tn-has-dd" id="tnav-ehr" onclick="toggleTnDropdown(\'ehr\',event)">\n<i data-lucide="stethoscope" class="lci"></i><span>EHR</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-ehr">\n<div class="tn-dd-item" id="tnd-notes" onclick="go(\'notes\');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters</span></div>\n      <div class="tn-dd-item" id="tnd-services" onclick="go(\'services\');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-clients-group\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-clients-group\" onclick=\"toggleTnDropdown(\'cm-clients-group\',event)\">\n      <i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-clients-group\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-intake\" onclick=\"go(\'cm-intake\');closeTnDropdown()\"><i data-lucide=\"user-plus\" class=\"lci\"></i><span>Intake / Referrals</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-clients\" onclick=\"go(\'cm-clients\');closeTnDropdown()\"><i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-workers\" onclick=\"go(\'cm-workers\');closeTnDropdown()\"><i data-lucide=\"user-cog\" class=\"lci\"></i><span>Users</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-care\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-care\" onclick=\"toggleTnDropdown(\'cm-care\',event)\">\n      <i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Care</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-care\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-assessments\" onclick=\"go(\'cm-assessments\');closeTnDropdown()\"><i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Assessments</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-plans\" onclick=\"go(\'cm-plans\');closeTnDropdown()\"><i data-lucide=\"clipboard-list\" class=\"lci\"></i><span>Care Plans</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-encounters\" onclick=\"go(\'cm-encounters\');closeTnDropdown()\"><i data-lucide=\"notebook-pen\" class=\"lci\"></i><span>Encounters / Notes</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-workflow\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-workflow\" onclick=\"toggleTnDropdown(\'cm-workflow\',event)\">\n      <i data-lucide=\"list-checks\" class=\"lci\"></i><span>Workflow</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-workflow\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-tasks\" onclick=\"go(\'cm-tasks\');closeTnDropdown()\"><i data-lucide=\"list-checks\" class=\"lci\"></i><span>Tasks &amp; Follow-Ups</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-auth\" onclick=\"go(\'cm-authorizations\');closeTnDropdown()\"><i data-lucide=\"file-check\" class=\"lci\"></i><span>Authorizations</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-referrals\" onclick=\"go(\'cm-referrals\');closeTnDropdown()\"><i data-lucide=\"external-link\" class=\"lci\"></i><span>Referrals &amp; Resources</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-review\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-review\" onclick=\"toggleTnDropdown(\'cm-review\',event)\">\n      <i data-lucide=\"eye\" class=\"lci\"></i><span>Review</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-review\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-supervisor\" onclick=\"go(\'cm-supervisor\');closeTnDropdown()\"><i data-lucide=\"eye\" class=\"lci\"></i><span>Supervisor Review</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-billing-readiness\" onclick=\"go(\'cm-billing\');closeTnDropdown()\"><i data-lucide=\"receipt\" class=\"lci\"></i><span>Billing Readiness</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-reports\" onclick=\"go(\'cm-reports\');closeTnDropdown()\"><i data-lucide=\"bar-chart-3\" class=\"lci\"></i><span>Reports</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-discharge\" onclick=\"go(\'cm-discharge\');closeTnDropdown()\"><i data-lucide=\"door-open\" class=\"lci\"></i><span>Discharge</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm\" style=\"display:none\"></div>\n      <div class="tn-group" id="tng-config">\n<button class="tn-item tn-has-dd" id="tnav-config" onclick="toggleTnDropdown(\'config\',event)">\n<i data-lucide="settings" class="lci"></i><span>Settings</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-config">\n<div class="tn-dd-item" id="tnd-settings-users" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-sep" style="height:1px;background:var(--border);margin:4px 0"></div>\n<div class="tn-dd-item" id="tnd-insurances" onclick="go(\'insurances\');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Insurances / Payers</span></div>\n<div class="tn-dd-item" id="tnd-facilities" onclick="go(\'facilities\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Facilities</span></div>\n<div class="tn-dd-item" id="tnd-rendering" onclick="go(\'rendering\');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Rendering Providers</span></div>\n<div class="tn-dd-item" id="tnd-referring" onclick="go(\'referring\');closeTnDropdown()"><i data-lucide="arrow-right-left" class="lci"></i><span>Referring Providers</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-provider-info" onclick="go(\'provider-info\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Provider Information</span></div>\n<div class="tn-dd-item" id="tnd-master-settings" style="display:none" onclick="openMasterSettings();closeTnDropdown()" title="Master Settings (Managers and Super Admin)"><i data-lucide="shield-ellipsis" class="lci"></i><span>Master Settings</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-admin" style="display:none">\n<button class="tn-item tn-has-dd" id="tnav-admin" onclick="toggleTnDropdown(\'admin\',event)">\n<i data-lucide="shield-check" class="lci"></i><span>Admin</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown tn-dd-right" id="tn-dd-admin">\n<div class="tn-dd-item" id="tnd-admin-providers" onclick="go(\'admin-providers\');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>\n<div class="tn-dd-item" id="tnd-servicegroups" onclick="go(\'servicegroups\');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>\n<div class="tn-dd-item" id="tnd-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n<div class="tn-dd-item" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-item" onclick="go(\'reports\');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div><div class="tn-dd-item" onclick="go(\'admin-tickets\');closeTnDropdown()"><i data-lucide="headphones" class="lci"></i><span>Support Tickets <span id="tnc-admin-tickets" class="tn-cnt" style="display:none;background:#dc2626;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-invoices" onclick="go(\'invoices\');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>\n<div class="tn-dd-item" onclick="_storageMigrateClick()"><i data-lucide="upload-cloud" class="lci"></i><span>Free Up Storage</span></div>\n<div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>\n</div>\n</div>\n</div>\n</nav>\n<div class="tn-right">\n<div id="fb-status" style="display:none"></div>\n<div id="prov-sel-wrap" style="display:flex;align-items:center;gap:6px;flex-shrink:0">\n<button id="tn-tickets" type="button" class="tn-icon-btn" onclick="openTicketsModal(event)" data-tip="Support tickets" aria-label="Support tickets"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg><span id="tn-tickets-badge" style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:9px;border:2px solid #FFFFFF;display:none;align-items:center;justify-content:center;font-family:var(--font);line-height:1">0</span></button><button id="tn-recent-pats" type="button" class="tn-icon-btn" onclick="showRecentPatients(event)" data-tip="Recent patients" aria-label="Recent patients"><i data-lucide="history" class="lci"></i></button><select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)" aria-label="Billing provider"></select>\n</div>\n<!-- Specialty chip (separate switcher) -->\n<div id="tn-specialty-wrap" style="display:none;position:relative;flex-shrink:0"><button id="tn-specialty-chip" onclick="toggleSpecialtyMenu(event)" title="Active Specialty" class="tn-spec-chip"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span id="tn-specialty-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</span><svg id="tn-specialty-chevron" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;opacity:.6"><polyline points="6 9 12 15 18 9"/></svg></button><div id="tn-specialty-menu" onclick="event.stopPropagation()" style="display:none;position:absolute;top:36px;right:0;min-width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.2);z-index:9000;overflow:hidden"><div style="padding:10px 12px;background:#FFF1EC;border-bottom:1px solid #EEF1F6;font-size:10px;font-weight:700;color:#D45C37;text-transform:uppercase;letter-spacing:.06em">Switch Specialty</div><div id="tn-specialty-list" style="padding:8px;display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow-y:auto"></div></div></div>\n\n<!-- User chip with dropdown -->\n<button type="button" id="tn-user-chip" class="tn-avatar-btn" onclick="toggleUserMenu(event)" data-tip="My account" aria-label="My account"><span id="tn-user-avatar"><span id="tn-avatar-initials">?</span></span></button>\n\n<!-- User dropdown menu -->\n<div id="tn-user-menu" onclick="event.stopPropagation()"\n  style="display:none;position:fixed;top:44px;right:10px;\n  background:var(--bg2);border:1px solid var(--border);border-radius:14px;\n  box-shadow:0 12px 40px rgba(0,0,0,.2);width:260px;z-index:9000;overflow:hidden">\n\n  <!-- Header with avatar + info -->\n  <div style="padding:14px 16px;background:#F8FAFC;border-bottom:1px solid #EEF1F6;display:flex;align-items:center;gap:12px">\n    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FF6A3D,#D45C37);\n      border:2px solid #FFFFFF;display:flex;align-items:center;\n      justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">\n      <span id="tn-avatar-initials2">?</span>\n    </div>\n    <div style="min-width:0;flex:1">\n      <div id="tn-menu-name" style="font-size:13px;font-weight:700;color:#0B1526;\n        white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div id="tn-menu-email" style="font-size:10px;color:#586579;\n        margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>\n      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">\n        <span id="tn-menu-role" style="font-size:9px;font-weight:700;color:#B8461F;\n          background:rgba(212,92,55,.1);padding:2px 6px;border-radius:10px"></span>\n        <span id="tn-menu-prov" style="font-size:9px;color:#586579;\n          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px"></span>\n      </div>\n      <div id="tn-menu-login-time" style="font-size:9px;color:#8C98AB;margin-top:3px"></div>\n    </div>\n  </div>\n\n  <!-- Specialty switcher (renders when user has 1+ specialties assigned) -->\n  <div id="tn-user-specialty-section" style="display:none"></div>\n\n  <!-- Action buttons grid -->\n  <div style="padding:12px;display:grid;grid-template-columns:1fr;gap:8px;\n    border-bottom:1px solid var(--border)">\n    <button onclick="go(\'account\');toggleUserMenu()"\n      style="display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:12px 8px;border:1px solid var(--border2);border-radius:10px;\n      background:var(--bg3);cursor:pointer;transition:background .15s;color:var(--text)"\n      onmouseover="this.style.background=\'var(--brand-bg)\';this.style.borderColor=\'var(--brand)\'"\n      onmouseout="this.style.background=\'var(--bg3)\';this.style.borderColor=\'var(--border2)\'">\n      <i data-lucide="settings" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n      <span style="font-size:11px;font-weight:600;color:var(--text)">Settings</span>\n    </button>\n  </div>\n\n  <!-- Sign out -->\n  <div style="padding:10px 12px">\n    <button onclick="doLogout()"\n      style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;\n      padding:10px;border:1.5px solid var(--red,#dc2626);border-radius:10px;\n      background:transparent;cursor:pointer;color:var(--red,#dc2626);\n      font-size:12px;font-weight:700;transition:background .15s"\n      onmouseover="this.style.background=\'#fef2f2\'"\n      onmouseout="this.style.background=\'transparent\'">\n      <i data-lucide="log-out" class="lci" style="width:15px;height:15px"></i>\n      Sign Out\n    </button>\n  </div>\n</div>\n</div>\n\n</div>\n</header>';
 }
 function getShellSectionsHTML(){
 return '\n<div class="section active" id="sec-dashboard"></div>\n<div class="section" id="sec-claims">\n<div class="page-hdr"><div><h1>Claims</h1></div><div class="btn-group"><button class="btn btn-sm" onclick="openBatch()"><i data-lucide="zap" class="lci"></i> Quick Batch</button><button class="btn btn-primary btn-sm" onclick="openClaimModal(-1)">+ New Claim</button></div></div>\n<div class="page-body">\n<div class="stabs" id="claim-tabs"><button class="stab active" onclick="setTab(\'all\',this)">All <span id="tc-all" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'draft\',this)">Draft <span id="tc-draft" class="nav-cnt" style="background:var(--text3)">0</span></button><button class="stab" onclick="setTab(\'pending\',this)">Pending <span id="tc-pending" class="nav-cnt warn">0</span></button><button class="stab" onclick="setTab(\'submitted\',this)"><i data-lucide="send" class="lci"></i> Submitted <span id="tc-submitted" class="nav-cnt" style="background:var(--brand)">0</span></button><button class="stab" onclick="setTab(\'accepted\',this)"><i data-lucide="check-circle" class="lci" style="width:11px;height:11px"></i> Accepted CH <span id="tc-accepted" class="nav-cnt" style="background:var(--green)">0</span></button><button class="stab" onclick="setTab(\'rejected\',this)"><i data-lucide="x-circle" class="lci" style="width:11px;height:11px"></i> Rejected <span id="tc-rejected" class="nav-cnt" style="background:var(--red)">0</span></button></div>\n<div class="search-row">\n<input id="clm-q" class="no-upper" placeholder="Search by patient, PCN, CPT, Acct#\\u2026" oninput="renderClaims()">\n<select id="clm-payer" onchange="renderClaims()"><option value="">All payers</option></select>\n<select id="clm-month" onchange="renderClaims()"><option value="">All months</option></select>\n<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0">\n  DOS\n  <input type="date" id="clm-dos-from" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <span style="color:var(--text3)">–</span>\n  <input type="date" id="clm-dos-to" onchange="renderClaims()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n  <button onclick="document.getElementById(\'clm-dos-from\').value=\'\';document.getElementById(\'clm-dos-to\').value=\'\';renderClaims()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button>\n</label>\n</div>\n<div id="claims-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openImportFromCMClientsModal()" title="Import from CM Clients"><i data-lucide="download" class="lci"></i> Import from CM Clients</button><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>\n\n<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>\n\n<div class="section" id="sec-export">\n<div class="page-hdr">\n<div><h1>Export / Submit</h1></div>\n</div>\n<div class="page-body">\n<div id="exp-alert-top" style="margin-bottom:12px"></div>\n\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n\n<!-- Card 1: CSV Export -->\n<div class="card">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center">\n<i data-lucide="download" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Export CSV</div>\n<div style="font-size:11px;color:var(--text3)">Standard CSV Format</div>\n</div>\n</div>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="exportCSV(\'pending\')">\n<i data-lucide="download" class="lci"></i> Export Pending Claims\n</button>\n<button class="btn btn-sm" onclick="exportCSV(\'all\')">\n<i data-lucide="download" class="lci"></i> Export All Claims\n</button>\n</div>\n</div>\n\n<!-- Card 2: Direct Transmit -->\n<div class="card" style="border:2px solid var(--brand)">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">\n<i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Transmit Direct</div>\n<div style="font-size:11px;color:var(--text3)">via Clearinghouse</div>\n</div>\n</div>\n<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">\nRequires API Key configured in Settings ? Billing Providers.<br>\nClaims are validated, transmitted and marked <strong>Submitted</strong> automatically.\n</p>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="transmitDirect(\'pending\')">\n<i data-lucide="send" class="lci"></i> Transmit All Pending\n</button>\n<button class="btn btn-sm" onclick="transmitDirect(\'selected\')">\n<i data-lucide="send" class="lci"></i> Transmit Selected Claims\n</button>\n<button class="btn btn-sm" onclick="syncStatuses()">\n<i data-lucide="refresh-cw" class="lci"></i> Sync Status from Clearinghouse\n</button>\n</div>\n</div>\n\n</div>\n\n<!-- Summary + Instructions row -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">Summary</div>\n<div id="exp-summary"></div>\n</div>\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">How it works</div>\n<ol style="padding-left:18px;font-size:13px;color:var(--text2);line-height:2.2">\n<li>Create claims via Quick Batch or manually</li>\n<li>Click <strong>Transmit All Pending</strong> to send directly</li>\n<li>Or export CSV and upload at the clearinghouse portal</li>\n<li>Click <strong>Sync Status</strong> to update claim results</li>\n<li>Paid claims ? mark <strong>Accepted CH</strong></li>\n</ol>\n</div>\n</div>\n\n<!-- Transmission Log -->\n<div class="card">\n<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">\n<div class="card-title">Transmission Log</div>\n<button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">\n<i data-lucide="refresh-cw" class="lci" style="width:12px;height:12px"></i> Refresh\n</button>\n</div>\n<div id="exp-transmit-log" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>\n</div>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-bills">\n<div class="page-hdr">\n<div><h1>Bills</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<select id="bills-status-filter" onchange="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="draft">Draft</option>\n<option value="pending">Pending</option>\n<option value="submitted">Submitted</option>\n<option value="accepted">Accepted CH</option>\n<option value="rejected">Rejected</option>\n<option value="on_hold">On Hold</option>\n<option value="denied">Denied</option>\n<option value="paid">Paid</option>\n<option value="voided">Voided</option>\n</select>\n<input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">\n<button class="btn btn-primary btn-sm" onclick="go(\'claims\')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>\n</div>\n</div>\n<div class="page-body">\n<div id="bills-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-claim-editor" style="flex-direction:column;height:100%;padding:0;overflow:hidden">\n<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>\n</div>\n\n<div class="section" id="sec-eob">\n<div class="page-hdr">\n<div>\n<h1>ERA / EOB Payments</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="openEOBPostingModal()">\n<i data-lucide="pen-line" class="lci"></i> Manual EOB\n</button>\n<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">\n<i data-lucide="download-cloud" class="lci"></i> Import Payments\n</button>\n<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'era-835-input\').click()">\n<i data-lucide="upload" class="lci"></i> Upload EDI 835\n</button>\n</div>\n</div>\n<div class="page-body">\n<input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">\n\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="eob-tab-payments" onclick="setEOBTab(\'payments\',this)">\nPayment Batches <span id="eob-cnt-payments" class="nav-cnt" style="background:var(--brand)">0</span>\n</button>\n<button class="stab" id="eob-tab-unmatched" onclick="setEOBTab(\'unmatched\',this)">\nUnmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--amber)">0</span>\n</button>\n<button class="stab" id="eob-tab-secondary" onclick="setEOBTab(\'secondary\',this)">\nReady for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>\n</button>\n<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab(\x27era-pending\x27,this)">\n<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>\n</button>\n</div>\n\n<div id="eob-alert" style="margin-bottom:12px"></div>\n<div id="eob-content"></div>\n</div>\n</div>\n\n<!-- MANUAL EOB POSTING MODAL -->\n<div class="overlay" id="modal-eob-post">\n<div class="modal" style="max-width:900px;width:98%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t">Post EOB Payment</div>\n<div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>\n</div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-post\')">×</button>\n</div>\n<div class="modal-body" style="max-height:80vh;overflow-y:auto">\n<!-- Check Header -->\n<div style="background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:16px;border:1px solid var(--border)">\n<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Check / EFT Details</div>\n<div class="fg g4">\n<div class="field"><label>Payer Name *</label><input id="eob-payer-name" placeholder="e.g. FL Medicaid"></div>\n<div class="field"><label>Payer ID</label><input id="eob-payer-id" placeholder="e.g. 77027"></div>\n<div class="field"><label>Check / EFT #</label><input id="eob-check-num" placeholder="Check number"></div>\n<div class="field"><label>Check Date *</label><input type="date" id="eob-check-date"></div>\n</div>\n<div class="fg g3" style="margin-top:10px">\n<div class="field"><label>Total Check Amount *</label><input type="number" step="0.01" id="eob-check-amt" placeholder="0.00" oninput="updateEOBRunning()"></div>\n<div class="field"><label>NPI (Payee)</label><input id="eob-payee-npi" placeholder="Rendering or Billing NPI"></div>\n<div class="field"><label>Notes</label><input id="eob-notes" placeholder="Optional"></div>\n</div>\n</div>\n\n<!-- Claim Search & Match -->\n<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">\n<div style="font-size:13px;font-weight:700;color:var(--text)">Claim Lines</div>\n<button class="btn btn-sm" onclick="openEOBClaimSearch()">\n<i data-lucide="search" class="lci"></i> Find & Add Claim\n</button>\n<div style="margin-left:auto;font-size:12px;color:var(--text3)">\nPosted: <strong id="eob-running-total" style="color:var(--brand)">$0.00</strong>\n&nbsp;/&nbsp; Check: <strong id="eob-check-display">$0.00</strong>\n&nbsp;\n<span id="eob-balance-badge" class="badge b-gray">Balance: $0.00</span>\n</div>\n</div>\n<div id="eob-claim-lines" style="min-height:60px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);padding:8px">\n<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">\nClick "Find &amp; Add Claim" to search and add claims to this payment\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-post\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveEOBBatch()">\n<i data-lucide="save" class="lci"></i> Post Payment Batch\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIM SEARCH MODAL (for EOB matching) -->\n<div class="overlay" id="modal-eob-search">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-search\')">×</button>\n</div>\n<div class="modal-body">\n<div class="fg g2" style="margin-bottom:10px">\n<div class="field">\n<label>Search Field</label>\n<select id="eob-search-field">\n<option value="pcn">PCN / Claim #</option>\n<option value="last">Patient Last Name</option>\n<option value="first">Patient First Name</option>\n<option value="member">Member ID</option>\n<option value="acct">Account #</option>\n<option value="dob">Date of Birth</option>\n</select>\n</div>\n<div class="field"><label>Search Value *</label><input id="eob-search-val" placeholder="Enter value..." oninput="searchEOBClaims()"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Date of Service (DOS) *</label><input type="text" id="eob-search-dos" placeholder="MM/DD/YYYY" oninput="searchEOBClaims()"></div>\n<div class="field"><label>Status Filter</label>\n<select id="eob-search-status" onchange="searchEOBClaims()">\n<option value="">All</option>\n<option value="accepted" selected>Accepted</option>\n<option value="submitted">Submitted</option>\n<option value="pending">Pending</option>\n</select>\n</div>\n</div>\n<div id="eob-search-results" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">\n<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">Enter search criteria above</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-search\')">Cancel</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-providers">\n<div class="page-hdr">\n<div>\n<h1>Billing Providers</h1>\n</div>\n<button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">\n<i data-lucide="plus" class="lci"></i> Add Provider\n</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-insurances">\n<div class="page-hdr">\n<div>\n<h1>Insurances / Payers</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="searchClearinghousePayers()">\n<i data-lucide="search" class="lci"></i> Search Clearinghouse Payers\n</button>\n<button class="btn btn-primary btn-sm" onclick="openInsuranceModal(\'\')">\n<i data-lucide="plus" class="lci"></i> Add Payer\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">\n<input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">\n<select id="ins-type-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Types</option>\n<option value="electronic">Electronic</option>\n<option value="manual">Manual / Paper</option>\n</select>\n<select id="ins-status-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n\n<div id="insurances-tbl"></div>\n</div>\n</div>\n\n<!-- INSURANCE MODAL -->\n<div class="overlay" id="modal-insurance">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t" id="mins-title">Add Payer</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-insurance\')">×</button>\n</div>\n<div class="modal-body">\n<input type="hidden" id="mins-id">\n<div class="fg g1">\n<div class="fg g2">\n<div class="field">\n<label>Payer / Insurance Name *</label>\n<input id="mins-name" placeholder="e.g. FL Medicaid" oninput="searchInsNameLive()">\n<div id="mins-name-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n<div class="field" style="position:relative">\n<label>Payer ID *</label>\n<input id="mins-payerid" placeholder="e.g. 77027" maxlength="10" oninput="searchInsPayerIdLive()">\n<div id="mins-payerid-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n</div>\n<div class="fg g2">\n<div class="field">\n<label>Type</label>\n<select id="mins-type">\n<option value="electronic">Electronic (EDI)</option>\n<option value="manual">Manual / Paper</option>\n</select>\n</div>\n<div class="field">\n<label>Status</label>\n<select id="mins-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="mins-phone" placeholder="800-000-0000"></div>\n<div class="field"><label>Claims Address</label><input id="mins-addr" placeholder="PO Box or address"></div>\n</div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="mins-city"></div>\n<div class="field"><label>State</label><input id="mins-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="mins-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="mins-notes" placeholder="Optional notes"></div>\n<div id="mins-claimmd-badge" style="display:none;margin-top:6px;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand)">\n<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i>\n<strong>Verified in Directory</strong> — Electronic submission supported\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-insurance\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveInsurance()">\n<i data-lucide="save" class="lci"></i> Save Payer\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIMMD PAYER SEARCH MODAL -->\n<div class="overlay" id="modal-claimmd-payers">\n<div class="modal" style="max-width:700px;width:98%">\n<div class="modal-hdr">\n<div><div class="modal-t">Payer Directory</div><div class="modal-sub">Search and import payers from the directory</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claimmd-payers\')">×</button>\n</div>\n<div class="modal-body">\n<div style="display:flex;gap:8px;margin-bottom:12px">\n<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."\nstyle="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"\noninput="filterClearinghousePayers()">\n<select id="claimmd-payer-state" onchange="filterClearinghousePayers()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All States</option>\n<option value="FL">FL</option><option value="CA">CA</option><option value="TX">TX</option>\n<option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option>\n<option value="OH">OH</option><option value="PA">PA</option><option value="IL">IL</option>\n</select>\n</div>\n<div id="claimmd-payer-results" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">Type to search the payer list</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claimmd-payers\')">Close</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal(\'\')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>\n\n<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>\n\n<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>\n\n<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>\n\n<div class="section" id="sec-reports">\n<div class="page-hdr">\n<div><h1>Reports</h1></div>\n</div>\n<div class="page-body">\n<div id="reports-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-appointments">\n<div class="page-hdr">\n<div><h1>Schedule</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px"><i data-lucide="rows-3" class="lci" style="width:12px;height:12px"></i> Cards</button>\n<button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>\n<select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>\n<select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="all">All</option></select>\n<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>\n<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>\n</div>\n<div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>\n<div id="appt-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-schedule-setup">\n<div class="page-hdr"><div><h1>Schedule Setup</h1></div></div>\n<div class="page-body">\n<div class="fg g2" style="margin-bottom:14px">\n<div class="field"><label>Physician / Scheduler</label><select id="ss-prov-sel" onchange="renderScheduleSetup()" style="width:100%"></select></div>\n<div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>\n</div>\n<div class="stabs" id="ss-tabs" style="margin-bottom:14px">\n<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>\n<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>\n</div>\n<div id="ss-panel-hours"></div>\n<div id="ss-panel-groups" style="display:none"></div>\n</div>\n</div>\n\n<div class="section" id="sec-notes">\n<div class="page-hdr">\n<div><h1>Encounters</h1></div>\n<div style="display:flex;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="openAINoteModal(\'\',\'\',\'\')">\n<i data-lucide="bot" class="lci"></i> AI Note Assistant\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>\n<select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>\n</div>\n<div id="notes-list"></div>\n<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">\n  <div class="enc-editor-hdr" id="ee-hdr"></div>\n  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>\n  <div class="enc-editor-body">\n    <div class="enc-editor-sidebar" id="ee-sidebar"></div>\n    <div class="enc-editor-content" id="ee-content"></div>\n    <div class="enc-editor-preview" id="ee-preview"></div>\n  </div>\n  <div class="enc-editor-ftr" id="ee-ftr"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-servicegroups">\n<div class="page-hdr">\n<div><h1>Service Groups</h1></div>\n<button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>\n</div>\n<div class="page-body">\n<div id="sg-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-account">\n<div class="page-hdr">\n  <div>\n    <h1>Users &amp; Account</h1>\n    \n  </div>\n  <div style="display:flex;gap:8px;align-items:center">\n    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search\n    </button>\n    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add\n    </button>\n  </div>\n</div>\n<div class="page-body">\n\n<!-- Search panel -->\n<div id="user-search-bar" style="display:none;margin-bottom:14px">\n  <div class="card" style="padding:16px">\n    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>\n    <div class="fg g3" style="margin-bottom:12px">\n      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>\n      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Role</label>\n        <select id="us-role" onchange="renderUserManagement()">\n          <option value="">All Roles</option>\n          <option>Super Admin</option>\n          <option>Admin</option>\n          <option>Manager</option>\n          <option>Billing</option>\n          <option>User</option>\n        </select>\n      </div>\n    </div>\n    <button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'us-email\').value=\'\';document.getElementById(\'us-first\').value=\'\';document.getElementById(\'us-last\').value=\'\';document.getElementById(\'us-role\').value=\'\';renderUserManagement()">Clear</button>\n  </div>\n</div>\n\n<!-- Active / Inactive tabs -->\n<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">\n  <button id="utab-active" onclick="setUserTab(\'active\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Active\n  </button>\n  <button id="utab-inactive" onclick="setUserTab(\'inactive\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Inactive\n  </button>\n</div>\n\n<!-- Users table -->\n<div class="tbl-wrap" style="margin-top:0;border-top:none">\n  <table>\n    <thead><tr>\n      <th>Email</th>\n      <th>First Name</th>\n      <th>Last Name</th>\n      <th>Phone</th>\n      <th>Provider</th>\n      <th>Role</th>\n      <th>Status</th>\n      <th style="text-align:center">2FA</th>\n      <th>Created</th>\n      <th style="width:90px;text-align:center">Actions</th>\n    </tr></thead>\n    <tbody id="users-list"></tbody>\n  </table>\n</div>\n\n<!-- Account info -->\n\n\n\n</div>\n</div>\n\n<div class="section" id="sec-provider-info">\n<div class="page-hdr">\n<div><h1>Provider Information</h1></div>\n</div>\n<div class="page-body">\n<div id="provider-info-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-invoices">\n<div class="page-hdr">\n<div>\n<h1 style="display:flex;align-items:center;gap:10px">\n<i data-lucide="receipt" class="lci" style="width:24px;height:24px;color:var(--brand)"></i>\nInvoicing\n</h1>\n</div>\n<div class="btn-group" id="inv-hdr-btns">\n<button class="btn btn-primary btn-sm" onclick="openInvoiceModal()" id="inv-btn-new" style="display:none">\n<i data-lucide="plus" class="lci"></i> New Invoice\n</button>\n</div>\n</div>\n<div class="page-body">\n\n<!-- DASHBOARD -->\n<div id="inv-dashboard" style="margin-bottom:14px"></div>\n\n<!-- TABS -->\n<div class="stabs" id="inv-tabs" style="margin-bottom:14px">\n<button class="stab active" id="inv-stab-dashboard" onclick="setInvTab(\'dashboard\',this)">\n<i data-lucide="layout-dashboard" class="lci" style="width:13px;height:13px"></i> Dashboard\n</button>\n<button class="stab" id="inv-stab-invoices" onclick="setInvTab(\'invoices\',this)">\n<i data-lucide="file-text" class="lci" style="width:13px;height:13px"></i> Invoices\n</button>\n<button class="stab" id="inv-stab-clients" onclick="setInvTab(\'clients\',this)">\n<i data-lucide="building" class="lci" style="width:13px;height:13px"></i> Clients\n</button>\n<button class="stab" id="inv-stab-issuers" onclick="setInvTab(\'issuers\',this)">\n<i data-lucide="briefcase" class="lci" style="width:13px;height:13px"></i> Billing Entities\n</button>\n</div>\n\n<!-- PANELS -->\n<div id="inv-panel-dashboard"></div>\n<div id="inv-panel-invoices" style="display:none">\n<!-- Filters -->\n<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">\n<select id="inv-filter-issuer" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Billing Entities</option>\n</select>\n<select id="inv-filter-client" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Clients</option>\n</select>\n<select id="inv-filter-status" onchange="renderInvoicesList()" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Draft">Draft</option>\n<option value="Sent">Sent</option>\n<option value="Partial">Partial</option>\n<option value="Overdue">Overdue</option>\n<option value="Paid">Paid (hidden by default)</option>\n</select>\n<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">\n<input type="checkbox" id="inv-show-paid" onchange="renderInvoicesList()" style="accent-color:var(--brand)">\nShow Paid\n</label>\n</div>\n<div id="inv-list"></div>\n</div>\n<div id="inv-panel-clients" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openClientModal()">\n<i data-lucide="plus" class="lci"></i> New Client\n</button>\n</div>\n<div id="inv-clients-list"></div>\n</div>\n<div id="inv-panel-issuers" style="display:none">\n<div style="margin-bottom:12px;display:flex;justify-content:flex-end">\n<button class="btn btn-primary btn-sm" onclick="openIssuerModal()">\n<i data-lucide="plus" class="lci"></i> New Billing Entity\n</button>\n</div>\n<div id="inv-issuers-list"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-admin-providers">\n<div class="page-hdr">\n<div><h1>Billing Providers</h1></div>\n<button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-admin-tickets"></div>\n\n<div class="section" id="sec-cm-dashboard"></div>\n\n<div class="section" id="sec-cm-clients">\n<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">\n<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>\n<button class="btn btn-sm" onclick="openImportFromPatientsModal()" title="Import clients from Patients (EHR side)"><i data-lucide="download" class="lci"></i> Import from Patients</button><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMClients()">\n<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Users</option></select>\n<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>\n</div>\n<div id="cm-clients-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-workers">\n<div class="page-hdr"><div><h1>Users</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add User</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>\n<div id="cm-workers-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openCMBillingSettings()" title="Configure rates per CPT code"><i data-lucide="settings-2" class="lci"></i> Rates</button><button class="btn btn-sm" onclick="generateCMBilling()"><i data-lucide="zap" class="lci"></i> From Notes</button><button class="btn btn-primary btn-sm" onclick="openCMBillingModal()">+ New Entry</button><button class="btn btn-sm" onclick="exportCMBillingCSV()"><i data-lucide="download" class="lci"></i> Export CSV</button></div></div><div class="page-body"><div id="cm-billing-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div><div id="cm-billing-bulk" style="display:none;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:10px;align-items:center;gap:8px;font-size:12px"><span id="cm-bill-selcount" style="font-weight:700;color:var(--brand)">0 selected</span><button class="btn btn-xs" onclick="cmBillingBulk(\'Ready\')">Mark Ready</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Submitted\')">Mark Submitted</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Paid\')">Mark Paid</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Rejected\')">Mark Rejected</button><button class="btn btn-xs" onclick="cmBillingBulkDelete()" style="color:var(--red);border-color:var(--red)">Delete</button><button class="btn btn-xs btn-ghost" onclick="cmBillingClearSel()" style="margin-left:auto">Clear</button></div><div class="search-row"><input id="cm-bill-q" class="no-upper" placeholder="Search client, user, code..." oninput="renderCMBilling()"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select><select id="cm-bill-code" onchange="renderCMBilling()"><option value="">All Codes</option></select><select id="cm-bill-worker" onchange="renderCMBilling()"><option value="">All Users</option></select><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap">DOS<input type="date" id="cm-bill-from" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><span style="color:var(--text3)">–</span><input type="date" id="cm-bill-to" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><button onclick="document.getElementById(\'cm-bill-from\').value=\'\';document.getElementById(\'cm-bill-to\').value=\'\';renderCMBilling()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button></label></div><div id="cm-billing-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>\n\n<div class="section" id="sec-cm-intake">\n<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMIntake()">\n<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>\n</div>\n<div id="cm-intake-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-assessments">\n<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">\n<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>\n<div id="cm-assessments-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-encounters">\n<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">\n<button class="btn btn-primary btn-sm" onclick="openCMEncounterChooser()"><i data-lucide="notebook-pen" class="lci"></i> + New Note</button>\n</div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMEncounters()">\n<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>\n<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>\n<div id="cm-encounters-tbl"></div>\n<div id="cm-tcm-notes" style="margin-top:16px"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-tasks">\n<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">\n<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>\n<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>\n<div id="cm-tasks-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-authorizations">\n<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">\n<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>\n<div id="cm-auths-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-referrals">\n<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">\n<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>\n<div id="cm-referrals-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-supervisor">\n<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>\n<div class="page-body">\n<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>\n<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>\n<div id="cm-supervisor-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-discharge">\n<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>\n<div id="cm-discharge-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go(\'cm-clients\')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>\n\n<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>\n\n<!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->\n<div class="section" id="sec-intake-center">\n<div class="page-hdr">\n<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>\n</div>\n</div>\n<div class="page-body">\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="ic-stab-clients" onclick="icSetTab(\'clients\',this)"><i data-lucide="users" class="lci"></i> Clients</button>\n<button class="stab" id="ic-stab-forms" onclick="icSetTab(\'forms\',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>\n<button class="stab" id="ic-stab-eval" onclick="icSetTab(\'eval\',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>\n</div>\n<!-- Panels -->\n<div id="ic-panel-clients"></div>\n<div id="ic-panel-forms" style="display:none"></div>\n<div id="ic-panel-eval" style="display:none"></div>\n</div>\n</div>\n\n<!-- Intake Clients section -->\n<div class="section" id="sec-intake-clients">\n<div class="page-hdr">\n<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>\n<div class="btn-group">\n<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="Pending Forms">Pending Forms</option>\n<option value="Forms Sent">Forms Sent</option>\n<option value="Viewed">Viewed</option>\n<option value="Partially Completed">Partially Completed</option>\n<option value="Signed">Signed</option>\n<option value="Completed">Completed</option>\n<option value="Evaluation Pending">Evaluation Pending</option>\n<option value="Evaluation Completed">Evaluation Completed</option>\n<option value="Archived">Archived</option>\n</select>\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">\n<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>\n</div>\n<div id="ic-clients-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Consent Forms section -->\n<div class="section" id="sec-intake-forms">\n<div class="page-hdr">\n<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">\n<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>\n<option value="HIPAA">HIPAA</option>\n<option value="Consent">Consent</option>\n<option value="Financial">Financial</option>\n<option value="Release">Release of Information</option>\n<option value="Telehealth">Telehealth</option>\n<option value="Signature">Electronic Signature</option>\n<option value="Other">Other</option>\n</select>\n</div>\n<div class="stabs" style="margin-bottom:10px">\n<button class="stab active" onclick="icFormFilterSet(\'all\',this)">All</button>\n<button class="stab" onclick="icFormFilterSet(\'active\',this)">Active</button>\n<button class="stab" onclick="icFormFilterSet(\'archived\',this)">Archived</button>\n</div>\n<div id="ic-forms-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Comprehensive Evaluation section -->\n<div class="section" id="sec-intake-eval">\n<div class="page-hdr">\n<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">\n<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>\n<option value="Draft">Draft</option>\n<option value="In Progress">In Progress</option>\n<option value="Completed">Completed</option>\n</select>\n</div>\n<div id="ic-eval-tbl"></div>\n</div>\n</div>\n\n</div>\n</div>\n\n<div class="overlay" id="modal-claim"><div class="modal modal-lg">\n<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claim\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mc-id">\n<div class="dup-warn hidden" id="mc-dup"></div>\n<div class="fg g3">\n<div class="field"><label>Patient *</label><select id="mc-pat" onchange="onPatientChange()"></select></div>\n<div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>\n<div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>\n<div class="fg g3">\n<div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>\n<div class="field" style="grid-column:1/-1;padding:6px 0">\n  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">\n    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">\n    <span>Multiple dates of service (weekly/range)</span>\n    <span style="font-size:11px;color:var(--text3);font-weight:400">— assign a different date to each service line</span>\n  </label>\n</div>\n<div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>\n<div class="field"><label>Facility</label><select id="mc-fac"></select></div>\n</div>\n<div class="fg g3" style="margin-top:12px">\n<div class="field"><label>Rendering Provider *</label><select id="mc-rend"></select></div>\n<div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>\n<div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \\u2014 e.g. M25562)</span></span>\n<div class="fg g4">\n<div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 3</label><input id="mc-dx3" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 4</label><input id="mc-dx4" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 5</label><input id="mc-dx5" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 6</label><input id="mc-dx6" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 7</label><input id="mc-dx7" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 8</label><input id="mc-dx8" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n</div>\n<div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \\u2014 pointers auto-assign</div>\n<div class="sep"></div>\n<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">\n<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>\n<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>\n</div>\n<div id="mc-lines"></div>\n<div class="total-preview" id="mc-total">Total: $0.00</div>\n<div class="sep"></div>\n<div class="fg g3">\n<div class="field"><label>Status</label><select id="mc-status"><option value="draft">Draft</option><option value="pending" selected>Pending</option><option value="submitted">Submitted</option><option value="accepted">Accepted CH</option><option value="rejected">Rejected</option></select></div>\n<div class="field"><label>Employment Related</label><select id="mc-emp"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="field"><label>Auto Accident</label><select id="mc-auto"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="paperclip" class="lci"></i> Attachments</span>\n<div style="padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">\n<input type="file" id="mc-attach-input" multiple onchange="_mcAddAttach(event)" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx">\n<button type="button" class="btn btn-sm" onclick="document.getElementById(\'mc-attach-input\').click()"><i data-lucide="upload" class="lci"></i> Add File</button>\n<span style="font-size:10px;color:var(--text3)">PDF, JPG, PNG (max 5MB each)</span>\n</div>\n<div id="mc-attach-list"></div>\n</div>\n<div style="padding:8px 10px;background:#fef7ee;border:1px solid #fed7aa;border-radius:var(--r);margin-bottom:8px;font-size:11px;color:#9a3412"><strong>Accidente:</strong> Para fecha, estado y detalles use <strong>Additional Info</strong> en el Claim Editor.</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claim\')">Cancel</button>\n<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>\n<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>\n<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>\n</div>\n</div></div>\n\n<!-- PATIENT MODAL -->\n<div class="overlay" id="modal-patient"><div class="modal">\n<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-patient\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mp-id">\n<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>\n<div class="fg g2">\n<div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \\u2014 cannot be changed later.</div></div>\n<div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>\n<div class="field"><label>Last Name *</label><input id="mp-last"></div>\n<div class="field"><label>First Name *</label><input id="mp-first"></div>\n<div class="field"><label>Middle Initial</label><input id="mp-mid" maxlength="1"></div>\n<div class="field"><label>Date of Birth (M/D/YYYY) *</label><input id="mp-dob" placeholder="1/15/1985"></div>\n<div class="field"><label>Sex *</label><select id="mp-sex"><option value="F">F \\u2014 Female</option><option value="M">M \\u2014 Male</option></select></div>\n<div class="field"><label>Phone</label><input id="mp-phone" maxlength="10"></div>\n<div class="field" style="grid-column:1/-1"><label>Address</label><input id="mp-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mp-addr2"></div>\n<div class="field"><label>City</label><input id="mp-city"></div>\n<div class="field"><label>State</label><input id="mp-state" maxlength="2" placeholder="FL"></div>\n<div class="field"><label>ZIP</label><input id="mp-zip" maxlength="10"></div>\n<div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \\u2014 Self</option><option value="01">01 \\u2014 Spouse</option><option value="19">19 \\u2014 Child</option><option value="G8">G8 \\u2014 Other</option><option value="32">32 \\u2014 Mother</option><option value="33">33 \\u2014 Father</option></select></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>\n<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \\u2014 subscriber fields auto-filled from patient data above.</div>\n<div class="fg g2">\n<div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>\n<div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>\n<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>\n<div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>\n<div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>\n<div class="field"><label>Group #</label><input id="mp-group"></div>\n<div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>\n<div class="fg g2">\n<div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>\n<div class="field"><label>Payer Name</label><input id="mp-payername"></div>\n<div class="field"><label>Payer City</label><input id="mp-payercity"></div>\n<div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-patient\')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>\n</div></div>\n\n<!-- PROVIDER MODAL -->\n<div class="overlay" id="modal-provider">\n<div class="modal" style="max-width:680px;width:100%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t" id="mprov-title">New Billing Provider</div>\n<div class="modal-sub" id="mprov-subtitle"></div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-provider\')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body" style="padding:22px;background:var(--bg2)">\n<input type="hidden" id="mprov-id">\n<style>\n.mprov-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}\n.mprov-chip input{display:none}\n.mprov-chip:has(input:checked){background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}\n.mprov-chip:hover{border-color:var(--brand)}\n.mprov-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px}\n.mprov-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.mprov-card-ico{width:30px;height:30px;background:var(--brand-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n.mprov-card-title{font-size:13px;font-weight:700;color:var(--text)}\n</style>\n\n<!-- NPI Lookup -->\n<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;padding:16px 18px;margin-bottom:16px">\n<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">\n<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup — Auto-fill from NPPES Registry\n</div>\n<div style="display:flex;gap:8px;align-items:flex-end">\n<div style="flex:1">\n<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">NPI Number (10 digits)</label>\n<input id="mprov-npi" maxlength="10" placeholder="Enter 10-digit NPI"\noninput="this.value=this.value.replace(/\\D/g,\'\');if(this.value.length===10)lookupBillingProviderNPI(this.value)"\nstyle="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:var(--bg)">\n</div>\n<button class="btn btn-primary btn-sm" onclick="lookupBillingProviderNPI(document.getElementById(\'mprov-npi\').value)" style="white-space:nowrap;flex-shrink:0">\n<i data-lucide="search" class="lci"></i> Look Up\n</button>\n</div>\n<div id="bp-npi-result" style="margin-top:8px"></div>\n</div>\n\n<!-- Identification -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="building-2" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Identification</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Organization Name *</label>\n<input id="mprov-name" placeholder="e.g. Sunrise Medical Group">\n</div>\n<div class="field">\n<label>Tax ID (EIN/SSN, 9 digits)</label>\n<input id="mprov-taxid" maxlength="9" placeholder="123456789">\n</div>\n<div class="field">\n<label>Tax ID Type</label>\n<select id="mprov-taxtype">\n<option value="E">EIN (Employer)</option>\n<option value="S">SSN (Individual)</option>\n</select>\n</div>\n<div class="field">\n<label>Taxonomy Code</label>\n<input id="mprov-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X">\n</div>\n<div class="field">\n<label>Provider Type</label>\n<select id="mprov-type">\n<option value="Organization">Organization</option>\n<option value="Individual">Individual</option>\n</select>\n</div>\n<div class="field" id="mprov-status-row">\n<label>Status</label>\n<select id="mprov-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n<option value="Pending">Pending</option>\n</select>\n</div>\n</div>\n</div>\n\n<!-- API Key (Super Admin only, toggled by JS) -->\n<div id="mprov-acctkey-row" class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="key" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Clearinghouse Integration</div>\n</div>\n<div class="field" style="margin:0">\n<label>Account Key</label>\n<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">\n<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission.</div>\n</div>\n</div>\n\n<!-- Address -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Address</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Street Address</label>\n<input id="mprov-addr1" placeholder="123 Main St">\n</div>\n<div class="field" style="grid-column:1/-1">\n<label>Address Line 2</label>\n<input id="mprov-addr2" placeholder="Suite 100">\n</div>\n<div class="field">\n<label>City</label>\n<input id="mprov-city">\n</div>\n<div class="field">\n<label>State</label>\n<input id="mprov-state" maxlength="2" placeholder="FL">\n</div>\n<div class="field">\n<label>ZIP</label>\n<input id="mprov-zip" maxlength="10" placeholder="33101">\n</div>\n<div class="field">\n<label>Phone</label>\n<input id="mprov-phone" maxlength="10" placeholder="3051234567">\n</div>\n<div class="field">\n<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>\n<input id="mprov-email" type="email" placeholder="billing@practice.com">\n</div>\n</div>\n</div>\n\n<!-- Logo -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="image" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Logo <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(optional)</span></div>\n</div>\n<div style="display:flex;align-items:center;gap:14px">\n<div id="mprov-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0">\n<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>\n</div>\n<div>\n<input type="file" id="mprov-logo-file" accept="image/*" onchange="loadProviderLogo(event)" style="display:none">\n<button class="btn btn-sm" onclick="document.getElementById(\'mprov-logo-file\').click()">\n<i data-lucide="upload" class="lci"></i> Upload Logo\n</button>\n<button class="btn btn-sm btn-ghost" onclick="clearProviderLogo()" style="margin-left:6px">Clear</button>\n</div>\n</div>\n</div>\n\n</div>\n<div class="modal-ftr">\n<button class="btn btn-ghost" onclick="closeModal(\'modal-provider\')">Cancel</button>\n<button class="btn btn-primary" id="mprov-save-btn" onclick="saveBillingProvider()">\n<i data-lucide="save" class="lci"></i> Save Provider\n</button>\n</div>\n</div>\n</div><!-- FACILITY MODAL -->\n<div class="overlay" id="modal-facility"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-facility\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mfac-id">\n<div class="fg g1">\n<div class="field"><label>Facility Name *</label><input id="mfac-name"></div>\n<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'fac\')"><button onclick="lookupNPI(v(\'mfac-npi\'),\'fac\')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>\n<div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>\n<div class="field"><label>Address *</label><input id="mfac-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mfac-addr2"></div>\n<div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-facility\')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- RENDERING MODAL -->\n<div class="overlay" id="modal-rendering"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mrend-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'rend\')"><button onclick="lookupNPI(v(\'mrend-npi\'),\'rend\')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>\n<div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>\n<div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- REFERRING MODAL -->\n<div class="overlay" id="modal-referring"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-referring\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mref-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'ref\')"><button onclick="lookupNPI(v(\'mref-npi\'),\'ref\')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>\n<div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-referring\')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- SERVICE MODAL -->\n<div class="overlay" id="modal-service"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-service\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="msvc-id">\n<div class="fg g1">\n<div class="fg g2"><div class="field"><label>CPT Code *</label><input id="msvc-code" maxlength="5" class="mono" style="font-size:15px;font-weight:700"></div><div class="field"><label>Category</label><input id="msvc-cat" placeholder="Physical Therapy"></div></div>\n<div class="field"><label>Description *</label><input id="msvc-desc" placeholder="Therapeutic Exercise"></div>\n<div class="fg g2"><div class="field"><label>Default Rate $</label><input id="msvc-rate" class="mono"></div><div class="field"><label>Default Units</label><input id="msvc-units" class="mono"></div></div>\n<div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-service\')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>\n</div></div>\n\n<!-- STATUS MODAL -->\n<div class="overlay" id="modal-status"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-status\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mst-id">\n<div class="fg g1">\n<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to Clearinghouse</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>\n<div class="field" id="mst-claimmd-wrap" style="display:none"><label>Clearinghouse Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by Clearinghouse"></div>\n<div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-status\')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>\n</div></div>\n\n<!-- BATCH MODAL -->\n<div class="overlay" id="modal-batch">\n<div class="modal modal-lg" style="max-width:900px;display:flex;flex-direction:column;max-height:92vh">\n\n<!-- Header -->\n<div class="modal-hdr" style="flex-shrink:0">\n<div>\n<div class="modal-t"><i data-lucide="zap" class="lci"></i> Quick Batch — Generate Claims</div>\n<div class="modal-sub">Generate one claim per date for selected patients and services</div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n\n<!-- Tab switcher -->\n<div style="display:flex;gap:0;border-bottom:2px solid var(--border);padding:0 22px;flex-shrink:0">\n<button id="mb-tab-patient" onclick="setBatchTab(\'patient\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px">\n<i data-lucide="users" class="lci"></i> By Patient\n</button>\n<button id="mb-tab-sg" onclick="setBatchTab(\'sg\',this)"\nstyle="padding:9px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:3px solid transparent;margin-bottom:-2px">\n<i data-lucide="layers" class="lci"></i> By Service Group\n</button>\n</div>\n\n<!-- Body scrolls -->\n<div class="modal-body" style="flex:1;overflow-y:auto;padding:0">\n\n<!-- ?? BY PATIENT PANEL ?? -->\n<div id="mb-panel-patient" style="padding:18px 22px">\n\n<!-- Row 1: Rendering + Facility + Referring -->\n<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Rendering Provider *</label>\n<select id="mb-rend" onchange="renderBatchPatDx()"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac"></select>\n</div>\n<div class="field">\n<label>Referring Provider</label>\n<select id="mb-ref"><option value="">— None —</option></select>\n</div>\n</div>\n\n<!-- Row 2: Two columns — Patients | Services -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">\n\n<!-- LEFT: Patient selector -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients *\n</div>\n<input id="mb-pat-q" placeholder="Search patients..."\noninput="renderBatchPatients()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div style="display:flex;gap:6px">\n<button class="btn btn-xs" onclick="batchSelectAllPats(true)">Select All</button>\n<button class="btn btn-xs" onclick="batchSelectAllPats(false)">Clear</button>\n</div>\n<div id="mb-pat-list"\nstyle="border:1px solid var(--border);border-radius:var(--r);overflow-y:auto;max-height:220px;background:var(--bg2)">\n</div>\n</div>\n\n<!-- RIGHT: Services catalog -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="pill" class="lci" style="width:11px;height:11px"></i> Services / CPT *\n</div>\n<input id="mb-svc-q" placeholder="Search CPT or description..."\noninput="renderBatchCatalog()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div class="cpt-scroll" id="mb-catalog" style="max-height:180px"></div>\n<div id="mb-selected-svcs-tbl"></div>\n</div>\n</div>\n\n<!-- Diagnoses (shown per patient when selected) -->\n<div id="mb-pat-dx-section" style="display:none;margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="activity" class="lci" style="width:11px;height:11px"></i> Diagnoses\n</div>\n<div id="mb-pat-dx-list" style="display:flex;flex-direction:column;gap:6px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-from" onchange="buildDateChips()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-to" onchange="buildDateChips()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Click dates to toggle on/off:</div>\n<div class="date-chips" id="mb-date-chips"></div>\n</div>\n\n<!-- Preview -->\n<div id="mb-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect patients, services and dates to preview\n</div>\n\n</div><!-- /mb-panel-patient -->\n\n<!-- ?? BY SERVICE GROUP PANEL ?? -->\n<div id="mb-panel-sg" style="display:none;padding:18px 22px">\n\n<!-- Row 1: SG + Rendering + Facility -->\n<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Service Group *</label>\n<select id="mb-sg-sel" onchange="onBatchSGChange()"></select>\n</div>\n<div class="field">\n<label>Rendering Provider</label>\n<select id="mb-rend-sg"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac-sg"></select>\n</div>\n</div>\n\n<!-- CPT summary row (shown after SG selection) -->\n<div id="mb-sg-cpt-row" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600">CPT codes in this group:</div>\n<div id="mb-sg-lines" style="display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-bottom:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-sg-from" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-sg-to" onchange="buildDateChips();onBatchSGChange()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div class="date-chips" id="mb-date-chips-sg"></div>\n</div>\n\n<!-- Patients in group -->\n<div id="mb-sg-patients-wrap" style="display:none">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients in Group\n</div>\n<div id="mb-sg-pat-rows" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden"></div>\n</div>\n\n<!-- SG Preview -->\n<div id="mb-sg-preview"\nstyle="margin-top:14px;padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--brand)">\nSelect a service group and dates to preview\n</div>\n\n</div><!-- /mb-panel-sg -->\n\n</div><!-- /modal-body -->\n\n<!-- Footer -->\n<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">\n  <button class="btn btn-ghost" onclick="closeModal(\'modal-batch\')">Cancel</button>\n  <label id="mb-group-wrap" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);flex:1;margin:0 8px;background:var(--bg3);border-radius:8px;padding:7px 12px;border:1.5px solid var(--border)">\n    <input type="checkbox" id="mb-group-dates" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0" onchange="(function(){const db=getDB();const sg=(db.serviceGroups||[]).find(g=>g.id===document.getElementById(\'mb-sg-sel\')?.value);if(sg)renderSGBatchPatients(sg);})()">\n    <span>1 claim per patient</span>\n    <span style="font-weight:400;color:var(--text3);font-size:11px">— all selected dates become service lines</span>\n  </label>\n  <button class="btn btn-primary" onclick="runBatch()" style="flex-shrink:0">\n    <i data-lucide="zap" class="lci"></i> Generate Claims\n  </button>\n</div>\n\n</div>\n</div>\n\n<!-- CPT PICKER MODAL -->\n<div class="overlay" id="modal-catalog"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \\u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-catalog\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\\u2026" oninput="renderPickerCatalog()"></div>\n<div class="cpt-scroll" id="cat-list"></div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-catalog\')">Cancel</button><button class="btn btn-primary" onclick="addCatalogToLines()">Add Selected to Claim</button></div>\n</div></div>\n<div class="overlay" id="modal-appt">\n<div class="modal modal-lg">\n<div class="modal-hdr">\n<div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body">\n<div class="fg g2">\n<div class="field"><label>Date</label><input type="date" id="appt-date"></div>\n<div class="field"><label>Start Time</label><input type="time" id="appt-start"></div>\n<div class="field"><label>End Time</label><input type="time" id="appt-end"></div>\n<div class="field"><label>Place of Service</label><select id="appt-pos"><option value="11">11 — Office</option><option value="02">02 — Telehealth</option><option value="23">23 — Emergency Room</option></select></div>\n</div>\n<div class="field" style="margin-top:10px"><label>Rendering Provider</label><select id="appt-rend"><option value="">— None —</option></select></div>\n<div class="field"><label>Facility</label><select id="appt-fac"><option value="">— None —</option></select></div>\n<div class="field"><label>Service Group</label><select id="appt-sg" onchange="onApptSGChange()"><option value="">— None —</option></select></div>\n<div class="field"><label>Status</label><select id="appt-status">\n<option value="scheduled">Scheduled</option>\n<option value="confirmed">Confirmed</option>\n<option value="checked_in">Checked In</option>\n<option value="completed">Completed</option>\n<option value="cancelled">Cancelled</option>\n<option value="no_show">No Show</option>\n</select></div>\n<div class="field"><label>Notes</label><textarea id="appt-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div style="margin-top:10px">\n<div class="slabel" style="margin-bottom:6px">Patients</div>\n<input id="appt-pat-q" placeholder="Search patients..." oninput="renderApptPatientPicker()" style="width:100%;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:6px">\n<div id="appt-pat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>\n<div id="appt-selected-pats" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="appt-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button>\n</div>\n</div>\n</div>\n\n<div class="overlay" id="modal-checkin">\n<div class="modal">\n<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div id="checkin-info"></div>\n<div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="ci-appt-id"><input type="hidden" id="ci-pat-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')">Cancel</button>\n<button class="btn btn-primary" onclick="_confirmCheckInDispatch()">Confirm Check-In</button>\n</div>\n</div>\n';
@@ -9183,15 +9183,15 @@ if (!_sgForm.lines.length) {
   el.innerHTML = '<p style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">No CPT lines yet — click Add Line or From Catalog.</p>';
   return;
 }
-const S = 'padding:4px 7px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;font-family:var(--mono,monospace);background:#fff;color:#0B1526;width:100%;box-sizing:border-box';
+const S = 'padding:4px 7px;border:1px solid #E4E9F1;border-radius:6px;font-size:11px;font-family:var(--mono,monospace);background:#fff;color:#0B1526;width:100%;box-sizing:border-box';
 const L = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#586579;margin-bottom:2px;display:block';
 el.innerHTML = _sgForm.lines.map((l,i) => {
   const ppu = parseFloat(l.pricePerUnit || l.charge || 0);
   const units = parseInt(l.units||1);
   const total = (ppu * units).toFixed(2);
   if (_sgForm.lines[i]) _sgForm.lines[i].charge = total;
-  return `<div style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
+  return `<div style="background:#fff;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#F8FAFC;border-bottom:1px solid #EEF1F6">
     <span style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.06em">Line ${i+1}</span>
     <button onclick="_sgForm.lines.splice(${i},1);renderSGLines()" title="Remove line"
       class="icoBtn icoBtn--danger icoBtn--sm">
@@ -9235,22 +9235,22 @@ if (!_sgForm.patients || !_sgForm.patients.length) {
 } else {
   const F = 'display:flex;flex-direction:column;gap:2px;min-width:0';
   const L = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#586579';
-  const I = 'padding:4px 7px;border:1px solid #e4e1d8;border-radius:6px;font-size:11px;background:#fff;color:#0B1526;width:100%;box-sizing:border-box;min-width:0';
+  const I = 'padding:4px 7px;border:1px solid #E4E9F1;border-radius:6px;font-size:11px;background:#fff;color:#0B1526;width:100%;box-sizing:border-box;min-width:0';
   el.innerHTML = _sgForm.patients.map((asgn,i) => {
     const pat = pats.find(p => p.id === asgn.patientId) || {};
-    const bg = pat.sex==='F'?'#B32660':pat.sex==='M'?'#2d6a4f':'#3A475C';
+    const bg = pat.sex==='F'?'#D45C37':pat.sex==='M'?'#2d6a4f':'#3A475C';
     const ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
     // Extra info line (payer / member ID / phone) — only render pieces that exist
     const infoBits = [];
     const payerLabel = _sgResolvePayerName(pat, db);
-    if(payerLabel) infoBits.push('<span style="color:#B32660;font-weight:600">'+payerLabel+'</span>');
+    if(payerLabel) infoBits.push('<span style="color:#D45C37;font-weight:600">'+payerLabel+'</span>');
     if(pat.insnum) infoBits.push('Sub ID <span style="font-family:var(--mono,monospace);color:#0B1526">'+pat.insnum+'</span>');
     if(pat.phone) infoBits.push('<span style="font-family:var(--mono,monospace)">'+pat.phone+'</span>');
     const extraLine = infoBits.length ? '<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">'+infoBits.join(' · ')+'</div>' : '';
     const refOpts = refs.map(r=>`<option value="${r.id}" ${r.id===asgn.referringId?'selected':''}>${r.last}, ${r.first}</option>`).join('');
     const facOpts = facs.map(f=>`<option value="${f.id}" ${f.id===asgn.facilityId?'selected':''}>${f.name}</option>`).join('');
-    return `<div draggable="true" data-sg-idx="${i}" class="sg-pat-card" style="background:#fff;border:1px solid #e4e1d8;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:opacity .12s,border-color .12s,transform .12s;min-width:0">
-  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8f6f0;border-bottom:1px solid #ede9df">
+    return `<div draggable="true" data-sg-idx="${i}" class="sg-pat-card" style="background:#fff;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:opacity .12s,border-color .12s,transform .12s;min-width:0">
+  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#F8FAFC;border-bottom:1px solid #EEF1F6">
     <div class="sg-drag-handle" title="Drag to reorder" style="cursor:grab;color:#a3a19a;padding:2px 3px;display:flex;align-items:center;flex-shrink:0;user-select:none" onmousedown="this.style.cursor='grabbing'" onmouseup="this.style.cursor='grab'">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="pointer-events:none">
         <circle cx="9" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/>
@@ -9311,14 +9311,14 @@ function _sgInstallDragReorder(){
     var below = (ev.clientY - rect.top) > rect.height/2;
     // Clear other indicators
     var cards = host.querySelectorAll('.sg-pat-card');
-    cards.forEach(function(c){ c.style.borderTop = ''; c.style.borderBottom = ''; c.style.borderColor='#e4e1d8'; });
-    if(below){ card.style.borderBottom = '2px solid #B32660'; }
-    else { card.style.borderTop = '2px solid #B32660'; }
+    cards.forEach(function(c){ c.style.borderTop = ''; c.style.borderBottom = ''; c.style.borderColor='#E4E9F1'; });
+    if(below){ card.style.borderBottom = '2px solid #D45C37'; }
+    else { card.style.borderTop = '2px solid #D45C37'; }
   });
   host.addEventListener('dragleave', function(ev){
     if(ev.target === host){
       var cards = host.querySelectorAll('.sg-pat-card');
-      cards.forEach(function(c){ c.style.borderTop=''; c.style.borderBottom=''; c.style.borderColor='#e4e1d8'; });
+      cards.forEach(function(c){ c.style.borderTop=''; c.style.borderBottom=''; c.style.borderColor='#E4E9F1'; });
     }
   });
   host.addEventListener('drop', function(ev){
@@ -9341,7 +9341,7 @@ function _sgInstallDragReorder(){
   });
   host.addEventListener('dragend', function(ev){
     var cards = host.querySelectorAll('.sg-pat-card');
-    cards.forEach(function(c){ c.style.opacity=''; c.style.borderTop=''; c.style.borderBottom=''; c.style.borderColor='#e4e1d8'; });
+    cards.forEach(function(c){ c.style.opacity=''; c.style.borderTop=''; c.style.borderBottom=''; c.style.borderColor='#E4E9F1'; });
     window._sgDragFrom = null;
   });
 }
@@ -9423,16 +9423,16 @@ function renderSGPatientPicker(){
   listEl.innerHTML = pats.map(function(p){
     var isIn = alreadyIn.has(p.id);
     var isSel = selected.has(p.id);
-    var bg = p.sex==='F'?'#B32660':p.sex==='M'?'#2d6a4f':'#3A475C';
+    var bg = p.sex==='F'?'#D45C37':p.sex==='M'?'#2d6a4f':'#3A475C';
     var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
-    var rowBg = isSel ? '#fdf5f0' : (isIn ? '#F6F8FB' : '#fff');
-    var rowBorder = isSel ? '#B32660' : '#eeece4';
+    var rowBg = isSel ? '#FFF1EC' : (isIn ? '#F6F8FB' : '#fff');
+    var rowBorder = isSel ? '#D45C37' : '#EEF1F6';
     return '<div onclick="_sgTogglePickerSel(\''+p.id+'\')" style="display:grid;grid-template-columns:22px 30px 1.7fr 1fr 1.2fr 1.2fr 1fr;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid '+rowBorder+';background:'+rowBg+';cursor:'+(isIn?'default':'pointer')+';font-size:11px;'+(isIn?'opacity:.6':'')+'" '+(isIn?'title="Already in group"':'')+'>'+
-      '<div style="text-align:center">'+(isIn?'<span style="color:#2d7a4f;font-weight:700" title="Already added">✓</span>':'<input type="checkbox" '+(isSel?'checked':'')+' style="accent-color:#B32660;pointer-events:none">')+'</div>'+
+      '<div style="text-align:center">'+(isIn?'<span style="color:#2d7a4f;font-weight:700" title="Already added">✓</span>':'<input type="checkbox" '+(isSel?'checked':'')+' style="accent-color:#D45C37;pointer-events:none">')+'</div>'+
       '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">'+ini+'</div>'+
       '<div style="min-width:0"><div style="font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'—')+'</div></div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'—')+'</div><div style="font-size:10px;color:#586579">'+(p.sex||'')+'</div></div>'+
-      '<div style="min-width:0"><div style="color:#B32660;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'—')+'</div>'+(p.plan?'<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
+      '<div style="min-width:0"><div style="color:#D45C37;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'—')+'</div>'+(p.plan?'<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'—')+'</div><div style="font-size:10px;color:#586579">Sub ID</div></div>'+
       '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'—')+'</div>'+
     '</div>';
@@ -9792,7 +9792,7 @@ function _cdcPlainForm(inner) {
 }
 function _cdcLoginUnavailable() {
   _cdcPlainForm('<p style="margin:0 0 16px;color:#3A475C;line-height:1.5">Sign-in could not load. Check your internet connection and reload the page.</p>' +
-    '<button type="button" onclick="location.reload()" style="width:100%;padding:13px;border:0;border-radius:10px;background:#B32660;color:#fff;font-weight:700;cursor:pointer">Reload</button>');
+    '<button type="button" onclick="location.reload()" style="width:100%;padding:13px;border:0;border-radius:10px;background:#D45C37;color:#fff;font-weight:700;cursor:pointer">Reload</button>');
 }
 function renderLoginScreen() {
   try { _hideLoginLoader(); } catch(_){}
@@ -10065,11 +10065,11 @@ refs.map(r => `<option value="${r.id}" ${r.id===(stRef.refId||asgn.referringId||
 const facOpts = `<option value="">— Group default</option>` +
 facs.map(f => `<option value="${f.id}" ${f.id===(stRef.facId||asgn.facilityId||'')?'selected':''}>${f.name}</option>`).join('');
 
-const _bgAv = pat.sex==='F'?'#B32660':pat.sex==='M'?'#2d6a4f':'#3A475C';
+const _bgAv = pat.sex==='F'?'#D45C37':pat.sex==='M'?'#2d6a4f':'#3A475C';
 const _ini = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
 return `<div style="background:${stRef.included?'#fff':'#fafaf7'};transition:background .15s">
 <!-- Patient header row -->
-<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #f0ede5"
+<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #F1F4F8"
 onclick="_sgBatchState['${pid}'].included=!_sgBatchState['${pid}'].included;renderSGBatchPatients(sg)">
 <input type="checkbox" ${stRef.included?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--brand);flex-shrink:0"
 onclick="event.stopPropagation()"
@@ -10079,9 +10079,9 @@ onchange="_sgBatchState['${pid}'].included=this.checked;renderSGBatchPatients(sg
   <span style="font-size:13px;font-weight:700;color:#0B1526">${(pat.last||'').toUpperCase()}, ${pat.first||''}</span>
   <span style="font-size:11px;color:#586579;margin-left:8px">File #${pat.acct}</span>
   ${_insHtml}
-  ${dxArr.length ? `<span style="font-size:10px;color:#B32660;margin-left:8px;font-weight:600">Dx: ${dxArr.slice(0,3).join(', ')}${dxArr.length>3?'…':''}</span>` : '<span style="font-size:10px;color:#d97706;margin-left:8px;font-weight:600">No Dx — edit group</span>'}
+  ${dxArr.length ? `<span style="font-size:10px;color:#D45C37;margin-left:8px;font-weight:600">Dx: ${dxArr.slice(0,3).join(', ')}${dxArr.length>3?'…':''}</span>` : '<span style="font-size:10px;color:#d97706;margin-left:8px;font-weight:600">No Dx — edit group</span>'}
 </div>
-<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;flex-shrink:0;background:${stRef.included?'#f0fdf4':'#f8f6f0'};color:${stRef.included?'#16a34a':'#586579'};border:1px solid ${stRef.included?'#bbf7d0':'#e4e1d8'}">${stRef.included?'INCLUDE':'SKIP'}</span>
+<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;flex-shrink:0;background:${stRef.included?'#f0fdf4':'#F8FAFC'};color:${stRef.included?'#16a34a':'#586579'};border:1px solid ${stRef.included?'#bbf7d0':'#E4E9F1'}">${stRef.included?'INCLUDE':'SKIP'}</span>
 </div>
 
 <!-- Patient detail — shown when included -->
@@ -11073,29 +11073,29 @@ async function icSendForms(clientId, formIds) {
   const clientName = (ic.first || '') + ' ' + (ic.last || '');
   const provName = prov.name || 'Your Provider';
   const html = [
-    '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f8f6f0;padding:20px">',
-    '<div style="background:#B32660;padding:20px 28px;border-radius:10px 10px 0 0">',
+    '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#F8FAFC;padding:20px">',
+    '<div style="background:#D45C37;padding:20px 28px;border-radius:10px 10px 0 0">',
     '<div style="font-size:18px;font-weight:700;color:#fff;letter-spacing:.02em">ClaimDataCare</div>',
     '<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">Secure Document Signing</div>',
     '</div>',
-    '<div style="background:#fff;padding:28px;border:1px solid #e4e1d8;border-top:none;border-radius:0 0 10px 10px">',
+    '<div style="background:#fff;padding:28px;border:1px solid #E4E9F1;border-top:none;border-radius:0 0 10px 10px">',
     '<p style="font-size:15px;font-weight:600;color:#0B1526;margin:0 0 8px">Hello ' + guardianName + ',</p>',
     '<p style="font-size:14px;color:#3A475C;line-height:1.6;margin:0 0 20px">',
     provName + ' has sent you <strong>' + selectedForms.length + ' consent form' + (selectedForms.length > 1 ? 's' : '') + '</strong>',
     ' for <strong>' + clientName.trim() + '</strong> to review and sign electronically.',
     '</p>',
-    '<div style="background:#fdf3ee;border:1px solid #f0d8cc;border-radius:8px;padding:16px;margin-bottom:20px">',
+    '<div style="background:#FFF1EC;border:1px solid #FFD2C2;border-radius:8px;padding:16px;margin-bottom:20px">',
     '<div style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Documents to Sign</div>',
-    selectedForms.map((f,i) => '<div style="font-size:13px;color:#0B1526;padding:4px 0;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:#B32660;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">' + (i+1) + '</span>' + (f.name || 'Consent Form') + '</div>').join(''),
+    selectedForms.map((f,i) => '<div style="font-size:13px;color:#0B1526;padding:4px 0;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:#D45C37;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">' + (i+1) + '</span>' + (f.name || 'Consent Form') + '</div>').join(''),
     '</div>',
     '<div style="text-align:center;margin:24px 0">',
-    '<a href="' + signUrl + '" style="display:inline-block;background:#B32660;color:#fff;font-size:15px;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:.02em">',
+    '<a href="' + signUrl + '" style="display:inline-block;background:#D45C37;color:#fff;font-size:15px;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:.02em">',
     '✍️ Review &amp; Sign Forms',
     '</a>',
     '</div>',
     '<p style="font-size:12px;color:#586579;text-align:center;line-height:1.6">',
     'This link expires in 7 days. If you did not expect this email, please contact ' + provName + '.<br>',
-    'Or copy this link: <a href="' + signUrl + '" style="color:#B32660">' + signUrl + '</a>',
+    'Or copy this link: <a href="' + signUrl + '" style="color:#D45C37">' + signUrl + '</a>',
     '</p>',
     '</div>',
     '<p style="font-size:11px;color:#b0aea5;text-align:center;margin-top:16px">',
@@ -11761,7 +11761,7 @@ el.innerHTML = log.slice(0,50).map(entry => {
 const ts = new Date(entry.ts).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 const isOk = entry.status==='success';
 const provBadge = entry.providerName
-  ? `<span style="display:inline-block;padding:1px 6px;background:#F6F8FB;border:1px solid #e4e1d8;border-radius:4px;font-size:10px;color:#0B1526;margin-left:6px;font-weight:600">${entry.providerName}</span>`
+  ? `<span style="display:inline-block;padding:1px 6px;background:#F6F8FB;border:1px solid #E4E9F1;border-radius:4px;font-size:10px;color:#0B1526;margin-left:6px;font-weight:600">${entry.providerName}</span>`
   : '<span style="display:inline-block;padding:1px 6px;background:#fff8e1;border:1px solid #f59e0b;border-radius:4px;font-size:10px;color:#b45309;margin-left:6px;font-weight:600" title="Legacy entry — provider not recorded">unknown provider</span>';
 return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
 <span style="flex-shrink:0;margin-top:1px">${isOk?'✓':'✗'}</span>
@@ -12408,7 +12408,7 @@ function openCorrectedClaimModal(claimId) {
     '<div style="background:var(--bg2);border-radius:14px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">' +
       // Header
       '<div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">' +
-        '<div style="width:36px;height:36px;background:#B32660;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+        '<div style="width:36px;height:36px;background:#D45C37;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
           '<i data-lucide="refresh-ccw" class="lci" style="width:18px;height:18px;color:#fff"></i>' +
         '</div>' +
         '<div>' +
@@ -12731,7 +12731,7 @@ function getBrandColors() {
     primaryLight: [250,245,237],
     accent:      [201,100,66],
     primaryBg:   [250,245,237],
-    hex: { primary: '#B32660', accent: '#B32660' }
+    hex: { primary: '#D45C37', accent: '#D45C37' }
   };
 }
 
@@ -13974,8 +13974,8 @@ btn.innerHTML = '<i data-lucide="mic-off" class="lci" style="width:32px;height:3
 if (status) status.textContent = 'Recording — tap to stop';
 if (live) live.textContent = 'Listening...';
 } else {
-btn.style.background = 'linear-gradient(145deg,#B32660,#8F1D4D)';
-btn.style.boxShadow = '0 6px 20px rgba(179,38,96,.4)';
+btn.style.background = 'linear-gradient(145deg,#D45C37,#B8461F)';
+btn.style.boxShadow = '0 6px 20px rgba(212,92,55,.4)';
 btn.style.animation = 'none';
 btn.innerHTML = '<i data-lucide="mic" class="lci" style="width:32px;height:32px;color:#fff"></i>';
 if (status) status.textContent = _vBuf ? 'Tap to continue dictating' : 'Tap the mic and dictate your note';
@@ -14081,7 +14081,7 @@ onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this
 onclick="${onClick}">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:8px">
-<div style="width:28px;height:28px;background:${isTCM?'var(--brand-bg)':n.aiGenerated?'linear-gradient(135deg,var(--brand),#8F1D4D)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
+<div style="width:28px;height:28px;background:${isTCM?'var(--brand-bg)':n.aiGenerated?'linear-gradient(135deg,var(--brand),#B8461F)':'var(--bg3)'};border-radius:8px;display:flex;align-items:center;justify-content:center">
 <i data-lucide="${isTCM?'briefcase':n.aiGenerated?'bot':'file-text'}" class="lci" style="width:14px;height:14px;color:${isTCM?'var(--brand)':n.aiGenerated?'#fff':'var(--text2)'}"></i>
 </div>
 <div>
@@ -14101,7 +14101,7 @@ const claimPrompts=noNotes.slice(0,5).map(c=>{
 const cpts=(c.lines||[]).map(l=>l.cpt).filter(Boolean).join(', ');
 return `<div onclick="openAINoteModal('${pat.id}','','${c.id}')"
 style="background:var(--brand-bg);border:1.5px dashed var(--brand-bdr);border-radius:12px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s;margin-bottom:6px"
-onmouseover="this.style.background='#f5ebe5'" onmouseout="this.style.background='var(--brand-bg)'">
+onmouseover="this.style.background='#FFF1EC'" onmouseout="this.style.background='var(--brand-bg)'">
 <div style="width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
 <i data-lucide="sparkles" class="lci" style="width:15px;height:15px;color:#fff"></i>
 </div>
@@ -14371,7 +14371,7 @@ box-shadow:0 40px 100px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.1);overf
 <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div style="display:flex;align-items:center;gap:12px">
-<div style="width:46px;height:46px;background:linear-gradient(135deg,#B32660,#8F1D4D);
+<div style="width:46px;height:46px;background:linear-gradient(135deg,#D45C37,#B8461F);
 border-radius:14px;display:flex;align-items:center;justify-content:center;
 box-shadow:0 6px 16px rgba(74,74,74,.4),inset 0 1px 0 rgba(255,255,255,.15)">
 <i data-lucide="mic-vocal" class="lci" style="width:22px;height:22px;color:#fff"></i>
@@ -14408,7 +14408,7 @@ ${hasSpeech ? `
 border:2px solid transparent;transition:all .3s;pointer-events:none"></div>
 <button id="voice-btn" onclick="_toggleVoice()"
 style="width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;
-background:linear-gradient(135deg,#B32660,#8F1D4D);
+background:linear-gradient(135deg,#D45C37,#B8461F);
 box-shadow:0 8px 24px rgba(74,74,74,.45),inset 0 1px 0 rgba(255,255,255,.2);
 display:flex;align-items:center;justify-content:center;
 transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;z-index:1">
@@ -14649,8 +14649,8 @@ if(ring){ ring.style.border='2px solid rgba(220,38,38,.3)'; ring.style.animation
 if(status) status.innerHTML='<span style="color:var(--red);font-weight:700">REC</span> &nbsp;Tap to stop · Speak your note...';
 if(live){ live.style.borderColor='var(--red-bdr)'; live.style.background='var(--red-bg)'; live.textContent='Listening...'; }
 } else {
-btn.style.background='linear-gradient(145deg,#B32660,#8F1D4D)';
-btn.style.boxShadow='0 8px 24px rgba(179,38,96,.45),inset 0 1px 0 rgba(255,255,255,.2)';
+btn.style.background='linear-gradient(145deg,#D45C37,#B8461F)';
+btn.style.boxShadow='0 8px 24px rgba(212,92,55,.45),inset 0 1px 0 rgba(255,255,255,.2)';
 btn.innerHTML='<i data-lucide="mic" class="lci" style="width:34px;height:34px;color:#fff"></i>';
 if(ring){ ring.style.border='2px solid transparent'; ring.style.animation='none'; }
 if(status) status.textContent=_vBuf?'Tap to continue · Or click Structure Note':'Tap the mic · Dictate your note · Tap again to stop';
@@ -15207,7 +15207,7 @@ function printEOBBatch(batchId) {
   // Logo — base64 if available, else text fallback
   var logoHtml = prov.logo
     ? '<img src="'+prov.logo+'" style="height:52px;max-width:180px;object-fit:contain;display:block">'
-    : '<div style="font-size:22px;font-weight:900;color:#B32660;letter-spacing:-.02em">'+(prov.name||'Billing Provider')+'</div>';
+    : '<div style="font-size:22px;font-weight:900;color:#D45C37;letter-spacing:-.02em">'+(prov.name||'Billing Provider')+'</div>';
 
   // Provider address block
   var provAddr = [prov.addr1, prov.addr2, (prov.city&&prov.state?(prov.city+', '+prov.state+(prov.zip?' '+prov.zip:'')):'')].filter(Boolean).join(' | ');
@@ -15231,7 +15231,7 @@ function printEOBBatch(batchId) {
 
   var html = '<!DOCTYPE html><html><head><title>EOB — '+b.checkNum+'</title>'+
   '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:32px;color:#0B1526}'+
-  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #B32660}'+
+  '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #D45C37}'+
   '.prov-block{display:flex;flex-direction:column;gap:3px;max-width:55%}'+
   '.prov-block img{height:56px;max-width:200px;object-fit:contain;margin-bottom:6px}'+
   '.prov-name{font-size:14px;font-weight:800;color:#0B1526;margin-top:4px;letter-spacing:-.01em}'+
@@ -15261,7 +15261,7 @@ function printEOBBatch(batchId) {
       '<div style="font-size:18px;font-weight:900;color:#0B1526;margin-bottom:6px;letter-spacing:-.01em">Explanation of Benefits</div>'+
       '<div style="font-size:11px;color:#475467">Type: '+typeLbl+'</div>'+
       '<div style="font-size:11px;color:#475467">Printed: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'+
-      '<div style="margin-top:10px;font-size:11px;font-weight:700;color:#B32660">Powered by ClaimDataCare</div>'+
+      '<div style="margin-top:10px;font-size:11px;font-weight:700;color:#D45C37">Powered by ClaimDataCare</div>'+
     '</div>'+
   '</div>'+
   '<div class="info-grid">'+
@@ -15279,7 +15279,7 @@ function printEOBBatch(batchId) {
     '<div class="total-item"><label>Total Posted</label><span style="color:#2d7a4f">$'+posted.toFixed(2)+'</span></div>'+
     '<div class="total-item"><label>Balance</label><span style="color:'+(Math.abs(balance)<0.01?'#2d7a4f':balance<0?'#dc2626':'#b35c00')+'">$'+Math.abs(balance).toFixed(2)+'</span></div>'+
   '</div>'+
-  '<div class="footer" style="text-align:right"><span style="color:#B32660;font-weight:700;font-size:11px">Powered by ClaimDataCare</span></div>'+
+  '<div class="footer" style="text-align:right"><span style="color:#D45C37;font-weight:700;font-size:11px">Powered by ClaimDataCare</span></div>'+
   '</body></html>';
 
   var w = window.open('','_blank','width=900,height=700');
@@ -16389,7 +16389,7 @@ function _eraProgressOpen(total) {
     '<div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:440px;padding:28px 28px 24px;box-shadow:0 24px 60px rgba(0,0,0,.25);position:relative">'
     + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">'
       + '<div style="width:40px;height:40px;background:#EEF1F6;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-        + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B32660" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>'
+        + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D45C37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17l4 4 4-4"/><path d="M12 12v9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>'
       + '</div>'
       + '<div>'
         + '<div style="font-size:15px;font-weight:700;color:#0B1526">Importing Payments</div>'
@@ -16398,12 +16398,12 @@ function _eraProgressOpen(total) {
     + '</div>'
     // Progress bar track
     + '<div style="background:#EEF1F6;border-radius:100px;height:8px;margin-bottom:10px;overflow:hidden">'
-      + '<div id="era-prog-bar" style="height:100%;background:#B32660;border-radius:100px;width:0%;transition:width .4s ease"></div>'
+      + '<div id="era-prog-bar" style="height:100%;background:#D45C37;border-radius:100px;width:0%;transition:width .4s ease"></div>'
     + '</div>'
     // Stats row
     + '<div style="display:flex;justify-content:space-between;margin-bottom:18px">'
       + '<span id="era-prog-label" style="font-size:11px;color:#586579">0 of ' + total + ' ERAs</span>'
-      + '<span id="era-prog-pct" style="font-size:11px;font-weight:700;color:#B32660">0%</span>'
+      + '<span id="era-prog-pct" style="font-size:11px;font-weight:700;color:#D45C37">0%</span>'
     + '</div>'
     // Log
     + '<div id="era-prog-log" style="background:#F6F8FB;border-radius:8px;padding:10px 12px;max-height:140px;overflow-y:auto;font-size:11px;font-family:monospace;color:#475467;line-height:1.6"></div>'
@@ -16930,7 +16930,7 @@ function _usToggleRole(cb){
   var roleIn = document.querySelector('.us-spec-role[data-name="'+name.replace(/"/g,'\\"')+'"]');
   if (roleIn) roleIn.style.display = cb.checked ? 'block' : 'none';
   var card = cb.closest('div[style*="border-radius:10px"]');
-  if (card) card.style.background = cb.checked ? '#fdf5f0' : '#fff';
+  if (card) card.style.background = cb.checked ? '#FFF1EC' : '#fff';
 }
 
 /* saveUserSpecialties: moved to cdc-users.js */
@@ -16949,12 +16949,12 @@ var _TICKET_CATS = [
 var _TICKET_PRIOS = [
   { id:'low',    label:'Low',    color:'#586579' },
   { id:'normal', label:'Normal', color:'#4a90a4' },
-  { id:'high',   label:'High',   color:'#B32660' },
+  { id:'high',   label:'High',   color:'#D45C37' },
   { id:'urgent', label:'Urgent', color:'#dc2626' }
 ];
 var _TICKET_STATUSES = [
   { id:'open',         label:'Open',        color:'#2d7a4f', bg:'#e6f4ea' },
-  { id:'in-progress',  label:'In Progress', color:'#B32660', bg:'#fdf5f0' },
+  { id:'in-progress',  label:'In Progress', color:'#D45C37', bg:'#FFF1EC' },
   { id:'waiting-user', label:'Waiting User',color:'#a06a1c', bg:'#fef7e0' },
   { id:'resolved',     label:'Resolved',    color:'#4a90a4', bg:'#e8f2f7' },
   { id:'closed',       label:'Closed',      color:'#525252', bg:'#f0f0f0' }
@@ -17022,7 +17022,7 @@ function _ensureTicketsModal(){
     '<div class="modal" style="max-width:720px;width:96%;display:flex;flex-direction:column;max-height:90vh">'+
     '<div class="modal-hdr" style="flex-shrink:0">'+
       '<div><div class="modal-t" style="display:flex;align-items:center;gap:8px">'+
-        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#B32660" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>'+
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#D45C37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>'+
         'Support Tickets'+
       '</div>'+
       '<div class="modal-sub" id="tickets-sub">Create a ticket or view your open requests</div></div>'+
@@ -17049,8 +17049,8 @@ function _renderTicketsModal(){
     .sort(function(a,b){ return (b.lastActivity||b.createdAt||0) - (a.lastActivity||a.createdAt||0); });
 
   var tabBar = '<div style="display:flex;padding:8px 12px;gap:4px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0">'+
-    '<button onclick="setTicketsTab(\'list\')" style="padding:8px 14px;border:none;background:'+(window._ticketsTab==='list'?'#fff':'transparent')+';border-radius:8px;font-size:12px;font-weight:'+(window._ticketsTab==='list'?'700':'500')+';color:'+(window._ticketsTab==='list'?'#B32660':'var(--text2)')+';cursor:pointer;font-family:var(--font)">My Tickets ('+myTickets.length+')</button>'+
-    '<button onclick="setTicketsTab(\'new\')" style="padding:8px 14px;border:none;background:'+(window._ticketsTab==='new'?'#fff':'transparent')+';border-radius:8px;font-size:12px;font-weight:'+(window._ticketsTab==='new'?'700':'500')+';color:'+(window._ticketsTab==='new'?'#B32660':'var(--text2)')+';cursor:pointer;font-family:var(--font)">+ New Ticket</button>'+
+    '<button onclick="setTicketsTab(\'list\')" style="padding:8px 14px;border:none;background:'+(window._ticketsTab==='list'?'#fff':'transparent')+';border-radius:8px;font-size:12px;font-weight:'+(window._ticketsTab==='list'?'700':'500')+';color:'+(window._ticketsTab==='list'?'#D45C37':'var(--text2)')+';cursor:pointer;font-family:var(--font)">My Tickets ('+myTickets.length+')</button>'+
+    '<button onclick="setTicketsTab(\'new\')" style="padding:8px 14px;border:none;background:'+(window._ticketsTab==='new'?'#fff':'transparent')+';border-radius:8px;font-size:12px;font-weight:'+(window._ticketsTab==='new'?'700':'500')+';color:'+(window._ticketsTab==='new'?'#D45C37':'var(--text2)')+';cursor:pointer;font-family:var(--font)">+ New Ticket</button>'+
     '</div>';
 
   var content = '';
@@ -17088,7 +17088,7 @@ function _renderNewTicketForm(){
 function _renderTicketsList(items){
   if (!items.length){
     return '<div style="padding:40px 20px;text-align:center;color:var(--text3)">'+
-      '<svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#e4e1d8" stroke-width="1.8" stroke-linecap="round" style="margin:0 auto 12px;display:block"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'+
+      '<svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#E4E9F1" stroke-width="1.8" stroke-linecap="round" style="margin:0 auto 12px;display:block"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'+
       '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px">No tickets yet</div>'+
       '<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Open a ticket if you need info changed or run into an issue.</div>'+
       '<button class="btn btn-primary btn-sm" onclick="setTicketsTab(\'new\')">Create your first ticket</button>'+
@@ -17099,7 +17099,7 @@ function _renderTicketsList(items){
     var pr = _ticketPrio(t.priority);
     var date = t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
     var reply = (t.comments||[]).length;
-    return '<div onclick="setTicketsTab(\'detail\',\''+t.id+'\')" style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;background:#fff" onmouseover="this.style.borderColor=\'#B32660\';this.style.boxShadow=\'0 2px 6px rgba(179,38,96,.15)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.boxShadow=\'none\'">'+
+    return '<div onclick="setTicketsTab(\'detail\',\''+t.id+'\')" style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;background:#fff" onmouseover="this.style.borderColor=\'#D45C37\';this.style.boxShadow=\'0 2px 6px rgba(212,92,55,.15)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.boxShadow=\'none\'">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+st.bg+';color:'+st.color+';text-transform:uppercase;letter-spacing:.06em">'+st.label+'</span>'+
         '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:#F6F8FB;color:'+pr.color+';border:1px solid '+pr.color+';text-transform:uppercase;letter-spacing:.06em">'+pr.label+'</span>'+
@@ -17120,9 +17120,9 @@ function _renderTicketDetail(t, isAdmin){
   var prov = (db.providers||[]).find(function(p){return p.id===t.providerId;});
   var thread = ((t.comments||[])).map(function(c){
     var when = c.ts ? new Date(c.ts).toLocaleString() : '';
-    var bg = c.isStaff ? '#fdf5f0' : '#F6F8FB';
-    var border = c.isStaff ? '#B32660' : '#d4d4d4';
-    var badge = c.isStaff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#B32660;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Staff</span>' : '';
+    var bg = c.isStaff ? '#FFF1EC' : '#F6F8FB';
+    var border = c.isStaff ? '#D45C37' : '#d4d4d4';
+    var badge = c.isStaff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#D45C37;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin-left:6px">Staff</span>' : '';
     return '<div style="padding:10px 12px;background:'+bg+';border-left:3px solid '+border+';border-radius:6px;margin-bottom:6px">'+
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:11px;font-weight:700;color:var(--text)">'+_escHtml(c.name||'?')+'</span>'+badge+'<span style="margin-left:auto;font-size:10px;color:var(--text3)">'+when+'</span></div>'+
       '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.5">'+_escHtml(c.message||'')+'</div>'+
@@ -17237,7 +17237,7 @@ function renderAdminTickets(){
   if (window._adminTkDetailId){
     var t = all.find(function(x){ return x.id === window._adminTkDetailId; });
     if (t){
-      el.innerHTML = '<div class="page-hdr"><div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="headphones" class="lci" style="width:22px;height:22px;color:#B32660"></i>Ticket Detail</h1></div></div><div class="page-body" style="max-width:900px;margin:0 auto">'+_renderTicketDetail(t, true)+'</div>';
+      el.innerHTML = '<div class="page-hdr"><div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="headphones" class="lci" style="width:22px;height:22px;color:#D45C37"></i>Ticket Detail</h1></div></div><div class="page-body" style="max-width:900px;margin:0 auto">'+_renderTicketDetail(t, true)+'</div>';
       setTimeout(_renderLucideIcons, 20);
       return;
     }
@@ -17291,7 +17291,7 @@ function renderAdminTickets(){
 
   el.innerHTML =
     '<div class="page-hdr">'+
-      '<div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="headphones" class="lci" style="width:22px;height:22px;color:#B32660"></i>Support Tickets</h1>'+
+      '<div><h1 style="display:flex;align-items:center;gap:10px"><i data-lucide="headphones" class="lci" style="width:22px;height:22px;color:#D45C37"></i>Support Tickets</h1>'+
         '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+all.length+' total · '+all.filter(function(t){return t.status!=='closed' && t.status!=='resolved';}).length+' active</div>'+
       '</div>'+
     '</div>'+
@@ -17394,17 +17394,17 @@ function _renderTopnavSpecialtyChip(){
     var esc = String(sd.name).replace(/"/g,'&quot;').replace(/'/g,"\\'");
     return '<button onclick="switchSpecialtyFromChip(\''+esc+'\')" type="button"'+
       ' style="display:flex;align-items:center;gap:10px;padding:9px 11px;border:'+
-      (isActive?'2px solid #B32660':'1px solid var(--border2)')+
-      ';border-radius:10px;background:'+(isActive?'#fdf5f0':'var(--bg3)')+
+      (isActive?'2px solid #D45C37':'1px solid var(--border2)')+
+      ';border-radius:10px;background:'+(isActive?'#FFF1EC':'var(--bg3)')+
       ';cursor:pointer;text-align:left;width:100%;font-family:var(--font)">'+
-      '<div style="width:8px;height:8px;border-radius:50%;background:'+(isActive?'#B32660':'var(--border2)')+';flex-shrink:0"></div>'+
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+(isActive?'#D45C37':'var(--border2)')+';flex-shrink:0"></div>'+
       '<div style="min-width:0;flex:1">'+
         '<div style="font-size:12px;font-weight:'+(isActive?'700':'600')+';color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+
           sd.name+
         '</div>'+
         (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sd.taxonomy+'</div>':'')+
       '</div>'+
-      (isActive?'<div style="font-size:9px;font-weight:700;color:#B32660;background:#fbe9de;padding:2px 7px;border-radius:10px;flex-shrink:0">ACTIVE</div>':'')+
+      (isActive?'<div style="font-size:9px;font-weight:700;color:#D45C37;background:#FFE4D9;padding:2px 7px;border-radius:10px;flex-shrink:0">ACTIVE</div>':'')+
     '</button>';
   }).join('');
 }
@@ -17694,8 +17694,8 @@ function _renderSpecialtySwitch() {
 
   container.style.display = '';
   container.innerHTML =
-    '<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:#fdf5f0">' +
-      '<div style="font-size:10px;font-weight:700;color:#B32660;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">' + headerLabel + '</div>' +
+    '<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:#FFF1EC">' +
+      '<div style="font-size:10px;font-weight:700;color:#D45C37;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">' + headerLabel + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:6px">' +
         eligibleSpecs.map(function(sd){
           var isActive = sd.name === activeSpecName;
@@ -17704,14 +17704,14 @@ function _renderSpecialtySwitch() {
           var clickHandler = canSwitch ? 'switchSpecialtyFromMenu(\'' + escName + '\')' : '';
           return '<button ' + (clickHandler ? 'onclick="' + clickHandler + '"' : 'disabled') + ' type="button"' +
             ' style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:' +
-            (isActive ? '2px solid #B32660' : '1px solid var(--border2)') +
+            (isActive ? '2px solid #D45C37' : '1px solid var(--border2)') +
             ';border-radius:10px;background:' + (isActive ? '#fff' : 'var(--bg3)') +
             ';cursor:' + (canSwitch ? 'pointer' : 'default') + ';text-align:left;width:100%;font-family:var(--font)">' +
-            '<div style="width:8px;height:8px;border-radius:50%;background:' + (isActive ? '#B32660' : 'var(--border2)') + ';flex-shrink:0"></div>' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:' + (isActive ? '#D45C37' : 'var(--border2)') + ';flex-shrink:0"></div>' +
             '<div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:' + (isActive?'700':'600') + ';color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + sd.name + (role?' <span style="font-weight:400;color:var(--text3)">— '+role+'</span>':'') + '</div>' +
             (sd.taxonomy ? '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + sd.taxonomy + '</div>' : '') +
             '</div>' +
-            (isActive ? '<div style="margin-left:auto;font-size:9px;font-weight:700;color:#B32660;background:#fbe9de;padding:2px 7px;border-radius:10px">ACTIVE</div>' : '') +
+            (isActive ? '<div style="margin-left:auto;font-size:9px;font-weight:700;color:#D45C37;background:#FFE4D9;padding:2px 7px;border-radius:10px">ACTIVE</div>' : '') +
             '</button>';
         }).join('') +
       '</div>' +
@@ -17973,7 +17973,7 @@ function _eraOpenPaymentDetail(eraId) {
       +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right">$'+billed.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#475467">$'+alw.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;text-align:right;color:#2d7a4f">$'+paid.toFixed(2)+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#B32660">$'+coAdj.toFixed(2)+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#D45C37">$'+coAdj.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#b35c00">$'+pr.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:10px;color:var(--text3)">'+adjLines.join('<br>')+'</td>'
       +'<td style="padding:7px 10px" onclick="event.stopPropagation()">'+postBtn+'</td>'
@@ -18037,7 +18037,7 @@ function _eraOpenPaymentDetail(eraId) {
         +[['Total Billed','$'+fmtMoney(totalBilled),'var(--text)'],
           ['Allowed','$'+fmtMoney(totalBilled-totalAdj),'var(--text)'],
           ['Total Paid','$'+fmtMoney(totalPaid),'#2d7a4f'],
-          ['Pat Resp','$'+fmtMoney(totalPR),'#B32660']]
+          ['Pat Resp','$'+fmtMoney(totalPR),'#D45C37']]
           .map(function(item){ return '<div style="padding:8px 14px;border-right:1px solid var(--border)">'
             +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:2px">'+item[0]+'</div>'
             +'<div style="font-size:15px;font-weight:800;font-family:monospace;color:'+item[2]+'">'+item[1]+'</div>'
@@ -18056,7 +18056,7 @@ function _eraOpenPaymentDetail(eraId) {
           +'<th style="padding:7px 10px;font-size:10px;text-align:right">Allowed</th>'
           +'<th style="padding:7px 10px;font-size:10px;text-align:right;color:#2d7a4f">Paid</th>'
           +'<th style="padding:7px 10px;font-size:10px;text-align:right">CO Adj</th>'
-          +'<th style="padding:7px 10px;font-size:10px;text-align:right;color:#B32660">Pat Resp</th>'
+          +'<th style="padding:7px 10px;font-size:10px;text-align:right;color:#D45C37">Pat Resp</th>'
           +'<th style="padding:7px 10px;font-size:10px">Remark Codes</th>'
           +'<th style="padding:7px 10px;font-size:10px;text-align:center">Action</th>'
         +'</tr></thead>'
@@ -21896,7 +21896,7 @@ function showRecentPatients(ev) {
     body += '<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">No recent patients yet</div>';
   } else {
     body += items.map(function(p){
-      var bg = p.sex==='F'?'#B32660':p.sex==='M'?'#2d6a4f':'#3A475C';
+      var bg = p.sex==='F'?'#D45C37':p.sex==='M'?'#2d6a4f':'#3A475C';
       var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
       return '<div onclick="document.getElementById(\'recent-pats-pop\').remove();openPatientChart(\''+p.id+'\')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'
         + '<div style="width:28px;height:28px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>'
@@ -21968,7 +21968,7 @@ const preview = isImage
 return `<div onclick="_openCropFromDoc('${patId}','${d.id}')"
 style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
 border-bottom:1px solid #E4E9F1;transition:background .15s;border-radius:8px"
-onmouseover="this.style.background='rgba(179,38,96,0.05)'" onmouseout="this.style.background=''">
+onmouseover="this.style.background='rgba(212,92,55,0.05)'" onmouseout="this.style.background=''">
 ${preview}
 <div style="flex:1;min-width:0">
 <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Document '+(i+1)}</div>
@@ -22005,7 +22005,7 @@ ${pat.photo ? `<img src="${pat.photo}" style="width:44px;height:44px;border-radi
 style="width:100%;padding:12px 16px;background:var(--brand);color:#fff;border:none;
 border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;
 display:flex;align-items:center;gap:10px;
-box-shadow:0 4px 12px rgba(179,38,96,.3);transition:all .2s"
+box-shadow:0 4px 12px rgba(212,92,55,.3);transition:all .2s"
 onmouseover="this.style.background='#d4734f'" onmouseout="this.style.background='var(--brand)'">
 <i data-lucide="camera" class="lci" style="width:18px;height:18px"></i>
 <span>Take Photo with Camera</span>
@@ -22016,7 +22016,7 @@ onmouseover="this.style.background='#d4734f'" onmouseout="this.style.background=
 style="width:100%;padding:12px 16px;background:#FFFFFF;color:#0B1526;
 border:1.5px solid #E4E9F1;border-radius:12px;font-size:14px;font-weight:600;
 cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s"
-onmouseover="this.style.borderColor='#B32660';this.style.color='#B32660'"
+onmouseover="this.style.borderColor='#D45C37';this.style.color='#D45C37'"
 onmouseout="this.style.borderColor='#E4E9F1';this.style.color='#0B1526'">
 <i data-lucide="upload" class="lci" style="width:18px;height:18px"></i>
 <span>Upload Photo from Device</span>
@@ -22157,7 +22157,7 @@ div.innerHTML = `
 <canvas id="pt-camera-canvas" style="display:none"></canvas>
 <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap">
 <button onclick="_capturePhoto('${patId}')"
-style="padding:14px 32px;background:#B32660;color:#fff;border:none;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer">
+style="padding:14px 32px;background:#D45C37;color:#fff;border:none;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer">
 ?? Capture
 </button>
 <button onclick="document.getElementById('pt-camera-facingMode').dataset.front=(document.getElementById('pt-camera-facingMode').dataset.front==='1'?'0':'1');_switchCamera('${patId}')"
@@ -22293,7 +22293,7 @@ div.innerHTML = `
 </div>
 <div style="position:relative;display:inline-block;width:100%;overflow:auto;max-height:60vh;text-align:center">
 <img id="pt-crop-img" src="${src}" style="max-width:100%;display:block;margin:0 auto;user-select:none" draggable="false">
-<div id="pt-crop-sel" style="position:absolute;border:2px dashed var(--brand);background:rgba(179,38,96,.15);display:none;pointer-events:none"></div>
+<div id="pt-crop-sel" style="position:absolute;border:2px dashed var(--brand);background:rgba(212,92,55,.15);display:none;pointer-events:none"></div>
 </div>
 <div style="display:flex;gap:10px;margin-top:12px;justify-content:center">
 <button onclick="_cropAndSave('${patId}')"
@@ -22666,7 +22666,7 @@ var recentRow = '<div style="padding:4px 6px 6px">'
   +' style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;border-radius:6px;'
   +'background:'+(recentActive?'var(--brand-bg)':'transparent')+';'
   +'border-left:3px solid '+(recentActive?'var(--brand)':'transparent')+';transition:background .15s">'
-  +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:'+(recentActive?'var(--brand)':'#B32660')+';flex-shrink:0"></i>'
+  +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:'+(recentActive?'var(--brand)':'#D45C37')+';flex-shrink:0"></i>'
   +'<span style="flex:1;font-size:12px;color:'+(recentActive?'var(--brand)':'var(--text)')+';font-weight:'+(recentActive?'700':'600')+'">Recent Records</span>'
   +'</div></div>'
   +'<div style="border-bottom:1px solid var(--border);margin:0 8px 4px"></div>';
@@ -22785,7 +22785,7 @@ return 'paperclip';
 function _docTypeColor(type) {
 const t = (type||'').toLowerCase();
 if (t.includes('pdf')) return '#dc2626';
-if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#B32660';
+if (t.includes('image')||t.includes('jpg')||t.includes('png')) return '#D45C37';
 if (t.includes('xls')) return '#3A475C';
 return '#586579';
 }
@@ -22815,7 +22815,7 @@ function _buildRecentDocsSection(docs, pat) {
   }).join('');
   return '<div style="border-bottom:2px solid var(--border);background:var(--bg2)">'
     +'<div style="padding:8px 14px 4px;display:flex;align-items:center;gap:6px">'
-    +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:#B32660"></i>'
+    +'<i data-lucide="clock" class="lci" style="width:13px;height:13px;color:#D45C37"></i>'
     +'<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0B1526">Recently Added</span>'
     +'<span style="font-size:10px;color:#586579;margin-left:4px">Last '+recent.length+' uploads</span>'
     +'</div>'+rows+'</div>';
@@ -23131,7 +23131,7 @@ const R = (l,v,bold=false)=>v?`
 const insBlock = (ins, label) => !ins?'':`
 <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1">
-<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#B32660"></i>${label}</span>
+<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#D45C37"></i>${label}</span>
 <div style="display:flex;gap:8px">
 <button class="btn-icon sm" onclick="_renderChartTab('insurance')" title="Verify Insurance"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px"></i></button>
 <button class="btn-icon sm" onclick="_renderChartTab('insurance')" title="Edit Insurance"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
@@ -23175,7 +23175,7 @@ return `
 <!-- ?? 1. PATIENT DETAILS (full width) ?? -->
 <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1">
-<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#B32660"></i>Patient Details</span>
+<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Patient Details</span>
 <div style="display:flex;gap:8px">
 <button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="View History"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i></button>
 <button class="btn-icon sm" onclick="_renderChartTab('demographics')" title="Edit Demographics"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>
@@ -23239,7 +23239,7 @@ ${insBlock(ins2,'Patient Secondary Insurance Details')}
 
 <!-- ?? 4. BILLING A/R AGING ?? -->
 <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#B32660"></i>Billing Statement</div>
+<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Billing Statement</div>
 <div style="overflow-x:auto">
 <table class="ptc-aging-table" style="width:100%">
 <thead>
@@ -23535,7 +23535,7 @@ function _authStatus(auth) {
     return approved>0 && used>=approved;
   });
 
-  if (end && today>end) return {key:'expired', label:'Expired', bg:'#F6F8FB', fg:'#586579', border:'#d8d6ce'};
+  if (end && today>end) return {key:'expired', label:'Expired', bg:'#F6F8FB', fg:'#586579', border:'#D5DCE7'};
   if (start && today<start) return {key:'upcoming', label:'Upcoming', bg:'#eef2ff', fg:'#4338ca', border:'#c7d2fe'};
   if (allExhausted) return {key:'exhausted', label:'Units Exhausted', bg:'#fff7ed', fg:'#b45309', border:'#fed7aa'};
   return {key:'active', label:'Active', bg:'#f0fdf4', fg:'#16a34a', border:'#bbf7d0'};
@@ -23550,7 +23550,7 @@ function _activeAuths(pat) {
 function _buildAuthTab(pat, db) {
   const C = {
     parchment:'#F6F8FB', ivory:'#FFFFFF', nearBlack:'#0B1526',
-    terracotta:'#B32660', coral:'#d97757', oliveGray:'#475467', stoneGray:'#586579',
+    terracotta:'#D45C37', coral:'#d97757', oliveGray:'#475467', stoneGray:'#586579',
     borderCream:'#EEF1F6', borderWarm:'#E4E9F1'
   };
   var auths = pat.authorizations || [];
@@ -23779,7 +23779,7 @@ function _buildInsuranceTab(pat, db) {
   // Colors from design system
   const C = {
     parchment:'#F6F8FB', ivory:'#FFFFFF', nearBlack:'#0B1526',
-    terracotta:'#B32660', coral:'#d97757',
+    terracotta:'#D45C37', coral:'#d97757',
     oliveGray:'#475467', stoneGray:'#586579',
     borderCream:'#EEF1F6', borderWarm:'#E4E9F1',
     darkSurface:'#30302e', warmSand:'#E4E9F1',
@@ -23788,11 +23788,11 @@ function _buildInsuranceTab(pat, db) {
 
   // Type color map
   const typeColors = {
-    primary:   { bg:'#fdf3ee', border:'#e8b89a', badge:'#B32660', label:'#0B1526' },
+    primary:   { bg:'#FFF1EC', border:'#e8b89a', badge:'#D45C37', label:'#0B1526' },
     secondary: { bg:'#f0f5f0', border:'#9fc4a0', badge:'#2d6b4a', label:'#0B1526' },
     tertiary:  { bg:'#f0f0f8', border:'#9898c8', badge:'#4a4a9c', label:'#0B1526' },
     other:     { bg:'#f5f0ee', border:'#c8a898', badge:'#6b3a2a', label:'#0B1526' },
-    inactive:  { bg:'#F6F8FB', border:'#d8d6ce', badge:'#586579', label:'#586579' },
+    inactive:  { bg:'#F6F8FB', border:'#D5DCE7', badge:'#586579', label:'#586579' },
   };
 
   function insCard(iv, idx) {
@@ -23827,7 +23827,7 @@ function _buildInsuranceTab(pat, db) {
       </button>
       <button onclick="_toggleInsuranceActive('${pat.id}',${idx})" title="${iv.inactive?'Activate':'Deactivate'}"
         style="width:30px;height:30px;border-radius:8px;border:1px solid ${C.borderWarm};background:${C.ivory};color:${iv.inactive?'#2d6b4a':C.stoneGray};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s"
-        onmouseover="this.style.background='${iv.inactive?'#2d6b4a':'#B32660'}';this.style.color='#fff'"
+        onmouseover="this.style.background='${iv.inactive?'#2d6b4a':'#D45C37'}';this.style.color='#fff'"
         onmouseout="this.style.background='${C.ivory}';this.style.color='${iv.inactive?'#2d6b4a':C.stoneGray}'">
         <i data-lucide="${iv.inactive?'toggle-left':'toggle-right'}" class="lci" style="width:13px;height:13px"></i>
       </button>
@@ -23995,7 +23995,7 @@ return ins.map((ins,i) => `
 <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:${ins.inactive?'var(--bg2)':''}">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:10px">
-<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'rgba(179,38,96,0.08)':ins.type==='Secondary'?'#EEF1F6':'#FFFFFF'};color:${ins.type==='Primary'?'var(--brand)':ins.type==='Secondary'?'#3A475C':'#586579'}">${ins.type||'Primary'}</span>
+<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${ins.type==='Primary'?'rgba(212,92,55,0.08)':ins.type==='Secondary'?'#EEF1F6':'#FFFFFF'};color:${ins.type==='Primary'?'var(--brand)':ins.type==='Secondary'?'#3A475C':'#586579'}">${ins.type||'Primary'}</span>
 <span style="font-weight:700">${ins.name||''}</span>
 <span class="mono" style="font-size:11px;color:var(--text3)">${ins.memberId||''}</span>
 ${ins.inactive?'<span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Inactive</span>':'<span style="background:#f0fdf4;color:#16a34a;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px">Active</span>'}
@@ -24108,7 +24108,7 @@ div.innerHTML = `
 <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:12px;width:100%;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,.15)">
 
 <!-- Title bar -->
-<div style="display:flex;align-items:center;justify-content:space-between;background:#B32660;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0">
+<div style="display:flex;align-items:center;justify-content:space-between;background:#D45C37;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0">
 <div style="font-size:14px;font-weight:700">Add/Edit Insurance</div>
 <button onclick="document.getElementById('pt-ins-form').remove()"
 style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1">&times;</button>
@@ -25165,7 +25165,7 @@ function renderCMClients() {
 
   var rows = pageList.map(function(c){
     var cnt = _claimCount[c.id] || 0;
-    var bg = c.sex==='F'?'#B32660':c.sex==='M'?'#2d6a4f':'#3A475C';
+    var bg = c.sex==='F'?'#D45C37':c.sex==='M'?'#2d6a4f':'#3A475C';
     var ini = ((c.first||'?')[0]+(c.last||'?')[0]).toUpperCase();
     return '<tr>'+
       '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+(c.fileNo||'—')+'</a></td>'+
@@ -25179,7 +25179,7 @@ function renderCMClients() {
       '<td style="font-size:12px">'+(c.payerName||c.payer||'')+'</td>'+
       '<td style="font-size:12px">'+(c.plan||'—')+'</td>'+
       '<td style="font-size:12px">'+(c.rel||'')+'</td>'+
-      '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#fdf3ee':'#f8f6f0')+';color:'+(cnt>0?'#B32660':'#586579')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'+
+      '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#FFF1EC':'#F8FAFC')+';color:'+(cnt>0?'#D45C37':'#586579')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'+
       '<td style="font-size:12px">'+_cmWorkerName(c.workerId)+'</td>'+
       '<td>'+_cmStatusBadge(c.status||'Active')+'</td>'+
       '<td style="font-size:12px">'+(c.authEnd||'—')+'</td>'+
@@ -25595,7 +25595,7 @@ function _renderImportFromPatientsList() {
         '<div style="font-weight:600;font-size:13px">'+(p.last||'')+', '+(p.first||'')+'</div>'+
         '<div style="font-size:11px;color:var(--text3);margin-top:1px">Acct #'+(p.acct||'—')+' · DOB '+(p.dob||'—')+(p.subNum?' · Sub '+p.subNum:'')+(p.payerName?' · '+p.payerName:'')+'</div>'+
       '</div>'+
-      (dup ? '<span style="font-size:10px;font-weight:700;color:#B32660;background:#fdf5f0;padding:3px 8px;border-radius:10px;border:1px solid #edd5c8;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
+      (dup ? '<span style="font-size:10px;font-weight:700;color:#D45C37;background:#FFF1EC;padding:3px 8px;border-radius:10px;border:1px solid #FFD2C2;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
     '</label>';
   }).join('');
   _updateImpSummary();
@@ -25752,7 +25752,7 @@ function _renderImportFromCMList() {
         '<div style="font-weight:600;font-size:13px"><span style="font-family:var(--mono);color:var(--brand);margin-right:6px">#'+(cli.fileNo||'—')+'</span>'+(cli.last||'')+', '+(cli.first||'')+'</div>'+
         '<div style="font-size:11px;color:var(--text3);margin-top:1px">DOB '+(cli.dob||'—')+(cli.medicaidId?' · Medicaid '+cli.medicaidId:'')+(cli.payer?' · '+cli.payer:'')+'</div>'+
       '</div>'+
-      (dup ? '<span style="font-size:10px;font-weight:700;color:#B32660;background:#fdf5f0;padding:3px 8px;border-radius:10px;border:1px solid #edd5c8;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
+      (dup ? '<span style="font-size:10px;font-weight:700;color:#D45C37;background:#FFF1EC;padding:3px 8px;border-radius:10px;border:1px solid #FFD2C2;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
     '</label>';
   }).join('');
   _updateImpCMSummary();
@@ -25916,7 +25916,7 @@ function renderCMWorkers() {
 var CM_ROLE_DEFS = [
   { key: 'Administrator', desc: 'Settings, full access', icon: 'settings', color: '#3f4a38', colorD: '#2c3527' },
   { key: 'Billing', desc: 'Billing readiness, claims', icon: 'receipt', color: '#b8863c', colorD: '#96692a' },
-  { key: 'Case Manager', desc: 'Clients, Care, Workflow', icon: 'user-round', color: '#B32660', colorD: '#a9502f' },
+  { key: 'Case Manager', desc: 'Clients, Care, Workflow', icon: 'user-round', color: '#D45C37', colorD: '#a9502f' },
   { key: 'Clerk', desc: 'Data entry, scheduling', icon: 'clipboard-list', color: '#8a7e6e', colorD: '#6f6457' },
   { key: 'Quality Assurance', desc: 'Chart audits, compliance', icon: 'badge-check', color: '#7d7a4e', colorD: '#656138' },
   { key: 'Supervisor', desc: 'Review, bills as rendering provider', icon: 'shield-check', color: '#7a3b3b', colorD: '#5f2e2e' }
@@ -25942,7 +25942,7 @@ if (!document.getElementById('cmw-role-style')) {
   _cmwStyle.id = 'cmw-role-style';
   _cmwStyle.textContent =
     '.cmw-role-card{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 8px;border-radius:14px;' +
-    'border:1.5px solid #e6e0d3;background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}' +
+    'border:1.5px solid #E4E9F1;background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}' +
     '.cmw-role-card:hover{transform:translateY(-3px);box-shadow:0 6px 14px rgba(0,0,0,.1)}' +
     '.cmw-role-card input{display:none}' +
     '.cmw-role-ico{width:36px;height:36px;border-radius:11px;background:color-mix(in srgb, var(--rc) 12%, white);' +
@@ -25954,16 +25954,16 @@ if (!document.getElementById('cmw-role-style')) {
     '.cmw-role-card:has(input:checked) .cmw-role-ico .lci{color:#fff}' +
     '.cmw-role-card:has(input:checked) .cmw-role-title{color:#fff}' +
     '#cmw-modal .field label{color:#0B1526!important;font-weight:700!important;display:flex;align-items:center;gap:5px}' +
-    '#cmw-modal .field label .cmw-fico{width:11px;height:11px;color:#B32660;flex-shrink:0}' +
+    '#cmw-modal .field label .cmw-fico{width:11px;height:11px;color:#D45C37;flex-shrink:0}' +
     '#cmw-modal .field input,#cmw-modal .field select{color:#0B1526!important;font-weight:400!important;' +
-    'background:#fff!important;border:1.5px solid #ddd8cc!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.03)}' +
-    '#cmw-modal .field input:focus,#cmw-modal .field select:focus{border-color:#B32660!important}' +
+    'background:#fff!important;border:1.5px solid #D5DCE7!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.03)}' +
+    '#cmw-modal .field input:focus,#cmw-modal .field select:focus{border-color:#D45C37!important}' +
     '#cmw-modal .fg,#cmw-modal .fg3{margin-bottom:14px}' +
     '#cmw-modal .cmw-sect{margin:18px 0 8px;font-size:10px;font-weight:700;color:#8a857a;text-transform:uppercase;letter-spacing:.05em}' +
     '#cmw-modal .cmw-sect:first-child{margin-top:0}' +
     '.cmw-icobtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;' +
-    'border:1.5px solid #ddd8cc;background:#fff;cursor:pointer;color:#4a4740;transition:border-color .12s,color .12s}' +
-    '.cmw-icobtn:hover{border-color:#B32660;color:#B32660}' +
+    'border:1.5px solid #D5DCE7;background:#fff;cursor:pointer;color:#4a4740;transition:border-color .12s,color .12s}' +
+    '.cmw-icobtn:hover{border-color:#D45C37;color:#D45C37}' +
     '.cmw-icobtn .lci{width:14px;height:14px}';
   document.head.appendChild(_cmwStyle);
 }
@@ -26054,7 +26054,7 @@ window._cmwOpenCamera = function () {
     '<video id="cmw-cam-video" autoplay playsinline style="max-width:90vw;max-height:70vh;border-radius:12px;background:#000"></video>' +
     '<canvas id="cmw-cam-canvas" style="display:none"></canvas>' +
     '<div style="display:flex;gap:10px">' +
-    '<button id="cmw-cam-shot" style="background:linear-gradient(155deg,#B32660 0%,#a9502f 100%);color:#fff;border:none;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;cursor:pointer">Capture</button>' +
+    '<button id="cmw-cam-shot" style="background:linear-gradient(155deg,#D45C37 0%,#a9502f 100%);color:#fff;border:none;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;cursor:pointer">Capture</button>' +
     '<button id="cmw-cam-cancel" style="background:#fff;color:#333;border:none;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>' +
     '</div>';
   document.body.appendChild(cam);
@@ -26155,7 +26155,7 @@ function openCMWorkerModal(editId) {
     '</div>' +
 
     // NPI/Taxonomy (conditional on Supervisor)
-    '<div id="cmw-npi-block" style="display:'+(isSupNow?'grid':'none')+';grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding:13px;background:#fdf5f0;border:1.5px solid #f0d5c4;border-radius:12px">' +
+    '<div id="cmw-npi-block" style="display:'+(isSupNow?'grid':'none')+';grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding:13px;background:#FFF1EC;border:1.5px solid #f0d5c4;border-radius:12px">' +
     '<div style="grid-column:1/-1;font-size:11px;color:#a9502f;display:flex;align-items:center;gap:6px">' +
     '<i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i>' +
     'Required for supervisors — used as the rendering provider on CM claims' +
@@ -29102,19 +29102,9 @@ function openCMPatientSummary(clientId) {
 }
 
 // ── CM: ENHANCED DASHBOARD ─────────────────────────────────────
-function _cmKpiCard(route,color,icon,value,label,urgent){
-  return '<div class="cm-kpi" style="background:'+color+';border-radius:var(--r-lg);padding:16px 16px 14px;cursor:pointer;position:relative;overflow:hidden;transition:transform .12s,box-shadow .12s" onclick="go(\''+route+'\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 18px rgba(0,0,0,.16)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">'+
-    (urgent?'<span style="position:absolute;top:12px;right:14px;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3)"></span>':'<i data-lucide="'+icon+'" class="lci" style="position:absolute;top:14px;right:14px;width:16px;height:16px;color:rgba(255,255,255,.55)"></i>')+
-    '<div style="font-size:26px;font-weight:800;color:#fff;line-height:1">'+value+'</div>'+
-    '<div style="font-size:11px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.85);margin-top:6px">'+label+'</div>'+
-    '</div>';
-}
+
 /* renderCMDashboard: moved to cdc-dashboard.js */
-function _cmIsSupervisor() {
-  var s = getSession(); if (!s) return false;
-  var d = getCMData();
-  return d.workers.some(function(w){return w.email===s.email;});
-}
+
 
 // ── CM: Supervisor helpers ────────────────────────────────────
 function _cmSupervisorOpts(currentId) {
@@ -29222,117 +29212,9 @@ function _cmAutoFillSupervisor(workerId) {
   if (!supSel.value) supSel.value = w.supervisorId;
 }
 
-function _cmCurrentUserWorkerId() {
-  var s = getSession(); if (!s) return '';
-  var d = getCMData();
-  var w = (d.workers||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
-  return w ? w.id : '';
-}
 
-// Personalized "My Work" dashboard panel — shows pending items for the logged-in user
-function _cmBuildMyWorkPanel(d) {
-  var s = getSession(); if (!s) return '';
-  var myWid = _cmCurrentUserWorkerId();
-  var isSA = s.role === 'Super Admin';
-  // Supervisors are rendering providers — collect the IDs owned by this user via email match
-  var myRendIds = {};
-  try {
-    var db2 = getDB();
-    (db2.rendering||[]).forEach(function(r){
-      if (r.email && (r.email||'').toLowerCase() === (s.email||'').toLowerCase()) myRendIds[r.id] = true;
-    });
-  } catch(e) {}
-  var _isMineSupervisor = function(cli){
-    if (!cli) return false;
-    if (cli.supervisorId === myWid) return true;
-    if (myRendIds[cli.supervisorId]) return true;
-    return false;
-  };
 
-  // Items I need to REVIEW (I am supervisor for these clients OR I'm SA)
-  var pendingReview = (d.encounters||[]).filter(function(n){
-    if (n.supervisorStatus !== 'Pending' && n.supervisorStatus) return false;
-    if (!n.supervisorStatus) return false; // only count explicit Pending
-    if (isSA) return true;
-    var cli = (d.clients||[]).find(function(c){ return c.id === n.clientId; });
-    return _isMineSupervisor(cli);
-  });
-  var pendingPlans = (d.plans||[]).filter(function(p){
-    if (p.supervisorStatus !== 'Pending') return false;
-    if (isSA) return true;
-    var cli = (d.clients||[]).find(function(c){ return c.id === p.clientId; });
-    return _isMineSupervisor(cli);
-  });
-  var pendingAssess = (d.assessments||[]).filter(function(a){
-    if (a.supervisorStatus !== 'Pending') return false;
-    if (isSA) return true;
-    var cli = (d.clients||[]).find(function(c){ return c.id === a.clientId; });
-    return _isMineSupervisor(cli);
-  });
 
-  // Items ASSIGNED to me
-  var myClients = (d.clients||[]).filter(function(c){ return c.workerId === myWid && c.status==='Active'; });
-  var myTasks = (d.tasks||[]).filter(function(t){ return t.workerId === myWid && t.status==='Open'; });
-  var now = new Date();
-  var myOverdue = myTasks.filter(function(t){ return t.dueDate && new Date(t.dueDate) < now; });
-
-  // Items RETURNED to me for correction
-  var myReturned = (d.encounters||[]).filter(function(n){ return n.supervisorStatus==='Returned' && n.workerId === myWid; });
-  var myReturnedPlans = (d.plans||[]).filter(function(p){ return p.supervisorStatus==='Returned' && p.workerId === myWid; });
-
-  var totalReview = pendingReview.length + pendingPlans.length + pendingAssess.length;
-  var totalReturned = myReturned.length + myReturnedPlans.length;
-
-  if (!myWid && !isSA) return '';
-
-  // Resolve the user's display name: session first/last → CM worker record by email → user record → email prefix
-  var userName = ((s.first||'') + ' ' + (s.last||'')).trim();
-  if (!userName && s.email) {
-    var wkr = (d.workers||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
-    if (wkr) userName = (wkr.first||'')+' '+(wkr.last||'');
-  }
-  if (!userName && s.email) {
-    try {
-      var db2 = getDB();
-      var u = (db2.users||[]).find(function(x){ return (x.email||'').toLowerCase() === (s.email||'').toLowerCase(); });
-      if (u) userName = (u.first||u.firstName||'')+' '+(u.last||u.lastName||'');
-    } catch(e) {}
-  }
-  userName = (userName||'').trim();
-  if (!userName) userName = (s.email||'User').split('@')[0];
-
-  return '<div class="card" style="margin-bottom:14px;padding:14px 18px;background:linear-gradient(135deg,var(--brand-bg) 0%,var(--bg2) 100%);border:1px solid var(--brand-bdr)">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.08em">My Work</div>'+
-        '<div style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px">'+userName+'</div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--text3)">'+(new Date()).toLocaleDateString()+'</div>'+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">'+
-      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-supervisor\')" title="Items awaiting your approval">'+
-        '<div style="font-size:22px;font-weight:800;color:'+(totalReview?'var(--amber)':'var(--text3)')+'">'+totalReview+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">To Review</div>'+
-      '</div>'+
-      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-encounters\')" title="Items returned to you">'+
-        '<div style="font-size:22px;font-weight:800;color:'+(totalReturned?'var(--red)':'var(--text3)')+'">'+totalReturned+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">Returned</div>'+
-      '</div>'+
-      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-clients\')" title="Your active clients">'+
-        '<div style="font-size:22px;font-weight:800;color:var(--brand)">'+myClients.length+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">My Clients</div>'+
-      '</div>'+
-      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-tasks\')" title="Your open tasks">'+
-        '<div style="font-size:22px;font-weight:800;color:var(--text)">'+myTasks.length+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">My Tasks</div>'+
-      '</div>'+
-      '<div style="background:var(--bg2);border-radius:8px;padding:10px;cursor:pointer;border:1px solid var(--border)" onclick="go(\'cm-tasks\')" title="Your overdue tasks">'+
-        '<div style="font-size:22px;font-weight:800;color:'+(myOverdue.length?'var(--red)':'var(--text3)')+'">'+myOverdue.length+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);margin-top:2px">Overdue</div>'+
-      '</div>'+
-    '</div>'+
-  '</div>';
-}
 
 // ── CM: Generic "Submit for Approval" workflow ────────────────
 // Works for encounters, plans, assessments — anything with supervisorStatus
@@ -29512,7 +29394,7 @@ function _cmChartSummary(cli, d) {
   var detailsPanel =
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1">'+
-        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#B32660"></i>Client Details</span>'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="user" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Client Details</span>'+
         '<div style="display:flex;gap:8px">'+
           '<button class="btn-icon sm" onclick="_renderCMChartTab(\'demographics\')" title="View Info"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i></button>'+
           '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
@@ -29560,7 +29442,7 @@ function _cmChartSummary(cli, d) {
   var insPanel =
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1">'+
-        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#B32660"></i>Client Insurance & Coverage</span>'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="shield" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Client Insurance & Coverage</span>'+
         '<div style="display:flex;gap:8px">'+
           '<button class="btn-icon sm" onclick="_renderCMChartTab(\'coverage\')" title="Coverage Detail"><i data-lucide="shield-check" class="lci" style="width:13px;height:13px"></i></button>'+
           '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
@@ -29596,7 +29478,7 @@ function _cmChartSummary(cli, d) {
   var guardianPanel = (cli.guardianName||cli.guardianPhone) ?
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1">'+
-        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="contact" class="lci" style="width:12px;height:12px;color:#B32660"></i>Guardian / Legal Representative</span>'+
+        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="contact" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Guardian / Legal Representative</span>'+
         '<button class="btn-icon sm" onclick="editCMClient(\''+cli.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
       '</div>'+
       '<div style="padding:12px 14px">'+
@@ -29611,7 +29493,7 @@ function _cmChartSummary(cli, d) {
   // ── Panel: Billing Statement (A/R Aging) ──
   var billingPanel =
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
-      '<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#B32660"></i>Billing Statement</div>'+
+      '<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="receipt" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Billing Statement</div>'+
       '<div style="overflow-x:auto">'+
         '<table class="ptc-aging-table" style="width:100%">'+
           '<thead><tr><th style="text-align:left;padding:6px 10px">A/R Aging (days)</th><th>0-30</th><th>31-60</th><th>61-90</th><th>91-120</th><th>Over 120</th><th>Total</th></tr></thead>'+
@@ -29633,7 +29515,7 @@ function _cmChartSummary(cli, d) {
   };
   var visitsPanel =
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
-      '<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="calendar-days" class="lci" style="width:12px;height:12px;color:#B32660"></i>Schedule / Visits</div>'+
+      '<div style="padding:9px 14px;background:#EEF1F6;border-bottom:1px solid #E4E9F1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475467;display:flex;align-items:center;gap:6px"><i data-lucide="calendar-days" class="lci" style="width:12px;height:12px;color:#D45C37"></i>Schedule / Visits</div>'+
       (visits.length ?
         '<table style="width:100%"><thead><tr style="background:#F6F8FB;font-size:10px;text-transform:uppercase;color:#586579"><th style="text-align:left;padding:6px 10px">Date</th><th style="text-align:left;padding:6px 10px">Type</th><th style="text-align:left;padding:6px 10px">User</th><th style="text-align:left;padding:6px 10px">Billable</th><th style="text-align:left;padding:6px 10px">Approval</th></tr></thead><tbody>'+
         visits.slice(0,15).map(visitRow).join('')+
@@ -30041,7 +29923,7 @@ const first = (pat.first||'').trim();
 const last  = (pat.last||'').trim();
 const initials = ((first[0]||'') + (last[0]||'')).toUpperCase() || '?';
 const sex = (pat.sex||'').toUpperCase();
-const bg   = sex==='F' ? '#B32660' : sex==='M' ? '#2d6a4f' : '#3A475C';
+const bg   = sex==='F' ? '#D45C37' : sex==='M' ? '#2d6a4f' : '#3A475C';
 const s = size;
 const fs = Math.round(s * 0.38);
 const r  = Math.round(s * 0.18);
@@ -32386,7 +32268,7 @@ function getAuditLogs() {
   function _kpiGradients(color) {
     var map = {
       '#3f4a38': '#2c3527', // forest
-      '#B32660': '#a9502f', // terracotta
+      '#D45C37': '#a9502f', // terracotta
       '#7d7a4e': '#656138', // olive
       '#b8863c': '#96692a'  // ochre
     };
@@ -32394,7 +32276,7 @@ function getAuditLogs() {
   }
 
   function _kpi(label, value, sub, ico, color, route) {
-    color = color || '#B32660';
+    color = color || '#D45C37';
     var colorD = _kpiGradients(color);
     var clickable = !!route;
     return '<div class="cm-kpi-card" style="font-family:Arial,Helvetica,sans-serif!important;background:linear-gradient(155deg,' + color + ' 0%,' + colorD + ' 100%);border-radius:14px;padding:14px 14px 12px;position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:58px' +
@@ -33253,7 +33135,7 @@ function getAuditLogs() {
           '</div>' +
           (sess && sess.role === 'Super Admin'
             ? '<button onclick="reopenTicket(\'' + t.id + '\',' + (isAdmin ? 'true' : 'false') + ')" ' +
-              'style="padding:6px 12px;border:1px solid #B32660;background:#fff;color:#B32660;' +
+              'style="padding:6px 12px;border:1px solid #D45C37;background:#fff;color:#D45C37;' +
               'border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font)">' +
               'Reabrir ticket</button>'
             : '') +
@@ -33895,7 +33777,7 @@ function getAuditLogs() {
     var kindLabel = { primary: 'Primary', secondary: 'Secondary', tertiary: 'Tertiary', other: 'Other' };
 
     var opts = '';
-    var colorNow = '#B32660'; // Default (Primary) accent
+    var colorNow = '#D45C37'; // Default (Primary) accent
 
     if (!options.length) {
       opts += '<option value="selfpay">Self Pay (no insurance on file)</option>';
@@ -33906,7 +33788,7 @@ function getAuditLogs() {
         var payerName = o.label.replace(/^Primary — |^Secondary — |^Tertiary — |^[^—]+—\s*/, '');
         var lbl = (kindLabel[o.kind] || 'Other') + ' · ' + payerName + (o.memberId ? ' · ' + o.memberId : '');
         opts += '<option value="' + esc(o.source) + '"' + (o.source === currentSource ? ' selected' : '') + '>' + esc(lbl) + '</option>';
-        if (o.source === currentSource) colorNow = o.kind === 'secondary' ? '#7d7a4e' : (o.kind === 'tertiary' ? '#b8863c' : '#B32660');
+        if (o.source === currentSource) colorNow = o.kind === 'secondary' ? '#7d7a4e' : (o.kind === 'tertiary' ? '#b8863c' : '#D45C37');
       });
       opts += '<option value="selfpay"' + (currentSource === 'selfpay' ? ' selected' : '') + '>Self Pay</option>';
       if (currentSource === 'selfpay') colorNow = '#92400e';
@@ -34050,7 +33932,7 @@ function getAuditLogs() {
           }
           if (!label) return;
 
-          var hdr = row.querySelector('div[style*="border-bottom:1px solid #f0ede5"]') ||
+          var hdr = row.querySelector('div[style*="border-bottom:1px solid #F1F4F8"]') ||
                     row.querySelector('div[style*="padding:9px 14px"]');
           if (!hdr) return;
           var chip = document.createElement('span');

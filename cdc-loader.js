@@ -43,7 +43,7 @@
     '.cdcl-dash{position:absolute;inset:-40px;display:flex;background:#F6F8FB;filter:blur(14px) saturate(1.1);transform:scale(1.04);opacity:.55;contain:strict}',
     '.cdcl-side{width:230px;flex-shrink:0;background:#0B1526;display:flex;flex-direction:column;gap:14px;padding:30px 22px}',
     '.cdcl-side i{display:block;height:12px;border-radius:6px;background:rgba(255,255,255,.18)}',
-    '.cdcl-side i.a{height:34px;width:34px;border-radius:10px;background:linear-gradient(135deg,#FF6A3D,#E8367A 45%,#6A1BDB);margin-bottom:18px}',
+    '.cdcl-side i.a{height:34px;width:34px;border-radius:10px;background:linear-gradient(135deg,#FF6A3D,#FF6A3D 45%,#6A1BDB);margin-bottom:18px}',
     '.cdcl-main{flex:1;padding:40px 48px;display:flex;flex-direction:column;gap:26px}',
     '.cdcl-top{height:34px;width:38%;border-radius:10px;background:#DCE3EE}',
     '.cdcl-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}',
@@ -52,41 +52,41 @@
     '.cdcl-kpi u{display:block;height:6px;border-radius:4px}',
     '.cdcl-row{flex:1;display:flex;gap:22px;min-height:0}',
     '.cdcl-chart{flex:0 0 42%;border-radius:18px;background:#fff;padding:26px;display:flex;align-items:flex-end;gap:14px}',
-    '.cdcl-chart s{flex:1;border-radius:8px 8px 3px 3px;background:linear-gradient(0deg,#FF6A3D,#E8367A 55%,#6A1BDB)}',
+    '.cdcl-chart s{flex:1;border-radius:8px 8px 3px 3px;background:linear-gradient(0deg,#FF6A3D,#FF6A3D 55%,#6A1BDB)}',
     '.cdcl-table{flex:1;border-radius:18px;background:#fff;padding:26px;display:flex;flex-direction:column;gap:18px}',
     '.cdcl-table i{display:flex;gap:14px;align-items:center;height:22px}',
     '.cdcl-table i:before{content:"";flex:1;height:12px;border-radius:6px;background:#E4E9F1}',
     '.cdcl-table i:after{content:"";width:74px;height:20px;border-radius:999px;background:#E3F5FB}',
-    '.cdcl-table i.p:after{background:#F1EAFD}.cdcl-table i.d:after{background:#FDE8F0}',
+    '.cdcl-table i.p:after{background:#F1EAFD}.cdcl-table i.d:after{background:#FFF1EC}',
     /* cinematic tint over the dashboard */
     '.cdcl-tint{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(11,21,38,.55) 0%,rgba(11,21,38,.86) 62%,rgba(11,21,38,.96) 100%)}',
-    '.cdcl-glow{position:absolute;width:760px;height:760px;border-radius:50%;left:50%;top:50%;margin:-380px 0 0 -380px;background:radial-gradient(circle,rgba(232,54,122,.22),rgba(106,27,219,.10) 45%,rgba(11,21,38,0) 70%);animation:cdclbreath 1.2s ease-in-out infinite;will-change:transform,opacity}',
+    '.cdcl-glow{position:absolute;width:760px;height:760px;border-radius:50%;left:50%;top:50%;margin:-380px 0 0 -380px;background:radial-gradient(circle,rgba(255,106,61,.22),rgba(106,27,219,.10) 45%,rgba(11,21,38,0) 70%);animation:cdclbreath 1.2s ease-in-out infinite;will-change:transform,opacity}',
     /* the monitor line */
     '.cdcl-ecg{position:absolute;left:0;top:50%;width:100vw;height:300px;margin-top:-150px;overflow:hidden;pointer-events:none}','.cdcl-ecg svg{position:absolute;left:0;top:0;width:100vw;height:300px}','.cdcl-win{position:absolute;left:0;top:0;width:34vw;height:300px;overflow:hidden;animation:cdclwin 2.4s linear infinite;will-change:transform;-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 72%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0%,#000 72%,#000 94%,transparent 100%)}','.cdcl-inner{position:absolute;left:0;top:0;width:100vw;height:300px;animation:cdclinner 2.4s linear infinite;will-change:transform}','@keyframes cdclwin{from{transform:translate3d(-34vw,0,0)}to{transform:translate3d(100vw,0,0)}}','@keyframes cdclinner{from{transform:translate3d(34vw,0,0)}to{transform:translate3d(-100vw,0,0)}}',
                 '@keyframes cdclbreath{0%,100%{opacity:.75;transform:scale(1)}14%{opacity:1;transform:scale(1.06)}28%{opacity:.85;transform:scale(1.01)}42%{opacity:1;transform:scale(1.04)}}',
     /* center card */
     '.cdcl-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;transition:transform .45s ease,filter .45s ease,opacity .45s ease}',
-    '.cdcl-logo{width:84px;height:92px;filter:drop-shadow(0 12px 28px rgba(232,54,122,.45));animation:cdclbeat 1.2s ease-in-out infinite;will-change:transform}',
+    '.cdcl-logo{width:84px;height:92px;filter:drop-shadow(0 12px 28px rgba(255,106,61,.45));animation:cdclbeat 1.2s ease-in-out infinite;will-change:transform}',
     '@keyframes cdclbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.12)}28%{transform:scale(.98)}42%{transform:scale(1.07)}60%{transform:scale(1)}}',
     '.cdcl-name{font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:700;font-size:30px;letter-spacing:-.02em}',
     '.cdcl-status{display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);font-size:14px;font-weight:500;color:#E6EBF3;min-height:40px}',
     '.cdcl-dot{position:relative;width:8px;height:8px;border-radius:50%;background:#00A3D1;flex-shrink:0}','.cdcl-dot:after{content:"";position:absolute;inset:0;border-radius:50%;background:#00A3D1;animation:cdclping 1.2s ease-out infinite;will-change:transform,opacity}',
     '@keyframes cdclping{0%{transform:scale(1);opacity:.6}80%,100%{transform:scale(3.4);opacity:0}}',
     '#cdc-login-loader-msg{position:relative;display:inline-grid}',    '#cdc-login-loader-msg .cdcl-step{grid-area:1/1;opacity:0;white-space:nowrap}',    '#cdc-login-loader-msg .cdcl-step:nth-child(1){animation:cdclstep 1.4s ease 0s both}',    '#cdc-login-loader-msg .cdcl-step:nth-child(2){animation:cdclstep 1.4s ease 1.4s both}',    '#cdc-login-loader-msg .cdcl-step:nth-child(3){animation:cdclstep 1.4s ease 2.8s both}',    '#cdc-login-loader-msg .cdcl-step:nth-child(4){animation:cdcllast .5s ease 4.2s both}',    '@keyframes cdclstep{0%{opacity:0;transform:translateY(6px)}15%,82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6px)}}',    '@keyframes cdcllast{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',    '.cdcl-canvas{position:absolute;left:0;top:50%;width:100vw;height:300px;margin-top:-150px;pointer-events:none}',
-    '#cdc-login-loader-msg button{margin-top:10px;padding:8px 16px;background:linear-gradient(95deg,#C9431C,#B32660)!important;color:#fff;border:0;border-radius:10px;font-weight:600;cursor:pointer}',
+    '#cdc-login-loader-msg button{margin-top:10px;padding:8px 16px;background:linear-gradient(95deg,#C9431C,#D45C37)!important;color:#fff;border:0;border-radius:10px;font-weight:600;cursor:pointer}',
     '.cdcl-foot{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));text-align:center;font-size:12px;letter-spacing:.14em;color:rgba(230,235,243,.55)}',
     '@media (max-width:760px){.cdcl-side{display:none}.cdcl-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdcl-chart{display:none}.cdcl-name{font-size:24px}}',
     '@media (prefers-reduced-motion:reduce){.cdcl-win,.cdcl-inner,.cdcl-logo,.cdcl-glow,.cdcl-dot:after{animation:none}.cdcl-win{transform:none;width:100vw;-webkit-mask-image:none;mask-image:none}.cdcl-inner{transform:none}}'
   ].join('\n');
 
-  var LOGO = '<svg class="cdcl-logo" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcl-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#E8367A"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcl-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
+  var LOGO = '<svg class="cdcl-logo" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcl-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#FF6A3D"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcl-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
 
   var DASH = '<div class="cdcl-dash" aria-hidden="true">' +
     '<div class="cdcl-side"><i class="a"></i><i style="width:80%"></i><i style="width:65%"></i><i style="width:74%"></i><i style="width:58%"></i><i style="width:70%"></i><i style="width:62%"></i></div>' +
     '<div class="cdcl-main"><div class="cdcl-top"></div>' +
       '<div class="cdcl-kpis">' +
-        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#E8367A)"></u></div>' +
-        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#E8367A,#6A1BDB)"></u></div>' +
+        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#FF6A3D)"></u></div>' +
+        '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#FF6A3D,#6A1BDB)"></u></div>' +
         '<div class="cdcl-kpi"><b></b><u style="background:linear-gradient(90deg,#6A1BDB,#00A3D1)"></u></div>' +
         '<div class="cdcl-kpi"><b></b><u style="background:#00A3D1"></u></div>' +
       '</div>' +
@@ -95,7 +95,7 @@
       '</div><div class="cdcl-table"><i></i><i class="p"></i><i class="d"></i><i></i><i class="p"></i><i></i><i></i></div></div>' +
     '</div></div>';
 
-  var DEFS = '<defs><linearGradient id="cdcl-g" x1="0" y1="0" x2="1500" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".35" stop-color="#E8367A"/><stop offset=".7" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient>' +
+  var DEFS = '<defs><linearGradient id="cdcl-g" x1="0" y1="0" x2="1500" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".35" stop-color="#FF6A3D"/><stop offset=".7" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient>' +
     '<filter id="cdcl-bl" x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs>';
   var ECG = '<div class="cdcl-ecg" aria-hidden="true">' +
     '<svg viewBox="0 0 1500 300" preserveAspectRatio="none" focusable="false">' + DEFS +

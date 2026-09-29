@@ -34,7 +34,7 @@
     '#cdcx-login.cdcx-out{opacity:0;pointer-events:none}',
     '#cdcx-login *{box-sizing:border-box}',
     '.cdcx-panel{position:relative;flex:0 0 520px;max-width:100%;height:100%;overflow-y:auto;background:#fff;padding:56px 72px 36px;display:flex;flex-direction:column;justify-content:space-between;gap:32px;box-shadow:1px 0 0 #E4E9F1,12px 0 40px rgba(11,21,38,.06);z-index:1}',
-    '.cdcx-bar{position:absolute;left:0;top:0;right:0;height:4px;background:linear-gradient(90deg,#FF6A3D,#E8367A 38%,#6A1BDB 70%,#00A3D1)}',
+    '.cdcx-bar{position:absolute;left:0;top:0;right:0;height:4px;background:linear-gradient(90deg,#FF6A3D,#FF6A3D 38%,#6A1BDB 70%,#00A3D1)}',
     '.cdcx-brand{display:flex;align-items:center;gap:12px}',
     '.cdcx-brand-name{font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:700;font-size:21px;letter-spacing:-.02em}',
     '.cdcx-brand-sub{font-size:12px;color:#586579;margin-top:2px}',
@@ -48,7 +48,7 @@
     '.cdcx-input{width:100%;height:48px;padding:0 16px;border:1.5px solid #D6DDE8;border-radius:12px;font:inherit;font-size:15px;color:#0B1526;background:#FBFCFE;transition:border-color .15s,box-shadow .15s}',
     '.cdcx-input::placeholder{color:#8792A4}',
     '.cdcx-input:focus{outline:none;border-color:#D45C37;box-shadow:0 0 0 4px rgba(255,106,61,.18)}',
-    '.cdcx-input[aria-invalid=true]{border-color:#B32660}',
+    '.cdcx-input[aria-invalid=true]{border-color:#D45C37}',
     '.cdcx-pwwrap{position:relative}',
     '.cdcx-pwwrap .cdcx-input{padding-right:52px}',
     '.cdcx-eye{position:absolute;right:2px;top:2px;width:44px;height:44px;border:0;background:transparent;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#586579}',
@@ -58,13 +58,13 @@
     '.cdcx-caps{position:absolute;right:50px;top:50%;transform:translateY(-50%);margin:0;padding:3px 8px;border-radius:999px;background:#FFEDE6;color:#8F3314;font-size:11.5px;font-weight:600;pointer-events:none}',    '.cdcx-caps[hidden]{display:none}',
     '.cdcx-check{display:flex;align-items:center;gap:10px;font-size:14px;color:#3A475C;cursor:pointer;user-select:none}',
     '.cdcx-check input{width:18px;height:18px;margin:0;accent-color:#D45C37}',
-    '.cdcx-btn{height:52px;border:0;border-radius:12px;background:linear-gradient(95deg,#C9431C,#B32660);color:#fff;font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 10px 24px -8px rgba(201,67,28,.55);display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s,transform .05s}',
+    '.cdcx-btn{height:52px;border:0;border-radius:12px;background:linear-gradient(95deg,#C9431C,#D45C37);color:#fff;font-family:Sora,"IBM Plex Sans",sans-serif;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 10px 24px -8px rgba(201,67,28,.55);display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s,transform .05s}',
     '.cdcx-btn:hover{filter:brightness(1.06)}',
     '.cdcx-btn:active{transform:translateY(1px)}',
     '.cdcx-btn[disabled]{cursor:not-allowed;filter:grayscale(.35) opacity(.75);box-shadow:none}',
     '.cdcx-spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:cdcxspin .8s linear infinite}',
     '@keyframes cdcxspin{to{transform:rotate(360deg)}}',
-    '.cdcx-alert{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#FDECF2;color:#7E1640;font-size:13.5px;line-height:1.45}',
+    '.cdcx-alert{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#FFF1EC;color:#9A3412;font-size:13.5px;line-height:1.45}',
     '.cdcx-alert[hidden]{display:none}',
     '.cdcx-alert.cdcx-lock{background:#F4F0FD;color:#4B1699}',
     '.cdcx-note{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:#F4F0FD;color:#4B1699;font-size:13px;line-height:1.45}',
@@ -85,7 +85,7 @@
     '@keyframes cdcxdraw{to{stroke-dashoffset:0}}',
     '@media (prefers-reduced-motion:reduce){.cdcx-pulse-main{animation:none;stroke-dashoffset:0}#cdcx-login{transition:none}}',
     '@media (max-width:980px){.cdcx-art{display:none}.cdcx-panel{flex:1 1 auto;padding:48px 28px 28px}.cdcx-main{max-width:440px;width:100%;margin:0 auto}}',
-    '.cdcx-msgslot{height:64px;flex-shrink:0;display:flex;align-items:center}',    '.cdcx-msgslot>.alert{width:100%;max-height:64px;overflow:hidden;animation:cdcxmsg .18s ease-out}',    '@keyframes cdcxmsg{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',    '#login-alert .cdcx-lock{background:#F4F0FD!important;color:#4B1699!important}',    '.cdcx-spotlayer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}',    '.cdcx-spot{position:absolute;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:radial-gradient(circle,rgba(232,54,122,.16),rgba(106,27,219,.09) 38%,rgba(0,163,209,.04) 55%,rgba(0,163,209,0) 70%);opacity:0;transition:opacity .35s ease;will-change:transform}',    '@media (pointer:coarse),(prefers-reduced-motion:reduce){.cdcx-spotlayer{display:none}}',
+    '.cdcx-msgslot{height:64px;flex-shrink:0;display:flex;align-items:center}',    '.cdcx-msgslot>.alert{width:100%;max-height:64px;overflow:hidden;animation:cdcxmsg .18s ease-out}',    '@keyframes cdcxmsg{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',    '#login-alert .cdcx-lock{background:#F4F0FD!important;color:#4B1699!important}',    '.cdcx-spotlayer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}',    '.cdcx-spot{position:absolute;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:radial-gradient(circle,rgba(255,106,61,.16),rgba(106,27,219,.09) 38%,rgba(0,163,209,.04) 55%,rgba(0,163,209,0) 70%);opacity:0;transition:opacity .35s ease;will-change:transform}',    '@media (pointer:coarse),(prefers-reduced-motion:reduce){.cdcx-spotlayer{display:none}}',
     '#modal-2fa{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(11,21,38,.72);font-family:"IBM Plex Sans",system-ui,sans-serif;color:#0B1526}',
     '#modal-2fa *{box-sizing:border-box}',
     '.cdcx-tfa{position:relative;overflow:hidden;width:100%;max-width:420px;background:#fff;border-radius:22px;padding:36px 32px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}',
@@ -96,9 +96,9 @@
     '.cdcx-tfa-row{display:flex;justify-content:space-between;align-items:center}',
     '.cdcx-muted{color:#586579!important}',
 
-    '#tfa-alert .alert{display:block!important;margin:0!important;padding:11px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
+    '#tfa-alert .alert{display:block!important;margin:0!important;padding:11px 14px!important;border:0!important;border-radius:12px!important;background:#FFF1EC!important;color:#9A3412!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
     '#tfa-alert .al-success{background:#E3F5FB!important;color:#065E7C!important}',
-    '#login-alert .alert,#fp-alert .alert{display:flex!important;gap:8px!important;align-items:center!important;margin:0!important;padding:12px 14px!important;border:0!important;border-radius:12px!important;background:#FDECF2!important;color:#7E1640!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
+    '#login-alert .alert,#fp-alert .alert{display:flex!important;gap:8px!important;align-items:center!important;margin:0!important;padding:12px 14px!important;border:0!important;border-radius:12px!important;background:#FFF1EC!important;color:#9A3412!important;font:500 13.5px/1.45 "IBM Plex Sans",sans-serif!important}',
     '#fp-alert .al-success{background:#E3F5FB!important;color:#065E7C!important}',
     '.cdcx-alert.cdcx-lock{background:#F4F0FD;color:#4B1699}'
   ].join('\n');
@@ -109,7 +109,7 @@
     '<radialGradient id="cdcx-gO"><stop offset="0" stop-color="#FF6A3D" stop-opacity=".45"/><stop offset="1" stop-color="#FF6A3D" stop-opacity="0"/></radialGradient>',
     '<radialGradient id="cdcx-gV"><stop offset="0" stop-color="#6A1BDB" stop-opacity=".55"/><stop offset="1" stop-color="#6A1BDB" stop-opacity="0"/></radialGradient>',
     '<radialGradient id="cdcx-gB"><stop offset="0" stop-color="#00A3D1" stop-opacity=".40"/><stop offset="1" stop-color="#00A3D1" stop-opacity="0"/></radialGradient>',
-    '<linearGradient id="cdcx-beam" x1="0" y1="0" x2="920" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF6A3D" stop-opacity="0"/><stop offset=".12" stop-color="#FF6A3D"/><stop offset=".42" stop-color="#E8367A"/><stop offset=".72" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient>',
+    '<linearGradient id="cdcx-beam" x1="0" y1="0" x2="920" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF6A3D" stop-opacity="0"/><stop offset=".12" stop-color="#FF6A3D"/><stop offset=".42" stop-color="#FF6A3D"/><stop offset=".72" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient>',
     '<linearGradient id="cdcx-pill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient>',
     '<filter id="cdcx-glow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>',
     '<filter id="cdcx-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>',
@@ -139,7 +139,7 @@
     '<rect x="836" y="200" width="64" height="28" rx="14" fill="url(#cdcx-pill)"/>',
     '<text x="868" y="218" text-anchor="middle" font-family="Sora, sans-serif" font-size="12.5" font-weight="600" fill="#fff">Paid</text>',
     '</svg>'
-  ].join('');  var LOGO = '<svg width="40" height="44" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcx-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#E8367A"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcx-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
+  ].join('');  var LOGO = '<svg width="40" height="44" viewBox="0 0 40 44" aria-hidden="true" focusable="false"><defs><linearGradient id="cdcx-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A3D"/><stop offset=".4" stop-color="#FF6A3D"/><stop offset=".75" stop-color="#6A1BDB"/><stop offset="1" stop-color="#00A3D1"/></linearGradient></defs><path d="M20 2 L37 8 V21 C37 32 29.5 39 20 42 C10.5 39 3 32 3 21 V8 Z" fill="url(#cdcx-lg)"/><path d="M20 13 V31 M11 22 H29" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></svg>';
   function node(x, y, label, dir, w) {
     var ly1 = dir === 'up' ? y - 12 : y + 12, ly2 = dir === 'up' ? y - 42 : y + 49;
     var ry = dir === 'up' ? y - 68 : y + 49;
@@ -449,7 +449,7 @@
       '<div style="background:#F6F8FB;padding:24px;border-radius:0 0 8px 8px;border:1px solid #E4E9F1">',
       '<p style="color:#0B1526;font-size:15px">Hello ' + _esc(user.first || user.name || '') + ',</p>',
       '<p style="color:#0B1526;font-size:14px">Your verification code is:</p>',
-      '<div style="background:#B32660;color:#fff;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
+      '<div style="background:#D45C37;color:#fff;font-size:36px;font-weight:700;letter-spacing:12px;text-align:center;padding:20px;border-radius:8px;margin:20px 0">' + code + '</div>',
       '<p style="color:#586579;font-size:13px">This code expires in <strong>10 minutes</strong> and can be used once.</p>',
       '<p style="color:#586579;font-size:13px">If you did not try to sign in, change your password and contact your administrator.</p>',
       '</div><p style="color:#8792A4;font-size:11px;text-align:center;margin-top:16px">ClaimDataCare • Secure Medical Billing</p></div>'
