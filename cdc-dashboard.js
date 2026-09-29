@@ -76,9 +76,9 @@
     '.cdd-tab[disabled]{cursor:not-allowed;opacity:.55}',
     '.cdd-tab[disabled]:hover{background:#F1F4F8;color:#586579}',
     /* KPI cards: white, one accent colour only */
-    '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:4px}',
+    '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:4px;padding-top:8px}',   /* room so a lifted card never slides under the pinned top row */
     '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:clamp(14px,1.4vw,20px) clamp(16px,1.6vw,22px);min-height:clamp(112px,9vw,132px);background-size:400% 100%;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:transform .18s,box-shadow .18s}',
-    '.cdd-kpi:hover{transform:translateY(-2px)}',
+    '.cdd-kpi:hover{transform:translateY(-3px);z-index:7}',
     '.cdd-kpi:focus-visible{outline:2px solid #0B1526;outline-offset:3px}',
     '.cdd-kpi:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.13);pointer-events:none}',
     '.cdd-kpi .t{position:relative;z-index:1;font-size:clamp(13px,1vw,15px);font-weight:600;text-align:right;opacity:.96}',
