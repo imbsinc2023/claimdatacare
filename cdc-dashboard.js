@@ -131,25 +131,48 @@
     '.cdd-leg .pc{display:inline-block;min-width:38px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:700;text-align:center}',
     '.cdd-leg .solid{font-weight:700;color:#0B1526}',
     '.cdd-leg .muted{color:var(--text3,#586579)}',
-    '.cdd-stat{margin-top:18px;padding-top:14px;border-top:1px solid var(--border,#EEF1F6)}',
-    '.cdd-stat-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#EEF1F6;gap:2px}',
+    '.cdd-stat{margin-top:12px;padding-top:10px;border-top:1px solid var(--border,#EEF1F6)}',
+    '.cdd-stat-hd{display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3,#586579);margin-bottom:7px}',
+    '.cdd-stat-bar{display:flex;height:8px;border-radius:6px;overflow:hidden;background:#EEF1F6;gap:2px}',
     '.cdd-stat-bar i{display:block;height:100%}',
-    '.cdd-stat-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:11.5px;color:var(--text2,#3A475C)}',
-    '.cdd-stat-leg span{display:flex;align-items:center;gap:6px}',
-    '.cdd-stat-leg i{width:8px;height:8px;border-radius:50%}',
-    '.cdd-stat-leg b{font-weight:700;color:#0B1526}',
+    '.cdd-stat-leg{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}',
+    '.cdd-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#F8FAFC;border:1px solid #EEF1F6;font-size:11.5px;color:var(--text2,#3A475C);white-space:nowrap}',
+    '.cdd-chip i{width:8px;height:8px;border-radius:50%}',
+    '.cdd-chip b{font-weight:700;color:#0B1526;font-variant-numeric:tabular-nums}',
+    '.cdd-chip em{font-style:normal;font-size:10.5px;color:var(--text3,#586579)}',
     /* aging + trend */
     '.cdd-g2b{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}',
-    '.cdd-age-bar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:#EEF1F6;gap:2px;margin:6px 0 16px}',
+    '.cdd-age-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#EEF1F6;gap:2px;margin:4px 0 14px}',
     '.cdd-age-bar i{display:block;height:100%}',
     '.cdd-age{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}',
-    '.cdd-age div{border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;padding:10px 12px;border-top:3px solid}',
+    '.cdd-age div{border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;padding:10px 12px}',
+    '.cdd-age small i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}',
     '.cdd-age small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3,#586579)}',
     '.cdd-age b{display:block;font-size:clamp(15px,1.3vw,18px);font-weight:700;color:#0B1526;margin-top:4px;font-variant-numeric:tabular-nums}',
     '.cdd-age span{font-size:11px;color:var(--text3,#586579)}',
     '.cdd-trend svg{display:block;width:100%;height:auto}',
     '.cdd-pcn{cursor:pointer;font-family:var(--mono,monospace);font-size:11px;color:var(--text3,#586579);text-decoration:none;border-radius:6px;padding:2px 5px;margin-left:-5px;transition:background .15s,color .15s}',
     '.cdd-pcn:hover{background:rgba(255,106,61,.1);color:#D45C37}',
+    '.cdd-tblwrap{overflow:auto}',
+    '.cdd-tbl thead th{position:sticky;top:0;background:var(--bg2,#fff);z-index:1}',
+    /* fit to the screen: every block shares the available height, nothing is cut and the page does not scroll */
+    '@media (min-width:1281px) and (min-height:640px){' +
+      '.cdd{display:flex;flex-direction:column;height:100%;box-sizing:border-box;padding-bottom:14px}' +
+      '.cdd-top{flex:none;height:46px}.cdd-alerts{margin-top:7px}' +
+      '.cdd-kpis{flex:none;margin-top:0}' +
+      '.cdd-kpi{min-height:clamp(92px,11.5vh,132px)}' +
+      '.cdd-grid{margin-top:12px;gap:12px;min-height:0}' +
+      '.cdd-g2{flex:1.35 1 0}.cdd-g2b{flex:1 1 0}' +
+      '.cdd-g2>.cdd-card,.cdd-g2b>.cdd-card{min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:14px 18px}' +
+      '.cdd-card h3{margin-bottom:10px}' +
+      '.cdd-tblwrap{flex:1;min-height:0}' +
+      '.cdd-tbl td{padding:7px 8px}' +
+      '.cdd-rev-body{flex:1;min-height:0;flex-wrap:nowrap;align-items:stretch}' +
+      '.cdd-rings{height:100%;width:auto;max-width:48%;margin:0}' +
+      '.cdd-leg{align-self:center;max-height:100%;overflow:auto}' +
+      '.cdd-trend svg{flex:1;min-height:0;height:100%}' +
+      '.cdd-age-bar{margin:2px 0 10px}' +
+    '}',
     '@media (max-width:1280px){.cdd-g2{grid-template-columns:minmax(0,1fr)}}',
     '@media (max-width:1100px){.cdd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-g2b{grid-template-columns:minmax(0,1fr)}}',
     '@media (max-width:620px){.cdd-kpis{grid-template-columns:minmax(0,1fr)}.cdd-age{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-date{display:none}}',
@@ -212,7 +235,7 @@
 
   function tableCard(title, heads, rows, empty) {
     return '<div class="cdd-card"><h3>' + esc(title) + '</h3>' + (rows.length ?
-      '<div style="overflow-x:auto"><table class="cdd-tbl"><thead><tr>' + heads.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      '<div class="cdd-tblwrap"><table class="cdd-tbl"><thead><tr>' + heads.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>'
       : '<div class="cdd-empty">' + empty + '</div>') + '</div>';
   }
@@ -247,11 +270,11 @@
           '<td><span class="pc" style="background:' + col + '1f;color:' + col + '">' + pc + '%</span></td></tr>';
       }).join('') + '</tbody></table>' : '<div class="cdd-empty">' + esc(o.empty) + '</div>') + '</div>';
     var st = o.status.filter(function (x) { return x.count > 0; }), tot = st.reduce(function (a, x) { return a + x.count; }, 0) || 1;
-    var stat = '<div class="cdd-stat"><div class="cdd-stat-bar">' + st.map(function (x) {
+    var stat = '<div class="cdd-stat"><div class="cdd-stat-hd"><span>' + esc(o.statusTitle) + '</span><span>' + (st.length ? tot + ' total' : '') + '</span></div><div class="cdd-stat-bar">' + st.map(function (x) {
         return '<i style="width:' + (x.count / tot * 100).toFixed(2) + '%;background:' + SCOL[x.tone] + '" title="' + esc(x.label) + ': ' + x.count + '"></i>';
       }).join('') + '</div><div class="cdd-stat-leg">' + (st.length ? st.map(function (x) {
-        return '<span><i style="background:' + SCOL[x.tone] + '"></i>' + esc(x.label) + ' <b>' + x.count + '</b></span>';
-      }).join('') : '<span>' + esc(o.statusEmpty) + '</span>') + '</div></div>';
+        return '<span class="cdd-chip"><i style="background:' + SCOL[x.tone] + '"></i>' + esc(x.label) + ' <b>' + x.count + '</b><em>' + Math.round(x.count / tot * 100) + '%</em></span>';
+      }).join('') : '<span class="cdd-chip">' + esc(o.statusEmpty) + '</span>') + '</div></div>';
     return '<div class="cdd-card cdd-rev"><div class="cdd-rev-hd"><h3>' + esc(o.title) + '</h3><div class="cdd-key"><span><i class="lt"></i>' + esc(o.cols[2]) + '</span><span><i></i>' + esc(o.cols[1]) + '</span></div></div>' +
       '<div class="cdd-rev-body">' + rings + legend + '</div>' + stat + '</div>';
   }
@@ -264,7 +287,7 @@
         return '<i style="width:' + (x.value / tot * 100).toFixed(2) + '%;background:' + x.color + '" title="' + esc(x.label) + ': ' + esc(x.txt) + '"></i>';
       }).join('') + '</div>' : '<div class="cdd-age-bar"></div>') +
       '<div class="cdd-age">' + buckets.map(function (x) {
-        return '<div style="border-top-color:' + x.color + '"><small>' + esc(x.label) + '</small><b>' + esc(x.txt) + '</b><span>' + (tot > 0 ? Math.round(x.value / tot * 100) : 0) + '% • ' + x.count + ' ' + esc(x.unit) + '</span></div>';
+        return '<div><small><i style="background:' + x.color + '"></i>' + esc(x.label) + '</small><b>' + esc(x.txt) + '</b><span>' + (tot > 0 ? Math.round(x.value / tot * 100) : 0) + '% • ' + x.count + ' ' + esc(x.unit) + '</span></div>';
       }).join('') + '</div>' + (tot > 0 ? '' : '<div class="cdd-empty">' + esc(empty) + '</div>') + '</div>';
   }
 
@@ -272,7 +295,7 @@
   function trendCard(title, cols, months, fmt, color) {
     var max = months.reduce(function (m, x) { return Math.max(m, x.total, x.part); }, 0) || 1;
     var W = 560, H = 190, PB = 26, PT = 18, bw = 26, step = W / months.length;
-    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">';
     [0.5, 1].forEach(function (f) { var y = PT + (H - PB - PT) * (1 - f); svg += '<line x1="0" x2="' + W + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#EEF1F6" stroke-dasharray="3 4"/>'; });
     months.forEach(function (m, i) {
       var cx = step * i + step / 2, hT = (H - PB - PT) * (m.total / max), hP = (H - PB - PT) * (m.part / max), base = H - PB;
@@ -298,7 +321,7 @@
     var d = new Date(t); return isNaN(d) ? null : d;
   }
   function daysAgo(d) { return d ? Math.floor((Date.now() - d.getTime()) / 86400000) : null; }
-  var AGE = [['0 to 30 days', 30, '#00A3D1'], ['31 to 60 days', 60, '#7B2FF7'], ['61 to 90 days', 90, '#FF6A3D'], ['Over 90 days', Infinity, '#E8367A']];
+  var AGE = [['0 to 30 days', 30, '#FFD3C2'], ['31 to 60 days', 60, '#FFA07C'], ['61 to 90 days', 90, '#FF6A3D'], ['Over 90 days', Infinity, '#C8431F']];   // one orange ramp, darker = older
 
   function layout(alerts, kpis, table, rings, aging, trend) {
     return { alerts: alerts, body: '<div class="cdd-kpis">' + kpis.join('') + '</div>' +
@@ -367,7 +390,7 @@
       big: moPct + '%', bigLabel: 'approved', bigSub: moA + ' of ' + moT + ' units • week ' + wkA + '/' + wkT,
       empty: 'No care team members yet.',
       status: Object.keys(nst).map(function (k) { return { label: k, count: nst[k], tone: NTONE[k] || 'neu' }; }),
-      statusEmpty: 'No notes this month.'
+      statusTitle: 'Notes this month by status', statusEmpty: 'No notes this month.'
     });
 
     // aging: notes still waiting for supervisor review, by age
@@ -435,7 +458,7 @@
       big: pct + '%', bigLabel: 'collected', bigSub: money(paid) + ' of ' + money(billed),
       empty: 'No payer activity yet.',
       status: Object.keys(ss).sort(function (x, y) { return ss[y] - ss[x]; }).map(function (k) { return { label: LABEL[k] || k, count: ss[k], tone: tone(k) }; }),
-      statusEmpty: 'No claims yet.'
+      statusTitle: 'Claims by status', statusEmpty: 'No claims yet.'
     });
 
     // A/R aging: open balance of claims already sent, by date of service
