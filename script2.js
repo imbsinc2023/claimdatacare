@@ -5,7 +5,7 @@ var _icFormFilter = 'all';
 
 function _icRequireSA() {
   var _s = getSession();
-  if (!_s || _s.email !== SUPER_ADMIN_EMAIL) { go('dashboard'); toast('Access denied. Super Admin only.','err'); return false; }
+  if (!_s || !(_s.role === 'Super Admin' || _cdcIsOwnerEmail(_s.email))) { go('dashboard'); toast('Access denied. Super Admin only.','err'); return false; }
   return true;
 }
 
@@ -291,24 +291,24 @@ function _renderICTab(tabId) {
   if (!main) return;
   var db = getDB();
   var client = (db.intakeClients || [])[_icChartClientIdx];
-  if (!client) { main.innerHTML = '<p style="color:#87867f">Client not found.</p>'; return; }
+  if (!client) { main.innerHTML = '<p style="color:#586579">Client not found.</p>'; return; }
   switch(tabId) {
     case 'summary':      main.innerHTML = _buildICSummaryTab(client, db); break;
     case 'demographics': main.innerHTML = _buildICDemoTab(client, db); break;
     case 'coverage':     main.innerHTML = _buildICCoverageTab(client, db); break;
     case 'records':      _buildICRecordsTab(client, db, main); break;
-    default: main.innerHTML = '<p style="color:#87867f">Tab not found.</p>';
+    default: main.innerHTML = '<p style="color:#586579">Tab not found.</p>';
   }
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ── Summary Tab ─────────────────────────────────────────────────────────────
 function _buildICSummaryTab(c, db) {
-  var R = function(l,v){ return v ? '<div style="padding:6px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#87867f;width:110px;flex-shrink:0">'+l+'</span><span style="font-size:12px;color:#141413;font-weight:600">'+v+'</span></div>' : ''; };
+  var R = function(l,v){ return v ? '<div style="padding:6px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:110px;flex-shrink:0">'+l+'</span><span style="font-size:12px;color:#0B1526;font-weight:600">'+v+'</span></div>' : ''; };
   var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a+''; })() : '';
   var ini = ((c.firstName||'?')[0]+(c.lastName||'?')[0]).toUpperCase();
-  var bg = c.gender==='Female'?'#c96442':c.gender==='Male'?'#2d6a4f':'#4d4c48';
-  var statusColor = c.status==='Signed'?'#16a34a':c.status==='Forms Sent'?'#d97706':'#87867f';
+  var bg = c.gender==='Female'?'#B32660':c.gender==='Male'?'#2d6a4f':'#3A475C';
+  var statusColor = c.status==='Signed'?'#16a34a':c.status==='Forms Sent'?'#d97706':'#586579';
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
     // LEFT
     '<div style="display:flex;flex-direction:column;gap:12px">' +
@@ -317,8 +317,8 @@ function _buildICSummaryTab(c, db) {
     '<div style="display:flex;gap:14px;padding:14px;align-items:flex-start">' +
     '<div style="width:52px;height:52px;border-radius:50%;background:'+bg+';color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>' +
     '<div style="flex:1">' +
-    '<div style="font-size:16px;font-weight:700;color:#141413">'+(c.lastName||'').toUpperCase()+', '+(c.firstName||'')+'</div>' +
-    '<div style="font-size:11px;color:#87867f;margin-bottom:10px">'+(age?age+' yrs · ':'')+' '+(c.gender||'') + ' · <span style="color:'+statusColor+';font-weight:700">'+(c.status||'Pending')+'</span></div>' +
+    '<div style="font-size:16px;font-weight:700;color:#0B1526">'+(c.lastName||'').toUpperCase()+', '+(c.firstName||'')+'</div>' +
+    '<div style="font-size:11px;color:#586579;margin-bottom:10px">'+(age?age+' yrs · ':'')+' '+(c.gender||'') + ' · <span style="color:'+statusColor+';font-weight:700">'+(c.status||'Pending')+'</span></div>' +
     R('DOB', c.dob||'') + R('Language', c.language||'') + R('Diagnoses', c.diagnoses||'') + R('School', c.school||'') + R('Grade', c.grade||'') +
     '</div></div></div>' +
     '<div class="ptc-panel">' +
@@ -343,15 +343,15 @@ function _buildICSummaryTab(c, db) {
     '<div style="padding:12px 14px">' +
     R('ABA Provider', c.abaProvider||'') + R('PCP', c.pcp||'') + R('Referral Source', c.referralSource||'') + R('Custody', c.custody||'') +
     '</div></div>' +
-    (c.notes ? '<div class="ptc-panel"><div class="ptc-panel-hdr">Notes</div><div style="padding:12px 14px;font-size:13px;color:#4d4c48;line-height:1.6">'+c.notes+'</div></div>' : '') +
+    (c.notes ? '<div class="ptc-panel"><div class="ptc-panel-hdr">Notes</div><div style="padding:12px 14px;font-size:13px;color:#3A475C;line-height:1.6">'+c.notes+'</div></div>' : '') +
     '</div></div>';
 }
 
 // ── Demographics Tab ─────────────────────────────────────────────────────────
 function _buildICDemoTab(c, db) {
   var idx = _icChartClientIdx;
-  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>'; };
-  var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
+  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>'; };
+  var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Demographics' +
     '<button class="btn btn-primary btn-sm" onclick="_saveICDemo()">Save Changes</button></div>' +
@@ -360,24 +360,24 @@ function _buildICDemoTab(c, db) {
     F('first','First Name *',c.firstName) + F('last','Last Name *',c.lastName) +
     F('dob','Date of Birth',c.dob,'date') + S('gender','Gender',c.gender,['','Male','Female','Other']) +
     F('language','Language',c.language) + S('status','Status',c.status,['Pending Forms','Forms Sent','Signed','Evaluation Completed','Archived']) +
-    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Guardian / Parent</div>' +
+    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Guardian / Parent</div>' +
     '<div class="fg g2">' +
     F('g-name','Guardian Name *',c.guardianName) + F('g-rel','Relationship',c.guardianRel) +
     F('g-phone','Phone',c.guardianPhone) + F('g-phone2','Phone 2',c.guardianPhone2) +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Email</label><input id="icd-g-email" value="'+(c.guardianEmail||'')+'" type="email" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Address</label><input id="icd-addr" value="'+(c.address||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Email</label><input id="icd-g-email" value="'+(c.guardianEmail||'')+'" type="email" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Address</label><input id="icd-addr" value="'+(c.address||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
     F('city','City',c.city) +
-    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Emergency Contact</div>' +
+    '</div><div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Emergency Contact</div>' +
     '<div class="fg g2">' + F('e-name','Name',c.emergName) + F('e-phone','Phone',c.emergPhone) + F('e-rel','Relationship',c.emergRel) + '</div>' +
-    '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Clinical</div>' +
+    '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Clinical</div>' +
     '<div class="fg g2">' +
     F('ins-provider','Insurance Provider',c.insuranceProvider) + F('ins-id','Insurance ID',c.insuranceId) +
     F('ins-group','Group',c.insuranceGroup) + F('ref-source','Referral Source',c.referralSource) +
     F('pcp','PCP',c.pcp) + F('school','School',c.school) +
     F('grade','Grade',c.grade) + F('aba-provider','ABA Provider',c.abaProvider) +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
     F('custody','Custody',c.custody) +
-    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#87867f;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#141413;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
+    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #e4e1d8;border-radius:7px;font-size:13px;background:#fff;color:#0B1526;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
     '</div></div>';
 }
 
@@ -403,7 +403,7 @@ function _saveICDemo() {
 
 // ── Coverage Tab ─────────────────────────────────────────────────────────────
 function _buildICCoverageTab(c, db) {
-  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#87867f;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#141413;font-weight:600">'+(v||'—')+'</span></div>'; };
+  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #f0ede5;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#0B1526;font-weight:600">'+(v||'—')+'</span></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Primary Insurance' +
     '<button class="btn btn-sm" onclick="_renderICTab(&quot;demographics&quot;)">Edit</button></div>' +
@@ -419,7 +419,7 @@ function _buildICRecordsTab(c, db, main) {
     '<span>Records — Forms (Signed Consent Documents)</span>' +
     '<button class="btn btn-sm" onclick="_loadICRecords()">Refresh</button></div>' +
     '<div class="ptc-panel-body" id="ic-records-body">' +
-    '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading...</div>' +
+    '<div style="text-align:center;padding:24px;color:#586579;font-size:13px">Loading...</div>' +
     '</div></div>';
   _loadICRecords();
 }
@@ -447,7 +447,7 @@ function _icPreviewPDF(docId) {
 
   var hdr = document.createElement('div');
   hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f8f6f0;border-bottom:1px solid #e4e1d8;flex-shrink:0';
-  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:#141413">Document Preview</span><div style="display:flex;gap:6px" id="ic-preview-actions"></div>';
+  hdr.innerHTML = '<span style="font-size:13px;font-weight:700;color:#0B1526">Document Preview</span><div style="display:flex;gap:6px" id="ic-preview-actions"></div>';
 
   var ifr = document.createElement('iframe');
   ifr.src = pdfData; ifr.style.cssText = 'flex:1;border:none;width:100%';
@@ -497,16 +497,16 @@ async function _loadICRecords() {
   if (!el) return;
   var db2 = getDB();
   var client = (db2.intakeClients || [])[_icChartClientIdx];
-  if (!client) { el.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:24px">Save the client first.</p>'; return; }
-  el.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading...</div>';
+  if (!client) { el.innerHTML = '<p style="color:#586579;font-size:13px;text-align:center;padding:24px">Save the client first.</p>'; return; }
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:#586579;font-size:13px">Loading...</div>';
   try {
     if (!_db) throw new Error('Not connected');
     var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
     if (snap.empty) {
-      el.innerHTML = '<div style="text-align:center;padding:40px;color:#87867f">' +
+      el.innerHTML = '<div style="text-align:center;padding:40px;color:#586579">' +
         '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e4e1d8" stroke-width="1.5" style="display:block;margin:0 auto 12px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>' +
-        '<div style="font-size:14px;font-weight:600;color:#4d4c48">No signed forms yet</div>' +
-        '<div style="font-size:12px;margin-top:4px;color:#87867f">Signed consent documents will appear here after the guardian signs</div></div>';
+        '<div style="font-size:14px;font-weight:600;color:#3A475C">No signed forms yet</div>' +
+        '<div style="font-size:12px;margin-top:4px;color:#586579">Signed consent documents will appear here after the guardian signs</div></div>';
       return;
     }
     // Store pdf data in a map keyed by doc id for preview/print
@@ -529,12 +529,12 @@ async function _loadICRecords() {
         '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f4f2ec">' +
         // Icon
         '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B32660" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
         '</div>' +
         // Info
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:700;color:#141413;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+fname+'</div>' +
-        '<div style="font-size:10px;color:#87867f;margin-top:2px">' +
+        '<div style="font-size:13px;font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+fname+'</div>' +
+        '<div style="font-size:10px;color:#586579;margin-top:2px">' +
         (ftype?'<span style="background:#f4f2ec;border-radius:4px;padding:1px 5px;margin-right:6px;font-weight:600">'+ftype+'</span>':'')+
         'Signed: '+ts+
         '</div>' +
@@ -583,8 +583,8 @@ function icClientTab(tab) {
   document.getElementById('icp-records').style.display = tab === 'records' ? '' : 'none';
   var btnInfo = document.getElementById('ict-info');
   var btnRec = document.getElementById('ict-records');
-  if (btnInfo) { btnInfo.style.color = tab==='info'?'#c96442':'#87867f'; btnInfo.style.borderBottomColor = tab==='info'?'#c96442':'transparent'; }
-  if (btnRec) { btnRec.style.color = tab==='records'?'#c96442':'#87867f'; btnRec.style.borderBottomColor = tab==='records'?'#c96442':'transparent'; }
+  if (btnInfo) { btnInfo.style.color = tab==='info'?'#B32660':'#586579'; btnInfo.style.borderBottomColor = tab==='info'?'#B32660':'transparent'; }
+  if (btnRec) { btnRec.style.color = tab==='records'?'#B32660':'#586579'; btnRec.style.borderBottomColor = tab==='records'?'#B32660':'transparent'; }
   if (tab === 'records') icLoadClientRecords();
 }
 
@@ -594,13 +594,13 @@ async function icLoadClientRecords() {
   var clientIdx = parseInt(document.getElementById('ic-client-id').value);
   var db2 = getDB();
   var client = (db2.intakeClients || [])[clientIdx];
-  if (!client) { listEl.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:24px">Save the client first to view records.</p>'; return; }
-  listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#87867f;font-size:13px">Loading from Firestore...</div>';
+  if (!client) { listEl.innerHTML = '<p style="color:#586579;font-size:13px;text-align:center;padding:24px">Save the client first to view records.</p>'; return; }
+  listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#586579;font-size:13px">Loading from Firestore...</div>';
   try {
     if (!_db) throw new Error('Firestore not ready');
     var snap = await _db.collection('intakeSigned').where('clientId','==',client.id).get();
     if (snap.empty) {
-      listEl.innerHTML = '<p style="color:#87867f;font-size:13px;text-align:center;padding:32px">No signed documents yet.</p>';
+      listEl.innerHTML = '<p style="color:#586579;font-size:13px;text-align:center;padding:32px">No signed documents yet.</p>';
       return;
     }
     var html = '';
@@ -609,14 +609,14 @@ async function icLoadClientRecords() {
       var ts = d.signedTs || (d.signedAt && d.signedAt.toDate ? d.signedAt.toDate().toLocaleString() : '');
       html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f6f0;border-radius:8px;margin-bottom:8px;border:1px solid #e4e1d8">';
       html += '<div style="width:36px;height:36px;border-radius:8px;background:#fdf3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c96442" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
+      html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B32660" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
       html += '<div style="flex:1;min-width:0">';
-      html += '<div style="font-size:13px;font-weight:700;color:#141413">' + (d.formName || 'Signed Document') + '</div>';
-      html += '<div style="font-size:10px;color:#87867f;margin-top:2px">Signed: ' + ts + '</div>';
+      html += '<div style="font-size:13px;font-weight:700;color:#0B1526">' + (d.formName || 'Signed Document') + '</div>';
+      html += '<div style="font-size:10px;color:#586579;margin-top:2px">Signed: ' + ts + '</div>';
       html += '</div>';
       if (d.pdfData) {
         html += '<a href="' + d.pdfData + '" download="' + (d.formName||'document').replace(/[^a-z0-9]/gi,'_') + '.pdf" ';
-        html += 'style="flex-shrink:0;padding:5px 12px;background:#c96442;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
+        html += 'style="flex-shrink:0;padding:5px 12px;background:#B32660;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
         html += '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>';
       }
       html += '</div>';
@@ -745,28 +745,28 @@ function icSendIntakeForms() {
   // Build email HTML
   var formNames = selectedIndices.map(function(fi){ return (db.intakeForms[fi]?.name||'Form'); }).join(', ');
   var childName = (c.firstName||'') + ' ' + (c.lastName||'');
-  var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
 
   var emailHtml = [
     '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-    '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
+    '<div style="background:#0B1526;padding:20px 28px;display:flex;align-items:center;gap:14px">',
       logoHtml,
-      '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Secure Intake Portal</div></div>',
+      '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:1px">Secure Intake Portal</div></div>',
     '</div>',
-    '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
-      '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Secure Intake Forms for ' + childName + '</p>',
-      '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
-      '<p style="color:#4d4c48;font-size:13px;margin:0 0 14px;line-height:1.5">The following intake forms are ready for your review and electronic signature:</p>',
-      '<div style="background:#fff;border:1px solid #e8e6dc;border-radius:8px;padding:14px 18px;margin-bottom:18px">',
-        '<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#141413">Forms to complete:</p>',
-        '<p style="margin:0;font-size:13px;color:#4d4c48">' + formNames + '</p>',
+    '<div style="background:#F6F8FB;padding:24px 28px;border:1px solid #E4E9F1;border-top:none">',
+      '<p style="color:#0B1526;font-size:15px;font-weight:600;margin:0 0 6px">Secure Intake Forms for ' + childName + '</p>',
+      '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
+      '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5">The following intake forms are ready for your review and electronic signature:</p>',
+      '<div style="background:#fff;border:1px solid #E4E9F1;border-radius:8px;padding:14px 18px;margin-bottom:18px">',
+        '<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0B1526">Forms to complete:</p>',
+        '<p style="margin:0;font-size:13px;color:#3A475C">' + formNames + '</p>',
       '</div>',
-      (message ? '<p style="color:#4d4c48;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + message + '</em></p>' : ''),
+      (message ? '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + message + '</em></p>' : ''),
       '<div style="text-align:center;margin-bottom:18px">',
-        '<a href="' + intakeLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
-        '<p style="color:#87867f;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours. Do not share.</p>',
+        '<a href="' + intakeLink + '" style="display:inline-block;background:#B32660;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
+        '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours. Do not share.</p>',
       '</div>',
-      '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">If you did not expect this email, please ignore it. &middot; ClaimDataCare &copy; 2026</p>',
+      '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">If you did not expect this email, please ignore it. &middot; ClaimDataCare &copy; 2026</p>',
     '</div></div>',
   ].join('');
 
@@ -849,22 +849,22 @@ function icSendDemoLink(idx) {
 
   // Offer copy link or send email
   if (confirm('Send demographic intake link to ' + c.guardianEmail + '?\n\nClick OK to send via email.\nClick Cancel to copy link to clipboard.')) {
-    var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+    var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
     var emailHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-      '<div style="background:#141413;padding:20px 28px;display:flex;align-items:center;gap:14px">',
+      '<div style="background:#0B1526;padding:20px 28px;display:flex;align-items:center;gap:14px">',
         logoHtml,
-        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:1px">Secure Demographic Intake</div></div>',
+        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:1px">Secure Demographic Intake</div></div>',
       '</div>',
-      '<div style="background:#f5f4ed;padding:24px 28px;border:1px solid #e8e6dc;border-top:none">',
-        '<p style="color:#141413;font-size:15px;font-weight:600;margin:0 0 6px">Demographic Intake for ' + childName + '</p>',
-        '<p style="color:#4d4c48;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
-        '<p style="color:#4d4c48;font-size:13px;margin:0 0 14px;line-height:1.5">Please complete the demographic intake form for your child. This collects demographic, contact, and insurance information needed to set up your child\'s record.</p>',
+      '<div style="background:#F6F8FB;padding:24px 28px;border:1px solid #E4E9F1;border-top:none">',
+        '<p style="color:#0B1526;font-size:15px;font-weight:600;margin:0 0 6px">Demographic Intake for ' + childName + '</p>',
+        '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
+        '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5">Please complete the demographic intake form for your child. This collects demographic, contact, and insurance information needed to set up your child\'s record.</p>',
         '<div style="text-align:center;margin-bottom:18px">',
-          '<a href="' + demoLink + '" style="display:inline-block;background:#c96442;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Demographic Intake</a>',
-          '<p style="color:#87867f;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours.</p>',
+          '<a href="' + demoLink + '" style="display:inline-block;background:#B32660;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Demographic Intake</a>',
+          '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours.</p>',
         '</div>',
-        '<p style="color:#87867f;font-size:10px;border-top:1px solid #e8e6dc;padding-top:12px;margin:0">ClaimDataCare &copy; 2026</p>',
+        '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">ClaimDataCare &copy; 2026</p>',
       '</div></div>',
     ].join('');
     sendEmail(c.guardianEmail, 'ClaimDataCare — Demographic Intake for ' + childName, emailHtml, 'demographic').then(function(sent){
@@ -1505,7 +1505,7 @@ function icOpenSignaturePad(signerName, signerEmail, callback) {
     _sigCtx = _sigCanvas.getContext('2d');
     _sigCtx.fillStyle = '#fff';
     _sigCtx.fillRect(0, 0, _sigCanvas.width, _sigCanvas.height);
-    _sigCtx.strokeStyle = '#141413';
+    _sigCtx.strokeStyle = '#0B1526';
     _sigCtx.lineWidth = 2;
     _sigCtx.lineCap = 'round';
     _sigCtx.lineJoin = 'round';
@@ -1652,7 +1652,7 @@ function _icExtractIData() {
 
 function _icTryFirestoreLoad(clientId, callback) {
   if (!_db || !firebase || !firebase.firestore) { callback(false); return; }
-  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
   var db = getDB();
   // Try direct Firestore query for this intake client
   _db.collection('intakeClients').where('id', '==', clientId).get().then(function(snap) {
@@ -1737,7 +1737,7 @@ function checkIntakeToken() {
   var ts = parseInt(parts[2]);
 
   if (Date.now() - ts > 72 * 60 * 60 * 1000) {
-    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Link Expired</h3><p style="color:#87867f;font-size:14px;line-height:1.5">This intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
+    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Link Expired</h3><p style="color:#586579;font-size:14px;line-height:1.5">This intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
     return;
   }
 
@@ -1750,7 +1750,7 @@ function checkIntakeToken() {
     }
     if (!c) {
       if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
         // Retries exhausted — try embedded client data from URL (standalone portal)
@@ -1765,7 +1765,7 @@ function checkIntakeToken() {
           _icTryFirestoreLoad(intakeClientId, function(found) {
             if (found) { _tryLoad(15); }
             else {
-              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Unable to Load</h3><p style="color:#586579;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
             }
           });
         }
@@ -1797,7 +1797,7 @@ function checkIntakeToken() {
       }
     }
     if (!pendingSubs.length) {
-      document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h3 style="margin:16px 0 8px;color:#141413">All Completed!</h3><p style="color:#87867f;font-size:14px;line-height:1.5">All forms have already been completed. Thank you! You may close this page.</p></div></div>';
+      document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">All Completed!</h3><p style="color:#586579;font-size:14px;line-height:1.5">All forms have already been completed. Thank you! You may close this page.</p></div></div>';
       return;
     }
 
@@ -1828,26 +1828,26 @@ function renderIntakePortal(client, pendingSubs, token) {
 
 function _icPortalLayout(client, pendingSubs, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#4d4c48;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#f0efe8;border:1px solid #e8e6dc;color:#4d4c48;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#141413}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #e8e6dc;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
+  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#3A475C;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#f0efe8;border:1px solid #E4E9F1;color:#3A475C;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#0B1526}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #E4E9F1;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
   return [
     '<style>' + css + '</style>',
-    '<div style="min-height:100vh;background:#f5f4ed;padding:20px;font-family:Arial,sans-serif">',
+    '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
     '<div style="max-width:640px;margin:0 auto">',
     '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);overflow:hidden;margin-bottom:16px">',
-    '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:12px">',
+    '<div style="background:#0B1526;padding:24px 28px;display:flex;align-items:center;gap:12px">',
     logoHtml,
-    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:2px">Secure Intake Portal</div></div>',
+    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:2px">Secure Intake Portal</div></div>',
     '</div>',
     '<div style="padding:28px">',
-    '<h2 style="margin:0 0 6px;font-size:20px;color:#141413">Welcome, ' + (client.guardianName||'Guardian') + '</h2>',
-    '<p style="margin:0 0 4px;color:#87867f;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
-    '<p style="margin:0 0 20px;color:#87867f;font-size:12px">' + pendingSubs.length + ' form(s) need your review and signature</p>',
+    '<h2 style="margin:0 0 6px;font-size:20px;color:#0B1526">Welcome, ' + (client.guardianName||'Guardian') + '</h2>',
+    '<p style="margin:0 0 4px;color:#586579;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
+    '<p style="margin:0 0 20px;color:#586579;font-size:12px">' + pendingSubs.length + ' form(s) need your review and signature</p>',
     '<div id="intake-portal-forms"></div>',
     '<div id="portal-thanks" style="display:none;text-align:center;padding:30px 20px">',
     '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    '<h3 style="margin:16px 0 6px;color:#141413;font-size:20px">Thank You!</h3>',
-    '<p style="color:#87867f;font-size:14px;line-height:1.5">All forms have been submitted successfully. Your responses have been securely saved. You may close this page.</p>',
+    '<h3 style="margin:16px 0 6px;color:#0B1526;font-size:20px">Thank You!</h3>',
+    '<p style="color:#586579;font-size:14px;line-height:1.5">All forms have been submitted successfully. Your responses have been securely saved. You may close this page.</p>',
     '</div>',
     '</div></div></div></div>'
   ].join('');
@@ -1869,29 +1869,29 @@ function _icPortalFormCard(client, sub, si, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
   var formContent = _icPortalFormContent(form, client);
 
-  var formHtml = '<div style="margin-bottom:12px;border:1.5px solid #e8e6dc;border-radius:12px;overflow:hidden;background:#fff">';
-  formHtml += '<div style="padding:14px 18px;background:#faf9f5;border-bottom:1px solid #e8e6dc;display:flex;justify-content:space-between;align-items:center">';
-  formHtml += '<span style="font-weight:700;font-size:14px;color:#141413">' + (form.name||'Form') + ' <span style="font-size:11px;color:#87867f;font-weight:400;background:#e8e6dc;padding:2px 10px;border-radius:20px;margin-left:6px">' + (form.type||'') + '</span></span>';
-  formHtml += '<span id="pf-badge-' + si + '" style="font-size:11px;background:#e8e6dc;padding:2px 10px;border-radius:20px;color:#87867f">Pending</span>';
+  var formHtml = '<div style="margin-bottom:12px;border:1.5px solid #E4E9F1;border-radius:12px;overflow:hidden;background:#fff">';
+  formHtml += '<div style="padding:14px 18px;background:#FFFFFF;border-bottom:1px solid #E4E9F1;display:flex;justify-content:space-between;align-items:center">';
+  formHtml += '<span style="font-weight:700;font-size:14px;color:#0B1526">' + (form.name||'Form') + ' <span style="font-size:11px;color:#586579;font-weight:400;background:#E4E9F1;padding:2px 10px;border-radius:20px;margin-left:6px">' + (form.type||'') + '</span></span>';
+  formHtml += '<span id="pf-badge-' + si + '" style="font-size:11px;background:#E4E9F1;padding:2px 10px;border-radius:20px;color:#586579">Pending</span>';
   formHtml += '</div>';
   formHtml += '<div style="padding:14px 18px">';
 
   // Form content — collapsible
   if (formContent) {
-    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#c96442;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
-    formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#4d4c48;line-height:1.7;padding:12px;background:#faf9f5;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #e8e6dc">' + formContent + '</div>';
+    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#B32660;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
+    formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#3A475C;line-height:1.7;padding:12px;background:#FFFFFF;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #E4E9F1">' + formContent + '</div>';
   }
 
   // Info box
-  formHtml += '<div style="background:#f5f4ed;border-radius:8px;padding:12px;font-size:12px;color:#4d4c48;line-height:1.6;margin-bottom:14px">' +
+  formHtml += '<div style="background:#F6F8FB;border-radius:8px;padding:12px;font-size:12px;color:#3A475C;line-height:1.6;margin-bottom:14px">' +
     '<strong>Child:</strong> ' + childName + '<br>' +
     '<strong>Guardian:</strong> ' + (client.guardianName||'') + '<br>' +
     '<strong>Date:</strong> ' + new Date().toLocaleDateString() +
     '</div>';
 
   // Signature section
-  formHtml += '<div style="border-top:1px solid #e8e6dc;padding-top:14px">';
-  formHtml += '<p style="font-size:12px;color:#87867f;margin:0 0 12px;font-weight:600">Your Signature</p>';
+  formHtml += '<div style="border-top:1px solid #E4E9F1;padding-top:14px">';
+  formHtml += '<p style="font-size:12px;color:#586579;margin:0 0 12px;font-weight:600">Your Signature</p>';
 
   // Signature tabs
   formHtml += '<div style="display:flex;flex-wrap:wrap;margin-bottom:0">';
@@ -1901,22 +1901,22 @@ function _icPortalFormCard(client, sub, si, token) {
   formHtml += '</div>';
 
   // Draw panel
-  formHtml += '<div id="pf-sig-panel-draw-' + si + '" class="sig-panel active" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<canvas id="portal-canvas-' + si + '" class="portal-canvas" width="540" height="140" style="border:1px solid #e8e6dc;border-radius:6px;width:100%;height:120px;touch-action:none;cursor:crosshair;background:#fff"></canvas>';
-  formHtml += '<button style="margin-top:6px;font-size:11px;color:#87867f;background:none;border:none;cursor:pointer;text-decoration:underline" onclick="_icPortalClearDraw(' + si + ')">Clear drawing</button>';
+  formHtml += '<div id="pf-sig-panel-draw-' + si + '" class="sig-panel active" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<canvas id="portal-canvas-' + si + '" class="portal-canvas" width="540" height="140" style="border:1px solid #E4E9F1;border-radius:6px;width:100%;height:120px;touch-action:none;cursor:crosshair;background:#fff"></canvas>';
+  formHtml += '<button style="margin-top:6px;font-size:11px;color:#586579;background:none;border:none;cursor:pointer;text-decoration:underline" onclick="_icPortalClearDraw(' + si + ')">Clear drawing</button>';
   formHtml += '</div>';
 
   // Type panel
-  formHtml += '<div id="pf-sig-panel-type-' + si + '" class="sig-panel" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<input id="portal-sig-type-' + si + '" type="text" placeholder="Type your full legal name" style="width:100%;padding:10px 12px;border:1.5px solid #e8e6dc;border-radius:6px;font-size:18px;font-family:\'Brush Script MT\',cursive;box-sizing:border-box;text-transform:none" oninput="document.getElementById(\'portal-sig-preview-' + si + '\').textContent=this.value">';
-  formHtml += '<div id="portal-sig-preview-' + si + '" style="margin-top:8px;font-size:22px;font-family:\'Brush Script MT\',cursive;color:#4d4c48;min-height:30px;padding:4px 8px;border-bottom:1px solid #e8e6dc"></div>';
+  formHtml += '<div id="pf-sig-panel-type-' + si + '" class="sig-panel" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<input id="portal-sig-type-' + si + '" type="text" placeholder="Type your full legal name" style="width:100%;padding:10px 12px;border:1.5px solid #E4E9F1;border-radius:6px;font-size:18px;font-family:\'Brush Script MT\',cursive;box-sizing:border-box;text-transform:none" oninput="document.getElementById(\'portal-sig-preview-' + si + '\').textContent=this.value">';
+  formHtml += '<div id="portal-sig-preview-' + si + '" style="margin-top:8px;font-size:22px;font-family:\'Brush Script MT\',cursive;color:#3A475C;min-height:30px;padding:4px 8px;border-bottom:1px solid #E4E9F1"></div>';
   formHtml += '</div>';
 
   // Upload panel
-  formHtml += '<div id="pf-sig-panel-upload-' + si + '" class="sig-panel" style="border:1px solid #e8e6dc;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<p style="font-size:12px;color:#87867f;margin:0 0 8px">Upload an image of your signature (PNG or JPEG)</p>';
+  formHtml += '<div id="pf-sig-panel-upload-' + si + '" class="sig-panel" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
+  formHtml += '<p style="font-size:12px;color:#586579;margin:0 0 8px">Upload an image of your signature (PNG or JPEG)</p>';
   formHtml += '<input id="portal-sig-upload-' + si + '" type="file" accept="image/*" style="font-size:12px" onchange="_icPortalLoadUpload(' + si + ',this)">';
-  formHtml += '<div id="portal-sig-upload-preview-' + si + '" style="margin-top:8px;display:none"><img style="max-height:60px;border:1px solid #e8e6dc;border-radius:4px"></div>';
+  formHtml += '<div id="portal-sig-upload-preview-' + si + '" style="margin-top:8px;display:none"><img style="max-height:60px;border:1px solid #E4E9F1;border-radius:4px"></div>';
   formHtml += '</div>';
 
   // Hidden result
@@ -1957,7 +1957,7 @@ function _icPortalLoadUpload(si, input) {
     var preview = document.getElementById('portal-sig-upload-preview-' + si);
     if (preview) {
       preview.style.display = '';
-      preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:60px;border:1px solid #e8e6dc;border-radius:4px">';
+      preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:60px;border:1px solid #E4E9F1;border-radius:4px">';
     }
   };
   reader.readAsDataURL(input.files[0]);
@@ -1969,7 +1969,7 @@ function _icPortalInitCanvas(si) {
   var ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#141413';
+  ctx.strokeStyle = '#0B1526';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -2303,7 +2303,7 @@ function checkDemographicToken() {
   var intakeEmail = parts[1];
   var ts = parseInt(parts[2]);
   if (Date.now() - ts > 72 * 60 * 60 * 1000) {
-    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Link Expired</h3><p style="color:#87867f;font-size:14px;line-height:1.5">This demographic intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
+    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Link Expired</h3><p style="color:#586579;font-size:14px;line-height:1.5">This demographic intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
     return;
   }
   function _tryLoad(tries) {
@@ -2315,7 +2315,7 @@ function checkDemographicToken() {
     }
     if (!c) {
       if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
+        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
         // Retries exhausted — try embedded client data from URL (standalone portal)
@@ -2330,7 +2330,7 @@ function checkDemographicToken() {
           _icTryFirestoreLoad(intakeClientId, function(found) {
             if (found) { _tryLoad(15); }
             else {
-              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#141413">Unable to Load</h3><p style="color:#87867f;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
+              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Unable to Load</h3><p style="color:#586579;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
             }
           });
         }
@@ -2349,82 +2349,82 @@ function checkDemographicToken() {
 
 function renderDemographicPortal(client, token) {
   var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#c96442"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
+  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#B32660"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
 
   var html = [
-    '<div style="min-height:100vh;background:#f5f4ed;padding:20px;font-family:Arial,sans-serif">',
+    '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
     '<div style="max-width:640px;margin:0 auto">',
     '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);overflow:hidden;margin-bottom:16px">',
-    '<div style="background:#141413;padding:24px 28px;display:flex;align-items:center;gap:12px">',
+    '<div style="background:#0B1526;padding:24px 28px;display:flex;align-items:center;gap:12px">',
     logoHtml,
-    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#87867f;font-size:11px;margin-top:2px">Demographic Intake Form</div></div>',
+    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:2px">Demographic Intake Form</div></div>',
     '</div>',
     '<div style="padding:28px">',
-    '<h2 style="margin:0 0 6px;font-size:20px;color:#141413">Demographic Information</h2>',
-    '<p style="margin:0 0 20px;color:#87867f;font-size:13px">Please complete the demographic information for <strong>' + childName + '</strong>. Fields marked with * are required.</p>',
+    '<h2 style="margin:0 0 6px;font-size:20px;color:#0B1526">Demographic Information</h2>',
+    '<p style="margin:0 0 20px;color:#586579;font-size:13px">Please complete the demographic information for <strong>' + childName + '</strong>. Fields marked with * are required.</p>',
     '<form onsubmit="icSubmitDemographic(\'' + client.id + '\',\'' + token.replace(/'/g,"\\'") + '\');return false">',
 
     // Child information
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#141413;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e8e6dc;text-transform:uppercase;letter-spacing:.04em">Child Information</div>',
+    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Child Information</div>',
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">First Name *</label><input id="demo-first" value="' + (client.firstName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Last Name *</label><input id="demo-last" value="' + (client.lastName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">First Name *</label><input id="demo-first" value="' + (client.firstName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Last Name *</label><input id="demo-last" value="' + (client.lastName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Date of Birth *</label><input id="demo-dob" type="date" value="' + (client.dob||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Gender</label><select id="demo-gender" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.gender==='Male'?' selected':'') + '>Male</option><option' + (client.gender==='Female'?' selected':'') + '>Female</option><option' + (client.gender==='Other'?' selected':'') + '>Other</option></select></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Preferred Language</label><input id="demo-language" value="' + (client.language||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Date of Birth *</label><input id="demo-dob" type="date" value="' + (client.dob||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Gender</label><select id="demo-gender" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.gender==='Male'?' selected':'') + '>Male</option><option' + (client.gender==='Female'?' selected':'') + '>Female</option><option' + (client.gender==='Other'?' selected':'') + '>Other</option></select></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Preferred Language</label><input id="demo-language" value="' + (client.language||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div></div>',
 
     // Guardian information
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#141413;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e8e6dc;text-transform:uppercase;letter-spacing:.04em">Parent / Guardian Information</div>',
+    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Parent / Guardian Information</div>',
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Full Name *</label><input id="demo-gname" value="' + (client.guardianName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Relationship *</label><select id="demo-grel" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.guardianRel==='Mother'?' selected':'') + '>Mother</option><option' + (client.guardianRel==='Father'?' selected':'') + '>Father</option><option' + (client.guardianRel==='Legal Guardian'?' selected':'') + '>Legal Guardian</option><option' + (client.guardianRel==='Grandparent'?' selected':'') + '>Grandparent</option><option' + (client.guardianRel==='Other'?' selected':'') + '>Other</option></select></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Full Name *</label><input id="demo-gname" value="' + (client.guardianName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Relationship *</label><select id="demo-grel" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.guardianRel==='Mother'?' selected':'') + '>Mother</option><option' + (client.guardianRel==='Father'?' selected':'') + '>Father</option><option' + (client.guardianRel==='Legal Guardian'?' selected':'') + '>Legal Guardian</option><option' + (client.guardianRel==='Grandparent'?' selected':'') + '>Grandparent</option><option' + (client.guardianRel==='Other'?' selected':'') + '>Other</option></select></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Phone *</label><input id="demo-gphone" value="' + (client.guardianPhone||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Alternate Phone</label><input id="demo-gphone2" value="' + (client.guardianPhone2||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Email *</label><input id="demo-gemail" type="email" value="' + (client.guardianEmail||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Phone *</label><input id="demo-gphone" value="' + (client.guardianPhone||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Alternate Phone</label><input id="demo-gphone2" value="' + (client.guardianPhone2||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Email *</label><input id="demo-gemail" type="email" value="' + (client.guardianEmail||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Address</label><input id="demo-addr" value="' + (client.address||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">City, State ZIP</label><input id="demo-city" value="' + (client.city||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Address</label><input id="demo-addr" value="' + (client.address||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">City, State ZIP</label><input id="demo-city" value="' + (client.city||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div></div>',
 
     // Emergency contact
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#141413;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e8e6dc;text-transform:uppercase;letter-spacing:.04em">Emergency Contact</div>',
+    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Emergency Contact</div>',
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Name</label><input id="demo-emerg-name" value="' + (client.emergName||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Phone</label><input id="demo-emerg-phone" value="' + (client.emergPhone||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Relationship</label><input id="demo-emerg-rel" value="' + (client.emergRel||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Name</label><input id="demo-emerg-name" value="' + (client.emergName||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Phone</label><input id="demo-emerg-phone" value="' + (client.emergPhone||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Relationship</label><input id="demo-emerg-rel" value="' + (client.emergRel||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div></div>',
 
     // Insurance & Referral
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#141413;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e8e6dc;text-transform:uppercase;letter-spacing:.04em">Insurance &amp; Referral</div>',
+    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Insurance &amp; Referral</div>',
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Insurance Provider</label><input id="demo-ins-provider" value="' + (client.insuranceProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Member ID</label><input id="demo-ins-id" value="' + (client.insuranceId||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Group Number</label><input id="demo-ins-group" value="' + (client.insuranceGroup||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Insurance Provider</label><input id="demo-ins-provider" value="' + (client.insuranceProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Member ID</label><input id="demo-ins-id" value="' + (client.insuranceId||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Group Number</label><input id="demo-ins-group" value="' + (client.insuranceGroup||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Referral Source</label><input id="demo-ref-source" value="' + (client.referralSource||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">PCP Name &amp; Phone</label><input id="demo-pcp" value="' + (client.pcp||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Referral Source</label><input id="demo-ref-source" value="' + (client.referralSource||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">PCP Name &amp; Phone</label><input id="demo-pcp" value="' + (client.pcp||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">School / District</label><input id="demo-school" value="' + (client.school||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Grade</label><input id="demo-grade" value="' + (client.grade||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">School / District</label><input id="demo-school" value="' + (client.school||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Grade</label><input id="demo-grade" value="' + (client.grade||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Existing ABA Provider</label><input id="demo-aba" value="' + (client.abaProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Existing Diagnoses</label><input id="demo-dx" value="' + (client.diagnoses||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#4d4c48;display:block;margin-bottom:3px">Custody/Legal Notes</label><input id="demo-custody" value="' + (client.custody||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #e8e6dc;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Existing ABA Provider</label><input id="demo-aba" value="' + (client.abaProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Existing Diagnoses</label><input id="demo-dx" value="' + (client.diagnoses||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
+    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Custody/Legal Notes</label><input id="demo-custody" value="' + (client.custody||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
     '</div></div>',
 
     // Submit
     '<div style="display:flex;gap:10px;margin-top:20px">',
-    '<button type="submit" id="demo-submit-btn" style="flex:1;padding:12px 20px;background:var(--brand,#c96442);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Submit Demographic Information</button>',
+    '<button type="submit" id="demo-submit-btn" style="flex:1;padding:12px 20px;background:var(--brand,#B32660);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Submit Demographic Information</button>',
     '</div>',
-    '<div id="demo-status" style="margin-top:10px;font-size:12px;color:#87867f;text-align:center"></div>',
+    '<div id="demo-status" style="margin-top:10px;font-size:12px;color:#586579;text-align:center"></div>',
     '</form>',
     '<div id="demo-thanks" style="display:none;text-align:center;padding:30px 20px">',
     '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    '<h3 style="margin:16px 0 6px;color:#141413;font-size:20px">Thank You!</h3>',
-    '<p style="color:#87867f;font-size:14px;line-height:1.5">Your demographic information has been submitted successfully. You may close this page.</p>',
+    '<h3 style="margin:16px 0 6px;color:#0B1526;font-size:20px">Thank You!</h3>',
+    '<p style="color:#586579;font-size:14px;line-height:1.5">Your demographic information has been submitted successfully. You may close this page.</p>',
     '</div>',
     '</div></div></div></div>'
   ].join('');
@@ -2436,7 +2436,7 @@ function icSubmitDemographic(clientId, token) {
   var statusEl = document.getElementById('demo-status');
   if (!btn || btn.disabled) return;
   btn.disabled = true; btn.textContent = 'Submitting...';
-  statusEl.innerHTML = '<span style="color:#87867f">Please wait while we process your submission...</span>';
+  statusEl.innerHTML = '<span style="color:#586579">Please wait while we process your submission...</span>';
 
   var data = {
     firstName: document.getElementById('demo-first')?.value?.trim() || '',
@@ -2549,7 +2549,7 @@ function icSubmitDemographic(clientId, token) {
   // Show loading spinner immediately so page is never blank
   var rootEl = document.getElementById('root');
   if (rootEl) {
-    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f4ed;font-family:Arial,sans-serif"><div style="text-align:center;color:#87867f;font-size:14px"><div style="width:40px;height:40px;border:3px solid #e8e6dc;border-top-color:#c96442;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
+    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#B32660;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
   }
 
   // Wait for Firebase + DB to be ready, then run token check

@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClaimDataCare</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
 /* Critical layout — ensures sections display even if styles.css is stale */
@@ -16,7 +17,7 @@ html,body{height:100%;margin:0}#root{position:fixed;inset:0;display:flex;flex-di
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .content{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg);min-height:0}
 .page-body{flex:1;overflow-y:auto;min-height:0}
-.topnav{height:44px;background:#141413;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}
+.topnav{height:44px;background:#0B1526;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex-shrink:0;color:#fff;z-index:100}
 .tn-nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}
 .tn-item{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;transition:all .12s;flex-shrink:0;cursor:pointer;border:0;background:none;font-family:inherit}
 .tn-item:hover{background:rgba(255,255,255,.1);color:#fff}
@@ -43,8 +44,8 @@ html,body{height:100%;margin:0}#root{position:fixed;inset:0;display:flex;flex-di
 </div>
 <!-- Tabs -->
 <div style="display:flex;border-bottom:2px solid #e4e1d8;padding:0 16px;flex-shrink:0;background:#fff">
-  <button id="ict-info" onclick="icClientTab('info')" style="padding:9px 16px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;color:#c96442;border-bottom:3px solid #c96442;margin-bottom:-2px">Client Info</button>
-  <button id="ict-records" onclick="icClientTab('records')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:#87867f;border-bottom:3px solid transparent;margin-bottom:-2px">Records</button>
+  <button id="ict-info" onclick="icClientTab('info')" style="padding:9px 16px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;color:#B32660;border-bottom:3px solid #B32660;margin-bottom:-2px">Client Info</button>
+  <button id="ict-records" onclick="icClientTab('records')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:#586579;border-bottom:3px solid transparent;margin-bottom:-2px">Records</button>
 </div>
 <div class="modal-body" style="flex:1;overflow-y:auto">
 <input type="hidden" id="ic-client-id" value="-1">
@@ -98,11 +99,11 @@ html,body{height:100%;margin:0}#root{position:fixed;inset:0;display:flex;flex-di
 <!-- Records panel -->
 <div id="icp-records" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <div style="font-size:13px;font-weight:700;color:#141413">Signed Documents</div>
+    <div style="font-size:13px;font-weight:700;color:#0B1526">Signed Documents</div>
     <button class="btn btn-sm" onclick="icLoadClientRecords()" style="font-size:11px">Refresh</button>
   </div>
   <div id="ic-records-list">
-    <div style="text-align:center;padding:32px;color:#87867f;font-size:13px">Loading records...</div>
+    <div style="text-align:center;padding:32px;color:#586579;font-size:13px">Loading records...</div>
   </div>
 </div>
 
@@ -242,6 +243,10 @@ html,body{height:100%;margin:0}#root{position:fixed;inset:0;display:flex;flex-di
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js" defer></script>
 <script src="script1.js"></script>
+<!-- Modules (each part of the app lives in its own file; none paints over another) -->
+<script src="cdc-loader.js"></script>
+<script src="cdc-login.js"></script>
+<script src="cdc-dashboard.js"></script>
 <script src="script2.js"></script>
 </body>
 </html>

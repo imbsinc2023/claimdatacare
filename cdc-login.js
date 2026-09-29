@@ -8,27 +8,12 @@
  *
  * Adds: attempt lockout (5 fails → 30s, then 2m, 5m, 15m), Caps Lock warning,
  * show/hide password, no autofill of anything stored in the browser.
- * Also loads cdc-loader.js (animated loading screen) and sets the favicon.
+ * Loaded by app.html right after script1.js. Also sets the favicon.
  */
 (function () {
   'use strict';
   if (window.__cdcxLogin) return;
   window.__cdcxLogin = true;
-
-  // Load the animated workspace loader (separate file, same folder as this one)
-  try {
-    var _me = document.currentScript, _base = _me && _me.src ? _me.src.replace(/[^\\/?#]*([?#].*)?$/, '') : '';
-    if (!document.getElementById('cdc-cm-js')) {
-      var _cm = document.createElement('script');
-      _cm.id = 'cdc-cm-js'; _cm.src = _base + 'cdc-cm.js?v=1';
-      document.head.appendChild(_cm);
-    }
-    if (!document.getElementById('cdcl-loader-js')) {
-      var _ls = document.createElement('script');
-      _ls.id = 'cdcl-loader-js'; _ls.src = _base + 'cdc-loader.js?v=3';
-      document.head.appendChild(_ls);
-    }
-  } catch (e) {}
 
   var GUARD_KEY = 'cdcx_login_guard';
   try { localStorage.removeItem('cdcx_login_email'); } catch (e) {}   // left by older versions
