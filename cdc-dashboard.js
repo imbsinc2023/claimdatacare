@@ -9,17 +9,11 @@
  * Specialty tabs (top right) appear only when the provider has more than one specialty;
  * the active one is solid, the others faded. Switching requires the "Switch Specialty"
  * permission in the user's form (the owner / Super Admin can always switch).
- * Static layout: the alerts strip has a fixed height, so nothing moves.
+ * Static layout: the top row (alerts + tabs) has a fixed height and stays pinned under
+ * the title bar while the dashboard scrolls; the date sits at the end.
  */
 (function () {
   'use strict';
-
-  var PALETTE = [
-    ['#FF6A3D', '#E8367A'],   // orange -> magenta
-    ['#E8367A', '#6A1BDB'],   // magenta -> violet
-    ['#6A1BDB', '#00A3D1'],   // violet -> blue
-    ['#0B7FA8', '#00A3D1']    // deep blue -> blue
-  ];
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function lc(t) { return String(t || '').toLowerCase(); }
@@ -61,45 +55,48 @@
 
   /* ---------------- styles ---------------- */
   var CSS = [
-    '.cdd{position:relative;padding:22px 24px 32px;font-family:inherit;color:var(--text,#0B1526)}',
-    '.cdd-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;min-height:74px}',
-    '.cdd-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0}',
-    '.cdd-sub{font-size:13px;color:var(--text3,#586579);margin-top:4px}',
-    /* specialty tabs attached to the top edge, like a ribbon */
-    '.cdd-tabs{position:absolute;top:0;right:24px;display:flex;gap:6px;z-index:2}',
-    '.cdd-tab{border:0;cursor:pointer;padding:7px 16px 8px;border-radius:0 0 12px 12px;font:700 11.5px/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#FF6A3D,#E8367A 50%,#6A1BDB);box-shadow:0 6px 16px -8px rgba(232,54,122,.7);transition:opacity .15s,transform .15s}',
-    '.cdd-tab.off{background:#8C98AB;box-shadow:none;opacity:.45}',
-    '.cdd-tab.off:hover{opacity:.8;transform:translateY(1px)}',
+    /* the dashboard section is its own scroll area, flush with the title bar */
+    '#sec-dashboard,#sec-cm-dashboard{margin:-18px -20px;height:calc(100% + 36px);overflow-y:auto;overflow-x:hidden}',
+    '.cdd{position:relative;padding:0 24px 24px;font-family:inherit;color:var(--text,#0B1526)}',
+    /* pinned top row: alerts on the left, specialty tabs hanging from the title bar on the right */
+    '.cdd-top{position:sticky;top:0;z-index:5;display:flex;align-items:flex-start;gap:14px;height:52px;margin:0 -24px;padding:0 24px;background:var(--bg,#F6F8FB)}',
+    '.cdd-alerts{flex:1;min-width:0;height:32px;margin-top:10px;display:flex;gap:8px;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}',
+    '.cdd-alerts::-webkit-scrollbar{display:none}',
+    '.cdd-alert{flex-shrink:0;display:flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:var(--bg2,#fff);border:1px solid var(--border2,#E4E9F1);color:var(--text2,#3A475C)}',
+    '.cdd-alert:before{content:"";width:7px;height:7px;border-radius:50%;background:#8C98AB;flex-shrink:0}',
+    '.cdd-alert.err:before,.cdd-alert.warn:before{background:#B32660}',
+    '.cdd-alert.err{color:#8F1D4D}',
+    '.cdd-alert.ok{cursor:default;color:var(--text3,#586579)}',
+    '.cdd-alert.ok:before{background:#0A7FA6}',
+    '.cdd-tabs{display:flex;gap:4px;flex-shrink:0}',
+    '.cdd-tab{border:0;cursor:pointer;height:30px;padding:0 16px;border-radius:0 0 10px 10px;font-family:inherit;font-size:11px;font-weight:700;line-height:1;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#0B1526;transition:background .15s,color .15s}',
     '.cdd-tab.on{cursor:default}',
-    '.cdd-tab[disabled]{cursor:not-allowed}',
-    '.cdd-tab[disabled]:hover{opacity:.45;transform:none}',
-    '.cdd-date{font-size:12px;color:var(--text3,#586579);text-align:right;padding-top:30px;white-space:nowrap}',
-    /* fixed-height alerts strip (static layout) */
-    '.cdd-alerts{height:40px;margin:14px 0 16px;display:flex;gap:8px;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}',
-    '.cdd-alert{flex-shrink:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}',
-    '.cdd-alert.err{background:#FDE8F0;color:#9C1C4E}.cdd-alert.warn{background:#FFEDE6;color:#8F3314}.cdd-alert.info{background:#F1EAFD;color:#4B1699}.cdd-alert.ok{background:#E3F5FB;color:#065E7C;cursor:default}',
-    /* gradient KPI cards */
-    '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}',
-    '.cdd-kpi{position:relative;overflow:hidden;border-radius:18px;padding:20px 22px;min-height:132px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 18px 36px -22px rgba(11,21,38,.55);transition:transform .15s,box-shadow .15s}',
-    '.cdd-kpi:hover{transform:translateY(-2px);box-shadow:0 22px 40px -20px rgba(11,21,38,.6)}',
-    '.cdd-kpi:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12)}',
-    '.cdd-kpi .t{font-size:15px;font-weight:600;opacity:.95;text-align:right;position:relative;z-index:1}',
-    '.cdd-kpi .row{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}',
-    '.cdd-kpi .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1}',
-    '.cdd-kpi .s{font-size:11.5px;opacity:.85;margin-top:6px;text-align:right}',
-    '.cdd-kpi svg{opacity:.9}',
+    '.cdd-tab.off{background:#E4E9F1;color:#586579}',
+    '.cdd-tab.off:hover{background:#D5DCE7;color:#0B1526}',
+    '.cdd-tab[disabled]{cursor:not-allowed;opacity:.55}',
+    '.cdd-tab[disabled]:hover{background:#E4E9F1;color:#586579}',
+    /* KPI cards: white, one accent colour only */
+    '.cdd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:4px}',
+    '.cdd-kpi{background:var(--bg2,#fff);border:1px solid var(--border2,#E4E9F1);border-radius:14px;padding:16px 18px;min-height:112px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .15s}',
+    '.cdd-kpi:hover{border-color:#C9D1DE;box-shadow:0 10px 24px -18px rgba(11,21,38,.45)}',
+    '.cdd-kpi:focus-visible{outline:2px solid #B32660;outline-offset:2px}',
+    '.cdd-kpi .hd{display:flex;justify-content:space-between;align-items:center;gap:10px}',
+    '.cdd-kpi .t{font-size:12.5px;font-weight:600;color:var(--text3,#586579)}',
+    '.cdd-kpi .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(179,38,96,.08);color:#B32660;flex-shrink:0}',
+    '.cdd-kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:#0B1526}',
+    '.cdd-kpi .s{font-size:11.5px;color:var(--text3,#586579)}',
     /* panels */
-    '.cdd-grid{display:grid;gap:16px;margin-top:16px}',
+    '.cdd-grid{display:grid;gap:14px;margin-top:14px}',
     '.cdd-g3{grid-template-columns:repeat(3,minmax(0,1fr))}',
     '.cdd-g2{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}',
-    '.cdd-card{background:var(--bg2,#fff);border:1px solid var(--border,#E4E9F1);border-radius:16px;padding:18px 20px;min-height:220px}',
+    '.cdd-card{background:var(--bg2,#fff);border:1px solid var(--border2,#E4E9F1);border-radius:14px;padding:18px 20px;min-height:220px}',
     '.cdd-card h3{margin:0 0 14px;font-size:14px;font-weight:700}',
     '.cdd-donut{display:flex;align-items:center;gap:22px}',
     '.cdd-donut .big{font-size:30px;font-weight:700;line-height:1}',
     '.cdd-donut .lbl{font-size:13px;color:var(--text3,#586579);margin:2px 0 10px}',
     '.cdd-split{display:flex;gap:18px}',
-    '.cdd-split div{border-left:3px solid #E8367A;padding-left:8px}',
-    '.cdd-split div.b{border-color:#6A1BDB}',
+    '.cdd-split div{border-left:3px solid #B32660;padding-left:8px}',
+    '.cdd-split div.b{border-color:#0B1526}',
     '.cdd-split b{display:block;font-size:17px}',
     '.cdd-split small{font-size:11px;color:var(--text3,#586579)}',
     '.cdd-list{max-height:260px;overflow-y:auto}',
@@ -107,13 +104,20 @@
     '.cdd-li:last-child{border-bottom:0}',
     '.cdd-empty{font-size:12.5px;color:var(--text3,#586579);padding:14px 0}',
     '.cdd-bar{height:6px;border-radius:4px;background:var(--bg3,#EEF1F6);overflow:hidden;margin-top:6px}',
-    '.cdd-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#E8367A,#6A1BDB)}',
+    '.cdd-bar i{display:block;height:100%;border-radius:4px;background:#B32660}',
     '.cdd-pill{padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}',
+    '.cdd-pill.ok{background:rgba(10,127,166,.1);color:#0A6A8C}',
+    '.cdd-pill.att{background:rgba(179,38,96,.1);color:#8F1D4D}',
+    '.cdd-pill.neu{background:#EEF1F6;color:#3A475C}',
+    '.cdd-dot{width:9px;height:9px;border-radius:50%;display:inline-block}',
+    '.cdd-dot.ok{background:#0A7FA6}.cdd-dot.att{background:#B32660}.cdd-dot.neu{background:#8C98AB}',
     '.cdd-tbl{width:100%;border-collapse:collapse;font-size:12.5px}',
     '.cdd-tbl th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3,#586579);text-align:left;padding:0 8px 8px;font-weight:600}',
     '.cdd-tbl td{padding:9px 8px;border-top:1px solid var(--border,#EEF1F6)}',
     '.cdd-actions{display:flex;gap:8px;flex-wrap:wrap}',
-    '@media (max-width:1100px){.cdd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-g3,.cdd-g2{grid-template-columns:minmax(0,1fr)}}'
+    '.cdd-foot{margin-top:18px;text-align:right;font-size:12px;color:var(--text3,#586579)}',
+    '@media (max-width:1100px){.cdd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cdd-g3,.cdd-g2{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:768px){#sec-dashboard,#sec-cm-dashboard{margin:-12px;height:calc(100% + 24px)}.cdd{padding:0 14px 18px}.cdd-top{margin:0 -14px;padding:0 14px}}'
   ].join('\n');
   function injectCSS() {
     if (document.getElementById('cdd-style')) return;
@@ -131,18 +135,17 @@
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>'
   };
-  function ico(k) { return '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>'; }
-  function kpi(i, title, value, sub, icon, route) {
-    var g = PALETTE[i % PALETTE.length];
-    return '<div class="cdd-kpi" role="button" tabindex="0" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')" style="background:linear-gradient(135deg,' + g[0] + ',' + g[1] + ')">' +
-      '<div class="t">' + esc(title) + '</div>' +
-      '<div class="row">' + ico(icon) + '<div><div class="v">' + esc(value) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div></div></div>';
+  function ico(k) { return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>'; }
+  function kpi(title, value, sub, icon, route) {
+    return '<div class="cdd-kpi" role="button" tabindex="0" onclick="go(\'' + route + '\')" onkeydown="if(event.key===\'Enter\')go(\'' + route + '\')">' +
+      '<div class="hd"><span class="t">' + esc(title) + '</span><span class="ic">' + ico(icon) + '</span></div>' +
+      '<div class="v">' + esc(value) + '</div>' + (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div>';
   }
-  function donut(part, total, colorA, colorB) {
+  function donut(part, total) {
     var r = 46, c = 2 * Math.PI * r, pct = total > 0 ? Math.min(1, part / total) : 0;
-    return '<svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cddg' + colorA.slice(1) + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + colorA + '"/><stop offset="1" stop-color="' + colorB + '"/></linearGradient></defs>' +
+    return '<svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">' +
       '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="var(--bg3,#EEF1F6)" stroke-width="14"/>' +
-      '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="url(#cddg' + colorA.slice(1) + ')" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (c * pct).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>';
+      '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="#B32660" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (c * pct).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>';
   }
   function alertsStrip(list) {
     if (!list.length) return '<div class="cdd-alerts"><span class="cdd-alert ok">All caught up • no alerts right now</span></div>';
@@ -162,10 +165,8 @@
         (can ? ' onclick="cdcDashSwitch(\'' + esc(n).replace(/'/g, "\\'") + '\')"' : (on ? '' : ' disabled')) + '>' + esc(shortName(n)) + '</button>';
     }).join('') + '</div>';
   }
-  function header(ctx, title) {
-    var d = new Date();
-    return '<div class="cdd-head"><div><h1 class="cdd-title">' + esc(title) + '</h1><div class="cdd-sub">' + esc(ctx.prov.name || '') + '</div></div>' +
-      '<div class="cdd-date">' + d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</div></div>';
+  function footer() {
+    return '<div class="cdd-foot">' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</div>';
   }
 
   /* ---------------- Case Management / TCM ---------------- */
@@ -200,19 +201,19 @@
     if (unsigned.length) alerts.push({ type: 'info', text: unsigned.length + ' unsigned billable note(s)', route: 'cm-supervisor' });
 
     var total = clients.length || 1;
-    var statusCard = '<div class="cdd-card"><h3>Client Status</h3><div class="cdd-donut">' + donut(activeClients.length, total, '#E8367A', '#6A1BDB') +
+    var statusCard = '<div class="cdd-card"><h3>Client Status</h3><div class="cdd-donut">' + donut(activeClients.length, total) +
       '<div><div class="big">' + activeClients.length + '</div><div class="lbl">Active clients</div><div class="cdd-split"><div><b>' + activeClients.length + '</b><small>Active</small></div><div class="b"><b>' + discharged.length + '</b><small>Discharged</small></div></div></div></div></div>';
     function unitsCard(title, t, a) {
       var open = Math.max(0, t - a);
-      return '<div class="cdd-card"><h3>' + title + '</h3><div class="cdd-donut">' + donut(a, t, '#6A1BDB', '#00A3D1') +
+      return '<div class="cdd-card"><h3>' + title + '</h3><div class="cdd-donut">' + donut(a, t) +
         '<div><div class="big">' + t + '</div><div class="lbl">Total units</div><div class="cdd-split"><div><b>' + open + '</b><small>Open ' + (t ? Math.round(open / t * 100) : 0) + '%</small></div><div class="b"><b>' + a + '</b><small>Approved ' + (t ? Math.round(a / t * 100) : 0) + '%</small></div></div></div></div></div>';
     }
     var recent = mo.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 8);
     var nameOf = function (id) { try { return _cmClientName(id); } catch (e) { return ''; } };
     var recentCard = '<div class="cdd-card"><h3>Recent notes • this month</h3><div class="cdd-list">' + (recent.length ? recent.map(function (n) {
       var st = n.supervisorStatus || 'Pending';
-      var col = st === 'Approved' ? 'background:#E3F5FB;color:#065E7C' : st === 'Returned' ? 'background:#FDE8F0;color:#9C1C4E' : 'background:#F1EAFD;color:#4B1699';
-      return '<div class="cdd-li"><span><b>' + esc(nameOf(n.clientId)) + '</b> • ' + esc(n.contactType || '') + '</span><span class="cdd-pill" style="' + col + '">' + esc(st) + '</span></div>';
+      var tone = st === 'Approved' ? 'ok' : st === 'Returned' ? 'att' : 'neu';
+      return '<div class="cdd-li"><span><b>' + esc(nameOf(n.clientId)) + '</b> • ' + esc(n.contactType || '') + '</span><span class="cdd-pill ' + tone + '">' + esc(st) + '</span></div>';
     }).join('') : '<div class="cdd-empty">No notes this month.</div>') + '</div></div>';
     var loadCard = '<div class="cdd-card"><h3>Caseload by care team</h3><div class="cdd-list">' + (team.length ? team.map(function (w) {
       var cnt = activeClients.filter(function (c) { return c.workerId === w.id; }).length, cap = w.capacity || 20, pct = Math.min(100, Math.round(cnt / cap * 100));
@@ -227,15 +228,15 @@
 
     var myWork = '';
     try { if (typeof _cmBuildMyWorkPanel === 'function') myWork = _cmBuildMyWorkPanel(d) || ''; } catch (e) {}
-    return header(ctx, ctx.active || 'Case Management') + alertsStrip(alerts) + myWork +
+    return { alerts: alerts, body: myWork +
       '<div class="cdd-kpis">' +
-        kpi(0, 'Clients', activeClients.length, clients.length + ' total', 'users', 'cm-clients') +
-        kpi(1, 'Cases', activeCases.length, 'active care plans', 'brief', 'cm-clients') +
-        kpi(2, 'Care Team', team.length, 'active members', 'team', 'cm-workers') +
-        kpi(3, 'Documents', docs, 'plans, assessments, files', 'doc', 'cm-clients') +
+        kpi('Clients', activeClients.length, clients.length + ' total', 'users', 'cm-clients') +
+        kpi('Cases', activeCases.length, 'active care plans', 'brief', 'cm-clients') +
+        kpi('Care Team', team.length, 'active members', 'team', 'cm-workers') +
+        kpi('Documents', docs, 'plans, assessments, files', 'doc', 'cm-clients') +
       '</div>' +
       '<div class="cdd-grid cdd-g3">' + statusCard + unitsCard('Units this week', wkT, wkA) + unitsCard('Units this month', moT, moA) + '</div>' +
-      '<div class="cdd-grid cdd-g2">' + recentCard + loadCard + '</div>' + actions;
+      '<div class="cdd-grid cdd-g2">' + recentCard + loadCard + '</div>' + actions };
   }
 
   /* ---------------- Billing (every other specialty) ---------------- */
@@ -258,8 +259,9 @@
     if (onHold) alerts.push({ type: 'info', text: onHold + ' claim(s) on hold', route: 'claims' });
 
     var LABEL = { draft: 'Draft', pending: 'Pending', submitted: 'Submitted', accepted: 'Accepted CH', rejected: 'Rejected', denied: 'Denied', on_hold: 'On Hold', paid: 'Paid', partially_paid: 'Partial', partial: 'Partial', voided: 'Voided', EXTENSION_QUEUED: 'Queued' };
-    var COLOR = { paid: '#0A7FA6', partially_paid: '#00A3D1', partial: '#00A3D1', submitted: '#6A1BDB', accepted: '#4B1699', pending: '#FF6A3D', draft: '#8C98AB', rejected: '#B32660', denied: '#B32660', on_hold: '#E8367A' };
-    var pill = function (st) { var c = COLOR[st] || '#8C98AB'; return '<span class="cdd-pill" style="background:' + c + '1f;color:' + c + '">' + esc(LABEL[st] || st || '') + '</span>'; };
+    var TONE = { paid: 'ok', partially_paid: 'ok', partial: 'ok', pending: 'att', rejected: 'att', denied: 'att', on_hold: 'att' };
+    var tone = function (st) { return TONE[st] || 'neu'; };
+    var pill = function (st) { return '<span class="cdd-pill ' + tone(st) + '">' + esc(LABEL[st] || st || '') + '</span>'; };
 
     var pts = {}; (db.patients || []).forEach(function (p) { pts[p.id] = p; });
     var recent = claims.slice(-8).reverse();
@@ -283,22 +285,21 @@
     var ss = {}; claims.forEach(function (c) { ss[c.status] = (ss[c.status] || 0) + 1; });
     var sts = Object.keys(ss).sort(function (a, b) { return ss[b] - ss[a]; });
     var tot = claims.length || 1;
-    var statusCard = '<div class="cdd-card"><h3>Collection</h3><div class="cdd-donut">' + donut(paid, billed, '#E8367A', '#6A1BDB') +
+    var statusCard = '<div class="cdd-card"><h3>Collection</h3><div class="cdd-donut">' + donut(paid, billed) +
       '<div><div class="big">' + pct + '%</div><div class="lbl">collected of ' + money(billed) + '</div><div class="cdd-split"><div><b>' + paidCt + '</b><small>Paid claims</small></div><div class="b"><b>' + submitted + '</b><small>Submitted</small></div></div></div></div>' +
       '<div style="margin-top:14px">' + sts.slice(0, 5).map(function (s) {
-        var c = COLOR[s] || '#8C98AB';
-        return '<div class="cdd-li"><span style="display:flex;align-items:center;gap:8px"><i style="width:9px;height:9px;border-radius:50%;background:' + c + '"></i>' + esc(LABEL[s] || s) + '</span><b>' + ss[s] + '</b></div>';
+        return '<div class="cdd-li"><span style="display:flex;align-items:center;gap:8px"><i class="cdd-dot ' + tone(s) + '"></i>' + esc(LABEL[s] || s) + '</span><b>' + ss[s] + '</b></div>';
       }).join('') + '</div></div>';
 
-    return header(ctx, 'Dashboard') + alertsStrip(alerts) +
+    return { alerts: alerts, body:
       '<div class="cdd-kpis">' +
-        kpi(0, 'Total Claims', claims.length, submitted + ' submitted • ' + pending + ' pending', 'file', 'claims') +
-        kpi(1, 'Collected', money(paid), pct + '% of ' + money(billed) + ' billed', 'cash', 'eob') +
-        kpi(2, 'Pending', pending, 'waiting to be submitted', 'clock', 'claims') +
-        kpi(3, 'Submitted', submitted, rejected ? rejected + ' rejected or denied' : 'no rejected claims', 'send', 'claims') +
+        kpi('Total Claims', claims.length, submitted + ' submitted • ' + pending + ' pending', 'file', 'claims') +
+        kpi('Collected', money(paid), pct + '% of ' + money(billed) + ' billed', 'cash', 'eob') +
+        kpi('Pending', pending, 'waiting to be submitted', 'clock', 'claims') +
+        kpi('Submitted', submitted, rejected ? rejected + ' rejected or denied' : 'no rejected claims', 'send', 'claims') +
       '</div>' +
       '<div class="cdd-grid cdd-g2">' + recentCard + '<div style="display:grid;gap:16px">' + payerCard + '</div></div>' +
-      '<div class="cdd-grid" style="grid-template-columns:minmax(0,1fr)">' + statusCard + '</div>';
+      '<div class="cdd-grid" style="grid-template-columns:minmax(0,1fr)">' + statusCard + '</div>' };
   }
 
   /* ---------------- render ---------------- */
@@ -317,10 +318,10 @@
     tries = 0;
     injectCSS();
     var ctx = context();
-    var html;
-    try { html = ctx.cm ? cmView(ctx) : billingView(ctx); }
-    catch (e) { console.warn('[CDC] dashboard:', e); html = header(ctx, 'Dashboard') + '<div class="cdd-card">The dashboard could not be prepared. Reload the page.</div>'; }
-    sec.innerHTML = '<div class="cdd">' + tabs(ctx) + html + '</div>';
+    var view;
+    try { view = ctx.cm ? cmView(ctx) : billingView(ctx); }
+    catch (e) { console.warn('[CDC] dashboard:', e); view = { alerts: [], body: '<div class="cdd-card">The dashboard could not be prepared. Reload the page.</div>' }; }
+    sec.innerHTML = '<div class="cdd"><div class="cdd-top">' + alertsStrip(view.alerts) + tabs(ctx) + '</div>' + view.body + footer() + '</div>';
     try { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 20); } catch (e) {}
   }
 

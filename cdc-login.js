@@ -267,7 +267,7 @@
           '<button type="button" class="cdcx-eye" id="li-eye" aria-label="Show password" title="Show password" aria-pressed="false">' + ICON_EYE + '</button></div></div>' +
         '<button type="submit" class="cdcx-btn" id="login-btn">Sign in</button>' +
       '</form>' +
-      '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 5 minutes of inactivity.</span></div>'));
+      '<div class="cdcx-note">' + ICON_CLOCK + '<span>For your security, sessions close after 15 minutes of inactivity.</span></div>'));
     if (!ok) return;
 
     var form = $('cdcx-form'), em = $('li-username'), pw = $('li-pass'), eye = $('li-eye');
