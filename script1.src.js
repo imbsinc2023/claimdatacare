@@ -902,12 +902,12 @@ function _injectMissingModals() {
     '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
     '</div>' +
     '<div style="margin-top:10px">' +
-    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Zelle Mode</label>' +
+    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#6D1ED4"><span class="zelle-mark" aria-hidden="true"></span>Zelle</label>' +
     '<input type="hidden" id="iss-zelle-mode" value="phone">' +
     '<div style="display:flex;gap:6px">' +
-    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6f3eff;color:#fff">Phone</button>' +
-    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Email</button>' +
-    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2)">Both</button>' +
+    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6D1ED4;color:#fff">Phone</button>' +
+    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Email</button>' +
+    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Both</button>' +
     '</div></div>' +
     '<div style="margin-top:10px">' +
     '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Logo</label>' +
@@ -23651,7 +23651,7 @@ if (!document.getElementById('cmw-role-style')) {
   _cmwStyle.textContent =
     '.cmw-role-card{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 8px;border-radius:14px;' +
     'border:1.5px solid #E4E9F1;background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s}' +
-    '.cmw-role-card:hover{transform:translateY(-3px);box-shadow:0 6px 14px rgba(0,0,0,.1)}' +
+    '.cmw-role-card:hover{box-shadow:0 6px 14px rgba(0,0,0,.1)}' +
     '.cmw-role-card input{display:none}' +
     '.cmw-role-ico{width:36px;height:36px;border-radius:11px;background:color-mix(in srgb, var(--rc) 12%, white);' +
     'display:flex;align-items:center;justify-content:center;flex-shrink:0}' +
