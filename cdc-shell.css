@@ -93,13 +93,18 @@
    service group, generate claims) uses exactly this size. Short confirmation dialogs stay small. */
 .cdc-win,#modal-batch .mb-modal{width:96vw!important;max-width:1280px!important;height:min(880px,92vh)!important;max-height:92vh!important;display:flex!important;flex-direction:column!important;border-radius:18px!important;padding:0!important;overflow:hidden}
 
-/* Window buttons, same everywhere: confirm / save = soft green, cancel / delete = soft red.
-   Always icon + label; hover only changes colours (never size or position). */
-.cdc-ok,.cdc-no{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 16px;box-sizing:border-box;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
-.cdc-ok{border:1px solid #BFE6D3;background:#EAF7F0;color:#0E7A55}
-.cdc-ok:hover{background:#D3F0E2;border-color:#8FD3B4;box-shadow:0 0 0 3px rgba(14,138,95,.12)}
-.cdc-no{border:1px solid #F5CBC2;background:#FDEEEB;color:#C8381E}
-.cdc-no:hover{background:#FADBD4;border-color:#EFA597;box-shadow:0 0 0 3px rgba(200,56,30,.1)}
-.cdc-no.strong{background:#F9D5CD;border-color:#EFA597}
-.cdc-ok[disabled],.cdc-no[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none}
-.cdc-ok .lci,.cdc-no .lci,.cdc-ok svg,.cdc-no svg{width:15px;height:15px;flex:none}
+/* Window buttons, same everywhere, in the website palette (always icon + label):
+   confirm / save = neon blue, cancel / delete = magenta, secondary (preview...) = violet.
+   Hover only deepens the colour and adds a soft halo; size and position never change. */
+.cdc-ok,.cdc-no,.cdc-alt{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 16px;box-sizing:border-box;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
+.cdc-ok{border:1px solid rgba(0,163,209,.35);background:rgba(0,163,209,.1);color:#007FA3}
+.cdc-ok:hover{background:rgba(0,163,209,.18);border-color:rgba(0,163,209,.55);box-shadow:0 0 0 3px rgba(0,163,209,.12)}
+.cdc-no{border:1px solid rgba(232,54,122,.32);background:rgba(232,54,122,.08);color:#C21F62}
+.cdc-no:hover{background:rgba(232,54,122,.15);border-color:rgba(232,54,122,.5);box-shadow:0 0 0 3px rgba(232,54,122,.1)}
+/* the destructive confirm (Delete) is solid, so it never looks like Cancel next to it */
+.cdc-no.strong{background:#E8367A;border-color:#E8367A;color:#fff}
+.cdc-no.strong:hover{background:#C21F62;border-color:#C21F62;color:#fff;box-shadow:0 0 0 3px rgba(232,54,122,.18)}
+.cdc-alt{border:1px solid rgba(106,27,219,.28);background:rgba(106,27,219,.07);color:#5B17C2}
+.cdc-alt:hover{background:rgba(106,27,219,.13);border-color:rgba(106,27,219,.45);box-shadow:0 0 0 3px rgba(106,27,219,.1)}
+.cdc-ok[disabled],.cdc-no[disabled],.cdc-alt[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none}
+.cdc-ok .lci,.cdc-no .lci,.cdc-alt .lci,.cdc-ok svg,.cdc-no svg,.cdc-alt svg{width:15px;height:15px;flex:none}
