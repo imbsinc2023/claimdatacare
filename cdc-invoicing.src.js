@@ -9,6 +9,33 @@
  * in the browser. The code is the same as before, only moved.
  */
 
+/* Website fonts for the invoice PDF: Sora (titles) and IBM Plex Sans (text), SIL Open Font
+   License. Small Latin-only files (about 90 KB in total) in /fonts, downloaded only the first
+   time an invoice PDF is generated and kept in memory; never loaded with the app itself.
+   If they cannot be loaded the PDF uses Helvetica as before. */
+var _invFontData = null, _invFontLoading = null;
+function _invLoadFonts() {
+  if (_invFontData) return Promise.resolve(_invFontData);
+  if (_invFontLoading) return _invFontLoading;
+  if (typeof fetch !== 'function') return Promise.resolve(null);
+  var files = { plex: 'fonts/IBMPlexSans-Regular.ttf', plexB: 'fonts/IBMPlexSans-SemiBold.ttf', sora: 'fonts/Sora-Bold.ttf' };
+  var b64 = function (buf) { var b = new Uint8Array(buf), s = '', i, n = 0x8000; for (i = 0; i < b.length; i += n) s += String.fromCharCode.apply(null, b.subarray(i, i + n)); return btoa(s); };
+  _invFontLoading = Promise.all(Object.keys(files).map(function (k) {
+    return fetch(files[k], { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw new Error(files[k]); return r.arrayBuffer(); }).then(function (buf) { return [k, b64(buf)]; });
+  })).then(function (pairs) { var o = {}; pairs.forEach(function (p) { o[p[0]] = p[1]; }); _invFontData = o; return o; })
+    .catch(function () { _invFontLoading = null; return null; });
+  return _invFontLoading;
+}
+function _invUseFonts(doc) {
+  if (!_invFontData) return false;
+  try {
+    doc.addFileToVFS('IBMPlexSans-Regular.ttf', _invFontData.plex); doc.addFont('IBMPlexSans-Regular.ttf', 'Plex', 'normal');
+    doc.addFileToVFS('IBMPlexSans-SemiBold.ttf', _invFontData.plexB); doc.addFont('IBMPlexSans-SemiBold.ttf', 'Plex', 'bold');
+    doc.addFileToVFS('Sora-Bold.ttf', _invFontData.sora); doc.addFont('Sora-Bold.ttf', 'Sora', 'bold');
+    return true;
+  } catch (e) { return false; }
+}
+
 /* Logos often come with wide empty margins, which made them look tiny in the PDF.
    A trimmed copy (empty/white border removed) is prepared in memory and used for the PDF. */
 var _invLogoCache = {};
@@ -38,7 +65,7 @@ function _invTrimLogo(src) {
     img.src = src;
   });
 }
-function _invPrepLogos() { try { (getInvDB().invoicingIssuers || []).forEach(function (x) { if (x.logo) _invTrimLogo(x.logo); }); } catch (e) {} }
+function _invPrepLogos() { _invLoadFonts(); try { (getInvDB().invoicingIssuers || []).forEach(function (x) { if (x.logo) _invTrimLogo(x.logo); }); } catch (e) {} }
 
 function _buildInvoicePDF(invId) {
 const db = getInvDB();
@@ -50,6 +77,8 @@ const cli = resolveInvClient(inv.clientId, db) || {};
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 const W = 210, M = 16, RX = W - M, CW = RX - M;
+const WEB = _invUseFonts(doc);          // website fonts when available, Helvetica otherwise
+const BODY = WEB ? 'Plex' : 'helvetica', HEADF = WEB ? 'Sora' : 'helvetica';
 
 // Clean, basic layout. The only colour is the website's neon bar on the left edge of each page
 // (orange, violet, blue, magenta) and Zelle's purple for the Zelle payment lines.
@@ -62,7 +91,7 @@ const STOPS = [[255,106,61],[123,47,247],[0,163,209],[232,54,122]];
 const money = n => '$' + fmtMoney(parseFloat(n) || 0);
 const line = (x1, y1, x2, y2, c = LINE, w = 0.25) => { doc.setDrawColor(...c); doc.setLineWidth(w); doc.line(x1, y1, x2, y2); };
 const txt = (s, x, y, o = {}) => {
-  doc.setFont('helvetica', o.bold ? 'bold' : 'normal');
+  doc.setFont(o.head ? HEADF : BODY, (o.bold || o.head) ? 'bold' : 'normal');
   doc.setFontSize(o.size || 9);
   doc.setTextColor(...(o.color || INK));
   doc.text(Array.isArray(s) ? s : String(s == null ? '' : s), x, y, { align: o.align || 'left', maxWidth: o.maxWidth });
@@ -77,34 +106,28 @@ const topBar = () => {
     doc.rect(0, i * sh, 3, sh + 0.15, 'F');
   }
 };
-// Zelle line: small purple badge + purple text
-const zelleLine = (label, x, y) => {
-  doc.setFillColor(...ZELLE); doc.roundedRect(x, y - 3, 3.4, 3.4, 0.8, 0.8, 'F');
-  doc.setFillColor(255,255,255); doc.roundedRect(x + 0.9, y - 2.1, 1.6, 1.6, 0.3, 0.3, 'F');
-  txt(label, x + 5, y, { size: 8.5, bold: true, color: ZELLE });
-};
 
 // ---------- header: logo only (the company name is already under FROM) ----------
 topBar();
 let y = M;
-// Logo: scaled to fit a 64 x 24 mm box, keeping its own proportions (a square logo ends up
+// Logo: scaled to fit a 46 x 17 mm box, keeping its own proportions (a square logo ends up
 // 24 x 24, a wide one up to 64 mm wide), vertically centred with the INVOICE title block.
 let logoH = 0;
-const HB = 24;
+const HB = 17;
 const logoSrc = iss.logo ? (_invLogoCache[iss.logo] || iss.logo) : '';
 if (logoSrc) {
   try {
     const pr = doc.getImageProperties(logoSrc);
-    const k = Math.min(64 / pr.width, HB / pr.height);
+    const k = Math.min(46 / pr.width, HB / pr.height);
     const lw = pr.width * k, lh = pr.height * k;
     doc.addImage(logoSrc, pr.fileType || 'PNG', M, y + (HB - lh) / 2, lw, lh, undefined, 'FAST');
     logoH = HB;
   } catch (e) {}
 }
-txt('INVOICE', RX, y + 9, { bold: true, size: 22, color: INK, align: 'right' });
-txt('#' + (inv.number || ''), RX, y + 15, { size: 9, color: MUTED, align: 'right' });
-txt('Status: ' + (inv.status || 'Draft'), RX, y + 20, { size: 8, color: MUTED, align: 'right' });
-y += HB + 6;
+txt('INVOICE', RX, y + 7.5, { head: true, size: 21, color: INK, align: 'right' });
+txt('#' + (inv.number || ''), RX, y + 13, { size: 9, color: MUTED, align: 'right' });
+txt('Status: ' + (inv.status || 'Draft'), RX, y + 17.5, { size: 8, color: MUTED, align: 'right' });
+y += 24;
 
 // ---------- dates ----------
 line(M, y, RX, y);
@@ -123,10 +146,10 @@ const block = (e, x, sy, label, isFrom) => {
   txt(label, x, ly, { size: 6.5, bold: true, color: MUTED }); ly += 5;
   // company name always on one line: the font shrinks until it fits the column
   const nmTxt = String(e.name || ''), maxW = CW / 2 - 8;
-  let fs = 10.5; doc.setFont('helvetica', 'bold');
+  let fs = 10.5; doc.setFont(HEADF, 'bold');
   while (fs > 6.5) { doc.setFontSize(fs); if (doc.getTextWidth(nmTxt) <= maxW) break; fs -= 0.25; }
-  txt(nmTxt, x, ly, { size: fs, bold: true, color: INK }); ly += 5;
-  [e.contact, e.addr1, [e.city, e.state, e.zip].filter(Boolean).join(', '), e.email].filter(Boolean).forEach(v => { txt(v, x, ly, { size: 8, color: INK2 }); ly += 3.8; });
+  txt(nmTxt, x, ly, { size: fs, head: true, color: INK }); ly += 5;
+  [e.contact, e.addr1, [e.city, e.state, e.zip].filter(Boolean).join(', '), String(e.email || '').toLowerCase()].filter(Boolean).forEach(v => { txt(v, x, ly, { size: 8, color: INK2 }); ly += 3.8; });
   if (e.phone) { txt(fmtPhone(e.phone), x, ly, { size: 8, color: INK2 }); ly += 3.8; }
   if (e.taxid) { txt('EIN: ' + e.taxid, x, ly, { size: 7.5, color: MUTED }); ly += 3.8; }
   return ly;
@@ -154,52 +177,58 @@ y += 2;
 txt('Subtotal', tx, y, { size: 8.5, color: INK2 }); txt(money(svcTotal), RX, y, { size: 8.5, color: INK, align: 'right' }); y += 5.5;
 if (paid > 0) { txt('Paid', tx, y, { size: 8.5, color: INK2 }); txt('- ' + money(paid), RX, y, { size: 8.5, color: INK, align: 'right' }); y += 5.5; }
 line(tx, y - 2, RX, y - 2, ACCENT, 0.5); y += 3.5;
-txt(paid > 0 ? 'Balance due' : 'Total due', tx, y, { size: 10, bold: true, color: INK });
+txt(paid > 0 ? 'Balance due' : 'Total due', tx, y, { size: 10, head: true, color: INK });
 txt(money(Math.max(0, svcTotal - paid)), RX, y, { size: 12.5, bold: true, color: ACCENT, align: 'right' });
 y += 14;
 
-// ---------- payment options (two panels with small line icons) ----------
-const ic = (kind, x, yy) => {          // simple vector icons, 4.4 mm box, baseline at yy
+// ---------- payment options ----------
+// Two columns, each with a soft coloured title band: blue for the preferred (no fee) options,
+// light tomato for the options that carry the 4.5% fee. Icons sit on the text's centre line.
+const ROWH = 6.6;
+const ic = (kind, x, yy) => {          // simple line icons, centred on the text baseline yy
   doc.setDrawColor(...INK2); doc.setLineWidth(0.3);
-  const t = yy - 3.4;
-  if (kind === 'check') {             // paper check: bill with a signature line
+  const c = yy - 1.15, t = c - 1.6;   // visual centre of 8.5 pt text
+  if (kind === 'check') {
     doc.roundedRect(x, t, 4.6, 3.2, 0.4, 0.4); doc.line(x + 0.8, t + 2.3, x + 2.6, t + 2.3); doc.line(x + 3.1, t + 0.9, x + 3.9, t + 0.9);
-  } else if (kind === 'card') {       // card with stripe
+  } else if (kind === 'card') {
     doc.roundedRect(x, t, 4.6, 3.2, 0.5, 0.5); doc.setLineWidth(0.6); doc.line(x, t + 1.1, x + 4.6, t + 1.1); doc.setLineWidth(0.3);
-  } else if (kind === 'bank') {       // bank: roof, columns, base
-    doc.line(x, t + 1.1, x + 2.3, t - 0.1); doc.line(x + 2.3, t - 0.1, x + 4.6, t + 1.1); doc.line(x, t + 1.1, x + 4.6, t + 1.1);
-    [0.6, 1.8, 3.0, 4.0].forEach(c => doc.line(x + c, t + 1.5, x + c, t + 2.9)); doc.line(x, t + 3.3, x + 4.6, t + 3.3);
-  } else if (kind === 'ok') {         // tick in a circle
-    doc.circle(x + 2.2, t + 1.6, 1.9); doc.line(x + 1.3, t + 1.7, x + 2, t + 2.4); doc.line(x + 2, t + 2.4, x + 3.2, t + 1);
-  } else if (kind === 'pct') {        // percent in a circle
-    doc.circle(x + 2.2, t + 1.6, 1.9); doc.line(x + 1.3, t + 2.6, x + 3.1, t + 0.6);
-    doc.circle(x + 1.5, t + 1, 0.35); doc.circle(x + 2.9, t + 2.3, 0.35);
+  } else if (kind === 'bank') {
+    doc.line(x, t + 1.0, x + 2.3, t - 0.1); doc.line(x + 2.3, t - 0.1, x + 4.6, t + 1.0); doc.line(x, t + 1.0, x + 4.6, t + 1.0);
+    [0.6, 1.8, 3.0, 4.0].forEach(k => doc.line(x + k, t + 1.3, x + k, t + 2.8)); doc.line(x, t + 3.2, x + 4.6, t + 3.2);
   }
+};
+const zelleRow = (v, x, yy) => {
+  const c = yy - 1.15;
+  doc.setFillColor(...ZELLE); doc.roundedRect(x + 0.6, c - 1.7, 3.4, 3.4, 0.8, 0.8, 'F');
+  doc.setFillColor(255,255,255); doc.roundedRect(x + 1.5, c - 0.8, 1.6, 1.6, 0.3, 0.3, 'F');
+  txt('Zelle', x + 7, yy, { size: 8.5, bold: true, color: ZELLE });
+  txt(v, x + 19, yy, { size: 8.5, bold: true, color: ZELLE });
 };
 const zm = iss.zelleMode || 'phone';
 const zRows = [];
 if ((zm === 'phone' || zm === 'both') && iss.phone) zRows.push(fmtPhone(iss.phone));
-if ((zm === 'email' || zm === 'both') && iss.email) zRows.push(iss.email);
-const leftRows = zRows.length + 1, boxH = 13 + Math.max(leftRows, 2) * 6.5;
-if (y + boxH + 20 > 272) { doc.addPage(); topBar(); y = M + 4; }
+if ((zm === 'email' || zm === 'both') && iss.email) zRows.push(String(iss.email).toLowerCase());
+const leftN = zRows.length + 1, rightN = 2, rows = Math.max(leftN, rightN);
+const bandH = 7, boxH = bandH + 3 + rows * ROWH + 1.5;
+if (y + boxH + 18 > 272) { doc.addPage(); topBar(); y = M + 4; }
 txt('PAYMENT OPTIONS', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
+const half = CW / 2;
+// title bands (soft blue / soft tomato) clipped to the box corners
+doc.setFillColor(222,242,250); doc.roundedRect(M, y, half, bandH + 2, 2, 2, 'F'); doc.rect(M, y + 2, half, bandH, 'F');
+doc.setFillColor(255,228,221); doc.roundedRect(M + half, y, half, bandH + 2, 2, 2, 'F'); doc.rect(M + half, y + 2, half, bandH, 'F');
+doc.setFillColor(255,255,255); doc.rect(M, y + bandH, CW, 2.2, 'F');
 doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
-const half = CW / 2, lx = M + 5, rx2 = M + half + 5;
-line(M + half, y + 4, M + half, y + boxH - 4);
-// left: preferred, no fees
-let ly2 = y + 7.5;
-ic('ok', lx, ly2); txt('Preferred  \u2022  no processing fees', lx + 6.5, ly2, { size: 8.3, bold: true, color: INK });
-ly2 += 7;
-zRows.forEach(v => {
-  zelleLine('Zelle', lx, ly2); txt(v, lx + 18, ly2, { size: 8.5, bold: true, color: ZELLE }); ly2 += 6.5;
-});
-ic('check', lx, ly2); txt('Paper check', lx + 6.5, ly2, { size: 8.5, color: INK }); 
-// right: 4.5% fee
-let ry = y + 7.5;
-ic('pct', rx2, ry); txt('4.5% bank processing fee', rx2 + 6.5, ry, { size: 8.3, bold: true, color: INK });
-ry += 7;
-ic('card', rx2, ry); txt('Virtual card', rx2 + 6.5, ry, { size: 8.5, color: INK }); ry += 6.5;
-ic('bank', rx2, ry); txt('Direct deposit', rx2 + 6.5, ry, { size: 8.5, color: INK });
+line(M, y + bandH, RX, y + bandH, LINE, 0.3);
+line(M + half, y, M + half, y + boxH, LINE, 0.3);
+txt('Preferred  \u2022  no processing fees', M + 5, y + 4.7, { size: 8, bold: true, color: [10,106,140] });
+txt('4.5% bank processing fee', M + half + 5, y + 4.7, { size: 8, bold: true, color: [200,56,30] });
+let ly2 = y + bandH + 3 + 3.6;
+const lx = M + 5, rx2 = M + half + 5;
+zRows.forEach(v => { zelleRow(v, lx - 0.6, ly2); ly2 += ROWH; });
+ic('check', lx, ly2); txt('Paper check', lx + 7, ly2, { size: 8.5, color: INK });
+let ry = y + bandH + 3 + 3.6;
+ic('card', rx2, ry); txt('Virtual card', rx2 + 7, ry, { size: 8.5, color: INK }); ry += ROWH;
+ic('bank', rx2, ry); txt('Direct deposit', rx2 + 7, ry, { size: 8.5, color: INK });
 y += boxH + 6;
 if (inv.excNoteText) { y += 1; const t = doc.splitTextToSize(inv.excNoteText, CW); txt(t, M, y, { size: 8, color: INK2 }); y += t.length * 3.8 + 2; }
 if (iss.notes || inv.notes) {
@@ -213,7 +242,7 @@ txt('Thank you for your business.', M, Math.min(y + 8, 272), { size: 9, bold: tr
 if (inv.lines && inv.lines.length) {
   doc.addPage(); topBar();
   let py = M;
-  txt('Payment detail', M, py + 5, { size: 13, bold: true, color: INK });
+  txt('Payment detail', M, py + 5, { size: 13, head: true, color: INK });
   txt([iss.name, cli.name, inv.month].filter(Boolean).join('  \u2022  '), M, py + 10.5, { size: 8, color: MUTED });
   txt('#' + (inv.number || ''), RX, py + 5, { size: 9, color: MUTED, align: 'right' });
   py += 19;
@@ -256,6 +285,7 @@ return doc;
 }
 
 async function exportInvoicePDF(invId) {
+await _invLoadFonts();
 try { const i0 = getInvDB().invoices.find(x => x.id === invId), s0 = i0 && getInvDB().invoicingIssuers.find(x => x.id === i0.issuerId); if (s0 && s0.logo) await _invTrimLogo(s0.logo); } catch (e) {}
 const doc = _buildInvoicePDF(invId);
 if (!doc) { toast('Save the invoice first','warn'); return; }
@@ -265,6 +295,7 @@ toast('Invoice PDF exported');
 }
 
 function previewInvoicePDF(invId) {
+  if (!_invFontData && !previewInvoicePDF._waited) { previewInvoicePDF._waited = true; return _invLoadFonts().then(function () { previewInvoicePDF._waited = false; return previewInvoicePDF(invId); }); }
   // If called from modal, use the current modal state
   var targetId = invId === 'preview' ? _currentInvId : invId;
   if (!targetId) {
@@ -875,7 +906,7 @@ function _invEnsureModals() {
     '<div class="field"><label>City</label><input id="iss-city"></div>' +
     '<div class="field"><label>State</label><input id="iss-state" maxlength="2"></div>' +
     '<div class="field"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
-    '<div class="field"><label>Website</label><input id="iss-web"></div>' +
+    '<div class="field"><label>Website</label><input id="iss-web" class="no-upper"></div>' +
     '<div class="field"><label>Fee %</label><input id="iss-fee" type="number" step="0.01"></div>' +
     '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
     '</div>' +
@@ -966,7 +997,7 @@ db.invoicingIssuers.map(function (iss) {
   const zm = iss.zelleMode || 'phone';
   const zv = zm === 'email' ? (iss.email || '•') : zm === 'both' ? 'Phone + Email' : (iss.phone ? fmtPhone(iss.phone) : '•');
   return '<tr><td><div class="strong">' + _invEsc(iss.name) + '</div>' + (iss.taxid ? '<div class="mono" style="font-size:10.5px">EIN ' + _invEsc(iss.taxid) + '</div>' : '') + '</td>' +
-    '<td>' + (iss.email ? '<div>' + _invEsc(iss.email) + '</div>' : '') + (iss.phone ? '<div style="font-size:11px;color:#586579">' + fmtPhone(iss.phone) + '</div>' : '') + '</td>' +
+    '<td>' + (iss.email ? '<div>' + _invEsc(String(iss.email).toLowerCase()) + '</div>' : '') + (iss.phone ? '<div style="font-size:11px;color:#586579">' + fmtPhone(iss.phone) + '</div>' : '') + '</td>' +
     '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;color:#586579" title="' + _invEsc(addr) + '">' + _invEsc(addr) + '</td>' +
     '<td><span class="inv-zelle"><span class="zelle-mark" aria-hidden="true"></span>' + _invEsc(zv) + '</span></td><td>' + _invEsc(iss.terms || 'Net 30') + '</td>' +
     '<td><div class="inv-acts"><button class="inv-ib" data-tip="Edit" aria-label="Edit" onclick="openIssuerModal(\'' + iss.id + '\')">' + _invIco('pencil') + '</button>' +
@@ -1063,8 +1094,8 @@ const existingId = g('iss-id');
 const iss = {
 id: existingId || uid(), name, logo: _issuerLogoB64,
 taxid:g('iss-taxid'), npi:g('iss-npi'), phone:g('iss-phone'),
-email:g('iss-email'), addr1:g('iss-addr1'), city:g('iss-city'),
-state:g('iss-state'), zip:g('iss-zip'), web:g('iss-web'),
+email:g('iss-email').toLowerCase(), addr1:g('iss-addr1'), city:g('iss-city'),
+state:g('iss-state'), zip:g('iss-zip'), web:g('iss-web').toLowerCase(),
 fee:g('iss-fee'), notes:g('iss-notes'),
 terms: document.getElementById('iss-terms')?.value || 'Net 30'
 };
@@ -1132,7 +1163,7 @@ const existingId = g('cli-id');
 const cli = {
 id: existingId || uid(), name,
 contact:g('cli-contact'), taxid:g('cli-taxid'), npi:g('cli-npi'),
-phone:g('cli-phone'), email:g('cli-email'), addr1:g('cli-addr1'),
+phone:g('cli-phone'), email:g('cli-email').toLowerCase(), addr1:g('cli-addr1'),
 city:g('cli-city'), state:g('cli-state'), zip:g('cli-zip'),
 fee:g('cli-fee'), notes:g('cli-notes')
 };
