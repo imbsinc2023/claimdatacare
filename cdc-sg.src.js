@@ -49,7 +49,6 @@
     '.sgx-ib:hover{background:rgba(255,106,61,.09);color:#D45C37;border-color:rgba(255,106,61,.35)}',
     '.sgx-sp{flex:1}',
     /* editor */
-    '#modal-sg .modal{max-width:980px;width:96vw;display:flex;flex-direction:column;max-height:94vh;border-radius:18px;overflow:hidden}',
     '.sgx-mb{flex:1;min-height:0;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:18px}',
     '.sgx-mf{flex:none;display:flex;align-items:center;gap:10px;padding:12px 22px;border-top:1px solid #EEF1F6;background:#F8FAFC}',
     '.sgx-sum{font-size:12.5px;color:#3A475C;font-variant-numeric:tabular-nums}',
@@ -119,8 +118,7 @@
     '.sgb-det label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;margin-bottom:4px}',
     '.sgb-det select,.sgb-det input{width:100%;box-sizing:border-box;height:32px;padding:0 8px;border:1px solid #E4E9F1;border-radius:8px;font-family:inherit;font-size:12px;background:#fff}',
     /* Generate claims window */
-    /* fixed size: switching tabs or adding rows never resizes or moves the window */
-    '#modal-batch .mb-modal{border-radius:18px;width:96vw!important;max-width:1320px!important;height:min(900px,92vh)!important;max-height:92vh!important}',
+    /* size comes from the standard window class in cdc-shell.css */
     '#modal-batch .mb-modal > .modal-body{flex:1 1 auto!important;min-height:0;overflow-y:auto!important;scrollbar-gutter:stable}',
     '.mb-tabs{flex:none;display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid #E4E9F1;background:#fff}',
     '.mb-tab{display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;margin-bottom:-1px;border:1px solid transparent;border-bottom:1px solid #E4E9F1;border-radius:10px 10px 0 0;background:#F4F6FA;font-family:inherit;font-size:12.5px;font-weight:600;color:#586579;cursor:pointer;transition:background-color .15s,color .15s}',
@@ -240,7 +238,7 @@
     css();
     if (document.getElementById('modal-sg')) return;
     var w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-sg';
-    w.innerHTML = '<div class="modal">' +
+    w.innerHTML = '<div class="modal cdc-win">' +
       '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('layers', 17) + '<span id="sg-title">Service group</span></span>' +
         '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-sg\')">' + ico('x', 17) + '</button></div>' +
       '<div class="sgx-mb">' +

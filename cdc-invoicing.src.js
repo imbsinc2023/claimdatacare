@@ -939,7 +939,6 @@ var _INV_CSS = [
   '.inv-empty{padding:28px 10px;text-align:center;font-size:13px;color:#586579}',
   '.inv-bars svg{display:block;width:100%;height:auto}',
   '.inv-key{display:flex;gap:12px;font-size:11px;color:#586579}.inv-key span{display:flex;align-items:center;gap:6px}.inv-key i{width:14px;height:6px;border-radius:3px;background:#7B2FF7}.inv-key i.lt{opacity:.25}',
-  '.invm{width:96vw!important;max-width:1320px!important;max-height:94vh;display:flex;flex-direction:column;border-radius:18px;padding:0!important}',
   '.invm-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;padding:16px 20px;overflow:hidden}',
   '.invm-main{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px}',
   '.invm-side{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px}',
@@ -991,7 +990,6 @@ var _INV_CSS = [
   '.invm-ned:empty:before{content:attr(data-ph);color:#8C98AB}',
   '.invm-ned ul{margin:2px 0;padding-left:18px}',
   '.invm-ned.t-good{border-left-color:#0E8A5F;background:#F2FAF6}.invm-ned.t-warn{border-left-color:#D69E2E;background:#FFFBEF}.invm-ned.t-bad{border-left-color:#C8381E;background:#FEF4F2}',
-  '.issm{max-width:1180px!important;height:auto}',
   '.issm .invm-body{grid-template-columns:minmax(0,1fr) 300px}',
   '.issm-logo{height:150px;border:1px dashed #D5DCE7;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;overflow:hidden}',
   '.issm-logo img{max-width:100%;max-height:100%;object-fit:contain}',
@@ -1060,7 +1058,7 @@ function _invEnsureModals() {
   }
   // Invoice window: wide, uses horizontal space first (sections side by side, summary on the right)
   mk('modal-invoice',
-    '<div class="modal invm">' +
+    '<div class="modal invm cdc-win">' +
     '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="receipt" class="lci"></i><span id="inv-modal-title">Invoice</span></span>' +
     '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button></div>' +
     '<div class="invm-body"><input type="hidden" id="inv-id">' +
@@ -1141,7 +1139,7 @@ function _invEnsureModals() {
 
   // Billing entity window: wide, sections side by side, logo and notes on the right
   mk('modal-issuer',
-    '<div class="modal invm issm">' +
+    '<div class="modal invm issm cdc-win">' +
     '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="briefcase" class="lci"></i><span id="iss-title">Billing entity</span></span>' +
     '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
     '<div class="invm-body"><input type="hidden" id="iss-id">' +
@@ -1187,30 +1185,40 @@ function _invEnsureModals() {
       '<button type="button" class="invm-save" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 
+  // Client window: same layout and size as the other windows
   mk('modal-client',
-    '<div class="modal" style="max-width:540px;background:#fff">' +
-    '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body">' +
-    '<input type="hidden" id="cli-id">' +
-    '<div class="fg g2">' +
-    '<div class="field" style="grid-column:1/-1"><label>Client Name *</label><input id="cli-name"></div>' +
-    '<div class="field"><label>Contact Person</label><input id="cli-contact"></div>' +
-    '<div class="field"><label>Tax ID</label><input id="cli-taxid"></div>' +
-    '<div class="field"><label>NPI</label><input id="cli-npi"></div>' +
-    '<div class="field"><label>Phone</label><input id="cli-phone"></div>' +
-    '<div class="field"><label>Email</label><input id="cli-email" type="email"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="cli-addr1"></div>' +
-    '<div class="field"><label>City</label><input id="cli-city"></div>' +
-    '<div class="field"><label>State</label><input id="cli-state" maxlength="2"></div>' +
-    '<div class="field"><label>ZIP</label><input id="cli-zip" maxlength="10"></div>' +
-    '<div class="field"><label>Fee %</label><input id="cli-fee" type="number" step="0.01"></div>' +
+    '<div class="modal invm cdc-win">' +
+    '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="building" class="lci"></i><span id="cli-title">Client</span></span>' +
+    '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="invm-body"><input type="hidden" id="cli-id">' +
+      '<div class="invm-main">' +
+        '<section class="invm-sec"><h4>Client</h4><div class="invm-grid g6">' +
+          '<div class="invm-f" style="grid-column:span 4"><label>Client name *</label><input id="cli-name"></div>' +
+          '<div class="invm-f"><label>Tax ID</label><input id="cli-taxid"></div>' +
+          '<div class="invm-f"><label>NPI</label><input id="cli-npi"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Contact</h4><div class="invm-grid g6">' +
+          '<div class="invm-f s2"><label>Contact person</label><input id="cli-contact"></div>' +
+          '<div class="invm-f s2"><label>Phone</label><input id="cli-phone"></div>' +
+          '<div class="invm-f s2"><label>Email</label><input id="cli-email" type="email"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Address</h4><div class="invm-grid g6">' +
+          '<div class="invm-f" style="grid-column:span 3"><label>Street</label><input id="cli-addr1"></div>' +
+          '<div class="invm-f"><label>City</label><input id="cli-city"></div>' +
+          '<div class="invm-f"><label>State</label><input id="cli-state" maxlength="2"></div>' +
+          '<div class="invm-f"><label>ZIP</label><input id="cli-zip" maxlength="10"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Billing</h4><div class="invm-grid g6">' +
+          '<div class="invm-f"><label>Fee %</label><input id="cli-fee" type="number" step="0.01"></div>' +
+        '</div></section>' +
+      '</div>' +
+      '<aside class="invm-side">' +
+        '<div class="invm-card"><h4>Notes</h4><textarea id="cli-notes" rows="8" placeholder="Internal notes about this client"></textarea></div>' +
+      '</aside>' +
     '</div>' +
-    '<div style="margin-top:10px"><label>Notes</label><textarea id="cli-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
-    '</div>' +
-    '<div class="modal-ftr">' +
-    '<button class="btn btn-ghost" onclick="closeModal(\'modal-client\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveClient()"><i data-lucide="save" class="lci"></i> Save Client</button>' +
+    '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
+      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button>' +
+      '<button type="button" class="invm-save" onclick="saveClient()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 }
 
@@ -1384,7 +1392,7 @@ function openClientModal(id) {
 _invEnsureModals();
 const db = getInvDB();
 const cli = id ? db.invoicingClients.find(x => x.id === id) : null;
-document.getElementById('cli-title').textContent = cli ? 'Edit Client' : 'New Client';
+document.getElementById('cli-title').textContent = cli ? 'Edit client' : 'New client';
 const set = (eid, val) => { const e = document.getElementById(eid); if(e) e.value = val||''; };
 set('cli-id', cli?.id);
 set('cli-name', cli?.name);

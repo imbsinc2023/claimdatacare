@@ -88,3 +88,7 @@
 .cdc-wh-x,.cdc-wh .btn-ghost{width:32px!important;height:32px!important;padding:0!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--ink3)!important;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background-color .15s,color .15s}
 .cdc-wh-x:hover,.cdc-wh .btn-ghost:hover{background:rgba(255,106,61,.09)!important;color:#D45C37!important}
 .cdc-wh-x .lci{width:17px;height:17px}
+
+/* Standard window size: every full window in ClaimDataCare (invoice, billing entity, client,
+   service group, generate claims) uses exactly this size. Short confirmation dialogs stay small. */
+.cdc-win,#modal-batch .mb-modal{width:96vw!important;max-width:1280px!important;height:min(880px,92vh)!important;max-height:92vh!important;display:flex!important;flex-direction:column!important;border-radius:18px!important;padding:0!important;overflow:hidden}
