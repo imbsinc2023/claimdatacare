@@ -161,7 +161,7 @@ function switchProvider(id){
       }
     }
   } catch(e) { console.warn('[CDC] switchProvider specialty revalidate:', e); }
-  renderDashboard();
+  (function(){var __a=document.querySelector('.section.active'),__p=__a?__a.id.replace('sec-',''):'dashboard';if(__p&&__p!=='dashboard'){try{go(__p);}catch(__e){renderDashboard();}}else renderDashboard();})();
   updateBadges();
   if(typeof applyActiveSpecialty==='function') applyActiveSpecialty();
   try{ _applyProviderCHKeyGate(); }catch(e){}
@@ -28069,9 +28069,14 @@ const fixDxPtr = s => (s||'A').toUpperCase().replace(/[^A-H]/g,'')||'A';
 
 function closeModal(id){ var el=document.getElementById(id); if(el){el.classList.remove('open');el.style.zIndex='';} }
 function openModal(id) {
-  var el=document.getElementById(id); if(!el) return;
+  var el = document.getElementById(id); if (!el) return;
+  // a window opened from another window always goes on top of it (picker over editor, etc.)
+  var top = 1000;
+  document.querySelectorAll('.overlay.open, .modal-overlay.open').forEach(function (o) {
+    if (o !== el) top = Math.max(top, parseInt(o.style.zIndex || getComputedStyle(o).zIndex, 10) || 1000);
+  });
   el.classList.add('open');
-  el.style.zIndex = '';
+  el.style.zIndex = String(top + 10);
 }
 
 function toast(msg, type='ok'){
