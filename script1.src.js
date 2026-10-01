@@ -4331,43 +4331,7 @@ function deletePatientConfirm(patId) {
 
 });}
 
-function openPatientModal(idx) {
-const db = getDB();
-if (idx >= 0) {
-// EDIT • open existing patient chart to Demographics tab
-const pat = db.patients[idx];
-if (!pat) { toast('Patient not found', 'err'); return; }
-openPatientChart(pat.id);
-setTimeout(() => _renderChartTab('summary'), 100);
-} else {
-// NEW PATIENT • create a blank record then open chart to Demographics
-if (!activeProviderId) { toast('Select a billing provider first', 'warn'); return; }
-const newPat = {
-id: uid(),
-providerId: activeProviderId,
-acct: buildNextPCN('', activeProviderId, []).replace('PCN','PT') || ('PT' + Date.now().toString().slice(-5)),
-last: '', first: '', mid: '', dob: '', sex: 'F',
-addr1: '', addr2: '', city: '', state: '', zip: '',
-phone: '', phone2: '', email: '',
-payerName: '', payerid: '', subNum: '', groupNum: '',
-insurances: [],
-inactive: false,
-createdAt: Date.now(),
-};
-// Generate proper account number • guaranteed unique within this provider
-const existingAccts = db.patients.map(p => parseInt((p.acct||'0').replace(/\D/g,''))||0);
-let maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
-let candidateAcct = String(maxAcct + 1);
-while (db.patients.find(p => String(p.acct||'').trim().toLowerCase()===candidateAcct.toLowerCase() && p.providerId===activeProviderId)) {
-  maxAcct++;
-  candidateAcct = String(maxAcct + 1);
-}
-newPat.acct = candidateAcct;
-setDB(db2 => { db2.patients.push(newPat); });
-openPatientChart(newPat.id);
-setTimeout(() => _renderChartTab('demographics'), 100);
-}
-}
+
 
 function onRelChange(){
 const rel=v('mp-rel')||'';

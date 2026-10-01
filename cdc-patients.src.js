@@ -101,6 +101,9 @@
   window.renderPatients = function () {
     var sec = document.getElementById('sec-patients'); if (!sec) return;
     if (!document.getElementById('patients-tbl') || !sec.querySelector('.pts')) skeleton(sec);
+    var T = typeof cdcPersonTerm === 'function' ? cdcPersonTerm() : 'Patient';
+    var ttl = sec.querySelector('.pts-title'); if (ttl) ttl.textContent = T + 's';
+    var nb = sec.querySelector('.pts-hd .cdc-ok'); if (nb) nb.lastChild.textContent = 'New ' + T.toLowerCase();
     var db = getDB(), q = val('pat-q').toLowerCase(), pf = val('pat-payer');
     var all = (db.patients || []).filter(function (p) { return p.providerId === activeProviderId; });
     var counts = {}; (db.claims || []).forEach(function (c) { if (c.providerId === activeProviderId) counts[c.patId] = (counts[c.patId] || 0) + 1; });
