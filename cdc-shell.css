@@ -31,13 +31,10 @@
 .tn-prov-sel option{background:#fff;color:var(--ink)}
 .tn-icon-btn{position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--ink3);cursor:pointer;flex-shrink:0;transition:background .15s,color .15s}
 .tn-icon-btn svg,.tn-icon-btn .lci{width:16px!important;height:16px!important}
-#tn-tickets:hover{background:rgba(123,47,247,.08);color:var(--neo-violet-d)}
-#tn-recent-pats:hover{background:rgba(0,163,209,.1);color:var(--neo-blue-d)}
 .tn-avatar-btn{position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;flex-shrink:0}
 .tn-avatar-btn #tn-user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--neo-orange),var(--neo-violet));color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line);transition:box-shadow .15s}
 .tn-avatar-btn:hover #tn-user-avatar{box-shadow:0 0 0 2px #fff,0 0 0 3px var(--neo-violet)}
 .tn-icon-btn:focus-visible,.tn-avatar-btn:focus-visible{outline:2px solid var(--neo-violet);outline-offset:1px}
-.topnav [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;z-index:9500;padding:5px 9px;border-radius:7px;background:var(--ink);color:#fff;font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap;pointer-events:none;box-shadow:0 8px 20px -8px rgba(0,0,0,.45)}
 
 /* User menu */
 .tn-umenu{position:fixed;top:48px;right:12px;width:290px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 28px 56px -24px rgba(11,21,38,.38);z-index:9000;overflow:hidden}
@@ -69,3 +66,12 @@
   .topnav{padding:0 8px}
   #prov-sel-wrap{display:none!important}
 }
+
+/* One hover style for every icon-only button in the app: soft orange background and the icon
+   turns orange. Colour changes only: size and position never change. */
+.btn-icon,.inv-ib,.clm-ib,.tn-icon-btn{transition:background-color .15s,color .15s,border-color .15s}
+.btn-icon:hover,.inv-ib:hover,.clm-ib:hover,.tn-icon-btn:hover{background-color:rgba(255,106,61,.09)!important;color:#D45C37!important}
+.inv-ib:hover,.clm-ib:hover{border-color:rgba(255,106,61,.35)!important}
+.btn-icon:hover .lci,.inv-ib:hover .lci,.clm-ib:hover .lci,.tn-icon-btn:hover .lci,.btn-icon:hover svg,.inv-ib:hover svg,.clm-ib:hover svg,.tn-icon-btn:hover svg{color:#D45C37!important;stroke:currentColor}
+.inv-ib.pay:hover{background-color:#D45C37!important;color:#fff!important;border-color:transparent!important}
+.inv-ib.pay:hover .lci,.inv-ib.pay:hover svg{color:#fff!important}
