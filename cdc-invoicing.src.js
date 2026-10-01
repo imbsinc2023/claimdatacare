@@ -433,35 +433,33 @@ function previewInvoicePDF(invId) {
 function deleteInvoice(id) {
 const db = getInvDB();
 const inv = db.invoices.find(x => x.id === id);
-if (!inv || !confirm(`Delete invoice ${inv.number}?`)) return;
+if(!inv)return;return cdcConfirm(`Delete invoice ${inv.number}?`).then((__ok)=>{if(!__ok)return;
 setDB(db => { db.invoices = db.invoices.filter(x => x.id !== id); });
 renderInvoicesList();
 toast('Invoice deleted');
-}
+
+});}
 
 function togglePasteArea() {
-const area = document.getElementById('inv-paste-area');
-const btn = document.getElementById('inv-paste-btn');
-if (!area) return;
-const visible = area.style.display !== 'none';
-area.style.display = visible ? 'none' : '';
-if (!visible) {
-document.getElementById('inv-paste-input').value = '';
-document.getElementById('inv-paste-preview').textContent = '';
-setTimeout(() => document.getElementById('inv-paste-input').focus(), 50);
-}
+  _invEnsureModals();
+  var ov = document.getElementById('modal-inv-paste'); if (!ov) return;
+  if (ov.classList.contains('open')) { closeModal('modal-inv-paste'); return; }
+  var ta = document.getElementById('inv-paste-input'), pv = document.getElementById('inv-paste-preview');
+  if (ta) ta.value = ''; if (pv) pv.textContent = 'Nothing pasted yet.';
+  openModal('modal-inv-paste');
+  setTimeout(function () { _renderLucideIcons(); if (ta) ta.focus(); }, 30);
 }
 
 function previewPastedLines() {
 const raw = document.getElementById('inv-paste-input').value.trim();
 const prev = document.getElementById('inv-paste-preview');
-if (!raw) { prev.textContent = ''; return; }
+if (!raw) { prev.textContent = 'Nothing pasted yet.'; return; }
 const parsed = parsePastedLines(raw);
 if (!parsed.length) {
 prev.innerHTML = '<span style="color:var(--red)"><i data-lucide="alert-triangle" class="lci" style="color:var(--red)"></i> No valid lines detected. Make sure columns are tab-separated.</span>';
 return;
 }
-prev.innerHTML = `<span style="color:var(--green)">? ${parsed.length} line(s) ready to import</span>`;
+prev.innerHTML = `<span style="color:#0E7A55">${parsed.length} line(s) ready to import</span>`;
 }
 
 function parsePastedLines(raw) {
@@ -561,7 +559,7 @@ if (!parsed.length) { toast('No valid lines found','warn'); return; }
 parsed.forEach(p => _invLines.push(p));
 renderInvLines();
 togglePasteArea();
-toast('? ' + parsed.length + ' line(s) imported');
+toast(parsed.length + ' line(s) imported');
 }
 
 function exportInvoiceExcel(invId) {
@@ -951,7 +949,7 @@ var _INV_CSS = [
   '.invm-grid.g6{grid-template-columns:repeat(6,minmax(0,1fr))}',
   '.invm-f{min-width:0}.invm-f.s2{grid-column:span 2}',
   '.invm-f label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-  '.invm-f input,.invm-f select,.invm-card textarea,.invm-paste textarea{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;color:#0B1526}',
+  '.invm-f input,.invm-f select,.invm-card textarea,.invm-nop{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;color:#0B1526}',
   '.invm-f input[readonly]{background:#F4F6FA;color:#586579}',
   '.invm-pair{display:flex;gap:6px}.invm-pair select{flex:1}.invm-pair input{width:78px;flex:none;text-align:center}',
   '.invm-note{height:18px;margin-top:6px;font-size:11.5px;color:#586579;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
@@ -966,15 +964,11 @@ var _INV_CSS = [
   '.invm-tw{overflow-x:auto}',
   '.invm-tbl{width:100%;border-collapse:collapse;font-size:11.5px}',
   '.invm-tbl th{padding:6px 4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;text-align:left;border-bottom:1px solid #E4E9F1;white-space:nowrap}',
-  '.invm-paste{margin-bottom:10px;padding:10px;border-radius:10px;background:#F8FAFC;border:1px solid #EEF1F6}',
-  '.invm-paste textarea{height:auto;padding:8px;font-family:var(--mono,monospace);font-size:11px;text-transform:uppercase}',
   '.invm-hint{font-size:11px;color:#586579;margin:2px 0 6px}',
   '.invm-ib{position:relative;width:34px;height:34px;flex:none;box-sizing:border-box;border:1px solid #E4E9F1;border-radius:10px;background:#fff;color:#3A475C;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s}',
   '.invm-ib .lci{width:16px;height:16px}',
   '.invm-ib:hover{background:rgba(255,106,61,.09);color:#D45C37;border-color:rgba(255,106,61,.35)}',
   '.invm-ftr{flex:none!important;display:flex!important;align-items:center;gap:8px;height:62px;box-sizing:border-box;padding:0 18px!important;border-top:1px solid #E4E9F1;background:#F8FAFC}',
-  '.invm-save{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 18px;border:0;border-radius:10px;background:#FF6A3D;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s}',
-  '.invm-save:hover{background:#D45C37}.invm-save .lci{width:15px;height:15px}',
   '#inv-svc-lines .inv-svc-row{margin-bottom:6px}',
   '#inv-svc-lines .btn-danger{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px}',
   '.invm-tones{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px}',
@@ -999,6 +993,10 @@ var _INV_CSS = [
   '.izl button+button{border-left:1px solid rgba(109,30,212,.18)}',
   '.izl button:hover{background:rgba(109,30,212,.08)}',
   '.izl button.on{background:#6D1ED4;color:#fff}',
+  '.invp{width:92vw!important;max-width:760px!important;height:min(460px,86vh)!important;display:flex!important;flex-direction:column;border-radius:18px!important;padding:0!important;overflow:hidden}',
+  '.invp-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:16px 20px}',
+  '.invp-body textarea{flex:1;min-height:0;width:100%;box-sizing:border-box;padding:10px;border:1px solid #E4E9F1;border-radius:10px;font-family:var(--mono,monospace);font-size:12px;resize:none;background:#fff;color:#0B1526}',
+  '.invp-st{height:18px;font-size:12px;font-weight:600;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
   '@media (max-width:1100px){.invm-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}.invm-main,.invm-side{overflow:visible}.invm-grid.g6{grid-template-columns:repeat(3,minmax(0,1fr))}}',
   '@media (max-width:1100px){.inv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inv-g2{grid-template-columns:minmax(0,1fr)}}',
   '@media (max-width:620px){.inv-kpis{grid-template-columns:minmax(0,1fr)}}'
@@ -1091,12 +1089,6 @@ function _invEnsureModals() {
           '<button type="button" class="invm-ib" id="inv-paste-btn" data-tip="Paste from Excel" aria-label="Paste from Excel" onclick="togglePasteArea()"><i data-lucide="clipboard-paste" class="lci"></i></button>' +
           '<label class="invm-ib" data-tip="Upload CSV or Excel" aria-label="Upload CSV or Excel"><i data-lucide="upload" class="lci"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
           '<button type="button" class="invm-ib" data-tip="Add payment row" aria-label="Add payment row" onclick="addInvPayLine()"><i data-lucide="plus" class="lci"></i></button></div>' +
-          '<div id="inv-paste-area" class="invm-paste" style="display:none">' +
-            '<div class="invm-hint">Paste from Excel • columns: PAYMENT DATE, PRODUCT, PAYMENT ID, AMOUNT, STATUS, INSURANCE, INVOICE #, INVOICE MONTH, NOTES</div>' +
-            '<textarea id="inv-paste-input" rows="4" placeholder="Paste here..." oninput="previewPastedLines()"></textarea>' +
-            '<div id="inv-paste-preview" class="invm-hint"></div>' +
-            '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-sm btn-primary" onclick="importPastedLines()">Import</button><button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button></div>' +
-          '</div>' +
           '<div class="invm-tw"><table class="invm-tbl"><thead><tr><th>Date</th><th>Product</th><th>Payment ID</th><th>Amount</th><th>Status</th><th>Insurance</th><th>Inv. month</th><th>Notes</th><th></th></tr></thead>' +
           '<tbody id="inv-lines-body"></tbody></table></div></section>' +
       '</div>' +
@@ -1132,9 +1124,24 @@ function _invEnsureModals() {
       '</aside>' +
     '</div>' +
     '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
-      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
+      '<button type="button" class="cdc-no" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i>Cancel</button>' +
       '<button type="button" class="invm-ib" data-tip="Preview PDF" aria-label="Preview PDF" onclick="previewInvoicePDF(\'preview\')"><i data-lucide="eye" class="lci"></i></button>' +
-      '<button type="button" class="invm-save" data-tip="Save invoice" aria-label="Save invoice" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i>Save</button>' +
+      '<button type="button" class="cdc-ok" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i>Save</button>' +
+    '</div></div>');
+
+  // Paste-from-Excel window (opens over the invoice; nothing in the invoice moves)
+  mk('modal-inv-paste',
+    '<div class="modal invp">' +
+    '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="clipboard-paste" class="lci"></i>Paste payments from Excel</span>' +
+    '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="togglePasteArea()"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="invp-body">' +
+      '<div class="invm-hint">Copy the rows in Excel (with or without the header row) and paste them here. Columns: payment date, product, payment ID, amount, status, insurance, invoice #, invoice month, notes.</div>' +
+      '<textarea id="inv-paste-input" class="no-upper" placeholder="Paste here (Ctrl+V)" oninput="previewPastedLines()"></textarea>' +
+      '<div class="invp-st" id="inv-paste-preview"></div>' +
+    '</div>' +
+    '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
+      '<button type="button" class="cdc-no" onclick="togglePasteArea()"><i data-lucide="x" class="lci"></i>Cancel</button>' +
+      '<button type="button" class="cdc-ok" onclick="importPastedLines()"><i data-lucide="check" class="lci"></i>Import</button>' +
     '</div></div>');
 
   // Billing entity window: wide, sections side by side, logo and notes on the right
@@ -1181,8 +1188,8 @@ function _invEnsureModals() {
       '</aside>' +
     '</div>' +
     '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
-      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button>' +
-      '<button type="button" class="invm-save" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i>Save</button>' +
+      '<button type="button" class="cdc-no" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i>Cancel</button>' +
+      '<button type="button" class="cdc-ok" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 
   // Client window: same layout and size as the other windows
@@ -1217,8 +1224,8 @@ function _invEnsureModals() {
       '</aside>' +
     '</div>' +
     '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
-      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button>' +
-      '<button type="button" class="invm-save" onclick="saveClient()"><i data-lucide="save" class="lci"></i>Save</button>' +
+      '<button type="button" class="cdc-no" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i>Cancel</button>' +
+      '<button type="button" class="cdc-ok" onclick="saveClient()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 }
 
@@ -1368,11 +1375,12 @@ toast('Billing entity saved ?');
 function deleteIssuer(id) {
 const db = getInvDB();
 const iss = db.invoicingIssuers.find(x => x.id === id);
-if (!iss || !confirm(`Delete "${iss.name}"?`)) return;
+if(!iss)return;return cdcConfirm(`Delete "${iss.name}"?`).then((__ok)=>{if(!__ok)return;
 setDB(db => { db.invoicingIssuers = (db.invoicingIssuers||[]).filter(x => x.id !== id); });
 renderIssuersList();
 toast('Billing entity deleted');
-}
+
+});}
 
 function renderClientsList() {
 const db = getInvDB();
@@ -1437,11 +1445,12 @@ toast('Client saved ?');
 function deleteClient(id) {
 const db = getInvDB();
 const cli = db.invoicingClients.find(x => x.id === id);
-if (!cli || !confirm(`Delete "${cli.name}"?`)) return;
+if(!cli)return;return cdcConfirm(`Delete "${cli.name}"?`).then((__ok)=>{if(!__ok)return;
 setDB(db => { db.invoicingClients = (db.invoicingClients||[]).filter(x => x.id !== id); });
 renderClientsList();
 toast('Client deleted');
-}
+
+});}
 
 function resolveInvClient(val, db) {
 if (!val) return {};
@@ -1579,66 +1588,27 @@ document.getElementById('ppm-inv-id')?.setAttribute('data-id',invId) ||
 const d = document.createElement('div');
 d.id = 'modal-partial-pay';
 d.className = 'overlay';
-d.innerHTML = `<div class="modal modal-sm">
-<div class="modal-hdr cdc-wh">
-<div><div class="modal-t">Record Payment</div><div class="modal-sub" id="ppm-sub"></div></div>
-<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-partial-pay')">×</button>
-</div>
-<div class="modal-body">
-<input type="hidden" id="ppm-inv-id">
-<div class="fg g1">
-<div class="fg g2">
-<div class="field">
-<label>Invoice Billed</label>
-<div id="ppm-billed" style="padding:8px 11px;background:var(--bg3);border-radius:var(--r);font-size:14px;font-weight:700;color:var(--text)"></div>
-</div>
-<div class="field">
-<label>Already Paid</label>
-<div id="ppm-paid" style="padding:8px 11px;background:var(--bg3);border-radius:var(--r);font-size:14px;font-weight:700;color:var(--brand)"></div>
-</div>
-</div>
-<div class="field">
-<label>Payment Amount *</label>
-<input type="number" step="0.01" id="ppm-amount" placeholder="0.00" oninput="updatePPMBalance()">
-</div>
-<div class="fg g2">
-<div class="field">
-<label>Payment Date</label>
-<input type="date" id="ppm-date">
-</div>
-<div class="field">
-<label>Payment Method</label>
-<select id="ppm-method">
-<option value="Check">Check</option>
-<option value="Zelle">Zelle</option>
-<option value="ACH">ACH / Wire</option>
-<option value="Cash">Cash</option>
-<option value="Credit Card">Credit Card</option>
-<option value="Other">Other</option>
-</select>
-</div>
-</div>
-<div class="field">
-<label>Reference / Check #</label>
-<input id="ppm-ref" placeholder="Check number, Zelle transaction, etc.">
-</div>
-<div class="field">
-<label>Notes</label>
-<input id="ppm-notes" placeholder="Optional">
-</div>
-<div id="ppm-balance-row" style="padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:13px;display:flex;justify-content:space-between;align-items:center">
-<span style="color:var(--text2)">Remaining balance after payment:</span>
-<strong id="ppm-balance" style="font-size:16px;color:var(--brand)">$0.00</strong>
-</div>
-</div>
-</div>
-<div class="modal-ftr">
-<button class="btn" onclick="closeModal('modal-partial-pay')">Cancel</button>
-<button class="btn btn-primary" onclick="savePartialPayment()">
-<i data-lucide="check-circle" class="lci"></i> Record Payment
-</button>
-</div>
-</div>`;
+d.innerHTML = '<div class="modal invm cdc-win">' +
+  '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="dollar-sign" class="lci"></i>Record payment <span id="ppm-sub" style="font-weight:500;color:#586579;font-size:12.5px;margin-left:6px"></span></span>' +
+  '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-partial-pay\')"><i data-lucide="x" class="lci"></i></button></div>' +
+  '<div class="invm-body"><input type="hidden" id="ppm-inv-id">' +
+    '<div class="invm-main"><section class="invm-sec"><h4>Payment</h4><div class="invm-grid g6">' +
+      '<div class="invm-f s2"><label>Payment amount *</label><input type="number" step="0.01" id="ppm-amount" placeholder="0.00" oninput="updatePPMBalance()"></div>' +
+      '<div class="invm-f s2"><label>Payment date</label><input type="date" id="ppm-date"></div>' +
+      '<div class="invm-f s2"><label>Method</label><select id="ppm-method"><option value="Check">Check</option><option value="Zelle">Zelle</option><option value="ACH">ACH / Wire</option><option value="Cash">Cash</option><option value="Credit Card">Credit card</option><option value="Other">Other</option></select></div>' +
+      '<div class="invm-f s2"><label>Reference / check #</label><input id="ppm-ref" placeholder="Check number, Zelle transaction..."></div>' +
+      '<div class="invm-f" style="grid-column:span 4"><label>Notes</label><input id="ppm-notes" placeholder="Optional"></div>' +
+    '</div></section></div>' +
+    '<aside class="invm-side"><div class="invm-card"><h4>Balance</h4>' +
+      '<div class="invm-kv"><span>Invoice billed</span><b id="ppm-billed">$0.00</b></div>' +
+      '<div class="invm-kv"><span>Already paid</span><b id="ppm-paid">$0.00</b></div>' +
+      '<div class="invm-total"><span>Remaining after this</span><b id="ppm-balance">$0.00</b></div>' +
+    '</div></aside>' +
+  '</div>' +
+  '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
+    '<button type="button" class="cdc-no" onclick="closeModal(\'modal-partial-pay\')"><i data-lucide="x" class="lci"></i>Cancel</button>' +
+    '<button type="button" class="cdc-ok" onclick="savePartialPayment()"><i data-lucide="check-circle" class="lci"></i>Record payment</button>' +
+  '</div></div>';
 document.body.appendChild(d);
 })();
 
@@ -2045,7 +2015,7 @@ function sendInvoiceEmail(inv) {
     var msg = 'Send Invoice ' + (inv.number||'') + ' to ' + (cli.name||'Client') + ' <' + toEmail + '>';
     if (senderEmail) msg += '\n\nCC: ' + senderEmail;
     msg += '\n\nThe PDF will be downloaded for you to attach.';
-    if (!confirm(msg)) return;
+    return cdcConfirm(msg).then((__ok)=>{try{if(!__ok)return;
 
     const body = [
       'Dear ' + (cli.name||'Client') + ',',
@@ -2085,7 +2055,12 @@ function sendInvoiceEmail(inv) {
     renderInvoicesList();
 
     toast('Invoice PDF downloaded • email ready to send to ' + toEmail + (senderEmail ? ' (CC: ' + senderEmail + ')' : ''), 'ok');
-  } catch(e) {
+  
+}catch(e) {
+    toast('Failed to send invoice: ' + (e.message||'unknown error'), 'err');
+    console.error('sendInvoiceEmail error:', e);
+  }
+});} catch(e) {
     toast('Failed to send invoice: ' + (e.message||'unknown error'), 'err');
     console.error('sendInvoiceEmail error:', e);
   }

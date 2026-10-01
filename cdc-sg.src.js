@@ -138,10 +138,6 @@
     '.mb-sum .empty{font-size:12.5px;color:#586579}',
     '.mb-group{position:relative;display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #E4E9F1;border-radius:10px;background:#fff;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;white-space:nowrap}',
     '.mb-group input{width:15px;height:15px;margin:0;accent-color:#FF6A3D}',
-    '.mb-go{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 18px;border:0;border-radius:11px;background:#FF6A3D;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s}',
-    '.mb-go:hover{background:#D45C37}',
-    '.mb-go[disabled]{background:#F4B8A5;cursor:not-allowed}',
-    '.mb-go .lci{width:15px;height:15px}',
     /* service group panel */
     '.sgb{display:flex;flex-direction:column;gap:12px}',
     '.sgb-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}',
@@ -257,8 +253,8 @@
           '<div id="sg-patients"></div></div>' +
       '</div>' +
       '<div class="sgx-mf"><span class="sgx-sum" id="sg-sum"></span><span class="sgx-sp"></span>' +
-        '<button class="btn btn-ghost" onclick="closeModal(\'modal-sg\')">Cancel</button>' +
-        '<button class="sgx-go" onclick="saveSG()">' + ico('save', 15) + 'Save group</button></div>' +
+        '<button type="button" class="cdc-no" onclick="closeModal(\'modal-sg\')">' + ico('x', 15) + 'Cancel</button>' +
+        '<button type="button" class="cdc-ok" onclick="saveSG()">' + ico('save', 15) + 'Save group</button></div>' +
     '</div>';
     document.body.appendChild(w);
   }

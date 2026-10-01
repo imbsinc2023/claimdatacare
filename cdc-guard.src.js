@@ -1,3 +1,4 @@
+window.CDC_BUILD = '__CDC_BUILD__';
 /* ClaimDataCare • console guard • cdc-guard.js v1.0
    Loads first. In production it silences internal console output (log/info/debug...)
    and shows a branded notice for anyone who opens the browser console.

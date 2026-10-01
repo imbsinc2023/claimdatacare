@@ -482,7 +482,7 @@ function _icPrintPDF(docId) {
 }
 
 async function _icDeleteRecord(docId) {
-  if (!confirm('Delete this signed document? This cannot be undone.')) return;
+  return cdcConfirm('Delete this signed document? This cannot be undone.').then(async (__ok)=>{if(!__ok)return;
   try {
     await _db.collection('intakeSigned').doc(docId).delete();
     toast('Document deleted');
@@ -490,7 +490,8 @@ async function _icDeleteRecord(docId) {
   } catch(e) {
     toast('Error deleting: '+e.message,'err');
   }
-}
+
+});}
 
 async function _loadICRecords() {
   var el = document.getElementById('ic-records-body');
@@ -848,7 +849,7 @@ function icSendDemoLink(idx) {
   });
 
   // Offer copy link or send email
-  if (confirm('Send demographic intake link to ' + c.guardianEmail + '?\n\nClick OK to send via email.\nClick Cancel to copy link to clipboard.')) {
+  return cdcConfirm('Send demographic intake link to ' + c.guardianEmail + '?\n\nClick OK to send via email.\nClick Cancel to copy link to clipboard.').then((__ok)=>{if(__ok){
     var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
     var emailHtml = [
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
@@ -877,7 +878,8 @@ function icSendDemoLink(idx) {
   }
   _icAuditLog('intake-demo-sent', 'Demographic link to ' + c.guardianEmail + ' for ' + childName);
   renderIntakeClients();
-}
+
+});}
 
 // ── Intake Forms (Consent Forms) ──
 function _icSeedDefaultForms() {
@@ -1239,42 +1241,45 @@ function icDeleteClient(idx) {
   var db = getDB();
   var c = db.intakeClients && db.intakeClients[idx];
   if (!c) { toast('Client not found','err'); return; }
-  if (!confirm('Delete intake client "' + (c.firstName||'') + ' ' + (c.lastName||'') + '"?\nThis action cannot be undone.')) return;
+  return cdcConfirm('Delete intake client "' + (c.firstName||'') + ' ' + (c.lastName||'') + '"?\nThis action cannot be undone.').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     if (db.intakeClients) db.intakeClients.splice(idx, 1);
   });
   _icAuditLog('intake-client-delete', 'Deleted: ' + (c.firstName||'') + ' ' + (c.lastName||''));
   renderIntakeEvaluation();
   toast('Client deleted <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
-}
+
+});}
 
 function icDeleteForm(idx) {
   if (!_icRequireSA()) return;
   var db = getDB();
   var f = db.intakeForms && db.intakeForms[idx];
   if (!f) { toast('Form not found','err'); return; }
-  if (!confirm('Delete form template "' + (f.name||'') + '"?\nThis action cannot be undone.')) return;
+  return cdcConfirm('Delete form template "' + (f.name||'') + '"?\nThis action cannot be undone.').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     if (db.intakeForms) db.intakeForms.splice(idx, 1);
   });
   _icAuditLog('intake-form-delete', 'Deleted: ' + (f.name||''));
   renderIntakeConsentForms();
   toast('Form deleted <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
-}
+
+});}
 
 function icDeleteEval(idx) {
   if (!_icRequireSA()) return;
   var db = getDB();
   var e = db.evaluations && db.evaluations[idx];
   if (!e) { toast('Evaluation not found','err'); return; }
-  if (!confirm('Delete evaluation for client "' + (e.clientId||'') + '"?\nThis action cannot be undone.')) return;
+  return cdcConfirm('Delete evaluation for client "' + (e.clientId||'') + '"?\nThis action cannot be undone.').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     if (db.evaluations) db.evaluations.splice(idx, 1);
   });
   _icAuditLog('intake-eval-delete', 'Deleted evaluation for client: ' + (e.clientId||''));
   renderIntakeEvaluation();
   toast('Evaluation deleted <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
-}
+
+});}
 
 // ── AI Narrative Generation ──
 function icGenerateNarrative() {

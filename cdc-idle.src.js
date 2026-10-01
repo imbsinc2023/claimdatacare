@@ -36,10 +36,7 @@
     '#idle-warning-modal h3{margin:0 0 6px;font-size:18px;font-weight:700;color:#0B1526}',
     '#idle-warning-modal p{margin:0 0 20px;font-size:13px;line-height:1.5;color:#586579}',
     '#idle-warning-modal .row{display:flex;gap:8px}',
-    '#idle-warning-modal button{flex:1;height:42px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}',
-    '#idle-warning-modal .stay{border:0;color:#fff;background:linear-gradient(135deg,#FF6A3D,#D45C37);box-shadow:0 10px 20px -12px rgba(255,106,61,.9)}',
-    '#idle-warning-modal .out{border:1px solid #E4E9F1;background:#fff;color:#3A475C}',
-    '#idle-warning-modal .out:hover{color:#E8367A;border-color:rgba(232,54,122,.35)}'
+    '#idle-warning-modal .row button{flex:1}'
   ].join('\n');
   var R = 56, C = 2 * Math.PI * R;
 
@@ -58,7 +55,7 @@
         '</svg><b><span id="idle-countdown">60</span><small>SECONDS</small></b></div>' +
         '<h3 id="idle-t">Still there?</h3>' +
         '<p>For your security (HIPAA), you will be signed out because of inactivity. Unsaved changes may be lost.</p>' +
-        '<div class="row"><button type="button" class="out" id="idle-out-btn">Sign out now</button><button type="button" class="stay" id="idle-stay-btn">Stay signed in</button></div>' +
+        '<div class="row"><button type="button" class="cdc-no out" id="idle-out-btn">Sign out now</button><button type="button" class="cdc-ok stay" id="idle-stay-btn">Stay signed in</button></div>' +
       '</div>';
       document.body.appendChild(el);
       document.getElementById('idle-stay-btn').onclick = function () { touch(false); hide(); if (chan) try { chan.postMessage({ t: 'act', at: last }); } catch (e) {} };
