@@ -1125,7 +1125,7 @@ function _invEnsureModals() {
     '</div>' +
     '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
       '<button type="button" class="cdc-no" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i>Cancel</button>' +
-      '<button type="button" class="invm-ib" data-tip="Preview PDF" aria-label="Preview PDF" onclick="previewInvoicePDF(\'preview\')"><i data-lucide="eye" class="lci"></i></button>' +
+      '<button type="button" class="cdc-alt" onclick="previewInvoicePDF(\'preview\')"><i data-lucide="eye" class="lci"></i>Preview</button>' +
       '<button type="button" class="cdc-ok" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 

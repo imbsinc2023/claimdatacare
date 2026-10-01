@@ -34,8 +34,8 @@
         '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t" id="cdcd-t">' + esc(title) + '</span>' +
         '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" data-a="no">' + ICON_X + '</button></div>' +
         '<div class="cdcd-b"><span class="cdcd-ic">' + (danger ? ICON_DEL : ICON_WARN) + '</span><div class="cdcd-m">' + esc(msg) + '</div></div>' +
-        '<div class="cdcd-f"><button type="button" class="cdc-no cdcd-no" data-a="no">' + ICON_X + esc(opts.cancelText || 'Cancel') + '</button>' +
-        '<button type="button" class="' + (danger ? 'cdc-no strong' : 'cdc-ok') + ' cdcd-yes" data-a="yes">' + (danger ? ICON_DEL : ICON_OK) + esc(yes) + '</button></div></div>';
+        '<div class="cdcd-f"><button type="button" class="' + (danger ? 'cdc-neutral' : 'cdc-no') + ' cdcd-no" data-a="no">' + ICON_X + esc(opts.cancelText || 'Cancel') + '</button>' +
+        '<button type="button" class="' + (danger ? 'cdc-no' : 'cdc-ok') + ' cdcd-yes" data-a="yes">' + (danger ? ICON_DEL : ICON_OK) + esc(yes) + '</button></div></div>';
       var done = function (v) { document.removeEventListener('keydown', onKey, true); ov.remove(); resolve(v); };
       var onKey = function (e) {
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
