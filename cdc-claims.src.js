@@ -20,7 +20,7 @@
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function val(id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }
-  function ico(n, s) { return '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
+  function ico(n, s) { return window.cdcIcon ? cdcIcon(n, s || 15) : '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
   function icons() { try { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 10); } catch (e) {} }
   function money(n) { try { return '$' + fmtMoney(n); } catch (e) { return '$' + Number(n || 0).toFixed(2); } }
 
@@ -58,7 +58,7 @@
     '.clm-bar .acts{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0}',
     '.clm-bar .acts::-webkit-scrollbar{display:none}',
     '.clm-bar .btn{white-space:nowrap}',
-    '.clm-body{flex:1;min-height:0;overflow:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
+    '.clm-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
     '.clm-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}',
     '.clm-tbl th{height:' + HEAD_H + 'px;padding:0 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#586579;background:#F8FAFC;border-bottom:1px solid #EEF1F6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none}',
     '.clm-tbl th.ns{cursor:default}',
@@ -234,7 +234,7 @@
     var body = document.getElementById('claims-tbl');
     if (body && !body.clientHeight && !S.retry) { S.retry = true; setTimeout(renderClaims, 60); }   // section not laid out yet
     else S.retry = false;
-    var size = fitSize();
+    var size = Math.min(fitSize(), S._fix && S.cap ? S.cap : 999);
     if (S.size && size !== S.size) S.page = Math.floor(S.page * S.size / size);   // keep roughly the same claims in view
     S.size = size;
     var pages = Math.max(1, Math.ceil(list.length / S.size));
@@ -287,6 +287,10 @@
       th('PCN', 'pcn', '15%') + th('Acct#', 'acct', '8%') + th('Patient', 'patient', '18%') + th('DOS', 'dos', '14%') + th('CPTs', 'cpts', '15%') +
       th('Lines', 'lines', '6%', 'clm-num') + th('Total', 'total', '9%', 'clm-num') + th('Status', 'status', '10%') + '<th class="ns" style="width:170px">Actions</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
+    // if the last row does not fit (fonts, zoom...), show one row less per page instead of hiding it
+    if (!S._fix && body && body.scrollHeight > body.clientHeight + 1 && S.size > 5) {
+      S._fix = true; S.cap = S.size - Math.ceil((body.scrollHeight - body.clientHeight) / ROW_H); renderClaims(); S._fix = false; return;
+    }
     icons();
   }
 

@@ -15,7 +15,7 @@
   var C = { page: 0, size: 10, sel: null, stage: null }, ROW = 40;
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function ico(n, s) { return '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
+  function ico(n, s) { return window.cdcIcon ? cdcIcon(n, s || 15) : '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
   function icons() { try { setTimeout(_renderLucideIcons, 20); } catch (e) {} }
   function money(n) { return n == null || isNaN(n) ? '' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function g(id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }

@@ -1,4 +1,4 @@
-/* ClaimDataCare • tooltips • cdc-tip.js v1.0
+/* ClaimDataCare • tooltips and inline icons • cdc-tip.js v1.1
    One floating bubble for every element with data-tip. It is fixed to the screen (outside
    tables and scroll areas), centred on the element under the mouse, and only fades in/out:
    it never changes the size or position of anything on the page. */
@@ -36,4 +36,25 @@
   }, true);
   document.addEventListener('focusin', function (e) { var el = e.target && e.target.closest && e.target.closest('[data-tip]'); if (el) show(el); }, true);
   ['mousedown', 'scroll', 'focusout', 'blur'].forEach(function (t) { window.addEventListener(t, hide, true); });
+})();
+
+/* Inline icons: lists that redraw often (claims, patients, pagers...) get the SVG directly in
+   their markup, instead of an <i data-lucide> placeholder that is swapped a moment later, which
+   made icons blink or show up empty for an instant. Falls back to the placeholder if the icon
+   library has not loaded yet. */
+(function () {
+  'use strict';
+  var cache = {};
+  window.cdcIcon = function (name, size) {
+    size = size || 15;
+    var k = name + '|' + size; if (cache[k]) return cache[k];
+    var key = String(name).replace(/(^|-)([a-z0-9])/g, function (m, d, c) { return c.toUpperCase(); });
+    var node = window.lucide && window.lucide.icons && window.lucide.icons[key];
+    if (!node) return '<i data-lucide="' + name + '" class="lci" style="width:' + size + 'px;height:' + size + 'px"></i>';
+    var kids = node[0] === 'svg' ? node[2] : node;
+    var esc = function (v) { return String(v).replace(/"/g, '&quot;'); };
+    var html = '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lci" style="width:' + size + 'px;height:' + size + 'px" aria-hidden="true">' +
+      kids.map(function (c) { return '<' + c[0] + Object.keys(c[1] || {}).map(function (a) { return ' ' + a + '="' + esc(c[1][a]) + '"'; }).join('') + '/>'; }).join('') + '</svg>';
+    return (cache[k] = html);
+  };
 })();

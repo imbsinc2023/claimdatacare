@@ -17,7 +17,7 @@
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function val(id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }
-  function ico(n, s) { return '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
+  function ico(n, s) { return window.cdcIcon ? cdcIcon(n, s || 15) : '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
   function icons() { try { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 10); } catch (e) {} }
   function isSA() { try { var s = getSession(); return s && s.role === 'Super Admin'; } catch (e) { return false; } }
   function ins(p) {
@@ -35,7 +35,7 @@
     '.pts-flt input{flex:1 1 260px;min-width:160px;max-width:360px;height:34px}',
     '.pts-flt select{height:34px;max-width:240px}',
     '.pts-bar{flex:none;height:40px;display:flex;align-items:center;padding:0 12px;border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;font-size:12px;color:#586579}',
-    '.pts-body{flex:1;min-height:0;overflow:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
+    '.pts-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
     '.pts-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}',
     '.pts-tbl th{height:' + HEAD_H + 'px;padding:0 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#586579;background:#F8FAFC;border-bottom:1px solid #EEF1F6;white-space:nowrap;overflow:hidden;cursor:pointer;user-select:none}',
     '.pts-tbl th.ns{cursor:default}',
@@ -119,7 +119,7 @@
     };
     rows.sort(function (a, b) { var x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * (S.asc ? 1 : -1); });
     S.list = rows;
-    S.size = fitSize();
+    S.size = Math.min(fitSize(), S._fixing && S.sizeCap ? S.sizeCap : 999); if (!S._fixing) S.sizeCap = 0;
     var pages = Math.max(1, Math.ceil(rows.length / S.size)); if (S.page >= pages) S.page = pages - 1; if (S.page < 0) S.page = 0;
     var view = rows.slice(S.page * S.size, (S.page + 1) * S.size);
     var bar = document.getElementById('pts-bar');
@@ -142,6 +142,10 @@
           '<td><div class="pts-acts"><button type="button" class="btn-icon sm" data-tip="Edit" aria-label="Edit" onclick="openPatientChart(\'' + id + '\');setTimeout(function(){_renderChartTab(\'demographics\');},100)">' + ico('pencil', 14) + '</button>' +
             (sa ? '<button type="button" class="btn-icon sm" data-tip="Delete" aria-label="Delete" onclick="deletePatientConfirm(\'' + id + '\')">' + ico('trash-2', 14) + '</button>' : '') + '</div></td></tr>';
       }).join('') + '</tbody></table>';
+    // if the last row does not fit (fonts, zoom...), show one row less per page instead of hiding it
+    if (!S._fixing && body.scrollHeight > body.clientHeight + 1 && S.size > 5) {
+      S._fixing = true; S.sizeCap = S.size - Math.ceil((body.scrollHeight - body.clientHeight) / ROW_H); renderPatients(); S._fixing = false; return;
+    }
     icons();
   };
   window._patGoPage = function (p) { S.page = p; renderPatients(); };

@@ -1,0 +1,278 @@
+/*
+ * ClaimDataCare  •  Patient chart • Info (demographics)
+ * File: cdc-demo.js  •  v1.0
+ *
+ * Replaces _buildDemoTab, _saveDemoTab and _pcdSelectChip from script1.js.
+ *   • Compact two-column layout (horizontal space first), short choices as segmented buttons,
+ *     long lists as drop-downs, a fixed message line under the title (nothing moves)
+ *   • Faster entry: ZIP fills city and state, phone numbers format as you type,
+ *     SSN accepts 4 digits, state 2 letters, Ctrl+S saves
+ *   • On save the address is checked with USPS; if USPS suggests a different address the user
+ *     sees both, can edit the suggestion, and decides which one to keep
+ *
+ * USPS needs the usps worker (Cloudflare) with the USPS API credentials. Without it, ZIP lookup
+ * uses a public ZIP directory and the address is saved as typed.
+ */
+(function () {
+  'use strict';
+  var USPS_URL = 'https://usps.imbsinc2023.workers.dev';
+  var uspsOK = null;   // null = not tried yet, false = not available
+
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ico(n, s) { return window.cdcIcon ? cdcIcon(n, s || 15) : '<i data-lucide="' + n + '" class="lci"></i>'; }
+  function $(id) { return document.getElementById('pcd-' + id); }
+  function v(id) { var e = $(id); return e ? String(e.value || '').trim() : ''; }
+  function msg(t, kind) { var m = document.getElementById('pcd-msg'); if (!m) return; m.textContent = t || ''; m.className = 'pcd-msg' + (kind ? ' ' + kind : ''); }
+
+  var CSS = [
+    '.pcd{display:flex;flex-direction:column;gap:12px}',
+    '.pcd-top{display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid #E4E9F1;border-radius:14px;background:#fff}',
+    '.pcd-ph{position:relative;width:48px;height:48px;border-radius:12px;overflow:hidden;flex:none;cursor:pointer}',
+    '.pcd-ph img{width:100%;height:100%;object-fit:cover}',
+    '.pcd-ph .cam{position:absolute;right:0;bottom:0;width:20px;height:20px;border-radius:7px 0 0 0;background:rgba(11,21,38,.65);color:#fff;display:flex;align-items:center;justify-content:center}',
+    '.pcd-who{min-width:0}',
+    '.pcd-who b{display:block;font-size:15px;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.pcd-who span{font-size:12px;color:#586579}',
+    '.pcd-msg{flex:1;min-width:0;height:20px;font-size:12.5px;font-weight:600;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.pcd-msg.err{color:#C8286A}.pcd-msg.ok{color:#007FA3}',
+    '.pcd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}',
+    '.pcd-sec{border:1px solid #E4E9F1;border-radius:14px;background:#fff;padding:12px 14px}',
+    '.pcd-sec h4{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
+    '.pcd-sec h4 .lci{color:#FF6A3D}',
+    '.pcd-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px 10px}',
+    '.pcd-f{min-width:0}.pcd-f.s2{grid-column:span 2}.pcd-f.s3{grid-column:span 3}.pcd-f.s4{grid-column:span 4}.pcd-f.s6{grid-column:span 6}',
+    '.pcd-f label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#586579;margin-bottom:4px;white-space:nowrap}',
+    '.pcd-f label .rq{color:#C8286A}',
+    '.pcd-f label .hint{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:#007FA3;font-size:10.5px;overflow:hidden;text-overflow:ellipsis}',
+    '.pcd-f input,.pcd-f select{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;color:#0B1526}',
+    '.pcd-f input:focus,.pcd-f select:focus{outline:none;border-color:#FF6A3D;box-shadow:0 0 0 3px rgba(255,106,61,.14)}',
+    '.pcd-f input.bad{border-color:#E8367A;box-shadow:0 0 0 3px rgba(232,54,122,.12)}',
+    '.pcd-seg{display:flex;height:34px;border:1px solid #E4E9F1;border-radius:9px;overflow:hidden;background:#fff}',
+    '.pcd-seg button{flex:1;min-width:0;border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}',
+    '.pcd-seg button+button{border-left:1px solid #E4E9F1}',
+    '.pcd-seg button:hover{background:#F4F6FA}',
+    '.pcd-seg button.on{background:#FF6A3D;color:#fff}',
+    '.pcd-flags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}',
+    '.pcd-flags label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#0B1526;cursor:pointer;padding:4px 0}',
+    '.pcd-flags input{width:16px;height:16px;margin:0;accent-color:#FF6A3D}',
+    /* USPS suggestion window */
+    '.usps{width:94vw!important;max-width:760px!important;display:flex!important;flex-direction:column;border-radius:18px!important;padding:0!important;overflow:hidden}',
+    '.usps-b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;padding:16px 20px}',
+    '.usps-col{border:1px solid #E4E9F1;border-radius:12px;padding:12px 14px}',
+    '.usps-col h5{margin:0 0 8px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
+    '.usps-col.sug{border-color:rgba(0,163,209,.45);background:rgba(0,163,209,.04)}',
+    '.usps-col.sug h5{color:#007FA3}',
+    '.usps-col p{margin:0;font-size:13px;line-height:1.55;color:#0B1526}',
+    '.usps-col .pcd-g{grid-template-columns:repeat(4,minmax(0,1fr))}',
+    '.usps-note{padding:0 20px 4px;font-size:12px;color:#586579}',
+    '@media (max-width:1100px){.pcd-cols{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:640px){.usps-b{grid-template-columns:1fr}}'
+  ].join('\n');
+  function css() { if (document.getElementById('pcd-style')) return; var s = document.createElement('style'); s.id = 'pcd-style'; s.textContent = CSS; document.head.appendChild(s); }
+
+  function f(id, lbl, val, o) {
+    o = o || {};
+    return '<div class="pcd-f ' + (o.span || '') + '"><label for="pcd-' + id + '">' + lbl + (o.req ? ' <span class="rq">*</span>' : '') + (o.hint ? '<span class="hint" id="pcd-' + id + '-hint"></span>' : '') + '</label>' +
+      '<input id="pcd-' + id + '" type="' + (o.type || 'text') + '" value="' + esc(val || '') + '"' + (o.cls ? ' class="' + o.cls + '"' : '') + (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') +
+      (o.max ? ' maxlength="' + o.max + '"' : '') + (o.mode ? ' inputmode="' + o.mode + '"' : '') + (o.on ? ' ' + o.on : '') + '></div>';
+  }
+  function sel(id, lbl, val, opts, o) {
+    o = o || {};
+    return '<div class="pcd-f ' + (o.span || '') + '"><label for="pcd-' + id + '">' + lbl + (o.req ? ' <span class="rq">*</span>' : '') + '</label><select id="pcd-' + id + '">' +
+      '<option value="">Select</option>' + opts.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === val ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') + '</select></div>';
+  }
+  function seg(id, lbl, val, opts, o) {
+    o = o || {};
+    return '<div class="pcd-f ' + (o.span || '') + '"><label>' + lbl + (o.req ? ' <span class="rq">*</span>' : '') + '</label><input type="hidden" id="pcd-' + id + '" value="' + esc(val || '') + '">' +
+      '<div class="pcd-seg" role="group">' + opts.map(function (x) { return '<button type="button" data-v="' + esc(x[0]) + '"' + (x[0] === val ? ' class="on"' : '') + ' onclick="_pcdSelectChip(this)">' + esc(x[1]) + '</button>'; }).join('') + '</div></div>';
+  }
+  function chk(id, lbl, on) { return '<label><input type="checkbox" id="pcd-' + id + '"' + (on ? ' checked' : '') + '>' + esc(lbl) + '</label>'; }
+
+  window._pcdSelectChip = function (btn) {
+    var wrap = btn.closest('.pcd-f'); if (!wrap) return;
+    wrap.querySelectorAll('.pcd-seg button').forEach(function (b) { b.classList.toggle('on', b === btn); });
+    var h = wrap.querySelector('input[type=hidden]'); if (h) h.value = btn.getAttribute('data-v');
+  };
+
+  window._buildDemoTab = function (pat, db) {
+    css();
+    var pid = esc(pat.id);
+    var photo = pat.photo ? '<img src="' + esc(pat.photo) + '" alt="">' : (typeof _patientAvatar === 'function' ? _patientAvatar(pat, 48) : '');
+    var html =
+      '<div class="pcd" id="pcd-root" data-pid="' + pid + '">' +
+      '<div class="pcd-top">' +
+        '<div class="pcd-ph" data-tip="Photo" onclick="_openPhotoOptions(\'' + pid + '\')">' + photo + '<span class="cam">' + ico('camera', 12) + '</span></div>' +
+        '<div class="pcd-who"><b>' + esc(((pat.last || '').toUpperCase() + ', ' + (pat.first || '')).replace(/^, $/, 'New patient')) + '</b><span>File #' + esc(pat.acct || '') + ' • ' + (pat.inactive ? 'Inactive' : 'Active') + '</span></div>' +
+        '<div class="pcd-msg" id="pcd-msg" role="status"></div>' +
+        '<button type="button" class="cdc-no" onclick="_renderChartTab(\'summary\')">' + ico('x', 15) + 'Cancel</button>' +
+        '<button type="button" class="cdc-ok" id="pcd-save" onclick="_saveDemoTab(\'' + pid + '\')">' + ico('save', 15) + 'Save</button>' +
+      '</div>' +
+      '<div class="pcd-cols"><div style="display:flex;flex-direction:column;gap:12px">' +
+        '<section class="pcd-sec"><h4>' + ico('user', 14) + 'Patient</h4><div class="pcd-g">' +
+          f('last', 'Last name', pat.last, { req: 1, span: 's2' }) + f('first', 'First name', pat.first, { req: 1, span: 's2' }) + f('mid', 'Middle', pat.mid) + f('nickname', 'Nickname', pat.nickname) +
+          f('dob', 'Date of birth', pat.dob, { req: 1, type: 'date', span: 's2' }) +
+          seg('sex', 'Sex', pat.sex, [['M', 'Male'], ['F', 'Female'], ['O', 'Other']], { req: 1, span: 's2' }) +
+          f('acct', 'Account #', pat.acct, { req: 1 }) +
+          seg('inactive', 'Status', pat.inactive ? 'inactive' : 'active', [['active', 'Active'], ['inactive', 'Inactive']]) +
+        '</div></section>' +
+        '<section class="pcd-sec"><h4>' + ico('map-pin', 14) + 'Address</h4><div class="pcd-g">' +
+          f('addr1', 'Address 1', pat.addr1, { req: 1, span: 's4' }) + f('addr2', 'Apt / suite', pat.addr2, { span: 's2' }) +
+          f('zip', 'ZIP', pat.zip, { req: 1, max: 10, mode: 'numeric', hint: 1, on: 'oninput="_pcdZip(this)"' }) +
+          f('city', 'City', pat.city, { req: 1, span: 's2' }) + f('state', 'State', pat.state, { req: 1, max: 2 }) +
+          f('country', 'Country', pat.country || 'USA', { req: 1, span: 's2' }) +
+        '</div></section>' +
+        '<section class="pcd-sec"><h4>' + ico('phone', 14) + 'Contact</h4><div class="pcd-g">' +
+          f('phone', 'Primary phone', pat.phone, { req: 1, type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
+          f('phone2', 'Secondary phone', pat.phone2, { type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
+          f('email', 'Email', pat.email, { type: 'email', span: 's2' }) +
+          seg('prefContact', 'Preferred contact', pat.prefContact, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email'], ['mail', 'Mail']], { span: 's3' }) +
+          seg('apptReminder', 'Appointment reminder', pat.apptReminder, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email']], { span: 's3' }) +
+        '</div></section>' +
+      '</div><div style="display:flex;flex-direction:column;gap:12px">' +
+        '<section class="pcd-sec"><h4>' + ico('id-card', 14) + 'Identity &amp; clinical</h4><div class="pcd-g">' +
+          sel('ethnicity', 'Ethnicity', pat.ethnicity, [['Hispanic', 'Hispanic/Latino'], ['Non-Hispanic', 'Not Hispanic'], ['Unknown', 'Unknown']], { req: 1, span: 's2' }) +
+          sel('race', 'Race', pat.race, [['White', 'White'], ['Black', 'Black/African Am.'], ['Asian', 'Asian'], ['AI', 'AI/Alaska Native'], ['PI', 'Native HI/Pacific Isl.'], ['Multi', 'Two or more'], ['Other', 'Other'], ['Unknown', 'Unknown']], { req: 1, span: 's2' }) +
+          sel('marital', 'Marital status', pat.marital, [['Single', 'Single'], ['Married', 'Married'], ['Divorced', 'Divorced'], ['Widowed', 'Widowed'], ['Partner', 'Dom. partner']], { span: 's2' }) +
+          f('language', 'Preferred language', pat.language, { span: 's2' }) + f('genderid', 'Gender identity', pat.genderid, { span: 's2' }) + f('orientation', 'Sexual orientation', pat.orientation, { span: 's2' }) +
+          f('codeStatus', 'Code status', pat.codeStatus, { span: 's2' }) + f('ssn', 'SSN (last 4)', pat.ssn, { max: 4, mode: 'numeric', on: 'oninput="this.value=this.value.replace(/\\D/g,\'\')"' }) +
+          f('oldChart', 'Old chart #', pat.oldChart) + f('dateOfDeath', 'Date of death', pat.dateOfDeath, { type: 'date', span: 's2' }) +
+        '</div></section>' +
+        '<section class="pcd-sec"><h4>' + ico('stethoscope', 14) + 'Providers</h4><div class="pcd-g">' +
+          f('pcp', 'PCP provider', pat.pcp, { span: 's3' }) + f('refPhys', 'Referring physician', pat.refPhys, { span: 's3' }) +
+        '</div></section>' +
+        '<section class="pcd-sec"><h4>' + ico('flag', 14) + 'Flags</h4><div class="pcd-flags">' +
+          chk('selfInsSync', 'Self insured demographic sync', pat.selfInsSync) + chk('addrSync', 'Address sync with insurance', pat.addrSync) +
+          chk('specialNeeds', 'Special needs patient', pat.specialNeeds) + chk('consentShare', 'Consent to share records', pat.consentShare) +
+          chk('transportation', 'Transportation needed', pat.transportation) + chk('wheelchair', 'Wheelchair required', pat.wheelchair) +
+        '</div></section>' +
+      '</div></div></div>';
+    setTimeout(function () {
+      var root = document.getElementById('pcd-root'); if (!root) return;
+      root.addEventListener('keydown', function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); _saveDemoTab(pat.id); } });
+      var st = $('state'); if (st) st.addEventListener('input', function () { st.value = st.value.replace(/[^a-z]/gi, '').toUpperCase(); });
+      if (!pat.last) { var l = $('last'); if (l) l.focus(); }
+    }, 30);
+    return html;
+  };
+
+  /* ---------------- faster entry ---------------- */
+  window._pcdPhone = function (el) {
+    var d = el.value.replace(/\D/g, '').slice(0, 10), out = d;
+    if (d.length > 6) out = '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    else if (d.length > 3) out = '(' + d.slice(0, 3) + ') ' + d.slice(3);
+    if (el.value !== out) el.value = out;
+  };
+  function lookupZip(zip) {
+    var viaUSPS = uspsOK === false ? Promise.reject() : fetch(USPS_URL + '/city-state?zip=' + zip).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) { uspsOK = true; if (!j || !j.city) throw 0; return { city: j.city, state: j.state, src: 'USPS' }; });
+    return viaUSPS.catch(function () {
+      if (uspsOK === null) uspsOK = false;
+      return fetch('https://api.zippopotam.us/us/' + zip).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) { var p = j.places && j.places[0]; if (!p) throw 0; return { city: String(p['place name']).toUpperCase(), state: p['state abbreviation'], src: 'ZIP directory' }; });
+    });
+  }
+  window._pcdZip = function (el) {
+    el.value = el.value.replace(/[^\d-]/g, '');
+    var zip = el.value.slice(0, 5), hint = document.getElementById('pcd-zip-hint');
+    if (!/^\d{5}$/.test(zip)) { if (hint) hint.textContent = ''; return; }
+    if (hint) hint.textContent = 'Looking up...';
+    lookupZip(zip).then(function (r) {
+      var c = $('city'), s = $('state');
+      if (c && (!c.value || c.dataset.auto === '1')) { c.value = r.city; c.dataset.auto = '1'; }
+      if (s && (!s.value || s.dataset.auto === '1')) { s.value = r.state; s.dataset.auto = '1'; }
+      if (hint) hint.textContent = r.city + ', ' + r.state;
+    }, function () { if (hint) hint.textContent = 'ZIP not found'; });
+  };
+
+  /* ---------------- USPS address check on save ---------------- */
+  function verify(a) {
+    if (uspsOK === false) return Promise.resolve(null);
+    return fetch(USPS_URL + '/address', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a) })
+      .then(function (r) { if (!r.ok) throw 0; uspsOK = true; return r.json(); })
+      .catch(function () { uspsOK = false; return null; });
+  }
+  function same(a, b) { var n = function (x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }; return n(a.addr1) === n(b.addr1) && n(a.addr2) === n(b.addr2) && n(a.city) === n(b.city) && n(a.state) === n(b.state) && n(a.zip).slice(0, 5) === n(b.zip).slice(0, 5); }
+  function chooseAddress(mine, sug, notFound) {
+    return new Promise(function (resolve) {
+      var w = document.getElementById('modal-usps'); if (w) w.remove();
+      w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-usps';
+      var line = function (a) { return esc(a.addr1) + (a.addr2 ? ' ' + esc(a.addr2) : '') + '<br>' + esc(a.city) + ', ' + esc(a.state) + ' ' + esc(a.zip); };
+      w.innerHTML = '<div class="modal usps">' +
+        '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('map-pin', 17) + (notFound ? 'USPS could not confirm this address' : 'USPS suggests a different address') + '</span>' +
+          '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" data-a="mine">' + ico('x', 17) + '</button></div>' +
+        '<div class="usps-b"><div class="usps-col"><h5>You entered</h5><p>' + line(mine) + '</p></div>' +
+        (notFound ? '<div class="usps-col"><h5>What to do</h5><p>Check the street, number and ZIP. You can keep the address as entered or go back and edit it.</p></div>' :
+          '<div class="usps-col sug"><h5>USPS suggestion (you can edit it)</h5><div class="pcd-g">' +
+            '<div class="pcd-f s4"><label>Address 1</label><input id="usps-addr1" value="' + esc(sug.addr1) + '"></div>' +
+            '<div class="pcd-f s2"><label>Apt / suite</label><input id="usps-addr2" value="' + esc(sug.addr2) + '"></div>' +
+            '<div class="pcd-f s2"><label>City</label><input id="usps-city" value="' + esc(sug.city) + '"></div>' +
+            '<div class="pcd-f"><label>State</label><input id="usps-state" maxlength="2" value="' + esc(sug.state) + '"></div>' +
+            '<div class="pcd-f"><label>ZIP</label><input id="usps-zip" value="' + esc(sug.zip) + '"></div></div></div>') +
+        '</div>' +
+        '<div class="cdc-ftr"><span class="sum">The decision is yours: the address is saved exactly as you choose.</span>' +
+          (notFound ? '<button type="button" class="cdc-neutral" data-a="edit">' + ico('pencil', 15) + 'Edit address</button><button type="button" class="cdc-ok" data-a="mine">' + ico('check', 15) + 'Keep as entered</button>'
+            : '<button type="button" class="cdc-neutral" data-a="mine">' + ico('undo-2', 15) + 'Keep mine</button><button type="button" class="cdc-ok" data-a="sug">' + ico('check', 15) + 'Use suggestion</button>') +
+        '</div></div>';
+      document.body.appendChild(w);
+      w.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-a]'); if (!b) return;
+        var a = b.getAttribute('data-a'), out = null;
+        if (a === 'sug') out = { addr1: document.getElementById('usps-addr1').value.trim(), addr2: document.getElementById('usps-addr2').value.trim(), city: document.getElementById('usps-city').value.trim(), state: document.getElementById('usps-state').value.trim().toUpperCase(), zip: document.getElementById('usps-zip').value.trim() };
+        closeModal('modal-usps'); w.remove();
+        resolve(a === 'edit' ? 'edit' : out || mine);
+      });
+      openModal('modal-usps');
+    });
+  }
+
+  window._saveDemoTab = async function (patId) {
+    document.querySelectorAll('#pcd-root input.bad').forEach(function (e) { e.classList.remove('bad'); });
+    var required = [['last', 'Last name'], ['first', 'First name'], ['dob', 'Date of birth'], ['acct', 'Account #'], ['addr1', 'Address 1'], ['zip', 'ZIP'], ['city', 'City'], ['state', 'State'], ['country', 'Country'], ['sex', 'Sex'], ['ethnicity', 'Ethnicity'], ['race', 'Race'], ['phone', 'Primary phone']];
+    for (var i = 0; i < required.length; i++) {
+      if (!v(required[i][0])) { msg(required[i][1] + ' is required', 'err'); var el = $(required[i][0]); if (el) { if (el.type !== 'hidden') { el.classList.add('bad'); el.focus(); } } return; }
+    }
+    var db = getDB(), idx = (db.patients || []).findIndex(function (p) { return p.id === patId; });
+    if (idx < 0) { msg('Patient not found', 'err'); return; }
+    var prev = db.patients[idx], acct = v('acct');
+    var dup = db.patients.find(function (p) { return p.id !== patId && p.providerId === prev.providerId && String(p.acct || '').trim().toLowerCase() === acct.toLowerCase(); });
+    if (dup) { msg('Account # ' + acct + ' is already used by ' + (dup.last || '') + ', ' + (dup.first || ''), 'err'); $('acct').classList.add('bad'); $('acct').focus(); return; }
+
+    // address check with USPS (only when the address changed)
+    var addr = { addr1: v('addr1'), addr2: v('addr2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
+    var changed = !same(addr, { addr1: prev.addr1, addr2: prev.addr2, city: prev.city, state: prev.state, zip: prev.zip });
+    if (changed) {
+      var btn = document.getElementById('pcd-save'); if (btn) btn.disabled = true;
+      msg('Checking the address with USPS...');
+      var r = await verify(addr);
+      if (btn) btn.disabled = false;
+      if (r && r.found === false) {
+        var c1 = await chooseAddress(addr, null, true);
+        if (c1 === 'edit') { msg('Edit the address and save again', 'err'); $('addr1').classList.add('bad'); $('addr1').focus(); return; }
+      } else if (r && r.address) {
+        var sug = { addr1: r.address.addr1 || '', addr2: r.address.addr2 || '', city: r.address.city || '', state: r.address.state || '', zip: r.address.zip || '' };
+        if (!same(addr, sug)) addr = await chooseAddress(addr, sug, false);
+      }
+      msg(r ? '' : 'Address saved as entered (USPS check not available)');
+    }
+
+    setDB(function (d) {
+      var p = d.patients[idx];
+      Object.assign(p, {
+        last: v('last'), first: v('first'), mid: v('mid'), dob: v('dob'), sex: v('sex'), acct: acct,
+        addr1: addr.addr1, addr2: addr.addr2, zip: addr.zip, city: addr.city, state: addr.state, country: v('country'),
+        ethnicity: v('ethnicity'), race: v('race'), language: v('language'), genderid: v('genderid'), orientation: v('orientation'), marital: v('marital'),
+        codeStatus: v('codeStatus'), ssn: v('ssn'), oldChart: v('oldChart'), dateOfDeath: v('dateOfDeath'),
+        phone: v('phone'), phone2: v('phone2'), email: v('email').toLowerCase(), prefContact: v('prefContact'), apptReminder: v('apptReminder'),
+        pcp: v('pcp'), refPhys: v('refPhys'), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
+        selfInsSync: !!($('selfInsSync') || {}).checked, addrSync: !!($('addrSync') || {}).checked, specialNeeds: !!($('specialNeeds') || {}).checked,
+        consentShare: !!($('consentShare') || {}).checked, transportation: !!($('transportation') || {}).checked, wheelchair: !!($('wheelchair') || {}).checked,
+        updatedAt: Date.now()
+      });
+    });
+    var db2 = getDB(), pat = db2.patients.find(function (p) { return p.id === patId; });
+    try { var sb = document.getElementById('pt-sidebar'); if (sb && pat) sb.innerHTML = _buildSidebar(pat, db2); } catch (e) {}
+    try { _refreshChartBanner(patId); } catch (e) {}
+    try { toast('Demographics saved', 'ok'); } catch (e) {}
+    _renderChartTab('insurance');
+  };
+})();
