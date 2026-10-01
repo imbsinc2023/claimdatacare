@@ -114,7 +114,7 @@ const topBar = () => {
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1) * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t));
     doc.setFillColor(...mix(STOPS[k], STOPS[k + 1], t - k));
-    doc.rect(0, i * sh, 3, sh + 0.15, 'F');
+    doc.rect(0, i * sh, 1.6, sh + 0.15, 'F');
   }
 };
 
@@ -152,6 +152,17 @@ y += 15; line(M, y, RX, y); y += 8;
 
 // ---------- from / bill to ----------
 const col2 = M + CW / 2 + 4;
+// small line icons in the website's tomato, centred on an 8 pt text line (baseline yy)
+const TOMATO = [255,106,61];
+const pic = (k, x, yy) => {
+  const c = yy - 1.1;
+  doc.setDrawColor(...TOMATO); doc.setFillColor(...TOMATO); doc.setLineWidth(0.25);
+  if (k === 'user') { doc.circle(x + 1.3, c - 0.55, 0.55, 'F'); doc.roundedRect(x + 0.4, c + 0.2, 1.8, 0.95, 0.45, 0.45, 'F'); }
+  else if (k === 'pin') { doc.circle(x + 1.3, c - 0.35, 0.8, 'F'); doc.triangle(x + 0.6, c - 0.05, x + 2.0, c - 0.05, x + 1.3, c + 1.25, 'F'); doc.setFillColor(255,255,255); doc.circle(x + 1.3, c - 0.35, 0.3, 'F'); }
+  else if (k === 'mail') { doc.rect(x + 0.1, c - 0.85, 2.4, 1.7); doc.line(x + 0.1, c - 0.85, x + 1.3, c + 0.1); doc.line(x + 2.5, c - 0.85, x + 1.3, c + 0.1); }
+  else if (k === 'phone') { doc.roundedRect(x + 0.65, c - 1.15, 1.3, 2.3, 0.3, 0.3); doc.line(x + 1.1, c + 0.8, x + 1.5, c + 0.8); }
+  else if (k === 'id') { doc.rect(x + 0.1, c - 0.8, 2.4, 1.6); doc.circle(x + 0.75, c - 0.1, 0.32, 'F'); doc.line(x + 1.3, c - 0.3, x + 2.15, c - 0.3); doc.line(x + 1.3, c + 0.3, x + 2.15, c + 0.3); }
+};
 const block = (e, x, sy, label, isFrom) => {
   let ly = sy;
   txt(label, x, ly, { size: 6.5, bold: true, color: MUTED }); ly += 5;
@@ -160,9 +171,12 @@ const block = (e, x, sy, label, isFrom) => {
   let fs = 10.5; doc.setFont(HEADF, 'bold');
   while (fs > 6.5) { doc.setFontSize(fs); if (doc.getTextWidth(nmTxt) <= maxW) break; fs -= 0.25; }
   txt(nmTxt, x, ly, { size: fs, head: true, color: INK }); ly += 5;
-  [e.contact, e.addr1, [e.city, e.state, e.zip].filter(Boolean).join(', '), String(e.email || '').toLowerCase()].filter(Boolean).forEach(v => { txt(v, x, ly, { size: 8, color: INK2 }); ly += 3.8; });
-  if (e.phone) { txt(fmtPhone(e.phone), x, ly, { size: 8, color: INK2 }); ly += 3.8; }
-  if (e.taxid) { txt('EIN: ' + e.taxid, x, ly, { size: 7.5, color: MUTED }); ly += 3.8; }
+  // each detail line gets a small tomato icon (contact, address, email, phone, EIN)
+  const rowsInfo = [
+    ['user', e.contact], ['pin', e.addr1], ['', [e.city, e.state, e.zip].filter(Boolean).join(', ')],
+    ['mail', String(e.email || '').toLowerCase()], ['phone', e.phone ? fmtPhone(e.phone) : ''], ['id', e.taxid ? 'EIN ' + e.taxid : '']
+  ].filter(r => r[1]);
+  rowsInfo.forEach(r => { if (r[0]) pic(r[0], x, ly); txt(r[1], x + 4.4, ly, { size: 8, color: r[0] === 'id' ? MUTED : INK2 }); ly += 4; });
   return ly;
 };
 y = Math.max(block(iss, M, y, 'FROM', true), block(cli, col2, y, 'BILL TO', false)) + 8;
@@ -173,7 +187,7 @@ txt('DESCRIPTION', M + 3, y, { size: 6.8, bold: true, color: INK2 });
 txt('AMOUNT', RX - 3, y, { size: 6.8, bold: true, color: INK2, align: 'right' });
 y += 2.6; line(M, y, RX, y, INK, 0.35); y += 5.5;
 (inv.svcLines || []).filter(l => l.desc || (l.amount && parseFloat(l.amount) !== 0)).forEach(l => {
-  const d = doc.splitTextToSize(String(l.desc || '').toUpperCase(), CW - 45);
+  const d = doc.splitTextToSize(String(l.desc || ''), CW - 45);
   txt(d, M + 3, y, { size: 8.5, color: INK });
   if (l.amount && parseFloat(l.amount) !== 0) txt(money(l.amount), RX - 3, y, { size: 8.5, color: INK, align: 'right' });
   y += 4 * d.length + 2; line(M, y - 1.5, RX, y - 1.5); y += 4;
@@ -196,7 +210,7 @@ y += 14;
 const noteParas = _invNoteParas(inv.noteHtml, inv.notes);
 if (noteParas.length) {
   const T = _INV_NOTE_TONES[inv.noteTone] || _INV_NOTE_TONES.none;
-  const PAD = 4, BAR = 1.6, LH = 4.4, FS = 8.8, maxW = CW - PAD * 2 - BAR - 1;
+  const PAD = 5, BAR = 0, LH = 4.4, FS = 8.8, BAND = 7, maxW = CW - PAD * 2;
   const styleOf = r => (r.b && r.i) ? 'bolditalic' : r.b ? 'bold' : r.i ? 'italic' : 'normal';
   // lay out words into lines first, to size the box
   const lines = [];
@@ -215,11 +229,14 @@ if (noteParas.length) {
       });
     });
   });
-  const boxH = PAD + 4 + lines.length * LH + PAD - 1;
+  const boxH = BAND + 3.4 + lines.length * LH + 1.6;
   if (y + boxH > 268) { doc.addPage(); topBar(); y = M + 4; }
-  doc.setFillColor(...T.fg); doc.rect(M, y + 0.5, 0.9, boxH - 1, 'F');
-  txt(T.label.toUpperCase(), M + BAR + PAD, y + PAD + 1.6, { size: 6.8, bold: true, color: MUTED });
-  let ny = y + PAD + 4 + 3.2;
+  doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, BAND + 2, 2, 2, 'F'); doc.rect(M, y + 2, CW, BAND - 2, 'F');
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
+  line(M, y + BAND, RX, y + BAND, LINE, 0.3);
+  if (inv.noteTone && inv.noteTone !== 'none') { doc.setFillColor(...T.fg); doc.circle(M + PAD + 0.9, y + BAND / 2, 0.9, 'F'); }
+  txt(T.label.charAt(0).toUpperCase() + T.label.slice(1), M + PAD + (inv.noteTone && inv.noteTone !== 'none' ? 3.4 : 0), y + 4.7, { size: 8, bold: true, color: INK });
+  let ny = y + BAND + 3.4 + 2.6;
   lines.forEach(l => {
     let nx = M + BAR + PAD + l.indent;
     if (l.bullet) txt('\u2022', M + BAR + PAD + 0.6, ny, { size: FS, color: INK2 });
@@ -266,21 +283,28 @@ const zRows = [];
 if ((zm === 'phone' || zm === 'both') && iss.phone) zRows.push(fmtPhone(iss.phone));
 if ((zm === 'email' || zm === 'both') && iss.email) zRows.push(String(iss.email).toLowerCase());
 const leftN = zRows.length + 1, rightN = 2, rows = Math.max(leftN, rightN);
-const bandH = 7, boxH = bandH + 3 + rows * ROWH + 1.5;
+const bandH = 7, boxH = bandH + 4 + rows * ROWH + 2;
 if (y + boxH + 18 > 272) { doc.addPage(); topBar(); y = M + 4; }
 txt('PAYMENT OPTIONS', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
 const half = CW / 2;
-// title bands (soft blue / soft tomato) clipped to the box corners
+// header band in the same grey as the DESCRIPTION header
+doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, bandH + 2, 2, 2, 'F'); doc.rect(M, y + 2, CW, bandH - 2, 'F');
 doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
 line(M, y + bandH, RX, y + bandH, LINE, 0.3);
 line(M + half, y, M + half, y + boxH, LINE, 0.3);
-txt('Preferred  \u2022  no processing fees', M + 5, y + 4.7, { size: 8, bold: true, color: INK });
-txt('4.5% bank processing fee', M + half + 5, y + 4.7, { size: 8, bold: true, color: INK2 });
-let ly2 = y + bandH + 3 + 3.6;
-const lx = M + 5, rx2 = M + half + 5;
+txt('Preferred  \u2022  no processing fees', M + half / 2, y + 4.7, { size: 8, bold: true, color: INK, align: 'center' });
+txt('4.5% bank processing fee', M + half + half / 2, y + 4.7, { size: 8, bold: true, color: INK2, align: 'center' });
+// each column's rows form one block, centred horizontally and vertically in its half
+const wOf = (t, b) => { doc.setFont(BODY, b ? 'bold' : 'normal'); doc.setFontSize(8.5); return doc.getTextWidth(t); };
+const leftW = Math.max(7 + wOf('Paper check'), ...zRows.map(v => 19 + wOf(v, true)));
+const rightW = 7 + Math.max(wOf('Virtual card'), wOf('Direct deposit'));
+const lx = M + half / 2 - leftW / 2, rx2 = M + half + half / 2 - rightW / 2;
+const bodyTop = y + bandH, bodyH = boxH - bandH;
+const firstLine = n => bodyTop + (bodyH - n * ROWH) / 2 + ROWH / 2 + 1.15;
+let ly2 = firstLine(leftN);
 zRows.forEach(v => { zelleRow(v, lx - 0.6, ly2); ly2 += ROWH; });
 ic('check', lx, ly2); txt('Paper check', lx + 7, ly2, { size: 8.5, color: INK });
-let ry = y + bandH + 3 + 3.6;
+let ry = firstLine(rightN);
 ic('card', rx2, ry); txt('Virtual card', rx2 + 7, ry, { size: 8.5, color: INK }); ry += ROWH;
 ic('bank', rx2, ry); txt('Direct deposit', rx2 + 7, ry, { size: 8.5, color: INK });
 y += boxH + 6;
@@ -557,7 +581,7 @@ function renderInvSvcLines() {
       + ' ondrop="invSvcDrop(event,'+i+')"'
       + ' ondragend="invSvcDragEnd()">'
       + '<span style="color:var(--text3);font-size:16px;cursor:grab;padding:0 4px;user-select:none">⋮</span>'
-      + '<input style="flex:2;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px"'
+      + '<input class="no-upper" style="flex:2;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px"'
       + ' value="'+s.desc+'" placeholder="e.g. Medical Billing Services" oninput="_invSvcLines['+i+'].desc=this.value">'
       + '<div style="position:relative;flex:1">'
       + '<input id="inv-svc-amt-'+i+'" style="'+amtStyle+';width:100%;box-sizing:border-box"'
