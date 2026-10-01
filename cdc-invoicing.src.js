@@ -13,17 +13,26 @@
    License. Small Latin-only files (about 90 KB in total) in /fonts, downloaded only the first
    time an invoice PDF is generated and kept in memory; never loaded with the app itself.
    If they cannot be loaded the PDF uses Helvetica as before. */
-var _invFontData = null, _invFontLoading = null;
+var _invFontData = null, _invFontLoading = null, _invFontTried = false;
 function _invLoadFonts() {
   if (_invFontData) return Promise.resolve(_invFontData);
   if (_invFontLoading) return _invFontLoading;
-  if (typeof fetch !== 'function') return Promise.resolve(null);
-  var files = { plex: 'fonts/IBMPlexSans-Regular.ttf', plexB: 'fonts/IBMPlexSans-SemiBold.ttf', sora: 'fonts/Sora-Bold.ttf' };
+  if (_invFontTried || typeof fetch !== 'function') return Promise.resolve(null);   // tried once already: Helvetica
+  var files = { plex: '/fonts/IBMPlexSans-Regular.ttf', plexB: '/fonts/IBMPlexSans-SemiBold.ttf', plexI: '/fonts/IBMPlexSans-Italic.ttf', plexBI: '/fonts/IBMPlexSans-SemiBoldItalic.ttf', sora: '/fonts/Sora-Bold.ttf' };
   var b64 = function (buf) { var b = new Uint8Array(buf), s = '', i, n = 0x8000; for (i = 0; i < b.length; i += n) s += String.fromCharCode.apply(null, b.subarray(i, i + n)); return btoa(s); };
+  // a real TrueType file starts with 00 01 00 00 (or "true"); hosts that answer missing files
+  // with the app page would otherwise hand back HTML, which silently fell back to Helvetica
+  var isTTF = function (buf) { var v = new Uint8Array(buf, 0, 4); return (v[0] === 0 && v[1] === 1 && v[2] === 0 && v[3] === 0) || String.fromCharCode(v[0], v[1], v[2], v[3]) === 'true'; };
   _invFontLoading = Promise.all(Object.keys(files).map(function (k) {
-    return fetch(files[k], { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw new Error(files[k]); return r.arrayBuffer(); }).then(function (buf) { return [k, b64(buf)]; });
+    return fetch(files[k], { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw new Error(files[k] + ' (' + r.status + ')'); return r.arrayBuffer(); })
+      .then(function (buf) { if (!isTTF(buf)) throw new Error(files[k] + ' is not a font file'); return [k, b64(buf)]; });
   })).then(function (pairs) { var o = {}; pairs.forEach(function (p) { o[p[0]] = p[1]; }); _invFontData = o; return o; })
-    .catch(function () { _invFontLoading = null; return null; });
+    .catch(function (e) {
+      _invFontTried = true; _invFontLoading = null;
+      console.warn('[CDC] invoice fonts not loaded, using Helvetica:', e && e.message);
+      try { toast('Invoice fonts not found on the server (/fonts) • PDF uses Helvetica', 'warn'); } catch (e2) {}
+      return null;
+    });
   return _invFontLoading;
 }
 function _invUseFonts(doc) {
@@ -32,6 +41,8 @@ function _invUseFonts(doc) {
     doc.addFileToVFS('IBMPlexSans-Regular.ttf', _invFontData.plex); doc.addFont('IBMPlexSans-Regular.ttf', 'Plex', 'normal');
     doc.addFileToVFS('IBMPlexSans-SemiBold.ttf', _invFontData.plexB); doc.addFont('IBMPlexSans-SemiBold.ttf', 'Plex', 'bold');
     doc.addFileToVFS('Sora-Bold.ttf', _invFontData.sora); doc.addFont('Sora-Bold.ttf', 'Sora', 'bold');
+    doc.addFileToVFS('IBMPlexSans-Italic.ttf', _invFontData.plexI); doc.addFont('IBMPlexSans-Italic.ttf', 'Plex', 'italic');
+    doc.addFileToVFS('IBMPlexSans-SemiBoldItalic.ttf', _invFontData.plexBI); doc.addFont('IBMPlexSans-SemiBoldItalic.ttf', 'Plex', 'bolditalic');
     return true;
   } catch (e) { return false; }
 }
@@ -181,6 +192,53 @@ txt(paid > 0 ? 'Balance due' : 'Total due', tx, y, { size: 10, head: true, color
 txt(money(Math.max(0, svcTotal - paid)), RX, y, { size: 12.5, bold: true, color: ACCENT, align: 'right' });
 y += 14;
 
+// ---------- invoice note (rich text, coloured by tone) ----------
+const noteParas = _invNoteParas(inv.noteHtml, inv.notes);
+if (noteParas.length) {
+  const T = _INV_NOTE_TONES[inv.noteTone] || _INV_NOTE_TONES.none;
+  const PAD = 4, BAR = 1.6, LH = 4.4, FS = 8.8, maxW = CW - PAD * 2 - BAR - 1;
+  const styleOf = r => (r.b && r.i) ? 'bolditalic' : r.b ? 'bold' : r.i ? 'italic' : 'normal';
+  // lay out words into lines first, to size the box
+  const lines = [];
+  noteParas.forEach(p => {
+    const indent = p.bullet ? 4 : 0;
+    let line = { parts: [], w: indent, bullet: p.bullet, indent: indent };
+    lines.push(line);
+    p.runs.forEach(r => {
+      r.t.split(/(\s+)/).forEach(w => {
+        if (!w) return;
+        doc.setFont(BODY, styleOf(r)); doc.setFontSize(FS);
+        const ww = doc.getTextWidth(w);
+        if (line.w + ww > maxW && line.parts.length && w.trim()) { line = { parts: [], w: indent, bullet: false, indent: indent }; lines.push(line); }
+        if (!line.parts.length && !w.trim()) return;
+        line.parts.push({ t: w, r: r, w: ww }); line.w += ww;
+      });
+    });
+  });
+  const boxH = PAD + 4 + lines.length * LH + PAD - 1;
+  if (y + boxH > 268) { doc.addPage(); topBar(); y = M + 4; }
+  doc.setFillColor(...T.bg); doc.roundedRect(M, y, CW, boxH, 2, 2, 'F');
+  doc.setFillColor(...T.fg); doc.roundedRect(M, y, BAR + 1, boxH, 1, 1, 'F'); doc.rect(M + 1, y, BAR, boxH, 'F');
+  txt(T.label.toUpperCase(), M + BAR + PAD, y + PAD + 1.6, { size: 6.8, bold: true, color: T.fg });
+  let ny = y + PAD + 4 + 3.2;
+  lines.forEach(l => {
+    let nx = M + BAR + PAD + l.indent;
+    if (l.bullet) txt('\u2022', M + BAR + PAD + 0.6, ny, { size: FS, bold: true, color: T.fg });
+    l.parts.forEach(pt => {
+      doc.setFont(BODY, styleOf(pt.r)); doc.setFontSize(FS); doc.setTextColor(...INK);
+      doc.text(pt.t, nx, ny);
+      if (pt.r.u && pt.t.trim()) { doc.setDrawColor(...INK); doc.setLineWidth(0.2); doc.line(nx, ny + 0.7, nx + pt.w, ny + 0.7); }
+      nx += pt.w;
+    });
+    ny += LH;
+  });
+  y += boxH + 7;
+}
+
+// ---------- other text notes (exception note, billing entity notes): above payment options ----------
+if (inv.excNoteText) { const t = doc.splitTextToSize(inv.excNoteText, CW); txt(t, M, y, { size: 8, color: INK2 }); y += t.length * 3.8 + 3; }
+if (iss.notes) { const nl = doc.splitTextToSize(String(iss.notes), CW); txt(nl, M, y, { size: 7.8, color: MUTED }); y += nl.length * 3.6 + 4; }
+
 // ---------- payment options ----------
 // Two columns, each with a soft coloured title band: blue for the preferred (no fee) options,
 // light tomato for the options that carry the 4.5% fee. Icons sit on the text's centre line.
@@ -230,12 +288,6 @@ let ry = y + bandH + 3 + 3.6;
 ic('card', rx2, ry); txt('Virtual card', rx2 + 7, ry, { size: 8.5, color: INK }); ry += ROWH;
 ic('bank', rx2, ry); txt('Direct deposit', rx2 + 7, ry, { size: 8.5, color: INK });
 y += boxH + 6;
-if (inv.excNoteText) { y += 1; const t = doc.splitTextToSize(inv.excNoteText, CW); txt(t, M, y, { size: 8, color: INK2 }); y += t.length * 3.8 + 2; }
-if (iss.notes || inv.notes) {
-  y += 2; line(M, y, RX, y); y += 5;
-  const nl = doc.splitTextToSize([iss.notes, inv.notes].filter(Boolean).join('  \u2022  '), CW);
-  txt(nl, M, y, { size: 7.8, color: MUTED }); y += nl.length * 3.6 + 2;
-}
 txt('Thank you for your business.', M, Math.min(y + 8, 272), { size: 9, bold: true, color: INK });
 
 // ---------- payment detail pages ----------
@@ -295,7 +347,7 @@ toast('Invoice PDF exported');
 }
 
 function previewInvoicePDF(invId) {
-  if (!_invFontData && !previewInvoicePDF._waited) { previewInvoicePDF._waited = true; return _invLoadFonts().then(function () { previewInvoicePDF._waited = false; return previewInvoicePDF(invId); }); }
+  if (!_invFontData && !_invFontTried) return _invLoadFonts().then(function () { _invFontTried = true; return previewInvoicePDF(invId); });
   // If called from modal, use the current modal state
   var targetId = invId === 'preview' ? _currentInvId : invId;
   if (!targetId) {
@@ -694,6 +746,84 @@ function recalcInvoice() {
   }
 }
 
+/* ---------------- Invoice note: rich text (bold, italic, underline, bullets) + tone ---------------- */
+var _INV_NOTE_TONES = {
+  none: { label: 'Note', bg: [246,248,251], fg: [88,101,121], css: '#586579' },
+  good: { label: 'Good', bg: [231,246,239], fg: [14,122,85], css: '#0E7A55' },
+  warn: { label: 'Warning', bg: [254,246,224], fg: [166,106,16], css: '#A66A10' },
+  bad:  { label: 'Alert', bg: [253,232,228], fg: [200,56,30], css: '#C8381E' }
+};
+// keeps only b/strong/i/em/u, line breaks, paragraphs and lists; drops every attribute
+function _invSanitizeNote(html) {
+  var ok = { B:1, STRONG:1, I:1, EM:1, U:1, BR:1, DIV:1, P:1, UL:1, OL:1, LI:1 };
+  var src = document.createElement('div'); src.innerHTML = String(html || '');
+  var walk = function (node) {
+    var out = '';
+    node.childNodes.forEach(function (n) {
+      if (n.nodeType === 3) out += n.nodeValue.replace(/[&<>]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;' }[c]; });
+      else if (n.nodeType === 1) {
+        var t = n.tagName; if (t === 'SCRIPT' || t === 'STYLE') return;
+        var inner = walk(n);
+        if (t === 'BR') out += '<br>';
+        else if (ok[t]) out += '<' + t.toLowerCase() + '>' + inner + '</' + t.toLowerCase() + '>';
+        else out += inner;
+      }
+    });
+    return out;
+  };
+  return walk(src).replace(/^(<br>)+|(<br>)+$/g, '');
+}
+// html -> paragraphs of styled runs, for the PDF (works without a DOM)
+function _invNoteParas(html, plain) {
+  var paras = [], cur = null, st = { b: 0, i: 0, u: 0 };
+  var newPara = function (bullet) { cur = { runs: [], bullet: !!bullet }; paras.push(cur); };
+  var dec = function (t) { return t.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&'); };
+  if (!html) { String(plain || '').split(/\r?\n/).forEach(function (l) { newPara(false); if (l) cur.runs.push({ t: l, b: false, i: false, u: false }); }); }
+  else {
+    newPara(false);
+    String(html).split(/(<[^>]+>)/).forEach(function (tok) {
+      if (!tok) return;
+      var m = tok.match(/^<\s*(\/?)\s*([a-z0-9]+)/i);
+      if (m) {
+        var close = !!m[1], tag = m[2].toLowerCase();
+        if (tag === 'br') newPara(false);
+        else if (tag === 'li') { if (!close) { if (!cur.runs.length) cur.bullet = true; else newPara(true); } }
+        else if (tag === 'div' || tag === 'p' || tag === 'ul' || tag === 'ol') { if (cur.runs.length) newPara(false); }
+        else if (tag === 'b' || tag === 'strong') st.b += close ? -1 : 1;
+        else if (tag === 'i' || tag === 'em') st.i += close ? -1 : 1;
+        else if (tag === 'u') st.u += close ? -1 : 1;
+        return;
+      }
+      cur.runs.push({ t: dec(tok), b: st.b > 0, i: st.i > 0, u: st.u > 0 });
+    });
+  }
+  // trim empty paragraphs at both ends and collapse repeated empty lines
+  var out = [];
+  paras.forEach(function (p) {
+    var empty = !p.runs.some(function (r) { return r.t.trim(); });
+    if (empty && (!out.length || out[out.length - 1]._empty)) return;
+    p._empty = empty; out.push(p);
+  });
+  while (out.length && out[out.length - 1]._empty) out.pop();
+  return out;
+}
+function _invNoteCmd(c) {
+  var ed = document.getElementById('inv-note-editor'); if (!ed) return;
+  ed.focus();
+  try { document.execCommand(c === 'list' ? 'insertUnorderedList' : c, false, null); } catch (e) {}
+  _invNoteSync();
+}
+function _invNoteSync() {
+  var ed = document.getElementById('inv-note-editor'), h = document.getElementById('inv-notes');
+  if (ed && h) h.value = (ed.innerText || ed.textContent || '').trim();
+}
+function _invNoteTone(t) {
+  t = _INV_NOTE_TONES[t] ? t : 'none';
+  var h = document.getElementById('inv-note-tone'); if (h) h.value = t;
+  document.querySelectorAll('#modal-invoice .invm-tone').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tone') === t); });
+  var ed = document.getElementById('inv-note-editor'); if (ed) ed.className = 'invm-ned t-' + t;
+}
+
 /* ---------------- Invoicing UI (header tabs, fused KPI cards, card tables) ---------------- */
 var _INV_TABS = [['dashboard','Dashboard','layout-dashboard'],['invoices','Invoices','file-text'],['clients','Clients','building'],['issuers','Billing Entities','briefcase']];
 var _INV_ACTION = { invoices:['openInvoiceModal()','New invoice'], clients:['openClientModal()','New client'], issuers:['openIssuerModal()','New billing entity'] };
@@ -788,6 +918,19 @@ var _INV_CSS = [
   '.invm-save:hover{background:#D45C37}.invm-save .lci{width:15px;height:15px}',
   '#inv-svc-lines .inv-svc-row{margin-bottom:6px}',
   '#inv-svc-lines .btn-danger{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px}',
+  '.invm-tones{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px}',
+  '.invm-tone{display:flex;align-items:center;justify-content:center;gap:5px;height:28px;border:1px solid #E4E9F1;border-radius:8px;background:#fff;font-family:inherit;font-size:11px;font-weight:600;color:#3A475C;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}',
+  '.invm-tone i{width:8px;height:8px;border-radius:50%;background:#8C98AB}',
+  '.invm-tone[data-tone=good] i{background:#0E8A5F}.invm-tone[data-tone=warn] i{background:#D69E2E}.invm-tone[data-tone=bad] i{background:#C8381E}',
+  '.invm-tone.on{background:#0B1526;border-color:#0B1526;color:#fff}',
+  '.invm-tb{display:flex;gap:4px;margin-bottom:6px}',
+  '.invm-tbb{width:30px;height:28px;border:1px solid #E4E9F1;border-radius:8px;background:#fff;color:#3A475C;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s}',
+  '.invm-tbb .lci{width:14px;height:14px}',
+  '.invm-tbb:hover{background:rgba(255,106,61,.09);color:#D45C37;border-color:rgba(255,106,61,.35)}',
+  '.invm-ned{min-height:110px;max-height:220px;overflow-y:auto;padding:8px 10px 8px 12px;border:1px solid #E4E9F1;border-left:4px solid #8C98AB;border-radius:9px;background:#fff;font-size:12.5px;line-height:1.5;color:#0B1526;outline:none}',
+  '.invm-ned:empty:before{content:attr(data-ph);color:#8C98AB}',
+  '.invm-ned ul{margin:2px 0;padding-left:18px}',
+  '.invm-ned.t-good{border-left-color:#0E8A5F;background:#F2FAF6}.invm-ned.t-warn{border-left-color:#D69E2E;background:#FFFBEF}.invm-ned.t-bad{border-left-color:#C8381E;background:#FEF4F2}',
   '@media (max-width:1100px){.invm-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}.invm-main,.invm-side{overflow:visible}.invm-grid.g6{grid-template-columns:repeat(3,minmax(0,1fr))}}',
   '@media (max-width:1100px){.inv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inv-g2{grid-template-columns:minmax(0,1fr)}}',
   '@media (max-width:620px){.inv-kpis{grid-template-columns:minmax(0,1fr)}}'
@@ -902,7 +1045,21 @@ function _invEnsureModals() {
           '<div class="invm-kv"><span id="inv-fee-pct-lbl">Fee</span><b id="inv-fee-amt">$0.00</b></div>' +
           '<div class="invm-total"><span>Total due</span><b id="inv-total">$0.00</b></div>' +
         '</div>' +
-        '<div class="invm-card"><h4>Notes</h4><textarea id="inv-notes" rows="5" placeholder="Shown on the invoice" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
+        '<div class="invm-card"><h4>Invoice note</h4>' +
+          '<div class="invm-tones"><input type="hidden" id="inv-note-tone" value="none">' +
+            '<button type="button" class="invm-tone on" data-tone="none" onclick="_invNoteTone(\'none\')"><i></i>Plain</button>' +
+            '<button type="button" class="invm-tone" data-tone="good" onclick="_invNoteTone(\'good\')"><i></i>Good</button>' +
+            '<button type="button" class="invm-tone" data-tone="warn" onclick="_invNoteTone(\'warn\')"><i></i>Warning</button>' +
+            '<button type="button" class="invm-tone" data-tone="bad" onclick="_invNoteTone(\'bad\')"><i></i>Alert</button></div>' +
+          '<div class="invm-tb">' +
+            '<button type="button" class="invm-tbb" data-tip="Bold" aria-label="Bold" onmousedown="event.preventDefault();_invNoteCmd(\'bold\')"><i data-lucide="bold" class="lci"></i></button>' +
+            '<button type="button" class="invm-tbb" data-tip="Italic" aria-label="Italic" onmousedown="event.preventDefault();_invNoteCmd(\'italic\')"><i data-lucide="italic" class="lci"></i></button>' +
+            '<button type="button" class="invm-tbb" data-tip="Underline" aria-label="Underline" onmousedown="event.preventDefault();_invNoteCmd(\'underline\')"><i data-lucide="underline" class="lci"></i></button>' +
+            '<button type="button" class="invm-tbb" data-tip="Bullet list" aria-label="Bullet list" onmousedown="event.preventDefault();_invNoteCmd(\'list\')"><i data-lucide="list" class="lci"></i></button>' +
+            '<button type="button" class="invm-tbb" data-tip="Clear formatting" aria-label="Clear formatting" onmousedown="event.preventDefault();_invNoteCmd(\'removeFormat\')"><i data-lucide="remove-formatting" class="lci"></i></button>' +
+          '</div>' +
+          '<div id="inv-note-editor" class="invm-ned t-none" contenteditable="true" data-ph="Extra note shown on the invoice" oninput="_invNoteSync()"></div>' +
+          '<input type="hidden" id="inv-notes"></div>' +
       '</aside>' +
     '</div>' +
     '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
@@ -1607,6 +1764,12 @@ set('inv-exc-base', inv?.excBase);
 set('inv-exc-months',inv?.excMonths);
 set('inv-revenue', inv?.revenue);
 set('inv-notes', inv?.notes);
+(function () {
+  var ed = document.getElementById('inv-note-editor'); if (!ed) return;
+  if (inv && inv.noteHtml) ed.innerHTML = _invSanitizeNote(inv.noteHtml);
+  else ed.textContent = (inv && inv.notes) || '';
+  _invNoteTone((inv && inv.noteTone) || 'none');
+})();
 const stEl = document.getElementById('inv-status');
 if (stEl) stEl.value = inv?.status || 'Draft';
 // Populate selects
@@ -1710,7 +1873,7 @@ revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
 total: svcTotal, billingFee: finalFee,
 excNoteText,
 lines: JSON.parse(JSON.stringify(_invLines)),
-notes: (g('inv-notes')||'').toUpperCase(), updatedAt: Date.now()
+notes: (g('inv-notes')||''), noteHtml: _invSanitizeNote((document.getElementById('inv-note-editor')||{}).innerHTML || ''), noteTone: (g('inv-note-tone')||'none'), updatedAt: Date.now()
 };
 setDB(db => {
 if (!db.invoices) db.invoices = [];

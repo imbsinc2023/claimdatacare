@@ -119,7 +119,9 @@
     '.sgb-det label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;margin-bottom:4px}',
     '.sgb-det select,.sgb-det input{width:100%;box-sizing:border-box;height:32px;padding:0 8px;border:1px solid #E4E9F1;border-radius:8px;font-family:inherit;font-size:12px;background:#fff}',
     /* Generate claims window */
-    '#modal-batch .mb-modal{border-radius:18px}',
+    /* fixed size: switching tabs or adding rows never resizes or moves the window */
+    '#modal-batch .mb-modal{border-radius:18px;width:96vw!important;max-width:1320px!important;height:min(900px,92vh)!important;max-height:92vh!important}',
+    '#modal-batch .mb-modal > .modal-body{flex:1 1 auto!important;min-height:0;overflow-y:auto!important;scrollbar-gutter:stable}',
     '.mb-tabs{flex:none;display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid #E4E9F1;background:#fff}',
     '.mb-tab{display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;margin-bottom:-1px;border:1px solid transparent;border-bottom:1px solid #E4E9F1;border-radius:10px 10px 0 0;background:#F4F6FA;font-family:inherit;font-size:12.5px;font-weight:600;color:#586579;cursor:pointer;transition:background-color .15s,color .15s}',
     '.mb-tab .lci{width:14px;height:14px}',
@@ -153,7 +155,7 @@
     '.sgb-cpt>span{font-size:10.5px;font-weight:700;letter-spacing:.07em;color:#586579}',
     '.sgb-cpt #mb-sg-lines{display:flex;flex-wrap:wrap;gap:5px}',
     '.sgb-cpt .badge{font-family:var(--mono,monospace);font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;background:#fff;color:#3A475C;border:1px solid #E4E9F1}',
-    '.sgb-list{border:1px solid #EEF1F6;border-radius:12px;overflow:hidden;max-height:46vh;overflow-y:auto}',
+    '.sgb-list{border:1px solid #EEF1F6;border-radius:12px;overflow:hidden}',
     '@media (max-width:900px){.sgb-top,.sgb-dates{grid-template-columns:1fr 1fr}.sgx-set{grid-template-columns:1fr 1fr}.sgx-pr,.sgx-ph{grid-template-columns:18px 1fr 1fr 30px}.sgx-ph{display:none}.sgb-main{grid-template-columns:20px 1fr 1fr 30px}.sgb-main .sgb-dx,.sgb-main .sgb-n,.sgb-main .sgb-amt{display:none}.sgb-det .grid{grid-template-columns:1fr 1fr}}'
   ].join('\n');
   function css() { if (document.getElementById('sgx-style')) return; var s = document.createElement('style'); s.id = 'sgx-style'; s.textContent = CSS; document.head.appendChild(s); }
