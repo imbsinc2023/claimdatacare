@@ -727,46 +727,7 @@ function _injectMissingModals() {
     '<button class="btn btn-primary" onclick="addSGCatalogLines()">Add Selected</button></div></div>'
   );
 
-  _mk('modal-sg-patients',
-    '<div class="modal" style="max-width:920px;width:96%;display:flex;flex-direction:column;max-height:90vh">' +
-    '<div class="modal-hdr" style="flex-shrink:0"><div><div class="modal-t">Add Patients to Group</div>' +
-    '<div class="modal-sub">Search by name, File #, Member ID, phone, payer, DOB…</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-sg-patients\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px">' +
-    // Search + filters row
-    '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;margin-bottom:10px;align-items:end">' +
-      '<div class="field" style="margin:0"><label>Search</label>' +
-        '<input id="sgpick-q" placeholder="Name, File #, Member ID, phone, payer…" oninput="renderSGPatientPicker()" ' +
-        'style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">' +
-      '</div>' +
-      '<div class="field" style="margin:0;min-width:110px"><label>Sex</label>' +
-        '<select id="sgpick-sex" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
-        '<option value="">All</option><option value="F">F</option><option value="M">M</option></select>' +
-      '</div>' +
-      '<div class="field" style="margin:0;min-width:170px"><label>Payer</label>' +
-        '<select id="sgpick-payer" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
-        '<option value="">All Payers</option></select>' +
-      '</div>' +
-      '<div class="field" style="margin:0;min-width:140px"><label>Not in group</label>' +
-        '<select id="sgpick-inclusion" onchange="renderSGPatientPicker()" style="padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)">' +
-        '<option value="new">Hide already added</option><option value="all">Show all patients</option></select>' +
-      '</div>' +
-    '</div>' +
-    // Selection info
-    '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--r);margin-bottom:8px;font-size:11px">' +
-      '<div id="sgpick-count" style="color:var(--text3)">0 patients</div>' +
-      '<div id="sgpick-selcount" style="color:#D45C37;font-weight:700">0 selected</div>' +
-    '</div>' +
-    // Results table
-    '<div id="sgpick-list" style="border:1px solid var(--border);border-radius:var(--r);max-height:52vh;overflow-y:auto;background:#fff"></div>' +
-    '</div>' +
-    '<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
-    '<div style="font-size:11px;color:var(--text3)"><i data-lucide="info" class="lci" style="width:12px;height:12px"></i> Click rows to select. Use search + filters to narrow results.</div>' +
-    '<div style="display:flex;gap:8px">' +
-    '<button class="btn" onclick="closeModal(\'modal-sg-patients\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="addSelectedSGPatients()"><i data-lucide="user-plus" class="lci"></i> Add Selected</button>' +
-    '</div></div></div>'
-  );
+  
 
   
 
@@ -6788,32 +6749,7 @@ function _sgInstallDragReorder(){
 }
 
 // ── SG Patient Picker (floating modal with multi-field search + filters) ─────
-function openSGPatientPicker(){
-  if(!_sgForm) return;
-  window._sgPickerSelected = new Set();
-  openModal('modal-sg-patients');
-  // Populate payer filter with unique payers
-  var db = getDB();
-  var pats = (db.patients||[]).filter(function(p){ return p.providerId===activeProviderId; });
-  var payers = {};
-  pats.forEach(function(p){
-    var name = (p.payername||'').trim();
-    var id = (p.payerid||'').trim();
-    var key = name || id;
-    if(key && !payers[key]) payers[key] = { key:key, label: name ? name : ('Payer '+id) };
-  });
-  var payerSel = document.getElementById('sgpick-payer');
-  if(payerSel){
-    payerSel.innerHTML = '<option value="">All Payers</option>' +
-      Object.values(payers).sort(function(a,b){return a.label.localeCompare(b.label);})
-        .map(function(p){ return '<option value="'+p.key.replace(/"/g,'&quot;')+'">'+p.label+'</option>'; }).join('');
-  }
-  // Reset inputs
-  var q = document.getElementById('sgpick-q'); if(q){ q.value=''; setTimeout(function(){q.focus();},60); }
-  var sx = document.getElementById('sgpick-sex'); if(sx) sx.value='';
-  var inc = document.getElementById('sgpick-inclusion'); if(inc) inc.value='new';
-  renderSGPatientPicker();
-}
+
 
 // Resolve display name for a patient's payer:
 // 1) patient's own payername   2) look up db.insurances by payerid   3) "•"
@@ -6831,89 +6767,13 @@ function _sgResolvePayerName(pat, db) {
   return '';
 }
 
-function renderSGPatientPicker(){
-  var listEl = document.getElementById('sgpick-list');
-  if(!listEl || !_sgForm) return;
-  var db = getDB();
-  var q = (document.getElementById('sgpick-q')?.value||'').trim().toLowerCase();
-  var sex = document.getElementById('sgpick-sex')?.value||'';
-  var payer = document.getElementById('sgpick-payer')?.value||'';
-  var inclusion = document.getElementById('sgpick-inclusion')?.value||'new';
-  var alreadyIn = new Set((_sgForm.patients||[]).map(function(p){return p.patientId;}));
-  var pats = (db.patients||[]).filter(function(p){ return p.providerId===activeProviderId; });
-  if(inclusion==='new') pats = pats.filter(function(p){ return !alreadyIn.has(p.id); });
-  if(sex) pats = pats.filter(function(p){ return (p.sex||'')===sex; });
-  if(payer) pats = pats.filter(function(p){ return (p.payername||'')===payer || (p.payerid||'')===payer; });
-  if(q){
-    pats = pats.filter(function(p){
-      var hay = [p.first,p.last,p.mid,p.acct,p.dob,p.sex,p.phone,p.insnum,p.insl,p.insf,p.payername,p.payerid,p.group,p.plan,p.addr1,p.city,p.state,p.zip,p.id]
-        .filter(Boolean).join(' ').toLowerCase();
-      return hay.indexOf(q)>=0;
-    });
-  }
-  // Sort by last name
-  pats.sort(function(a,b){ return (a.last||'').localeCompare(b.last||''); });
-  // Update counts
-  var cntEl = document.getElementById('sgpick-count'); if(cntEl) cntEl.textContent = pats.length+' patient'+(pats.length===1?'':'s');
-  _sgUpdatePickerSelCount();
-  if(!pats.length){
-    listEl.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--text3);font-size:12px">No patients match. Adjust search or filters.</div>';
-    return;
-  }
-  var selected = window._sgPickerSelected || new Set();
-  listEl.innerHTML = pats.map(function(p){
-    var isIn = alreadyIn.has(p.id);
-    var isSel = selected.has(p.id);
-    var bg = p.sex==='F'?'#D45C37':p.sex==='M'?'#2d6a4f':'#3A475C';
-    var ini = ((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();
-    var rowBg = isSel ? '#FFF1EC' : (isIn ? '#F6F8FB' : '#fff');
-    var rowBorder = isSel ? '#D45C37' : '#EEF1F6';
-    return '<div onclick="_sgTogglePickerSel(\''+p.id+'\')" style="display:grid;grid-template-columns:22px 30px 1.7fr 1fr 1.2fr 1.2fr 1fr;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid '+rowBorder+';background:'+rowBg+';cursor:'+(isIn?'default':'pointer')+';font-size:11px;'+(isIn?'opacity:.6':'')+'" '+(isIn?'title="Already in group"':'')+'>'+
-      '<div style="text-align:center">'+(isIn?'<span style="color:#2d7a4f;font-weight:700" title="Already added">✓</span>':'<input type="checkbox" '+(isSel?'checked':'')+' style="accent-color:#D45C37;pointer-events:none">')+'</div>'+
-      '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">'+ini+'</div>'+
-      '<div style="min-width:0"><div style="font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'•')+'</div></div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'•')+'</div><div style="font-size:10px;color:#586579">'+(p.sex||'')+'</div></div>'+
-      '<div style="min-width:0"><div style="color:#D45C37;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'•')+'</div>'+(p.plan?'<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'•')+'</div><div style="font-size:10px;color:#586579">Sub ID</div></div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'•')+'</div>'+
-    '</div>';
-  }).join('');
-}
 
-function _sgTogglePickerSel(patientId){
-  if(!window._sgPickerSelected) window._sgPickerSelected = new Set();
-  // Skip if already in group
-  var alreadyIn = new Set((_sgForm.patients||[]).map(function(p){return p.patientId;}));
-  if(alreadyIn.has(patientId)) return;
-  if(window._sgPickerSelected.has(patientId)) window._sgPickerSelected.delete(patientId);
-  else window._sgPickerSelected.add(patientId);
-  renderSGPatientPicker();
-}
 
-function _sgUpdatePickerSelCount(){
-  var el = document.getElementById('sgpick-selcount');
-  if(!el) return;
-  var n = (window._sgPickerSelected||new Set()).size;
-  el.textContent = n+' selected';
-}
 
-function addSelectedSGPatients(){
-  if(!_sgForm) return;
-  var sel = window._sgPickerSelected || new Set();
-  if(!sel.size){ toast('Select at least one patient','err'); return; }
-  if(!_sgForm.patients) _sgForm.patients = [];
-  var added = 0;
-  sel.forEach(function(pid){
-    if(!_sgForm.patients.find(function(x){return x.patientId===pid;})){
-      _sgForm.patients.push({ patientId:pid, dx:'', auth:'', referringId:'', facilityId:'' });
-      added++;
-    }
-  });
-  window._sgPickerSelected = new Set();
-  closeModal('modal-sg-patients');
-  renderSGPatients();
-  toast(added+' patient'+(added===1?'':'s')+' added','ok');
-}
+
+
+
+
 
 function _sgInsertPatient(atIdx) {
 const sq = document.getElementById('sg-pat-search');

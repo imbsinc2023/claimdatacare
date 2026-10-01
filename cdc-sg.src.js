@@ -372,6 +372,138 @@
     summary(); icons();
   };
 
+
+  /* ---------------- add patients to the group (standard window, paged) ---------------- */
+  var PK = { sel: null, page: 0, size: 10 }, PK_ROW = 44;
+  var PK_CSS = [
+    '.sgp-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 20px}',
+    '.sgp-flt{flex:none;display:grid;grid-template-columns:minmax(0,2fr) 130px minmax(0,1.2fr) 170px;gap:10px}',
+    '.sgp-bar{flex:none;height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;font-size:12px;color:#586579}',
+    '.sgp-bar b{color:#D45C37}',
+    '.sgp-bar .lk{border:0;background:none;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background-color .15s,color .15s}',
+    '.sgp-bar .lk:hover{background:rgba(255,106,61,.09);color:#D45C37}',
+    '.sgp-list{flex:1;min-height:0;overflow:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
+    '.sgp-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}',
+    '.sgp-tbl th{height:36px;padding:0 10px;text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#586579;background:#F8FAFC;border-bottom:1px solid #EEF1F6;white-space:nowrap}',
+    '.sgp-tbl td{height:' + PK_ROW + 'px;box-sizing:border-box;padding:0 10px;border-bottom:1px solid #F1F4F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}',
+    '.sgp-tbl tbody tr{cursor:pointer;transition:background-color .12s}',
+    '.sgp-tbl tbody tr:hover{background:#F8FAFC}',
+    '.sgp-tbl tbody tr.on{background:rgba(255,106,61,.07)}',
+    '.sgp-tbl tbody tr.in{cursor:default;color:#8C98AB}',
+    '.sgp-tbl input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:#FF6A3D;pointer-events:none}',
+    '.sgp-in{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;background:rgba(0,163,209,.1);color:#007FA3}',
+    '.sgp-mono{font-family:var(--mono,monospace);font-size:11.5px;color:#3A475C}',
+    '.sgp-pay{color:#3A475C;font-weight:600}',
+    '.sgp-empty{height:100%;display:flex;align-items:center;justify-content:center;color:#586579;font-size:13px}',
+    '.sgp-pg{display:flex;align-items:center;gap:6px;margin-left:auto}',
+    '.sgp-pg span{font-size:11.5px;color:#586579;font-variant-numeric:tabular-nums;min-width:110px;text-align:right}',
+    '.sgp-pg button{width:28px;height:28px;border:1px solid #E4E9F1;border-radius:8px;background:#fff;color:#3A475C;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:12px;font-weight:600}',
+    '.sgp-pg button.on{background:#FF6A3D;border-color:#FF6A3D;color:#fff;cursor:default}',
+    '.sgp-pg button[disabled]{opacity:.35;cursor:default}',
+    '.sgp-ftr .sum{font-size:12.5px;color:#3A475C}',
+    '@media (max-width:900px){.sgp-flt{grid-template-columns:1fr 1fr}}'
+  ].join('\n');
+  function ensurePicker() {
+    if (!document.getElementById('sgp-style')) { var st = document.createElement('style'); st.id = 'sgp-style'; st.textContent = PK_CSS; document.head.appendChild(st); }
+    if (document.getElementById('modal-sg-patients')) return;
+    var w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-sg-patients';
+    w.innerHTML = '<div class="modal cdc-win">' +
+      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('user-plus', 17) + 'Add patients to group</span>' +
+        '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-sg-patients\')">' + ico('x', 17) + '</button></div>' +
+      '<div class="sgp-body">' +
+        '<div class="sgp-flt">' +
+          '<div class="sgx-f"><label>Search</label><input id="sgpick-q" class="no-upper" placeholder="Name, File #, member ID, phone, payer" oninput="_sgpFilter()"></div>' +
+          '<div class="sgx-f"><label>Sex</label><select id="sgpick-sex" onchange="_sgpFilter()"><option value="">All</option><option value="F">Female</option><option value="M">Male</option></select></div>' +
+          '<div class="sgx-f"><label>Payer</label><select id="sgpick-payer" onchange="_sgpFilter()"><option value="">All payers</option></select></div>' +
+          '<div class="sgx-f"><label>Show</label><select id="sgpick-inclusion" onchange="_sgpFilter()"><option value="new">Not in this group</option><option value="all">All patients</option></select></div>' +
+        '</div>' +
+        '<div class="sgp-bar"><span id="sgpick-count"></span><button type="button" class="lk" onclick="_sgpSelectPage(true)">Select page</button><button type="button" class="lk" onclick="_sgpSelectPage(false)">Clear</button><div class="sgp-pg" id="sgpick-pg"></div></div>' +
+        '<div class="sgp-list" id="sgpick-list"></div>' +
+      '</div>' +
+      '<div class="modal-ftr invm-ftr sgp-ftr"><span class="sum" id="sgpick-selcount"></span><span class="invm-sp" style="flex:1"></span>' +
+        '<button type="button" class="cdc-no" onclick="closeModal(\'modal-sg-patients\')">' + ico('x', 15) + 'Cancel</button>' +
+        '<button type="button" class="cdc-ok" id="sgpick-add" onclick="addSelectedSGPatients()">' + ico('user-plus', 15) + 'Add selected</button></div>' +
+    '</div>';
+    document.body.appendChild(w);
+  }
+  function payerOf(p) { var o = insOptions(p), pri = o.find(function (x) { return x.kind === 'primary'; }) || o[0]; if (pri) return pri.payerName; try { return _sgResolvePayerName(p, getDB()); } catch (e) { return ''; } }
+  function memberOf(p) { var o = insOptions(p), pri = o.find(function (x) { return x.kind === 'primary'; }) || o[0]; return (pri && pri.memberId) || p.insnum || ''; }
+
+  window.openSGPatientPicker = function () {
+    if (!_sgForm) return;
+    ensurePicker();
+    PK.sel = new Set(); PK.page = 0;
+    var pats = (getDB().patients || []).filter(function (p) { return p.providerId === activeProviderId; });
+    var payers = {}; pats.forEach(function (p) { var n = payerOf(p); if (n) payers[n] = 1; });
+    var ps = document.getElementById('sgpick-payer');
+    if (ps) ps.innerHTML = '<option value="">All payers</option>' + Object.keys(payers).sort().map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('');
+    ['sgpick-q', 'sgpick-sex'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+    var inc = document.getElementById('sgpick-inclusion'); if (inc) inc.value = 'new';
+    openModal('modal-sg-patients');
+    setTimeout(function () { renderSGPatientPicker(); var q = document.getElementById('sgpick-q'); if (q) q.focus(); icons(); }, 30);
+  };
+  window._sgpFilter = function () { PK.page = 0; renderSGPatientPicker(); };
+  function pickList() {
+    var db = getDB(), g = function (id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+    var q = g('sgpick-q').toLowerCase(), sex = g('sgpick-sex'), payer = g('sgpick-payer'), inc = g('sgpick-inclusion') || 'new';
+    var inG = new Set((_sgForm.patients || []).map(function (a) { return a.patientId; }));
+    var list = (db.patients || []).filter(function (p) { return p.providerId === activeProviderId; });
+    if (inc === 'new') list = list.filter(function (p) { return !inG.has(p.id); });
+    if (sex) list = list.filter(function (p) { return String(p.sex || '').toUpperCase() === sex; });
+    if (payer) list = list.filter(function (p) { return payerOf(p) === payer; });
+    if (q) list = list.filter(function (p) { return [p.first, p.last, p.mid, p.acct, p.dob, p.phone, p.insnum, payerOf(p), memberOf(p)].filter(Boolean).join(' ').toLowerCase().indexOf(q) >= 0; });
+    list.sort(function (a, b) { return (a.last || '').localeCompare(b.last || '') || (a.first || '').localeCompare(b.first || ''); });
+    return { list: list, inG: inG };
+  }
+  window.renderSGPatientPicker = function () {
+    var el = document.getElementById('sgpick-list'); if (!el || !_sgForm) return;
+    if (!PK.sel) PK.sel = new Set();
+    var r = pickList(), list = r.list;
+    PK.size = Math.max(5, Math.floor(((el.clientHeight || 480) - 38) / PK_ROW));
+    var pages = Math.max(1, Math.ceil(list.length / PK.size)); if (PK.page >= pages) PK.page = pages - 1;
+    var view = list.slice(PK.page * PK.size, (PK.page + 1) * PK.size);
+    var cnt = document.getElementById('sgpick-count'); if (cnt) cnt.innerHTML = list.length + ' patient' + (list.length === 1 ? '' : 's') + ' • <b>' + PK.sel.size + ' selected</b>';
+    var sc = document.getElementById('sgpick-selcount'); if (sc) sc.textContent = PK.sel.size ? PK.sel.size + ' patient' + (PK.sel.size === 1 ? '' : 's') + ' will be added' : 'Click rows to select patients';
+    var add = document.getElementById('sgpick-add'); if (add) add.disabled = !PK.sel.size;
+    var a = list.length ? PK.page * PK.size + 1 : 0, b = Math.min(list.length, (PK.page + 1) * PK.size);
+    var pg = document.getElementById('sgpick-pg');
+    if (pg) pg.innerHTML = '<span>' + a + '\u2013' + b + ' of ' + list.length + '</span>' +
+      '<button type="button" aria-label="Previous page"' + (PK.page <= 0 ? ' disabled' : ' onclick="_sgpPage(' + (PK.page - 1) + ')"') + '>' + ico('chevron-left', 14) + '</button>' +
+      '<button type="button" class="on">' + (PK.page + 1) + '</button>' +
+      '<button type="button" aria-label="Next page"' + (PK.page >= pages - 1 ? ' disabled' : ' onclick="_sgpPage(' + (PK.page + 1) + ')"') + '>' + ico('chevron-right', 14) + '</button>';
+    if (!list.length) { el.innerHTML = '<div class="sgp-empty">No patients match. Change the search or filters.</div>'; icons(); return; }
+    el.innerHTML = '<table class="sgp-tbl"><colgroup><col style="width:44px"><col style="width:34%"><col style="width:14%"><col style="width:24%"><col style="width:14%"><col style="width:14%"></colgroup>' +
+      '<thead><tr><th></th><th>Patient</th><th>DOB / Sex</th><th>Payer</th><th>Member ID</th><th>Phone</th></tr></thead><tbody>' +
+      view.map(function (p) {
+        var inG = r.inG.has(p.id), on = PK.sel.has(p.id), sx = String(p.sex || '').toUpperCase(), ini = ((p.first || '?')[0] + (p.last || '?')[0]).toUpperCase();
+        return '<tr class="' + (inG ? 'in' : on ? 'on' : '') + '"' + (inG ? '' : ' onclick="_sgTogglePickerSel(\'' + esc(p.id) + '\')"') + '>' +
+          '<td>' + (inG ? '<span class="sgp-in">In group</span>' : '<input type="checkbox"' + (on ? ' checked' : '') + ' tabindex="-1">') + '</td>' +
+          '<td><div class="sgx-who"><span class="sgx-av ' + avClass(p) + '">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((p.last || '').toUpperCase() + ', ' + (p.first || '').toUpperCase()) + '</div><div class="mt">File #' + esc(p.acct || '') + '</div></div></div></td>' +
+          '<td class="sgp-mono">' + esc(p.dob || '') + (sx ? ' • ' + sx : '') + '</td>' +
+          '<td class="sgp-pay" title="' + esc(payerOf(p)) + '">' + esc(payerOf(p) || '•') + '</td>' +
+          '<td class="sgp-mono">' + esc(memberOf(p) || '•') + '</td><td class="sgp-mono">' + esc(p.phone || '•') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    icons();
+  };
+  window._sgpPage = function (n) { PK.page = n; renderSGPatientPicker(); };
+  window._sgTogglePickerSel = function (id) { if (!PK.sel) PK.sel = new Set(); if (PK.sel.has(id)) PK.sel.delete(id); else PK.sel.add(id); renderSGPatientPicker(); };
+  window._sgpSelectPage = function (on) {
+    if (!PK.sel) PK.sel = new Set();
+    if (!on) { PK.sel.clear(); renderSGPatientPicker(); return; }
+    var r = pickList(); r.list.slice(PK.page * PK.size, (PK.page + 1) * PK.size).forEach(function (p) { if (!r.inG.has(p.id)) PK.sel.add(p.id); });
+    renderSGPatientPicker();
+  };
+  window.addSelectedSGPatients = function () {
+    if (!_sgForm || !PK.sel || !PK.sel.size) return;
+    if (!_sgForm.patients) _sgForm.patients = [];
+    var n = 0;
+    PK.sel.forEach(function (pid) { if (!_sgForm.patients.some(function (x) { return x.patientId === pid; })) { _sgForm.patients.push({ patientId: pid, dx: '', auth: '', referringId: '', facilityId: '' }); n++; } });
+    PK.sel = new Set();
+    closeModal('modal-sg-patients');
+    renderSGPatients();
+    try { toast(n + ' patient' + (n === 1 ? '' : 's') + ' added', 'ok'); } catch (e) {}
+  };
+
   /* ---------------- generate claims: date presets ---------------- */
   // Mon to Thu and Friday match how the groups are scheduled (e.g. MON TO THU, FRIDAY)
   window._sgbPreset = function (k) {
