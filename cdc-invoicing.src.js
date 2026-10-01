@@ -21,7 +21,7 @@ function _invLoadFonts() {
   if (_invFontTried) return Promise.resolve(null);
   _invFontLoading = new Promise(function (resolve) {
     var sc = document.createElement('script');
-    sc.src = 'cdc-fonts.js?v=1';
+    sc.src = 'cdc-fonts.js?v=__CDC_BUILD__';
     sc.onload = function () { _invFontData = window.__cdcInvFonts || null; _invFontLoading = null; if (!_invFontData) _invFontTried = true; resolve(_invFontData); };
     sc.onerror = function () {
       _invFontTried = true; _invFontLoading = null;

@@ -7209,7 +7209,7 @@ function _cdcLoadModule(file) {
   if (_cdcModPromises[file]) return _cdcModPromises[file];
   _cdcModPromises[file] = new Promise(function(resolve, reject){
     var sc = document.createElement('script');
-    sc.src = (window._cdcBase || '') + file + '?v=1';
+    sc.src = (window._cdcBase || '') + file + '?v=__CDC_BUILD__';   // build stamp: each deploy loads fresh modules
     sc.onload = function(){ resolve(); };
     sc.onerror = function(){
       delete _cdcModPromises[file];
