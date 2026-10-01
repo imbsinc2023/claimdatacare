@@ -197,7 +197,12 @@ const pic = (k, x, yy) => {
   if (k === 'user') { doc.circle(x + 1.3, c - 0.55, 0.55, 'F'); doc.roundedRect(x + 0.4, c + 0.2, 1.8, 0.95, 0.45, 0.45, 'F'); }
   else if (k === 'pin') { doc.circle(x + 1.3, c - 0.35, 0.8, 'F'); doc.triangle(x + 0.6, c - 0.05, x + 2.0, c - 0.05, x + 1.3, c + 1.25, 'F'); doc.setFillColor(255,255,255); doc.circle(x + 1.3, c - 0.35, 0.3, 'F'); }
   else if (k === 'mail') { doc.rect(x + 0.1, c - 0.85, 2.4, 1.7); doc.line(x + 0.1, c - 0.85, x + 1.3, c + 0.1); doc.line(x + 2.5, c - 0.85, x + 1.3, c + 0.1); }
-  else if (k === 'phone') { doc.roundedRect(x + 0.65, c - 1.15, 1.3, 2.3, 0.3, 0.3); doc.line(x + 1.1, c + 0.8, x + 1.5, c + 0.8); }
+  else if (k === 'phone') {   // classic telephone handset
+    doc.setLineWidth(0.62); doc.setLineCap && doc.setLineCap('round');
+    doc.lines([[-0.55, 0.85, 0.15, 2.05, 1.45, 2.35]], x + 0.75, c - 1.15, [1, 1], 'S', false);
+    doc.setLineCap && doc.setLineCap('butt'); doc.setLineWidth(0.25);
+    doc.roundedRect(x + 0.35, c - 1.45, 1.05, 0.7, 0.3, 0.3, 'F'); doc.roundedRect(x + 1.85, c + 0.75, 0.7, 1.05, 0.3, 0.3, 'F');
+  }
   else if (k === 'id') { doc.rect(x + 0.1, c - 0.8, 2.4, 1.6); doc.circle(x + 0.75, c - 0.1, 0.32, 'F'); doc.line(x + 1.3, c - 0.3, x + 2.15, c - 0.3); doc.line(x + 1.3, c + 0.3, x + 2.15, c + 0.3); }
 };
 const block = (e, x, sy, label, isFrom) => {
@@ -245,7 +250,9 @@ y += 14;
 
 // ---------- invoice note (rich text, coloured by tone) ----------
 const noteParas = _invNoteParas(inv.noteHtml, inv.notes);
-if (noteParas.length) {
+// exception (minimum fee) line: an extra row of the NOTE table, only when an exception applies
+const excRow = String(inv.excNoteText || '').replace(/^\s*NOTE:\s*/i, '').replace(/\s+-\s+/g, '  \u2022  ').trim();
+if (noteParas.length || excRow) {
   const T = _INV_NOTE_TONES[inv.noteTone] || _INV_NOTE_TONES.none;
   const PAD = 5, BAR = 0, LH = 4.4, FS = 8.8, BAND = 7, maxW = CW - PAD * 2;
   const styleOf = r => (r.b && r.i) ? 'bolditalic' : r.b ? 'bold' : r.i ? 'italic' : 'normal';
@@ -266,7 +273,11 @@ if (noteParas.length) {
       });
     });
   });
-  const boxH = BAND + 3.4 + lines.length * LH + 1.6;
+  doc.setFont(BODY, 'normal'); doc.setFontSize(8.3);
+  const excLines = excRow ? doc.splitTextToSize(excRow, maxW) : [];
+  const textH = lines.length ? 3.4 + lines.length * LH + 1.6 : 0;
+  const excH = excLines.length ? 3.4 + excLines.length * 4 + 1.8 : 0;
+  const boxH = BAND + textH + excH;
   if (y + boxH + 4 > 268) { doc.addPage(); topBar(); y = M + 4; }
   txt('NOTE', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
   // header band exactly the height of the title row (rounded top corners only)
@@ -291,11 +302,15 @@ if (noteParas.length) {
     });
     ny += LH;
   });
+  if (excLines.length) {
+    const ey = y + BAND + textH;
+    if (lines.length) line(M, ey, RX, ey, LINE, 0.3);
+    txt(excLines, M + PAD, ey + 3.4 + 2.6, { size: 8.3, color: INK2 });
+  }
   y += boxH + 10;   // clear space before PAYMENT OPTIONS
 }
 
-// ---------- other text notes (exception note, billing entity notes): above payment options ----------
-if (inv.excNoteText) { const t = doc.splitTextToSize(inv.excNoteText, CW); txt(t, M, y, { size: 8, color: INK2 }); y += t.length * 3.8 + 3; }
+// ---------- billing entity notes: above payment options ----------
 if (iss.notes) { const nl = doc.splitTextToSize(String(iss.notes), CW); txt(nl, M, y, { size: 7.8, color: MUTED }); y += nl.length * 3.6 + 4; }
 
 // ---------- payment options ----------
