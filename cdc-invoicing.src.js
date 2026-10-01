@@ -64,15 +64,18 @@ function _invTrimLogo(src) {
           var empty = a < 16 || (d[i] > 246 && d[i + 1] > 246 && d[i + 2] > 246);
           if (!empty) { if (xx < minX) minX = xx; if (xx > maxX) maxX = xx; if (yy < minY) minY = yy; if (yy > maxY) maxY = yy; }
         }
-        if (maxX < 0) return resolve(_invLogoCache[src] = src);
+        if (maxX < 0) { minX = 0; minY = 0; maxX = w - 1; maxY = h - 1; }
         var pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.02);
         minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad); maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
         var o = document.createElement('canvas'); o.width = maxX - minX + 1; o.height = maxY - minY + 1;
-        o.getContext('2d').drawImage(c, minX, minY, o.width, o.height, 0, 0, o.width, o.height);
+        // flatten onto white: some transparent PNGs (palette / 16-bit) come out with a black
+        // background in the PDF, while the invoice page is white anyway
+        var ox = o.getContext('2d'); ox.fillStyle = '#FFFFFF'; ox.fillRect(0, 0, o.width, o.height);
+        ox.drawImage(c, minX, minY, o.width, o.height, 0, 0, o.width, o.height);
         resolve(_invLogoCache[src] = o.toDataURL('image/png'));
       } catch (e) { resolve(_invLogoCache[src] = src); }
     };
-    img.onerror = function () { resolve(src); };
+    img.onerror = function () { resolve(_invLogoCache[src] = src); };
     img.src = src;
   });
 }
@@ -373,6 +376,13 @@ toast('Invoice PDF exported');
 }
 
 function previewInvoicePDF(invId) {
+  var _pid = invId === 'preview' ? _currentInvId : invId;
+  var _pinv = _pid && (getInvDB().invoices || []).find(function (x) { return x.id === _pid; });
+  var _piss = _pinv && (getInvDB().invoicingIssuers || []).find(function (x) { return x.id === _pinv.issuerId; });
+  if (_piss && _piss.logo && !_invLogoCache[_piss.logo] && !previewInvoicePDF._logoWait) {
+    previewInvoicePDF._logoWait = true;
+    return _invTrimLogo(_piss.logo).then(function () { previewInvoicePDF._logoWait = false; return previewInvoicePDF(invId); });
+  }
   if (!_invFontData && !_invFontTried) return _invLoadFonts().then(function () { _invFontTried = true; return previewInvoicePDF(invId); });
   // If called from modal, use the current modal state
   var targetId = invId === 'preview' ? _currentInvId : invId;
