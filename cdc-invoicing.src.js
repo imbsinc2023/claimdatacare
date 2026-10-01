@@ -10,29 +10,27 @@
  */
 
 /* Website fonts for the invoice PDF: Sora (titles) and IBM Plex Sans (text), SIL Open Font
-   License. Small Latin-only files (about 90 KB in total) in /fonts, downloaded only the first
-   time an invoice PDF is generated and kept in memory; never loaded with the app itself.
-   If they cannot be loaded the PDF uses Helvetica as before. */
+   License. If they cannot be loaded the PDF uses Helvetica as before. */
+/* The fonts travel inside cdc-fonts.js (a normal script file next to app.html), so there is
+   no separate fonts folder to upload. It is downloaded only when an invoice PDF is made. */
 var _invFontData = null, _invFontLoading = null, _invFontTried = false;
 function _invLoadFonts() {
   if (_invFontData) return Promise.resolve(_invFontData);
+  if (window.__cdcInvFonts) { _invFontData = window.__cdcInvFonts; return Promise.resolve(_invFontData); }
   if (_invFontLoading) return _invFontLoading;
-  if (_invFontTried || typeof fetch !== 'function') return Promise.resolve(null);   // tried once already: Helvetica
-  var files = { plex: '/fonts/IBMPlexSans-Regular.ttf', plexB: '/fonts/IBMPlexSans-SemiBold.ttf', plexI: '/fonts/IBMPlexSans-Italic.ttf', plexBI: '/fonts/IBMPlexSans-SemiBoldItalic.ttf', sora: '/fonts/Sora-Bold.ttf' };
-  var b64 = function (buf) { var b = new Uint8Array(buf), s = '', i, n = 0x8000; for (i = 0; i < b.length; i += n) s += String.fromCharCode.apply(null, b.subarray(i, i + n)); return btoa(s); };
-  // a real TrueType file starts with 00 01 00 00 (or "true"); hosts that answer missing files
-  // with the app page would otherwise hand back HTML, which silently fell back to Helvetica
-  var isTTF = function (buf) { var v = new Uint8Array(buf, 0, 4); return (v[0] === 0 && v[1] === 1 && v[2] === 0 && v[3] === 0) || String.fromCharCode(v[0], v[1], v[2], v[3]) === 'true'; };
-  _invFontLoading = Promise.all(Object.keys(files).map(function (k) {
-    return fetch(files[k], { cache: 'force-cache' }).then(function (r) { if (!r.ok) throw new Error(files[k] + ' (' + r.status + ')'); return r.arrayBuffer(); })
-      .then(function (buf) { if (!isTTF(buf)) throw new Error(files[k] + ' is not a font file'); return [k, b64(buf)]; });
-  })).then(function (pairs) { var o = {}; pairs.forEach(function (p) { o[p[0]] = p[1]; }); _invFontData = o; return o; })
-    .catch(function (e) {
+  if (_invFontTried) return Promise.resolve(null);
+  _invFontLoading = new Promise(function (resolve) {
+    var sc = document.createElement('script');
+    sc.src = 'cdc-fonts.js?v=1';
+    sc.onload = function () { _invFontData = window.__cdcInvFonts || null; _invFontLoading = null; if (!_invFontData) _invFontTried = true; resolve(_invFontData); };
+    sc.onerror = function () {
       _invFontTried = true; _invFontLoading = null;
-      console.warn('[CDC] invoice fonts not loaded, using Helvetica:', e && e.message);
-      try { toast('Invoice fonts not found on the server (/fonts) • PDF uses Helvetica', 'warn'); } catch (e2) {}
-      return null;
-    });
+      console.warn('[CDC] cdc-fonts.js not found, invoice PDF uses Helvetica');
+      try { toast('cdc-fonts.js not found on the server • PDF uses Helvetica', 'warn'); } catch (e) {}
+      resolve(null);
+    };
+    document.head.appendChild(sc);
+  });
   return _invFontLoading;
 }
 function _invUseFonts(doc) {
@@ -171,11 +169,11 @@ y = Math.max(block(iss, M, y, 'FROM', true), block(cli, col2, y, 'BILL TO', fals
 doc.setFillColor(...HEAD); doc.rect(M, y - 4.6, CW, 7.2, 'F');
 txt('DESCRIPTION', M + 3, y, { size: 6.8, bold: true, color: INK2 });
 txt('AMOUNT', RX - 3, y, { size: 6.8, bold: true, color: INK2, align: 'right' });
-y += 2.6; line(M, y, RX, y, ACCENT, 0.5); y += 5.5;
+y += 2.6; line(M, y, RX, y, INK, 0.35); y += 5.5;
 (inv.svcLines || []).filter(l => l.desc || (l.amount && parseFloat(l.amount) !== 0)).forEach(l => {
   const d = doc.splitTextToSize(String(l.desc || '').toUpperCase(), CW - 45);
   txt(d, M + 3, y, { size: 8.5, color: INK });
-  if (l.amount && parseFloat(l.amount) !== 0) txt(money(l.amount), RX - 3, y, { size: 8.5, bold: true, color: ACCENT, align: 'right' });
+  if (l.amount && parseFloat(l.amount) !== 0) txt(money(l.amount), RX - 3, y, { size: 8.5, color: INK, align: 'right' });
   y += 4 * d.length + 2; line(M, y - 1.5, RX, y - 1.5); y += 4;
 });
 const svcTotal = (inv.svcLines || []).reduce((a2, l) => a2 + (parseFloat(l.amount) || 0), 0);
@@ -187,7 +185,7 @@ const tx = RX - 72;
 y += 2;
 txt('Subtotal', tx, y, { size: 8.5, color: INK2 }); txt(money(svcTotal), RX, y, { size: 8.5, color: INK, align: 'right' }); y += 5.5;
 if (paid > 0) { txt('Paid', tx, y, { size: 8.5, color: INK2 }); txt('- ' + money(paid), RX, y, { size: 8.5, color: INK, align: 'right' }); y += 5.5; }
-line(tx, y - 2, RX, y - 2, ACCENT, 0.5); y += 3.5;
+line(tx, y - 2, RX, y - 2, INK, 0.35); y += 3.5;
 txt(paid > 0 ? 'Balance due' : 'Total due', tx, y, { size: 10, head: true, color: INK });
 txt(money(Math.max(0, svcTotal - paid)), RX, y, { size: 12.5, bold: true, color: ACCENT, align: 'right' });
 y += 14;
@@ -217,13 +215,12 @@ if (noteParas.length) {
   });
   const boxH = PAD + 4 + lines.length * LH + PAD - 1;
   if (y + boxH > 268) { doc.addPage(); topBar(); y = M + 4; }
-  doc.setFillColor(...T.bg); doc.roundedRect(M, y, CW, boxH, 2, 2, 'F');
-  doc.setFillColor(...T.fg); doc.roundedRect(M, y, BAR + 1, boxH, 1, 1, 'F'); doc.rect(M + 1, y, BAR, boxH, 'F');
-  txt(T.label.toUpperCase(), M + BAR + PAD, y + PAD + 1.6, { size: 6.8, bold: true, color: T.fg });
+  doc.setFillColor(...T.fg); doc.rect(M, y + 0.5, 0.9, boxH - 1, 'F');
+  txt(T.label.toUpperCase(), M + BAR + PAD, y + PAD + 1.6, { size: 6.8, bold: true, color: MUTED });
   let ny = y + PAD + 4 + 3.2;
   lines.forEach(l => {
     let nx = M + BAR + PAD + l.indent;
-    if (l.bullet) txt('\u2022', M + BAR + PAD + 0.6, ny, { size: FS, bold: true, color: T.fg });
+    if (l.bullet) txt('\u2022', M + BAR + PAD + 0.6, ny, { size: FS, color: INK2 });
     l.parts.forEach(pt => {
       doc.setFont(BODY, styleOf(pt.r)); doc.setFontSize(FS); doc.setTextColor(...INK);
       doc.text(pt.t, nx, ny);
@@ -272,14 +269,11 @@ if (y + boxH + 18 > 272) { doc.addPage(); topBar(); y = M + 4; }
 txt('PAYMENT OPTIONS', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
 const half = CW / 2;
 // title bands (soft blue / soft tomato) clipped to the box corners
-doc.setFillColor(222,242,250); doc.roundedRect(M, y, half, bandH + 2, 2, 2, 'F'); doc.rect(M, y + 2, half, bandH, 'F');
-doc.setFillColor(255,228,221); doc.roundedRect(M + half, y, half, bandH + 2, 2, 2, 'F'); doc.rect(M + half, y + 2, half, bandH, 'F');
-doc.setFillColor(255,255,255); doc.rect(M, y + bandH, CW, 2.2, 'F');
 doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
 line(M, y + bandH, RX, y + bandH, LINE, 0.3);
 line(M + half, y, M + half, y + boxH, LINE, 0.3);
-txt('Preferred  \u2022  no processing fees', M + 5, y + 4.7, { size: 8, bold: true, color: [10,106,140] });
-txt('4.5% bank processing fee', M + half + 5, y + 4.7, { size: 8, bold: true, color: [200,56,30] });
+txt('Preferred  \u2022  no processing fees', M + 5, y + 4.7, { size: 8, bold: true, color: INK });
+txt('4.5% bank processing fee', M + half + 5, y + 4.7, { size: 8, bold: true, color: INK2 });
 let ly2 = y + bandH + 3 + 3.6;
 const lx = M + 5, rx2 = M + half + 5;
 zRows.forEach(v => { zelleRow(v, lx - 0.6, ly2); ly2 += ROWH; });
@@ -307,21 +301,21 @@ if (inv.lines && inv.lines.length) {
   const head = () => {
     doc.setFillColor(...HEAD); doc.rect(M, py - 4.6, CW, 7.2, 'F');
     cols.forEach(c => txt(c.label, c.right ? c.x - 3 : c.x + 3, py, { size: 6.8, bold: true, color: INK2, align: c.right ? 'right' : 'left' }));
-    py += 2.6; line(M, py, RX, py, ACCENT, 0.5); py += 5.5;
+    py += 2.6; line(M, py, RX, py, INK, 0.35); py += 5.5;
   };
   head();
   let total = 0;
   inv.lines.forEach(l => {
     if (py > 270) { doc.addPage(); topBar(); py = M + 4; head(); }
     cols.forEach(c => {
-      if (c.right) txt(money(parseFloat(l.amount) || 0), c.x - 3, py, { size: 8.3, bold: true, color: ACCENT, align: 'right' });
+      if (c.right) txt(money(parseFloat(l.amount) || 0), c.x - 3, py, { size: 8.3, color: INK, align: 'right' });
       else txt(String(l[c.key] || '').toUpperCase().slice(0, Math.max(4, Math.floor(c.w / 2.0))), c.x + 3, py, { size: 8.3, color: INK2 });
     });
     line(M, py + 2.3, RX, py + 2.3); total += parseFloat(l.amount) || 0; py += 7;
   });
-  py += 2; line(M, py - 2, RX, py - 2, ACCENT, 0.5); py += 4;
+  py += 2; line(M, py - 2, RX, py - 2, INK, 0.35); py += 4;
   txt('Total revenue', M + 3, py, { size: 9.5, bold: true, color: INK });
-  txt(money(total), RX - 3, py, { size: 11, bold: true, color: ACCENT, align: 'right' });
+  txt(money(total), RX - 3, py, { size: 11, bold: true, color: INK, align: 'right' });
 }
 
 // ---------- footer on every page ----------
@@ -748,10 +742,10 @@ function recalcInvoice() {
 
 /* ---------------- Invoice note: rich text (bold, italic, underline, bullets) + tone ---------------- */
 var _INV_NOTE_TONES = {
-  none: { label: 'Note', bg: [246,248,251], fg: [88,101,121], css: '#586579' },
-  good: { label: 'Good', bg: [231,246,239], fg: [14,122,85], css: '#0E7A55' },
-  warn: { label: 'Warning', bg: [254,246,224], fg: [166,106,16], css: '#A66A10' },
-  bad:  { label: 'Alert', bg: [253,232,228], fg: [200,56,30], css: '#C8381E' }
+  none: { label: 'Note', fg: [140,152,171] },
+  good: { label: 'Note', fg: [14,122,85] },
+  warn: { label: 'Please note', fg: [196,140,30] },
+  bad:  { label: 'Important', fg: [200,56,30] }
 };
 // keeps only b/strong/i/em/u, line breaks, paragraphs and lists; drops every attribute
 function _invSanitizeNote(html) {
@@ -1047,10 +1041,10 @@ function _invEnsureModals() {
         '</div>' +
         '<div class="invm-card"><h4>Invoice note</h4>' +
           '<div class="invm-tones"><input type="hidden" id="inv-note-tone" value="none">' +
-            '<button type="button" class="invm-tone on" data-tone="none" onclick="_invNoteTone(\'none\')"><i></i>Plain</button>' +
-            '<button type="button" class="invm-tone" data-tone="good" onclick="_invNoteTone(\'good\')"><i></i>Good</button>' +
-            '<button type="button" class="invm-tone" data-tone="warn" onclick="_invNoteTone(\'warn\')"><i></i>Warning</button>' +
-            '<button type="button" class="invm-tone" data-tone="bad" onclick="_invNoteTone(\'bad\')"><i></i>Alert</button></div>' +
+            '<button type="button" class="invm-tone on" data-tone="none" onclick="_invNoteTone(\'none\')"><i></i>Neutral</button>' +
+            '<button type="button" class="invm-tone" data-tone="good" onclick="_invNoteTone(\'good\')"><i></i>Positive</button>' +
+            '<button type="button" class="invm-tone" data-tone="warn" onclick="_invNoteTone(\'warn\')"><i></i>Caution</button>' +
+            '<button type="button" class="invm-tone" data-tone="bad" onclick="_invNoteTone(\'bad\')"><i></i>Important</button></div>' +
           '<div class="invm-tb">' +
             '<button type="button" class="invm-tbb" data-tip="Bold" aria-label="Bold" onmousedown="event.preventDefault();_invNoteCmd(\'bold\')"><i data-lucide="bold" class="lci"></i></button>' +
             '<button type="button" class="invm-tbb" data-tip="Italic" aria-label="Italic" onmousedown="event.preventDefault();_invNoteCmd(\'italic\')"><i data-lucide="italic" class="lci"></i></button>' +
