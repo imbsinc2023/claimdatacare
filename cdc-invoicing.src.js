@@ -114,9 +114,10 @@ function _invMonthOnly(v) {
   return full || t;
 }
 
-function _buildInvoicePDF(invId) {
+function _buildInvoicePDF(invId, opts) {
+opts = opts || {};
 const db = getInvDB();
-const inv = db.invoices.find(x => x.id === invId);
+const inv = opts.inv || db.invoices.find(x => x.id === invId);
 if (!inv) return null;
 const iss = db.invoicingIssuers.find(x => x.id === inv.issuerId) || {};
 const cli = resolveInvClient(inv.clientId, db) || {};
@@ -375,7 +376,7 @@ if (inv.lines && inv.lines.length) {
   };
   head();
   let total = 0;
-  inv.lines.forEach(l => {
+  _invSortLines(inv.lines).forEach(l => {
     if (py > 270) { doc.addPage(); topBar(); py = M + 4; head(); }
     cols.forEach(c => {
       if (c.right) txt(money(parseFloat(l.amount) || 0), c.x - 3, py, { size: 8.3, color: INK, align: 'right' });
@@ -391,6 +392,9 @@ if (inv.lines && inv.lines.length) {
   txt('Total revenue', M + 3, py, { size: 9.5, bold: true, color: INK });
   txt(money(total), RX - 3, py, { size: 11, bold: true, color: INK, align: 'right' });
 }
+
+// payments-only export: drop the invoice page, keep the payment detail page(s)
+if (opts.paymentsOnly && doc.getNumberOfPages() > 1) doc.deletePage(1);
 
 // ---------- footer on every page ----------
 const pages = doc.getNumberOfPages();
@@ -500,7 +504,11 @@ const knownHeaders = {
   'payer': 'insurance',
   'invoice number': 'invoiceNum',
   'invoice month': 'month',
-  'month': 'month'
+  'month': 'month',
+  'notes': 'notes',
+  'note': 'notes',
+  'comments': 'notes',
+  'memo': 'notes'
 };
 
 for (const line of lines) {
@@ -535,6 +543,7 @@ for (const line of lines) {
       insurance:  get('insurance'),
       invoiceNum: get('invoiceNum'),
       month:      get('month'),
+      notes:      get('notes'),
       status:     get('status'),
       amount:     (!isNaN(parsedAmt) && parsedAmt > 0) ? parsedAmt.toFixed(2) : ''
     };
@@ -550,7 +559,8 @@ for (const line of lines) {
       status:     cols[4] || '',
       insurance:  cols[5] || '',
       invoiceNum: cols[6] || '',
-      month:      cols[7] || ''
+      month:      cols[7] || '',
+      notes:      cols.slice(8).filter(Boolean).join(' ')
     };
     // If amount still not found, scan remaining cols
     if (!obj.amount) {
@@ -565,6 +575,34 @@ for (const line of lines) {
   if (obj.date || obj.amount) result.push(obj);
 }
 return result;
+}
+
+// Upload a CSV or Excel file of payments (same columns as "paste from Excel")
+function importPaymentFile(ev) {
+  var input = ev && ev.target, f = input && input.files && input.files[0]; if (!f) return;
+  var done = function (text) {
+    var parsed = parsePastedLines(text || '');
+    if (input) input.value = '';
+    if (!parsed.length) { toast('No valid lines found in ' + f.name, 'warn'); return; }
+    parsed.forEach(function (p) { _invLines.push(p); });
+    renderInvLines();
+    toast(parsed.length + ' line(s) imported from ' + f.name);
+  };
+  var rd = new FileReader();
+  if (/\.(xlsx|xls)$/i.test(f.name)) {
+    if (typeof XLSX === 'undefined') { toast('Excel import is not available', 'err'); return; }
+    rd.onload = function (e) {
+      try {
+        var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        done(XLSX.utils.sheet_to_csv(ws, { FS: '\t', dateNF: 'yyyy-mm-dd' }));
+      } catch (err) { toast('Could not read ' + f.name, 'err'); }
+    };
+    rd.readAsArrayBuffer(f);
+  } else {
+    rd.onload = function (e) { done(String(e.target.result || '')); };
+    rd.readAsText(f);
+  }
 }
 
 function importPastedLines() {
@@ -819,6 +857,46 @@ function recalcInvoice() {
   }
 }
 
+/* ---------------- Payment details: order and export ---------------- */
+function _invDateCmp(a, b) {                 // newest first, rows without a date at the end
+  var x = a && a.date || '', y = b && b.date || '';
+  if (!x && !y) return 0; if (!x) return 1; if (!y) return -1;
+  return x < y ? 1 : x > y ? -1 : 0;
+}
+function _invSortLines(lines) { return (lines || []).slice().sort(_invDateCmp); }
+// the invoice as it is in the window right now (unsaved edits included)
+function _invCurrentDraft() {
+  var g = function (id) { var e = document.getElementById(id); return e ? e.value : ''; };
+  var id = g('inv-id'), saved = id ? (getInvDB().invoices || []).find(function (x) { return x.id === id; }) : null;
+  return Object.assign({}, saved || {}, { id: id || 'draft', issuerId: g('inv-issuer'), clientId: g('inv-client'), number: g('inv-number'), month: g('inv-month'), lines: _invSortLines(_invLines) });
+}
+function _invExportName(inv, ext) {
+  var cli = String(_resolveInvClientName(inv.clientId, getInvDB()) || 'Client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  return 'Payments_' + cli + '_' + String(inv.month || inv.number || '').replace(/[^A-Za-z0-9]+/g, '_') + '.' + ext;
+}
+async function exportInvPaymentsPDF() {
+  if (!(_invLines || []).length) { toast('No payments to export', 'warn'); return; }
+  await _invLoadFonts();
+  var inv = _invCurrentDraft();
+  var doc = _buildInvoicePDF(inv.id, { inv: inv, paymentsOnly: true });
+  if (doc) doc.save(_invExportName(inv, 'pdf'));
+}
+function exportInvPaymentsExcel() {
+  if (!(_invLines || []).length) { toast('No payments to export', 'warn'); return; }
+  if (typeof XLSX === 'undefined') { toast('Excel export is not available', 'err'); return; }
+  var inv = _invCurrentDraft();
+  var rows = [['Date', 'Description', 'Payment ID', 'Amount', 'Status', 'Insurance', 'Invoice month', 'Notes']];
+  var total = 0;
+  inv.lines.forEach(function (l) { var a = parseFloat(l.amount) || 0; total += a; rows.push([l.date || '', l.desc || '', l.paymentId || '', a, l.status || '', l.insurance || '', l.month || '', l.notes || '']); });
+  rows.push([]); rows.push(['', '', 'Total revenue', Math.round(total * 100) / 100]);
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 24 }, { wch: 16 }, { wch: 30 }];
+  ws['!autofilter'] = { ref: 'A1:H' + (inv.lines.length + 1) };
+  for (var r = 2; r <= rows.length; r++) { var c = ws['D' + r]; if (c && typeof c.v === 'number') c.z = '"$"#,##0.00'; }
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+  XLSX.writeFile(wb, _invExportName(inv, 'xlsx'));
+}
+
 /* ---------------- Invoice note: rich text (bold, italic, underline, bullets) + tone ---------------- */
 var _INV_NOTE_TONES = {
   none: { label: 'Additional information', fg: [140,152,171] },
@@ -982,6 +1060,8 @@ var _INV_CSS = [
   '.invm-hint{font-size:11px;color:#586579;margin:2px 0 6px}',
   '.invm-ib{position:relative;width:34px;height:34px;flex:none;box-sizing:border-box;border:1px solid #E4E9F1;border-radius:10px;background:#fff;color:#3A475C;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s}',
   '.invm-ib .lci{width:16px;height:16px}',
+  '.invm-ib.xl{color:#0E7A55}',
+  '.invm-vsep{width:1px;height:22px;background:#E4E9F1;margin:0 4px}',
   '.invm-ib:hover{background:rgba(255,106,61,.09);color:#D45C37;border-color:rgba(255,106,61,.35)}',
   '.invm-ftr{flex:none!important;display:flex!important;align-items:center;gap:8px;height:62px;box-sizing:border-box;padding:0 18px!important;border-top:1px solid #E4E9F1;background:#F8FAFC}',
   '#inv-svc-lines .inv-svc-row{margin-bottom:6px}',
@@ -1101,6 +1181,9 @@ function _invEnsureModals() {
           '<button type="button" class="invm-ib" id="inv-svc-add" data-tip="Add service line" aria-label="Add service line" onclick="addInvSvcLine()"><i data-lucide="plus" class="lci"></i></button></div>' +
           '<div id="inv-svc-lines"></div></section>' +
         '<section class="invm-sec"><div class="invm-sh"><h4>Payment details</h4><span class="invm-sp"></span>' +
+          '<button type="button" class="invm-ib" data-tip="Export table to PDF" aria-label="Export table to PDF" onclick="exportInvPaymentsPDF()"><i data-lucide="file-text" class="lci"></i></button>' +
+          '<button type="button" class="invm-ib xl" data-tip="Export table to Excel" aria-label="Export table to Excel" onclick="exportInvPaymentsExcel()"><i data-lucide="file-spreadsheet" class="lci"></i></button>' +
+          '<span class="invm-vsep"></span>' +
           '<button type="button" class="invm-ib" id="inv-paste-btn" data-tip="Paste from Excel" aria-label="Paste from Excel" onclick="togglePasteArea()"><i data-lucide="clipboard-paste" class="lci"></i></button>' +
           '<label class="invm-ib" data-tip="Upload CSV or Excel" aria-label="Upload CSV or Excel"><i data-lucide="upload" class="lci"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
           '<button type="button" class="invm-ib" data-tip="Add payment row" aria-label="Add payment row" onclick="addInvPayLine()"><i data-lucide="plus" class="lci"></i></button></div>' +
@@ -2010,16 +2093,13 @@ const INP = (val, ph, idx2, field) => { const v=U(val).replace(/"/g,'&quot;'); r
 const AMT = (val, i) => '<input type="number" step="0.01" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);text-align:right;box-sizing:border-box" value="'+(val||'')+'" placeholder="0.00" oninput="_invLines['+i+'].amount=this.value;try{recalcInvoice()}catch(e){}">';
 if (!_invLines.length) {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:14px;color:var(--text3);font-size:12px">No payments. Click + to add or paste from Excel.</td></tr>';
+  try { recalcInvoice(); } catch (e) {}
   return;
 }
-// Sort by date ascending, keep real index for _invSetter
-const _sorted = _invLines.map((l,i)=>({l,i})).sort((a,b)=>{
-  if (!a.l.date && !b.l.date) return 0;
-  if (!a.l.date) return 1; if (!b.l.date) return -1;
-  return a.l.date < b.l.date ? -1 : a.l.date > b.l.date ? 1 : 0;
-});
+// Newest date first (a new row lands where its date belongs); keep real index for _invSetter
+const _sorted = _invLines.map((l,i)=>({l,i})).sort((a,b)=>_invDateCmp(a.l,b.l));
 tbody.innerHTML = _sorted.map(({l, i}) => '<tr style="border-bottom:1px solid var(--border)">'
-+'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value"></td>'
++'<td style="padding:2px 3px;white-space:nowrap"><input type="date" style="font-size:11px;padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--bg2);color:var(--text);width:105px" value="'+(l.date||'')+'" oninput="_invLines['+i+'].date=this.value" onchange="_invLines['+i+'].date=this.value;renderInvLines()"></td>'
 +'<td style="padding:2px 3px;min-width:80px">'+INP(l.desc,'MEDICAL BILLING',i,'desc')+'</td>'
 +'<td style="padding:2px 3px;min-width:65px">'+INP(l.paymentId,'ID/CHECK#',i,'paymentId')+'</td>'
 +'<td style="padding:2px 3px;min-width:60px">'+AMT(l.amount,i)+'</td>'
@@ -2031,6 +2111,7 @@ tbody.innerHTML = _sorted.map(({l, i}) => '<tr style="border-bottom:1px solid va
 +'<td style="padding:2px 3px;width:26px;text-align:center"><button title="Remove" class="btn btn-xs btn-danger" onclick="_invLines.splice('+i+',1);renderInvLines()"><i data-lucide="x" class="lci" style="width:11px;height:11px"></i></button></td>'
 +'</tr>').join('');
 setTimeout(_renderLucideIcons,10);
+try { recalcInvoice(); } catch (e) {}   // totals update as soon as rows are imported, added or removed
 }
 
 let _invImportedHeaders = [];
