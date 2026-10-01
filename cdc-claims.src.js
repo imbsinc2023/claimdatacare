@@ -4,7 +4,7 @@
  *
  * Replaces the claims list that lived in script1.js (renderClaims, setTab, paging,
  * sorting and selection helpers were removed there).
- *   • Status tabs beside the title, sliding indicator, no counters
+ *   • Status tabs beside the title as folder tabs (same as Invoicing), no counters
  *   • One filter row; select all / clear / Excel export on the right
  *   • Static layout: rows per page are computed from the screen height, so the table
  *     fits without scrolling; pagers are fixed top right and at the bottom
@@ -28,16 +28,15 @@
   var STYLE = [
     '#sec-claims.section{overflow:hidden}',
     '.clm{display:flex;flex-direction:column;height:100%;min-height:0;gap:10px}',
-    '.clm-hd{flex:none;display:flex;align-items:center;gap:18px;min-height:40px}',
-    '.clm-title{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}',
-    '.clm-tabs{position:relative;display:flex;gap:2px;padding:3px;border-radius:12px;background:#F4F6FA;min-width:0;overflow-x:auto;scrollbar-width:none}',
+    /* folder tabs beside the title, same as Invoicing */
+    '.clm-hd{flex:none;display:flex;align-items:flex-end;gap:22px;min-height:46px;border-bottom:1px solid #E4E9F1}',
+    '.clm-title{margin:0 0 8px;font-size:20px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}',
+    '.clm-tabs{display:flex;gap:4px;margin-bottom:-1px;min-width:0;overflow-x:auto;scrollbar-width:none}',
     '.clm-tabs::-webkit-scrollbar{display:none}',
-    '.clm-ind{position:absolute;top:3px;bottom:3px;left:3px;width:0;border-radius:9px;background:#fff;box-shadow:0 2px 6px -1px rgba(11,21,38,.16),0 0 0 1px #EEF1F6;transition:left .28s cubic-bezier(.3,.8,.3,1),width .28s cubic-bezier(.3,.8,.3,1);pointer-events:none}',
-    '.clm-ind:after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7)}',
-    '.clm-tab{position:relative;z-index:1;height:32px;padding:0 14px;border:0;border-radius:9px;background:none;font-family:inherit;font-size:12.5px;font-weight:600;color:#586579;cursor:pointer;white-space:nowrap;transition:color .2s}',
-    '.clm-tab:hover{color:#0B1526}',
-    '.clm-tab.on{color:#D45C37}',
-    '.clm-pager{margin-left:auto;flex:none;display:flex;align-items:center;gap:6px;min-width:330px;justify-content:flex-end}',
+    '.clm-tab{height:38px;padding:0 16px;border:1px solid transparent;border-bottom:1px solid #E4E9F1;border-radius:10px 10px 0 0;background:#F4F6FA;font-family:inherit;font-size:12.5px;font-weight:600;color:#586579;cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}',
+    '.clm-tab:hover{background:#EEF1F6;color:#0B1526}',
+    '.clm-tab.on{background:#fff;border-color:#E4E9F1;border-bottom-color:#fff;color:#D45C37;box-shadow:inset 0 2px 0 #FF6A3D;cursor:default}',
+    '.clm-pager{margin-left:auto;margin-bottom:6px;flex:none;display:flex;align-items:center;gap:6px;min-width:330px;justify-content:flex-end}',
     '.clm-pg-info{font-size:11.5px;color:#586579;white-space:nowrap;min-width:120px;text-align:right;font-variant-numeric:tabular-nums}',
     '.clm-pg-b{width:28px;height:28px;border:1px solid #E4E9F1;border-radius:8px;background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;transition:border-color .15s,color .15s}',
     '.clm-pg-b:hover{border-color:#D5DCE7;color:#0B1526}',
@@ -89,7 +88,7 @@
     sec.innerHTML =
       '<div class="clm">' +
         '<div class="clm-hd"><h1 class="clm-title">Claims</h1>' +
-          '<div class="clm-tabs" id="clm-tabs" role="tablist"><span class="clm-ind" id="clm-ind"></span>' +
+          '<div class="clm-tabs" id="clm-tabs" role="tablist">' +
             TABS.map(function (t) { return '<button type="button" role="tab" class="clm-tab" data-t="' + t[0] + '" onclick="cdcClaimsTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('') +
           '</div>' +
           '<div class="clm-pager" id="clm-pg-top"></div>' +
@@ -214,10 +213,8 @@
   }
 
   function moveInd() {
-    var tabs = document.getElementById('clm-tabs'), ind = document.getElementById('clm-ind'); if (!tabs || !ind) return;
-    var on = null;
-    tabs.querySelectorAll('.clm-tab').forEach(function (b) { var a = b.getAttribute('data-t') === S.tab; b.classList.toggle('on', a); b.setAttribute('aria-selected', a); if (a) on = b; });
-    if (on) { ind.style.left = on.offsetLeft + 'px'; ind.style.width = on.offsetWidth + 'px'; }
+    var tabs = document.getElementById('clm-tabs'); if (!tabs) return;
+    tabs.querySelectorAll('.clm-tab').forEach(function (b) { var a = b.getAttribute('data-t') === S.tab; b.classList.toggle('on', a); b.setAttribute('aria-selected', a); });
   }
 
   /* ---------------- render ---------------- */
