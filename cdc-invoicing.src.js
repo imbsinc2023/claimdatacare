@@ -19,17 +19,19 @@ function _invLoadFonts() {
   if (window.__cdcInvFonts) { _invFontData = window.__cdcInvFonts; return Promise.resolve(_invFontData); }
   if (_invFontLoading) return _invFontLoading;
   if (_invFontTried) return Promise.resolve(null);
-  _invFontLoading = new Promise(function (resolve) {
-    var sc = document.createElement('script');
-    sc.src = 'cdc-fonts.js?v=__CDC_BUILD__';
-    sc.onload = function () { _invFontData = window.__cdcInvFonts || null; _invFontLoading = null; if (!_invFontData) _invFontTried = true; resolve(_invFontData); };
-    sc.onerror = function () {
-      _invFontTried = true; _invFontLoading = null;
-      console.warn('[CDC] cdc-fonts.js not found, invoice PDF uses Helvetica');
-      try { toast('cdc-fonts.js not found on the server • PDF uses Helvetica', 'warn'); } catch (e) {}
-      resolve(null);
-    };
-    document.head.appendChild(sc);
+  // same loader (and same folder) as every other module, so if cdc-invoicing.js loads, this does too
+  var load = (typeof _cdcLoadModule === 'function') ? function () { return _cdcLoadModule('cdc-fonts.js'); }
+    : function () { return new Promise(function (ok, ko) { var sc = document.createElement('script'); sc.src = 'cdc-fonts.js?v=__CDC_BUILD__'; sc.onload = ok; sc.onerror = ko; document.head.appendChild(sc); }); };
+  _invFontLoading = load().then(function () {
+    _invFontLoading = null; _invFontData = window.__cdcInvFonts || null;
+    if (!_invFontData) _invFontTried = true;
+    return _invFontData;
+  }, function () {
+    _invFontTried = true; _invFontLoading = null;
+    var where = location.origin + location.pathname.replace(/[^/]*$/, '') + 'cdc-fonts.js';
+    console.warn('[CDC] invoice fonts: could not load ' + where);
+    try { toast('Fonts file not found: ' + where + ' • PDF uses Helvetica', 'warn'); } catch (e) {}
+    return null;
   });
   return _invFontLoading;
 }
