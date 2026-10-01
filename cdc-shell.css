@@ -108,3 +108,7 @@
 .cdc-neutral:hover{background:#2A3445;box-shadow:0 0 0 3px rgba(58,71,92,.2)}
 .cdc-ok[disabled],.cdc-no[disabled],.cdc-alt[disabled],.cdc-neutral[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
 .cdc-ok .lci,.cdc-no .lci,.cdc-alt .lci,.cdc-neutral .lci,.cdc-ok svg,.cdc-no svg,.cdc-alt svg,.cdc-neutral svg{width:15px;height:15px;flex:none;color:#fff}
+
+/* Window footer, same in every window: summary on the left, buttons together on the right */
+.cdc-ftr{flex:none!important;display:flex!important;align-items:center;gap:10px;height:64px;box-sizing:border-box;padding:0 20px!important;margin:0!important;border-top:1px solid #E4E9F1;background:#F8FAFC}
+.cdc-ftr .sum{margin-right:auto;font-size:12.5px;color:#3A475C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

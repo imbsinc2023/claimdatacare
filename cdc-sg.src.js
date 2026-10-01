@@ -167,11 +167,11 @@
       var kind = t.indexOf('secondary') >= 0 ? 'secondary' : t.indexOf('tertiary') >= 0 ? 'tertiary' : 'primary';
       var src = kind, n = 2;
       while (out.some(function (x) { return x.source === src; })) { src = kind + n; n++; }
-      out.push({ source: src, kind: kind, iv: iv, payerId: payerId, payerName: payerName, memberId: iv.memberId || iv.insnum || '',
+      out.push({ source: src, kind: kind, iv: iv, payerId: payerId, payerName: payerName, memberId: iv.memberId || iv.policy || iv.subNum || iv.insnum || '',
         key: (iv.payerId || iv.payerid || '') + '|' + (iv.name || iv.payerName || '') });
     });
     if (!out.length && (pat.payerid || pat.payername || pat.payerName)) {
-      out.push({ source: 'primary', kind: 'primary', payerId: pat.payerid || '', payerName: pat.payername || pat.payerName || '', memberId: pat.insnum || '', key: (pat.payerid || '') + '|' + (pat.payername || pat.payerName || '') });
+      out.push({ source: 'primary', kind: 'primary', payerId: pat.payerid || '', payerName: pat.payername || pat.payerName || '', memberId: pat.subNum || pat.insnum || '', key: (pat.payerid || '') + '|' + (pat.payername || pat.payerName || '') });
     }
     return out;
   }
@@ -378,9 +378,10 @@
   var PK_CSS = [
     '.sgp-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 20px}',
     '.sgp-flt{flex:none;display:grid;grid-template-columns:minmax(0,2fr) 130px minmax(0,1.2fr) 170px;gap:10px}',
-    '.sgp-bar{flex:none;height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;font-size:12px;color:#586579}',
+    '.sgp-bar{flex:none;height:44px;display:flex;align-items:center;gap:6px;padding:0 10px 0 14px;border-radius:12px;background:#F8FAFC;border:1px solid #EEF1F6;font-size:12.5px;color:#586579}',
+    '.sgp-bar .vs{width:1px;height:22px;background:#E4E9F1;margin:0 8px}',
     '.sgp-bar b{color:#D45C37}',
-    '.sgp-bar .lk{border:0;background:none;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background-color .15s,color .15s}',
+    '.sgp-bar .lk{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}',
     '.sgp-bar .lk:hover{background:rgba(255,106,61,.09);color:#D45C37}',
     '.sgp-list{flex:1;min-height:0;overflow:hidden;border:1px solid #EEF1F6;border-radius:14px;background:#fff}',
     '.sgp-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}',
@@ -395,12 +396,11 @@
     '.sgp-mono{font-family:var(--mono,monospace);font-size:11.5px;color:#3A475C}',
     '.sgp-pay{color:#3A475C;font-weight:600}',
     '.sgp-empty{height:100%;display:flex;align-items:center;justify-content:center;color:#586579;font-size:13px}',
-    '.sgp-pg{display:flex;align-items:center;gap:6px;margin-left:auto}',
+    '.sgp-pg{display:flex;align-items:center;gap:6px}',
     '.sgp-pg span{font-size:11.5px;color:#586579;font-variant-numeric:tabular-nums;min-width:110px;text-align:right}',
     '.sgp-pg button{width:28px;height:28px;border:1px solid #E4E9F1;border-radius:8px;background:#fff;color:#3A475C;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:12px;font-weight:600}',
     '.sgp-pg button.on{background:#FF6A3D;border-color:#FF6A3D;color:#fff;cursor:default}',
     '.sgp-pg button[disabled]{opacity:.35;cursor:default}',
-    '.sgp-ftr .sum{font-size:12.5px;color:#3A475C}',
     '@media (max-width:900px){.sgp-flt{grid-template-columns:1fr 1fr}}'
   ].join('\n');
   function ensurePicker() {
@@ -417,17 +417,21 @@
           '<div class="sgx-f"><label>Payer</label><select id="sgpick-payer" onchange="_sgpFilter()"><option value="">All payers</option></select></div>' +
           '<div class="sgx-f"><label>Show</label><select id="sgpick-inclusion" onchange="_sgpFilter()"><option value="new">Not in this group</option><option value="all">All patients</option></select></div>' +
         '</div>' +
-        '<div class="sgp-bar"><span id="sgpick-count"></span><button type="button" class="lk" onclick="_sgpSelectPage(true)">Select page</button><button type="button" class="lk" onclick="_sgpSelectPage(false)">Clear</button><div class="sgp-pg" id="sgpick-pg"></div></div>' +
+        '<div class="sgp-bar"><span id="sgpick-count"></span><span style="flex:1"></span>' +
+          '<button type="button" class="lk" onclick="_sgpSelectPage(true)">' + ico('check-square', 14) + 'Select page</button>' +
+          '<button type="button" class="lk" onclick="_sgpSelectPage(false)">' + ico('square', 14) + 'Clear</button>' +
+          '<span class="vs"></span><div class="sgp-pg" id="sgpick-pg"></div></div>' +
         '<div class="sgp-list" id="sgpick-list"></div>' +
       '</div>' +
-      '<div class="modal-ftr invm-ftr sgp-ftr"><span class="sum" id="sgpick-selcount"></span><span class="invm-sp" style="flex:1"></span>' +
+      '<div class="cdc-ftr"><span class="sum" id="sgpick-selcount"></span>' +
         '<button type="button" class="cdc-no" onclick="closeModal(\'modal-sg-patients\')">' + ico('x', 15) + 'Cancel</button>' +
         '<button type="button" class="cdc-ok" id="sgpick-add" onclick="addSelectedSGPatients()">' + ico('user-plus', 15) + 'Add selected</button></div>' +
     '</div>';
     document.body.appendChild(w);
   }
   function payerOf(p) { var o = insOptions(p), pri = o.find(function (x) { return x.kind === 'primary'; }) || o[0]; if (pri) return pri.payerName; try { return _sgResolvePayerName(p, getDB()); } catch (e) { return ''; } }
-  function memberOf(p) { var o = insOptions(p), pri = o.find(function (x) { return x.kind === 'primary'; }) || o[0]; return (pri && pri.memberId) || p.insnum || ''; }
+  function memberOf(p) { var o = insOptions(p), pri = o.find(function (x) { return x.kind === 'primary'; }) || o[0]; return (pri && pri.memberId) || p.subNum || p.insnum || ''; }
+  function phoneOf(p) { return p.phone || p.phone2 || p.mobile || ''; }
 
   window.openSGPatientPicker = function () {
     if (!_sgForm) return;
@@ -451,7 +455,7 @@
     if (inc === 'new') list = list.filter(function (p) { return !inG.has(p.id); });
     if (sex) list = list.filter(function (p) { return String(p.sex || '').toUpperCase() === sex; });
     if (payer) list = list.filter(function (p) { return payerOf(p) === payer; });
-    if (q) list = list.filter(function (p) { return [p.first, p.last, p.mid, p.acct, p.dob, p.phone, p.insnum, payerOf(p), memberOf(p)].filter(Boolean).join(' ').toLowerCase().indexOf(q) >= 0; });
+    if (q) list = list.filter(function (p) { return [p.first, p.last, p.mid, p.acct, p.dob, phoneOf(p), p.insnum, payerOf(p), memberOf(p)].filter(Boolean).join(' ').toLowerCase().indexOf(q) >= 0; });
     list.sort(function (a, b) { return (a.last || '').localeCompare(b.last || '') || (a.first || '').localeCompare(b.first || ''); });
     return { list: list, inG: inG };
   }
@@ -481,7 +485,7 @@
           '<td><div class="sgx-who"><span class="sgx-av ' + avClass(p) + '">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((p.last || '').toUpperCase() + ', ' + (p.first || '').toUpperCase()) + '</div><div class="mt">File #' + esc(p.acct || '') + '</div></div></div></td>' +
           '<td class="sgp-mono">' + esc(p.dob || '') + (sx ? ' • ' + sx : '') + '</td>' +
           '<td class="sgp-pay" title="' + esc(payerOf(p)) + '">' + esc(payerOf(p) || '•') + '</td>' +
-          '<td class="sgp-mono">' + esc(memberOf(p) || '•') + '</td><td class="sgp-mono">' + esc(p.phone || '•') + '</td></tr>';
+          '<td class="sgp-mono">' + esc(memberOf(p) || '•') + '</td><td class="sgp-mono">' + esc(phoneOf(p) || '•') + '</td></tr>';
       }).join('') + '</tbody></table>';
     icons();
   };

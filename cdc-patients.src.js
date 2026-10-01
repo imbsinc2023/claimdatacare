@@ -22,7 +22,7 @@
   function isSA() { try { var s = getSession(); return s && s.role === 'Super Admin'; } catch (e) { return false; } }
   function ins(p) {
     var b = {}; try { b = _resolvePatientInsurance(p) || {}; } catch (e) {}
-    return { sub: p.subNum || b.subNum || '', pid: p.payerid || b.payerId || '', payer: p.payerName || b.name || '', plan: p.plan || b.plan || '', rel: p.relation || b.relation || '' };
+    return { sub: p.subNum || b.subNum || '', pid: p.payerid || b.payerId || '', payer: p.payerName || b.name || '', plan: p.plan || b.plan || '', rel: p.relation || p.rel || b.rel || '' };
   }
 
   var STYLE = [

@@ -718,14 +718,7 @@ function _injectMissingModals() {
 
   
 
-  _mk('modal-sg-catalog',
-    '<div class="modal modal-sm"><div class="modal-hdr"><div><div class="modal-t">Add from Catalog</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeSGCatalog()"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body"><div class="field" style="margin-bottom:8px"><input id="sgcat-q" placeholder="Search CPT..." oninput="renderSGCatalog()"></div>' +
-    '<div class="cpt-scroll" id="sgcat-list" style="max-height:300px"></div></div>' +
-    '<div class="modal-ftr"><button class="btn" onclick="closeSGCatalog()">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="addSGCatalogLines()">Add Selected</button></div></div>'
-  );
+  
 
   
 
@@ -8074,11 +8067,9 @@ toast(`Patient ${pat.last}, ${pat.first} deleted`);
 });}
 
 // ?? SG CATALOG ????????????????????????????????????????????????????????????????
-function openSGCatalog() {
-document.getElementById('sgcat-q').value=''; renderSGCatalog(); openModal('modal-sg-catalog');
-}
 
-function closeSGCatalog() { closeModal('modal-sg-catalog'); renderSGLines(); }
+
+
 
 // ?? EXPORT PROVIDER INFO SAVE ?????????????????????????????????????????????????
 function saveExportProviderInfo() {
@@ -10562,34 +10553,9 @@ oninput="batchSelSvcs[${i}].units=this.value||'1';renderBatchCatalogSelected();u
 </div>`;}).join('') + '</div></div>';
 }
 
-function renderSGCatalog() {
-const q = (document.getElementById('sgcat-q')?.value||'').toLowerCase();
-const db = getDB();
-const svcs = (db.services||[]).filter(s => !q || s.code.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q));
-const el = document.getElementById('sgcat-list');
-if (!el) return;
-el.innerHTML = svcs.slice(0,100).map(s => {
-const sel = _sgForm?.lines?.find(l=>l.cpt===s.code);
-return `<div class="cpt-item ${sel?'selected':''}" onclick="toggleSGCatalogSvc('${s.code}')">
-<div class="cpt-check">${sel?'?':''}</div>
-<span class="cpt-code">${s.code}</span>
-<span class="cpt-name">${s.desc}</span>
-<span class="cpt-rate">$${s.rate}</span>
-</div>`;
-}).join('') || '<div style="padding:20px;text-align:center;color:var(--text3)">No results</div>';
-}
 
-function toggleSGCatalogSvc(code) {
-if (!_sgForm) return;
-const db = getDB();
-const svc = db.services.find(s=>s.code===code);
-if (!svc) return;
-const idx = _sgForm.lines.findIndex(l=>l.cpt===code);
-if (idx>=0) _sgForm.lines.splice(idx,1);
-else _sgForm.lines.push({id:uid(),cpt:svc.code,mod1:svc.mod1||'',mod2:svc.mod2||'',mod3:svc.mod3||'',mod4:svc.mod4||'',units:svc.units||'1',charge:svc.rate||'0.00'});
-renderSGLines();
-renderSGCatalog();
-}
+
+
 
 function updateBulkBar(type) {
 
