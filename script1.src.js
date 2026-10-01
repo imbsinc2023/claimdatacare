@@ -3283,7 +3283,7 @@ function _ceSaveMore(claimId, lineIdx){
 // Back-compat aliases
 window._ceSaveAccident = function(claimId){ window._ceMoreTab='accident'; _ceSaveMore(claimId, 0); };
 window._ceClearAccident = function(claimId){
-  if(!confirm('Clear all Additional Info for this claim?\n\nThis includes Accident + all per-line details (Measurements, Drug, EPSDT, Anesthesia, Other).')) return;
+  return cdcConfirm('Clear all Additional Info for this claim?\n\nThis includes Accident + all per-line details (Measurements, Drug, EPSDT, Anesthesia, Other).').then((__ok)=>{if(!__ok)return;
   var db=getDB();
   var idx=(db.claims||[]).findIndex(function(c){return c.id===claimId;});
   if(idx<0) return;
@@ -3295,7 +3295,8 @@ window._ceClearAccident = function(claimId){
   toast('Cleared','ok');
   document.getElementById('modal-ce-more')?.remove();
   renderClaimEditor();
-};
+
+});};
 
 
 
@@ -3655,9 +3656,10 @@ function _storageMigrateClick() {
     '— only the heavy data leaves localStorage, which fixes the "Storage Full" warning.\n\n'+
     'STRONGLY recommended: click Cancel and run "Backup Data" first, then come back.\n\n'+
     'Continue with the migration now?';
-  if (!confirm(msg)) return;
+  return cdcConfirm(msg).then((__ok)=>{if(!__ok)return;
   _migrateAttachmentsToStorage();
-}
+
+});}
 
 function _loadPdfLib(cb, fallback) {
   if (window.PDFLib) { cb(); return; }
@@ -4191,22 +4193,24 @@ function _ceTransmitSingle(claimId){
 }
 
 function _ceCancelClaim(claimId){
-  if(!confirm('Cancel this claim?')) return;
+  return cdcConfirm('Cancel this claim?').then((__ok)=>{if(!__ok)return;
   setDB(function(db){var c=(db.claims||[]).find(function(x){return x.id===claimId;});if(c) c.status='voided';});
   addClaimLog(claimId, {type:'cancel', status:'warn', message:'Claim cancelled by user'});
   renderClaimEditor(); renderClaims();
   toast('Claim cancelled');
-}
+
+});}
 
 function _ceDeleteBill(claimId){
   if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
-  if(!confirm('Delete this claim permanently? This cannot be undone.')) return;
+  return cdcConfirm('Delete this claim permanently? This cannot be undone.').then((__ok)=>{if(!__ok)return;
   _logClaimEvent(claimId, 'cancel', 'Claim deleted permanently', 'Removed from database');
   setDB(function(db){db.claims=(db.claims||[]).filter(function(c){return c.id!==claimId;});});
   _deleteClaimDoc(claimId);
   go('claims');
   toast('Claim deleted');
-}
+
+});}
 
 function _ceLogClaim(claimId){
   // Switch to Log tab
@@ -4454,7 +4458,7 @@ function deletePatientConfirm(patId) {
   const pat = db.patients.find(p => p.id === patId);
   if (!pat) return;
   const name = (pat.last||'') + ', ' + (pat.first||'');
-  if (!confirm('DELETE patient: ' + name + '\n\nThis will also delete all claims for this patient. This action CANNOT be undone.\n\nAre you sure?')) return;
+  return cdcConfirm('DELETE patient: ' + name + '\n\nThis will also delete all claims for this patient. This action CANNOT be undone.\n\nAre you sure?').then((__ok)=>{if(!__ok)return;
   const claimIdsToDelete = (db.claims||[]).filter(c => c.patId === patId).map(c => c.id);
   setDB(db2 => {
     db2.patients = (db2.patients||[]).filter(p => p.id !== patId);
@@ -4464,7 +4468,8 @@ function deletePatientConfirm(patId) {
   claimIdsToDelete.forEach(id => _deleteClaimDoc(id));
   toast('Patient deleted','ok');
   renderPatients();
-}
+
+});}
 
 function openPatientModal(idx) {
 const db = getDB();
@@ -4738,11 +4743,12 @@ function deleteFacility(fid) {
 const db = getDB();
 const f = db.facilities.find(x => x.id === fid);
 if (!f) return;
-if (!confirm(`Delete facility "${f.name}"?\nClaims using this facility will keep their reference.`)) return;
+return cdcConfirm(`Delete facility "${f.name}"?\nClaims using this facility will keep their reference.`).then((__ok)=>{if(!__ok)return;
 setDB(db2 => { db2.facilities = db2.facilities.filter(x => x.id !== fid); });
 renderFacilities();
 toast('Facility deleted');
-}
+
+});}
 
 
 
@@ -5836,13 +5842,14 @@ closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-luci
 
 function delClaim(idx){
   if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
-  if(!confirm('Delete this claim?')) return;
+  return cdcConfirm('Delete this claim?').then((__ok)=>{if(!__ok)return;
   const db=getDB();
   const claimId=db.claims[idx]?.id;
   setDB(db2=>db2.claims.splice(idx,1));
   if(claimId) _deleteClaimDoc(claimId);
   renderClaims(); updateBadges(); toast('Claim deleted');
-}
+
+});}
 
 function toggleClaimActive(idx){
   const db=getDB();
@@ -6705,12 +6712,13 @@ if (btn) { btn.textContent = 'Access Admin Panel'; btn.disabled = false; }
 }
 
 function doAdminLogout() {
-if (!confirm('Exit Super Admin?')) return;
+return cdcConfirm('Exit Super Admin?').then((__ok)=>{if(!__ok)return;
 _adminUser = null;
 if (_auth) _auth.signOut().catch(() => {});
 updateAdminUI();
 toast('Exited Admin panel');
-}
+
+});}
 
 
 // ?? Admin render functions ??????????????????????????????
@@ -6720,7 +6728,7 @@ toast('Exited Admin panel');
 function deleteProvider(idx) {
 const db = getDB();
 const p = db.providers[idx];
-if (!confirm(`Delete provider "${p.name}"? This cannot be undone.`)) return;
+return cdcConfirm(`Delete provider "${p.name}"? This cannot be undone.`).then((__ok)=>{if(!__ok)return;
 setDB(db => db.providers.splice(idx, 1));
 if (activeProviderId === p.id) {
 const db2 = getDB();
@@ -6729,7 +6737,8 @@ rebuildProvSel();
 }
 renderAdminProviders();
 toast('Provider deleted');
-}
+
+});}
 
 function renderAdminServices() {
 const db = getDB();
@@ -7101,11 +7110,12 @@ toast('Service group saved ?');
 }
 
 function deleteSG(id) {
-if (!confirm('Delete this service group?')) return;
+return cdcConfirm('Delete this service group?').then((__ok)=>{if(!__ok)return;
 setDB(db => { db.serviceGroups = db.serviceGroups.filter(g => g.id !== id); });
 renderServiceGroups();
 toast('Service group deleted');
-}
+
+});}
 
 function openBulkFromSG(sgId) {
 // Pre-fill the batch modal with service group data
@@ -7649,11 +7659,9 @@ const provCount = data.providers?.length || 0;
 const patCount = data.patients?.length || 0;
 const claimCount = data.claims?.length || 0;
 
-if (!confirm(
-`Restore backup?\n\n` +
+return cdcConfirm(`Restore backup?\n\n` +
 ` ${provCount} providers\n ${patCount} patients\n ${claimCount} claims\n\n` +
-`This will overwrite current data. Continue?`
-)) { event.target.value = ''; return; }
+`This will overwrite current data. Continue?`).then(async (__ok)=>{if(!__ok){ event.target.value = ''; return; }
 
 window._restoreInProgress = true;
 toast('Restoring...');
@@ -7757,7 +7765,8 @@ try { updateBadges(); } catch(_) {}
 setTimeout(() => { window._restoreInProgress = false; }, 5000);
 toast(`Restored: ${provCount} providers · ${patCount} patients · ${claimCount} claims`);
 event.target.value = '';
-};
+
+});};
 reader.readAsText(file);
 }
 
@@ -8232,12 +8241,13 @@ const db=getDB(); const p=db.providers.find(x=>x.id===id); if(!p) return;
 const cc=db.claims.filter(c=>c.providerId===id).length, pc=db.patients.filter(x=>x.providerId===id).length;
 let warn='Delete '+p.name+'?\n\nThis cannot be undone.';
 if(cc||pc) warn+='\n\nWill also delete:'+(cc?'\n- '+cc+' claim(s)':'')+(pc?'\n- '+pc+' patient(s)':'')+'\n\nConsider marking Inactive instead.';
-if(!confirm(warn)) return;
+return cdcConfirm(warn).then((__ok)=>{if(!__ok)return;
 if(cc||pc){const typed=prompt('Type the provider name to confirm: '+p.name);if(typed!==p.name){toast('Name did not match — cancelled','warn');return;}}
 setDB(db=>{db.providers=db.providers.filter(x=>x.id!==id);db.claims=db.claims.filter(c=>c.providerId!==id);db.patients=db.patients.filter(x=>x.providerId!==id);db.facilities=db.facilities.filter(x=>x.providerId!==id);db.rendering=db.rendering.filter(x=>x.providerId!==id);db.referring=db.referring.filter(x=>x.providerId!==id);db.serviceGroups=(db.serviceGroups||[]).filter(x=>x.providerId!==id);});
 if(activeProviderId===id){const db2=getDB();activeProviderId=db2.providers[0]?.id||null;const sess=getSession();if(sess){sess.activeBillingProviderId=activeProviderId;setSession(sess);}}
 rebuildProvSel(); renderAdminProviders(); toast('Provider '+p.name+' deleted');
-}
+
+});}
 function toggleProviderStatus(id) {
 const db=getDB(); const idx=db.providers.findIndex(p=>p.id===id); if(idx<0) return;
 const newStatus=db.providers[idx].status==='Active'?'Inactive':'Active';
@@ -8286,14 +8296,15 @@ const cc=db.claims.filter(c=>c.patId===patientId).length;
 if(cc>0){toast(`Cannot delete ${pat.last}, ${pat.first} — used in ${cc} claim(s)`,'err');return;}
 const sgc=(db.serviceGroups||[]).filter(g=>g.patients&&g.patients.some(a=>a.patientId===patientId)).length;
 if(sgc>0){toast(`Cannot delete ${pat.last}, ${pat.first} — in ${sgc} service group(s)`,'err');return;}
-if(!confirm(`Delete patient ${pat.last}, ${pat.first} (${pat.acct})?
+return cdcConfirm(`Delete patient ${pat.last}, ${pat.first} (${pat.acct})?
 
-This cannot be undone.`)) return;
+This cannot be undone.`).then((__ok)=>{if(!__ok)return;
 setDB(db=>{db.patients=db.patients.filter(p=>p.id!==patientId);});
 _deletePatientDoc(patientId);
 renderPatients();
 toast(`Patient ${pat.last}, ${pat.first} deleted`);
-}
+
+});}
 
 // ?? SG CATALOG ????????????????????????????????????????????????????????????????
 function openSGCatalog() {
@@ -8819,7 +8830,7 @@ const claims = [..._selectedClaims].map(id => db.claims.find(c=>c.id===id)).filt
 
 if (action === 'delete') {
 if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
-if (!confirm(`Delete ${claims.length} claim(s)? This cannot be undone.`)) return;
+return cdcConfirm(`Delete ${claims.length} claim(s)? This cannot be undone.`).then((__ok)=>{if(!__ok)return;
 const idsToDelete = [..._selectedClaims];
 setDB(db2 => { db2.claims = db2.claims.filter(c => !_selectedClaims.has(c.id)); });
 idsToDelete.forEach(id => _deleteClaimDoc(id));
@@ -8827,7 +8838,8 @@ _selectedClaims.clear();
 renderClaims(); updateBadges();
 toast(`${claims.length} claim(s) deleted`);
 return;
-}
+
+});}
 
 if (['pending','submitted','accepted','rejected','draft'].includes(action)) {
 setDB(db2 => {
@@ -8911,14 +8923,15 @@ if (!claims.length) { toast('Select at least one claim','warn'); return; }
 
 if (action === 'delete') {
 if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
-if (!confirm(`Delete ${claims.length} claim(s)? This cannot be undone.`)) return;
+return cdcConfirm(`Delete ${claims.length} claim(s)? This cannot be undone.`).then(async (__ok)=>{if(!__ok)return;
 const idsToDelete2 = [..._selectedClaims];
 setDB(db => { db.claims = db.claims.filter(c => !_selectedClaims.has(c.id)); });
 idsToDelete2.forEach(id => _deleteClaimDoc(id));
 _selectedClaims.clear();
 renderClaims(); updateBadges(); toast(`${claims.length} claim(s) deleted`);
 return;
-}
+
+});}
 if (action === 'status') {
 const sub = document.getElementById('bulk-status-subtitle');
 if (sub) sub.textContent = claims.length + ' claim(s) selected';
@@ -9046,7 +9059,7 @@ return;
 exportBulkClaimsCSV(claims);
 // Mark as submitted after export
 if (filter === 'pending') {
-if (confirm(`Mark ${claims.length} pending claim(s) as "Submitted"?`)) {
+return cdcConfirm(`Mark ${claims.length} pending claim(s) as "Submitted"?`).then((__ok)=>{if(__ok){
 setDB(db2 => {
 db2.claims.forEach(c => {
 if (claims.find(x=>x.id===c.id)) { c.status='submitted'; c.updatedAt=Date.now(); }
@@ -9055,7 +9068,8 @@ if (claims.find(x=>x.id===c.id)) { c.status='submitted'; c.updatedAt=Date.now();
 renderClaims(); updateBadges();
 toast(`${claims.length} claim(s) marked as Submitted`);
 }
-}
+
+});}
 }
 
 
@@ -9286,11 +9300,7 @@ async function transmitDirect(filter) {
   // ClaimMD hard limit — warn if any claim has more than 50 service lines
   // (extra lines would be silently truncated by the CSV builder).
   var overLimit = claims.filter(function(c){ return (c.lines||[]).filter(function(l){return l.cpt;}).length > 50; });
-  if (overLimit.length) {
-    var pcns = overLimit.map(function(c){ return c.pcn||c.id; }).slice(0,3).join(', ');
-    var more = overLimit.length > 3 ? ' +'+(overLimit.length-3)+' more' : '';
-    if (!confirm('Warning: '+overLimit.length+' claim(s) exceed the 50-line ClaimMD limit ('+pcns+more+'). Only the first 50 lines will be sent. Split the claim first or continue anyway?')) return;
-  }
+  const __cdcGo=async ()=>{
 
   // Build CSV — this is what Clearinghouse accepts via file upload
   const rows = claims.map(function(c) {
@@ -9362,7 +9372,12 @@ async function transmitDirect(filter) {
     if (alertEl) alertEl.innerHTML = '<div class="alert al-error" style="font-size:13px">Transmission failed: ' + e.message + '</div>';
     toast('Transmission failed: ' + e.message, 'err');
   }
-}
+
+};if (overLimit.length) {
+    var pcns = overLimit.map(function(c){ return c.pcn||c.id; }).slice(0,3).join(', ');
+    var more = overLimit.length > 3 ? ' +'+(overLimit.length-3)+' more' : '';
+    return cdcConfirm('Warning: '+overLimit.length+' claim(s) exceed the 50-line ClaimMD limit ('+pcns+more+'). Only the first 50 lines will be sent. Split the claim first or continue anyway?').then(async (__ok)=>{if(!__ok)return;return __cdcGo();});
+  }return __cdcGo();}
 
 // ?? Clearinghouse Official CSV Format ??????????????????????????????????
 const CSV_COLS = [
@@ -11956,12 +11971,13 @@ toast('Note structured into SOAP format ?');
 }
 
 function _vClear() {
-if(!confirm('Clear the current note?')) return;
+return cdcConfirm('Clear the current note?').then((__ok)=>{if(!__ok)return;
 _vBuf='';
 const ta=document.getElementById('voice-note-output');
 if(ta) ta.value='';
 _stopVoice();
-}
+
+});}
 
 function saveAINote() {
 const ta=document.getElementById('voice-note-output');
@@ -12309,11 +12325,12 @@ if (usedInClaim) {
   toast('Cannot delete — payer is used in claims. Mark Inactive instead.','err');
   return;
 }
-if (!confirm(`Delete payer "${ins.name}"?`)) return;
+return cdcConfirm(`Delete payer "${ins.name}"?`).then((__ok)=>{if(!__ok)return;
 setDB(db2=>{ db2.insurances=(db2.insurances||[]).filter(x=>x.id!==iid); });
 renderInsurances();
 toast('Payer deleted');
-}
+
+});}
 
 // ?? Live search suggestions in modal ?????????????????????????????
 function searchInsNameLive() {
@@ -13538,7 +13555,7 @@ openEOBPostingModal(batch);
 }
 
 function deleteEOBBatch(batchId) {
-if (!confirm('Delete this payment batch? This will reverse the posted payments.')) return;
+return cdcConfirm('Delete this payment batch? This will reverse the posted payments.').then((__ok)=>{if(!__ok)return;
 const batch = getEOBBatches().find(b=>b.id===batchId);
 if (!batch) return;
 // Reverse payments from claims
@@ -13554,7 +13571,8 @@ if (claim) { claim.readyForSecondary=false; claim.primaryPosted=false; claim.sta
 setEOBBatches(arr => { const i=arr.findIndex(b=>b.id===batchId); if(i>=0) arr.splice(i,1); });
 renderEOBPage();
 toast('Payment batch deleted and reversed');
-}
+
+});}
 
 // ?? ERA fetch from Clearinghouse ????????????????????????????????????????
 // ── ERA Worker URL ─────────────────────────────────────────────────────────
@@ -14429,7 +14447,7 @@ function _canCloseTicket(t, sess) {
 }
 
 function finalizeTicket(ticketId, isAdminView) {
-  if (!confirm('¿Marcar este ticket como cerrado? Esta acción se puede revertir después.')) return;
+  return cdcConfirm('¿Marcar este ticket como cerrado? Esta acción se puede revertir después.').then((__ok)=>{if(!__ok)return;
   if (typeof setDB !== 'function' || typeof getDB !== 'function') {
     alert('Error: DB no disponible'); return;
   }
@@ -14462,10 +14480,11 @@ function finalizeTicket(ticketId, isAdminView) {
   } else if (typeof _renderTicketsModal === 'function') {
     _renderTicketsModal();
   }
-}
+
+});}
 
 function reopenTicket(ticketId, isAdminView) {
-  if (!confirm('¿Reabrir este ticket?')) return;
+  return cdcConfirm('¿Reabrir este ticket?').then((__ok)=>{if(!__ok)return;
   setDB(function (db2) {
     var t = (db2.tickets || []).find(function (x) { return x.id === ticketId; });
     if (!t) return;
@@ -14477,7 +14496,8 @@ function reopenTicket(ticketId, isAdminView) {
   updateTicketsBadge();
   if (isAdminView && typeof renderAdminTickets === 'function') renderAdminTickets();
   else if (typeof _renderTicketsModal === 'function') _renderTicketsModal();
-}
+
+});}
 
 
 // Close / reopen controls shown at the end of a ticket's detail view
@@ -15850,10 +15870,11 @@ toast('Note regenerated ?');
 }
 
 function deleteNote(id) {
-if(!confirm('Delete this note? Cannot be undone.')) return;
+return cdcConfirm('Delete this note? Cannot be undone.').then((__ok)=>{if(!__ok)return;
 setNotes(arr=>{const i=arr.findIndex(x=>x.id===id);if(i>=0)arr.splice(i,1);});
 renderNotes(); toast('Note deleted');
-}
+
+});}
 
 // ?? Encounter Editor (full-page) ?????????????????????????????????????????
 const ENCOUNTER_TYPES = {
@@ -15966,7 +15987,7 @@ function openEncounterEditor(noteId, encType) {
     tb.style.display = 'flex';
     tb.innerHTML = `<span style="font-weight:600;color:var(--text3);flex-shrink:0">Template:</span>
       <select id="ee-template-select" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;font-family:var(--font)">${tmplOpts}</select>
-      <button class="btn btn-xs" onclick="if(confirm('Apply this template? It will replace all current content.')){eeApplyTemplate(document.getElementById('ee-template-select').value)}">Apply</button>`;
+      <button class="btn btn-xs" onclick="cdcConfirm('Apply this template? It will replace all current content.').then(function(ok){if(ok)eeApplyTemplate(document.getElementById('ee-template-select').value)})">Apply</button>`;
   } else { tb.style.display = 'none'; }
 
   // Build sidebar
@@ -16066,7 +16087,7 @@ function openEncounterEditor(noteId, encType) {
 }
 
 function closeEncounterEditor() {
-  if (_eeDirty && !confirm('You have unsaved changes. Discard them?')) return;
+  const __cdcGo2=()=>{
   _eeNoteId = ''; _eeDirty = false; _eeSaving = false;
   if (_eeAutoSaveTimer) { clearTimeout(_eeAutoSaveTimer); _eeAutoSaveTimer = null; }
   _eeCloseIcdDropdown();
@@ -16075,7 +16096,8 @@ function closeEncounterEditor() {
   document.querySelector('#sec-notes .page-body > div:first-child').style.display = '';
   document.getElementById('notes-list').style.display = '';
   renderNotes();
-}
+
+};if(_eeDirty)return cdcConfirm('You have unsaved changes. Discard them?').then((__ok)=>{if(!__ok)return;return __cdcGo2();});return __cdcGo2();}
 
 function eeNavSection(key) {
   document.querySelectorAll('.ee-nav-item').forEach(el => el.classList.remove('active'));
@@ -16612,7 +16634,7 @@ function eeAuditLog(action, details) {
 
 function eeUnlock(reason) {
   if (!reason || !reason.trim()) { reason = prompt('Reason for unlocking this encounter:'); if (!reason) return; }
-  if (!confirm('Unlock this finalized encounter? It will revert to draft status.')) return;
+  return cdcConfirm('Unlock this finalized encounter? It will revert to draft status.').then((__ok)=>{if(!__ok)return;
   const notes = getNotes();
   const n = notes.find(x => x.id === _eeNoteId);
   if (!n) return;
@@ -16625,7 +16647,8 @@ function eeUnlock(reason) {
   closeEncounterEditor();
   openEncounterEditor(_eeNoteId);
   toast('Encounter unlocked and reopened');
-}
+
+});}
 
 function openClaimById(claimId) {
 const db=getDB();
@@ -17863,11 +17886,12 @@ function _renderSSGroups() {
 }
 
 function deleteScheduleGroup(gid) {
-  if (!confirm('Delete this schedule group? This will not affect appointments already created from it.')) return;
+  return cdcConfirm('Delete this schedule group? This will not affect appointments already created from it.').then((__ok)=>{if(!__ok)return;
   setDB(db => { db.scheduleGroups = (db.scheduleGroups||[]).filter(g => g.id !== gid); });
   _renderSSGroups();
   toast('Group deleted');
-}
+
+});}
 
 // ── Schedule Group create/edit modal (runtime-injected, up to 12 patients) ──
 function openScheduleGroupModal(gid) {
@@ -18494,11 +18518,12 @@ renderAppointments();
 }
 
 function deleteAppt(id) {
-if (!confirm('Delete this appointment?')) return;
+return cdcConfirm('Delete this appointment?').then((__ok)=>{if(!__ok)return;
 setAppts(arr => { const i = arr.findIndex(a => a.id === id); if (i >= 0) arr.splice(i, 1); });
 renderAppointments();
 toast('Appointment deleted');
-}
+
+});}
 
 // ?? Check-In ?????????????????????????????????????????????????????????????
 // Toggle the provider-select row inside a check-in option when its checkbox flips
@@ -20202,7 +20227,7 @@ const _db0 = getDB();
 const _pat0 = _db0.patients.find(x=>x.id===patId);
 const _doc0 = _pat0 && _pat0.documents && _pat0.documents[idx];
 if (_doc0 && _doc0.category==='Superbills' && !isAdmin()) { toast('Only a Super Admin can delete Superbills','err'); return; }
-if (!confirm('Move this document to Recycle Bin?')) return;
+return cdcConfirm('Move this document to Recycle Bin?').then((__ok)=>{if(!__ok)return;
 setDB(db=>{
   const p=db.patients.find(x=>x.id===patId);
   if(p?.documents && p.documents[idx]) {
@@ -20214,7 +20239,8 @@ setDB(db=>{
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
 const el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
 setTimeout(_renderLucideIcons,20); toast('Document moved to Recycle Bin');
-}
+
+});}
 
 function _buildSummaryTab(pat, db) {
 const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
@@ -20902,14 +20928,15 @@ function _saveAuth(patId) {
 }
 
 function _deleteAuth(patId, idx) {
-  if (!confirm('Delete this authorization?')) return;
+  return cdcConfirm('Delete this authorization?').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     var p = db.patients.find(function(x){return x.id===patId;});
     if (p && p.authorizations) p.authorizations.splice(idx,1);
   });
   toast('Authorization deleted');
   _renderChartTab('auth');
-}
+
+});}
 
 
 function _toggleSelfPay(patId) {
@@ -21515,12 +21542,13 @@ if (usedInClaim) {
   toast('Cannot delete — insurance is used in claims. Mark Inactive instead.','err');
   return;
 }
-if (!confirm('Delete this insurance record?')) return;
+return cdcConfirm('Delete this insurance record?').then((__ok)=>{if(!__ok)return;
 setDB(db2 => { const p=db2.patients.find(x=>x.id===patId); if(p?.insurances) p.insurances.splice(idx,1); });
 const db2=getDB(); const pat2=db2.patients.find(p=>p.id===patId);
 const mainEl2=document.getElementById('pt-main');
 if (mainEl2 && pat2) { mainEl2.innerHTML = _buildInsuranceTab(pat2, getDB()); setTimeout(_renderLucideIcons,20); }
-}
+
+});}
 
 function _toggleInsuranceActive(patId, idx) {
 setDB(db2 => {
@@ -22645,12 +22673,13 @@ function delCMClient(id) {
   var d = getCMData();
   var c = d.clients.find(function(x){return x.id===id;});
   var label = c ? (c.last+', '+c.first+' (File #'+(c.fileNo||'—')+')') : 'this client';
-  if (!confirm('Delete '+label+'?\n\nThis cannot be undone.')) return;
+  return cdcConfirm('Delete '+label+'?\n\nThis cannot be undone.').then((__ok)=>{if(!__ok)return;
   d.clients = d.clients.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMClients();
   toast('Client deleted');
-}
+
+});}
 
 // ── CM: CROSS-SPECIALTY IMPORT ──────────────────────────────────
 // Import from Patients (EHR db.patients) into CM Clients (d.clients)
@@ -23391,13 +23420,14 @@ function saveCMWorker(id) {
 function editCMWorker(id) { openCMWorkerModal(id); }
 function delCMWorker(id) {
   if (!_cmCurrentWorkerIsAdmin()) { toast('Only an Administrator can delete users', 'warn'); return; }
-  if (!confirm('Delete this worker?')) return;
+  return cdcConfirm('Delete this worker?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.workers = d.workers.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMWorkers();
   toast('User deleted');
-}
+
+});}
 
 // ── CM: SERVICE PLANS ──────────────────────────────────────────
 function renderCMPlans() {
@@ -23577,13 +23607,14 @@ function saveCMPlan(id) {
 }
 function editCMPlan(id) { openCMPlanModal(id); }
 function delCMPlan(id) {
-  if (!confirm('Delete this plan?')) return;
+  return cdcConfirm('Delete this plan?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.plans = d.plans.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMPlans();
   toast('Plan deleted');
-}
+
+});}
 
 // ── CM: PROGRESS NOTES ─────────────────────────────────────────
 function renderCMNotes() {
@@ -23691,13 +23722,14 @@ function saveCMNote(id) {
 }
 function editCMNote(id) { openCMNoteModal(id); }
 function delCMNote(id) {
-  if (!confirm('Delete this note?')) return;
+  return cdcConfirm('Delete this note?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.notes = d.notes.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMNotes();
   toast('Note deleted');
-}
+
+});}
 
 // ── CM: BILLING ────────────────────────────────────────────────
 // ── CM: BILLING ─────────────────────────────────────────────────
@@ -23892,7 +23924,7 @@ function cmBillingBulk(newStatus) {
 function cmBillingBulkDelete() {
   var ids = Object.keys(window._cmBillSel||{});
   if (!ids.length) return;
-  if (!confirm('Delete '+ids.length+' billing entries?\n\nThis cannot be undone.')) return;
+  return cdcConfirm('Delete '+ids.length+' billing entries?\n\nThis cannot be undone.').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.billing = (d.billing||[]).filter(function(b){return !window._cmBillSel[b.id];});
   saveCMData(d);
@@ -23900,7 +23932,8 @@ function cmBillingBulkDelete() {
   window._cmBillSel = {};
   renderCMBilling();
   toast(n+' entries deleted');
-}
+
+});}
 
 // ── Generate from Notes (rate now looked up per code) ──
 function generateCMBilling() {
@@ -24104,12 +24137,13 @@ function delCMBilling(id) {
   var d = getCMData();
   var b = (d.billing||[]).find(function(x){return x.id===id;});
   if (!b) return;
-  if (!confirm('Delete this billing entry ('+(b.code||'')+' · '+_cmClientName(b.clientId)+' · '+(b.serviceDate||'')+')?')) return;
+  return cdcConfirm('Delete this billing entry ('+(b.code||'')+' · '+_cmClientName(b.clientId)+' · '+(b.serviceDate||'')+')?').then((__ok)=>{if(!__ok)return;
   d.billing = d.billing.filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMBilling();
   toast('Billing entry deleted');
-}
+
+});}
 
 // ── Rate configuration modal (per-CPT overrides) ──
 function openCMBillingSettings() {
@@ -24832,15 +24866,16 @@ function saveCMIntake(id) {
 }
 function editCMIntake(id) { openCMIntakeModal(id); }
 function delCMIntake(id) {
-  if (!confirm('Delete this referral?')) return;
+  return cdcConfirm('Delete this referral?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.referrals = (d.referrals||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMIntake();
   toast('Referral deleted');
-}
+
+});}
 function convertIntakeToClient(id) {
-  if (!confirm('Convert this referral to an active client?')) return;
+  return cdcConfirm('Convert this referral to an active client?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   var r = (d.referrals||[]).find(function(x){return x.id===id;});
   if (!r) return;
@@ -24859,7 +24894,8 @@ function convertIntakeToClient(id) {
   saveCMData(d);
   renderCMIntake();
   toast('Referral converted to client');
-}
+
+});}
 
 // ── CM: ASSESSMENTS ─────────────────────────────────────────────
 function renderCMAssessments() {
@@ -25165,13 +25201,14 @@ function viewCMAssessment(id) {
 }
 function editCMAssessment(id) { openCMAssessmentModal(id); }
 function delCMAssessment(id) {
-  if (!confirm('Delete this assessment?')) return;
+  return cdcConfirm('Delete this assessment?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.assessments = (d.assessments||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMAssessments();
   toast('Assessment deleted');
-}
+
+});}
 
 // ── CM: ENCOUNTERS (enhanced progress notes) ───────────────────
 // Unified launcher — user picks encounter type
@@ -25412,13 +25449,14 @@ function viewCMEncounter(id) {
 }
 function editCMEncounter(id) { openCMEncounterModal(id); }
 function delCMEncounter(id) {
-  if (!confirm('Delete this encounter?')) return;
+  return cdcConfirm('Delete this encounter?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.encounters = (d.encounters||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMEncounters();
   toast('Encounter deleted');
-}
+
+});}
 
 // ── CM: TASKS & FOLLOW-UPS ─────────────────────────────────────
 function renderCMTasks() {
@@ -25542,13 +25580,14 @@ function saveCMTask(id) {
 }
 function editCMTask(id) { openCMTaskModal(id); }
 function delCMTask(id) {
-  if (!confirm('Delete this task?')) return;
+  return cdcConfirm('Delete this task?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.tasks = (d.tasks||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMTasks();
   toast('Task deleted');
-}
+
+});}
 function completeCMTask(id) {
   var d = getCMData();
   var idx = (d.tasks||[]).findIndex(function(x){return x.id===id;});
@@ -25730,13 +25769,14 @@ function saveCMAuth(id) {
 }
 function editCMAuth(id) { openCMAuthModal(id); }
 function delCMAuth(id) {
-  if (!confirm('Delete this authorization?')) return;
+  return cdcConfirm('Delete this authorization?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.authorizations = (d.authorizations||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMAuths();
   toast('Authorization deleted');
-}
+
+});}
 
 // ── CM: COMMUNITY REFERRALS & RESOURCES ────────────────────────
 function renderCMCommReferrals() {
@@ -25828,13 +25868,14 @@ function saveCMCommReferral(id) {
 }
 function editCMCommReferral(id) { openCMCommReferralModal(id); }
 function delCMCommReferral(id) {
-  if (!confirm('Delete this referral?')) return;
+  return cdcConfirm('Delete this referral?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.communityReferrals = (d.communityReferrals||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMCommReferrals();
   toast('Referral deleted');
-}
+
+});}
 
 // ── CM: SUPERVISOR REVIEW / QA ──────────────────────────────────
 function renderCMSupervisor() {
@@ -25933,7 +25974,7 @@ function cmSupBulkApprove() {
   var ids = Object.keys(window._cmSupSel||{});
   if (!ids.length) return;
   var supName = (function(){ var s=getSession(); return (s.first||'')+' '+(s.last||''); })().trim() || 'Supervisor';
-  if (!confirm('Approve '+ids.length+' encounter(s)?\n\nApprover: '+supName+'\nTimestamp: '+_cmNowISO())) return;
+  return cdcConfirm('Approve '+ids.length+' encounter(s)?\n\nApprover: '+supName+'\nTimestamp: '+_cmNowISO()).then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   var n = 0;
   ids.forEach(function(id){
@@ -25944,7 +25985,8 @@ function cmSupBulkApprove() {
   window._cmSupSel = {};
   renderCMSupervisor();
   toast(n+' encounter(s) approved');
-}
+
+});}
 function cmSupBulkReturn() {
   var ids = Object.keys(window._cmSupSel||{});
   if (!ids.length) return;
@@ -25963,14 +26005,15 @@ function cmSupBulkReturn() {
 }
 function approveCMEncounter(id) {
   var supName = (function(){ var s=getSession(); return (s.first||'')+' '+(s.last||''); })().trim() || 'Supervisor';
-  if (!confirm('Approve this encounter for billing?\n\nApprover: '+supName)) return;
+  return cdcConfirm('Approve this encounter for billing?\n\nApprover: '+supName).then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   var n = (d.encounters||[]).find(function(x){return x.id===id;});
   if (n) { n.supervisorStatus='Approved'; n.approvedAt=_cmNowISO(); n.approvedBy=supName; n.updatedAt=_cmNowISO(); }
   saveCMData(d);
   renderCMSupervisor();
   toast('Encounter approved');
-}
+
+});}
 function returnCMEncounter(id) {
   var reason = prompt('Reason for returning this note:');
   if (!reason) return;
@@ -26186,13 +26229,14 @@ function printCMDischarge(id) {
 }
 function editCMDischarge(id) { openCMDischargeModal(id); }
 function delCMDischarge(id) {
-  if (!confirm('Delete this discharge record?')) return;
+  return cdcConfirm('Delete this discharge record?').then((__ok)=>{if(!__ok)return;
   var d = getCMData();
   d.discharges = (d.discharges||[]).filter(function(x){return x.id!==id;});
   saveCMData(d);
   renderCMDischarges();
   toast('Discharge deleted');
-}
+
+});}
 
 // ── CM: PATIENT SUMMARY ────────────────────────────────────────
 function renderCMPatientSummary() {
@@ -26388,7 +26432,7 @@ function submitCMEntityForApproval(kind, id) {
   if (item.supervisorStatus === 'Pending') { toast('Already submitted','warn'); return; }
   var s = getSession();
   var submitter = ((s.first||'')+' '+(s.last||'')).trim() || s.email || '';
-  if (!confirm('Submit this '+kind.replace(/s$/,'')+' to your supervisor for approval?')) return;
+  return cdcConfirm('Submit this '+kind.replace(/s$/,'')+' to your supervisor for approval?').then((__ok)=>{if(!__ok)return;
   item.supervisorStatus = 'Pending';
   item.submittedAt = _cmNowISO();
   item.submittedBy = submitter;
@@ -26400,7 +26444,8 @@ function submitCMEntityForApproval(kind, id) {
   });
   if (_cmChartClientId) _renderCMChartTab(_cmChartTabActive);
   toast('Submitted for approval');
-}
+
+});}
 
 // ═════════════════════════════════════════════════════════════
 // CM CLIENT CHART — visual mirror of Patient Chart, simpler content
@@ -27874,8 +27919,24 @@ fn(db);
 _localDB = db;
 _saveCache(_localDB);
 
-// Offline: keep the old snapshots, so these changes upload on the next online save.
+// Offline: keep the old snapshots, so these changes (and deletions) upload on the next online save.
 if (!_fbReady || !_db) return;
+
+// Deletions: a record that was in the collection before this change and is gone after it
+// is removed from Firestore too (before 2026-10-01 only new/changed records were uploaded,
+// so deleted invoices, entities, groups, etc. came back after a reload).
+// Safety net: a single change that would remove most of a large collection is not mirrored.
+var _deletes = [];
+function _queueRemoved(coll, prevIds, newIds) {
+  var gone = Object.keys(prevIds).filter(function (id) { return !Object.prototype.hasOwnProperty.call(newIds, id); });
+  if (!gone.length) return;
+  var before = Object.keys(prevIds).length;
+  if (gone.length > 25 && gone.length > before * 0.5) {
+    console.warn('[CDC] setDB: ' + gone.length + ' of ' + before + ' ' + coll + ' removed in one change; not deleted in the cloud (safety net)');
+    return;
+  }
+  gone.forEach(function (id) { _deletes.push([coll, id]); });
+}
 
 // Array collections: upload only new/changed records
 for (var _ci = 0; _ci < _SD_SYNC_COLLS.length; _ci++) {
@@ -27891,13 +27952,14 @@ for (var _ci = 0; _ci < _SD_SYNC_COLLS.length; _ci++) {
     _newIds[r.id] = j;
     if (snap.ids[r.id] !== j) _changed.push(r);
   }
+  _queueRemoved(coll, snap.ids || {}, _newIds);
   _sdSnap[coll] = { ref: next, ids: _newIds };
   if (_changed.length) {
     (function(coll, _changed){
       window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
       _fsWriteCollection(coll, _changed)
-        .catch(e => { console.warn(`Firestore ${coll} sync failed:`, e.message); window._lastSyncError = coll+': '+e.message; })
-        .finally(() => { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
+        .catch(function (e) { console.warn('Firestore ' + coll + ' sync failed:', e.message); window._lastSyncError = coll + ': ' + e.message; })
+        .finally(function () { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
     })(coll, _changed);
   }
 }
@@ -27909,19 +27971,29 @@ for (var _oi = 0; _oi < _SD_OBJ_COLLS.length; _oi++) {
   var osnap = _sdSnap[key] || { ids: {} };
   var _oNew = {}, _chg = [];
   Object.keys(obj).forEach(function(id){
-    var j = JSON.stringify(obj[id]);
-    _oNew[id] = j;
-    if (osnap.ids[id] !== j) _chg.push([id, obj[id]]);
+    var j2 = JSON.stringify(obj[id]);
+    _oNew[id] = j2;
+    if (osnap.ids[id] !== j2) _chg.push([id, obj[id]]);
   });
+  _queueRemoved(key, osnap.ids || {}, _oNew);
   _sdSnap[key] = { ref: db[key], ids: _oNew };
-  for (let _i = 0; _i < _chg.length; _i += BATCH_SIZE) {
-    const batch = _db.batch();
-    const coll2 = key;
-    _chg.slice(_i, _i + BATCH_SIZE).forEach(([id, entries]) => {
-      batch.set(_db.collection(coll2).doc(String(id)), { entries: entries || [] });
+  for (var _i = 0; _i < _chg.length; _i += BATCH_SIZE) {
+    var batch = _db.batch();
+    _chg.slice(_i, _i + BATCH_SIZE).forEach(function (e) {
+      batch.set(_db.collection(key).doc(String(e[0])), { entries: e[1] || [] });
     });
-    batch.commit().catch(e => console.warn(`${coll2} sync failed:`, e.message));
+    (function (k) { batch.commit().catch(function (e) { console.warn(k + ' sync failed:', e.message); }); })(key);
   }
+}
+
+// Apply the deletions in batches
+for (var _d = 0; _d < _deletes.length; _d += BATCH_SIZE) {
+  var dbatch = _db.batch();
+  _deletes.slice(_d, _d + BATCH_SIZE).forEach(function (x) { dbatch.delete(_db.collection(x[0]).doc(String(x[1]))); });
+  window._pendingFirestoreSyncs = (window._pendingFirestoreSyncs||0) + 1;
+  dbatch.commit()
+    .catch(function (e) { console.warn('Firestore delete failed:', e.message); window._lastSyncError = 'delete: ' + e.message; })
+    .finally(function () { window._pendingFirestoreSyncs = Math.max(0, (window._pendingFirestoreSyncs||1) - 1); });
 }
 
 // Settings object as a single Firestore document
@@ -28382,7 +28454,7 @@ function _deleteSelected(patId) {
     toast('Superbills were skipped — only a Super Admin can delete them', 'warn');
     if (!indices.length) return;
   }
-  if (!confirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?')) return;
+  return cdcConfirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     var p = db.patients.find(function(x){ return x.id===patId; });
     if (p && p.documents) {
@@ -28398,7 +28470,8 @@ function _deleteSelected(patId) {
   var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
   var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
   setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' moved to Recycle Bin');
-}
+
+});}
 
 function _moveDoc(patId, idx) {
   var db = getDB();
@@ -28512,7 +28585,7 @@ function _restoreSelected(patId) {
 
 function _permDeleteDoc(patId, idx) {
   if (!isAdmin()) { toast('Only a Super Admin can permanently delete documents','err'); return; }
-  if (!confirm('Permanently delete this document? This cannot be undone.')) return;
+  return cdcConfirm('Permanently delete this document? This cannot be undone.').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     var p = db.patients.find(function(x){ return x.id===patId; });
     if(p && p.documents && p.documents[idx]) p.documents.splice(idx,1);
@@ -28520,13 +28593,14 @@ function _permDeleteDoc(patId, idx) {
   var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
   var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
   setTimeout(_renderLucideIcons,20); toast('Document permanently deleted');
-}
+
+});}
 
 function _permDeleteSelected(patId) {
   if (!isAdmin()) { toast('Only a Super Admin can permanently delete documents','err'); return; }
   var indices = _getSelectedIdx(patId);
   if (!indices.length) { toast('Select at least one document','warn'); return; }
-  if (!confirm('Permanently delete '+indices.length+' selected document'+(indices.length>1?'s':'')+'? This cannot be undone.')) return;
+  return cdcConfirm('Permanently delete '+indices.length+' selected document'+(indices.length>1?'s':'')+'? This cannot be undone.').then((__ok)=>{if(!__ok)return;
   setDB(function(db){
     var p = db.patients.find(function(x){ return x.id===patId; });
     if (p && p.documents) {
@@ -28539,7 +28613,8 @@ function _permDeleteSelected(patId) {
   var db2=getDB(); var pat2=db2.patients.find(function(p){ return p.id===patId; });
   var el=document.getElementById('pt-main'); if(el&&pat2) el.innerHTML=_buildDocumentsTab(pat2,db2);
   setTimeout(_renderLucideIcons,20); toast(indices.length+' document'+(indices.length>1?'s':'')+' permanently deleted');
-}
+
+});}
 
 function _purgeOldTrash() {
   var now = Date.now();
@@ -28831,8 +28906,9 @@ function getAuditLogs() {
     var code = sel.value;
     var pres = document.getElementById('pn-presenting');
     if (pres && !pres.value.trim() && typeof CPT_ENGINE !== 'undefined' && CPT_ENGINE[code]) {
-      if (confirm('¿Cargar plantilla clínica para ' + code + '?')) __pnLoadTemplate();
-    }
+      return cdcConfirm('¿Cargar plantilla clínica para ' + code + '?').then((__ok)=>{if(__ok)__pnLoadTemplate();
+    
+});}
   };
 
   window.__pnLoadTemplate = function () {
@@ -29784,11 +29860,12 @@ function getAuditLogs() {
 
   window.__pcDxRemove = function (i) {
     var c = PC._client;
-    if (!confirm('¿Eliminar este diagnóstico?')) return;
+    return cdcConfirm('¿Eliminar este diagnóstico?').then((__ok)=>{if(!__ok)return;
     c.diagnoses.splice(i, 1);
     _persistClient(c);
     _pcRender();
-  };
+  
+});};
 
   function _refTab(c) {
     var r = c.referral || {};
