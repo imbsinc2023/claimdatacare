@@ -742,94 +742,7 @@ function _injectMissingModals() {
     '</div></div>'
   );
 
-  _mk('modal-invoice',
-    '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh">' +
-    '<div class="modal-hdr" style="flex-shrink:0">' +
-    '<div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
-    '<button class="btn btn-ghost btn-sm" title="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
-    '</div>' +
-    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
-    '<input type="hidden" id="inv-id">' +
-
-    '<!-- Row 1: Entity / Client / Number -->' +
-    '<div class="fg g3" style="margin-bottom:12px">' +
-    '<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
-    '<div class="field"><label>Client / Provider *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">— Select —</option></select></div>' +
-    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed" title="Auto-generated"></div>' +
-    '</div>' +
-
-    '<!-- Row 2: Period / Date / Due / Status -->' +
-    '<div class="fg g4" style="margin-bottom:12px">' +
-    '<div class="field"><label>Billing Period</label>' +
-    '<div style="display:flex;gap:5px">' +
-    '<select id="inv-month-sel" style="flex:1;padding:6px 8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
-    '<option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>' +
-    '<input type="number" id="inv-month-year" min="2020" max="2035" style="width:68px;padding:6px 4px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text);text-align:center" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
-    '<input type="hidden" id="inv-month">' +
-    '</div></div>' +
-    '<div class="field"><label>Invoice Date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
-    '<div class="field"><label>Due Date</label><input type="date" id="inv-due"></div>' +
-    '<div class="field"><label>Status</label><select id="inv-status"><option>Draft</option><option>Sent</option><option>Partial</option><option>Overdue</option><option>Paid</option></select></div>' +
-    '</div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">Billing Structure</div>' +
-
-    '<!-- Row 3: Fee structure -->' +
-    '<div class="fg g4" style="margin-bottom:10px">' +
-    '<div class="field"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Min Revenue Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Revenue Collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exception Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()" style="border-bottom:1px solid var(--border2)"></div>' +
-    '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" min="0"></div>' +
-    '</div>' +
-
-    '<div id="inv-calc-preview" style="padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px;min-height:32px"></div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Service Lines</span>' +
-    '<button class="btn-icon" title="Add service line" onclick="addInvSvcLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
-    '</div>' +
-    '<div id="inv-svc-lines" style="margin-bottom:14px"></div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">' +
-    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Payment Details</span>' +
-    '<div style="display:flex;gap:6px">' +
-    '<button class="btn-icon" id="inv-paste-btn" title="Paste from Excel" onclick="togglePasteArea()" style="color:var(--brand)"><i data-lucide="clipboard-paste" class="lci" style="width:14px;height:14px"></i></button>' +
-    '<label class="btn-icon" title="Upload file" style="color:var(--brand);cursor:pointer"><i data-lucide="upload" class="lci" style="width:14px;height:14px"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
-    '<button class="btn-icon" title="Add row" onclick="addInvPayLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
-    '</div></div>' +
-    '<div id="inv-paste-area" style="display:none;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px">' +
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Paste from Excel — columns: PAYMENT DATE, PRODUCT, PAYMENT ID, AMOUNT, STATUS, INSURANCE, INVOICE #, INVOICE MONTH, NOTES</div>' +
-    '<textarea id="inv-paste-input" rows="4" placeholder="Paste here..." oninput="previewPastedLines()" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:11px;font-family:var(--mono);resize:vertical;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase"></textarea>' +
-    '<div id="inv-paste-preview" style="font-size:11px;margin-top:4px"></div>' +
-    '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-sm btn-primary" onclick="importPastedLines()">Import</button><button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button></div>' +
-    '</div>' +
-    '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px">' +
-    '<thead><tr style="border-bottom:2px solid var(--border)">' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">DATE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PRODUCT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PAYMENT ID</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
-    '<th style="width:28px"></th></tr></thead>' +
-    '<tbody id="inv-lines-body"></tbody></table></div>' +
-
-    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text);text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
-    '</div>' +
-
-    '<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border2)">' +
-    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border2);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--brand);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Save Invoice" onclick="saveInvoice()" style="color:#fff;width:34px;height:34px;border-radius:8px;border:none;background:var(--brand);display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="save" class="lci" style="width:16px;height:16px"></i></button>' +
-    '</div></div>'
-  );
+  
 
   _mk('modal-sg-catalog',
     '<div class="modal modal-sm"><div class="modal-hdr"><div><div class="modal-t">Add from Catalog</div></div>' +
@@ -881,75 +794,9 @@ function _injectMissingModals() {
     '</div></div></div>'
   );
 
-  _mk('modal-issuer',
-    '<div class="modal" style="max-width:600px;background:#fff">' +
-    '<div class="modal-hdr"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body">' +
-    '<input type="hidden" id="iss-id">' +
-    '<div class="fg g2">' +
-    '<div class="field" style="grid-column:1/-1"><label>Entity Name *</label><input id="iss-name"></div>' +
-    '<div class="field"><label>Tax ID (EIN)</label><input id="iss-taxid" maxlength="10"></div>' +
-    '<div class="field"><label>NPI</label><input id="iss-npi" maxlength="10"></div>' +
-    '<div class="field"><label>Phone</label><input id="iss-phone"></div>' +
-    '<div class="field"><label>Email</label><input id="iss-email" type="email"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="iss-addr1"></div>' +
-    '<div class="field"><label>City</label><input id="iss-city"></div>' +
-    '<div class="field"><label>State</label><input id="iss-state" maxlength="2"></div>' +
-    '<div class="field"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
-    '<div class="field"><label>Website</label><input id="iss-web"></div>' +
-    '<div class="field"><label>Fee %</label><input id="iss-fee" type="number" step="0.01"></div>' +
-    '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
-    '</div>' +
-    '<div style="margin-top:10px">' +
-    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#6D1ED4"><span class="zelle-mark" aria-hidden="true"></span>Zelle</label>' +
-    '<input type="hidden" id="iss-zelle-mode" value="phone">' +
-    '<div style="display:flex;gap:6px">' +
-    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6D1ED4;color:#fff">Phone</button>' +
-    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Email</button>' +
-    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Both</button>' +
-    '</div></div>' +
-    '<div style="margin-top:10px">' +
-    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Logo</label>' +
-    '<div style="display:flex;align-items:center;gap:12px">' +
-    '<div id="iss-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:transparent;flex-shrink:0"><span style="font-size:10px;color:var(--text3)">No logo</span></div>' +
-    '<div><input type="file" id="iss-logo-file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none">' +
-    '<button class="btn btn-sm" type="button" onclick="document.getElementById(\'iss-logo-file\').click()"><i data-lucide="upload" class="lci"></i> Upload</button>' +
-    '<button class="btn btn-sm btn-ghost" type="button" onclick="clearIssuerLogo()" style="margin-left:6px">Clear</button></div></div></div>' +
-    '<div style="margin-top:10px"><label>Notes</label><textarea id="iss-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
-    '</div>' +
-    '<div class="modal-ftr">' +
-    '<button class="btn btn-ghost" onclick="closeModal(\'modal-issuer\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i> Save Entity</button>' +
-    '</div></div>'
-  );
+  
 
-  _mk('modal-client',
-    '<div class="modal" style="max-width:540px;background:#fff">' +
-    '<div class="modal-hdr"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body">' +
-    '<input type="hidden" id="cli-id">' +
-    '<div class="fg g2">' +
-    '<div class="field" style="grid-column:1/-1"><label>Client Name *</label><input id="cli-name"></div>' +
-    '<div class="field"><label>Contact Person</label><input id="cli-contact"></div>' +
-    '<div class="field"><label>Tax ID</label><input id="cli-taxid"></div>' +
-    '<div class="field"><label>NPI</label><input id="cli-npi"></div>' +
-    '<div class="field"><label>Phone</label><input id="cli-phone"></div>' +
-    '<div class="field"><label>Email</label><input id="cli-email" type="email"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="cli-addr1"></div>' +
-    '<div class="field"><label>City</label><input id="cli-city"></div>' +
-    '<div class="field"><label>State</label><input id="cli-state" maxlength="2"></div>' +
-    '<div class="field"><label>ZIP</label><input id="cli-zip" maxlength="10"></div>' +
-    '<div class="field"><label>Fee %</label><input id="cli-fee" type="number" step="0.01"></div>' +
-    '</div>' +
-    '<div style="margin-top:10px"><label>Notes</label><textarea id="cli-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
-    '</div>' +
-    '<div class="modal-ftr">' +
-    '<button class="btn btn-ghost" onclick="closeModal(\'modal-client\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveClient()"><i data-lucide="save" class="lci"></i> Save Client</button>' +
-    '</div></div>'
-  );
+  
 
   // Inject toast CSS if missing
   if (!document.getElementById('cdc-toast-css')) {
