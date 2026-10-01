@@ -521,8 +521,9 @@ function renderInvSvcLines() {
       + '</div>';
   }).join('');
   const addBtn = document.getElementById('inv-svc-add');
-  if (addBtn) addBtn.style.display = _invSvcLines.length >= 4 ? 'none' : '';
+  if (addBtn) addBtn.style.visibility = _invSvcLines.length >= 4 ? 'hidden' : '';   // keeps its place
   recalcInvoice();
+  setTimeout(_renderLucideIcons, 10);
 }
 
 let _invDragIdx = -1;
@@ -748,6 +749,46 @@ var _INV_CSS = [
   '.inv-empty{padding:28px 10px;text-align:center;font-size:13px;color:#586579}',
   '.inv-bars svg{display:block;width:100%;height:auto}',
   '.inv-key{display:flex;gap:12px;font-size:11px;color:#586579}.inv-key span{display:flex;align-items:center;gap:6px}.inv-key i{width:14px;height:6px;border-radius:3px;background:#7B2FF7}.inv-key i.lt{opacity:.25}',
+  '.invm{width:96vw!important;max-width:1320px!important;max-height:94vh;display:flex;flex-direction:column;border-radius:18px;padding:0!important}',
+  '.invm-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;padding:16px 20px;overflow:hidden}',
+  '.invm-main{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px}',
+  '.invm-side{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px}',
+  '.invm-sec{border:1px solid #EEF1F6;border-radius:14px;padding:12px 14px;background:#fff}',
+  '.invm-sec h4,.invm-card h4{margin:0 0 10px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
+  '.invm-sh{display:flex;align-items:center;gap:6px;margin-bottom:8px}',
+  '.invm-sh h4{margin:0}',
+  '.invm-sp{flex:1}',
+  '.invm-grid{display:grid;gap:10px 12px}',
+  '.invm-grid.g6{grid-template-columns:repeat(6,minmax(0,1fr))}',
+  '.invm-f{min-width:0}.invm-f.s2{grid-column:span 2}',
+  '.invm-f label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.invm-f input,.invm-f select,.invm-card textarea,.invm-paste textarea{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;color:#0B1526}',
+  '.invm-f input[readonly]{background:#F4F6FA;color:#586579}',
+  '.invm-pair{display:flex;gap:6px}.invm-pair select{flex:1}.invm-pair input{width:78px;flex:none;text-align:center}',
+  '.invm-note{height:18px;margin-top:6px;font-size:11.5px;color:#586579;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
+  '.invm-card{border:1px solid #EEF1F6;border-radius:14px;padding:12px 14px;background:#F8FAFC}',
+  '.invm-card textarea{height:auto;min-height:90px;padding:8px 10px;resize:vertical}',
+  '.invm-kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;color:#3A475C}',
+  '.invm-kv b{font-weight:700;color:#0B1526;font-variant-numeric:tabular-nums;white-space:nowrap}',
+  '.invm-calc{min-height:32px;margin-top:6px;padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #EEF1F6;font-size:11px;line-height:1.4;color:#586579}',
+  '.invm-sep{height:1px;background:#E4E9F1;margin:8px 0}',
+  '.invm-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:8px;border-top:1px solid #E4E9F1;font-size:13px;font-weight:700;color:#0B1526}',
+  '.invm-total b{font-size:20px;color:#D45C37;font-variant-numeric:tabular-nums}',
+  '.invm-tw{overflow-x:auto}',
+  '.invm-tbl{width:100%;border-collapse:collapse;font-size:11.5px}',
+  '.invm-tbl th{padding:6px 4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;text-align:left;border-bottom:1px solid #E4E9F1;white-space:nowrap}',
+  '.invm-paste{margin-bottom:10px;padding:10px;border-radius:10px;background:#F8FAFC;border:1px solid #EEF1F6}',
+  '.invm-paste textarea{height:auto;padding:8px;font-family:var(--mono,monospace);font-size:11px;text-transform:uppercase}',
+  '.invm-hint{font-size:11px;color:#586579;margin:2px 0 6px}',
+  '.invm-ib{position:relative;width:34px;height:34px;flex:none;box-sizing:border-box;border:1px solid #E4E9F1;border-radius:10px;background:#fff;color:#3A475C;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s}',
+  '.invm-ib .lci{width:16px;height:16px}',
+  '.invm-ib:hover{background:rgba(255,106,61,.09);color:#D45C37;border-color:rgba(255,106,61,.35)}',
+  '.invm-ftr{flex:none!important;display:flex!important;align-items:center;gap:8px;height:62px;box-sizing:border-box;padding:0 18px!important;border-top:1px solid #E4E9F1;background:#F8FAFC}',
+  '.invm-save{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 18px;border:0;border-radius:10px;background:#FF6A3D;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s}',
+  '.invm-save:hover{background:#D45C37}.invm-save .lci{width:15px;height:15px}',
+  '#inv-svc-lines .inv-svc-row{margin-bottom:6px}',
+  '#inv-svc-lines .btn-danger{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px}',
+  '@media (max-width:1100px){.invm-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}.invm-main,.invm-side{overflow:visible}.invm-grid.g6{grid-template-columns:repeat(3,minmax(0,1fr))}}',
   '@media (max-width:1100px){.inv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inv-g2{grid-template-columns:minmax(0,1fr)}}',
   '@media (max-width:620px){.inv-kpis{grid-template-columns:minmax(0,1fr)}}'
 ].join('\n');
@@ -799,97 +840,77 @@ function _invEmailById(id) { var inv = (getInvDB().invoices || []).find(function
 
 /* ---------------- Invoicing modals (moved here from script1.js; built the first time they are needed) ---------------- */
 function _invEnsureModals() {
+  if (!document.getElementById('inv-style')) { var st = document.createElement('style'); st.id = 'inv-style'; st.textContent = _INV_CSS; document.head.appendChild(st); }
   function mk(id, html) {
     if (document.getElementById(id)) return;
     var w = document.createElement('div'); w.className = 'overlay'; w.id = id; w.innerHTML = html; document.body.appendChild(w);
   }
+  // Invoice window: wide, uses horizontal space first (sections side by side, summary on the right)
   mk('modal-invoice',
-    '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh">' +
-    '<div class="modal-hdr cdc-wh" style="flex-shrink:0">' +
-    '<div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
-    '<button class="btn btn-ghost btn-sm" title="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
+    '<div class="modal invm">' +
+    '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="receipt" class="lci"></i><span id="inv-modal-title">Invoice</span></span>' +
+    '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="invm-body"><input type="hidden" id="inv-id">' +
+      '<div class="invm-main">' +
+        '<section class="invm-sec"><h4>Details</h4><div class="invm-grid g6">' +
+          '<div class="invm-f s2"><label>Billing entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">Select</option></select></div>' +
+          '<div class="invm-f s2"><label>Client / provider *</label><select id="inv-client" onchange="onInvClientChange();recalcInvoice()"><option value="">Select</option></select></div>' +
+          '<div class="invm-f"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto" readonly tabindex="-1"></div>' +
+          '<div class="invm-f"><label>Status</label><select id="inv-status"><option>Draft</option><option>Sent</option><option>Partial</option><option>Overdue</option><option>Paid</option></select></div>' +
+          '<div class="invm-f s2"><label>Billing period</label><div class="invm-pair">' +
+            '<select id="inv-month-sel" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+            '<option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select>' +
+            '<input type="number" id="inv-month-year" min="2020" max="2035" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
+            '<input type="hidden" id="inv-month"></div></div>' +
+          '<div class="invm-f s2"><label>Invoice date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
+          '<div class="invm-f s2"><label>Due date</label><input type="date" id="inv-due"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Billing structure</h4><div class="invm-grid g6">' +
+          '<div class="invm-f"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
+          '<div class="invm-f"><label>Min revenue base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+          '<div class="invm-f"><label>Revenue collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+          '<div class="invm-f"><label>Exception base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
+          '<div class="invm-f"><label>Exc. months total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()"></div>' +
+          '<div class="invm-f"><label>Exc. months used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" min="0" oninput="recalcInvoice()"></div>' +
+        '</div><div class="invm-note"><span id="inv-exc-note"></span></div></section>' +
+        '<section class="invm-sec"><div class="invm-sh"><h4>Service lines</h4><span class="invm-sp"></span>' +
+          '<button type="button" class="invm-ib" id="inv-svc-add" data-tip="Add service line" aria-label="Add service line" onclick="addInvSvcLine()"><i data-lucide="plus" class="lci"></i></button></div>' +
+          '<div id="inv-svc-lines"></div></section>' +
+        '<section class="invm-sec"><div class="invm-sh"><h4>Payment details</h4><span class="invm-sp"></span>' +
+          '<button type="button" class="invm-ib" id="inv-paste-btn" data-tip="Paste from Excel" aria-label="Paste from Excel" onclick="togglePasteArea()"><i data-lucide="clipboard-paste" class="lci"></i></button>' +
+          '<label class="invm-ib" data-tip="Upload CSV or Excel" aria-label="Upload CSV or Excel"><i data-lucide="upload" class="lci"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
+          '<button type="button" class="invm-ib" data-tip="Add payment row" aria-label="Add payment row" onclick="addInvPayLine()"><i data-lucide="plus" class="lci"></i></button></div>' +
+          '<div id="inv-paste-area" class="invm-paste" style="display:none">' +
+            '<div class="invm-hint">Paste from Excel • columns: PAYMENT DATE, PRODUCT, PAYMENT ID, AMOUNT, STATUS, INSURANCE, INVOICE #, INVOICE MONTH, NOTES</div>' +
+            '<textarea id="inv-paste-input" rows="4" placeholder="Paste here..." oninput="previewPastedLines()"></textarea>' +
+            '<div id="inv-paste-preview" class="invm-hint"></div>' +
+            '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-sm btn-primary" onclick="importPastedLines()">Import</button><button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button></div>' +
+          '</div>' +
+          '<div class="invm-tw"><table class="invm-tbl"><thead><tr><th>Date</th><th>Product</th><th>Payment ID</th><th>Amount</th><th>Status</th><th>Insurance</th><th>Inv. month</th><th>Notes</th><th></th></tr></thead>' +
+          '<tbody id="inv-lines-body"></tbody></table></div></section>' +
+      '</div>' +
+      '<aside class="invm-side">' +
+        '<div class="invm-card"><h4>Summary</h4>' +
+          '<div class="invm-kv"><span>Revenue</span><b id="inv-disp-revenue">$0.00</b></div>' +
+          '<div class="invm-kv"><span>Fee</span><b id="inv-disp-feepct">0%</b></div>' +
+          '<div class="invm-kv"><span>Minimum base</span><b id="inv-disp-min">None</b></div>' +
+          '<div class="invm-kv"><span>Base used</span><b id="inv-disp-base">$0.00</b></div>' +
+          '<div class="invm-kv"><span>Calculated fee</span><b id="inv-disp-calc">$0.00</b></div>' +
+          '<div class="invm-calc" id="inv-calc-breakdown"></div>' +
+          '<div class="invm-sep"></div>' +
+          '<div class="invm-kv"><span>Service lines</span><b id="inv-subtotal">$0.00</b></div>' +
+          '<div class="invm-kv"><span id="inv-fee-pct-lbl">Fee</span><b id="inv-fee-amt">$0.00</b></div>' +
+          '<div class="invm-total"><span>Total due</span><b id="inv-total">$0.00</b></div>' +
+        '</div>' +
+        '<div class="invm-card"><h4>Notes</h4><textarea id="inv-notes" rows="5" placeholder="Shown on the invoice" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
+      '</aside>' +
     '</div>' +
-    '<div class="modal-body" style="flex:1;overflow-y:auto;padding:18px 22px">' +
-    '<input type="hidden" id="inv-id">' +
-
-    '<!-- Row 1: Entity / Client / Number -->' +
-    '<div class="fg g3" style="margin-bottom:12px">' +
-    '<div class="field"><label>Billing Entity *</label><select id="inv-issuer" onchange="recalcInvoice()"><option value="">• Select •</option></select></div>' +
-    '<div class="field"><label>Client / Provider *</label><select id="inv-client" onchange="recalcInvoice()"><option value="">• Select •</option></select></div>' +
-    '<div class="field"><label>Invoice #</label><input id="inv-number" class="mono" placeholder="Auto" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed" title="Auto-generated"></div>' +
-    '</div>' +
-
-    '<!-- Row 2: Period / Date / Due / Status -->' +
-    '<div class="fg g4" style="margin-bottom:12px">' +
-    '<div class="field"><label>Billing Period</label>' +
-    '<div style="display:flex;gap:5px">' +
-    '<select id="inv-month-sel" style="flex:1;padding:6px 8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text)" onchange="var m=this.value,y=document.getElementById(\'inv-month-year\').value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
-    '<option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>' +
-    '<input type="number" id="inv-month-year" min="2020" max="2035" style="width:68px;padding:6px 4px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text);text-align:center" onchange="var m=document.getElementById(\'inv-month-sel\').value,y=this.value;document.getElementById(\'inv-month\').value=_buildInvPeriod(m,y);recalcInvoice()">' +
-    '<input type="hidden" id="inv-month">' +
-    '</div></div>' +
-    '<div class="field"><label>Invoice Date</label><input type="date" id="inv-date" onchange="recalcInvoice()"></div>' +
-    '<div class="field"><label>Due Date</label><input type="date" id="inv-due"></div>' +
-    '<div class="field"><label>Status</label><select id="inv-status"><option>Draft</option><option>Sent</option><option>Partial</option><option>Overdue</option><option>Paid</option></select></div>' +
-    '</div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">Billing Structure</div>' +
-
-    '<!-- Row 3: Fee structure -->' +
-    '<div class="fg g4" style="margin-bottom:10px">' +
-    '<div class="field"><label>Fee %</label><input type="number" id="inv-fee" step="0.01" placeholder="6" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Min Revenue Base $</label><input type="number" id="inv-min-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Revenue Collected $</label><input type="number" id="inv-revenue" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exception Base $</label><input type="number" id="inv-exc-base" step="0.01" placeholder="0.00" oninput="recalcInvoice()"></div>' +
-    '<div class="field"><label>Exc. Months Total</label><input type="number" id="inv-exc-months" step="1" placeholder="0" oninput="recalcInvoice()" style="border-bottom:1px solid var(--border2)"></div>' +
-    '<div class="field"><label>Exc. Months Used</label><input type="number" id="inv-exc-used" step="1" placeholder="0" min="0"></div>' +
-    '</div>' +
-
-    '<div id="inv-calc-preview" style="padding:10px 14px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:14px;font-size:12px;min-height:32px"></div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Service Lines</span>' +
-    '<button class="btn-icon" title="Add service line" onclick="addInvSvcLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
-    '</div>' +
-    '<div id="inv-svc-lines" style="margin-bottom:14px"></div>' +
-
-    '<div class="sep"></div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">' +
-    '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Payment Details</span>' +
-    '<div style="display:flex;gap:6px">' +
-    '<button class="btn-icon" id="inv-paste-btn" title="Paste from Excel" onclick="togglePasteArea()" style="color:var(--brand)"><i data-lucide="clipboard-paste" class="lci" style="width:14px;height:14px"></i></button>' +
-    '<label class="btn-icon" title="Upload file" style="color:var(--brand);cursor:pointer"><i data-lucide="upload" class="lci" style="width:14px;height:14px"></i><input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importPaymentFile(event)"></label>' +
-    '<button class="btn-icon" title="Add row" onclick="addInvPayLine()" style="color:var(--brand)"><i data-lucide="plus" class="lci" style="width:14px;height:14px"></i></button>' +
-    '</div></div>' +
-    '<div id="inv-paste-area" style="display:none;margin-bottom:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px">' +
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Paste from Excel • columns: PAYMENT DATE, PRODUCT, PAYMENT ID, AMOUNT, STATUS, INSURANCE, INVOICE #, INVOICE MONTH, NOTES</div>' +
-    '<textarea id="inv-paste-input" rows="4" placeholder="Paste here..." oninput="previewPastedLines()" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:11px;font-family:var(--mono);resize:vertical;background:var(--bg2);color:var(--text);box-sizing:border-box;text-transform:uppercase"></textarea>' +
-    '<div id="inv-paste-preview" style="font-size:11px;margin-top:4px"></div>' +
-    '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-sm btn-primary" onclick="importPastedLines()">Import</button><button class="btn btn-sm" onclick="togglePasteArea()">Cancel</button></div>' +
-    '</div>' +
-    '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px">' +
-    '<thead><tr style="border-bottom:2px solid var(--border)">' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">DATE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PRODUCT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">PAYMENT ID</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">AMOUNT</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">STATUS</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INSURANCE</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">INV. MONTH</th>' +
-    '<th style="padding:4px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;white-space:nowrap">NOTES</th>' +
-    '<th style="width:28px"></th></tr></thead>' +
-    '<tbody id="inv-lines-body"></tbody></table></div>' +
-
-    '<div class="field"><label>Notes</label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;resize:vertical;background:var(--bg2);color:var(--text);text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></textarea></div>' +
-    '</div>' +
-
-    '<div class="modal-ftr" style="flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border2)">' +
-    '<button class="btn-icon" title="Cancel" onclick="closeModal(\'modal-invoice\')" style="color:var(--text3);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border2);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="x" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Preview PDF" onclick="previewInvoicePDF(\'preview\')" style="color:var(--brand);width:34px;height:34px;border-radius:8px;border:1.5px solid var(--brand);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="eye" class="lci" style="width:16px;height:16px"></i></button>' +
-    '<button class="btn-icon" title="Save Invoice" onclick="saveInvoice()" style="color:#fff;width:34px;height:34px;border-radius:8px;border:none;background:var(--brand);display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="save" class="lci" style="width:16px;height:16px"></i></button>' +
+    '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
+      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
+      '<button type="button" class="invm-ib" data-tip="Preview PDF" aria-label="Preview PDF" onclick="previewInvoicePDF(\'preview\')"><i data-lucide="eye" class="lci"></i></button>' +
+      '<button type="button" class="invm-save" data-tip="Save invoice" aria-label="Save invoice" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
+
   mk('modal-issuer',
     '<div class="modal" style="max-width:600px;background:#fff">' +
     '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
@@ -1066,6 +1087,7 @@ if (prev) prev.innerHTML = _issuerLogoB64
 ? `<img src="${_issuerLogoB64}" style="width:100%;height:100%;object-fit:contain">`
 : '<span style="font-size:11px;color:var(--text3)">No logo</span>';
 openModal('modal-issuer');
+setTimeout(_renderLucideIcons, 30);
 }
 
 function loadIssuerLogo(event) {
@@ -1153,6 +1175,7 @@ set('cli-zip', cli?.zip);
 set('cli-fee', cli?.fee);
 set('cli-notes', cli?.notes);
 openModal('modal-client');
+setTimeout(_renderLucideIcons, 30);
 }
 
 function saveClient() {
@@ -1630,6 +1653,7 @@ setTimeout(function(){
   });
 }, 100);
 openModal('modal-invoice');
+setTimeout(_renderLucideIcons, 30);
 }
 
 function saveInvoice() {
