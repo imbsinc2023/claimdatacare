@@ -1,5 +1,5 @@
 // ===================================================================
-// CLINICAL INTAKE MANAGEMENT MODULE — Super Admin Only
+// CLINICAL INTAKE MANAGEMENT MODULE • Super Admin Only
 // ===================================================================
 var _icFormFilter = 'all';
 
@@ -44,7 +44,7 @@ function renderIntakeCenter() {
   } else {
     recentHtml += '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Guardian</th><th>Status</th><th>Created</th></tr></thead><tbody>' +
       recent.map(function(c){
-        var created = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—';
+        var created = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '•';
         return '<tr><td style="font-weight:600">' + (c.lastName||'') + ', ' + (c.firstName||'') + '</td><td>' + (c.guardianName||'') + '</td><td>' + _icStatusBadge(c.status||'Pending Forms') + '</td><td style="font-size:12px;color:var(--text3)">' + created + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
@@ -101,7 +101,7 @@ function renderIntakeClients() {
           '<td>' + (c.guardianName||'') + '</td>' +
           '<td style="font-size:12px">' + (c.guardianPhone||'') + '</td>' +
           '<td style="font-size:12px">' + (c.guardianEmail||'') + '</td>' +
-          '<td style="font-size:12px">' + (c.referralSource||'—') + '</td>' +
+          '<td style="font-size:12px">' + (c.referralSource||'•') + '</td>' +
           '<td>' + _icStatusBadge(c.status||'Pending Forms') + '</td>' +
           '<td style="white-space:nowrap"><div class="btn-group">' +
             '<button class="btn btn-xs" onclick="openIntakeClientFile(' + realIdx + ')" title="Open Client File"><i data-lucide="folder-open" class="lci" style="width:12px;height:12px"></i></button>' +
@@ -215,7 +215,7 @@ function icSaveClient() {
 
 // ── Send Intake Forms ──
 // ══════════════════════════════════════════════════════════════════════════
-// INTAKE CLIENT FILE — same architecture as Patient Chart
+// INTAKE CLIENT FILE • same architecture as Patient Chart
 // ══════════════════════════════════════════════════════════════════════════
 
 var _icChartClientIdx = -1;
@@ -246,7 +246,7 @@ function openIntakeClientFile(idx) {
 }
 
 function _buildICChartShell(c, db) {
-  var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a; })() : '—';
+  var age = c.dob ? (function(){ var d=new Date(c.dob); var now=new Date(); var a=now.getFullYear()-d.getFullYear(); if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate()))a--; return a; })() : '•';
   var TABS = [
     {id:'summary',      label:'Summary',      icon:'layout-dashboard'},
     {id:'demographics', label:'Demographics', icon:'user'},
@@ -263,7 +263,7 @@ function _buildICChartShell(c, db) {
     '<span class="ptc-banner-sep">|</span>' +
     '<span class="ptc-banner-meta-item">' + (c.lastName||'').toUpperCase() + ', ' + (c.firstName||'').toUpperCase() + '</span>' +
     '<span class="ptc-banner-meta-item">' + (c.dob||'') + '</span>' +
-    (age !== '—' ? '<span class="ptc-banner-meta-item">' + age + ' yrs</span>' : '') +
+    (age !== '•' ? '<span class="ptc-banner-meta-item">' + age + ' yrs</span>' : '') +
     '<span class="ptc-banner-meta-item">' + (c.gender||'') + '</span>' +
     '<span class="ptc-banner-sep">|</span>' +
     '<div class="ptc-tabs-inline">' + tabsHTML + '</div>' +
@@ -403,7 +403,7 @@ function _saveICDemo() {
 
 // ── Coverage Tab ─────────────────────────────────────────────────────────────
 function _buildICCoverageTab(c, db) {
-  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #F1F4F8;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#0B1526;font-weight:600">'+(v||'—')+'</span></div>'; };
+  var R = function(l,v){ return '<div style="padding:7px 0;border-bottom:1px solid #F1F4F8;display:flex;gap:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586579;width:120px;flex-shrink:0">'+l+'</span><span style="font-size:13px;color:#0B1526;font-weight:600">'+(v||'•')+'</span></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Primary Insurance' +
     '<button class="btn btn-sm" onclick="_renderICTab(&quot;demographics&quot;)">Edit</button></div>' +
@@ -416,7 +416,7 @@ function _buildICCoverageTab(c, db) {
 function _buildICRecordsTab(c, db, main) {
   main.innerHTML = '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">' +
-    '<span>Records — Forms (Signed Consent Documents)</span>' +
+    '<span>Records • Forms (Signed Consent Documents)</span>' +
     '<button class="btn btn-sm" onclick="_loadICRecords()">Refresh</button></div>' +
     '<div class="ptc-panel-body" id="ic-records-body">' +
     '<div style="text-align:center;padding:24px;color:#586579;font-size:13px">Loading...</div>' +
@@ -540,7 +540,7 @@ async function _loadICRecords() {
         'Signed: '+ts+
         '</div>' +
         '</div>' +
-        // Action buttons with data attributes — wired via addEventListener below
+        // Action buttons with data attributes • wired via addEventListener below
         '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0" data-rowid="'+docId+'">' +
         (hasPdf ? '<button class="icoBtn" title="Preview" data-action="preview" data-docid="'+docId+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '') +
         (hasPdf ? '<button class="icoBtn" title="Print" data-action="print" data-docid="'+docId+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="pointer-events:none"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' : '') +
@@ -639,7 +639,7 @@ function icSendIntakeLink(idx) {
   document.getElementById('si-message').value = '';
   document.getElementById('si-client-info').innerHTML =
     '<strong>' + (c.lastName||'') + ', ' + (c.firstName||'') + '</strong><br>' +
-    'Guardian: ' + (c.guardianName||'') + ' &middot; DOB: ' + (c.dob||'—') + '<br>' +
+    'Guardian: ' + (c.guardianName||'') + ' &middot; DOB: ' + (c.dob||'•') + '<br>' +
     'Current Status: ' + (c.status||'Pending Forms');
 
   // List available active forms
@@ -679,7 +679,7 @@ function icSendIntakeForms() {
     return ch === '+' ? '-' : ch === '/' ? '_' : '';
   });
 
-  // Build sign.html link — all data embedded, no login needed
+  // Build sign.html link • all data embedded, no login needed
   // Get active provider info + logo for sign.html branding
   var sess = typeof getSession === 'function' ? getSession() : {};
   var provId = typeof activeProviderId !== 'undefined' ? activeProviderId : (sess.providerId||'');
@@ -708,7 +708,7 @@ function icSendIntakeForms() {
     })
   };
 
-  // Compress payload for URL embedding — strip HTML tags from form content
+  // Compress payload for URL embedding • strip HTML tags from form content
   // keeping only plain text (reduces payload 60-80%)
   function _stripHtml(html) {
     var tmp = document.createElement('div');
@@ -728,14 +728,14 @@ function icSendIntakeForms() {
       state: fullPayload.provider.state || '',
       phone: fullPayload.provider.phone || '',
       npi: fullPayload.provider.npi || ''
-      // logo excluded from URL — too large
+      // logo excluded from URL • too large
     },
     forms: fullPayload.forms.map(function(f) {
       return {
         id: f.id,
         name: f.name,
         type: f.type,
-        content: _stripHtml(f.content) // plain text only — removes all HTML tags
+        content: _stripHtml(f.content) // plain text only • removes all HTML tags
       };
     })
   };
@@ -771,7 +771,7 @@ function icSendIntakeForms() {
     '</div></div>',
   ].join('');
 
-  sendEmail(email, 'ClaimDataCare — Secure Intake Forms for ' + childName, emailHtml, 'intake').then(function(sent){
+  sendEmail(email, 'ClaimDataCare • Secure Intake Forms for ' + childName, emailHtml, 'intake').then(function(sent){
     if (sent) {
       // Update client status
       setDB(function(db){
@@ -817,7 +817,7 @@ function icSendDemoLink(idx) {
   var db = getDB();
   var c = (db.intakeClients || [])[idx];
   if (!c) { toast('Client not found','err'); return; }
-  if (!c.guardianEmail) { toast('Guardian email required — edit client first','warn'); return; }
+  if (!c.guardianEmail) { toast('Guardian email required • edit client first','warn'); return; }
 
   var childName = (c.firstName||'') + ' ' + (c.lastName||'');
   var token = btoa(c.id + '|' + c.guardianEmail + '|' + Date.now() + '|' + Math.random().toString(36).slice(2)).replace(/[+/=]/g, function(ch){
@@ -868,7 +868,7 @@ function icSendDemoLink(idx) {
         '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">ClaimDataCare &copy; 2026</p>',
       '</div></div>',
     ].join('');
-    sendEmail(c.guardianEmail, 'ClaimDataCare — Demographic Intake for ' + childName, emailHtml, 'demographic').then(function(sent){
+    sendEmail(c.guardianEmail, 'ClaimDataCare • Demographic Intake for ' + childName, emailHtml, 'demographic').then(function(sent){
       if (sent) { toast('Demographic link sent to ' + c.guardianEmail + ' <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'); }
       else { toast('Failed to send email. Link copied to clipboard instead.','warn'); copyToClipboard(demoLink); }
     });
@@ -970,11 +970,11 @@ function renderIntakeConsentForms() {
     el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Category</th><th>Electronic Sig</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>' +
       list.map(function(f){
         var realIdx = fullForms.indexOf(f);
-        var created = f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '—';
+        var created = f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '•';
         return '<tr>' +
           '<td style="font-weight:600">' + (f.name||'') + '</td>' +
           '<td><span class="badge b-blue" style="font-size:10px">' + (f.type||'') + '</span></td>' +
-          '<td style="font-size:12px;color:var(--text2)">' + (f.category||'—') + '</td>' +
+          '<td style="font-size:12px;color:var(--text2)">' + (f.category||'•') + '</td>' +
           '<td>' + (f.electronicSig !== false ? '<span style="color:var(--green);font-size:12px">Yes</span>' : '<span style="color:var(--text3);font-size:12px">No</span>') + '</td>' +
           '<td>' + (f.active !== false ? '<span class="badge b-green">Active</span>' : '<span class="badge b-gray">Archived</span>') + '</td>' +
           '<td style="font-size:12px;color:var(--text3)">' + created + '</td>' +
@@ -1062,8 +1062,8 @@ function icViewSignedForms(idx) {
   var html = '<div style="padding:16px"><h3 style="margin-bottom:12px">Signed Forms for ' + (c.lastName||'') + ', ' + (c.firstName||'') + '</h3>';
   html += '<div class="tbl-wrap"><table><thead><tr><th>Form</th><th>Sent</th><th>Status</th><th>Signed At</th><th></th></tr></thead><tbody>';
   submissions.forEach(function(s){
-    var sent = s.sentAt ? new Date(s.sentAt).toLocaleDateString() : '—';
-    var signed = s.signedAt ? new Date(s.signedAt).toLocaleString() : '—';
+    var sent = s.sentAt ? new Date(s.sentAt).toLocaleDateString() : '•';
+    var signed = s.signedAt ? new Date(s.signedAt).toLocaleString() : '•';
     html += '<tr><td>' + (s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status || 'Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
       '<td>' + (s.signedAt ? '<button class="btn btn-xs" onclick="icDownloadSignedPDF(\'' + s.id + '\')"><i data-lucide="download" class="lci"></i> PDF</button>' : '') + '</td></tr>';
   });
@@ -1124,7 +1124,7 @@ function renderIntakeEvaluation() {
         var c = (db.intakeClients || []).find(function(cl){ return cl.id === e.clientId; });
         var name = c ? (c.lastName||'') + ', ' + (c.firstName||'') : (e.clientName||'Unknown');
         var dob = c ? (c.dob||'') : '';
-        var updated = e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : (e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '—');
+        var updated = e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : (e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '•');
         return '<tr>' +
           '<td style="font-weight:600">' + name + '</td>' +
           '<td style="font-size:12px">' + dob + '</td>' +
@@ -1709,7 +1709,7 @@ function _icTryFirestoreLoad(clientId, callback) {
       }).catch(function() { callback(false); });
     }
   }).catch(function(e) {
-    // Firestore query failed (permissions/offline) — try loading from localStorage backup
+    // Firestore query failed (permissions/offline) • try loading from localStorage backup
     try {
       var backup = localStorage.getItem('cdc_firestore_backup_intakeClients');
       if (backup) {
@@ -1758,7 +1758,7 @@ function checkIntakeToken() {
         document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
-        // Retries exhausted — try embedded client data from URL (standalone portal)
+        // Retries exhausted • try embedded client data from URL (standalone portal)
         var _idata = _icExtractIData();
         if (_idata) {
           var db2 = getDB();
@@ -1881,7 +1881,7 @@ function _icPortalFormCard(client, sub, si, token) {
   formHtml += '</div>';
   formHtml += '<div style="padding:14px 18px">';
 
-  // Form content — collapsible
+  // Form content • collapsible
   if (formContent) {
     formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#D45C37;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
     formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#3A475C;line-height:1.7;padding:12px;background:#FFFFFF;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #E4E9F1">' + formContent + '</div>';
@@ -2167,7 +2167,7 @@ function _icFinalizeSignedForm(submissionId) {
         if (!patient.documents) patient.documents = [];
         patient.documents.unshift({
           id: sub.id,
-          name: (form ? form.name : 'Signed Form') + ' — ' + (client.firstName||'') + ' ' + (client.lastName||''),
+          name: (form ? form.name : 'Signed Form') + ' • ' + (client.firstName||'') + ' ' + (client.lastName||''),
           category: 'Intake Forms',
           type: 'pdf',
           data: pdfData,
@@ -2323,7 +2323,7 @@ function checkDemographicToken() {
         document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
         setTimeout(function(){ _tryLoad(tries - 1); }, 800);
       } else {
-        // Retries exhausted — try embedded client data from URL (standalone portal)
+        // Retries exhausted • try embedded client data from URL (standalone portal)
         var _idata = _icExtractIData();
         if (_idata) {
           var db2 = getDB();

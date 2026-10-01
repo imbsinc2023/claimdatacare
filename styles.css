@@ -314,7 +314,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   display: flex; flex-direction: column;
   height: 100%; overflow: hidden;
 }
-/* Banner — terracotta bar with patient info + tabs inline */
+/* Banner • terracotta bar with patient info + tabs inline */
 .ptc-banner {
   background: #D45C37;
   color: #fff;
@@ -491,7 +491,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   gap: 0;
 }
 
-/* ── Patient Chart — card/floating look for all tabs ─────────────────────── */
+/* ── Patient Chart • card/floating look for all tabs ─────────────────────── */
 /* Parchment background for the entire tab body */
 #pt-main {
   background: #F4F6FA;
@@ -590,7 +590,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
   box-shadow: 0 6px 20px rgba(0,0,0,.1);
 }
 
-/* ── Quick Batch — Date Chips ─────────────────────────────────────────────── */
+/* ── Quick Batch • Date Chips ─────────────────────────────────────────────── */
 .date-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .dchip {
@@ -609,7 +609,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 }
 .dchip.on:hover { background: #a84f32; border-color: #a84f32; }
 
-/* ── Quick Batch — Patient rows in SG tab ─────────────────────────────────── */
+/* ── Quick Batch • Patient rows in SG tab ─────────────────────────────────── */
 #mb-sg-pat-rows { background: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #E4E9F1; }
 #mb-sg-pat-rows > div { border-bottom: 1px solid #F1F4F8; }
 #mb-sg-pat-rows > div:last-child { border-bottom: none; }
@@ -622,7 +622,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 }
 #mb-sg-pat-rows .pat-row-hdr:hover { background: #F4F6FA; }
 
-/* ── icoBtn — icon-only button with tooltip ─────────────────────────────── */
+/* ── icoBtn • icon-only button with tooltip ─────────────────────────────── */
 .icoBtn {
   position: relative;
   width: 32px; height: 32px;
@@ -820,7 +820,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 /* This was previously undefined entirely, so every section rendered
    stacked on one page instead of behaving like left-nav / right-content
    tabs. Structure is intentionally generic (SOAP-style + sidebar list),
-   not tied to any one specialty — it works the same for medical, TCM,
+   not tied to any one specialty • it works the same for medical, TCM,
    psychiatry, or any future encounter type defined in ENCOUNTER_TYPES. */
 #encounter-editor{overflow:hidden}
 .enc-editor-body{display:flex;flex:1;min-height:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
@@ -844,7 +844,7 @@ input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;margin:0;c
 .enc-editor-ftr{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);background:var(--bg2)}
 
 /* ── Signature modal ────────────────────────────────────────────────── */
-/* .ee-sig-canvas, .ee-sig-upload and .ee-sig-preview had zero CSS before —
+/* .ee-sig-canvas, .ee-sig-upload and .ee-sig-preview had zero CSS before •
    that's why the signing box looked like a bare, borderless rectangle. */
 .ee-sig-tabs{display:flex;background:var(--bg3);border-radius:10px;padding:3px;margin-bottom:16px;gap:2px}
 .ee-sig-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:none;background:transparent;padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;transition:background .12s,color .12s}

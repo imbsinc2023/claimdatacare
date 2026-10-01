@@ -599,7 +599,7 @@ ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:8} }];
 
 XLSX.utils.book_append_sheet(wb, ws, 'Invoice');
 XLSX.writeFile(wb, `Invoice_${inv.number}.xlsx`);
-toast('Excel exported ?');
+toast('Excel exported');
 }
 
 let _invSvcLines = [];
@@ -1369,7 +1369,7 @@ else db.invoicingIssuers.push(iss);
 });
 closeModal('modal-issuer');
 renderIssuersList();
-toast('Billing entity saved ?');
+toast('Billing entity saved');
 }
 
 function deleteIssuer(id) {
@@ -1439,7 +1439,7 @@ else db.invoicingClients.push(cli);
 });
 closeModal('modal-client');
 renderClientsList();
-toast('Client saved ?');
+toast('Client saved');
 }
 
 function deleteClient(id) {
@@ -1674,7 +1674,7 @@ else if (inv.amtPaid > 0) inv.status = 'Partial';
 closeModal('modal-partial-pay');
 renderInvDashboard();
 renderInvoicesList();
-toast(`Payment of $${amount.toFixed(2)} recorded ?`);
+toast(`Payment of $${amount.toFixed(2)} recorded`);
 }
 
 function setInvoiceStatus(invId, newStatus) {
@@ -1684,7 +1684,7 @@ if (inv) { inv.status=newStatus; inv.updatedAt=Date.now(); }
 });
 renderInvoicesList();
 renderInvDashboard();
-toast(`Invoice ? ${newStatus}`);
+toast(`Invoice${newStatus}`);
 }
 
 function renderInvoicesList() {
@@ -1934,7 +1934,7 @@ const invTab = document.getElementById('inv-tab-invoices');
 if (invTab) invTab.click();
 else renderInvoicesList();
 populateInvFilters();
-toast('Invoice saved ?');
+toast('Invoice saved');
 }
 
 function addInvLine() {

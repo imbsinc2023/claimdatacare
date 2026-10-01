@@ -1,6 +1,6 @@
-// CDC BUILD 2026-07-27 LOGIN-FLASH v9 — loading overlay + pre-set specialty + force user menu closed — provider switch revalidates specialty — CM Client = Patient parity (same fields + columns) — + Y4 claim number (Box 11b) — PCN + per-line dates + accident + 12 lines + attachments — admin-only Settings + Supervisor=Rendering
+// CDC BUILD 2026-07-27 LOGIN-FLASH v9 • loading overlay + pre-set specialty + force user menu closed provider switch revalidates specialty CM Client = Patient parity (same fields + columns) + Y4 claim number (Box 11b) PCN + per-line dates + accident + 12 lines + attachments • admin-only Settings + Supervisor=Rendering
 console.log('%c[CDC] CM CLIENT CHART v2 LOADED', 'background:#D45C37;color:#fff;padding:4px 8px;border-radius:4px;font-weight:700');
-// Global error trap — catches JS errors that break nav/render functions
+// Global error trap • catches JS errors that break nav/render functions
 window.onerror = function(msg, src, line, col, err) {
   console.error('[CDC ERROR] ' + msg + ' | ' + src + ':' + line + ' | ' + (err&&err.stack ? err.stack.split('\n')[1]||'' : ''));
   return false;
@@ -86,7 +86,7 @@ function rebuildProvSel() {
       if (!label) {
         label = document.createElement('div');
         label.id = 'prov-name-label';
-        // No max-width, no ellipsis — show the full name. Padded to match the
+        // No max-width, no ellipsis • show the full name. Padded to match the
         // height of the user chip next to it (30px box-sizing:border-box).
         label.style.cssText = 'display:inline-flex;align-items:center;gap:6px;'
           + 'padding:6px 12px;height:30px;box-sizing:border-box;'
@@ -100,7 +100,7 @@ function rebuildProvSel() {
         + '<span>' + fullName + '</span>';
       label.style.display = 'inline-flex';
     } else {
-      // Multiple providers — keep the dropdown, hide the label if present
+      // Multiple providers • keep the dropdown, hide the label if present
       sel.style.display = '';
       if (label) label.style.display = 'none';
     }
@@ -138,7 +138,7 @@ function switchProvider(id){
         var _curLC = String(_cur).toLowerCase().trim();
         var _curOk = _cur && _provSpecNames.indexOf(_curLC) >= 0 && _userSpecsLC.indexOf(_curLC) >= 0;
         if (!_curOk) {
-          // Current specialty not offered on the new provider — switch to first eligible or clear
+          // Current specialty not offered on the new provider • switch to first eligible or clear
           var _newSpec = _eligible.length ? _eligible[0] : '';
           _sess.activeSpecialty = _newSpec;
           setSession(_sess);
@@ -236,9 +236,9 @@ invoices: 'Invoicing',
 'claim-editor': 'Claim Editor',
 bills: 'Claims',
 'intake-center': 'Intake Center',
-'intake-clients': 'Clinical Intake — Clients',
-'intake-forms': 'Clinical Intake — Consent Forms',
-'intake-eval': 'Clinical Intake — Comprehensive Evaluation',
+'intake-clients': 'Clinical Intake • Clients',
+'intake-forms': 'Clinical Intake • Consent Forms',
+'intake-eval': 'Clinical Intake • Comprehensive Evaluation',
 };
 
 
@@ -255,7 +255,7 @@ function renderPatientAdmission() {
   el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Patient</th><th>Admit Date</th><th>Status</th></tr></thead><tbody>' +
     admissions.map(function(a) {
       var pat = (db.patients || []).find(function(p){ return p.id === a.patId; }) || {};
-      return '<tr><td>' + (pat.last||'?') + ', ' + (pat.first||'') + '</td><td>' + (a.admitDate||'—') + '</td><td>' + (a.status||'—') + '</td></tr>';
+      return '<tr><td>' + (pat.last||'?') + ', ' + (pat.first||'') + '</td><td>' + (a.admitDate||'•') + '</td><td>' + (a.status||'•') + '</td></tr>';
     }).join('') + '</tbody></table></div>' + pgBar2;
 }
 function renderTransmitLog() {
@@ -357,7 +357,7 @@ if(renders[page]) {
           activeProviderId = _vp.id;
           console.log('[CDC] go(): derived activeProviderId='+activeProviderId+' before render of '+page);
         } else {
-          console.warn('[CDC] go(): NO providers in DB yet — render may show empty. providers='+(_db0.providers||[]).length);
+          console.warn('[CDC] go(): NO providers in DB yet • render may show empty. providers='+(_db0.providers||[]).length);
         }
       } catch(e) {}
     }
@@ -395,7 +395,7 @@ function _injectCriticalCSS() {
 
 
 // ── Login/App Loading Overlay ──────────────────────────────────────────────
-// Simple animated spinner. Kept intentionally lightweight — a heavier
+// Simple animated spinner. Kept intentionally lightweight • a heavier
 // skeleton-preview version was tried but backdrop-filter + shimmer on 30+
 // DOM nodes caused perceptible slowdown on lower-end machines.
 // _showLoginLoader / _hideLoginLoader: defined in cdc-loader.js (loaded by app.html)
@@ -465,7 +465,7 @@ function showApp(username) {
     //   1) session.name (populated at login from user record)
     //   2) db.users lookup by email (works on page reload when session was persisted without name)
     //   3) local param passed to showApp
-    //   4) email prefix (before @) — never show full email as a name
+    //   4) email prefix (before @) • never show full email as a name
     //   5) placeholder 'User'
     var _u = (session.name || '').trim();
     if (!_u || _u === 'User') {
@@ -680,7 +680,7 @@ function _migrateEOBDataV2() {
       db2.claimEOB[claimId] = entries;
     });
 
-    console.log('[Migration] EOB v2 complete — enriched', migrated, 'entries');
+    console.log('[Migration] EOB v2 complete • enriched', migrated, 'entries');
   });
 
   localStorage.setItem(MIGRATION_KEY, '1');
@@ -830,7 +830,7 @@ function pushClaimsToExtension() {
   var db = getDB();
   var pending = (db.claims||[]).filter(function(c){ return c.providerId===activeProviderId && c.status==='pending' && !c.medicaidSubmitted; });
   console.log('[Medicaid] pending claims:', pending.length, 'total claims:', (db.claims||[]).length, 'providerId:', activeProviderId);
-  if (!pending.length) { toast('No pending claims — create claims with status Pending first','warn'); return; }
+  if (!pending.length) { toast('No pending claims • create claims with status Pending first','warn'); return; }
   var payload = pending.map(function(c) {
     var pat = (db.patients||[]).find(function(p){return p.id===c.patId;})||{};
     var rend = (db.rendering||[]).find(function(r){return r.id===c.renderingId;})||{};
@@ -848,7 +848,7 @@ function pushClaimsToExtension() {
       if(cl){ cl.status='extension_queued'; cl.medicaidQueuedAt=new Date().toISOString(); }
     });
   });
-  toast(payload.length+' claim(s) queued for Medicaid ✓', 'ok');
+  toast(payload.length+' claim(s) queued for Medicaid ', 'ok');
 }
 
 function renderMedicaid() {
@@ -859,7 +859,7 @@ function renderMedicaid() {
   var pending = (db.claims||[]).filter(function(c){ return c.providerId===activeProviderId && c.status==='pending' && !c.medicaidSubmitted; });
   var el = document.getElementById('medicaid-content');
   if (!el) {
-    // Section not in shell — create it dynamically
+    // Section not in shell • create it dynamically
     var sec = document.createElement('div');
     sec.className = 'section';
     sec.id = 'sec-medicaid';
@@ -923,7 +923,7 @@ function renderMedicaid() {
     : '<div class="tbl-wrap"><table><thead><tr><th>Patient</th><th>Medicaid ID</th><th>PCN</th><th>DOS</th><th>CPT</th><th>Charges</th></tr></thead><tbody>'
     + pending.map(function(c){
         var pat=(db.patients||[]).find(function(p){return p.id===c.patId;})||{};
-        return '<tr><td style="font-weight:600">'+(pat.last||'')+', '+(pat.first||'')+'</td><td class="mono">'+(pat.subNum||'—')+'</td><td class="mono">'+(c.pcn||'')+'</td><td>'+(c.dos||'')+'</td><td class="mono">'+((c.lines||[]).map(function(l){return l.cpt;}).join(', '))+'</td><td><strong>$'+claimTotal(c).toFixed(2)+'</strong></td></tr>';
+        return '<tr><td style="font-weight:600">'+(pat.last||'')+', '+(pat.first||'')+'</td><td class="mono">'+(pat.subNum||'•')+'</td><td class="mono">'+(c.pcn||'')+'</td><td>'+(c.dos||'')+'</td><td class="mono">'+((c.lines||[]).map(function(l){return l.cpt;}).join(', '))+'</td><td><strong>$'+claimTotal(c).toFixed(2)+'</strong></td></tr>';
       }).join('')
     + '</tbody></table></div>'
   )
@@ -938,7 +938,7 @@ function saveMedicaidCredentials() {
   var had = !!((getDB().providers||[]).find(function(x){return x.id===activeProviderId;})||{}).medicaidPass;
   if (!user||(!pass&&!had)) { toast('Fill username and password','err'); return; }
   setDB(function(db){ var p=db.providers.find(function(x){return x.id===activeProviderId;}); if(p){p.medicaidUser=user; if(pass) p.medicaidPass=pass;} });
-  toast('Credentials saved ✓','ok');
+  toast('Credentials saved ','ok');
 }
 
 
@@ -967,7 +967,7 @@ function renderPatients(){
   window._patPgIndex = pgIndex;
   var pageList = list.slice(pgIndex * pgSize, (pgIndex+1) * pgSize);
 
-  // Pre-index claim counts once — O(n) instead of O(n*m) per row
+  // Pre-index claim counts once • O(n) instead of O(n*m) per row
   var _claimCount = {};
   (db.claims||[]).forEach(function(c){
     if(c.providerId===activeProviderId) _claimCount[c.patId] = (_claimCount[c.patId]||0)+1;
@@ -981,7 +981,7 @@ function renderPatients(){
     var dispSub   = p.subNum    || ins.subNum   || '';
     var dispPayId = p.payerid   || ins.payerId  || '';
     var dispPayer = p.payerName || ins.name     || '';
-    var dispPlan  = p.plan      || ins.plan     || '\u2014';
+    var dispPlan  = p.plan      || ins.plan     || '•';
     var dispRel   = p.rel       || ins.rel      || '';
     return '<tr>'
       + '<td style="font-family:var(--mono);font-size:11px;color:#586579">' + ptLinkAcct(p.id, p.acct) + '</td>'
@@ -1204,7 +1204,7 @@ function renderClaimEditor(){
   }
 }
 function _renderClaimEditorInner(){
-  // Persist claimId — store when set, reuse on re-renders
+  // Persist claimId • store when set, reuse on re-renders
   if(window._ceClaimId) window._ceClaimIdStored = window._ceClaimId;
   var claimId = window._ceClaimIdStored || null;
   var db = getDB();
@@ -1232,8 +1232,8 @@ function _renderClaimEditorInner(){
   if(!claim.dx) claim.dx=['','','','','','','',''];
   // Insurance (honors per-claim primary/secondary override)
   var _riIE=_resolveClaimIns(claim,pat); var ins1=_riIE.ins1; var ins2=_riIE.ins2;
-  var ins1Name=ins1?ins1.name||(ins1.payerId?'Payer '+ins1.payerId:'—'):(pat.payerName||'—');
-  var ins2Name=ins2?(ins2.name||'—'):'—';
+  var ins1Name=ins1?ins1.name||(ins1.payerId?'Payer '+ins1.payerId:'•'):(pat.payerName||'•');
+  var ins2Name=ins2?(ins2.name||'•'):'•';
   // Financials
   var billed=claim.lines.reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
   var paid=parseFloat(claim.paid||0);
@@ -1252,7 +1252,7 @@ function _renderClaimEditorInner(){
 
   // ── TOP NAV BAR ──
   // In float mode we still expose the close (×). The left "Back" button is
-  // removed by request — the terracotta bar only shows Claim Editor identity
+  // removed by request • the terracotta bar only shows Claim Editor identity
   // and action icons on the right.
   var _floatMode = !!window._ceFloatMode;
   var _closeBtn = _floatMode
@@ -1267,7 +1267,7 @@ function _renderClaimEditorInner(){
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#D45C37;border-bottom:2px solid #b0562f;flex-shrink:0;box-shadow:0 1px 3px rgba(212,92,55,.25)">'+
     '<span style="font-size:12px;font-weight:700;color:#fff">Claim Editor</span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
-    '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'—')+'</strong></span>'+
+    '<span style="font-size:11px;color:rgba(255,255,255,.85)">Bill# <strong style="color:#fff">'+(claim.billNum||'•')+'</strong></span>'+
     '<span style="color:rgba(255,255,255,.4)">|</span>'+
     '<span style="font-size:11px;color:rgba(255,255,255,.85)">Total <strong style="color:#fff;font-family:monospace">$'+billed.toFixed(2)+'</strong></span>'+
     statusBadge(claim.status)+
@@ -1281,11 +1281,11 @@ function _renderClaimEditorInner(){
   // ── PATIENT INFO BANNER ──
   '<div style="background:#EEF1F6;border-bottom:2px solid #E4E9F1;padding:6px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;font-size:12px">'+
     '<strong style="color:#0B1526;font-size:13px;font-weight:700">Patient Info :</strong>'+
-    '<span>File# <strong>'+(pat.acct||'—')+'</strong></span>'+
-    '<span style="color:#555">'+(pat.sex==='F'?'Female':pat.sex==='M'?'Male':pat.sex||'—')+'</span>'+
+    '<span>File# <strong>'+(pat.acct||'•')+'</strong></span>'+
+    '<span style="color:#555">'+(pat.sex==='F'?'Female':pat.sex==='M'?'Male':pat.sex||'•')+'</span>'+
     '<span style="color:var(--red);font-weight:700;font-size:13px">'+(pat.last||'').toUpperCase()+' '+(pat.first||'').toUpperCase()+' '+(pat.mid||'')+'</span>'+
     (age?'<span style="color:#555">'+age+' Years</span>':'')+
-    '<span style="color:#555">Bill# <strong>'+(claim.billNum||'—')+'</strong></span>'+
+    '<span style="color:#555">Bill# <strong>'+(claim.billNum||'•')+'</strong></span>'+
   '</div>'+
 
   // ── SECTION TABS ──
@@ -1297,7 +1297,7 @@ function _renderClaimEditorInner(){
     }).join('')+
   '</div>'+
 
-  // ── VALIDATION STRIP removed — all validation now shows in Claim Check box at bottom-right ──
+  // ── VALIDATION STRIP removed • all validation now shows in Claim Check box at bottom-right ──
   '<div id="ce-scrub" style="display:none"></div>'+
   '<div id="ce-scrub-list" style="display:none"></div>'+
 
@@ -1314,7 +1314,7 @@ function _renderClaimEditorInner(){
 
   // Wire up interactions after render
   setTimeout(function(){
-    // Always render icons first — guarantees they show even if something
+    // Always render icons first • guarantees they show even if something
     // below throws (previously a thrown error here left every icon in
     // this view blank, since _renderLucideIcons was scheduled last).
     if (typeof _renderLucideIcons === 'function') _renderLucideIcons();
@@ -1336,7 +1336,7 @@ function _renderClaimEditorInner(){
     // Facility select
     var facEl=document.getElementById('ce-fac');
     if(facEl){
-      facEl.innerHTML='<option value="">— None —</option>'+
+      facEl.innerHTML='<option value="">None</option>'+
         db.facilities.filter(function(f){return f.providerId===activeProviderId;}).map(function(f){
           return '<option value="'+f.id+'"'+(f.id===claim.facilityId?' selected':'')+'>'+f.name+'</option>';
         }).join('');
@@ -1344,7 +1344,7 @@ function _renderClaimEditorInner(){
     // Rendering select
     var rendEl=document.getElementById('ce-rend');
     if(rendEl){
-      rendEl.innerHTML='<option value="">— None —</option>'+
+      rendEl.innerHTML='<option value="">None</option>'+
         db.rendering.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
           return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
         }).join('');
@@ -1352,7 +1352,7 @@ function _renderClaimEditorInner(){
     // Referring select
     var refEl=document.getElementById('ce-ref');
     if(refEl){
-      refEl.innerHTML='<option value="">— None —</option>'+
+      refEl.innerHTML='<option value="">None</option>'+
         db.referring.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
           return '<option value="'+r.id+'"'+(r.id===claim.referringId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
         }).join('');
@@ -1360,7 +1360,7 @@ function _renderClaimEditorInner(){
     // Billing provider select
     var bpEl=document.getElementById('ce-bp');
     if(bpEl){
-      bpEl.innerHTML='<option value="">— None —</option>'+
+      bpEl.innerHTML='<option value="">None</option>'+
         (db.providers||[]).map(function(p){
           return '<option value="'+p.id+'"'+(p.id===(pat.providerId||activeProviderId)?' selected':'')+'>'+p.name+'</option>';
         }).join('');
@@ -1368,7 +1368,7 @@ function _renderClaimEditorInner(){
     // Enc provider (same as rendering)
     var encEl=document.getElementById('ce-enc');
     if(encEl){
-      encEl.innerHTML='<option value="">— None —</option>'+
+      encEl.innerHTML='<option value="">None</option>'+
         db.rendering.filter(function(r){return r.providerId===activeProviderId;}).map(function(r){
           return '<option value="'+r.id+'"'+(r.id===claim.renderingId?' selected':'')+'>'+r.last+', '+r.first+'</option>';
         }).join('');
@@ -1390,7 +1390,7 @@ function _renderClaimEditorInner(){
     // Re-render icons again in case any of the innerHTML writes above
     // (selects, etc.) introduced new data-lucide elements.
     setTimeout(_renderLucideIcons, 20);
-    // Install granular audit trackers (idempotent — attached once per container)
+    // Install granular audit trackers (idempotent • attached once per container)
     try{
       if(claimId){
         _ceInstallFieldTracking(claimId);
@@ -1526,7 +1526,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     +'<td colspan="14"></td></tr>'
     +'</tbody></table>'
   :
-    '<div style="text-align:center;padding:24px;color:'+S.stoneGray+';font-size:12px">No service lines — click Add More to add CPT codes.</div>';
+    '<div style="text-align:center;padding:24px;color:'+S.stoneGray+';font-size:12px">No service lines • click Add More to add CPT codes.</div>';
 
   // ── ICDs ────────────────────────────────────────────────────────────────
   var dxGrid = '';
@@ -1557,7 +1557,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
   // LEFT COLUMN
   +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">'
 
-    // CPT table header (ICDs above) — ICDs left, CPT Pad right, compact (not full height)
+    // CPT table header (ICDs above) • ICDs left, CPT Pad right, compact (not full height)
     +'<div style="border-bottom:2px solid '+S.borderWarm+';background:'+S.ivory+';padding:8px 10px;flex-shrink:0;display:flex;gap:12px;align-items:flex-start">'
 
       // ICDs (left, flexible width)
@@ -1570,7 +1570,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
         +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'+dxGrid+'</div>'
       +'</div>'
 
-      // CPT Pad (right, search-only — results appear only when typing, click to add)
+      // CPT Pad (right, search-only • results appear only when typing, click to add)
       +'<div style="width:290px;flex-shrink:0;border-left:1px solid '+S.borderWarm+';padding-left:12px;display:flex;flex-direction:column">'
         +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-shrink:0">'
           +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';text-transform:uppercase;letter-spacing:.04em;flex:1">CPT Pad</span>'
@@ -1629,9 +1629,9 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'</div>'
     +'</div>'
 
-    // Bill ICDs moved to top — placeholder removed
+    // Bill ICDs moved to top • placeholder removed
 
-    // Action buttons — compact clean layout with integrated validation
+    // Action buttons • compact clean layout with integrated validation
     +(function(){
       var canDel = (typeof hasPermission==='function' && hasPermission('Delete Claims'));
       var canBypass = (typeof hasPermission==='function' && hasPermission('Manage Settings'));
@@ -1656,7 +1656,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
           +'<button onclick="_ceLogClaim(\''+claimId+'\')" style="padding:7px 12px;background:'+S.warmSand+';color:'+S.charcoalWarm+';border:1px solid '+S.borderWarm+';border-radius:6px;cursor:pointer;font-size:12px">Log</button>'
           +(canDel?'<button onclick="_ceDeleteBill(\''+claimId+'\')" style="padding:7px 12px;background:none;color:#b53333;border:1px solid #f0c0c0;border-radius:6px;cursor:pointer;font-size:12px">Delete</button>':'')
         +'</div>'
-        // RIGHT: unified Claim Check box (validation + scrub rules) — always expanded
+        // RIGHT: unified Claim Check box (validation + scrub rules) • always expanded
         +'<div id="ce-check-box" style="margin-left:auto;min-width:280px;max-width:460px;background:#fff;border:1px solid '+badgeBdr+';border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)">'
           +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
             +'<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:'+badgeColor+'"><i data-lucide="'+badgeIco+'" class="lci" style="width:13px;height:13px"></i>Claim Check <span style="background:'+badgeBg+';color:'+badgeColor+';padding:1px 7px;border-radius:10px;font-size:10px">'+badgeText+'</span></div>'
@@ -1686,14 +1686,14 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
         +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:88px;flex-shrink:0">Primary Ins</span>'
         +'<select id="ce-ins1" title="Primary Insurance" style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis">'
-          +'<option value="">— Select —</option>'
+          +'<option value="">Select</option>'
           +(pat.insurances&&pat.insurances.filter(function(iv){return !iv.inactive;}).length?
             pat.insurances.filter(function(iv){return !iv.inactive;}).map(function(iv,i){
               var key=(iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||'Ins '+i);
               var isPri=claim.primaryPayerKey?(claim.primaryPayerKey===key):(iv.insType||iv.type||'Primary').toLowerCase().includes('primary');
               return '<option value="'+key.replace(/"/g,'&quot;')+'"'+(isPri?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
             }).join(''):
-            '<option>'+(pat.payerName||'—')+'</option>')
+            '<option>'+(pat.payerName||'•')+'</option>')
         +'</select>'
         +'<button onclick="_ceVerifyIns(\'primary\',\''+claimId+'\')" style="font-size:10px;padding:2px 5px;background:'+S.warmSand+';border:1px solid '+S.borderWarm+';border-radius:4px;cursor:pointer;white-space:nowrap;color:'+S.charcoalWarm+';flex-shrink:0">Verify</button>'
       +'</div>'
@@ -1701,7 +1701,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
         +'<span style="font-size:11px;font-weight:700;color:'+S.nearBlack+';min-width:88px;flex-shrink:0">Secondary Ins</span>'
         +'<select id="ce-ins2" title="Secondary Insurance" style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis">'
-          +'<option value="">— Select —</option>'
+          +'<option value="">Select</option>'
           +(function(){
             var actives = (pat.insurances||[]).filter(function(iv){return !iv.inactive;});
             var priKey = claim.primaryPayerKey || (function(){
@@ -1710,7 +1710,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
             })();
             return actives.map(function(iv,i){
               var key=(iv.payerId||iv.payerid||'')+'|'+(iv.name||iv.payerName||'Ins '+i);
-              // Never show the primary as a secondary option — user reported same insurance appearing twice
+              // Never show the primary as a secondary option • user reported same insurance appearing twice
               if (key === priKey) return '';
               var isSec=claim.hasOwnProperty('secondaryPayerKey')?(claim.secondaryPayerKey===key):(iv.insType||iv.type||'').toLowerCase().includes('secondary');
               return '<option value="'+key.replace(/"/g,'&quot;')+'"'+(isSec?' selected':'')+'>'+(iv.name||iv.payerName||'Ins '+i)+'</option>';
@@ -1722,7 +1722,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
       // Tertiary
       +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">'
         +'<span style="font-size:11px;color:'+S.stoneGray+';min-width:88px;flex-shrink:0">Tertiary Ins</span>'
-        +'<select style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis"><option>— Select —</option></select>'
+        +'<select style="flex:1;min-width:0;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';text-overflow:ellipsis"><option>Select</option></select>'
       +'</div>'
       // Self Pay
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
@@ -1743,7 +1743,7 @@ function _ceBuildServicesTab(claim,pat,prov,rend,fac,ref,ins1,ins2,ins1Name,ins2
     // Encounters
     +'<div style="padding:8px 10px;border-bottom:1px solid '+S.borderWarm+'">'
       +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:'+S.nearBlack+';margin-bottom:6px">Encounters <span style="text-decoration:underline;cursor:pointer;font-weight:400;text-transform:none;color:'+S.terracotta+'">Summary</span></div>'
-      +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';margin-bottom:4px"><option>— Select Encounter —</option></select>'
+      +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';margin-bottom:4px"><option>Select Encounter</option></select>'
       +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+';margin-bottom:4px"><option>Pre. Auth. [Add/View]</option></select>'
       +'<select style="width:100%;font-size:11px;padding:3px 4px;border:1px solid '+S.borderWarm+';border-radius:4px;background:'+S.ivory+';color:'+S.nearBlack+'"><option>Clia cert number [Add / View]</option></select>'
     +'</div>'
@@ -1806,7 +1806,7 @@ function _ceBuildPaymentsTab(claim, claimId, db){
       ts: e.postedAt || 0,
       date: e.checkDate || (e.postedAt?new Date(e.postedAt).toLocaleDateString():''),
       source: 'Insurance', sourceColor:'#1565c0',
-      payer: e.payerName || '—',
+      payer: e.payerName || '•',
       amount: parseFloat(e.paid||0),
       method: (e.checkType||'').toUpperCase()||'EFT/Check',
       ref: e.checkNum || e.eraId || '',
@@ -1818,7 +1818,7 @@ function _ceBuildPaymentsTab(claim, claimId, db){
       ts: p.ts || 0,
       date: p.date || (p.ts?new Date(p.ts).toLocaleDateString():''),
       source: 'Patient', sourceColor:'#D45C37',
-      payer: 'Patient — '+((claim._patName)||''),
+      payer: 'Patient • '+((claim._patName)||''),
       amount: parseFloat(p.amount||0),
       method: p.method || 'Cash',
       ref: p.ref || '',
@@ -1851,7 +1851,7 @@ function _ceBuildPaymentsTab(claim, claimId, db){
       '</tr></thead><tbody>'+
       rows.map(function(r){
         return '<tr>'+
-          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(r.date||'—')+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(r.date||'•')+'</td>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:'+r.sourceColor+'1a;color:'+r.sourceColor+'">'+r.source+'</span></td>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+r.payer+'</td>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:monospace;font-weight:700">$'+r.amount.toFixed(2)+'</td>'+
@@ -1923,8 +1923,8 @@ function _ceBuildLogTab(claim, claimId, db){
   var typeColor = {submission:'#2d7a4f', edit:'#475467', cancel:'#b53333', corrected:'#D45C37', comment:'#475467', snapshot:'#1565c0', error:'#b53333', info:'#586579', field:'#a3a19a', tab:'#a3a19a', click:'#a3a19a'};
 
   var header = '<div style="display:flex;gap:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:12px">'+
-    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">PCN</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.pcn||'—')+'</div></div>'+
-    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Bill #</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.billNum||'—')+'</div></div>'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">PCN</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.pcn||'•')+'</div></div>'+
+    '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Bill #</div><div style="font-family:monospace;font-weight:700;color:var(--text)">'+(claim.billNum||'•')+'</div></div>'+
     '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">First Submitted</div><div style="font-weight:700;color:var(--text)">'+(claim.firstSubmittedAt?new Date(claim.firstSubmittedAt).toLocaleString():'Not yet submitted')+'</div></div>'+
     '<div><div style="color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Status</div><div>'+statusBadge(claim.status)+'</div></div>'+
   '</div>';
@@ -1956,7 +1956,7 @@ function _ceBuildLogTab(claim, claimId, db){
     : '';
   return '<div style="flex:1;overflow-y:auto;padding:16px">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;flex-wrap:wrap">'+
-      '<div style="font-size:13px;font-weight:700;color:var(--text2)">Claim Log <span style="font-weight:400;color:var(--text3);font-size:11px">— '+logs.length+(showGranular?' entries':' main events')+'</span></div>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text2)">Claim Log <span style="font-weight:400;color:var(--text3);font-size:11px">• '+logs.length+(showGranular?' entries':' main events')+'</span></div>'+
       toggleHtml+
     '</div>'+
     header+
@@ -1987,7 +1987,7 @@ function _ceBuildEOBsTab(claim, db){
 
   if (claim.readyForSecondary) {
     summaryBar += '<div style="padding:6px 10px;background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;font-size:11px;font-weight:600;color:#b45309;margin-bottom:12px">'+
-      '<i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Ready for Secondary — Secondary balance: $'+fmtMoney(claim.secondaryBalance||0)+
+      '<i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Ready for Secondary • Secondary balance: $'+fmtMoney(claim.secondaryBalance||0)+
     '</div>';
   }
   if (claim.denialReason) {
@@ -2038,8 +2038,8 @@ function _ceBuildEOBsTab(claim, db){
         '<span style="font-size:10px;color:var(--text3)">'+(e.checkDate||new Date(e.postedAt).toLocaleDateString())+'</span>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">'+
-        _ceEobMini('Check #', e.checkNum||'—')+
-        _ceEobMini('ICN', e.payerICN||'—')+
+        _ceEobMini('Check #', e.checkNum||'•')+
+        _ceEobMini('ICN', e.payerICN||'•')+
         _ceEobMini('Billed', '$'+fmtMoney(e.billed||0))+
         _ceEobMini('Allowed', '$'+fmtMoney(e.allowed||0))+
         _ceEobMini('Paid', '$'+fmtMoney(e.paid||0), '#2d7a4f')+
@@ -2082,7 +2082,7 @@ function _ceBuildCommentsTab(claim, claimId){
         '<div style="display:flex;flex-direction:column;gap:8px">'+
           comments.map(function(c){
             return '<div style="padding:8px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">'+
-              '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">'+(c.author||'User')+' — '+(c.date||'')+'</div>'+
+              '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">'+(c.author||'User')+' • '+(c.date||'')+'</div>'+
               '<div style="font-size:12px;color:var(--text)">'+(c.text||'')+'</div>'+
             '</div>';
           }).join('')+
@@ -2119,12 +2119,12 @@ function _ceAmtRow(label, val, hasLink, isBlue){
 
 function _ceInsLabel(iv){
   var type=iv.insType||iv.type||'Primary';
-  var name=iv.name||iv.payerName||('ID: '+(iv.payerId||'—'));
+  var name=iv.name||iv.payerName||('ID: '+(iv.payerId||'•'));
   return '('+type.charAt(0).toUpperCase()+')'+name.slice(0,20)+'..';
 }
 
 function _cePopulatePOS(posEl, currentVal){
-  posEl.innerHTML='<option value="">— Select POS —</option>'+
+  posEl.innerHTML='<option value="">Select POS</option>'+
     '11 Office,12 Home,13 Assisted living,15 Mobile,16 Urgent care,21 Inpatient hospital,22 Outpatient hospital,23 Emergency room,24 ASC,31 Skilled nursing,32 Nursing facility,34 Hospice,50 Indep lab,57 Psych,65 Alcohol abuse,71 Public health,81 School,99 Other'.split(',').map(function(s){
       var v=s.split(' ')[0];
       return '<option value="'+v+'"'+(v===currentVal?' selected':'')+'>'+s+'</option>';
@@ -2150,7 +2150,7 @@ function _exportPatientPDF(patId) {
         fr.onerror = function(){ resolve(null); };
         fr.readAsDataURL(blob);
       }).catch(function(){
-        // CORS blocked — try <img> + canvas as fallback
+        // CORS blocked • try <img> + canvas as fallback
         var img = new Image();
         img.crossOrigin = 'anonymous';
         var done=false, fin=function(v){ if(!done){done=true;resolve(v);} };
@@ -2531,7 +2531,7 @@ function _cePadRender(encounterCpts, svcMap, query) {
       html += _cePadItem(code, desc, price, false);
     });
   } else {
-    // No catalog match — offer to add whatever the user typed as a raw CPT
+    // No catalog match • offer to add whatever the user typed as a raw CPT
     var typed = query.trim().toUpperCase();
     if (/^[0-9A-Z]{4,5}$/.test(typed)) {
       html += '<div onclick="_cePadAddCpt(\''+typed+'\',\'0.00\')" style="display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer;border-bottom:1px solid #E4E9F1;background:#fff3ee" onmouseover="this.style.background=\'#FFD2C2\'" onmouseout="this.style.background=\'#fff3ee\'">'+
@@ -2771,7 +2771,7 @@ function _ceTransmitToPending(claimId){
     if (c2) { c2.status = 'pending'; c2.updatedAt = Date.now(); }
   });
   _logClaimEvent(claimId, 'submission', 'Marked for transmission', 'Status: '+oldStatus+' → pending');
-  toast('Claim moved to Pending — will be sent in next batch','ok');
+  toast('Claim moved to Pending • will be sent in next batch','ok');
   renderClaimEditor();
 }
 function _ceBypassMinor(claimId){
@@ -2841,11 +2841,11 @@ function _ceOpenMoreModal(claimId, lineIdx){
   var lineSelector = '';
   if(lineCount > 1) {
     lineSelector = '<div style="padding:10px 14px;background:#FFFFFF;border-bottom:1px solid #E4E9F1"><label style="display:block;font-size:9px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">CPT Line</label><select onchange="window._ceMoreCtx.lineIdx=parseInt(this.value);_ceOpenMoreModal(\'' + claimId + '\',parseInt(this.value))" style="width:100%;padding:6px 8px;border:1px solid #E4E9F1;border-radius:5px;font-size:12px;background:#fff;color:#0B1526">' +
-      lines.map(function(l, i){ var cpt=(l && (l.cpt||l.code))||'—'; return '<option value="'+i+'"'+(i===lineIdx?' selected':'')+'>Line '+(i+1)+' — '+cpt+'</option>'; }).join('') +
+      lines.map(function(l, i){ var cpt=(l && (l.cpt||l.code))||'•'; return '<option value="'+i+'"'+(i===lineIdx?' selected':'')+'>Line '+(i+1)+' • '+cpt+'</option>'; }).join('') +
     '</select></div>';
   }
 
-  // Build sidebar — icon + label only, no scope description
+  // Build sidebar • icon + label only, no scope description
   var sidebar = tabs.map(function(t){
     var isActive = t.id === activeTab;
     return '<button onclick="window._ceMoreTab=\''+t.id+'\';_ceOpenMoreModal(\''+claimId+'\','+lineIdx+')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:11px 14px;border:none;background:'+(isActive?'#fff':'transparent')+';color:'+(isActive?'#D45C37':'#475467')+';cursor:pointer;border-left:3px solid '+(isActive?'#D45C37':'transparent')+';font-size:12px;font-weight:'+(isActive?'700':'500')+';transition:background .1s">'+
@@ -2868,7 +2868,7 @@ function _ceOpenMoreModal(claimId, lineIdx){
   overlay.innerHTML =
     // Static height 700px (fits typical laptop viewports); shrinks only if viewport <92vh
     '<div style="background:#fff;border-radius:12px;width:100%;max-width:820px;height:700px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">'+
-    // Header (terracotta) — title only, no subtitle
+    // Header (terracotta) • title only, no subtitle
     '<div style="padding:16px 22px;background:#D45C37;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
       '<div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><i data-lucide="file-plus-2" class="lci" style="width:18px;height:18px"></i> CPT Additional Details</div>'+
       '<button onclick="document.getElementById(\'modal-ce-more\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1">&times;</button>'+
@@ -2918,23 +2918,23 @@ function _ceMoreTabMeasurements(lineData){
   var h = _ceMoreHelpers();
   var m = lineData.measurements || {};
   var identifiers = [
-    { val:'',   lbl:'— select —' },
-    { val:'HT', lbl:'HT — Hematocrit' },
-    { val:'HB', lbl:'HB — Hemoglobin' },
-    { val:'R1', lbl:'R1 — Test Result 1' },
-    { val:'R2', lbl:'R2 — Test Result 2' },
-    { val:'R3', lbl:'R3 — Test Result 3' },
-    { val:'R4', lbl:'R4 — Test Result 4' },
-    { val:'TR', lbl:'TR — Blood Pressure Systolic' },
-    { val:'ZO', lbl:'ZO — Blood Pressure Diastolic' },
-    { val:'OG', lbl:'OG — Original' }
+    { val:'',   lbl:'select' },
+    { val:'HT', lbl:'HT • Hematocrit' },
+    { val:'HB', lbl:'HB • Hemoglobin' },
+    { val:'R1', lbl:'R1 • Test Result 1' },
+    { val:'R2', lbl:'R2 • Test Result 2' },
+    { val:'R3', lbl:'R3 • Test Result 3' },
+    { val:'R4', lbl:'R4 • Test Result 4' },
+    { val:'TR', lbl:'TR • Blood Pressure Systolic' },
+    { val:'ZO', lbl:'ZO • Blood Pressure Diastolic' },
+    { val:'OG', lbl:'OG • Original' }
   ];
   var qualifiers = [
-    { val:'',   lbl:'— select —' },
-    { val:'OG', lbl:'OG — Original Reading' },
-    { val:'TR', lbl:'TR — Actual Reading' },
-    { val:'MN', lbl:'MN — Minimum' },
-    { val:'MX', lbl:'MX — Maximum' }
+    { val:'',   lbl:'select' },
+    { val:'OG', lbl:'OG • Original Reading' },
+    { val:'TR', lbl:'TR • Actual Reading' },
+    { val:'MN', lbl:'MN • Minimum' },
+    { val:'MX', lbl:'MX • Maximum' }
   ];
   return '<div style="'+h.sect+'">Measurements <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Loop 2400 MEA segment)</span></div>'+
     '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Used for lab/imaging services (dialysis, oxygen therapy, PSA, hematocrit) where the payer requires the reading value on the claim.</div>'+
@@ -2954,18 +2954,18 @@ function _ceMoreTabMeasurements(lineData){
     '</div>';
 }
 
-// ── Tab: Drug / NDC (Loop 2410 LIN segment — Box 24A shaded area) ──
+// ── Tab: Drug / NDC (Loop 2410 LIN segment • Box 24A shaded area) ──
 function _ceMoreTabDrug(lineData){
   var h = _ceMoreHelpers();
   var d = lineData.drug || {};
   var units = [
-    { val:'F2', lbl:'F2 — International Unit' },
-    { val:'GR', lbl:'GR — Gram' },
-    { val:'ME', lbl:'ME — Milligram' },
-    { val:'ML', lbl:'ML — Milliliter' },
-    { val:'UN', lbl:'UN — Unit' }
+    { val:'F2', lbl:'F2 • International Unit' },
+    { val:'GR', lbl:'GR • Gram' },
+    { val:'ME', lbl:'ME • Milligram' },
+    { val:'ML', lbl:'ML • Milliliter' },
+    { val:'UN', lbl:'UN • Unit' }
   ];
-  return '<div style="'+h.sect+'">Drug / NDC <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24A shaded — Loop 2410)</span></div>'+
+  return '<div style="'+h.sect+'">Drug / NDC <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24A shaded • Loop 2410)</span></div>'+
     '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Required when billing J-codes or unlisted drug HCPCS. NDC must be <strong>11 numeric digits, no dashes</strong>.</div>'+
     '<div style="margin-bottom:14px">'+
       '<label style="'+h.lbl+'">Drug Code (NDC) *</label>'+
@@ -2986,27 +2986,27 @@ function _ceMoreTabDrug(lineData){
     '</div>';
 }
 
-// ── Tab: EPSDT / CHCUP (Box 24H — Family Planning / EPSDT indicator) ──
+// ── Tab: EPSDT / CHCUP (Box 24H • Family Planning / EPSDT indicator) ──
 function _ceMoreTabEpsdt(lineData){
   var h = _ceMoreHelpers();
   var e = lineData.epsdt || {};
   var indicators = [
-    { val:'',   lbl:'— select —' },
-    { val:'Y',  lbl:'Y — Yes, EPSDT screening performed' },
-    { val:'N',  lbl:'N — No / not applicable' },
-    { val:'AV', lbl:'AV — Available — not used' },
-    { val:'S2', lbl:'S2 — Under treatment' },
-    { val:'ST', lbl:'ST — New services requested' },
-    { val:'NU', lbl:'NU — Not used' }
+    { val:'',   lbl:'select' },
+    { val:'Y',  lbl:'Y • Yes, EPSDT screening performed' },
+    { val:'N',  lbl:'N • No / not applicable' },
+    { val:'AV', lbl:'AV Available not used' },
+    { val:'S2', lbl:'S2 • Under treatment' },
+    { val:'ST', lbl:'ST • New services requested' },
+    { val:'NU', lbl:'NU • Not used' }
   ];
   var referrals = [
-    { val:'',  lbl:'— select —' },
-    { val:'AV', lbl:'AV — Available — not used' },
-    { val:'S2', lbl:'S2 — Under treatment' },
-    { val:'ST', lbl:'ST — New services requested' },
-    { val:'NU', lbl:'NU — Not used' }
+    { val:'',  lbl:'select' },
+    { val:'AV', lbl:'AV Available not used' },
+    { val:'S2', lbl:'S2 • Under treatment' },
+    { val:'ST', lbl:'ST • New services requested' },
+    { val:'NU', lbl:'NU • Not used' }
   ];
-  return '<div style="'+h.sect+'">EPSDT / CHCUP <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24H — FL Medicaid CHCUP)</span></div>'+
+  return '<div style="'+h.sect+'">EPSDT / CHCUP <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24H • FL Medicaid CHCUP)</span></div>'+
     '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Florida Medicaid uses <strong>CHCUP</strong> (Child Health Check-Up Program) as its EPSDT equivalent for well-child visits. Set only when billing for children under 21.</div>'+
     '<div style="margin-bottom:14px">'+
       '<label style="'+h.lbl+'">CHCUP / EPSDT Indicator</label>'+
@@ -3022,18 +3022,18 @@ function _ceMoreTabEpsdt(lineData){
     '</div>'+
     '<div><label style="'+h.lbl+'">Family Planning Indicator</label>'+
       '<select id="epsdt-familyplan" style="'+h.input+';max-width:200px">'+
-        ['','Y','N'].map(function(v){return '<option value="'+v+'"'+h.sel(e.familyPlanning,v)+'>'+(v?v+' — '+(v==='Y'?'Yes':'No'):'— select —')+'</option>';}).join('')+
+        ['','Y','N'].map(function(v){return '<option value="'+v+'"'+h.sel(e.familyPlanning,v)+'>'+(v?v+' • '+(v==='Y'?'Yes':'No'):'select')+'</option>';}).join('')+
       '</select>'+
     '</div>';
 }
 
-// ── Tab: Anesthesia Time (Box 24G — units calculated in 15-min blocks) ──
+// ── Tab: Anesthesia Time (Box 24G • units calculated in 15-min blocks) ──
 function _ceMoreTabAnesthesia(lineData){
   var h = _ceMoreHelpers();
   var an = lineData.anesthesia || {};
   var hourOpts = function(sel){ var o=''; for(var i=0;i<24;i++){var v=(i<10?'0':'')+i;o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+v+'</option>';} return o; };
   var minOpts  = function(sel){ var o=''; for(var i=0;i<60;i++){var v=(i<10?'0':'')+i;o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+v+'</option>';} return o; };
-  return '<div style="'+h.sect+'">Anesthesia Time <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24G — anesthesia unit calculation)</span></div>'+
+  return '<div style="'+h.sect+'">Anesthesia Time <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 24G • anesthesia unit calculation)</span></div>'+
     '<div style="padding:10px 14px;background:#eef4fb;border:1px solid #c4d8ee;border-radius:8px;margin-bottom:14px;font-size:12px;color:#1e5490"><i data-lucide="info" class="lci" style="width:13px;height:13px"></i> Total units = elapsed minutes ÷ 15 (rounded up). Only complete this for anesthesia CPTs (00100-01999).</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">'+
       '<div><label style="'+h.lbl+'">From Time</label>'+
@@ -3081,8 +3081,8 @@ function _ceMoreTabOther(lineData){
         '<input type="date" id="oth-lastseen" value="'+h.esc(o.lastSeen)+'" style="'+h.input+'"></div>'+
       '<div><label style="'+h.lbl+'">Emergency Indicator (Box 24C)</label>'+
         '<select id="oth-emergency" style="'+h.input+'">'+
-          '<option value=""'+h.sel(o.emergency,'')+'>— No / not set —</option>'+
-          '<option value="Y"'+h.sel(o.emergency,'Y')+'>Y — Emergency</option>'+
+          '<option value=""'+h.sel(o.emergency,'')+'>No / not set</option>'+
+          '<option value="Y"'+h.sel(o.emergency,'Y')+'>Y • Emergency</option>'+
         '</select></div>'+
     '</div>'+
     '<div style="margin-bottom:14px">'+
@@ -3119,31 +3119,31 @@ function _ceMoreTabAccident(claim, isCasualty, payerName){
 
   return '<div style="'+h.sect+'">Accident / Casualty <span style="color:#586579;font-weight:600;text-transform:none;letter-spacing:0">(Box 10a-c, 11b, 14)</span></div>'+
     (isCasualty ? '<div style="padding:10px 14px;background:#fff3ee;border:1px solid #FFD2C2;border-radius:8px;margin-bottom:14px;font-size:12px;color:#D45C37;display:flex;align-items:center;gap:8px"><i data-lucide="info" class="lci" style="width:14px;height:14px;flex-shrink:0"></i><span><strong>Casualty payer detected</strong> ('+payerName.slice(0,40)+'). Box 11b Claim # required for EDI submission.</span></div>' : '')+
-    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 10 — Condition Related To</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 10 • Condition Related To</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'+
-      '<div><label style="'+h.lbl+'">10a — Employment</label>'+
+      '<div><label style="'+h.lbl+'">10a • Employment</label>'+
         '<select id="acc-employment" style="'+h.input+'">'+
-          '<option value="N"'+h.sel(a.employment||'N','N')+'>N — No</option>'+
-          '<option value="Y"'+h.sel(a.employment,'Y')+'>Y — Yes</option>'+
+          '<option value="N"'+h.sel(a.employment||'N','N')+'>N • No</option>'+
+          '<option value="Y"'+h.sel(a.employment,'Y')+'>Y • Yes</option>'+
         '</select></div>'+
-      '<div><label style="'+h.lbl+'">10b — Auto Accident</label>'+
+      '<div><label style="'+h.lbl+'">10b • Auto Accident</label>'+
         '<select id="acc-auto" onchange="_ceToggleAutoState()" style="'+h.input+'">'+
-          '<option value="N"'+h.sel(a.autoAccident||'N','N')+'>N — No</option>'+
-          '<option value="Y"'+h.sel(a.autoAccident,'Y')+'>Y — Yes</option>'+
+          '<option value="N"'+h.sel(a.autoAccident||'N','N')+'>N • No</option>'+
+          '<option value="Y"'+h.sel(a.autoAccident,'Y')+'>Y • Yes</option>'+
         '</select></div>'+
       '<div><label style="'+h.lbl+'">Accident State (10b)</label>'+
         '<select id="acc-state" style="'+h.input+'">'+
-          states.map(function(s){return '<option value="'+s+'"'+h.sel(a.state,s)+'>'+(s||'— select —')+'</option>';}).join('')+
+          states.map(function(s){return '<option value="'+s+'"'+h.sel(a.state,s)+'>'+(s||'select')+'</option>';}).join('')+
         '</select></div>'+
     '</div>'+
     '<div style="margin-bottom:16px;max-width:200px">'+
-      '<label style="'+h.lbl+'">10c — Other Accident</label>'+
+      '<label style="'+h.lbl+'">10c • Other Accident</label>'+
       '<select id="acc-other" style="'+h.input+'">'+
-        '<option value="N"'+h.sel(a.otherAccident||'N','N')+'>N — No</option>'+
-        '<option value="Y"'+h.sel(a.otherAccident,'Y')+'>Y — Yes</option>'+
+        '<option value="N"'+h.sel(a.otherAccident||'N','N')+'>N • No</option>'+
+        '<option value="Y"'+h.sel(a.otherAccident,'Y')+'>Y • Yes</option>'+
       '</select>'+
     '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 14 — Date of Injury / Accident</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 14 • Date of Injury / Accident</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
       '<div><label style="'+h.lbl+'">Accident Date</label>'+
         '<input type="date" id="acc-date" value="'+h.esc(a.date)+'" style="'+h.input+'">'+
@@ -3151,13 +3151,13 @@ function _ceMoreTabAccident(claim, isCasualty, payerName){
       '</div>'+
       '<div><label style="'+h.lbl+'">Onset Qualifier</label>'+
         '<select id="acc-qualifier" style="'+h.input+'">'+
-          '<option value="439"'+h.sel(a.qualifier||'439','439')+'>439 — Accident</option>'+
-          '<option value="431"'+h.sel(a.qualifier,'431')+'>431 — Onset of Symptoms</option>'+
-          '<option value="484"'+h.sel(a.qualifier,'484')+'>484 — Last Menstrual Period</option>'+
+          '<option value="439"'+h.sel(a.qualifier||'439','439')+'>439 • Accident</option>'+
+          '<option value="431"'+h.sel(a.qualifier,'431')+'>431 • Onset of Symptoms</option>'+
+          '<option value="484"'+h.sel(a.qualifier,'484')+'>484 • Last Menstrual Period</option>'+
         '</select>'+
       '</div>'+
     '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 11b — Other Claim ID (Casualty Payer)</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Box 11b • Other Claim ID (Casualty Payer)</div>'+
     '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:end;margin-bottom:6px">'+
       '<div><label style="'+h.lbl+'">Qualifier</label>'+
         '<input type="text" value="Y4" readonly style="'+h.mono+';background:#EEF1F6;color:#475467;text-align:center;font-weight:700">'+
@@ -3385,7 +3385,7 @@ function _ceSave(claimId, opts){
     if(dosEl) l.dos=dosEl.value||l.dos;
     var dosToEl=document.getElementById('ce-ln-dos-to-'+li);
     if(dosToEl) l.dosTo=dosToEl.value||l.dosTo;
-    // ICD sequence input — read the single text input containing the ordered letters
+    // ICD sequence input • read the single text input containing the ordered letters
     var dxPtrEl = document.getElementById('ce-ln-dxptr-'+li);
     if (dxPtrEl) {
       var ptr = (dxPtrEl.value||'').toUpperCase().replace(/[^A-H]/g,'');
@@ -3403,7 +3403,7 @@ function _ceSave(claimId, opts){
   // Detailed audit: log what actually changed
   var _diff = _oldClone ? _diffClaimForLog(_oldClone, claim) : '';
   if (_diff) {
-    _logClaimEvent(claimId, 'edit', 'Claim saved (PCN '+(claim.pcn||'—')+' · Bill# '+(claim.billNum||'—')+')', _diff);
+    _logClaimEvent(claimId, 'edit', 'Claim saved (PCN '+(claim.pcn||'•')+' · Bill# '+(claim.billNum||'•')+')', _diff);
   } else {
     _logClaimEvent(claimId, 'edit', 'Claim saved with no field changes');
   }
@@ -3442,7 +3442,7 @@ function _ceValidate(claimId, opts){
   var claim=(db.claims||[]).find(function(c){return c.id===claimId;});
   if(!claim) return;
   var errs=validateClaim(claim);
-  // Legacy scrub elements — force hidden. All validation now shows in the
+  // Legacy scrub elements • force hidden. All validation now shows in the
   // bottom-right #ce-check-box (rendered inside the editor layout).
   var scrubEl=document.getElementById('ce-scrub');
   var listEl=document.getElementById('ce-scrub-list');
@@ -3507,7 +3507,7 @@ function _ceRefreshCheckBox(claimId, errs){
   setTimeout(_renderLucideIcons, 20);
 }
 
-// User privilege check — bypass only for users with the flag set
+// User privilege check • bypass only for users with the flag set
 function _ceUserCanBypass(){
   try {
     var sess = getSession && getSession();
@@ -3547,7 +3547,7 @@ function _ceDuplicate(claimId){
 
 // ── Lazy-load pdf-lib (used to fill the CMS-1500 AcroForm) ────────────────
 // ── Firebase Storage: lazy-load matching the already-loaded SDK version ───
-// (Frank's app.html loads the compat SDKs — firebase.SDK_VERSION tells us
+// (Frank's app.html loads the compat SDKs • firebase.SDK_VERSION tells us
 // exactly which one, so we load the matching storage-compat.js instead of
 // guessing a version and risking a mismatch.)
 function _loadFirebaseStorage(cb, fallback) {
@@ -3566,7 +3566,7 @@ function _loadFirebaseStorage(cb, fallback) {
 }
 
 // Uploads a base64 "data:application/pdf;base64,...." string to Firebase
-// Storage and returns {url, path}. Throws if Storage isn't reachable —
+// Storage and returns {url, path}. Throws if Storage isn't reachable •
 // callers must catch this and fall back to inline storage gracefully.
 async function _uploadPdfToStorage(dataUri, pathHint) {
   if (!window.firebase || !firebase.storage) throw new Error('Firebase Storage not loaded');
@@ -3581,7 +3581,7 @@ async function _uploadPdfToStorage(dataUri, pathHint) {
 
 // One-time maintenance: moves any EXISTING base64-embedded attachments
 // (the thing that was filling up localStorage/Firestore) out to Storage,
-// freeing up space immediately. Super Admin only — run from Admin/Settings.
+// freeing up space immediately. Super Admin only • run from Admin/Settings.
 async function _migrateAttachmentsToStorage() {
   if (!isAdmin()) { toast('Only a Super Admin can run this','err'); return; }
   _loadFirebaseStorage(async function(){
@@ -3591,7 +3591,7 @@ async function _migrateAttachmentsToStorage() {
       (p.documents||[]).forEach(function(d){ if (d.data && !d.storageUrl) total++; });
       if (p.photo && p.photo.indexOf('data:')===0) total++;
     });
-    if (!total) { toast('Nothing to migrate — no inline attachments found','ok'); return; }
+    if (!total) { toast('Nothing to migrate • no inline attachments found','ok'); return; }
     toast('Migrating '+total+' attachment(s) to Storage…','info');
     for (var pi=0; pi<db.patients.length; pi++) {
       var pat = db.patients[pi];
@@ -3632,13 +3632,13 @@ async function _migrateAttachmentsToStorage() {
     setDB(function(db2){ db2.patients = db.patients; });
     toast('Migrated '+migrated+' attachment(s) to Storage'+(failed?' · '+failed+' failed (left as-is)':''), failed?'warn':'ok');
   }, function(){
-    toast('Could not load Firebase Storage — add firebase-storage-compat.js to app.html first (see instructions)','err');
+    toast('Could not load Firebase Storage • add firebase-storage-compat.js to app.html first (see instructions)','err');
   });
 }
 
 // UI entry point for the "Free Up Storage" menu item. Counts how many inline
 // attachments would move, nudges the user to back up first, then runs the
-// migration. Safe to run repeatedly — already-migrated items are skipped.
+// migration. Safe to run repeatedly • already-migrated items are skipped.
 function _storageMigrateClick() {
   if (typeof closeTnDropdown === 'function') closeTnDropdown();
   if (!isAdmin()) { toast('Only a Super Admin can run this','err'); return; }
@@ -3649,11 +3649,11 @@ function _storageMigrateClick() {
     if (p.photo && p.photo.indexOf('data:')===0) photos++;
   });
   var total = docs + photos;
-  if (!total) { toast('Nothing to migrate — no inline attachments found','ok'); return; }
+  if (!total) { toast('Nothing to migrate • no inline attachments found','ok'); return; }
   var msg = 'Free up local storage\n\n'+
     'This will move '+total+' attachment(s) ('+docs+' document(s), '+photos+' photo(s)) '+
     'out of your browser and into Firebase Storage. The files stay fully accessible '+
-    '— only the heavy data leaves localStorage, which fixes the "Storage Full" warning.\n\n'+
+    '• only the heavy data leaves localStorage, which fixes the "Storage Full" warning.\n\n'+
     'STRONGLY recommended: click Cancel and run "Backup Data" first, then come back.\n\n'+
     'Continue with the migration now?';
   return cdcConfirm(msg).then((__ok)=>{if(!__ok)return;
@@ -3706,7 +3706,7 @@ function _resolveClaimIns(claim, pat){
   } else {
     ins2 = active.find(function(iv){return (iv.insType||iv.type||'').toLowerCase().includes('secondary');})||null;
   }
-  // Don't return the same insurance as both primary and secondary — if ins2
+  // Don't return the same insurance as both primary and secondary • if ins2
   // resolved to the same record picked for ins1, drop it.
   if (ins1 && ins2 && ins1 === ins2) ins2 = null;
   if (ins1 && ins2) {
@@ -3737,7 +3737,7 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var billed = (claim.lines||[]).reduce(function(s,l){return s+parseFloat(l.charge||0);},0);
   var paid = parseFloat(claim.paid||claim.primaryPaid||0) + parseFloat(claim.secAmt||0);
 
-  // Carrier block (top right) — primary insurance
+  // Carrier block (top right) • primary insurance
   f.insurance_name = (ins1 && (ins1.name||ins1.payerName)) || '';
   f.insurance_id   = (ins1 && (ins1.memberId||ins1.subNum)) || pat.subNum || '';
 
@@ -3748,15 +3748,15 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     : payerLc.indexOf('champva')>=0 ? '/Champva'
     : '/Group';
 
-  // Box 2/3 — patient
+  // Box 2/3 • patient
   f.pt_name = (pat.last||'')+', '+(pat.first||'')+(pat.mid?' '+pat.mid:'');
   f.birth_mm = dob.mm; f.birth_dd = dob.dd; f.birth_yy = dob.yy;
   if (pat.sex==='M') f.sex='/M'; else if (pat.sex==='F') f.sex='/F';
 
-  // Box 4 — insured (assume self unless a distinct insured is tracked)
+  // Box 4 • insured (assume self unless a distinct insured is tracked)
   f.ins_name = f.pt_name;
 
-  // Box 5 — patient address/phone
+  // Box 5 • patient address/phone
   f.pt_street = pat.addr1||'';
   f.pt_city   = pat.city||'';
   f.pt_state  = pat.state||'';
@@ -3764,33 +3764,33 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var ptPhoneDigits = String(pat.phone||'').replace(/\D/g,'');
   if (ptPhoneDigits.length>=10) { f.pt_AreaCode=ptPhoneDigits.slice(0,3); f.pt_phone=ptPhoneDigits.slice(3,10); }
 
-  // Box 6 — relationship to insured (default Self)
+  // Box 6 • relationship to insured (default Self)
   f.rel_to_ins = '/S';
 
-  // Box 7 — insured address (mirrors patient under the Self assumption)
+  // Box 7 • insured address (mirrors patient under the Self assumption)
   f.ins_street=f.pt_street; f.ins_city=f.pt_city; f.ins_state=f.pt_state; f.ins_zip=f.pt_zip;
 
-  // Box 9 — secondary insurance ("other insured")
+  // Box 9 • secondary insurance ("other insured")
   if (ins2) {
     f.other_ins_name   = ins2.name||ins2.payerName||'';
     f.other_ins_policy = ins2.memberId||ins2.subNum||'';
     f.other_ins_plan_name = ins2.name||ins2.payerName||'';
   }
 
-  // Box 10 — condition related to (from claim.more.accident, migrated from legacy claim.accident)
+  // Box 10 • condition related to (from claim.more.accident, migrated from legacy claim.accident)
   var accData = (claim.more && claim.more.accident) || claim.accident || {};
   f.employment       = accData.employment === 'Y' ? '/YES' : '/NO';
   f.pt_auto_accident = accData.autoAccident === 'Y' ? '/YES' : '/NO';
   f.other_accident   = accData.otherAccident === 'Y' ? '/YES' : '/NO';
 
-  // Box 10b — accident place (state) — try multiple common field names
+  // Box 10b accident place (state) try multiple common field names
   if (accData.autoAccident === 'Y' && accData.state) {
     f.place = accData.state;         // common in many templates
     f.acc_place = accData.state;
     f.accident_state = accData.state;
   }
 
-  // Box 14 — date of current injury / accident (with onset qualifier)
+  // Box 14 • date of current injury / accident (with onset qualifier)
   if (accData.date) {
     var accDp = _cms1500DateParts(accData.date);
     f.cur_ill_mm = accDp.mm; f.cur_ill_dd = accDp.dd; f.cur_ill_yy = accDp.yy;
@@ -3799,7 +3799,7 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     f.date_qual = accData.qualifier || '439';
   }
 
-  // Box 11b — Other Claim ID (Y4 qualifier + casualty claim #)
+  // Box 11b • Other Claim ID (Y4 qualifier + casualty claim #)
   if (accData.claimNumber) {
     f.emp_ins_plan_name = 'Y4 ' + accData.claimNumber;   // common template mapping
     f.other_claim_id    = accData.claimNumber;
@@ -3807,31 +3807,31 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     f.qual_11b          = 'Y4';
   }
 
-  // Box 11 — insured policy/group + plan name + other coverage flag
+  // Box 11 • insured policy/group + plan name + other coverage flag
   f.ins_policy    = (ins1 && (ins1.groupNum||ins1.memberId)) || '';
   f.ins_plan_name = f.insurance_name;
   f.ins_benefit_plan = ins2 ? '/YES' : '/NO';
 
-  // Box 17 — referring provider
+  // Box 17 • referring provider
   if (ref && (ref.first||ref.last)) {
     f.ref_physician = (ref.last||'')+', '+(ref.first||'');
     f['physician number 17a1'] = ref.npi||'';
   }
 
-  // Box 21 — diagnoses A-H
+  // Box 21 • diagnoses A-H
   var dxFields = ['diagnosis1','diagnosis2','diagnosis3','diagnosis4','diagnosis5','diagnosis6','diagnosis7','diagnosis8'];
   (claim.dx||[]).forEach(function(code,i){ if (code && dxFields[i]) f[dxFields[i]] = code; });
 
-  // Box 22 — resubmission code / original ref (Corrected Claim — Code 7)
+  // Box 22 • resubmission code / original ref (Corrected Claim • Code 7)
   if (claim.correctedClaimFlag) {
     f.medicaid_resub = '7';
     f.original_ref   = claim.originalClaimNumber || '';
   }
 
-  // Box 23 — prior auth
+  // Box 23 • prior auth
   f.prior_auth = claim.auth || '';
 
-  // Box 24 — up to 6 service lines
+  // Box 24 • up to 6 service lines
   var moreLines = (claim.more && claim.more.lines) || {};
   (claim.lines||[]).slice(0,6).forEach(function(l,i){
     var n=i+1;
@@ -3850,7 +3850,7 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     // Additional per-line data from claim.more.lines[i]
     var md = moreLines[i] || {};
 
-    // Box 24A shaded — NDC drug code (try multiple common field names)
+    // Box 24A shaded • NDC drug code (try multiple common field names)
     if (md.drug && md.drug.code) {
       var ndcDisplay = md.drug.code + (md.drug.unit ? (' '+md.drug.unit+' '+(md.drug.quantity||'')).trim() : '');
       f['sh_ndc'+n] = ndcDisplay;
@@ -3860,13 +3860,13 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
       f['drug'+n]   = 'N4'+md.drug.code+' '+(md.drug.unit||'UN')+' '+(md.drug.quantity||'1');
     }
 
-    // Box 24C — Emergency indicator (Y)
+    // Box 24C • Emergency indicator (Y)
     if (md.other && md.other.emergency === 'Y') {
       f['emg'+n] = 'Y';
       f['pt_emg'+n] = 'Y';
     }
 
-    // Box 24H — EPSDT / Family Planning indicator
+    // Box 24H • EPSDT / Family Planning indicator
     if (md.epsdt && md.epsdt.indicator) {
       f['epsdt'+n] = md.epsdt.indicator;
       f['ep'+n]    = md.epsdt.indicator;
@@ -3876,19 +3876,19 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
       f['fp'+n] = md.epsdt.familyPlanning;
     }
 
-    // Anesthesia — override units with the calculated 15-min block count
+    // Anesthesia • override units with the calculated 15-min block count
     if (md.anesthesia && md.anesthesia.totalUnits) {
       f['day'+n] = String(md.anesthesia.totalUnits);
     }
 
-    // Measurements (Loop 2400 MEA) — not on the paper form directly; would go on an attachment
+    // Measurements (Loop 2400 MEA) • not on the paper form directly; would go on an attachment
     // We stash into Box 24 shaded row if space allows
     if (md.measurements && md.measurements.value && !f['sh_ndc'+n]) {
       f['sh_ndc'+n] = 'MEA '+(md.measurements.identifier||'')+' '+(md.measurements.qualifier||'')+' '+md.measurements.value;
     }
   });
 
-  // Box 19 — Additional Claim Info. Aggregate description/notes from line 0 and accident description.
+  // Box 19 • Additional Claim Info. Aggregate description/notes from line 0 and accident description.
   var line0More = moreLines[0] || {};
   var box19Parts = [];
   if (line0More.other && line0More.other.description) box19Parts.push(line0More.other.description);
@@ -3901,38 +3901,38 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
     f.local = box19Text;
   }
 
-  // Box 15 — Other Date (from Other Details "Last Seen Date")
+  // Box 15 • Other Date (from Other Details "Last Seen Date")
   if (line0More.other && line0More.other.lastSeen) {
     var lsDp = _cms1500DateParts(line0More.other.lastSeen);
     f.last_seen_mm = lsDp.mm; f.last_seen_dd = lsDp.dd; f.last_seen_yy = lsDp.yy;
     f.other_date_mm = lsDp.mm; f.other_date_dd = lsDp.dd; f.other_date_yy = lsDp.yy;
   }
 
-  // Ordering Provider (17 or 24J supplement) — from Other Details, applies across lines
+  // Ordering Provider (17 or 24J supplement) • from Other Details, applies across lines
   if (line0More.other && line0More.other.orderingProvider) {
     f.ordering_provider = line0More.other.orderingProvider;
   }
 
-  // Box 25 — Tax ID (billing provider)
+  // Box 25 • Tax ID (billing provider)
   f.tax_id = (prov.taxid||'').replace(/\D/g,'');
   f.ssn = (prov.taxType==='S') ? '/SSN' : '/EIN';
 
-  // Box 26 — patient account #
+  // Box 26 • patient account #
   f.pt_account = pat.acct||'';
 
-  // Box 27 — accept assignment (default YES — standard for participating providers)
+  // Box 27 accept assignment (default YES standard for participating providers)
   f.assignment = '/YES';
 
-  // Box 28/29 — totals
+  // Box 28/29 • totals
   f.t_charge = billed.toFixed(2);
   f.amt_paid = paid.toFixed(2);
 
-  // Box 32 — service facility
+  // Box 32 • service facility
   f.fac_name = fac.name || prov.name || '';
   f.fac_street = fac.addr1 || '';
   f.fac_location = [fac.city,fac.state,fac.zip].filter(Boolean).join(', ');
 
-  // Box 33 — billing provider
+  // Box 33 • billing provider
   f.doc_name = prov.name || '';
   f.doc_street = prov.addr1 || '';
   f.doc_location = [prov.city,prov.state,prov.zip].filter(Boolean).join(', ');
@@ -3944,7 +3944,7 @@ function _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
 }
 
 // Fills the CMS-1500 template and returns the resulting PDF bytes (Uint8Array).
-// templateUrl defaults to a relative path — host cms1500-template.pdf at your
+// templateUrl defaults to a relative path • host cms1500-template.pdf at your
 // site root (same folder as app.html) for this to resolve correctly.
 async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var PDFLib = window.PDFLib;
@@ -3953,7 +3953,7 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   try {
     resp = await fetch(templateUrl, {cache:'no-store'});
   } catch(netErr) {
-    throw new Error('Could not reach "'+templateUrl+'" — check your network or hosting.');
+    throw new Error('Could not reach "'+templateUrl+'" • check your network or hosting.');
   }
   if (!resp.ok) {
     throw new Error('CMS-1500 template not found (HTTP '+resp.status+') at "'+templateUrl+'". Upload cms1500-template.pdf to your site root (same folder as app.html).');
@@ -3965,13 +3965,13 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   var headerStr = String.fromCharCode.apply(null, header);
   if (headerStr !== '%PDF-') {
     console.error('[CMS1500] Fetched content is not a PDF. First bytes:', headerStr, 'Content-Type:', resp.headers.get('content-type'));
-    throw new Error('"'+templateUrl+'" did not return a valid PDF (got "'+headerStr+'..." instead — likely your server returned a 200 OK with the wrong file, e.g. app.html). Confirm cms1500-template.pdf is uploaded at your site root and re-deploy.');
+    throw new Error('"'+templateUrl+'" did not return a valid PDF (got "'+headerStr+'..." instead • likely your server returned a 200 OK with the wrong file, e.g. app.html). Confirm cms1500-template.pdf is uploaded at your site root and re-deploy.');
   }
   var pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
   var form = pdfDoc.getForm();
   var values = _cms1500FieldValues(claim, pat, prov, rend, fac, ref, ins1, ins2, db);
 
-  // Load the standard Courier font (one of the 14 PDF base fonts — no embed cost)
+  // Load the standard Courier font (one of the 14 PDF base fonts • no embed cost)
   // The CMS-1500 form is designed for monospaced OCR-friendly input, and every
   // clearinghouse's OCR is calibrated for Courier, so we override each text
   // field's default appearance to render in Courier.
@@ -3979,14 +3979,14 @@ async function _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db) {
   try {
     courierFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
   } catch(fontErr) {
-    console.warn('[CMS1500] could not load Courier font — falling back to template default', fontErr);
+    console.warn('[CMS1500] could not load Courier font • falling back to template default', fontErr);
   }
 
 // Some CMS-1500 "radio-like" fields (Sex M/F, Self/Spouse/Child/Other,
 // Employment Yes/No, SSN/EIN, etc.) are exposed by pdf-lib as a single
 // PDFCheckBox with MULTIPLE widgets sharing one field name, rather than a
 // PDFRadioGroup. Calling .check() on these always selects the FIRST widget's
-// "on" state — there is no way to pick a specific one through the public
+// "on" state • there is no way to pick a specific one through the public
 // PDFCheckBox API. This sets the correct widget directly.
 function _cms1500SetCheckbox(field, PDFLib, targetValue) {
   var PDFName = PDFLib.PDFName;
@@ -4021,7 +4021,7 @@ function _cms1500SetCheckbox(field, PDFLib, targetValue) {
     if (!field) { skippedCount++; console.warn('[CMS1500] field not found:', key); return; }
     try {
       // Use instanceof against the PDFLib class references rather than
-      // field.constructor.name — minified CDN builds rename classes to
+      // field.constructor.name • minified CDN builds rename classes to
       // single letters (e.g. PDFTextField -> "r"), which silently broke
       // every name-based comparison and filled 0 fields.
       if (field instanceof PDFLib.PDFTextField) {
@@ -4049,7 +4049,7 @@ function _cms1500SetCheckbox(field, PDFLib, targetValue) {
   });
   console.log('[CMS1500] Filled', filledCount, 'fields, skipped', skippedCount, 'of', Object.keys(values).length, 'total values');
   if (filledCount === 0) {
-    throw new Error('Loaded the PDF but filled 0 fields — the template\'s form fields may not match (check console for details).');
+    throw new Error('Loaded the PDF but filled 0 fields • the template\'s form fields may not match (check console for details).');
   }
 
   // Second pass: force Courier on every text field's global appearance
@@ -4062,14 +4062,14 @@ function _cms1500SetCheckbox(field, PDFLib, targetValue) {
   return await pdfDoc.save();
 }
 
-// "Printable View" button — opens the filled CMS-1500 in a new tab.
-// Same as _ceGenerateCMS1500 but triggers a download instead of opening a tab —
+// "Printable View" button • opens the filled CMS-1500 in a new tab.
+// Same as _ceGenerateCMS1500 but triggers a download instead of opening a tab •
 // used so the "Superbill" shown in Patient Records is always the identical
 // CMS-1500 document produced by the claim's own Printable View.
 function _ceDownloadCMS1500(claimId, filename) {
   var db = getDB();
   var claim = (db.claims||[]).find(function(c){return c.id===claimId;});
-  if (!claim) { toast('Linked claim not found — it may have been deleted','err'); return; }
+  if (!claim) { toast('Linked claim not found • it may have been deleted','err'); return; }
   var pat = db.patients.find(function(p){return p.id===claim.patId;}) || {};
   var rend = (db.rendering||[]).find(function(r){return r.id===claim.renderingId;}) || {};
   var fac = (db.facilities||[]).find(function(f){return f.id===claim.facilityId;}) || {};
@@ -4153,7 +4153,7 @@ function _ceTransmitSingle(claimId){
           var c=(db2.claims||[]).find(function(x){return x.id===claimId;});
           if (c) { c.status='submitted'; if(!c.firstSubmittedAt) c.firstSubmittedAt=Date.now(); }
         });
-        addClaimLog(claimId, {type:'submission', message:'Claim submitted to ClaimMD — PCN: '+(claim.pcn||'—')+' · Bill# '+(claim.billNum||'—')});
+        addClaimLog(claimId, {type:'submission', message:'Claim submitted to ClaimMD • PCN: '+(claim.pcn||'•')+' · Bill# '+(claim.billNum||'•')});
         toast('Claim submitted','ok');
 
         // On the FIRST successful submission, generate and download a CMS-1500
@@ -4202,7 +4202,7 @@ function _ceCancelClaim(claimId){
 });}
 
 function _ceDeleteBill(claimId){
-  if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
+  if(!hasPermission('Delete Claims')){ toast('You do not have permission to delete claims','err'); return; }
   return cdcConfirm('Delete this claim permanently? This cannot be undone.').then((__ok)=>{if(!__ok)return;
   _logClaimEvent(claimId, 'cancel', 'Claim deleted permanently', 'Removed from database');
   setDB(function(db){db.claims=(db.claims||[]).filter(function(c){return c.id!==claimId;});});
@@ -4354,7 +4354,7 @@ function _ceInstallFieldTracking(claimId){
       }catch(e){}
     }
     var label = _ceGetFieldLabel(t.id);
-    _logClaimEvent(claimId, 'field', label+' changed', '"'+(displayOld||'—')+'" → "'+(displayNew||'—')+'"');
+    _logClaimEvent(claimId, 'field', label+' changed', '"'+(displayOld||'•')+'" → "'+(displayNew||'•')+'"');
     window._ceFocusValues[t.id] = newV;
   }, true);
 }
@@ -4474,13 +4474,13 @@ function deletePatientConfirm(patId) {
 function openPatientModal(idx) {
 const db = getDB();
 if (idx >= 0) {
-// EDIT — open existing patient chart to Demographics tab
+// EDIT • open existing patient chart to Demographics tab
 const pat = db.patients[idx];
 if (!pat) { toast('Patient not found', 'err'); return; }
 openPatientChart(pat.id);
 setTimeout(() => _renderChartTab('summary'), 100);
 } else {
-// NEW PATIENT — create a blank record then open chart to Demographics
+// NEW PATIENT • create a blank record then open chart to Demographics
 if (!activeProviderId) { toast('Select a billing provider first', 'warn'); return; }
 const newPat = {
 id: uid(),
@@ -4494,7 +4494,7 @@ insurances: [],
 inactive: false,
 createdAt: Date.now(),
 };
-// Generate proper account number — guaranteed unique within this provider
+// Generate proper account number • guaranteed unique within this provider
 const existingAccts = db.patients.map(p => parseInt((p.acct||'0').replace(/\D/g,''))||0);
 let maxAcct = existingAccts.length ? Math.max(...existingAccts) : 0;
 let candidateAcct = String(maxAcct + 1);
@@ -4526,7 +4526,7 @@ const sum = tmpLines.reduce((s,l)=>s+(parseFloat(l.charge)||0),0);
 mcTot.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 
-// Resolve active insurance — checks pat.insurances[] (Coverage tab) first, falls back to legacy fields
+// Resolve active insurance • checks pat.insurances[] (Coverage tab) first, falls back to legacy fields
 function _resolvePatientInsurance(pat) {
     var ins = (pat.insurances||[]).find(function(iv){
       return !iv.inactive && ((iv.insType||iv.type||'primary').toLowerCase().includes('primary'));
@@ -4590,7 +4590,7 @@ function _newClaimFromChart(patId) {
 }
 
 function openClaimModal(idx){
-// Reset attachments — will be populated below for edit mode
+// Reset attachments • will be populated below for edit mode
 _mcAttachments = [];
 setTimeout(function(){
   try {
@@ -4640,7 +4640,7 @@ setTimeout(function(){
       window._ceCurrentClaim=newClaim;
     }
 
-    // Set editor state BEFORE persisting — guarantees navigation can render
+    // Set editor state BEFORE persisting • guarantees navigation can render
     // even if the DB write throws (e.g. localStorage quota).
     window._ceActiveTab='services';
     window._ceClaimId=claimId;
@@ -4657,7 +4657,7 @@ setTimeout(function(){
     if(tbt) tbt.textContent='Claim Editor';
 
     // Persist the new claim AFTER navigation. If this fails, the editor still
-    // works in-memory via window._ceCurrentClaim — user won't be blocked.
+    // works in-memory via window._ceCurrentClaim • user won't be blocked.
     if (newClaim) {
       try {
         setDB(function(db2){
@@ -4666,7 +4666,7 @@ setTimeout(function(){
         });
       } catch(persistErr) {
         console.error('[CDC] setDB failed during new-claim persist (continuing in-memory):', persistErr);
-        toast('Warning: claim created in memory but not yet saved — '+(persistErr.message||persistErr), 'warn');
+        toast('Warning: claim created in memory but not yet saved • '+(persistErr.message||persistErr), 'warn');
       }
     }
 
@@ -4722,7 +4722,7 @@ else db2.facilities.push(f);
 
 closeModal('modal-facility');
 renderFacilities();
-toast(isNew ? 'Facility added ?' : 'Facility updated ?');
+toast(isNew ? 'Facility added' : 'Facility updated');
 }
 
 
@@ -4780,7 +4780,7 @@ const active = f.status !== 'Inactive';
 return `<tr style="opacity:${active?'1':'0.6'}">
 <td style="font-weight:600;color:var(--text)">${f.name}</td>
 <td class="mono" style="font-size:12px">${f.npi||''}</td>
-<td><span class="badge b-gray" style="font-size:10px">${f.pos||'11'} — ${posLabel}</span></td>
+<td><span class="badge b-gray" style="font-size:10px">${f.pos||'11'} • ${posLabel}</span></td>
 <td style="font-size:12px;color:var(--text2)">${[f.addr1,f.city,f.state,f.zip].filter(Boolean).join(', ')||''}</td>
 <td><span class="badge ${active?'b-green':'b-gray'}">${active?'Active':'Inactive'}</span></td>
 <td>
@@ -4807,7 +4807,7 @@ _renderLucideIcons();
 
 
 
-function renderRendering(){ const db=getDB(); const list=db.rendering.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('rendering-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round" class="lci" style="width:24px;height:24px"></i></div><h3>No rendering providers</h3><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Taxonomy</th><th>Tax ID</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.rendering.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td class="mono">${r.taxonomy||'\u2014'}</td><td class="mono">${r.taxid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openRenderingModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
+function renderRendering(){ const db=getDB(); const list=db.rendering.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('rendering-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round" class="lci" style="width:24px;height:24px"></i></div><h3>No rendering providers</h3><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Taxonomy</th><th>Tax ID</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.rendering.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td class="mono">${r.taxonomy||'•'}</td><td class="mono">${r.taxid||'•'}</td><td><button class="btn btn-xs" onclick="openRenderingModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
 
 
 
@@ -4816,7 +4816,7 @@ function renderValidation(){
 const db=getDB(); const claims=db.claims.filter(c=>c.providerId===activeProviderId); const el=document.getElementById('val-content');
 if(!claims.length){ el.innerHTML='<div class="alert al-warn">No claims to validate.</div>'; return; }
 const all=claims.map(c=>({c,errs:validateClaim(c)})); const totalErrs=all.reduce((s,x)=>s+x.errs.length,0); const total=claims.reduce((s,c)=>s+claimTotal(c),0);
-el.innerHTML=(totalErrs===0?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> <strong>${claims.length} claim(s) valid.</strong> Total: $${fmtMoney(total)}</div>`:`<div class="alert al-error"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> <strong>${totalErrs} error(s)</strong> in ${all.filter(x=>x.errs.length).length} claim(s).</div>`)+`<div class="card"><div class="card-title" style="margin-bottom:12px">Detail</div>`+all.map(({c,errs})=>{ const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'}; return`<div style="padding:9px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${errs.length?'var(--red)':'var(--green)'};flex-shrink:0"></div><span style="font-weight:600">${c.pcn}</span><span style="color:var(--text3);font-size:12px">\u2014 ${ptLinkName(p.id,p.last,p.first)} \u2014 ${c.dos}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12px;font-weight:700">$${fmtMoney(claimTotal(c))}</span>${errs.length?`<span class="badge b-red">${errs.length} err</span>`:'<span class="badge b-green"><i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i> OK</span>'}</div></div>${errs.length?`<ul style="padding:4px 0 4px 20px;font-size:12px;color:var(--red);margin-top:4px">${errs.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}</div>`;}).join('')+`</div>`;
+el.innerHTML=(totalErrs===0?`<div class="alert al-success"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> <strong>${claims.length} claim(s) valid.</strong> Total: $${fmtMoney(total)}</div>`:`<div class="alert al-error"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> <strong>${totalErrs} error(s)</strong> in ${all.filter(x=>x.errs.length).length} claim(s).</div>`)+`<div class="card"><div class="card-title" style="margin-bottom:12px">Detail</div>`+all.map(({c,errs})=>{ const p=db.patients.find(x=>x.id===c.patId)||{last:'?',first:'?'}; return`<div style="padding:9px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${errs.length?'var(--red)':'var(--green)'};flex-shrink:0"></div><span style="font-weight:600">${c.pcn}</span><span style="color:var(--text3);font-size:12px">${ptLinkName(p.id,p.last,p.first)} ${c.dos}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12px;font-weight:700">$${fmtMoney(claimTotal(c))}</span>${errs.length?`<span class="badge b-red">${errs.length} err</span>`:'<span class="badge b-green"><i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i> OK</span>'}</div></div>${errs.length?`<ul style="padding:4px 0 4px 20px;font-size:12px;color:var(--red);margin-top:4px">${errs.map(e=>`<li>${e}</li>`).join('')}</ul>`:''}</div>`;}).join('')+`</div>`;
 }
 
 
@@ -4838,7 +4838,7 @@ function _applyProviderCHKeyGate(){
     if (syncBtn) buttons.push(syncBtn);
 
     if (buttons.length){
-      // Buttons live in a flex-column div — that is our anchor.
+      // Buttons live in a flex-column div • that is our anchor.
       var btnGroup = buttons[0].parentElement;
       var parent = btnGroup && btnGroup.parentElement;
       // Look for the existing warning banner (sibling of btnGroup).
@@ -4909,7 +4909,7 @@ function _applyProviderCHKeyGate(){
         importBtn.style.opacity = '0.4';
         importBtn.style.cursor = 'not-allowed';
         importBtn.style.pointerEvents = 'none';
-        importBtn.title = 'No API key for "'+provName+'" — ERA import disabled';
+        importBtn.title = 'No API key for "'+provName+'" • ERA import disabled';
       }
     }
   }
@@ -4929,11 +4929,11 @@ function getShellHeaderHTML(){
 return '<header class="topnav" id="topnav">\n<button class="tn-hamburger" onclick="openTnDrawer()" aria-label="Menu">\n<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"><line x1="40" y1="80" x2="216" y2="80"/><line x1="40" y1="128" x2="216" y2="128"/><line x1="40" y1="176" x2="216" y2="176"/></svg>\n</button>\n<div class="tn-brand">\n<img src="favicon.svg" id="nav-logo-main" class="nav-favicon" width="20" height="20" style="flex-shrink:0;border-radius:3px" alt="ClaimDataCare">\n<span class="tn-brand-name">ClaimDataCare</span>\n</div>\n<div class="tn-divider"></div>\n<nav class="tn-nav" id="tn-nav">\n<button class="tn-item" id="tnav-dashboard" onclick="go(\'dashboard\')"><i data-lucide="layout-dashboard" class="lci"></i><span>Home</span></button>\n<div class="tn-group" id="tng-appointments">\n<button class="tn-item tn-has-dd" id="tnav-appointments" onclick="toggleTnDropdown(\'appointments\',event)">\n<i data-lucide="calendar-days" class="lci"></i><span>Schedule</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-appointments">\n<div class="tn-dd-item" id="tnd-appointments" onclick="go(\'appointments\');closeTnDropdown()"><i data-lucide="calendar-days" class="lci"></i><span>Day Schedule</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-schedule-setup" onclick="go(\'schedule-setup\');closeTnDropdown()"><i data-lucide="settings-2" class="lci"></i><span>Schedule Setup</span></div>\n</div>\n</div>\n<button class="tn-item" id="tnav-patients" onclick="go(\'patients\')"><i data-lucide="users" class="lci"></i><span>Patients</span></button>\n<div class="tn-group" id="tng-billing">\n<button class="tn-item tn-has-dd" id="tnav-billing" onclick="toggleTnDropdown(\'billing\',event)">\n<i data-lucide="receipt" class="lci"></i><span>Billing</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-billing">\n<div class="tn-dd-item" id="tnd-claims" onclick="go(\'claims\');closeTnDropdown()"><i data-lucide="file-text" class="lci"></i><span>Claims <span id="tnc-claims" class="tn-cnt" style="display:none">0</span></span></div><div class="tn-dd-item" id="tnd-new-claim" onclick="openClaimModal(-1);closeTnDropdown()"><i data-lucide="file-plus" class="lci"></i><span>New Claim</span></div><div class="tn-dd-item" id="tnd-quick-batch" onclick="openBatch();closeTnDropdown()"><i data-lucide="zap" class="lci"></i><span>Quick Batch</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-eob" onclick="go(\'eob\');closeTnDropdown()"><i data-lucide="dollar-sign" class="lci"></i><span>ERA/EOB Payments</span></div>\n<div class="tn-dd-item" id="tnd-validate" onclick="go(\'validate\');closeTnDropdown()"><i data-lucide="check-circle" class="lci"></i><span>Validate Claims</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-billing-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-ehr">\n<button class="tn-item tn-has-dd" id="tnav-ehr" onclick="toggleTnDropdown(\'ehr\',event)">\n<i data-lucide="stethoscope" class="lci"></i><span>EHR</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-ehr">\n<div class="tn-dd-item" id="tnd-notes" onclick="go(\'notes\');closeTnDropdown()"><i data-lucide="notebook-pen" class="lci"></i><span>Encounters</span></div>\n      <div class="tn-dd-item" id="tnd-services" onclick="go(\'services\');closeTnDropdown()"><i data-lucide="pill" class="lci"></i><span>Services / CPT</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-clients-group\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-clients-group\" onclick=\"toggleTnDropdown(\'cm-clients-group\',event)\">\n      <i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-clients-group\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-intake\" onclick=\"go(\'cm-intake\');closeTnDropdown()\"><i data-lucide=\"user-plus\" class=\"lci\"></i><span>Intake / Referrals</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-clients\" onclick=\"go(\'cm-clients\');closeTnDropdown()\"><i data-lucide=\"users\" class=\"lci\"></i><span>Clients</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-workers\" onclick=\"go(\'cm-workers\');closeTnDropdown()\"><i data-lucide=\"user-cog\" class=\"lci\"></i><span>Users</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-care\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-care\" onclick=\"toggleTnDropdown(\'cm-care\',event)\">\n      <i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Care</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-care\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-assessments\" onclick=\"go(\'cm-assessments\');closeTnDropdown()\"><i data-lucide=\"clipboard-check\" class=\"lci\"></i><span>Assessments</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-plans\" onclick=\"go(\'cm-plans\');closeTnDropdown()\"><i data-lucide=\"clipboard-list\" class=\"lci\"></i><span>Care Plans</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-encounters\" onclick=\"go(\'cm-encounters\');closeTnDropdown()\"><i data-lucide=\"notebook-pen\" class=\"lci\"></i><span>Encounters / Notes</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-workflow\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-workflow\" onclick=\"toggleTnDropdown(\'cm-workflow\',event)\">\n      <i data-lucide=\"list-checks\" class=\"lci\"></i><span>Workflow</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-workflow\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-tasks\" onclick=\"go(\'cm-tasks\');closeTnDropdown()\"><i data-lucide=\"list-checks\" class=\"lci\"></i><span>Tasks &amp; Follow-Ups</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-auth\" onclick=\"go(\'cm-authorizations\');closeTnDropdown()\"><i data-lucide=\"file-check\" class=\"lci\"></i><span>Authorizations</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-referrals\" onclick=\"go(\'cm-referrals\');closeTnDropdown()\"><i data-lucide=\"external-link\" class=\"lci\"></i><span>Referrals &amp; Resources</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm-review\" style=\"display:none\">\n      <button class=\"tn-item tn-has-dd\" id=\"tnav-cm-review\" onclick=\"toggleTnDropdown(\'cm-review\',event)\">\n      <i data-lucide=\"eye\" class=\"lci\"></i><span>Review</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:inline-block;vertical-align:middle;flex-shrink:0\"><polyline points=\"6 9 12 15 18 9\"/></svg>\n      </button>\n      <div class=\"tn-dropdown\" id=\"tn-dd-cm-review\">\n      <div class=\"tn-dd-item\" id=\"tnd-cm-supervisor\" onclick=\"go(\'cm-supervisor\');closeTnDropdown()\"><i data-lucide=\"eye\" class=\"lci\"></i><span>Supervisor Review</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-billing-readiness\" onclick=\"go(\'cm-billing\');closeTnDropdown()\"><i data-lucide=\"receipt\" class=\"lci\"></i><span>Billing Readiness</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-reports\" onclick=\"go(\'cm-reports\');closeTnDropdown()\"><i data-lucide=\"bar-chart-3\" class=\"lci\"></i><span>Reports</span></div>\n      <div class=\"tn-dd-item\" id=\"tnd-cm-discharge\" onclick=\"go(\'cm-discharge\');closeTnDropdown()\"><i data-lucide=\"door-open\" class=\"lci\"></i><span>Discharge</span></div>\n      </div>\n      </div>\n      <div class=\"tn-group\" id=\"tng-cm\" style=\"display:none\"></div>\n      <div class="tn-group" id="tng-config">\n<button class="tn-item tn-has-dd" id="tnav-config" onclick="toggleTnDropdown(\'config\',event)">\n<i data-lucide="settings" class="lci"></i><span>Settings</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown" id="tn-dd-config">\n<div class="tn-dd-item" id="tnd-settings-users" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-sep" style="height:1px;background:var(--border);margin:4px 0"></div>\n<div class="tn-dd-item" id="tnd-insurances" onclick="go(\'insurances\');closeTnDropdown()"><i data-lucide="shield-check" class="lci"></i><span>Insurances / Payers</span></div>\n<div class="tn-dd-item" id="tnd-facilities" onclick="go(\'facilities\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Facilities</span></div>\n<div class="tn-dd-item" id="tnd-rendering" onclick="go(\'rendering\');closeTnDropdown()"><i data-lucide="user-plus" class="lci"></i><span>Rendering Providers</span></div>\n<div class="tn-dd-item" id="tnd-referring" onclick="go(\'referring\');closeTnDropdown()"><i data-lucide="arrow-right-left" class="lci"></i><span>Referring Providers</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-provider-info" onclick="go(\'provider-info\');closeTnDropdown()"><i data-lucide="building-2" class="lci"></i><span>Provider Information</span></div>\n<div class="tn-dd-item" id="tnd-master-settings" style="display:none" onclick="openMasterSettings();closeTnDropdown()" title="Master Settings (Managers and Super Admin)"><i data-lucide="shield-ellipsis" class="lci"></i><span>Master Settings</span></div>\n</div>\n</div>\n<div class="tn-group" id="tng-admin" style="display:none">\n<button class="tn-item tn-has-dd" id="tnav-admin" onclick="toggleTnDropdown(\'admin\',event)">\n<i data-lucide="shield-check" class="lci"></i><span>Admin</span><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>\n</button>\n<div class="tn-dropdown tn-dd-right" id="tn-dd-admin">\n<div class="tn-dd-item" id="tnd-admin-providers" onclick="go(\'admin-providers\');closeTnDropdown()"><i data-lucide="briefcase" class="lci"></i><span>Billing Providers</span></div>\n<div class="tn-dd-item" id="tnd-servicegroups" onclick="go(\'servicegroups\');closeTnDropdown()"><i data-lucide="layers" class="lci"></i><span>Service Groups</span></div>\n<div class="tn-dd-item" id="tnd-export" onclick="go(\'export\');closeTnDropdown()"><i data-lucide="send" class="lci"></i><span>Export / Submit</span></div>\n<div class="tn-dd-item" onclick="go(\'account\');closeTnDropdown()"><i data-lucide="users-round" class="lci"></i><span>Users &amp; Account</span></div>\n<div class="tn-dd-item" onclick="go(\'reports\');closeTnDropdown()"><i data-lucide="bar-chart-3" class="lci"></i><span>Reports</span></div><div class="tn-dd-item" onclick="go(\'admin-tickets\');closeTnDropdown()"><i data-lucide="headphones" class="lci"></i><span>Support Tickets <span id="tnc-admin-tickets" class="tn-cnt" style="display:none;background:#dc2626;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:4px">0</span></span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" id="tnd-invoices" onclick="go(\'invoices\');closeTnDropdown()"><i data-lucide="receipt" class="lci"></i><span>Invoicing</span></div>\n<div class="tn-dd-sep"></div>\n<div class="tn-dd-item" onclick="exportBackup();closeTnDropdown()"><i data-lucide="hard-drive-download" class="lci"></i><span>Backup Data</span></div>\n<div class="tn-dd-item" onclick="_storageMigrateClick()"><i data-lucide="upload-cloud" class="lci"></i><span>Free Up Storage</span></div>\n<div class="tn-dd-item" onclick="triggerRestore()"><i data-lucide="history" class="lci"></i><span>Restore Data</span></div>\n</div>\n</div>\n</div>\n</nav>\n<div class="tn-right">\n<div id="fb-status" style="display:none"></div>\n<div id="prov-sel-wrap" style="display:flex;align-items:center;gap:6px;flex-shrink:0">\n<button id="tn-tickets" type="button" class="tn-icon-btn" onclick="openTicketsModal(event)" data-tip="Support tickets" aria-label="Support tickets"><i data-lucide="message-circle-question" class="lci"></i><span id="tn-tickets-badge" style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:9px;border:2px solid #FFFFFF;display:none;align-items:center;justify-content:center;font-family:var(--font);line-height:1">0</span></button><button id="tn-recent-pats" type="button" class="tn-icon-btn" onclick="showRecentPatients(event)" data-tip="Recent patients" aria-label="Recent patients"><i data-lucide="history" class="lci"></i></button><select id="prov-sel" class="tn-prov-sel" onchange="switchProvider(this.value)" aria-label="Billing provider"></select>\n</div>\n\n\n<!-- User chip with dropdown -->\n<button type="button" id="tn-user-chip" class="tn-avatar-btn" onclick="toggleUserMenu(event)" data-tip="My account" aria-label="My account"><span id="tn-user-avatar"><span id="tn-avatar-initials">?</span></span></button>\n\n<!-- User dropdown menu -->\n<div id="tn-user-menu" class="tn-umenu" onclick="event.stopPropagation()" style="display:none"><div class="tn-um-hd"><div class="tn-um-av"><span id="tn-avatar-initials2">?</span></div><div class="tn-um-id"><div id="tn-menu-name" class="tn-um-name"></div><div id="tn-menu-email" class="tn-um-mail"></div><div class="tn-um-tags"><span id="tn-menu-role" class="tn-um-role"></span><span id="tn-menu-prov" class="tn-um-prov"></span></div><div id="tn-menu-login-time" class="tn-um-time"></div></div></div><div class="tn-um-list"><button type="button" class="tn-um-item" onclick="go(\'account\');toggleUserMenu()"><span class="tn-um-ic tn-um-ic-set"><i data-lucide="settings" class="lci"></i></span><span>Settings</span></button></div><div class="tn-um-foot"><button type="button" class="tn-um-item tn-um-out" onclick="doLogout()"><span class="tn-um-ic tn-um-ic-out"><i data-lucide="log-out" class="lci"></i></span><span>Sign Out</span></button></div></div>\n</div>\n\n</div>\n</header>';
 }
 function getShellSectionsHTML(){
-return '\n<div class="section active" id="sec-dashboard"></div>\n<div class="section" id="sec-claims"></div>\n\n<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openImportFromCMClientsModal()" title="Import from CM Clients"><i data-lucide="download" class="lci"></i> Import from CM Clients</button><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>\n\n<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>\n\n<div class="section" id="sec-export">\n<div class="page-hdr">\n<div><h1>Export / Submit</h1></div>\n</div>\n<div class="page-body">\n<div id="exp-alert-top" style="margin-bottom:12px"></div>\n\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n\n<!-- Card 1: CSV Export -->\n<div class="card">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center">\n<i data-lucide="download" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Export CSV</div>\n<div style="font-size:11px;color:var(--text3)">Standard CSV Format</div>\n</div>\n</div>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="exportCSV(\'pending\')">\n<i data-lucide="download" class="lci"></i> Export Pending Claims\n</button>\n<button class="btn btn-sm" onclick="exportCSV(\'all\')">\n<i data-lucide="download" class="lci"></i> Export All Claims\n</button>\n</div>\n</div>\n\n<!-- Card 2: Direct Transmit -->\n<div class="card" style="border:2px solid var(--brand)">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">\n<i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Transmit Direct</div>\n<div style="font-size:11px;color:var(--text3)">via Clearinghouse</div>\n</div>\n</div>\n<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">\nRequires API Key configured in Settings ? Billing Providers.<br>\nClaims are validated, transmitted and marked <strong>Submitted</strong> automatically.\n</p>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="transmitDirect(\'pending\')">\n<i data-lucide="send" class="lci"></i> Transmit All Pending\n</button>\n<button class="btn btn-sm" onclick="transmitDirect(\'selected\')">\n<i data-lucide="send" class="lci"></i> Transmit Selected Claims\n</button>\n<button class="btn btn-sm" onclick="syncStatuses()">\n<i data-lucide="refresh-cw" class="lci"></i> Sync Status from Clearinghouse\n</button>\n</div>\n</div>\n\n</div>\n\n<!-- Summary + Instructions row -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">Summary</div>\n<div id="exp-summary"></div>\n</div>\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">How it works</div>\n<ol style="padding-left:18px;font-size:13px;color:var(--text2);line-height:2.2">\n<li>Create claims via Quick Batch or manually</li>\n<li>Click <strong>Transmit All Pending</strong> to send directly</li>\n<li>Or export CSV and upload at the clearinghouse portal</li>\n<li>Click <strong>Sync Status</strong> to update claim results</li>\n<li>Paid claims ? mark <strong>Accepted CH</strong></li>\n</ol>\n</div>\n</div>\n\n<!-- Transmission Log -->\n<div class="card">\n<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">\n<div class="card-title">Transmission Log</div>\n<button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">\n<i data-lucide="refresh-cw" class="lci" style="width:12px;height:12px"></i> Refresh\n</button>\n</div>\n<div id="exp-transmit-log" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>\n</div>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-bills">\n<div class="page-hdr">\n<div><h1>Bills</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<select id="bills-status-filter" onchange="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="draft">Draft</option>\n<option value="pending">Pending</option>\n<option value="submitted">Submitted</option>\n<option value="accepted">Accepted CH</option>\n<option value="rejected">Rejected</option>\n<option value="on_hold">On Hold</option>\n<option value="denied">Denied</option>\n<option value="paid">Paid</option>\n<option value="voided">Voided</option>\n</select>\n<input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">\n<button class="btn btn-primary btn-sm" onclick="go(\'claims\')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>\n</div>\n</div>\n<div class="page-body">\n<div id="bills-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-claim-editor" style="flex-direction:column;height:100%;padding:0;overflow:hidden">\n<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>\n</div>\n\n<div class="section" id="sec-eob">\n<div class="page-hdr">\n<div>\n<h1>ERA / EOB Payments</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="openEOBPostingModal()">\n<i data-lucide="pen-line" class="lci"></i> Manual EOB\n</button>\n<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">\n<i data-lucide="download-cloud" class="lci"></i> Import Payments\n</button>\n<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'era-835-input\').click()">\n<i data-lucide="upload" class="lci"></i> Upload EDI 835\n</button>\n</div>\n</div>\n<div class="page-body">\n<input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">\n\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="eob-tab-payments" onclick="setEOBTab(\'payments\',this)">\nPayment Batches <span id="eob-cnt-payments" class="nav-cnt" style="background:var(--brand)">0</span>\n</button>\n<button class="stab" id="eob-tab-unmatched" onclick="setEOBTab(\'unmatched\',this)">\nUnmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--amber)">0</span>\n</button>\n<button class="stab" id="eob-tab-secondary" onclick="setEOBTab(\'secondary\',this)">\nReady for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>\n</button>\n<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab(\x27era-pending\x27,this)">\n<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>\n</button>\n</div>\n\n<div id="eob-alert" style="margin-bottom:12px"></div>\n<div id="eob-content"></div>\n</div>\n</div>\n\n<!-- MANUAL EOB POSTING MODAL -->\n<div class="overlay" id="modal-eob-post">\n<div class="modal" style="max-width:900px;width:98%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t">Post EOB Payment</div>\n<div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>\n</div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-post\')">×</button>\n</div>\n<div class="modal-body" style="max-height:80vh;overflow-y:auto">\n<!-- Check Header -->\n<div style="background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:16px;border:1px solid var(--border)">\n<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Check / EFT Details</div>\n<div class="fg g4">\n<div class="field"><label>Payer Name *</label><input id="eob-payer-name" placeholder="e.g. FL Medicaid"></div>\n<div class="field"><label>Payer ID</label><input id="eob-payer-id" placeholder="e.g. 77027"></div>\n<div class="field"><label>Check / EFT #</label><input id="eob-check-num" placeholder="Check number"></div>\n<div class="field"><label>Check Date *</label><input type="date" id="eob-check-date"></div>\n</div>\n<div class="fg g3" style="margin-top:10px">\n<div class="field"><label>Total Check Amount *</label><input type="number" step="0.01" id="eob-check-amt" placeholder="0.00" oninput="updateEOBRunning()"></div>\n<div class="field"><label>NPI (Payee)</label><input id="eob-payee-npi" placeholder="Rendering or Billing NPI"></div>\n<div class="field"><label>Notes</label><input id="eob-notes" placeholder="Optional"></div>\n</div>\n</div>\n\n<!-- Claim Search & Match -->\n<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">\n<div style="font-size:13px;font-weight:700;color:var(--text)">Claim Lines</div>\n<button class="btn btn-sm" onclick="openEOBClaimSearch()">\n<i data-lucide="search" class="lci"></i> Find & Add Claim\n</button>\n<div style="margin-left:auto;font-size:12px;color:var(--text3)">\nPosted: <strong id="eob-running-total" style="color:var(--brand)">$0.00</strong>\n&nbsp;/&nbsp; Check: <strong id="eob-check-display">$0.00</strong>\n&nbsp;\n<span id="eob-balance-badge" class="badge b-gray">Balance: $0.00</span>\n</div>\n</div>\n<div id="eob-claim-lines" style="min-height:60px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);padding:8px">\n<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">\nClick "Find &amp; Add Claim" to search and add claims to this payment\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-post\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveEOBBatch()">\n<i data-lucide="save" class="lci"></i> Post Payment Batch\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIM SEARCH MODAL (for EOB matching) -->\n<div class="overlay" id="modal-eob-search">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-search\')">×</button>\n</div>\n<div class="modal-body">\n<div class="fg g2" style="margin-bottom:10px">\n<div class="field">\n<label>Search Field</label>\n<select id="eob-search-field">\n<option value="pcn">PCN / Claim #</option>\n<option value="last">Patient Last Name</option>\n<option value="first">Patient First Name</option>\n<option value="member">Member ID</option>\n<option value="acct">Account #</option>\n<option value="dob">Date of Birth</option>\n</select>\n</div>\n<div class="field"><label>Search Value *</label><input id="eob-search-val" placeholder="Enter value..." oninput="searchEOBClaims()"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Date of Service (DOS) *</label><input type="text" id="eob-search-dos" placeholder="MM/DD/YYYY" oninput="searchEOBClaims()"></div>\n<div class="field"><label>Status Filter</label>\n<select id="eob-search-status" onchange="searchEOBClaims()">\n<option value="">All</option>\n<option value="accepted" selected>Accepted</option>\n<option value="submitted">Submitted</option>\n<option value="pending">Pending</option>\n</select>\n</div>\n</div>\n<div id="eob-search-results" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">\n<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">Enter search criteria above</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-search\')">Cancel</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-providers">\n<div class="page-hdr">\n<div>\n<h1>Billing Providers</h1>\n</div>\n<button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">\n<i data-lucide="plus" class="lci"></i> Add Provider\n</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-insurances">\n<div class="page-hdr">\n<div>\n<h1>Insurances / Payers</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="searchClearinghousePayers()">\n<i data-lucide="search" class="lci"></i> Search Clearinghouse Payers\n</button>\n<button class="btn btn-primary btn-sm" onclick="openInsuranceModal(\'\')">\n<i data-lucide="plus" class="lci"></i> Add Payer\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">\n<input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">\n<select id="ins-type-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Types</option>\n<option value="electronic">Electronic</option>\n<option value="manual">Manual / Paper</option>\n</select>\n<select id="ins-status-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n\n<div id="insurances-tbl"></div>\n</div>\n</div>\n\n<!-- INSURANCE MODAL -->\n<div class="overlay" id="modal-insurance">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t" id="mins-title">Add Payer</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-insurance\')">×</button>\n</div>\n<div class="modal-body">\n<input type="hidden" id="mins-id">\n<div class="fg g1">\n<div class="fg g2">\n<div class="field">\n<label>Payer / Insurance Name *</label>\n<input id="mins-name" placeholder="e.g. FL Medicaid" oninput="searchInsNameLive()">\n<div id="mins-name-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n<div class="field" style="position:relative">\n<label>Payer ID *</label>\n<input id="mins-payerid" placeholder="e.g. 77027" maxlength="10" oninput="searchInsPayerIdLive()">\n<div id="mins-payerid-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n</div>\n<div class="fg g2">\n<div class="field">\n<label>Type</label>\n<select id="mins-type">\n<option value="electronic">Electronic (EDI)</option>\n<option value="manual">Manual / Paper</option>\n</select>\n</div>\n<div class="field">\n<label>Status</label>\n<select id="mins-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="mins-phone" placeholder="800-000-0000"></div>\n<div class="field"><label>Claims Address</label><input id="mins-addr" placeholder="PO Box or address"></div>\n</div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="mins-city"></div>\n<div class="field"><label>State</label><input id="mins-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="mins-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="mins-notes" placeholder="Optional notes"></div>\n<div id="mins-claimmd-badge" style="display:none;margin-top:6px;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand)">\n<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i>\n<strong>Verified in Directory</strong> — Electronic submission supported\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-insurance\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveInsurance()">\n<i data-lucide="save" class="lci"></i> Save Payer\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIMMD PAYER SEARCH MODAL -->\n<div class="overlay" id="modal-claimmd-payers">\n<div class="modal" style="max-width:700px;width:98%">\n<div class="modal-hdr">\n<div><div class="modal-t">Payer Directory</div><div class="modal-sub">Search and import payers from the directory</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claimmd-payers\')">×</button>\n</div>\n<div class="modal-body">\n<div style="display:flex;gap:8px;margin-bottom:12px">\n<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."\nstyle="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"\noninput="filterClearinghousePayers()">\n<select id="claimmd-payer-state" onchange="filterClearinghousePayers()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All States</option>\n<option value="FL">FL</option><option value="CA">CA</option><option value="TX">TX</option>\n<option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option>\n<option value="OH">OH</option><option value="PA">PA</option><option value="IL">IL</option>\n</select>\n</div>\n<div id="claimmd-payer-results" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">Type to search the payer list</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claimmd-payers\')">Close</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal(\'\')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>\n\n<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>\n\n<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>\n\n<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>\n\n<div class="section" id="sec-reports">\n<div class="page-hdr">\n<div><h1>Reports</h1></div>\n</div>\n<div class="page-body">\n<div id="reports-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-appointments">\n<div class="page-hdr">\n<div><h1>Schedule</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px"><i data-lucide="rows-3" class="lci" style="width:12px;height:12px"></i> Cards</button>\n<button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>\n<select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>\n<select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="all">All</option></select>\n<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>\n<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>\n</div>\n<div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>\n<div id="appt-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-schedule-setup">\n<div class="page-hdr"><div><h1>Schedule Setup</h1></div></div>\n<div class="page-body">\n<div class="fg g2" style="margin-bottom:14px">\n<div class="field"><label>Physician / Scheduler</label><select id="ss-prov-sel" onchange="renderScheduleSetup()" style="width:100%"></select></div>\n<div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>\n</div>\n<div class="stabs" id="ss-tabs" style="margin-bottom:14px">\n<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>\n<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>\n</div>\n<div id="ss-panel-hours"></div>\n<div id="ss-panel-groups" style="display:none"></div>\n</div>\n</div>\n\n<div class="section" id="sec-notes">\n<div class="page-hdr">\n<div><h1>Encounters</h1></div>\n<div style="display:flex;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="openAINoteModal(\'\',\'\',\'\')">\n<i data-lucide="bot" class="lci"></i> AI Note Assistant\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>\n<select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>\n</div>\n<div id="notes-list"></div>\n<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">\n  <div class="enc-editor-hdr" id="ee-hdr"></div>\n  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>\n  <div class="enc-editor-body">\n    <div class="enc-editor-sidebar" id="ee-sidebar"></div>\n    <div class="enc-editor-content" id="ee-content"></div>\n    <div class="enc-editor-preview" id="ee-preview"></div>\n  </div>\n  <div class="enc-editor-ftr" id="ee-ftr"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-servicegroups">\n<div class="page-hdr">\n<div><h1>Service Groups</h1></div>\n<button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>\n</div>\n<div class="page-body">\n<div id="sg-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-account">\n<div class="page-hdr">\n  <div>\n    <h1>Users &amp; Account</h1>\n    \n  </div>\n  <div style="display:flex;gap:8px;align-items:center">\n    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search\n    </button>\n    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add\n    </button>\n  </div>\n</div>\n<div class="page-body">\n\n<!-- Search panel -->\n<div id="user-search-bar" style="display:none;margin-bottom:14px">\n  <div class="card" style="padding:16px">\n    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>\n    <div class="fg g3" style="margin-bottom:12px">\n      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>\n      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Role</label>\n        <select id="us-role" onchange="renderUserManagement()">\n          <option value="">All Roles</option>\n          <option>Super Admin</option>\n          <option>Admin</option>\n          <option>Manager</option>\n          <option>Billing</option>\n          <option>User</option>\n        </select>\n      </div>\n    </div>\n    <button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'us-email\').value=\'\';document.getElementById(\'us-first\').value=\'\';document.getElementById(\'us-last\').value=\'\';document.getElementById(\'us-role\').value=\'\';renderUserManagement()">Clear</button>\n  </div>\n</div>\n\n<!-- Active / Inactive tabs -->\n<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">\n  <button id="utab-active" onclick="setUserTab(\'active\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Active\n  </button>\n  <button id="utab-inactive" onclick="setUserTab(\'inactive\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Inactive\n  </button>\n</div>\n\n<!-- Users table -->\n<div class="tbl-wrap" style="margin-top:0;border-top:none">\n  <table>\n    <thead><tr>\n      <th>Email</th>\n      <th>First Name</th>\n      <th>Last Name</th>\n      <th>Phone</th>\n      <th>Provider</th>\n      <th>Role</th>\n      <th>Status</th>\n      <th style="text-align:center">2FA</th>\n      <th>Created</th>\n      <th style="width:90px;text-align:center">Actions</th>\n    </tr></thead>\n    <tbody id="users-list"></tbody>\n  </table>\n</div>\n\n<!-- Account info -->\n\n\n\n</div>\n</div>\n\n<div class="section" id="sec-provider-info">\n<div class="page-hdr">\n<div><h1>Provider Information</h1></div>\n</div>\n<div class="page-body">\n<div id="provider-info-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-invoices"></div>\n\n<div class="section" id="sec-admin-providers">\n<div class="page-hdr">\n<div><h1>Billing Providers</h1></div>\n<button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-admin-tickets"></div>\n\n<div class="section" id="sec-cm-dashboard"></div>\n\n<div class="section" id="sec-cm-clients">\n<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">\n<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>\n<button class="btn btn-sm" onclick="openImportFromPatientsModal()" title="Import clients from Patients (EHR side)"><i data-lucide="download" class="lci"></i> Import from Patients</button><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMClients()">\n<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Users</option></select>\n<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>\n</div>\n<div id="cm-clients-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-workers">\n<div class="page-hdr"><div><h1>Users</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add User</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>\n<div id="cm-workers-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openCMBillingSettings()" title="Configure rates per CPT code"><i data-lucide="settings-2" class="lci"></i> Rates</button><button class="btn btn-sm" onclick="generateCMBilling()"><i data-lucide="zap" class="lci"></i> From Notes</button><button class="btn btn-primary btn-sm" onclick="openCMBillingModal()">+ New Entry</button><button class="btn btn-sm" onclick="exportCMBillingCSV()"><i data-lucide="download" class="lci"></i> Export CSV</button></div></div><div class="page-body"><div id="cm-billing-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div><div id="cm-billing-bulk" style="display:none;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:10px;align-items:center;gap:8px;font-size:12px"><span id="cm-bill-selcount" style="font-weight:700;color:var(--brand)">0 selected</span><button class="btn btn-xs" onclick="cmBillingBulk(\'Ready\')">Mark Ready</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Submitted\')">Mark Submitted</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Paid\')">Mark Paid</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Rejected\')">Mark Rejected</button><button class="btn btn-xs" onclick="cmBillingBulkDelete()" style="color:var(--red);border-color:var(--red)">Delete</button><button class="btn btn-xs btn-ghost" onclick="cmBillingClearSel()" style="margin-left:auto">Clear</button></div><div class="search-row"><input id="cm-bill-q" class="no-upper" placeholder="Search client, user, code..." oninput="renderCMBilling()"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select><select id="cm-bill-code" onchange="renderCMBilling()"><option value="">All Codes</option></select><select id="cm-bill-worker" onchange="renderCMBilling()"><option value="">All Users</option></select><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap">DOS<input type="date" id="cm-bill-from" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><span style="color:var(--text3)">–</span><input type="date" id="cm-bill-to" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><button onclick="document.getElementById(\'cm-bill-from\').value=\'\';document.getElementById(\'cm-bill-to\').value=\'\';renderCMBilling()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button></label></div><div id="cm-billing-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>\n\n<div class="section" id="sec-cm-intake">\n<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMIntake()">\n<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>\n</div>\n<div id="cm-intake-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-assessments">\n<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">\n<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>\n<div id="cm-assessments-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-encounters">\n<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">\n<button class="btn btn-primary btn-sm" onclick="openCMEncounterChooser()"><i data-lucide="notebook-pen" class="lci"></i> + New Note</button>\n</div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMEncounters()">\n<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>\n<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>\n<div id="cm-encounters-tbl"></div>\n<div id="cm-tcm-notes" style="margin-top:16px"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-tasks">\n<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">\n<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>\n<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>\n<div id="cm-tasks-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-authorizations">\n<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">\n<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>\n<div id="cm-auths-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-referrals">\n<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">\n<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>\n<div id="cm-referrals-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-supervisor">\n<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>\n<div class="page-body">\n<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>\n<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>\n<div id="cm-supervisor-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-discharge">\n<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>\n<div id="cm-discharge-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go(\'cm-clients\')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>\n\n<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>\n\n<!-- ?? INTAKE CENTER — Super Admin Only ????????????????????????????-->\n<div class="section" id="sec-intake-center">\n<div class="page-hdr">\n<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>\n</div>\n</div>\n<div class="page-body">\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="ic-stab-clients" onclick="icSetTab(\'clients\',this)"><i data-lucide="users" class="lci"></i> Clients</button>\n<button class="stab" id="ic-stab-forms" onclick="icSetTab(\'forms\',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>\n<button class="stab" id="ic-stab-eval" onclick="icSetTab(\'eval\',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>\n</div>\n<!-- Panels -->\n<div id="ic-panel-clients"></div>\n<div id="ic-panel-forms" style="display:none"></div>\n<div id="ic-panel-eval" style="display:none"></div>\n</div>\n</div>\n\n<!-- Intake Clients section -->\n<div class="section" id="sec-intake-clients">\n<div class="page-hdr">\n<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>\n<div class="btn-group">\n<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="Pending Forms">Pending Forms</option>\n<option value="Forms Sent">Forms Sent</option>\n<option value="Viewed">Viewed</option>\n<option value="Partially Completed">Partially Completed</option>\n<option value="Signed">Signed</option>\n<option value="Completed">Completed</option>\n<option value="Evaluation Pending">Evaluation Pending</option>\n<option value="Evaluation Completed">Evaluation Completed</option>\n<option value="Archived">Archived</option>\n</select>\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">\n<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>\n</div>\n<div id="ic-clients-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Consent Forms section -->\n<div class="section" id="sec-intake-forms">\n<div class="page-hdr">\n<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">\n<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>\n<option value="HIPAA">HIPAA</option>\n<option value="Consent">Consent</option>\n<option value="Financial">Financial</option>\n<option value="Release">Release of Information</option>\n<option value="Telehealth">Telehealth</option>\n<option value="Signature">Electronic Signature</option>\n<option value="Other">Other</option>\n</select>\n</div>\n<div class="stabs" style="margin-bottom:10px">\n<button class="stab active" onclick="icFormFilterSet(\'all\',this)">All</button>\n<button class="stab" onclick="icFormFilterSet(\'active\',this)">Active</button>\n<button class="stab" onclick="icFormFilterSet(\'archived\',this)">Archived</button>\n</div>\n<div id="ic-forms-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Comprehensive Evaluation section -->\n<div class="section" id="sec-intake-eval">\n<div class="page-hdr">\n<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">\n<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>\n<option value="Draft">Draft</option>\n<option value="In Progress">In Progress</option>\n<option value="Completed">Completed</option>\n</select>\n</div>\n<div id="ic-eval-tbl"></div>\n</div>\n</div>\n\n</div>\n</div>\n\n<div class="overlay" id="modal-claim"><div class="modal modal-lg">\n<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claim\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mc-id">\n<div class="dup-warn hidden" id="mc-dup"></div>\n<div class="fg g3">\n<div class="field"><label>Patient *</label><select id="mc-pat" onchange="onPatientChange()"></select></div>\n<div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>\n<div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>\n<div class="fg g3">\n<div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>\n<div class="field" style="grid-column:1/-1;padding:6px 0">\n  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">\n    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">\n    <span>Multiple dates of service (weekly/range)</span>\n    <span style="font-size:11px;color:var(--text3);font-weight:400">— assign a different date to each service line</span>\n  </label>\n</div>\n<div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>\n<div class="field"><label>Facility</label><select id="mc-fac"></select></div>\n</div>\n<div class="fg g3" style="margin-top:12px">\n<div class="field"><label>Rendering Provider *</label><select id="mc-rend"></select></div>\n<div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>\n<div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \\u2014 e.g. M25562)</span></span>\n<div class="fg g4">\n<div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 3</label><input id="mc-dx3" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 4</label><input id="mc-dx4" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 5</label><input id="mc-dx5" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 6</label><input id="mc-dx6" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 7</label><input id="mc-dx7" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 8</label><input id="mc-dx8" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n</div>\n<div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \\u2014 pointers auto-assign</div>\n<div class="sep"></div>\n<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">\n<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>\n<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>\n</div>\n<div id="mc-lines"></div>\n<div class="total-preview" id="mc-total">Total: $0.00</div>\n<div class="sep"></div>\n<div class="fg g3">\n<div class="field"><label>Status</label><select id="mc-status"><option value="draft">Draft</option><option value="pending" selected>Pending</option><option value="submitted">Submitted</option><option value="accepted">Accepted CH</option><option value="rejected">Rejected</option></select></div>\n<div class="field"><label>Employment Related</label><select id="mc-emp"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="field"><label>Auto Accident</label><select id="mc-auto"><option value="N">N \\u2014 No</option><option value="Y">Y \\u2014 Yes</option></select></div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="paperclip" class="lci"></i> Attachments</span>\n<div style="padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">\n<input type="file" id="mc-attach-input" multiple onchange="_mcAddAttach(event)" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx">\n<button type="button" class="btn btn-sm" onclick="document.getElementById(\'mc-attach-input\').click()"><i data-lucide="upload" class="lci"></i> Add File</button>\n<span style="font-size:10px;color:var(--text3)">PDF, JPG, PNG (max 5MB each)</span>\n</div>\n<div id="mc-attach-list"></div>\n</div>\n<div style="padding:8px 10px;background:#fef7ee;border:1px solid #fed7aa;border-radius:var(--r);margin-bottom:8px;font-size:11px;color:#9a3412"><strong>Accidente:</strong> Para fecha, estado y detalles use <strong>Additional Info</strong> en el Claim Editor.</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claim\')">Cancel</button>\n<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>\n<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>\n<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>\n</div>\n</div></div>\n\n<!-- PATIENT MODAL -->\n<div class="overlay" id="modal-patient"><div class="modal">\n<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-patient\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mp-id">\n<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>\n<div class="fg g2">\n<div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \\u2014 cannot be changed later.</div></div>\n<div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>\n<div class="field"><label>Last Name *</label><input id="mp-last"></div>\n<div class="field"><label>First Name *</label><input id="mp-first"></div>\n<div class="field"><label>Middle Initial</label><input id="mp-mid" maxlength="1"></div>\n<div class="field"><label>Date of Birth (M/D/YYYY) *</label><input id="mp-dob" placeholder="1/15/1985"></div>\n<div class="field"><label>Sex *</label><select id="mp-sex"><option value="F">F \\u2014 Female</option><option value="M">M \\u2014 Male</option></select></div>\n<div class="field"><label>Phone</label><input id="mp-phone" maxlength="10"></div>\n<div class="field" style="grid-column:1/-1"><label>Address</label><input id="mp-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mp-addr2"></div>\n<div class="field"><label>City</label><input id="mp-city"></div>\n<div class="field"><label>State</label><input id="mp-state" maxlength="2" placeholder="FL"></div>\n<div class="field"><label>ZIP</label><input id="mp-zip" maxlength="10"></div>\n<div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \\u2014 Self</option><option value="01">01 \\u2014 Spouse</option><option value="19">19 \\u2014 Child</option><option value="G8">G8 \\u2014 Other</option><option value="32">32 \\u2014 Mother</option><option value="33">33 \\u2014 Father</option></select></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>\n<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \\u2014 subscriber fields auto-filled from patient data above.</div>\n<div class="fg g2">\n<div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>\n<div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>\n<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>\n<div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>\n<div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>\n<div class="field"><label>Group #</label><input id="mp-group"></div>\n<div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>\n<div class="fg g2">\n<div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>\n<div class="field"><label>Payer Name</label><input id="mp-payername"></div>\n<div class="field"><label>Payer City</label><input id="mp-payercity"></div>\n<div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-patient\')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>\n</div></div>\n\n<!-- PROVIDER MODAL -->\n<div class="overlay" id="modal-provider">\n<div class="modal" style="max-width:680px;width:100%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t" id="mprov-title">New Billing Provider</div>\n<div class="modal-sub" id="mprov-subtitle"></div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-provider\')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body" style="padding:22px;background:var(--bg2)">\n<input type="hidden" id="mprov-id">\n<style>\n.mprov-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}\n.mprov-chip input{display:none}\n.mprov-chip:has(input:checked){background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}\n.mprov-chip:hover{border-color:var(--brand)}\n.mprov-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px}\n.mprov-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.mprov-card-ico{width:30px;height:30px;background:var(--brand-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n.mprov-card-title{font-size:13px;font-weight:700;color:var(--text)}\n</style>\n\n<!-- NPI Lookup -->\n<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;padding:16px 18px;margin-bottom:16px">\n<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">\n<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup — Auto-fill from NPPES Registry\n</div>\n<div style="display:flex;gap:8px;align-items:flex-end">\n<div style="flex:1">\n<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">NPI Number (10 digits)</label>\n<input id="mprov-npi" maxlength="10" placeholder="Enter 10-digit NPI"\noninput="this.value=this.value.replace(/\\D/g,\'\');if(this.value.length===10)lookupBillingProviderNPI(this.value)"\nstyle="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:var(--bg)">\n</div>\n<button class="btn btn-primary btn-sm" onclick="lookupBillingProviderNPI(document.getElementById(\'mprov-npi\').value)" style="white-space:nowrap;flex-shrink:0">\n<i data-lucide="search" class="lci"></i> Look Up\n</button>\n</div>\n<div id="bp-npi-result" style="margin-top:8px"></div>\n</div>\n\n<!-- Identification -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="building-2" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Identification</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Organization Name *</label>\n<input id="mprov-name" placeholder="e.g. Sunrise Medical Group">\n</div>\n<div class="field">\n<label>Tax ID (EIN/SSN, 9 digits)</label>\n<input id="mprov-taxid" maxlength="9" placeholder="123456789">\n</div>\n<div class="field">\n<label>Tax ID Type</label>\n<select id="mprov-taxtype">\n<option value="E">EIN (Employer)</option>\n<option value="S">SSN (Individual)</option>\n</select>\n</div>\n<div class="field">\n<label>Taxonomy Code</label>\n<input id="mprov-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X">\n</div>\n<div class="field">\n<label>Provider Type</label>\n<select id="mprov-type">\n<option value="Organization">Organization</option>\n<option value="Individual">Individual</option>\n</select>\n</div>\n<div class="field" id="mprov-status-row">\n<label>Status</label>\n<select id="mprov-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n<option value="Pending">Pending</option>\n</select>\n</div>\n</div>\n</div>\n\n<!-- API Key (Super Admin only, toggled by JS) -->\n<div id="mprov-acctkey-row" class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="key" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Clearinghouse Integration</div>\n</div>\n<div class="field" style="margin:0">\n<label>Account Key</label>\n<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">\n<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission.</div>\n</div>\n</div>\n\n<!-- Address -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Address</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Street Address</label>\n<input id="mprov-addr1" placeholder="123 Main St">\n</div>\n<div class="field" style="grid-column:1/-1">\n<label>Address Line 2</label>\n<input id="mprov-addr2" placeholder="Suite 100">\n</div>\n<div class="field">\n<label>City</label>\n<input id="mprov-city">\n</div>\n<div class="field">\n<label>State</label>\n<input id="mprov-state" maxlength="2" placeholder="FL">\n</div>\n<div class="field">\n<label>ZIP</label>\n<input id="mprov-zip" maxlength="10" placeholder="33101">\n</div>\n<div class="field">\n<label>Phone</label>\n<input id="mprov-phone" maxlength="10" placeholder="3051234567">\n</div>\n<div class="field">\n<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>\n<input id="mprov-email" type="email" placeholder="billing@practice.com">\n</div>\n</div>\n</div>\n\n<!-- Logo -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="image" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Logo <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(optional)</span></div>\n</div>\n<div style="display:flex;align-items:center;gap:14px">\n<div id="mprov-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0">\n<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>\n</div>\n<div>\n<input type="file" id="mprov-logo-file" accept="image/*" onchange="loadProviderLogo(event)" style="display:none">\n<button class="btn btn-sm" onclick="document.getElementById(\'mprov-logo-file\').click()">\n<i data-lucide="upload" class="lci"></i> Upload Logo\n</button>\n<button class="btn btn-sm btn-ghost" onclick="clearProviderLogo()" style="margin-left:6px">Clear</button>\n</div>\n</div>\n</div>\n\n</div>\n<div class="modal-ftr">\n<button class="btn btn-ghost" onclick="closeModal(\'modal-provider\')">Cancel</button>\n<button class="btn btn-primary" id="mprov-save-btn" onclick="saveBillingProvider()">\n<i data-lucide="save" class="lci"></i> Save Provider\n</button>\n</div>\n</div>\n</div><!-- FACILITY MODAL -->\n<div class="overlay" id="modal-facility"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-facility\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mfac-id">\n<div class="fg g1">\n<div class="field"><label>Facility Name *</label><input id="mfac-name"></div>\n<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'fac\')"><button onclick="lookupNPI(v(\'mfac-npi\'),\'fac\')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>\n<div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>\n<div class="field"><label>Address *</label><input id="mfac-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mfac-addr2"></div>\n<div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-facility\')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- RENDERING MODAL -->\n<div class="overlay" id="modal-rendering"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mrend-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'rend\')"><button onclick="lookupNPI(v(\'mrend-npi\'),\'rend\')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>\n<div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>\n<div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- REFERRING MODAL -->\n<div class="overlay" id="modal-referring"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-referring\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mref-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'ref\')"><button onclick="lookupNPI(v(\'mref-npi\'),\'ref\')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>\n<div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-referring\')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- SERVICE MODAL -->\n<div class="overlay" id="modal-service"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-service\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="msvc-id">\n<div class="fg g1">\n<div class="fg g2"><div class="field"><label>CPT Code *</label><input id="msvc-code" maxlength="5" class="mono" style="font-size:15px;font-weight:700"></div><div class="field"><label>Category</label><input id="msvc-cat" placeholder="Physical Therapy"></div></div>\n<div class="field"><label>Description *</label><input id="msvc-desc" placeholder="Therapeutic Exercise"></div>\n<div class="fg g2"><div class="field"><label>Default Rate $</label><input id="msvc-rate" class="mono"></div><div class="field"><label>Default Units</label><input id="msvc-units" class="mono"></div></div>\n<div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-service\')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>\n</div></div>\n\n<!-- STATUS MODAL -->\n<div class="overlay" id="modal-status"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-status\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mst-id">\n<div class="fg g1">\n<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to Clearinghouse</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>\n<div class="field" id="mst-claimmd-wrap" style="display:none"><label>Clearinghouse Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by Clearinghouse"></div>\n<div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-status\')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>\n</div></div>\n\n<!-- BATCH MODAL -->\n<div class="overlay" id="modal-batch">\n<div class="modal modal-lg mb-modal" style="max-width:1000px;width:96vw;display:flex;flex-direction:column;max-height:92vh">\n\n<!-- Header -->\n<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="zap" class="lci"></i>Generate claims</span><button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i></button></div><div class="mb-tabs"><button type="button" id="mb-tab-patient" class="mb-tab on" onclick="setBatchTab(\'patient\',this)"><i data-lucide="users" class="lci"></i>By patient</button><button type="button" id="mb-tab-sg" class="mb-tab" onclick="setBatchTab(\'sg\',this)"><i data-lucide="layers" class="lci"></i>By service group</button></div><div class="modal-body" style="flex:1;overflow-y:auto;padding:0">\n\n<!-- ?? BY PATIENT PANEL ?? -->\n<div id="mb-panel-patient" style="padding:18px 22px">\n\n<!-- Row 1: Rendering + Facility + Referring -->\n<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Rendering Provider *</label>\n<select id="mb-rend" onchange="renderBatchPatDx()"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac"></select>\n</div>\n<div class="field">\n<label>Referring Provider</label>\n<select id="mb-ref"><option value="">— None —</option></select>\n</div>\n</div>\n\n<!-- Row 2: Two columns — Patients | Services -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">\n\n<!-- LEFT: Patient selector -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients *\n</div>\n<input id="mb-pat-q" placeholder="Search patients..."\noninput="renderBatchPatients()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div style="display:flex;gap:6px">\n<button class="btn btn-xs" onclick="batchSelectAllPats(true)">Select All</button>\n<button class="btn btn-xs" onclick="batchSelectAllPats(false)">Clear</button>\n</div>\n<div id="mb-pat-list"\nstyle="border:1px solid var(--border);border-radius:var(--r);overflow-y:auto;max-height:220px;background:var(--bg2)">\n</div>\n</div>\n\n<!-- RIGHT: Services catalog -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="pill" class="lci" style="width:11px;height:11px"></i> Services / CPT *\n</div>\n<input id="mb-svc-q" placeholder="Search CPT or description..."\noninput="renderBatchCatalog()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div class="cpt-scroll" id="mb-catalog" style="max-height:180px"></div>\n<div id="mb-selected-svcs-tbl"></div>\n</div>\n</div>\n\n<!-- Diagnoses (shown per patient when selected) -->\n<div id="mb-pat-dx-section" style="display:none;margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="activity" class="lci" style="width:11px;height:11px"></i> Diagnoses\n</div>\n<div id="mb-pat-dx-list" style="display:flex;flex-direction:column;gap:6px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-from" onchange="buildDateChips()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-to" onchange="buildDateChips()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Click dates to toggle on/off:</div>\n<div class="date-chips" id="mb-date-chips"></div>\n</div>\n\n<!-- Preview -->\n\n\n</div><!-- /mb-panel-patient -->\n\n<!-- ?? BY SERVICE GROUP PANEL ?? -->\n<div id="mb-panel-sg" class="sgb" style="display:none;padding:16px 22px"><div class="sgb-top"><div class="sgx-f"><label>Service group *</label><select id="mb-sg-sel" onchange="onBatchSGChange()"></select></div><div class="sgx-f"><label>Rendering provider</label><select id="mb-rend-sg"></select></div><div class="sgx-f"><label>Facility</label><select id="mb-fac-sg"></select></div></div><div class="sgb-dates"><div class="sgx-f"><label>From</label><input type="date" id="mb-sg-from" onchange="buildDateChips();onBatchSGChange()"></div><div class="sgx-f"><label>To</label><input type="date" id="mb-sg-to" onchange="buildDateChips();onBatchSGChange()"></div><div class="sgb-presets"><button type="button" onclick="_sgbPreset(\'today\')">Today</button><button type="button" onclick="_sgbPreset(\'monthu\')">Mon to Thu</button><button type="button" onclick="_sgbPreset(\'fri\')">Friday</button><button type="button" onclick="setWeek()">This week</button><button type="button" onclick="setLastWeek()">Last week</button><button type="button" onclick="setMonth()">This month</button></div></div><div class="date-chips" id="mb-date-chips-sg"></div><div id="mb-sg-cpt-row" class="sgb-cpt" style="display:none"><span>CPT</span><div id="mb-sg-lines"></div></div><div id="mb-sg-patients-wrap" style="display:none"><div id="mb-sg-pat-rows" class="sgb-list"></div></div></div>\n\n</div><!-- /modal-body -->\n\n<!-- Footer -->\n<div class="modal-ftr mb-ftr"><div class="mb-sum" id="mb-summary"></div><label class="mb-group" id="mb-group-wrap" data-tip="All selected dates become lines of one claim"><input type="checkbox" id="mb-group-dates" onchange="if(window._sgBatchCur)renderSGBatchPatients(window._sgBatchCur);updateBatchPreview()"><span>1 claim per patient</span></label><button type="button" class="cdc-no" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i>Cancel</button><button type="button" class="cdc-ok mb-go" onclick="runBatch()"><i data-lucide="zap" class="lci"></i>Generate</button></div>\n\n</div>\n</div>\n\n<!-- CPT PICKER MODAL -->\n<div class="overlay" id="modal-catalog"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \\u2014 then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-catalog\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\\u2026" oninput="renderPickerCatalog()"></div>\n<div class="cpt-scroll" id="cat-list"></div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-catalog\')">Cancel</button><button class="btn btn-primary" onclick="addCatalogToLines()">Add Selected to Claim</button></div>\n</div></div>\n<div class="overlay" id="modal-appt">\n<div class="modal modal-lg">\n<div class="modal-hdr">\n<div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body">\n<div class="fg g2">\n<div class="field"><label>Date</label><input type="date" id="appt-date"></div>\n<div class="field"><label>Start Time</label><input type="time" id="appt-start"></div>\n<div class="field"><label>End Time</label><input type="time" id="appt-end"></div>\n<div class="field"><label>Place of Service</label><select id="appt-pos"><option value="11">11 — Office</option><option value="02">02 — Telehealth</option><option value="23">23 — Emergency Room</option></select></div>\n</div>\n<div class="field" style="margin-top:10px"><label>Rendering Provider</label><select id="appt-rend"><option value="">— None —</option></select></div>\n<div class="field"><label>Facility</label><select id="appt-fac"><option value="">— None —</option></select></div>\n<div class="field"><label>Service Group</label><select id="appt-sg" onchange="onApptSGChange()"><option value="">— None —</option></select></div>\n<div class="field"><label>Status</label><select id="appt-status">\n<option value="scheduled">Scheduled</option>\n<option value="confirmed">Confirmed</option>\n<option value="checked_in">Checked In</option>\n<option value="completed">Completed</option>\n<option value="cancelled">Cancelled</option>\n<option value="no_show">No Show</option>\n</select></div>\n<div class="field"><label>Notes</label><textarea id="appt-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div style="margin-top:10px">\n<div class="slabel" style="margin-bottom:6px">Patients</div>\n<input id="appt-pat-q" placeholder="Search patients..." oninput="renderApptPatientPicker()" style="width:100%;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:6px">\n<div id="appt-pat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>\n<div id="appt-selected-pats" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="appt-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button>\n</div>\n</div>\n</div>\n\n<div class="overlay" id="modal-checkin">\n<div class="modal">\n<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div id="checkin-info"></div>\n<div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="ci-appt-id"><input type="hidden" id="ci-pat-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')">Cancel</button>\n<button class="btn btn-primary" onclick="_confirmCheckInDispatch()">Confirm Check-In</button>\n</div>\n</div>\n';
+return '\n<div class="section active" id="sec-dashboard"></div>\n<div class="section" id="sec-claims"></div>\n\n<div class="section" id="sec-patients"><div class="page-hdr"><div><h1>Patients</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openImportFromCMClientsModal()" title="Import from CM Clients"><i data-lucide="download" class="lci"></i> Import from CM Clients</button><button class="btn btn-primary btn-sm" onclick="openPatientModal(-1)">+ New Patient</button></div></div><div class="page-body"><div class="search-row"><input id="pat-q" class="no-upper" placeholder="Search by name, Acct#, subscriber ID, payer\\u2026" oninput="renderPatients()"></div><div id="patients-tbl"></div></div></div>\n\n<div class="section" id="sec-services"><div class="page-hdr"><div><h1>Services / CPT Catalog</h1></div><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div><div class="page-body"><div class="search-row"><input id="svc-q" class="no-upper" placeholder="Search by CPT code or description\\u2026" oninput="renderServices()"><select id="svc-cat" onchange="renderServices()"><option value="">All categories</option></select></div><div id="services-tbl"></div></div></div>\n\n<div class="section" id="sec-export">\n<div class="page-hdr">\n<div><h1>Export / Submit</h1></div>\n</div>\n<div class="page-body">\n<div id="exp-alert-top" style="margin-bottom:12px"></div>\n\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n\n<!-- Card 1: CSV Export -->\n<div class="card">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand-bg);border-radius:10px;display:flex;align-items:center;justify-content:center">\n<i data-lucide="download" class="lci" style="width:18px;height:18px;color:var(--brand)"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Export CSV</div>\n<div style="font-size:11px;color:var(--text3)">Standard CSV Format</div>\n</div>\n</div>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="exportCSV(\'pending\')">\n<i data-lucide="download" class="lci"></i> Export Pending Claims\n</button>\n<button class="btn btn-sm" onclick="exportCSV(\'all\')">\n<i data-lucide="download" class="lci"></i> Export All Claims\n</button>\n</div>\n</div>\n\n<!-- Card 2: Direct Transmit -->\n<div class="card" style="border:2px solid var(--brand)">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">\n<div style="width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(74,74,74,.3)">\n<i data-lucide="send" class="lci" style="width:18px;height:18px;color:#fff"></i>\n</div>\n<div>\n<div style="font-size:13px;font-weight:700;color:var(--text)">Transmit Direct</div>\n<div style="font-size:11px;color:var(--text3)">via Clearinghouse</div>\n</div>\n</div>\n<p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">\nRequires API Key configured in Settings ? Billing Providers.<br>\nClaims are validated, transmitted and marked <strong>Submitted</strong> automatically.\n</p>\n<div style="display:flex;flex-direction:column;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="transmitDirect(\'pending\')">\n<i data-lucide="send" class="lci"></i> Transmit All Pending\n</button>\n<button class="btn btn-sm" onclick="transmitDirect(\'selected\')">\n<i data-lucide="send" class="lci"></i> Transmit Selected Claims\n</button>\n<button class="btn btn-sm" onclick="syncStatuses()">\n<i data-lucide="refresh-cw" class="lci"></i> Sync Status from Clearinghouse\n</button>\n</div>\n</div>\n\n</div>\n\n<!-- Summary + Instructions row -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">Summary</div>\n<div id="exp-summary"></div>\n</div>\n<div class="card">\n<div class="card-title" style="margin-bottom:12px">How it works</div>\n<ol style="padding-left:18px;font-size:13px;color:var(--text2);line-height:2.2">\n<li>Create claims via Quick Batch or manually</li>\n<li>Click <strong>Transmit All Pending</strong> to send directly</li>\n<li>Or export CSV and upload at the clearinghouse portal</li>\n<li>Click <strong>Sync Status</strong> to update claim results</li>\n<li>Paid claims ? mark <strong>Accepted CH</strong></li>\n</ol>\n</div>\n</div>\n\n<!-- Transmission Log -->\n<div class="card">\n<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">\n<div class="card-title">Transmission Log</div>\n<button class="btn btn-xs btn-ghost" onclick="_renderTransmitLog()">\n<i data-lucide="refresh-cw" class="lci" style="width:12px;height:12px"></i> Refresh\n</button>\n</div>\n<div id="exp-transmit-log" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="font-size:12px;color:var(--text3);padding:12px">No transmissions yet.</div>\n</div>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-bills">\n<div class="page-hdr">\n<div><h1>Bills</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<select id="bills-status-filter" onchange="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="draft">Draft</option>\n<option value="pending">Pending</option>\n<option value="submitted">Submitted</option>\n<option value="accepted">Accepted CH</option>\n<option value="rejected">Rejected</option>\n<option value="on_hold">On Hold</option>\n<option value="denied">Denied</option>\n<option value="paid">Paid</option>\n<option value="voided">Voided</option>\n</select>\n<input type="text" id="bills-q" placeholder="Search patient, PCN, CPT..." oninput="renderBills()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);width:200px">\n<button class="btn btn-primary btn-sm" onclick="go(\'claims\')"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> New Claim</button>\n</div>\n</div>\n<div class="page-body">\n<div id="bills-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-claim-editor" style="flex-direction:column;height:100%;padding:0;overflow:hidden">\n<div id="claim-editor-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>\n</div>\n\n<div class="section" id="sec-eob">\n<div class="page-hdr">\n<div>\n<h1>ERA / EOB Payments</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="openEOBPostingModal()">\n<i data-lucide="pen-line" class="lci"></i> Manual EOB\n</button>\n<button class="btn btn-sm" onclick="fetchERAFromClearinghouse()">\n<i data-lucide="download-cloud" class="lci"></i> Import Payments\n</button>\n<button class="btn btn-primary btn-sm" onclick="document.getElementById(\'era-835-input\').click()">\n<i data-lucide="upload" class="lci"></i> Upload EDI 835\n</button>\n</div>\n</div>\n<div class="page-body">\n<input type="file" id="era-835-input" accept=".835,.txt,.edi,.x12,.ansi,.dat,.rmt,.pmt,.zip,text/*" style="display:none" onchange="handleEDI835Upload(event)">\n\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="eob-tab-payments" onclick="setEOBTab(\'payments\',this)">\nPayment Batches <span id="eob-cnt-payments" class="nav-cnt" style="background:var(--brand)">0</span>\n</button>\n<button class="stab" id="eob-tab-unmatched" onclick="setEOBTab(\'unmatched\',this)">\nUnmatched <span id="eob-cnt-unmatched" class="nav-cnt" style="background:var(--amber)">0</span>\n</button>\n<button class="stab" id="eob-tab-secondary" onclick="setEOBTab(\'secondary\',this)">\nReady for Secondary <span id="eob-cnt-secondary" class="nav-cnt" style="background:var(--green)">0</span>\n</button>\n<button class="stab" id="eob-tab-era-pending" onclick="setEOBTab(\x27era-pending\x27,this)">\n<i data-lucide="clock" class="lci"></i> Pending ERA <span id="eob-cnt-era-pending" class="nav-cnt" style="background:#7c3aed">0</span>\n</button>\n</div>\n\n<div id="eob-alert" style="margin-bottom:12px"></div>\n<div id="eob-content"></div>\n</div>\n</div>\n\n<!-- MANUAL EOB POSTING MODAL -->\n<div class="overlay" id="modal-eob-post">\n<div class="modal" style="max-width:900px;width:98%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t">Post EOB Payment</div>\n<div class="modal-sub" id="eob-post-sub">Enter check details and match claims</div>\n</div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-post\')">×</button>\n</div>\n<div class="modal-body" style="max-height:80vh;overflow-y:auto">\n<!-- Check Header -->\n<div style="background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:16px;border:1px solid var(--border)">\n<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Check / EFT Details</div>\n<div class="fg g4">\n<div class="field"><label>Payer Name *</label><input id="eob-payer-name" placeholder="e.g. FL Medicaid"></div>\n<div class="field"><label>Payer ID</label><input id="eob-payer-id" placeholder="e.g. 77027"></div>\n<div class="field"><label>Check / EFT #</label><input id="eob-check-num" placeholder="Check number"></div>\n<div class="field"><label>Check Date *</label><input type="date" id="eob-check-date"></div>\n</div>\n<div class="fg g3" style="margin-top:10px">\n<div class="field"><label>Total Check Amount *</label><input type="number" step="0.01" id="eob-check-amt" placeholder="0.00" oninput="updateEOBRunning()"></div>\n<div class="field"><label>NPI (Payee)</label><input id="eob-payee-npi" placeholder="Rendering or Billing NPI"></div>\n<div class="field"><label>Notes</label><input id="eob-notes" placeholder="Optional"></div>\n</div>\n</div>\n\n<!-- Claim Search & Match -->\n<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">\n<div style="font-size:13px;font-weight:700;color:var(--text)">Claim Lines</div>\n<button class="btn btn-sm" onclick="openEOBClaimSearch()">\n<i data-lucide="search" class="lci"></i> Find & Add Claim\n</button>\n<div style="margin-left:auto;font-size:12px;color:var(--text3)">\nPosted: <strong id="eob-running-total" style="color:var(--brand)">$0.00</strong>\n&nbsp;/&nbsp; Check: <strong id="eob-check-display">$0.00</strong>\n&nbsp;\n<span id="eob-balance-badge" class="badge b-gray">Balance: $0.00</span>\n</div>\n</div>\n<div id="eob-claim-lines" style="min-height:60px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3);padding:8px">\n<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">\nClick "Find &amp; Add Claim" to search and add claims to this payment\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-post\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveEOBBatch()">\n<i data-lucide="save" class="lci"></i> Post Payment Batch\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIM SEARCH MODAL (for EOB matching) -->\n<div class="overlay" id="modal-eob-search">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t">Find Claim</div><div class="modal-sub">Search by multiple fields + DOS</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-eob-search\')">×</button>\n</div>\n<div class="modal-body">\n<div class="fg g2" style="margin-bottom:10px">\n<div class="field">\n<label>Search Field</label>\n<select id="eob-search-field">\n<option value="pcn">PCN / Claim #</option>\n<option value="last">Patient Last Name</option>\n<option value="first">Patient First Name</option>\n<option value="member">Member ID</option>\n<option value="acct">Account #</option>\n<option value="dob">Date of Birth</option>\n</select>\n</div>\n<div class="field"><label>Search Value *</label><input id="eob-search-val" placeholder="Enter value..." oninput="searchEOBClaims()"></div>\n</div>\n<div class="fg g2" style="margin-bottom:12px">\n<div class="field"><label>Date of Service (DOS) *</label><input type="text" id="eob-search-dos" placeholder="MM/DD/YYYY" oninput="searchEOBClaims()"></div>\n<div class="field"><label>Status Filter</label>\n<select id="eob-search-status" onchange="searchEOBClaims()">\n<option value="">All</option>\n<option value="accepted" selected>Accepted</option>\n<option value="submitted">Submitted</option>\n<option value="pending">Pending</option>\n</select>\n</div>\n</div>\n<div id="eob-search-results" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)">\n<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">Enter search criteria above</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-eob-search\')">Cancel</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-providers">\n<div class="page-hdr">\n<div>\n<h1>Billing Providers</h1>\n</div>\n<button class="btn btn-primary btn-sm admin-only" id="btn-add-provider" onclick="openBPModal(-1)" style="display:none">\n<i data-lucide="plus" class="lci"></i> Add Provider\n</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-insurances">\n<div class="page-hdr">\n<div>\n<h1>Insurances / Payers</h1>\n</div>\n<div class="btn-group">\n<button class="btn btn-sm" onclick="searchClearinghousePayers()">\n<i data-lucide="search" class="lci"></i> Search Clearinghouse Payers\n</button>\n<button class="btn btn-primary btn-sm" onclick="openInsuranceModal(\'\')">\n<i data-lucide="plus" class="lci"></i> Add Payer\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">\n<input id="ins-q" placeholder="Search by name or Payer ID..." oninput="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);width:280px">\n<select id="ins-type-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Types</option>\n<option value="electronic">Electronic</option>\n<option value="manual">Manual / Paper</option>\n</select>\n<select id="ins-status-filter" onchange="renderInsurances()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All Status</option>\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n\n<div id="insurances-tbl"></div>\n</div>\n</div>\n\n<!-- INSURANCE MODAL -->\n<div class="overlay" id="modal-insurance">\n<div class="modal modal-sm">\n<div class="modal-hdr">\n<div><div class="modal-t" id="mins-title">Add Payer</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-insurance\')">×</button>\n</div>\n<div class="modal-body">\n<input type="hidden" id="mins-id">\n<div class="fg g1">\n<div class="fg g2">\n<div class="field">\n<label>Payer / Insurance Name *</label>\n<input id="mins-name" placeholder="e.g. FL Medicaid" oninput="searchInsNameLive()">\n<div id="mins-name-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n<div class="field" style="position:relative">\n<label>Payer ID *</label>\n<input id="mins-payerid" placeholder="e.g. 77027" maxlength="10" oninput="searchInsPayerIdLive()">\n<div id="mins-payerid-suggestions" style="display:none;position:absolute;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px"></div>\n</div>\n</div>\n<div class="fg g2">\n<div class="field">\n<label>Type</label>\n<select id="mins-type">\n<option value="electronic">Electronic (EDI)</option>\n<option value="manual">Manual / Paper</option>\n</select>\n</div>\n<div class="field">\n<label>Status</label>\n<select id="mins-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n</select>\n</div>\n</div>\n<div class="fg g2">\n<div class="field"><label>Phone</label><input id="mins-phone" placeholder="800-000-0000"></div>\n<div class="field"><label>Claims Address</label><input id="mins-addr" placeholder="PO Box or address"></div>\n</div>\n<div class="fg g3">\n<div class="field"><label>City</label><input id="mins-city"></div>\n<div class="field"><label>State</label><input id="mins-state" maxlength="2"></div>\n<div class="field"><label>ZIP</label><input id="mins-zip" maxlength="10"></div>\n</div>\n<div class="field"><label>Notes</label><input id="mins-notes" placeholder="Optional notes"></div>\n<div id="mins-claimmd-badge" style="display:none;margin-top:6px;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);font-size:12px;color:var(--brand)">\n<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i>\n<strong>Verified in Directory</strong> • Electronic submission supported\n</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-insurance\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveInsurance()">\n<i data-lucide="save" class="lci"></i> Save Payer\n</button>\n</div>\n</div>\n</div>\n\n<!-- CLAIMMD PAYER SEARCH MODAL -->\n<div class="overlay" id="modal-claimmd-payers">\n<div class="modal" style="max-width:700px;width:98%">\n<div class="modal-hdr">\n<div><div class="modal-t">Payer Directory</div><div class="modal-sub">Search and import payers from the directory</div></div>\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claimmd-payers\')">×</button>\n</div>\n<div class="modal-body">\n<div style="display:flex;gap:8px;margin-bottom:12px">\n<input id="claimmd-payer-q" class="no-upper" placeholder="Search by name or Payer ID..."\nstyle="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)"\noninput="filterClearinghousePayers()">\n<select id="claimmd-payer-state" onchange="filterClearinghousePayers()"\nstyle="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">\n<option value="">All States</option>\n<option value="FL">FL</option><option value="CA">CA</option><option value="TX">TX</option>\n<option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option>\n<option value="OH">OH</option><option value="PA">PA</option><option value="IL">IL</option>\n</select>\n</div>\n<div id="claimmd-payer-results" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">\n<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">Type to search the payer list</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claimmd-payers\')">Close</button>\n</div>\n</div>\n</div>\n\n<div class="section" id="sec-facilities"><div class="page-hdr"><div><h1>Facilities</h1></div><button class="btn btn-primary btn-sm" onclick="openFacilityModal(\'\')">+ New Facility</button></div><div class="page-body"><div id="facilities-tbl"></div></div></div>\n\n<div class="section" id="sec-rendering"><div class="page-hdr"><div><h1>Rendering Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openRenderingModal(-1)">+ New Rendering</button></div><div class="page-body"><div id="rendering-tbl"></div></div></div>\n\n<div class="section" id="sec-referring"><div class="page-hdr"><div><h1>Referring Providers</h1></div><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ New Referring</button></div><div class="page-body"><div id="referring-tbl"></div></div></div>\n\n<div class="section" id="sec-validate"><div class="page-hdr"><div><h1>Validation</h1></div><button class="btn btn-primary btn-sm" onclick="renderValidation()"><i data-lucide="refresh-cw" class="lci"></i> Re-validate</button></div><div class="page-body"><div id="val-content"></div></div></div>\n\n<div class="section" id="sec-reports">\n<div class="page-hdr">\n<div><h1>Reports</h1></div>\n</div>\n<div class="page-body">\n<div id="reports-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-appointments">\n<div class="page-hdr">\n<div><h1>Schedule</h1></div>\n<div style="display:flex;gap:8px;align-items:center">\n<button class="btn btn-sm" id="btn-appt-view-toggle" onclick="toggleApptView()" style="font-size:11px"><i data-lucide="rows-3" class="lci" style="width:12px;height:12px"></i> Cards</button>\n<button class="btn btn-primary btn-sm" onclick="openApptModal(null)">+ New Appointment</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<select id="appt-filter-prov" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Providers</option></select>\n<select id="appt-filter-status" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option></select>\n<select id="appt-filter-date" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="all">All</option></select>\n<select id="appt-slot-interval" onchange="renderAppointments()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="30">30 min slots</option><option value="15">15 min slots</option><option value="45">45 min slots</option><option value="60">1 hour slots</option></select>\n<label style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="appt-show-empty" onchange="renderAppointments()" style="accent-color:var(--brand)"> Show empty</label>\n</div>\n<div id="appt-day-strip" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px"></div>\n<div id="appt-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-schedule-setup">\n<div class="page-hdr"><div><h1>Schedule Setup</h1></div></div>\n<div class="page-body">\n<div class="fg g2" style="margin-bottom:14px">\n<div class="field"><label>Physician / Scheduler</label><select id="ss-prov-sel" onchange="renderScheduleSetup()" style="width:100%"></select></div>\n<div class="field"><label>Default Facility</label><select id="ss-fac-sel" onchange="onSSFacilityChange()" style="width:100%"></select></div>\n</div>\n<div class="stabs" id="ss-tabs" style="margin-bottom:14px">\n<button class="stab active" id="ss-stab-hours" onclick="setSSTab(\'hours\',this)"><i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Working Hours</button>\n<button class="stab" id="ss-stab-groups" onclick="setSSTab(\'groups\',this)"><i data-lucide="users" class="lci" style="width:13px;height:13px"></i> Groups</button>\n</div>\n<div id="ss-panel-hours"></div>\n<div id="ss-panel-groups" style="display:none"></div>\n</div>\n</div>\n\n<div class="section" id="sec-notes">\n<div class="page-hdr">\n<div><h1>Encounters</h1></div>\n<div style="display:flex;gap:8px">\n<button class="btn btn-primary btn-sm" onclick="openAINoteModal(\'\',\'\',\'\')">\n<i data-lucide="bot" class="lci"></i> AI Note Assistant\n</button>\n</div>\n</div>\n<div class="page-body">\n<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">\n<input id="notes-q" placeholder="Search notes..." oninput="renderNotes()" style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">\n<select id="notes-filter-pat" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Patients</option></select>\n<select id="notes-filter-status" onchange="renderNotes()" style="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px"><option value="">All Status</option><option value="draft">Draft</option><option value="finalized">Finalized</option></select>\n</div>\n<div id="notes-list"></div>\n<div id="encounter-editor" style="display:none;flex:1;min-height:0;flex-direction:column">\n  <div class="enc-editor-hdr" id="ee-hdr"></div>\n  <div class="enc-editor-toolbar" id="ee-toolbar" style="display:none;flex-shrink:0;padding:6px 8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;align-items:center;gap:8px;font-size:12px"></div>\n  <div class="enc-editor-body">\n    <div class="enc-editor-sidebar" id="ee-sidebar"></div>\n    <div class="enc-editor-content" id="ee-content"></div>\n    <div class="enc-editor-preview" id="ee-preview"></div>\n  </div>\n  <div class="enc-editor-ftr" id="ee-ftr"></div>\n</div>\n</div>\n</div>\n\n\n<div class="section" id="sec-servicegroups">\n<div class="page-hdr">\n<div><h1>Service Groups</h1></div>\n<button class="btn btn-primary btn-sm" onclick="openSGModal(null)">+ New Group</button>\n</div>\n<div class="page-body">\n<div id="sg-list"></div>\n</div>\n</div>\n\n<div class="section" id="sec-account">\n<div class="page-hdr">\n  <div>\n    <h1>Users &amp; Account</h1>\n    \n  </div>\n  <div style="display:flex;gap:8px;align-items:center">\n    <button class="btn btn-ghost btn-sm" onclick="openUserSearch()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="search" class="lci" style="width:14px;height:14px"></i> Search\n    </button>\n    <button class="btn btn-primary btn-sm" onclick="openAddUserModal()" style="height:34px;display:flex;align-items:center;gap:6px">\n      <i data-lucide="user-plus" class="lci" style="width:14px;height:14px"></i> Add\n    </button>\n  </div>\n</div>\n<div class="page-body">\n\n<!-- Search panel -->\n<div id="user-search-bar" style="display:none;margin-bottom:14px">\n  <div class="card" style="padding:16px">\n    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--brand)">Search Users</div>\n    <div class="fg g3" style="margin-bottom:12px">\n      <div class="field"><label>Email / Username</label><input id="us-email" placeholder="email@domain.com" oninput="renderUserManagement()"></div>\n      <div class="field"><label>First Name</label><input id="us-first" placeholder="First" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Last Name</label><input id="us-last" placeholder="Last" oninput="renderUserManagement()"></div>\n      <div class="field"><label>Role</label>\n        <select id="us-role" onchange="renderUserManagement()">\n          <option value="">All Roles</option>\n          <option>Super Admin</option>\n          <option>Admin</option>\n          <option>Manager</option>\n          <option>Billing</option>\n          <option>User</option>\n        </select>\n      </div>\n    </div>\n    <button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'us-email\').value=\'\';document.getElementById(\'us-first\').value=\'\';document.getElementById(\'us-last\').value=\'\';document.getElementById(\'us-role\').value=\'\';renderUserManagement()">Clear</button>\n  </div>\n</div>\n\n<!-- Active / Inactive tabs -->\n<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0;margin-top:0">\n  <button id="utab-active" onclick="setUserTab(\'active\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:var(--bg3);cursor:pointer;color:var(--brand);border-bottom:3px solid var(--brand);margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Active\n  </button>\n  <button id="utab-inactive" onclick="setUserTab(\'inactive\')"\n    style="padding:8px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s">\n    Inactive\n  </button>\n</div>\n\n<!-- Users table -->\n<div class="tbl-wrap" style="margin-top:0;border-top:none">\n  <table>\n    <thead><tr>\n      <th>Email</th>\n      <th>First Name</th>\n      <th>Last Name</th>\n      <th>Phone</th>\n      <th>Provider</th>\n      <th>Role</th>\n      <th>Status</th>\n      <th style="text-align:center">2FA</th>\n      <th>Created</th>\n      <th style="width:90px;text-align:center">Actions</th>\n    </tr></thead>\n    <tbody id="users-list"></tbody>\n  </table>\n</div>\n\n<!-- Account info -->\n\n\n\n</div>\n</div>\n\n<div class="section" id="sec-provider-info">\n<div class="page-hdr">\n<div><h1>Provider Information</h1></div>\n</div>\n<div class="page-body">\n<div id="provider-info-content"></div>\n</div>\n</div>\n\n<div class="section" id="sec-invoices"></div>\n\n<div class="section" id="sec-admin-providers">\n<div class="page-hdr">\n<div><h1>Billing Providers</h1></div>\n<button class="btn btn-primary btn-sm admin-only" onclick="openBPModal(-1)">+ Add Provider</button>\n</div>\n<div class="page-body">\n<div id="bp-grid"></div>\n</div>\n</div>\n\n<div class="section" id="sec-admin-tickets"></div>\n\n<div class="section" id="sec-cm-dashboard"></div>\n\n<div class="section" id="sec-cm-clients">\n<div class="page-hdr"><div><h1>CM Clients</h1></div><div style="display:flex;gap:8px;align-items:center">\n<label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text2)"><input type="checkbox" id="cm-cli-show-inactive" onchange="renderCMClients()"> Show Inactive</label>\n<button class="btn btn-sm" onclick="openImportFromPatientsModal()" title="Import clients from Patients (EHR side)"><i data-lucide="download" class="lci"></i> Import from Patients</button><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cli-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMClients()">\n<select id="cm-cli-worker" onchange="renderCMClients()"><option value="">All Users</option></select>\n<select id="cm-cli-status" onchange="renderCMClients()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select>\n</div>\n<div id="cm-clients-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-workers">\n<div class="page-hdr"><div><h1>Users</h1></div><button class="btn btn-primary btn-sm" onclick="openCMWorkerModal()">+ Add User</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-wkr-q" class="no-upper" placeholder="Search by name, credential, email..." oninput="renderCMWorkers()"></div>\n<div id="cm-workers-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-plans"><div class="page-hdr"><div><h1>Service Plans</h1></div><button class="btn btn-primary btn-sm" onclick="openCMPlanModal()">+ New Plan</button></div><div class="page-body"><div class="search-row"><input id="cm-plan-q" class="no-upper" placeholder="Search client..." oninput="renderCMPlans()"><select id="cm-plan-status" onchange="renderCMPlans()"><option value="">All Status</option><option value="Active">Active</option><option value="Completed">Completed</option><option value="Expired">Expired</option></select></div><div id="cm-plans-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-notes"><div class="page-hdr"><div><h1>Progress Notes</h1></div><button class="btn btn-primary btn-sm" onclick="openCMNoteModal()">+ New Note</button></div><div class="page-body"><div class="search-row"><input id="cm-note-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMNotes()"><select id="cm-note-billable" onchange="renderCMNotes()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select></div><div id="cm-notes-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-billing"><div class="page-hdr"><div><h1>CM Billing</h1></div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="openCMBillingSettings()" title="Configure rates per CPT code"><i data-lucide="settings-2" class="lci"></i> Rates</button><button class="btn btn-sm" onclick="generateCMBilling()"><i data-lucide="zap" class="lci"></i> From Notes</button><button class="btn btn-primary btn-sm" onclick="openCMBillingModal()">+ New Entry</button><button class="btn btn-sm" onclick="exportCMBillingCSV()"><i data-lucide="download" class="lci"></i> Export CSV</button></div></div><div class="page-body"><div id="cm-billing-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div><div id="cm-billing-bulk" style="display:none;padding:8px 12px;background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:var(--r);margin-bottom:10px;align-items:center;gap:8px;font-size:12px"><span id="cm-bill-selcount" style="font-weight:700;color:var(--brand)">0 selected</span><button class="btn btn-xs" onclick="cmBillingBulk(\'Ready\')">Mark Ready</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Submitted\')">Mark Submitted</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Paid\')">Mark Paid</button><button class="btn btn-xs" onclick="cmBillingBulk(\'Rejected\')">Mark Rejected</button><button class="btn btn-xs" onclick="cmBillingBulkDelete()" style="color:var(--red);border-color:var(--red)">Delete</button><button class="btn btn-xs btn-ghost" onclick="cmBillingClearSel()" style="margin-left:auto">Clear</button></div><div class="search-row"><input id="cm-bill-q" class="no-upper" placeholder="Search client, user, code..." oninput="renderCMBilling()"><select id="cm-bill-status" onchange="renderCMBilling()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Ready">Ready</option><option value="Submitted">Submitted</option><option value="Paid">Paid</option><option value="Rejected">Rejected</option></select><select id="cm-bill-code" onchange="renderCMBilling()"><option value="">All Codes</option></select><select id="cm-bill-worker" onchange="renderCMBilling()"><option value="">All Users</option></select><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3);white-space:nowrap">DOS<input type="date" id="cm-bill-from" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><span style="color:var(--text3)">–</span><input type="date" id="cm-bill-to" onchange="renderCMBilling()" style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)"><button onclick="document.getElementById(\'cm-bill-from\').value=\'\';document.getElementById(\'cm-bill-to\').value=\'\';renderCMBilling()" title="Clear dates" style="border:none;background:none;cursor:pointer;color:var(--text3);padding:0 2px;font-size:14px">&times;</button></label></div><div id="cm-billing-tbl"></div></div></div>\n\n<div class="section" id="sec-cm-reports"><div class="page-hdr"><div><h1>CM Reports</h1></div></div><div class="page-body"><div id="cm-reports-content"></div></div></div>\n\n<div class="section" id="sec-cm-intake">\n<div class="page-hdr"><div><h1>Intake / Referrals</h1></div><button class="btn btn-primary btn-sm" onclick="openCMIntakeModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-intake-q" class="no-upper" placeholder="Search by File #, name, Medicaid ID, phone..." oninput="renderCMIntake()">\n<select id="cm-intake-status" onchange="renderCMIntake()"><option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Converted">Converted</option><option value="Closed">Closed</option></select>\n</div>\n<div id="cm-intake-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-assessments">\n<div class="page-hdr"><div><h1>Comprehensive Assessments</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAssessmentModal()">+ New Assessment</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-assess-q" class="no-upper" placeholder="Search client..." oninput="renderCMAssessments()">\n<select id="cm-assess-status" onchange="renderCMAssessments()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Completed">Completed</option><option value="Signed">Signed</option></select></div>\n<div id="cm-assessments-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-encounters">\n<div class="page-hdr"><div><h1>Encounters / Case Notes</h1></div><div style="display:flex;gap:6px">\n<button class="btn btn-primary btn-sm" onclick="openCMEncounterChooser()"><i data-lucide="notebook-pen" class="lci"></i> + New Note</button>\n</div></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-enc-q" class="no-upper" placeholder="Search client or user..." oninput="renderCMEncounters()">\n<select id="cm-enc-billable" onchange="renderCMEncounters()"><option value="">All</option><option value="1">Billable</option><option value="0">Non-Billable</option></select>\n<select id="cm-enc-status" onchange="renderCMEncounters()"><option value="">All Status</option><option value="Draft">Draft</option><option value="Needs Review">Needs Review</option><option value="Approved">Approved</option></select></div>\n<div id="cm-encounters-tbl"></div>\n<div id="cm-tcm-notes" style="margin-top:16px"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-tasks">\n<div class="page-hdr"><div><h1>Tasks &amp; Follow-Ups</h1></div><button class="btn btn-primary btn-sm" onclick="openCMTaskModal()">+ New Task</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-task-q" class="no-upper" placeholder="Search tasks..." oninput="renderCMTasks()">\n<select id="cm-task-priority" onchange="renderCMTasks()"><option value="">All Priority</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>\n<select id="cm-task-status" onchange="renderCMTasks()"><option value="">All Status</option><option value="Open">Open</option><option value="Completed">Completed</option></select></div>\n<div id="cm-tasks-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-authorizations">\n<div class="page-hdr"><div><h1>Authorizations</h1></div><button class="btn btn-primary btn-sm" onclick="openCMAuthModal()">+ New Authorization</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-auth-q" class="no-upper" placeholder="Search client or auth number..." oninput="renderCMAuths()">\n<select id="cm-auth-status" onchange="renderCMAuths()"><option value="">All Status</option><option value="Active">Active</option><option value="Expired">Expired</option><option value="Pending">Pending</option></select></div>\n<div id="cm-auths-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-referrals">\n<div class="page-hdr"><div><h1>Referrals &amp; Community Resources</h1></div><button class="btn btn-primary btn-sm" onclick="openCMCommReferralModal()">+ New Referral</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-cr-q" class="no-upper" placeholder="Search client or provider..." oninput="renderCMCommReferrals()">\n<select id="cm-cr-type" onchange="renderCMCommReferrals()"><option value="">All Types</option><option value="PCP">PCP</option><option value="Psychiatry">Psychiatry</option><option value="Therapy">Therapy</option><option value="Housing">Housing</option><option value="Food Assistance">Food Assistance</option><option value="Transportation">Transportation</option><option value="Legal Aid">Legal Aid</option><option value="School">School</option><option value="Benefits">Benefits</option></select></div>\n<div id="cm-referrals-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-supervisor">\n<div class="page-hdr"><div><h1>Supervisor Review / QA</h1></div></div>\n<div class="page-body">\n<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cm-sup-stats"></div>\n<div class="search-row"><select id="cm-sup-filter" onchange="renderCMSupervisor()"><option value="pending">Pending Review</option><option value="approved">Approved</option><option value="returned">Returned for Correction</option><option value="all">All</option></select></div>\n<div id="cm-supervisor-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-discharge">\n<div class="page-hdr"><div><h1>Discharge</h1></div><button class="btn btn-primary btn-sm" onclick="openCMDischargeModal()">+ New Discharge</button></div>\n<div class="page-body">\n<div class="search-row"><input id="cm-dc-q" class="no-upper" placeholder="Search client..." oninput="renderCMDischarges()"></div>\n<div id="cm-discharge-tbl"></div>\n</div>\n</div>\n\n<div class="section" id="sec-cm-patient-summary"><div class="page-hdr"><div><h1>Patient CM Summary</h1></div><button class="btn btn-ghost btn-sm" onclick="go(\'cm-clients\')">Back to Clients</button></div><div class="page-body"><div id="cm-patient-summary-content"></div></div></div>\n\n<div class="section" id="sec-cm-settings"><div class="page-hdr"><div><h1>CM Settings</h1></div></div><div class="page-body"><div id="cm-settings-content"></div></div></div>\n\n<!-- ?? INTAKE CENTER • Super Admin Only ????????????????????????????-->\n<div class="section" id="sec-intake-center">\n<div class="page-hdr">\n<div><h1>Intake Center</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Clinical Evaluation &amp; Intake Management</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal()"><i data-lucide="user-plus" class="lci"></i> New Intake</button>\n</div>\n</div>\n<div class="page-body">\n<!-- Tabs -->\n<div class="stabs" style="margin-bottom:14px">\n<button class="stab active" id="ic-stab-clients" onclick="icSetTab(\'clients\',this)"><i data-lucide="users" class="lci"></i> Clients</button>\n<button class="stab" id="ic-stab-forms" onclick="icSetTab(\'forms\',this)"><i data-lucide="file-signature" class="lci"></i> Consent Forms</button>\n<button class="stab" id="ic-stab-eval" onclick="icSetTab(\'eval\',this)"><i data-lucide="clipboard-list" class="lci"></i> Comprehensive Evaluation</button>\n</div>\n<!-- Panels -->\n<div id="ic-panel-clients"></div>\n<div id="ic-panel-forms" style="display:none"></div>\n<div id="ic-panel-eval" style="display:none"></div>\n</div>\n</div>\n\n<!-- Intake Clients section -->\n<div class="section" id="sec-intake-clients">\n<div class="page-hdr">\n<div><h1>Intake Clients</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Demographic and intake information for children/minors being evaluated</div></div>\n<div class="btn-group">\n<select id="ic-status-filter" onchange="renderIntakeClients()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text)">\n<option value="">All Statuses</option>\n<option value="Pending Forms">Pending Forms</option>\n<option value="Forms Sent">Forms Sent</option>\n<option value="Viewed">Viewed</option>\n<option value="Partially Completed">Partially Completed</option>\n<option value="Signed">Signed</option>\n<option value="Completed">Completed</option>\n<option value="Evaluation Pending">Evaluation Pending</option>\n<option value="Evaluation Completed">Evaluation Completed</option>\n<option value="Archived">Archived</option>\n</select>\n<button class="btn btn-primary btn-sm" onclick="icOpenClientModal(-1)"><i data-lucide="user-plus" class="lci"></i> New Intake Client</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-client-q" class="no-upper" placeholder="Search by name, guardian, phone, email..." oninput="renderIntakeClients()">\n<select id="ic-client-ref" onchange="renderIntakeClients()"><option value="">All Referral Sources</option></select>\n</div>\n<div id="ic-clients-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Consent Forms section -->\n<div class="section" id="sec-intake-forms">\n<div class="page-hdr">\n<div><h1>Consent Forms</h1><div style="font-size:11px;color:var(--text3);font-weight:400">Manage legal intake templates and signed document tracking</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenFormModal(-1)"><i data-lucide="file-plus" class="lci"></i> New Template</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-form-q" class="no-upper" placeholder="Search forms..." oninput="renderIntakeConsentForms()">\n<select id="ic-form-type" onchange="renderIntakeConsentForms()"><option value="">All Types</option>\n<option value="HIPAA">HIPAA</option>\n<option value="Consent">Consent</option>\n<option value="Financial">Financial</option>\n<option value="Release">Release of Information</option>\n<option value="Telehealth">Telehealth</option>\n<option value="Signature">Electronic Signature</option>\n<option value="Other">Other</option>\n</select>\n</div>\n<div class="stabs" style="margin-bottom:10px">\n<button class="stab active" onclick="icFormFilterSet(\'all\',this)">All</button>\n<button class="stab" onclick="icFormFilterSet(\'active\',this)">Active</button>\n<button class="stab" onclick="icFormFilterSet(\'archived\',this)">Archived</button>\n</div>\n<div id="ic-forms-tbl"></div>\n</div>\n</div>\n\n<!-- Intake Comprehensive Evaluation section -->\n<div class="section" id="sec-intake-eval">\n<div class="page-hdr">\n<div><h1>Comprehensive Evaluation</h1><div style="font-size:11px;color:var(--text3);font-weight:400">ABA-focused diagnostic evaluation workflow</div></div>\n<div class="btn-group">\n<button class="btn btn-primary btn-sm" onclick="icOpenEvalModal(-1)"><i data-lucide="clipboard-plus" class="lci"></i> New Evaluation</button>\n</div>\n</div>\n<div class="page-body">\n<div class="search-row">\n<input id="ic-eval-q" class="no-upper" placeholder="Search by client name..." oninput="renderIntakeEvaluation()">\n<select id="ic-eval-status" onchange="renderIntakeEvaluation()"><option value="">All Statuses</option>\n<option value="Draft">Draft</option>\n<option value="In Progress">In Progress</option>\n<option value="Completed">Completed</option>\n</select>\n</div>\n<div id="ic-eval-tbl"></div>\n</div>\n</div>\n\n</div>\n</div>\n\n<div class="overlay" id="modal-claim"><div class="modal modal-lg">\n<div class="modal-hdr"><div><div class="modal-t" id="mc-title">New Claim</div><div class="modal-sub" id="mc-sub"></div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-claim\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mc-id">\n<div class="dup-warn hidden" id="mc-dup"></div>\n<div class="fg g3">\n<div class="field"><label>Patient *</label><select id="mc-pat" onchange="onPatientChange()"></select></div>\n<div class="field"><label>Account #</label><input id="mc-acct" readonly style="background:var(--bg3);color:var(--text3)"></div>\n<div class="field"><label>PCN</label><input id="mc-pcn" placeholder="Auto-generated if empty"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="calendar" class="lci"></i> Service</span>\n<div class="fg g3">\n<div class="field"><label>Date of Service (M/D/YYYY) *</label><input id="mc-dos" placeholder="3/26/2026" oninput="checkDups()"><div class="hint">Format: M/D/YYYY</div></div>\n<div class="field" style="grid-column:1/-1;padding:6px 0">\n  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">\n    <input type="checkbox" id="mc-multidate" onchange="toggleMultiDate(this.checked)" style="width:15px;height:15px;accent-color:var(--brand)">\n    <span>Multiple dates of service (weekly/range)</span>\n    <span style="font-size:11px;color:var(--text3);font-weight:400">• assign a different date to each service line</span>\n  </label>\n</div>\n<div class="field"><label>Place of Service *</label><select id="mc-pos"></select></div>\n<div class="field"><label>Facility</label><select id="mc-fac"></select></div>\n</div>\n<div class="fg g3" style="margin-top:12px">\n<div class="field"><label>Rendering Provider *</label><select id="mc-rend"></select></div>\n<div class="field"><label>Referring Provider</label><select id="mc-ref"></select></div>\n<div class="field"><label>Prior Auth #</label><input id="mc-auth" placeholder="Optional"></div>\n</div>\n<div class="sep"></div><span class="slabel"><i data-lucide="activity" class="lci"></i> ICD-10 Diagnoses <span style="font-size:10px;color:var(--text3);text-transform:none;font-weight:400">(no dot \• e.g. M25562)</span></span>\n<div class="fg g4">\n<div class="field"><label>Dx 1 *</label><input id="mc-dx1" placeholder="M25562" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 2</label><input id="mc-dx2" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 3</label><input id="mc-dx3" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 4</label><input id="mc-dx4" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 5</label><input id="mc-dx5" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 6</label><input id="mc-dx6" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 7</label><input id="mc-dx7" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n<div class="field"><label>Dx 8</label><input id="mc-dx8" oninput="this.value=this.value.toUpperCase().replace(\'.\',\'\');syncAllDxPtrs()"></div>\n</div>\n<div id="dx-ptr-preview" style="margin-top:6px;padding:7px 11px;background:var(--bg3);border-radius:var(--r);font-size:11px;color:var(--text3)">Fill in diagnoses above \• pointers auto-assign</div>\n<div class="sep"></div>\n<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">\n<span class="slabel" style="margin:0"><i data-lucide="pill" class="lci"></i> Service Lines (CPT)</span>\n<div class="btn-group"><button class="btn btn-sm" onclick="addLine()">+ Add Line</button><button class="btn btn-sm" onclick="pickFromCatalog()"><i data-lucide="clipboard-list" class="lci"></i> From Catalog</button><button class="btn btn-sm" onclick="cloneLastLines()"><i data-lucide="undo-2" class="lci"></i> Last Template</button></div>\n</div>\n<div id="mc-lines"></div>\n<div class="total-preview" id="mc-total">Total: $0.00</div>\n<div class="sep"></div>\n<div class="fg g3">\n<div class="field"><label>Status</label><select id="mc-status"><option value="draft">Draft</option><option value="pending" selected>Pending</option><option value="submitted">Submitted</option><option value="accepted">Accepted CH</option><option value="rejected">Rejected</option></select></div>\n<div class="field"><label>Employment Related</label><select id="mc-emp"><option value="N">N \• No</option><option value="Y">Y \• Yes</option></select></div>\n<div class="field"><label>Auto Accident</label><select id="mc-auto"><option value="N">N \• No</option><option value="Y">Y \• Yes</option></select></div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="paperclip" class="lci"></i> Attachments</span>\n<div style="padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px">\n<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">\n<input type="file" id="mc-attach-input" multiple onchange="_mcAddAttach(event)" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx">\n<button type="button" class="btn btn-sm" onclick="document.getElementById(\'mc-attach-input\').click()"><i data-lucide="upload" class="lci"></i> Add File</button>\n<span style="font-size:10px;color:var(--text3)">PDF, JPG, PNG (max 5MB each)</span>\n</div>\n<div id="mc-attach-list"></div>\n</div>\n<div style="padding:8px 10px;background:#fef7ee;border:1px solid #fed7aa;border-radius:var(--r);margin-bottom:8px;font-size:11px;color:#9a3412"><strong>Accidente:</strong> Para fecha, estado y detalles use <strong>Additional Info</strong> en el Claim Editor.</div>\n</div>\n</div>\n<div class="modal-ftr">\n<button class="btn" onclick="closeModal(\'modal-claim\')">Cancel</button>\n<button class="btn btn-sm" id="btn-dup-claim" onclick="duplicateClaim()" style="display:none"><i data-lucide="clipboard-list" class="lci"></i> Duplicate</button>\n<button class="btn btn-sm" onclick="printSuperbill()"><i data-lucide="printer" class="lci"></i> Superbill PDF</button>\n<button class="btn btn-primary" onclick="saveClaim()"><i data-lucide="save" class="lci"></i> Save Claim</button>\n</div>\n</div></div>\n\n<!-- PATIENT MODAL -->\n<div class="overlay" id="modal-patient"><div class="modal">\n<div class="modal-hdr"><div><div class="modal-t" id="mp-title">New Patient</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-patient\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mp-id">\n<span class="slabel"><i data-lucide="user" class="lci"></i> Patient Information</span>\n<div class="fg g2">\n<div class="field"><label>Account # *</label><input id="mp-acct" placeholder="e.g. 001234"><div class="hint">Entered once \• cannot be changed later.</div></div>\n<div class="field" style="align-self:end"><div style="font-size:12px;color:var(--text3)">Your internal patient identifier used for duplicate detection.</div></div>\n<div class="field"><label>Last Name *</label><input id="mp-last"></div>\n<div class="field"><label>First Name *</label><input id="mp-first"></div>\n<div class="field"><label>Middle Initial</label><input id="mp-mid" maxlength="1"></div>\n<div class="field"><label>Date of Birth (M/D/YYYY) *</label><input id="mp-dob" placeholder="1/15/1985"></div>\n<div class="field"><label>Sex *</label><select id="mp-sex"><option value="F">F \• Female</option><option value="M">M \• Male</option></select></div>\n<div class="field"><label>Phone</label><input id="mp-phone" maxlength="10"></div>\n<div class="field" style="grid-column:1/-1"><label>Address</label><input id="mp-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mp-addr2"></div>\n<div class="field"><label>City</label><input id="mp-city"></div>\n<div class="field"><label>State</label><input id="mp-state" maxlength="2" placeholder="FL"></div>\n<div class="field"><label>ZIP</label><input id="mp-zip" maxlength="10"></div>\n<div class="field"><label>Relationship to Insured *</label><select id="mp-rel" onchange="onRelChange()"><option value="18">18 \• Self</option><option value="01">01 \• Spouse</option><option value="19">19 \• Child</option><option value="G8">G8 \• Other</option><option value="32">32 \• Mother</option><option value="33">33 \• Father</option></select></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="contact" class="lci"></i> Subscriber / Insured</span>\n<div id="self-notice" class="alert al-info" style="display:none"><i data-lucide="info" class="lci" style="width:13px;height:13px;color:var(--brand)"></i> Self selected \• subscriber fields auto-filled from patient data above.</div>\n<div class="fg g2">\n<div class="field"><label>Subscriber Last Name *</label><input id="mp-insl"></div>\n<div class="field"><label>Subscriber First Name *</label><input id="mp-insf"></div>\n<div class="field"><label>Member ID / Subscriber ID *</label><input id="mp-insnum"></div>\n<div class="field"><label>Subscriber DOB</label><input id="mp-insdob"></div>\n<div class="field"><label>Subscriber Sex</label><select id="mp-inssex"><option value="M">M</option><option value="F">F</option></select></div>\n<div class="field"><label>Group #</label><input id="mp-group"></div>\n<div class="field"><label>Plan Name</label><input id="mp-plan" placeholder="HMO / PPO"></div>\n</div>\n<div class="sep"></div>\n<span class="slabel"><i data-lucide="building" class="lci"></i> Primary Insurance</span>\n<div class="fg g2">\n<div class="field"><label>Payer ID *</label><input id="mp-payerid" placeholder="65088"></div>\n<div class="field"><label>Payer Name</label><input id="mp-payername"></div>\n<div class="field"><label>Payer City</label><input id="mp-payercity"></div>\n<div class="field"><label>Payer State</label><input id="mp-payerstate" maxlength="2"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-patient\')">Cancel</button><button class="btn btn-primary" onclick="savePatient()"><i data-lucide="save" class="lci"></i> Save Patient</button></div>\n</div></div>\n\n<!-- PROVIDER MODAL -->\n<div class="overlay" id="modal-provider">\n<div class="modal" style="max-width:680px;width:100%">\n<div class="modal-hdr">\n<div>\n<div class="modal-t" id="mprov-title">New Billing Provider</div>\n<div class="modal-sub" id="mprov-subtitle"></div>\n</div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-provider\')" style="padding:6px 8px"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body" style="padding:22px;background:var(--bg2)">\n<input type="hidden" id="mprov-id">\n<style>\n.mprov-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}\n.mprov-chip input{display:none}\n.mprov-chip:has(input:checked){background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}\n.mprov-chip:hover{border-color:var(--brand)}\n.mprov-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px}\n.mprov-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.mprov-card-ico{width:30px;height:30px;background:var(--brand-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n.mprov-card-title{font-size:13px;font-weight:700;color:var(--text)}\n</style>\n\n<!-- NPI Lookup -->\n<div id="mprov-npi-lookup-section" style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:12px;padding:16px 18px;margin-bottom:16px">\n<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:6px">\n<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> NPI Lookup • Auto-fill from NPPES Registry\n</div>\n<div style="display:flex;gap:8px;align-items:flex-end">\n<div style="flex:1">\n<label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">NPI Number (10 digits)</label>\n<input id="mprov-npi" maxlength="10" placeholder="Enter 10-digit NPI"\noninput="this.value=this.value.replace(/\\D/g,\'\');if(this.value.length===10)lookupBillingProviderNPI(this.value)"\nstyle="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:var(--bg)">\n</div>\n<button class="btn btn-primary btn-sm" onclick="lookupBillingProviderNPI(document.getElementById(\'mprov-npi\').value)" style="white-space:nowrap;flex-shrink:0">\n<i data-lucide="search" class="lci"></i> Look Up\n</button>\n</div>\n<div id="bp-npi-result" style="margin-top:8px"></div>\n</div>\n\n<!-- Identification -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="building-2" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Identification</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Organization Name *</label>\n<input id="mprov-name" placeholder="e.g. Sunrise Medical Group">\n</div>\n<div class="field">\n<label>Tax ID (EIN/SSN, 9 digits)</label>\n<input id="mprov-taxid" maxlength="9" placeholder="123456789">\n</div>\n<div class="field">\n<label>Tax ID Type</label>\n<select id="mprov-taxtype">\n<option value="E">EIN (Employer)</option>\n<option value="S">SSN (Individual)</option>\n</select>\n</div>\n<div class="field">\n<label>Taxonomy Code</label>\n<input id="mprov-taxonomy" maxlength="10" placeholder="e.g. 207Q00000X">\n</div>\n<div class="field">\n<label>Provider Type</label>\n<select id="mprov-type">\n<option value="Organization">Organization</option>\n<option value="Individual">Individual</option>\n</select>\n</div>\n<div class="field" id="mprov-status-row">\n<label>Status</label>\n<select id="mprov-status">\n<option value="Active">Active</option>\n<option value="Inactive">Inactive</option>\n<option value="Pending">Pending</option>\n</select>\n</div>\n</div>\n</div>\n\n<!-- API Key (Super Admin only, toggled by JS) -->\n<div id="mprov-acctkey-row" class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="key" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Clearinghouse Integration</div>\n</div>\n<div class="field" style="margin:0">\n<label>Account Key</label>\n<input id="mprov-acctkey" type="password" placeholder="Paste Clearinghouse Account Key">\n<div class="hint" style="margin-top:4px">Leave blank to keep existing key. Used for electronic claim submission.</div>\n</div>\n</div>\n\n<!-- Address -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="map-pin" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Address</div>\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n<div class="field" style="grid-column:1/-1">\n<label>Street Address</label>\n<input id="mprov-addr1" placeholder="123 Main St">\n</div>\n<div class="field" style="grid-column:1/-1">\n<label>Address Line 2</label>\n<input id="mprov-addr2" placeholder="Suite 100">\n</div>\n<div class="field">\n<label>City</label>\n<input id="mprov-city">\n</div>\n<div class="field">\n<label>State</label>\n<input id="mprov-state" maxlength="2" placeholder="FL">\n</div>\n<div class="field">\n<label>ZIP</label>\n<input id="mprov-zip" maxlength="10" placeholder="33101">\n</div>\n<div class="field">\n<label>Phone</label>\n<input id="mprov-phone" maxlength="10" placeholder="3051234567">\n</div>\n<div class="field">\n<label>Email <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></label>\n<input id="mprov-email" type="email" placeholder="billing@practice.com">\n</div>\n</div>\n</div>\n\n<!-- Logo -->\n<div class="mprov-card">\n<div class="mprov-card-hdr">\n<div class="mprov-card-ico"><i data-lucide="image" class="lci" style="width:15px;height:15px;color:var(--brand)"></i></div>\n<div class="mprov-card-title">Logo <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(optional)</span></div>\n</div>\n<div style="display:flex;align-items:center;gap:14px">\n<div id="mprov-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0">\n<span style="font-size:10px;color:var(--text3);text-align:center">No logo</span>\n</div>\n<div>\n<input type="file" id="mprov-logo-file" accept="image/*" onchange="loadProviderLogo(event)" style="display:none">\n<button class="btn btn-sm" onclick="document.getElementById(\'mprov-logo-file\').click()">\n<i data-lucide="upload" class="lci"></i> Upload Logo\n</button>\n<button class="btn btn-sm btn-ghost" onclick="clearProviderLogo()" style="margin-left:6px">Clear</button>\n</div>\n</div>\n</div>\n\n</div>\n<div class="modal-ftr">\n<button class="btn btn-ghost" onclick="closeModal(\'modal-provider\')">Cancel</button>\n<button class="btn btn-primary" id="mprov-save-btn" onclick="saveBillingProvider()">\n<i data-lucide="save" class="lci"></i> Save Provider\n</button>\n</div>\n</div>\n</div><!-- FACILITY MODAL -->\n<div class="overlay" id="modal-facility"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mfac-title">New Facility</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-facility\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mfac-id">\n<div class="fg g1">\n<div class="field"><label>Facility Name *</label><input id="mfac-name"></div>\n<div class="field"><label>Facility NPI</label><div class="input-row"><input id="mfac-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'fac\')"><button onclick="lookupNPI(v(\'mfac-npi\'),\'fac\')" id="mfac-npi-btn"><i data-lucide="search" class="lci"></i> Lookup</button></div><div id="mfac-npi-res"></div></div>\n<div class="field"><label>Default Place of Service *</label><select id="mfac-pos"></select></div>\n<div class="field"><label>Address *</label><input id="mfac-addr1"></div>\n<div class="field"><label>Address 2</label><input id="mfac-addr2"></div>\n<div class="fg g3"><div class="field"><label>City</label><input id="mfac-city"></div><div class="field"><label>State</label><input id="mfac-state" maxlength="2"></div><div class="field"><label>ZIP</label><input id="mfac-zip" maxlength="10"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-facility\')">Cancel</button><button class="btn btn-primary" onclick="saveFacility()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- RENDERING MODAL -->\n<div class="overlay" id="modal-rendering"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mrend-title">New Rendering Provider</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-rendering\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mrend-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mrend-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'rend\')"><button onclick="lookupNPI(v(\'mrend-npi\'),\'rend\')" id="mrend-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mrend-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mrend-last"></div><div class="field"><label>First Name *</label><input id="mrend-first"></div></div>\n<div class="field"><label>Taxonomy Code</label><input id="mrend-taxonomy" maxlength="10"></div>\n<div class="field"><label>Tax ID (if different)</label><input id="mrend-taxid" maxlength="9"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-rendering\')">Cancel</button><button class="btn btn-primary" onclick="saveRendering()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- REFERRING MODAL -->\n<div class="overlay" id="modal-referring"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="mref-title">New Referring Provider</div><div class="modal-sub">Auto-populated from NPI Registry</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-referring\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mref-id">\n<div class="fg g1">\n<div class="field"><label>NPI *</label><div class="input-row"><input id="mref-npi" maxlength="10" placeholder="10 digits" oninput="if(this.value.length===10)lookupNPI(this.value,\'ref\')"><button onclick="lookupNPI(v(\'mref-npi\'),\'ref\')" id="mref-btn"><i data-lucide="search" class="lci"></i> NPI Registry</button></div><div id="mref-res"></div></div>\n<div class="fg g2"><div class="field"><label>Last Name *</label><input id="mref-last"></div><div class="field"><label>First Name *</label><input id="mref-first"></div></div>\n<div class="field"><label>Middle Initial</label><input id="mref-mid" maxlength="1"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-referring\')">Cancel</button><button class="btn btn-primary" onclick="saveReferring()"><i data-lucide="save" class="lci"></i> Save</button></div>\n</div></div>\n\n<!-- SERVICE MODAL -->\n<div class="overlay" id="modal-service"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t" id="msvc-title">Add Service</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-service\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="msvc-id">\n<div class="fg g1">\n<div class="fg g2"><div class="field"><label>CPT Code *</label><input id="msvc-code" maxlength="5" class="mono" style="font-size:15px;font-weight:700"></div><div class="field"><label>Category</label><input id="msvc-cat" placeholder="Physical Therapy"></div></div>\n<div class="field"><label>Description *</label><input id="msvc-desc" placeholder="Therapeutic Exercise"></div>\n<div class="fg g2"><div class="field"><label>Default Rate $</label><input id="msvc-rate" class="mono"></div><div class="field"><label>Default Units</label><input id="msvc-units" class="mono"></div></div>\n<div class="fg g4"><div class="field"><label>Mod 1</label><input id="msvc-mod1" maxlength="2" class="mono"></div><div class="field"><label>Mod 2</label><input id="msvc-mod2" maxlength="2" class="mono"></div><div class="field"><label>Mod 3</label><input id="msvc-mod3" maxlength="2" class="mono"></div><div class="field"><label>Mod 4</label><input id="msvc-mod4" maxlength="2" class="mono"></div></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-service\')">Cancel</button><button class="btn btn-primary" onclick="saveService()"><i data-lucide="save" class="lci"></i> Save Service</button></div>\n</div></div>\n\n<!-- STATUS MODAL -->\n<div class="overlay" id="modal-status"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Update Claim Status</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-status\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<input type="hidden" id="mst-id">\n<div class="fg g1">\n<div class="field"><label>New Status *</label><select id="mst-status" onchange="onStatusChange()"><option value="draft">Draft</option><option value="pending">Pending</option><option value="submitted"><i data-lucide="send" class="lci"></i> Submitted to Clearinghouse</option><option value="accepted"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Accepted by Clearinghouse</option><option value="rejected"><i data-lucide="x-circle" class="lci" style="width:13px;height:13px;color:var(--red)"></i> Rejected</option></select></div>\n<div class="field" id="mst-claimmd-wrap" style="display:none"><label>Clearinghouse Claim ID</label><input id="mst-claimmd-id" placeholder="ID assigned by Clearinghouse"></div>\n<div class="field" id="mst-reject-wrap" style="display:none"><label>Rejection Reason</label><input id="mst-reject-reason" placeholder="e.g. From Date is required"></div>\n</div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-status\')">Cancel</button><button class="btn btn-primary" onclick="saveStatus()"><i data-lucide="check-circle" class="lci" style="width:13px;height:13px;color:var(--green)"></i> Save Status</button></div>\n</div></div>\n\n<!-- BATCH MODAL -->\n<div class="overlay" id="modal-batch">\n<div class="modal modal-lg mb-modal" style="max-width:1000px;width:96vw;display:flex;flex-direction:column;max-height:92vh">\n\n<!-- Header -->\n<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="zap" class="lci"></i>Generate claims</span><button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i></button></div><div class="mb-tabs"><button type="button" id="mb-tab-patient" class="mb-tab on" onclick="setBatchTab(\'patient\',this)"><i data-lucide="users" class="lci"></i>By patient</button><button type="button" id="mb-tab-sg" class="mb-tab" onclick="setBatchTab(\'sg\',this)"><i data-lucide="layers" class="lci"></i>By service group</button></div><div class="modal-body" style="flex:1;overflow-y:auto;padding:0">\n\n<!-- ?? BY PATIENT PANEL ?? -->\n<div id="mb-panel-patient" style="padding:18px 22px">\n\n<!-- Row 1: Rendering + Facility + Referring -->\n<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">\n<div class="field">\n<label>Rendering Provider *</label>\n<select id="mb-rend" onchange="renderBatchPatDx()"></select>\n</div>\n<div class="field">\n<label>Facility</label>\n<select id="mb-fac"></select>\n</div>\n<div class="field">\n<label>Referring Provider</label>\n<select id="mb-ref"><option value="">None</option></select>\n</div>\n</div>\n\n<!-- Row 2: Two columns • Patients | Services -->\n<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">\n\n<!-- LEFT: Patient selector -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="users" class="lci" style="width:11px;height:11px"></i> Patients *\n</div>\n<input id="mb-pat-q" placeholder="Search patients..."\noninput="renderBatchPatients()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div style="display:flex;gap:6px">\n<button class="btn btn-xs" onclick="batchSelectAllPats(true)">Select All</button>\n<button class="btn btn-xs" onclick="batchSelectAllPats(false)">Clear</button>\n</div>\n<div id="mb-pat-list"\nstyle="border:1px solid var(--border);border-radius:var(--r);overflow-y:auto;max-height:220px;background:var(--bg2)">\n</div>\n</div>\n\n<!-- RIGHT: Services catalog -->\n<div style="display:flex;flex-direction:column;gap:8px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">\n<i data-lucide="pill" class="lci" style="width:11px;height:11px"></i> Services / CPT *\n</div>\n<input id="mb-svc-q" placeholder="Search CPT or description..."\noninput="renderBatchCatalog()"\nstyle="padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:12px;width:100%">\n<div class="cpt-scroll" id="mb-catalog" style="max-height:180px"></div>\n<div id="mb-selected-svcs-tbl"></div>\n</div>\n</div>\n\n<!-- Diagnoses (shown per patient when selected) -->\n<div id="mb-pat-dx-section" style="display:none;margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="activity" class="lci" style="width:11px;height:11px"></i> Diagnoses\n</div>\n<div id="mb-pat-dx-list" style="display:flex;flex-direction:column;gap:6px"></div>\n</div>\n\n<!-- Date Range -->\n<div style="margin-top:14px">\n<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">\n<i data-lucide="calendar-days" class="lci" style="width:11px;height:11px"></i> Date Range *\n</div>\n<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px">\n<div class="field" style="margin:0">\n<label>From</label>\n<input type="date" id="mb-from" onchange="buildDateChips()">\n</div>\n<div class="field" style="margin:0">\n<label>To</label>\n<input type="date" id="mb-to" onchange="buildDateChips()">\n</div>\n<div style="display:flex;gap:6px;padding-bottom:1px">\n<button class="btn btn-xs" onclick="setWeek()">This week</button>\n<button class="btn btn-xs" onclick="setLastWeek()">Last week</button>\n<button class="btn btn-xs" onclick="setMonth()">This month</button>\n</div>\n</div>\n<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Click dates to toggle on/off:</div>\n<div class="date-chips" id="mb-date-chips"></div>\n</div>\n\n<!-- Preview -->\n\n\n</div><!-- /mb-panel-patient -->\n\n<!-- ?? BY SERVICE GROUP PANEL ?? -->\n<div id="mb-panel-sg" class="sgb" style="display:none;padding:16px 22px"><div class="sgb-top"><div class="sgx-f"><label>Service group *</label><select id="mb-sg-sel" onchange="onBatchSGChange()"></select></div><div class="sgx-f"><label>Rendering provider</label><select id="mb-rend-sg"></select></div><div class="sgx-f"><label>Facility</label><select id="mb-fac-sg"></select></div></div><div class="sgb-dates"><div class="sgx-f"><label>From</label><input type="date" id="mb-sg-from" onchange="buildDateChips();onBatchSGChange()"></div><div class="sgx-f"><label>To</label><input type="date" id="mb-sg-to" onchange="buildDateChips();onBatchSGChange()"></div><div class="sgb-presets"><button type="button" onclick="_sgbPreset(\'today\')">Today</button><button type="button" onclick="_sgbPreset(\'monthu\')">Mon to Thu</button><button type="button" onclick="_sgbPreset(\'fri\')">Friday</button><button type="button" onclick="setWeek()">This week</button><button type="button" onclick="setLastWeek()">Last week</button><button type="button" onclick="setMonth()">This month</button></div></div><div class="date-chips" id="mb-date-chips-sg"></div><div id="mb-sg-cpt-row" class="sgb-cpt" style="display:none"><span>CPT</span><div id="mb-sg-lines"></div></div><div id="mb-sg-patients-wrap" style="display:none"><div id="mb-sg-pat-rows" class="sgb-list"></div></div></div>\n\n</div><!-- /modal-body -->\n\n<!-- Footer -->\n<div class="modal-ftr mb-ftr"><div class="mb-sum" id="mb-summary"></div><label class="mb-group" id="mb-group-wrap" data-tip="All selected dates become lines of one claim"><input type="checkbox" id="mb-group-dates" onchange="if(window._sgBatchCur)renderSGBatchPatients(window._sgBatchCur);updateBatchPreview()"><span>1 claim per patient</span></label><button type="button" class="cdc-no" onclick="closeModal(\'modal-batch\')"><i data-lucide="x" class="lci"></i>Cancel</button><button type="button" class="cdc-ok mb-go" onclick="runBatch()"><i data-lucide="zap" class="lci"></i>Generate</button></div>\n\n</div>\n</div>\n\n<!-- CPT PICKER MODAL -->\n<div class="overlay" id="modal-catalog"><div class="modal modal-sm">\n<div class="modal-hdr"><div><div class="modal-t">Select from CPT Catalog</div><div class="modal-sub">Click to toggle \• then click Add to Claim</div></div><button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-catalog\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div class="field" style="margin-bottom:8px"><input id="cat-q" placeholder="Search CPT or description\\u2026" oninput="renderPickerCatalog()"></div>\n<div class="cpt-scroll" id="cat-list"></div>\n</div>\n<div class="modal-ftr"><button class="btn" onclick="closeModal(\'modal-catalog\')">Cancel</button><button class="btn btn-primary" onclick="addCatalogToLines()">Add Selected to Claim</button></div>\n</div></div>\n<div class="overlay" id="modal-appt">\n<div class="modal modal-lg">\n<div class="modal-hdr">\n<div><div class="modal-t" id="appt-modal-title">New Appointment</div></div>\n<button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')"><i data-lucide="x" class="lci"></i></button>\n</div>\n<div class="modal-body">\n<div class="fg g2">\n<div class="field"><label>Date</label><input type="date" id="appt-date"></div>\n<div class="field"><label>Start Time</label><input type="time" id="appt-start"></div>\n<div class="field"><label>End Time</label><input type="time" id="appt-end"></div>\n<div class="field"><label>Place of Service</label><select id="appt-pos"><option value="11">11 • Office</option><option value="02">02 • Telehealth</option><option value="23">23 • Emergency Room</option></select></div>\n</div>\n<div class="field" style="margin-top:10px"><label>Rendering Provider</label><select id="appt-rend"><option value="">None</option></select></div>\n<div class="field"><label>Facility</label><select id="appt-fac"><option value="">None</option></select></div>\n<div class="field"><label>Service Group</label><select id="appt-sg" onchange="onApptSGChange()"><option value="">None</option></select></div>\n<div class="field"><label>Status</label><select id="appt-status">\n<option value="scheduled">Scheduled</option>\n<option value="confirmed">Confirmed</option>\n<option value="checked_in">Checked In</option>\n<option value="completed">Completed</option>\n<option value="cancelled">Cancelled</option>\n<option value="no_show">No Show</option>\n</select></div>\n<div class="field"><label>Notes</label><textarea id="appt-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>\n<div style="margin-top:10px">\n<div class="slabel" style="margin-bottom:6px">Patients</div>\n<input id="appt-pat-q" placeholder="Search patients..." oninput="renderApptPatientPicker()" style="width:100%;padding:7px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:6px">\n<div id="appt-pat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)"></div>\n<div id="appt-selected-pats" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px"></div>\n</div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="appt-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-appt\')">Cancel</button>\n<button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button>\n</div>\n</div>\n</div>\n\n<div class="overlay" id="modal-checkin">\n<div class="modal">\n<div class="modal-hdr"><div class="modal-t">Check In Patient</div><button title="Remove" class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')"><i data-lucide="x" class="lci"></i></button></div>\n<div class="modal-body">\n<div id="checkin-info"></div>\n<div id="checkin-sub" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>\n</div>\n<div class="modal-ftr">\n<input type="hidden" id="ci-appt-id"><input type="hidden" id="ci-pat-id">\n<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-checkin\')">Cancel</button>\n<button class="btn btn-primary" onclick="_confirmCheckInDispatch()">Confirm Check-In</button>\n</div>\n</div>\n';
 }
 
 
-function renderReferring(){ const db=getDB(); const list=db.referring.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('referring-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round-arrow-left" class="lci" style="width:24px;height:24px"></i></div><h3>No referring providers</h3><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Middle</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.referring.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td>${r.mid||'\u2014'}</td><td><button class="btn btn-xs" onclick="openReferringModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
+function renderReferring(){ const db=getDB(); const list=db.referring.filter(r=>r.providerId===activeProviderId); const el=document.getElementById('referring-tbl'); if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="user-round-arrow-left" class="lci" style="width:24px;height:24px"></i></div><h3>No referring providers</h3><button class="btn btn-primary btn-sm" onclick="openReferringModal(-1)">+ Add</button></div>`; return; } el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Last, First</th><th>NPI</th><th>Middle</th><th></th></tr></thead><tbody>`+list.map(r=>{ const oi=db.referring.findIndex(x=>x.id===r.id); return`<tr><td style="font-weight:600">${r.last}, ${r.first}</td><td class="mono">${r.npi}</td><td>${r.mid||'•'}</td><td><button class="btn btn-xs" onclick="openReferringModal(${oi})">Edit</button></td></tr>`;}).join('')+`</tbody></table></div>`; }
 
 
 function renderReports() {
@@ -5102,7 +5102,7 @@ function exportClaimsReportPDF() {
   doc.text('Claims Submission Report', M, Y);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
   doc.text(prov.name||'', M, Y+5);
-  doc.text('Period: ' + (from||'—') + ' to ' + (to||'—') + '   |   ' + claims.length + ' claims   |   Generated: ' + new Date().toLocaleDateString(), M, Y+10);
+  doc.text('Period: ' + (from||'•') + ' to ' + (to||'•') + '   |   ' + claims.length + ' claims   |   Generated: ' + new Date().toLocaleDateString(), M, Y+10);
   Y += 18;
 
   // Column headers
@@ -5314,10 +5314,10 @@ function renderPayerReport(el) {
     '</div>' +
     '<div class="tbl-wrap"><table><thead><tr><th>Payer</th><th>Claims</th><th>Total Billed</th><th>Accepted</th><th>Rejected</th><th>Collection Rate</th></tr></thead><tbody>' +
     rows3.map(function(r){
-      var rate = r[1].total > 0 ? (r[1].accepted/r[1].total*100).toFixed(1) : '—';
+      var rate = r[1].total > 0 ? (r[1].accepted/r[1].total*100).toFixed(1) : '•';
       return '<tr><td style="font-weight:600">' + r[0] + '</td><td>' + r[1].cnt + '</td><td>' + money(r[1].total) + '</td><td style="color:var(--green)">' + money(r[1].accepted) + '</td><td style="color:var(--red)">' + r[1].rejected + '</td><td style="font-weight:600">' + rate + '%</td></tr>';
     }).join('') +
-    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td>' + claims.length + '</td><td>' + money(grandTotal) + '</td><td style="color:var(--green)">' + money(grandAccepted) + '</td><td style="color:var(--red)">' + claims.filter(function(c){ return c.status==='rejected'; }).length + '</td><td>' + (grandTotal>0?(grandAccepted/grandTotal*100).toFixed(1):'—') + '%</td></tr>' +
+    '<tr style="background:var(--bg3);font-weight:700"><td>Total</td><td>' + claims.length + '</td><td>' + money(grandTotal) + '</td><td style="color:var(--green)">' + money(grandAccepted) + '</td><td style="color:var(--red)">' + claims.filter(function(c){ return c.status==='rejected'; }).length + '</td><td>' + (grandTotal>0?(grandAccepted/grandTotal*100).toFixed(1):'•') + '%</td></tr>' +
   '</tbody></table></div>';
 }
 
@@ -5438,7 +5438,7 @@ function exportPayerReportPDF() {
   Object.entries(byPayer).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(r,idx){
     if(Y>175){doc.addPage();Y=15;}
     if(idx%2===1){doc.setFillColor(245,248,245);doc.rect(M,Y-3,PW,6,'F');}
-    var rate = r[1].total>0?(r[1].accepted/r[1].total*100).toFixed(1):'—';
+    var rate = r[1].total>0?(r[1].accepted/r[1].total*100).toFixed(1):'•';
     var row = [r[0],String(r[1].cnt),'$'+r[1].total.toFixed(2),'$'+r[1].accepted.toFixed(2),String(r[1].rejected),rate+'%'];
     cx=M+1; row.forEach(function(v,i){doc.text(String(v).slice(0,Math.floor(ws[i]/2.2)),cx,Y);cx+=ws[i];});
     Y+=6;
@@ -5604,7 +5604,7 @@ function exportProcedureReportXLSX() {
 
 
 
-// ── Services / CPT Catalog — Add & Edit ──────────────────────────
+// ── Services / CPT Catalog • Add & Edit ──────────────────────────
 function openServiceModal(idx) {
   const db = getDB();
   const svc = idx >= 0 ? db.services[idx] : null;
@@ -5634,7 +5634,7 @@ function saveService() {
   const db  = getDB();
   const idx = g('msvc-id') !== '' ? parseInt(g('msvc-id')) : -1;
 
-  // ── Duplicate check — same CPT code for same provider ────────────
+  // ── Duplicate check • same CPT code for same provider ────────────
   const duplicate = (db.services || []).findIndex(function(s, i) {
     const sCode = (s.code || s.cpt || '').toUpperCase();
     return sCode === code && s.providerId === activeProviderId && i !== idx;
@@ -5687,7 +5687,7 @@ const el=document.getElementById('services-tbl');
 if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico"><i data-lucide="activity" class="lci" style="width:24px;height:24px"></i></div><h3>No services</h3><button class="btn btn-primary btn-sm" onclick="openServiceModal(-1)">+ Add Service</button></div>`; return; }
 const allS=db.services;
 el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Category</th><th>Rate</th><th>Units</th><th>Mods</th><th></th></tr></thead><tbody>`+
-list.map(s=>{ const oi=allS.findIndex(x=>x.id===s.id); const mods=[s.mod1,s.mod2,s.mod3,s.mod4].filter(Boolean).join('/'); return`<tr><td><span class="badge b-blue mono">${s.code}</span></td><td>${s.desc}</td><td><span class="badge b-gray">${s.cat}</span></td><td class="mono" style="font-weight:700">$${s.rate}</td><td class="mono">${s.units||'1'}</td><td class="mono" style="font-size:11px">${mods||'\u2014'}</td><td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button class="btn btn-xs btn-danger" onclick="delService(${oi})"><i data-lucide="x" class="lci"></i></button></div></td></tr>`;}).join('')+`</tbody></table></div>`;
+list.map(s=>{ const oi=allS.findIndex(x=>x.id===s.id); const mods=[s.mod1,s.mod2,s.mod3,s.mod4].filter(Boolean).join('/'); return`<tr><td><span class="badge b-blue mono">${s.code}</span></td><td>${s.desc}</td><td><span class="badge b-gray">${s.cat}</span></td><td class="mono" style="font-weight:700">$${s.rate}</td><td class="mono">${s.units||'1'}</td><td class="mono" style="font-size:11px">${mods||'•'}</td><td><div class="btn-group"><button class="btn btn-xs" onclick="openServiceModal(${oi})">Edit</button><button class="btn btn-xs btn-danger" onclick="delService(${oi})"><i data-lucide="x" class="lci"></i></button></div></td></tr>`;}).join('')+`</tbody></table></div>`;
 }
 
 
@@ -5750,10 +5750,10 @@ function openFixInsuranceModal(){
     + (affected.length ? affected.map(function(pat){
         var ins = _resolvePatientInsurance(pat);
         return '<div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between">'
-          + '<span><strong>' + (pat.last||'') + ', ' + (pat.first||'') + '</strong> · Acct: ' + (pat.acct||'—') + '</span>'
-          + '<span style="color:var(--text3)">Payer: ' + (ins.payerId||'—') + ' · ' + (ins.name||'—') + '</span>'
+          + '<span><strong>' + (pat.last||'') + ', ' + (pat.first||'') + '</strong> · Acct: ' + (pat.acct||'•') + '</span>'
+          + '<span style="color:var(--text3)">Payer: ' + (ins.payerId||'•') + ' · ' + (ins.name||'•') + '</span>'
           + '</div>';
-      }).join('') : '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">No patients need fixing — all insurance data is synced.</div>')
+      }).join('') : '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">No patients need fixing • all insurance data is synced.</div>')
     + '</div>'
     + '<div style="display:flex;gap:8px;justify-content:flex-end">'
     + '<button class="btn" onclick="closeModal(\'modal-fix-ins\')">Cancel</button>'
@@ -5833,7 +5833,7 @@ const required=[['mp-last','Last Name'],['mp-first','First Name'],['mp-dob','Dat
 for(const [id,lbl] of required){ if(!v(id)){ toast('Required: '+lbl,'err'); return; } }
 const db=getDB(); const idx=parseInt(v('mp-id'));
 const isNew=idx<0||isNaN(idx);
-if(isNew){ const acct=v('mp-acct').trim(); const dupAcct=db.patients.find(p=>String(p.acct||'').trim().toLowerCase()===acct.toLowerCase()&&p.providerId===activeProviderId); if(dupAcct){ toast('Account # "'+acct+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' — choose a different Account #','err'); return; } }
+if(isNew){ const acct=v('mp-acct').trim(); const dupAcct=db.patients.find(p=>String(p.acct||'').trim().toLowerCase()===acct.toLowerCase()&&p.providerId===activeProviderId); if(dupAcct){ toast('Account # "'+acct+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' • choose a different Account #','err'); return; } }
 const p={id:!isNew?db.patients[idx].id:uid(),providerId:activeProviderId,acct:!isNew?db.patients[idx].acct:v('mp-acct'),last:v('mp-last'),first:v('mp-first'),mid:v('mp-mid'),dob:v('mp-dob'),sex:document.getElementById('mp-sex').value,addr1:v('mp-addr1'),addr2:v('mp-addr2'),city:v('mp-city'),state:v('mp-state'),zip:v('mp-zip'),phone:v('mp-phone'),rel:document.getElementById('mp-rel').value,subLast:v('mp-insl'),subFirst:v('mp-insf'),subNum:v('mp-insnum'),subDob:v('mp-insdob'),subSex:document.getElementById('mp-inssex').value,group:v('mp-group'),plan:v('mp-plan'),payerid:v('mp-payerid'),payerName:v('mp-payername'),payerCity:v('mp-payercity'),payerState:v('mp-payerstate'),createdAt:!isNew?db.patients[idx].createdAt:Date.now()};
 setDB(db=>{ if(!isNew) db.patients[idx]=p; else db.patients.push(p); });
 closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
@@ -5841,7 +5841,7 @@ closeModal('modal-patient'); renderPatients(); toast('Patient saved <i data-luci
 
 
 function delClaim(idx){
-  if(!hasPermission('Delete Claims')){ toast('No tienes permiso para eliminar claims','err'); return; }
+  if(!hasPermission('Delete Claims')){ toast('You do not have permission to delete claims','err'); return; }
   return cdcConfirm('Delete this claim?').then((__ok)=>{if(!__ok)return;
   const db=getDB();
   const claimId=db.claims[idx]?.id;
@@ -5877,7 +5877,7 @@ function openStatusModal(oi) {
     '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
     '<div style="padding:20px 24px;border-bottom:1px solid var(--border)">'+
     '<div style="font-size:16px;font-weight:700">Change Claim Status</div>'+
-    '<div style="font-size:12px;color:var(--text3);margin-top:4px">PCN: '+(c.pcn||'—')+'</div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-top:4px">PCN: '+(c.pcn||'•')+'</div>'+
     '</div>'+
     '<div style="padding:20px 24px">'+
     '<label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Status</label>'+
@@ -6025,7 +6025,7 @@ setTimeout(function(){ testForm.remove(); testIframe.remove(); }, 2000);
 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const text = await res.text();
 
-// Clearinghouse ping returns XML \u2014 check for error vs success
+// Clearinghouse ping returns XML • check for error vs success
 if (text.includes('<error>') && !text.includes('ErrorNo>0<')) {
 const errMsg = (text.match(/<message>(.*?)<\/message>/) || [])[1] || 'Connection failed';
 setApiStatus('Error: ' + errMsg, 'err');
@@ -6062,7 +6062,7 @@ if (sgFrom && !sgFrom.value) sgFrom.value = todayStr;
 if (sgTo && !sgTo.value) sgTo.value = todayStr;
 
 // Populate rendering providers
-const rendOpts = '<option value="">— None —</option>' +
+const rendOpts = '<option value="">None</option>' +
 db.rendering.filter(r => r.providerId === activeProviderId)
 .map(r => `<option value="${r.id}">${r.last}, ${r.first}</option>`).join('');
 ['mb-rend','mb-rend-sg'].forEach(id => {
@@ -6070,7 +6070,7 @@ const el = document.getElementById(id); if(el) el.innerHTML = rendOpts;
 });
 
 // Populate facilities
-const facOpts = '<option value="">— None —</option>' +
+const facOpts = '<option value="">None</option>' +
 db.facilities.filter(f => f.providerId === activeProviderId)
 .map(f => `<option value="${f.id}">${f.name}</option>`).join('');
 ['mb-fac','mb-fac-sg'].forEach(id => {
@@ -6080,7 +6080,7 @@ const el = document.getElementById(id); if(el) el.innerHTML = facOpts;
 // Populate referring
 const refSel = document.getElementById('mb-ref');
 if (refSel) {
-refSel.innerHTML = '<option value="">— None —</option>' +
+refSel.innerHTML = '<option value="">None</option>' +
 db.referring.filter(r => r.providerId === activeProviderId)
 .map(r => `<option value="${r.id}">${r.last}, ${r.first}</option>`).join('');
 }
@@ -6089,7 +6089,7 @@ db.referring.filter(r => r.providerId === activeProviderId)
 const sgSel = document.getElementById('mb-sg-sel');
 if (sgSel) {
 const sgs = (db.serviceGroups||[]).filter(g => !g.providerId || g.providerId === activeProviderId);
-sgSel.innerHTML = '<option value="">— Select Group —</option>' +
+sgSel.innerHTML = '<option value="">Select Group</option>' +
 sgs.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
 }
 
@@ -6164,7 +6164,7 @@ const st = _sgBatchState[patId] || {};
 const dxRaw = asgn.dx || '';
 const dx = dxRaw.split(',').map(d => d.trim()).filter(Boolean);
 if (!dx.length) {
-toast(`${pat.last}, ${pat.first}: missing diagnosis — edit the Service Group`, 'warn');
+toast(`${pat.last}, ${pat.first}: missing diagnosis • edit the Service Group`, 'warn');
 return;
 }
 
@@ -6179,7 +6179,7 @@ const pos = facId ? (getDB().facilities.find(f=>f.id===facId)?.pos||'11') : '11'
 const groupMode = document.getElementById('mb-group-dates')?.checked;
 
 if (groupMode) {
-  // ── 1 CLAIM PER PATIENT — all dates become separate lines ─────
+  // ── 1 CLAIM PER PATIENT • all dates become separate lines ─────
   // Each date × each SG CPT = one service line
   // Units come from the SG line (NOT from the date)
   // dxPtr rotates A/B/C/D across lines so all 4 dx are referenced
@@ -6188,7 +6188,7 @@ if (groupMode) {
   let lineIdx = 0;
 
   for (const d of activeDatesForPat) {
-    // Get the actual date string — d is {iso, label, date} from getSGBatchDates
+    // Get the actual date string • d is {iso, label, date} from getSGBatchDates
     // or a toggled object from st.dates
     const dateStr = d.date || (d.iso ? (function(){
       var p = d.iso.split('-');
@@ -6245,7 +6245,7 @@ if (groupMode) {
       _uniqueDates[Math.ceil(_uniqueDates.length/2)-1] || ''
     );
     if (_cutoff === null || !_cutoff.trim()) {
-      toast('Cancelled — too many lines per claim (' + groupedLines.length + ')', 'warn');
+      toast('Cancelled • too many lines per claim (' + groupedLines.length + ')', 'warn');
       continue;
     }
     var _cp = _cutoff.split('/');
@@ -6294,7 +6294,7 @@ if (groupMode) {
     });
   }
 } else {
-  // ── STANDARD — 1 claim per patient per date ───────────────────
+  // ── STANDARD • 1 claim per patient per date ───────────────────
   for (const d of activeDatesForPat) {
     pending.push({...(typeof _sgPayerFields==="function"?_sgPayerFields(pat,asgn):{}),
       id: uid(), providerId: activeProviderId, patId,
@@ -6379,7 +6379,7 @@ auth: '',
 }
 }
 
-if (!pending.length) { toast('No claims generated — check dates and patients', 'warn'); return; }
+if (!pending.length) { toast('No claims generated • check dates and patients', 'warn'); return; }
 
 setDB(db2 => { pending.forEach(function(c) { db2.claims.push(c); });
 
@@ -6399,7 +6399,7 @@ setDB(db2 => { pending.forEach(function(c) { db2.claims.push(c); });
       id: 'sb_'+claim.id,
       claimId: claim.id,
       claimPCN: claim.pcn||'',
-      name: 'Superbill — DOS: '+(claim.dos||dateStr)+' — $'+total,
+      name: 'Superbill • DOS: '+(claim.dos||dateStr)+' • $'+total,
       category: 'Superbills',
       type: 'pdf',
       date: claim.dos||dateStr,
@@ -6420,7 +6420,7 @@ closeModal('modal-batch');
 renderClaims();
 updateBadges();
 var _n = pending.length;
-toast('<i data-lucide="check" class="lci" style="width:14px;height:14px"></i> '+_n+' claim'+(_n>1?'s':'')+' generated — superbill'+(_n>1?'s':'')+' saved to Documents', 'ok');
+toast('<i data-lucide="check" class="lci" style="width:14px;height:14px"></i> '+_n+' claim'+(_n>1?'s':'')+' generated • superbill'+(_n>1?'s':'')+' saved to Documents', 'ok');
 }
 
 function setBatchTab(tab, btn) {
@@ -6481,7 +6481,7 @@ if (!cfg.acctKey) { toast('Configure Account Key first','warn'); return; }
 
 const db = getDB();
 
-// Build index of OUR submitted claims keyed by PCN — only these get updated
+// Build index of OUR submitted claims keyed by PCN • only these get updated
 const ourClaims = db.claims.filter(c =>
 c.providerId === activeProviderId &&
 ['submitted','pending'].includes(c.status) &&
@@ -6513,7 +6513,7 @@ logTransmit('No new responses from Clearinghouse', 'info');
 toast('No new updates'); return;
 }
 
-logTransmit(`?? ${blocks.length} response(s) received — filtering by our claim numbers...`, 'info');
+logTransmit(`?? ${blocks.length} response(s) received • filtering by our claim numbers...`, 'info');
 
 let accepted = 0, rejected = 0, ignored = 0;
 
@@ -6521,7 +6521,7 @@ setDB(db => {
 blocks.forEach(b => {
 const gt = t => (b.match(new RegExp(`<${t}>(.*?)<\/${t}>`, 's')) || [])[1] || '';
 
-// PCN is the key — use remote_claimid first, then pcn field
+// PCN is the key • use remote_claimid first, then pcn field
 const remotePCN = (gt('remote_claimid') || gt('pcn')).toUpperCase();
 const status = gt('status');
 const claimMdId = gt('claimmd_id');
@@ -6530,7 +6530,7 @@ const rejectMsg = gt('message') || gt('reject_reason') || '';
 // ?? STRICT FILTER: only update claims WE submitted ??????????????????
 if (!remotePCN || !ourPCNs.has(remotePCN)) {
 ignored++;
-return; // skip — not our claim
+return; // skip • not our claim
 }
 
 const claim = db.claims.find(c =>
@@ -6543,12 +6543,12 @@ if (!claim) { ignored++; return; }
 if (status === 'A') {
 claim.status = 'accepted';
 accepted++;
-logTransmit(` <i data-lucide="check" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} — Accepted`, 'ok');
+logTransmit(` <i data-lucide="check" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} • Accepted`, 'ok');
 } else if (status === 'R') {
 claim.status = 'rejected';
 claim.rejectReason = rejectMsg;
 rejected++;
-logTransmit(` <i data-lucide="x" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} — Rejected: ${rejectMsg}`, 'err');
+logTransmit(` <i data-lucide="x" class="lci" style="width:13px;height:13px"></i> ${claim.pcn} • Rejected: ${rejectMsg}`, 'err');
 }
 
 if (claimMdId) claim.claimmdId = claimMdId;
@@ -6556,9 +6556,9 @@ claim.updatedAt = Date.now();
 });
 });
 
-const msg = `Sync complete — ${accepted} accepted, ${rejected} rejected${ignored ? ` (${ignored} from other sources ignored)` : ''}`;
+const msg = `Sync complete • ${accepted} accepted, ${rejected} rejected${ignored ? ` (${ignored} from other sources ignored)` : ''}`;
 logTransmit(msg, accepted > 0 ? 'ok' : 'warn');
-if (rejected) logTransmit(`?? ${rejected} claim(s) rejected — check Claims → Rejected tab`, 'warn');
+if (rejected) logTransmit(`?? ${rejected} claim(s) rejected • check Claims → Rejected tab`, 'warn');
 toast(`Synced: ${accepted} accepted, ${rejected} rejected`);
 updateBadges(); renderExportSummary();
 
@@ -6595,10 +6595,10 @@ function isSelfUserId(targetUserId) {
 }
 
 function updateAdminUI() {
-// Admin visibility is based SOLELY on internal session role — no Firebase Auth dependency
+// Admin visibility is based SOLELY on internal session role • no Firebase Auth dependency
 const session = getSession();
 const isSA = !!(session && session.role === 'Super Admin');
-// Provider selector wrap — always visible. For non-SA the <select> inside is
+// Provider selector wrap • always visible. For non-SA the <select> inside is
 // locked to their assigned BP; the wrap also contains History and Tickets
 // buttons that every user needs to see.
 var _provWrap = document.getElementById('prov-sel-wrap');
@@ -6608,7 +6608,7 @@ if (_provWrap) _provWrap.style.display = 'flex';
 const tngAdmin = document.getElementById('tng-admin');
 if (tngAdmin) tngAdmin.style.display = isSA ? '' : 'none';
 
-// Settings menu — visible ONLY for Admin (org) and Super Admin
+// Settings menu • visible ONLY for Admin (org) and Super Admin
 const _role = session && session.role ? String(session.role).toLowerCase() : '';
 const _isAdminOrSA = isSA || _role === 'admin' || _role === 'administrator';
 const tngConfig = document.getElementById('tng-config');
@@ -6619,15 +6619,15 @@ try { _applyCMSettingsLayout(_isAdminOrSA); } catch(e) {}
   const mobAdmin = document.getElementById('mob-grp-admin');
   if (mobAdmin) mobAdmin.style.display = isSA ? '' : 'none';
 
-  // Top nav intake group (desktop) — Super Admin only
+  // Top nav intake group (desktop) • Super Admin only
   // tng-intake menu removed
   // if (tngIntake) tngIntake.style.display = isSA ? '' : 'none';
 
-  // Mobile drawer intake group — Super Admin only
+  // Mobile drawer intake group • Super Admin only
   const mobIntake = document.getElementById('mob-grp-intake');
   if (mobIntake) mobIntake.style.display = isSA ? '' : 'none';
 
-  // Legacy role-based Case Management visibility removed — the specialty
+  // Legacy role-based Case Management visibility removed • the specialty
   // system (applyActiveSpecialty) is now the sole source of truth for CM
   // group visibility. Older 'tng-cm' left as an empty stub for backward compat.
 
@@ -6646,8 +6646,8 @@ if (adminSec) { try { go('dashboard'); } catch(_) {} }
 }
 }
 
-function openAdminLogin() { /* removed — admin activated automatically on login */ }
-function closeAdminLogin() { /* removed — admin activated automatically on login */ }
+function openAdminLogin() { /* removed • admin activated automatically on login */ }
+function closeAdminLogin() { /* removed • admin activated automatically on login */ }
 
 async function doAdminLogin() {
 const email = (document.getElementById('adm-email')?.value || '').trim().toLowerCase();
@@ -6666,7 +6666,7 @@ await _auth.signInWithEmailAndPassword(email, pass);
 _adminUser = _auth.currentUser;
 closeAdminLogin();
 updateAdminUI();
-toast('Access granted — ' + email);
+toast('Access granted • ' + email);
 if (btn) { btn.textContent = 'Access Admin Panel'; btn.disabled = false; }
 return;
 } catch(e) {
@@ -6687,7 +6687,7 @@ return;
 }
 }
 
-// Local hash fallback — same credentials as main login
+// Local hash fallback • same credentials as main login
 const hash = await sha256(pass);
 const allUsers = [DEFAULT_ADMIN, ...(_usersCache || []).filter(u => u.id !== DEFAULT_ADMIN.id)];
 const user = allUsers.find(u => ((u.email||'').toLowerCase() === email || (u.name||'').toLowerCase() === email || (u.username||'').toLowerCase() === email) && u.passHash === hash);
@@ -6702,7 +6702,7 @@ return;
 _adminUser = { email: user.email, uid: user.id };
 closeAdminLogin();
 updateAdminUI();
-toast('Access granted — ' + email);
+toast('Access granted • ' + email);
 
 } catch(e) {
 alertEl.innerHTML = '<div class="alert al-error">Sign-in failed. Please try again.</div>'; console.warn('[CDC] admin login:', e && e.message);
@@ -6910,7 +6910,7 @@ function openSGPatientPicker(){
 }
 
 // Resolve display name for a patient's payer:
-// 1) patient's own payername   2) look up db.insurances by payerid   3) "—"
+// 1) patient's own payername   2) look up db.insurances by payerid   3) "•"
 function _sgResolvePayerName(pat, db) {
   if (!pat) return '';
   db = db || getDB();
@@ -6965,11 +6965,11 @@ function renderSGPatientPicker(){
     return '<div onclick="_sgTogglePickerSel(\''+p.id+'\')" style="display:grid;grid-template-columns:22px 30px 1.7fr 1fr 1.2fr 1.2fr 1fr;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid '+rowBorder+';background:'+rowBg+';cursor:'+(isIn?'default':'pointer')+';font-size:11px;'+(isIn?'opacity:.6':'')+'" '+(isIn?'title="Already in group"':'')+'>'+
       '<div style="text-align:center">'+(isIn?'<span style="color:#2d7a4f;font-weight:700" title="Already added">✓</span>':'<input type="checkbox" '+(isSel?'checked':'')+' style="accent-color:#D45C37;pointer-events:none">')+'</div>'+
       '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">'+ini+'</div>'+
-      '<div style="min-width:0"><div style="font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'—')+'</div></div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'—')+'</div><div style="font-size:10px;color:#586579">'+(p.sex||'')+'</div></div>'+
-      '<div style="min-width:0"><div style="color:#D45C37;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'—')+'</div>'+(p.plan?'<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'—')+'</div><div style="font-size:10px;color:#586579">Sub ID</div></div>'+
-      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'—')+'</div>'+
+      '<div style="min-width:0"><div style="font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.last||'?').toUpperCase()+', '+(p.first||'?')+'</div><div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">File #'+(p.acct||'•')+'</div></div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.dob||'•')+'</div><div style="font-size:10px;color:#586579">'+(p.sex||'')+'</div></div>'+
+      '<div style="min-width:0"><div style="color:#D45C37;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(_sgResolvePayerName(p,db)||'•')+'</div>'+(p.plan?'<div style="font-size:10px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.plan+'</div>':'')+'</div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><div>'+(p.insnum||'•')+'</div><div style="font-size:10px;color:#586579">Sub ID</div></div>'+
+      '<div style="font-family:var(--mono,monospace);color:#525252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.phone||'•')+'</div>'+
     '</div>';
   }).join('');
 }
@@ -7055,7 +7055,7 @@ const resEl = document.getElementById('sg-pat-results');
 if (resEl) resEl.style.display = 'none';
 renderSGPatients();
 lucide.createIcons();
-toast('Patient added — enter diagnosis');
+toast('Patient added • enter diagnosis');
 }
 
 function addSGPatient(patientId) {
@@ -7081,7 +7081,7 @@ if (!_sgForm.name) { toast('Service group name is required','err'); return; }
 if (_sgForm.renderingProviderId) {
 const rend = db.rendering.find(r => r.id === _sgForm.renderingProviderId);
 if (rend && !rend.taxonomy) {
-toast('Warning: Rendering provider is missing taxonomy — add it before generating claims','warn');
+toast('Warning: Rendering provider is missing taxonomy • add it before generating claims','warn');
 }
 }
 
@@ -7090,7 +7090,7 @@ if (!_sgForm.lines.length) { toast('Add at least one CPT line','err'); return; }
 const badLines = _sgForm.lines.filter(l => !l.cpt);
 if (badLines.length) { toast('All CPT lines must have a code','err'); return; }
 
-// Patients optional at save time — can add later
+// Patients optional at save time • can add later
 const missingDx = (_sgForm.patients||[]).filter(a => !a.dx || !a.dx.trim());
 if (missingDx.length) {
 const pat = db.patients.find(p => p.id === missingDx[0].patientId);
@@ -7106,7 +7106,7 @@ else db.serviceGroups.push(_sgForm);
 });
 closeModal('modal-sg');
 renderServiceGroups();
-toast('Service group saved ?');
+toast('Service group saved');
 }
 
 function deleteSG(id) {
@@ -7140,13 +7140,13 @@ if (sgSel) { sgSel.value = sgId; }
 if (sg.renderingProviderId) sv('mb-rend-sg', sg.renderingProviderId);
 if (sg.facilityId) sv('mb-fac-sg', sg.facilityId);
 onBatchSGChange();
-toast(`Service group "${sg.name}" loaded — select dates and submit`);
+toast(`Service group "${sg.name}" loaded • select dates and submit`);
 }, 150);
 }
 
 
 // ???????????????????????????????????????????????????????
-// AUTH SYSTEM — Login required, session persisted
+// AUTH SYSTEM • Login required, session persisted
 // ???????????????????????????????????????????????????????
 const SUPER_ADMIN_EMAIL = 'imbsinc2023@gmail.com';
 // Owner check that survives an email change (2026-09-28): the owner is the original
@@ -7168,7 +7168,7 @@ const SESSION_KEY = 'rcmpro_session';
 window._cdcQRCache = null; // replaced with inline SVG QR
 const USERS_KEY = 'rcmpro_users_v2'; // v2 forces fresh cache
 
-// Default super admin — stored in localStorage on first boot
+// Default super admin • stored in localStorage on first boot
 const DEFAULT_ADMIN = {
 id: 'usr-superadmin',
 email: SUPER_ADMIN_EMAIL, // obfuscated
@@ -7180,7 +7180,7 @@ createdAt: Date.now()
 };
 
 function sha256(str) {
-// Simple but sufficient for local auth — uses SubtleCrypto
+// Simple but sufficient for local auth • uses SubtleCrypto
 const buf = new TextEncoder().encode(str);
 return crypto.subtle.digest('SHA-256', buf).then(hash =>
 Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('')
@@ -7195,7 +7195,7 @@ try {
 const r = localStorage.getItem(USERS_KEY);
 if (r) { _usersCache = JSON.parse(r); return JSON.parse(JSON.stringify(_usersCache)); }
 } catch(e) {}
-// First boot — seed default admin
+// First boot • seed default admin
 _usersCache = [DEFAULT_ADMIN];
 return JSON.parse(JSON.stringify(_usersCache));
 }
@@ -7441,7 +7441,7 @@ function _openPDFPreview(dataUri, options) {
 
 
 // ????????????????????????????????????????????????????????
-// EXPORT — Excel (SheetJS)
+// EXPORT • Excel (SheetJS)
 // ????????????????????????????????????????????????????????
 
 
@@ -7473,7 +7473,7 @@ const weekDates = getSGBatchDates();
 sg.patients.forEach(asgn => {
 const existing = _sgBatchState[asgn.patientId];
 if (!existing) {
-// New patient — inherit global date selection
+// New patient • inherit global date selection
 _sgBatchState[asgn.patientId] = {
 included: true,
 dates: weekDates.map(d => ({
@@ -7485,7 +7485,7 @@ refId: asgn.referringId || '',
 facId: asgn.facilityId || sg.facilityId || ''
 };
 } else if (existing.dates.length !== weekDates.length) {
-// Date range changed — re-sync preserving global selection
+// Date range changed • re-sync preserving global selection
 existing.dates = weekDates.map(d => ({
 ...d,
 on: batchDates.find(bd => bd.iso === d.iso)?.selected !== false
@@ -7585,7 +7585,7 @@ data = null;
 } catch(e) { continue; }
 }
 if (!data?.results?.length) {
-resultEl.innerHTML = '<div style="font-size:12px;color:var(--amber);margin-top:4px"><i data-lucide="alert-triangle" class="lci" style="color:var(--amber)"></i> NPI not found — enter manually.</div>';
+resultEl.innerHTML = '<div style="font-size:12px;color:var(--amber);margin-top:4px"><i data-lucide="alert-triangle" class="lci" style="color:var(--amber)"></i> NPI not found • enter manually.</div>';
 return;
 }
 const r = data.results[0], basic = r.basic||{}, addrs = r.addresses||[], taxos = r.taxonomies||[];
@@ -7623,7 +7623,7 @@ const ts = new Date().toISOString().replace(/[:.]/g,'').slice(0,15);
 a.download = `claimdatacare_${ts}.json`;
 a.click();
 URL.revokeObjectURL(a.href);
-toast(`Backup downloaded — ${db.providers?.length||0} providers, ${db.patients?.length||0} patients, ${db.claims?.length||0} claims`);
+toast(`Backup downloaded • ${db.providers?.length||0} providers, ${db.patients?.length||0} patients, ${db.claims?.length||0} claims`);
 }
 
 
@@ -7633,7 +7633,7 @@ closeTnDrawer();
 // Always use the persistent body-level input, never the one inside #root
 const inp = document.getElementById('restore-file-input');
 if (inp) { inp.value = ''; inp.click(); }
-else toast('Restore unavailable — please reload the page', 'err');
+else toast('Restore unavailable • please reload the page', 'err');
 }
 
 async function importBackup(event) {
@@ -7645,13 +7645,13 @@ let backup;
 try {
 backup = JSON.parse(e.target.result);
 } catch(parseErr) {
-toast('Invalid file — could not parse JSON', 'err');
+toast('Invalid file • could not parse JSON', 'err');
 event.target.value = ''; return;
 }
 
 const data = backup.data || backup;
 if (!data || (!data.providers && !data.patients && !data.claims)) {
-toast('Invalid backup — no recognizable data found', 'err');
+toast('Invalid backup • no recognizable data found', 'err');
 event.target.value = ''; return;
 }
 
@@ -7684,11 +7684,11 @@ invoicingClients: data.invoicingClients || [],
 invoices: data.invoices || [],
 });
 
-// Legacy backups may include a global apiConfig with acctKey — no longer honored.
+// Legacy backups may include a global apiConfig with acctKey • no longer honored.
 // Per-provider acctKeys ride on the provider records themselves, which are
 // restored via the providers collection above.
 if (backup.apiConfig && 'acctKey' in backup.apiConfig) {
-  console.warn('[CDC][provider-isolation] Ignoring legacy global apiConfig.acctKey from backup — clearinghouse keys are per-provider.');
+  console.warn('[CDC][provider-isolation] Ignoring legacy global apiConfig.acctKey from backup • clearinghouse keys are per-provider.');
 }
 
 // Set in memory and cache immediately
@@ -7890,7 +7890,7 @@ svg.innerHTML = showing
 
 
 // Warn before closing/refreshing if there's anything not yet confirmed
-// saved — either a local cache failure (storage full) or a Firestore sync
+// saved • either a local cache failure (storage full) or a Firestore sync
 // still in flight. This is the direct fix for "I hit F5 and lost everything":
 // the browser will now ask for confirmation instead of silently discarding
 // work that never finished saving.
@@ -7903,14 +7903,14 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
-// Performs the actual sign-out (no confirmation) — shared by the manual
+// Performs the actual sign-out (no confirmation) • shared by the manual
 // "Sign Out" button (after confirmation) and the automatic HIPAA idle logout.
 function _performLogout() {
   // Close every open modal/overlay before tearing down the session so no
   // stale panel remains visible over the login screen.
   try { _closeAllOpenPanels(); } catch(e) {}
   // NOTE: previously this persisted the current acctKey to a global localStorage
-  // key so it could be re-used across sessions. That was a cross-provider leak —
+  // key so it could be re-used across sessions. That was a cross-provider leak •
   // removed. Per-provider acctKeys live on each provider record only.
   clearSession();
   if (_auth) _auth.signOut().catch(function(){});
@@ -7921,7 +7921,7 @@ function _performLogout() {
 // Close every open modal, overlay, floating dropdown, toast, and any injected
 // panel that could leak visible PHI over the login screen after logout.
 function _closeAllOpenPanels() {
-  // 1) Standard .overlay modals — the app's own openModal/closeModal system
+  // 1) Standard .overlay modals • the app's own openModal/closeModal system
   try {
     document.querySelectorAll('.overlay.active, .overlay.show, .overlay[style*="display: flex"], .overlay[style*="display:flex"], .overlay[style*="display: block"], .overlay[style*="display:block"]').forEach(function(el){
       el.classList.remove('active','show');
@@ -7971,7 +7971,7 @@ function _closeAllOpenPanels() {
 }
 
 function doLogout() {
-  // Native modal confirmation — no browser alert
+  // Native modal confirmation • no browser alert
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.innerHTML =
@@ -8012,17 +8012,17 @@ function renderProviderInfo() {
     '</tr></thead><tbody>' +
     providers.map(function(p) {
       var sc = {Active:'b-green',Pending:'b-amber',Inactive:'b-gray'}[p.status||'Active']||'b-gray';
-      var addr = [p.addr1, p.city, p.state, p.zip].filter(Boolean).join(', ') || '—';
+      var addr = [p.addr1, p.city, p.state, p.zip].filter(Boolean).join(', ') || '•';
       var globalIdx = db.providers.indexOf(p);
       return '<tr>' +
         '<td><strong>' + (p.name||'') + '</strong></td>' +
-        '<td class="mono">' + (p.npi||'—') + '</td>' +
-        '<td class="mono">' + (p.taxid||'—') + '</td>' +
+        '<td class="mono">' + (p.npi||'•') + '</td>' +
+        '<td class="mono">' + (p.taxid||'•') + '</td>' +
         '<td>' + (p.providerType||'Organization') + '</td>' +
         '<td><span class="badge ' + sc + '">' + (p.status||'Active') + '</span></td>' +
         '<td style="font-size:12px;color:var(--text3)">' + addr + '</td>' +
-        '<td class="mono">' + (p.phone||'—') + '</td>' +
-        '<td>' + (p.email||'—') + '</td>' +
+        '<td class="mono">' + (p.phone||'•') + '</td>' +
+        '<td>' + (p.email||'•') + '</td>' +
         '<td><button class="btn btn-sm" onclick="openBPModal(' + globalIdx + ')" style="white-space:nowrap"><i data-lucide="pencil" class="lci"></i> Edit</button></td>' +
         '</tr>';
     }).join('') + '</tbody></table></div>';
@@ -8062,7 +8062,7 @@ const rendCnt = db.rendering.filter(r => r.providerId === p.id).length;
 const total = db.claims.filter(c => c.providerId === p.id).reduce((s,c) => s + claimTotal(c), 0);
 const status = p.status || 'Active';
 const sc = { Active:'b-green', Pending:'b-amber', Inactive:'b-gray' }[status] || 'b-gray';
-const addr = [p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ') || '—';
+const addr = [p.addr1,p.city,p.state,p.zip].filter(Boolean).join(', ') || '•';
 const apiKeyStatus = p.acctKey
   ? '<span style="color:var(--green);font-size:11px">Configured</span>'
   : '<span style="color:var(--amber);font-size:11px">Not set</span>';
@@ -8079,7 +8079,7 @@ ${!isActive ? `<button class="btn btn-xs btn-primary" onclick="switchProvider('$
 </div>`;
 
 return '<tr>' +
-  '<td><div style="font-weight:700;font-size:13px">' + (p.name||'') + '</div><div class="mono" style="font-size:10px;color:var(--text3)">NPI: ' + (p.npi||'—') + ' · EIN: ' + (p.taxid||'—') + '</div></td>' +
+  '<td><div style="font-weight:700;font-size:13px">' + (p.name||'') + '</div><div class="mono" style="font-size:10px;color:var(--text3)">NPI: ' + (p.npi||'•') + ' · EIN: ' + (p.taxid||'•') + '</div></td>' +
   '<td><span class="badge ' + sc + '">' + status + '</span>' + (isActive ? ' <span class="badge b-blue" style="font-size:10px">Active</span>' : '') + '</td>' +
   '<td style="font-size:11px;white-space:nowrap">' +
     '<span style="color:var(--brand);font-weight:700">' + patCnt + '</span> Patients · ' +
@@ -8116,9 +8116,9 @@ const taxEl=document.getElementById('mprov-taxtype'); if(taxEl) taxEl.value=p?.t
 const typeEl=document.getElementById('mprov-type'); if(typeEl) typeEl.value=p?.providerType||'Organization';
 const statusEl=document.getElementById('mprov-status'); if(statusEl) statusEl.value=p?.status||'Active';
 const npiRes=document.getElementById('bp-npi-result'); if(npiRes) npiRes.innerHTML='';
-// Load acctKey — show placeholder if already set, don't expose value
+// Load acctKey • show placeholder if already set, don't expose value
 const acctEl=document.getElementById('mprov-acctkey');
-if(acctEl) { acctEl.value=''; acctEl.placeholder=p?.acctKey?'¥¥¥¥¥ (already set — paste to change)':'Paste your Clearinghouse Account Key'; }
+if(acctEl) { acctEl.value=''; acctEl.placeholder=p?.acctKey?'¥¥¥¥¥ (already set • paste to change)':'Paste your Clearinghouse Account Key'; }
 _provLogoB64 = p?.logo || '';
 const logoPrev=document.getElementById('mprov-logo-preview');
 if(logoPrev) {
@@ -8140,7 +8140,7 @@ if(logoPrev) {
       '<div class="mprov-card-title">Specialties</div>' +
     '</div>' +
     '<div class="field" style="margin:0">' +
-      '<label style="margin-bottom:8px;display:block;font-size:11px;font-weight:600;color:var(--text2)">Practice Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">— configure taxonomy and visible menus per specialty</span></label>' +
+      '<label style="margin-bottom:8px;display:block;font-size:11px;font-weight:600;color:var(--text2)">Practice Specialties <span style="font-size:10px;color:var(--text3);font-weight:400">• configure taxonomy and visible menus per specialty</span></label>' +
       '<div id="mprov-spec-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>' +
       '<button class="btn btn-sm" onclick="_mprovAddSpecialty()" type="button" style="display:flex;align-items:center;gap:5px">' +
         '<i data-lucide="plus" class="lci" style="width:12px;height:12px"></i> Add Specialty' +
@@ -8233,7 +8233,7 @@ createdAt:isNew?Date.now():(db.providers.find(x=>x.id===existingId)?.createdAt||
 setDB(db=>{if(!isNew){const idx=db.providers.findIndex(x=>x.id===existingId);if(idx>=0)db.providers[idx]=p;}else db.providers.push(p);});
 if(isNew){activeProviderId=p.id;const sess=getSession();if(sess){sess.activeBillingProviderId=p.id;setSession(sess);}}
 closeModal('modal-provider'); rebuildProvSel(); renderAdminProviders();
-toast(isNew?`? ${p.name} created`:`? ${p.name} updated`);
+toast(isNew?`${p.name} created`:`${p.name} updated`);
 }
 
 function deleteBP(id) {
@@ -8242,7 +8242,7 @@ const cc=db.claims.filter(c=>c.providerId===id).length, pc=db.patients.filter(x=
 let warn='Delete '+p.name+'?\n\nThis cannot be undone.';
 if(cc||pc) warn+='\n\nWill also delete:'+(cc?'\n- '+cc+' claim(s)':'')+(pc?'\n- '+pc+' patient(s)':'')+'\n\nConsider marking Inactive instead.';
 return cdcConfirm(warn).then((__ok)=>{if(!__ok)return;
-if(cc||pc){const typed=prompt('Type the provider name to confirm: '+p.name);if(typed!==p.name){toast('Name did not match — cancelled','warn');return;}}
+if(cc||pc){const typed=prompt('Type the provider name to confirm: '+p.name);if(typed!==p.name){toast('Name did not match • cancelled','warn');return;}}
 setDB(db=>{db.providers=db.providers.filter(x=>x.id!==id);db.claims=db.claims.filter(c=>c.providerId!==id);db.patients=db.patients.filter(x=>x.providerId!==id);db.facilities=db.facilities.filter(x=>x.providerId!==id);db.rendering=db.rendering.filter(x=>x.providerId!==id);db.referring=db.referring.filter(x=>x.providerId!==id);db.serviceGroups=(db.serviceGroups||[]).filter(x=>x.providerId!==id);});
 if(activeProviderId===id){const db2=getDB();activeProviderId=db2.providers[0]?.id||null;const sess=getSession();if(sess){sess.activeBillingProviderId=activeProviderId;setSession(sess);}}
 rebuildProvSel(); renderAdminProviders(); toast('Provider '+p.name+' deleted');
@@ -8293,9 +8293,9 @@ function deletePatient(patientId) {
   }
 const db=getDB(); const pat=db.patients.find(p=>p.id===patientId); if(!pat) return;
 const cc=db.claims.filter(c=>c.patId===patientId).length;
-if(cc>0){toast(`Cannot delete ${pat.last}, ${pat.first} — used in ${cc} claim(s)`,'err');return;}
+if(cc>0){toast(`Cannot delete ${pat.last}, ${pat.first} • used in ${cc} claim(s)`,'err');return;}
 const sgc=(db.serviceGroups||[]).filter(g=>g.patients&&g.patients.some(a=>a.patientId===patientId)).length;
-if(sgc>0){toast(`Cannot delete ${pat.last}, ${pat.first} — in ${sgc} service group(s)`,'err');return;}
+if(sgc>0){toast(`Cannot delete ${pat.last}, ${pat.first} • in ${sgc} service group(s)`,'err');return;}
 return cdcConfirm(`Delete patient ${pat.last}, ${pat.first} (${pat.acct})?
 
 This cannot be undone.`).then((__ok)=>{if(!__ok)return;
@@ -8320,7 +8320,7 @@ if(idx<0){toast('No active provider','err');return;}
 const get=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
 setDB(db=>{db.providers[idx].taxonomy=get('exp-prov-taxonomy');db.providers[idx].addr1=get('exp-prov-addr1');db.providers[idx].city=get('exp-prov-city');db.providers[idx].state=get('exp-prov-state');db.providers[idx].zip=get('exp-prov-zip');db.providers[idx].phone=get('exp-prov-phone');});
 const dirty=document.getElementById('exp-prov-dirty'); if(dirty) dirty.style.display='none';
-toast('Provider info updated ?');
+toast('Provider info updated');
 }
 
 // ?? SG DATE TOGGLE ????????????????????????????????????????????????????????????
@@ -8447,10 +8447,10 @@ async function icSendForms(clientId, formIds) {
 
   const sent = await sendEmail(toEmail, 'Action Required: Sign Intake Forms for ' + clientName.trim(), html, 'intake');
   if (sent) {
-    toast('✓ Forms sent to ' + toEmail, 'ok');
+    toast('Forms sent to ' + toEmail, 'ok');
     if (typeof renderIntakeClients === 'function') renderIntakeClients();
   } else {
-    toast('Email delivery failed — check email configuration', 'err');
+    toast('Email delivery failed • check email configuration', 'err');
   }
 }
 
@@ -8563,7 +8563,7 @@ if (c) { c.status = status; c.rejectReason = reason; if (cmId) c.claimmdId = cmI
 closeModal('modal-status');
 renderClaims();
 updateBadges();
-toast('Status updated ?');
+toast('Status updated');
 }
 
 
@@ -8636,7 +8636,7 @@ const allClaims = [...db.claims, ...(pendingClaims || [])];
 const pat = db.patients.find(p => p.id === patientId);
 const acct = (pat?.acct || 'PT').toUpperCase();
 const existingPCNs = new Set(allClaims.map(c => c.pcn).filter(Boolean));
-// Generate: acct# + random 8 digits — retry until unique (virtually never collides)
+// Generate: acct# + random 8 digits • retry until unique (virtually never collides)
 let pcn, attempts = 0;
 do {
 // Mix timestamp bits + random to get up to 10M+ combinations
@@ -8755,12 +8755,12 @@ mc_total.textContent = 'Total: $' + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))
 }
 
 function autoFillCPT(idx) {
-// Optional auto-fill from catalog — only fills empty fields, never blocks
+// Optional auto-fill from catalog • only fills empty fields, never blocks
 const db = getDB();
 const cpt = tmpLines[idx]?.cpt;
 if (!cpt || cpt.length < 5) return;
 const svc = db.services.find(s => s.code === cpt);
-if (!svc) return; // Not in catalog — that's fine, user typed it manually
+if (!svc) return; // Not in catalog • that's fine, user typed it manually
 const wrap = document.getElementById('mc-lines-wrap');
 const lineEl = wrap?.querySelectorAll('.line-item')[idx];
 if (!lineEl) return;
@@ -8810,7 +8810,7 @@ copy.id = uid();
 copy.name = copy.name + ' (COPY)';
 setDB(db => { db.serviceGroups.push(copy); });
 renderServiceGroups();
-toast('Service group copied — click Edit to rename and modify');
+toast('Service group copied • click Edit to rename and modify');
 // Open the copy for editing
 openSGModal(copy.id);
 }
@@ -8829,7 +8829,7 @@ const db = getDB();
 const claims = [..._selectedClaims].map(id => db.claims.find(c=>c.id===id)).filter(Boolean);
 
 if (action === 'delete') {
-if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
+if (!hasPermission('Delete Claims')) { toast('You do not have permission to delete claims','err'); return; }
 return cdcConfirm(`Delete ${claims.length} claim(s)? This cannot be undone.`).then((__ok)=>{if(!__ok)return;
 const idsToDelete = [..._selectedClaims];
 setDB(db2 => { db2.claims = db2.claims.filter(c => !_selectedClaims.has(c.id)); });
@@ -8847,9 +8847,9 @@ db2.claims.forEach(c => {
 if (_selectedClaims.has(c.id)) { c.status = action; c.updatedAt = Date.now(); }
 });
 });
-// Keep selection active — user may want to do more actions
+// Keep selection active • user may want to do more actions
 renderClaims(); updateBadges();
-toast(`${claims.length} claim(s) ? ${action}`);
+toast(`${claims.length} claim(s)${action}`);
 return;
 }
 
@@ -8868,7 +8868,7 @@ return;
 
 if (action === 'pdf') {
 // Generate combined superbills PDF for all selected claims
-if (!window.jspdf) { toast('PDF library not loaded yet — try again', 'warn'); return; }
+if (!window.jspdf) { toast('PDF library not loaded yet • try again', 'warn'); return; }
 exportBulkClaimsPDF(claims);
 // Keep selection active after export
 renderClaims();
@@ -8922,7 +8922,7 @@ const claims = db.claims.filter(c => _selectedClaims.has(c.id));
 if (!claims.length) { toast('Select at least one claim','warn'); return; }
 
 if (action === 'delete') {
-if (!hasPermission('Delete Claims')) { toast('No tienes permiso para eliminar claims','err'); return; }
+if (!hasPermission('Delete Claims')) { toast('You do not have permission to delete claims','err'); return; }
 return cdcConfirm(`Delete ${claims.length} claim(s)? This cannot be undone.`).then(async (__ok)=>{if(!__ok)return;
 const idsToDelete2 = [..._selectedClaims];
 setDB(db => { db.claims = db.claims.filter(c => !_selectedClaims.has(c.id)); });
@@ -8940,7 +8940,7 @@ return;
 }
 if (action === 'submit') {
 const errors = claims.flatMap(c => validateClaim(c));
-if (errors.length) { toast(errors.length+' validation error(s) — fix before submitting','err'); return; }
+if (errors.length) { toast(errors.length+' validation error(s) • fix before submitting','err'); return; }
 const cfg = getApiConfig();
 if (!cfg.acctKey) { toast('Configure Clearinghouse API key first','warn'); go('export'); return; }
 toast('Submitting '+claims.length+' claim(s)...');
@@ -8958,7 +8958,7 @@ const errNo=(xml.match(/<ErrorNo>(.*?)<\/ErrorNo>/)||[])[1]||'';
 if(errNo&&errNo!=='0') throw new Error((xml.match(/<message>(.*?)<\/message>/)||[])[1]||'Error');
 setDB(db=>{db.claims.filter(c=>_selectedClaims.has(c.id)).forEach(c=>{c.status='submitted';c.updatedAt=Date.now();});});
 _selectedClaims.clear(); renderClaims(); updateBadges();
-toast('? '+claims.length+' claim(s) submitted');
+toast(''+claims.length+' claim(s) submitted');
 } catch(e) { toast('Submission failed: '+e.message,'err'); }
 return;
 }
@@ -8982,7 +8982,7 @@ generateSuperbillPDF(c);
 // Small delay to avoid browser blocking
 if (i < claims.length - 1) await new Promise(r => setTimeout(r, 300));
 }
-toast(`? ${claims.length} superbill(s) exported`);
+toast(`${claims.length} superbill(s) exported`);
 }
 
 
@@ -9053,7 +9053,7 @@ ${errs.slice(0,10).map(e=>`¥ ${e}`).join('<br>')}
 ${errs.length>10?`<br>...and ${errs.length-10} more`:''}
 </div>`;
 }
-toast(`${errs.length} issue(s) found — check Export page`, 'warn');
+toast(`${errs.length} issue(s) found • check Export page`, 'warn');
 return;
 }
 exportBulkClaimsCSV(claims);
@@ -9087,11 +9087,11 @@ const ts = new Date(entry.ts).toLocaleString('en-US',{month:'2-digit',day:'2-dig
 const isOk = entry.status==='success';
 const provBadge = entry.providerName
   ? `<span style="display:inline-block;padding:1px 6px;background:#F6F8FB;border:1px solid #E4E9F1;border-radius:4px;font-size:10px;color:#0B1526;margin-left:6px;font-weight:600">${entry.providerName}</span>`
-  : '<span style="display:inline-block;padding:1px 6px;background:#fff8e1;border:1px solid #f59e0b;border-radius:4px;font-size:10px;color:#b45309;margin-left:6px;font-weight:600" title="Legacy entry — provider not recorded">unknown provider</span>';
+  : '<span style="display:inline-block;padding:1px 6px;background:#fff8e1;border:1px solid #f59e0b;border-radius:4px;font-size:10px;color:#b45309;margin-left:6px;font-weight:600" title="Legacy entry • provider not recorded">unknown provider</span>';
 return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
 <span style="flex-shrink:0;margin-top:1px">${isOk?'✓':'✗'}</span>
 <div style="flex:1;min-width:0">
-<div style="font-weight:600;color:var(--text)">${ts} — ${entry.count} claim(s) ${entry.action}${provBadge}</div>
+<div style="font-weight:600;color:var(--text)">${ts} • ${entry.count} claim(s) ${entry.action}${provBadge}</div>
 <div style="color:var(--text3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
 PCNs: ${(entry.pcns||[]).slice(0,6).join(', ')}${(entry.pcns||[]).length>6?'...':''}
 </div>
@@ -9152,7 +9152,7 @@ function buildClaimJSON(claim, prov, db) {
   const pos = String(claim.pos||'11').padStart(2,'0');
   const totalCharge = lines.reduce(function(s,l){ return s+parseFloat(l.charge||0); }, 0).toFixed(2);
 
-  // Build charge array — one per service line
+  // Build charge array • one per service line
   const charges = lines.filter(function(l){ return l.cpt; }).map(function(l) {
     const lineDos = l.dos ? fmtDate(l.dos) : fmtDate(claim.dos);
     return {
@@ -9272,7 +9272,7 @@ function buildClaimJSON(claim, prov, db) {
 }
 
 async function transmitDirect(filter) {
-  // Strict per-provider check — no fallback to another provider's key.
+  // Strict per-provider check • no fallback to another provider's key.
   const chk = _requireCHKey('Transmit claims');
   if (!chk) return;
   const acctKey = chk.acctKey;
@@ -9282,31 +9282,31 @@ async function transmitDirect(filter) {
   const proxyUrl = CLEARINGHOUSE_PROXY;
 
   const db = getDB();
-  // Only include claims belonging to the ACTIVE provider — never transmit
+  // Only include claims belonging to the ACTIVE provider • never transmit
   // another provider's claims from this session.
   let claims = db.claims.filter(function(c){ return c.providerId === transmittingProviderId; });
   if (filter === 'pending')  claims = claims.filter(function(c){ return c.status === 'pending'; });
   if (filter === 'selected') claims = claims.filter(function(c){ return _selectedClaims.has(c.id); });
-  if (!claims.length) { toast('No hay claims ' + filter + ' para transmitir', 'warn'); return; }
+  if (!claims.length) { toast('No ' + filter + ' claims to transmit', 'warn'); return; }
 
   // Extra safety: verify every claim belongs to the transmitting provider.
   var mismatched = claims.filter(function(c){ return c.providerId !== transmittingProviderId; });
   if (mismatched.length){
     toast('Blocked: '+mismatched.length+' claim(s) do not belong to active provider "'+transmittingProviderName+'"','err');
-    console.error('[CDC][provider-isolation] transmit blocked — mismatched claims:', mismatched.map(function(c){return c.id;}));
+    console.error('[CDC][provider-isolation] transmit blocked • mismatched claims:', mismatched.map(function(c){return c.id;}));
     return;
   }
 
-  // ClaimMD hard limit — warn if any claim has more than 50 service lines
+  // ClaimMD hard limit • warn if any claim has more than 50 service lines
   // (extra lines would be silently truncated by the CSV builder).
   var overLimit = claims.filter(function(c){ return (c.lines||[]).filter(function(l){return l.cpt;}).length > 50; });
   const __cdcGo=async ()=>{
 
-  // Build CSV — this is what Clearinghouse accepts via file upload
+  // Build CSV • this is what Clearinghouse accepts via file upload
   const rows = claims.map(function(c) {
     return buildCSVRow(c, db.providers.find(function(p){ return p.id===c.providerId; })||{}, db);
   }).filter(Boolean);
-  if (!rows.length) { toast('No se pudo generar el CSV', 'err'); return; }
+  if (!rows.length) { toast('Could not generate the CSV', 'err'); return; }
 
   const csv = CSV_COLS.join(',') + '\n' + rows.map(function(r) {
     return CSV_COLS.map(function(k) {
@@ -9334,7 +9334,7 @@ async function transmitDirect(filter) {
 
     if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.slice(0,300));
 
-    // Clearinghouse returns XML — check for error
+    // Clearinghouse returns XML • check for error
     const errMatch = text.match(/<error[^>]*>([\s\S]*?)<\/error>/i);
     if (errMatch) throw new Error(errMatch[1] || 'Clearinghouse error');
 
@@ -9363,7 +9363,7 @@ async function transmitDirect(filter) {
     updateBadges();
 
     if (alertEl) alertEl.innerHTML = '<div class="alert al-success" style="font-size:13px">'
-      + claims.length + ' claim(s) transmitidos exitosamente — '
+      + claims.length + ' claim(s) transmitidos exitosamente • '
       + new Date().toLocaleTimeString() + '</div>';
     alert(claims.length + ' claim(s) transmitidos a Clearinghouse');
 
@@ -9438,7 +9438,7 @@ const rend = d.rendering.find(x=>x.id===claim.renderingId) || {};
 const fac = d.facilities.find(x=>x.id===claim.facilityId) || {};
 const ref = d.referring.find(x=>x.id===claim.referringId) || {};
 
-// Insurance — honors per-claim override, with self-pay/manual fallback
+// Insurance • honors per-claim override, with self-pay/manual fallback
 const allIns = pat.insurances || [];
 const _riCSV = _resolveClaimIns(claim, pat);
 const ins1 = _riCSV.ins1
@@ -9515,14 +9515,14 @@ const row = {};
 row.accept_assign = 'Y';
 row.amount_paid = '0';
 
-// Accident data — read from claim.more.accident (canonical) with fallbacks
+// Accident data • read from claim.more.accident (canonical) with fallbacks
 const accData = (claim.more && claim.more.accident) || claim.accident || {};
 row.auto_accident = (accData.autoAccident === 'Y' || claim.auto === 'Y') ? 'Y' : 'N';
 row.auto_accident_state = (accData.autoAccident === 'Y' && accData.state) ? String(accData.state).toUpperCase().slice(0,2) : '';
 row.other_accident = accData.otherAccident === 'Y' ? 'Y' : 'N';
 row.accident_date = accData.date ? fmtDate(accData.date) : '';
 row.onset_date = accData.date ? fmtDate(accData.date) : '';
-// Box 11b — Other Claim ID (Y4 qualifier + property/casualty claim #)
+// Box 11b • Other Claim ID (Y4 qualifier + property/casualty claim #)
 row.y4_claim_number = accData.claimNumber || '';
 row.other_claim_id = accData.claimNumber || '';
 
@@ -9675,14 +9675,14 @@ row.claimid = '';
 row.resubmission_code = claim.correctedClaimFlag ? '7' : '';
 row.original_claim_number = (claim.correctedClaimFlag && claim.originalClaimNumber) ? String(claim.originalClaimNumber).trim() : '';
 
-// Service Lines (up to 50 — 837P and ClaimMD CSV both support 50 per claim)
+// Service Lines (up to 50 • 837P and ClaimMD CSV both support 50 per claim)
 for (let li=0; li<50; li++) {
   const n = li+1;
   const l = lines[li];
   if (l && l.cpt) {
     // Use per-line DOS if set (multi-date claims), else fall back to claim header DOS
     const lineDos   = l.dos ? fmtDate(l.dos) : dos;
-    // thru_date honors l.dosTo (line range end) — for single-day services it equals from_date
+    // thru_date honors l.dosTo (line range end) • for single-day services it equals from_date
     const lineDosTo = (l.dosTo && l.dosTo !== l.dos) ? fmtDate(l.dosTo) : lineDos;
     row[`charge_${n}`]          = parseFloat(l.charge||0).toFixed(2);
     row[`diag_ref_${n}`]        = String(l.dxPtr||'A').toUpperCase().replace(/[^A-H]/gi,'').toUpperCase() || 'A';
@@ -9739,7 +9739,7 @@ function openCorrectedClaimModal(claimId) {
         '</div>' +
         '<div>' +
           '<div style="font-size:15px;font-weight:700;color:var(--text)">Submit Corrected Claim</div>' +
-          '<div style="font-size:12px;color:var(--text3)">Resubmission Code 7 — Replacement of Prior Claim</div>' +
+          '<div style="font-size:12px;color:var(--text3)">Resubmission Code 7 • Replacement of Prior Claim</div>' +
         '</div>' +
         '<button onclick="document.getElementById(\'modal-corrected-claim\').remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);padding:4px">&times;</button>' +
       '</div>' +
@@ -9749,14 +9749,14 @@ function openCorrectedClaimModal(claimId) {
         '<div style="background:var(--brand-bg);border:1px solid var(--brand-bdr);border-radius:10px;padding:12px 14px;font-size:12px">' +
           '<div style="font-weight:700;color:var(--brand);margin-bottom:6px">Claim being corrected</div>' +
           '<div style="color:var(--text2)">Patient: <strong>' + patName + '</strong></div>' +
-          '<div style="color:var(--text2)">PCN: <strong>' + (claim.pcn||'—') + '</strong> &nbsp;|&nbsp; DOS: <strong>' + (claim.dos||'—') + '</strong></div>' +
+          '<div style="color:var(--text2)">PCN: <strong>' + (claim.pcn||'•') + '</strong> &nbsp;|&nbsp; DOS: <strong>' + (claim.dos||'•') + '</strong></div>' +
         '</div>' +
         // ICN field
         '<div>' +
           '<label style="display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">' +
             'Original Claim Number (ICN / DCN) from Payer *' +
           '</label>' +
-          '<input id="cc-original-icn" value="' + existingICN + '" placeholder="e.g. 2024123456789 — from the payer\'s EOB or ClaimMD response"' +
+          '<input id="cc-original-icn" value="' + existingICN + '" placeholder="e.g. 2024123456789 • from the payer\'s EOB or ClaimMD response"' +
             ' style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">' +
           '<div style="margin-top:5px;font-size:11px;color:var(--text3)">This is the claim number assigned by the payer (ICN), found on the EOB/RA or in the ClaimMD response. Required for Code 7.</div>' +
         '</div>' +
@@ -9791,7 +9791,7 @@ async function submitCorrectedClaim(claimId) {
 
   var cfg = getApiConfig();
   if (!cfg.acctKey) {
-    toast('No Account Key configured — go to Admin → Billing Providers', 'err');
+    toast('No Account Key configured • go to Admin → Billing Providers', 'err');
     return;
   }
 
@@ -9845,9 +9845,9 @@ async function submitCorrectedClaim(claimId) {
           c.updatedAt = Date.now();
         }
       });
-      addClaimLog(claimId, 'corrected', 'Corrected claim submitted (Code 7) — Original ICN: ' + icn);
-      logTransmit('<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> ' + (claim.pcn||claimId) + ' — Corrected claim submitted (ICN: ' + icn + ')', 'ok');
-      toast('Corrected claim submitted successfully ✓', 'ok');
+      addClaimLog(claimId, 'corrected', 'Corrected claim submitted (Code 7) • Original ICN: ' + icn);
+      logTransmit('<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> ' + (claim.pcn||claimId) + ' • Corrected claim submitted (ICN: ' + icn + ')', 'ok');
+      toast('Corrected claim submitted successfully ', 'ok');
       renderClaims(); updateBadges();
     } else {
       addClaimLog(claimId, 'error', 'Corrected claim error: ' + txt.slice(0,200));
@@ -9879,7 +9879,7 @@ const a = document.createElement('a');
 a.href = URL.createObjectURL(blob);
 a.download = 'Claims_Export_' + dateStr() + '.csv';
 a.click();
-toast('CSV exported — ' + claims.length + ' claim(s)');
+toast('CSV exported • ' + claims.length + ' claim(s)');
 }
 
 function exportBulkClaimsExcel(claims) {
@@ -9912,7 +9912,7 @@ const ws = XLSX.utils.json_to_sheet(rows);
 const wb = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb, ws, 'Claims');
 XLSX.writeFile(wb, 'Claims_Report_'+dateStr()+'.xlsx');
-toast('Excel exported — '+claims.length+' claims');
+toast('Excel exported • '+claims.length+' claims');
 }
 
 function generateSuperbillPDF(claim) {
@@ -9985,7 +9985,7 @@ function _drawPdfIcon(doc, name, x, y, s, c) {
 // ── QR code helper ──────────────────────────────────────────────
 var _qrDataURL = null;
 
-// Pure vector QR for 'https://claimdatacare.com' — 25x25 modules, no library needed
+// Pure vector QR for 'https://claimdatacare.com' • 25x25 modules, no library needed
 var _CDC_QR = (function(){
   var h=['1111111011001011111111101','1000001000101010000010001','1011101011011101110110101',
           '1011101001100001001110101','1011101010110100101110101','1000001001001010000010001',
@@ -10098,7 +10098,7 @@ const fmtDOS = d => { if(!d) return ''; const p=parseDOS(d); return `${p.mm}/${p
 var _cdcQRcache = null;
 
 function _fetchQRthenPDF(callback) {
-  // Google Charts QR API — reliable, free, no key needed
+  // Google Charts QR API • reliable, free, no key needed
   var url = 'https://chart.googleapis.com/chart?cht=qr&chs=120x120&chl=https%3A%2F%2Fclaimdatacare.com&choe=UTF-8';
   if (_cdcQRcache) { callback(_cdcQRcache); return; }
   var img = new Image();
@@ -10141,7 +10141,7 @@ function drawWatermark(doc, qrDataURL) {
 function drawFooter(doc, claim, rend, prov) {
   hline(doc,M,FOOTER_Y,RX,BLT,0.3);
   fill(doc,M,FOOTER_Y+1.5,3,20,BLACK);
-  var rn=rend.last?UC(rend.last+', '+(rend.first||''))+(rend.npi?' — NPI: '+UC(rend.npi):''):UC(prov.name||'Provider');
+  var rn=rend.last?UC(rend.last+', '+(rend.first||''))+(rend.npi?' • NPI: '+UC(rend.npi):''):UC(prov.name||'Provider');
   t(doc,'ELECTRONICALLY SIGNED BY:',M+6,FOOTER_Y+6,{sz:7,c:GRAY2});
   t(doc,rn,M+6,FOOTER_Y+13,{b:true,sz:8.5,c:BLACK});
   if(rend.taxonomy) t(doc,'TAXONOMY: '+UC(rend.taxonomy),M+6,FOOTER_Y+19,{sz:7,c:BLACK});
@@ -10174,7 +10174,7 @@ function drawHeader(doc, prov, pat, claim, rend, ref, fac, ins1, dxArr) {
   if(prov.phone)t(doc,'TEL: '+UC(prov.phone),px,y+25,{sz:9,c:BLACK});
   t(doc,'SUPERBILL',RX,y+9,{b:true,sz:22,c:BLACK,a:'right'});
   t(doc,'PCN: '+UC(claim.pcn||''),RX,y+17,{sz:9,c:BLACK,a:'right'});
-  // DOS range from all lines — display only, no page-per-date
+  // DOS range from all lines • display only, no page-per-date
   var allD=[claim.dos].concat((claim.lines||[]).map(function(l){return l.dos||''}).filter(Boolean));
   var uD=[...new Set(allD.filter(Boolean))].sort();
   var dosDisp=uD.length>1?uD[0]+' – '+uD[uD.length-1]:(claim.dos||'');
@@ -10262,7 +10262,7 @@ byPat.forEach(function(patClaims,patId){
     hline(doc,M,y,RX,BLACK,0.3); y+=5;
     y=drawColHdrs(doc,y,hasDOS,CPTX,SL);
 
-    // ALL lines flow in order — NO grouping by date, NO page per date.
+    // ALL lines flow in order • NO grouping by date, NO page per date.
     // Page breaks are decided dynamically based on each row's actual
     // rendered height (which varies with description wrapping), instead
     // of a fixed line count, so a row never overlaps the footer.
@@ -10311,7 +10311,7 @@ byPat.forEach(function(patClaims,patId){
       if(li<lines.length-1){hline(doc,M,y,RX,BLT,0.15);y+=3;}
     });
 
-    // Total — also page-break-aware so it never overlaps the footer
+    // Total • also page-break-aware so it never overlaps the footer
     if(y+14>SAFE_Y){
       drawFooter(doc,claim,rend,prov);
       doc.addPage();
@@ -10346,7 +10346,7 @@ _fetchQRthenPDF(function(qrDataURL) {
     // Prefer Firebase Storage (keeps the heavy PDF bytes out of
     // localStorage/Firestore, which is what filled up the quota and caused
     // data loss). Falls back to the old inline-base64 behavior automatically
-    // if Storage isn't loaded/configured yet — nothing breaks either way.
+    // if Storage isn't loaded/configured yet • nothing breaks either way.
     _loadFirebaseStorage(async function(){
       var entry = {id:'sb_'+Date.now(),name:pd.fn,type:'application/pdf',category:'Superbills',date:pd.fp&&pd.fp.dos||'',createdAt:new Date().toISOString(),claimIds:pd.cids,claimPCN:pd.fp&&pd.fp.pcn||'',source:'superbill',totalCharge:claimTotal(pd.fp)||'0.00'};
       try {
@@ -10368,7 +10368,7 @@ _fetchQRthenPDF(function(qrDataURL) {
         });
       }
     }, function(){
-      // Storage SDK not available at all — old behavior, unchanged
+      // Storage SDK not available at all • old behavior, unchanged
       if (!opts.skipSave) {
         try {
           setDB(function(db3){
@@ -10403,7 +10403,7 @@ p.payerid,p.payerName,p.subNum,p.subLast,p.subFirst,p.subDob,p.rel,p.group,p.pla
 const csv = cols.join(',')+'\n'+rows.map(r=>r.map(v=>{const s=String(v||'');return s.includes(',')?`"${s}"`:s;}).join(',')).join('\n');
 const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
 a.download='Patients_Export_'+dateStr()+'.csv'; a.click();
-toast('CSV exported — '+patients.length+' patients');
+toast('CSV exported • '+patients.length+' patients');
 }
 
 function exportBulkPatientsExcel(patients) {
@@ -10417,7 +10417,7 @@ const ws=XLSX.utils.json_to_sheet(rows);
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,ws,'Patients');
 XLSX.writeFile(wb,'Patients_Report_'+dateStr()+'.xlsx');
-toast('Excel exported — '+patients.length+' patients');
+toast('Excel exported • '+patients.length+' patients');
 }
 
 async function exportBulkPatientsPDF(patients) {
@@ -10431,13 +10431,13 @@ doc.setFillColor(...NAVY); doc.rect(0,0,W,16,'F');
 doc.setFillColor(0,122,255); doc.rect(0,13,W,3,'F');
 if(prov.logo){try{const _ld=_fitLogo(prov.logo,13);doc.addImage(prov.logo,_imgFmt(prov.logo),M,1,_ld.w,_ld.h);}catch(e){}}
 doc.setFont(undefined,'bold'); doc.setFontSize(12); doc.setTextColor(...WHITE);
-doc.text('Patient Report — '+prov.name, M+16, 11);
+doc.text('Patient Report • '+prov.name, M+16, 11);
 doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(180,195,220);
 doc.text(new Date().toLocaleDateString()+' · '+patients.length+' patients', RX, 11, {align:'right'});
 let y=22;
 doc.setFillColor(...LIGHT); doc.rect(M,y-3,RX-M,10,'F');
 doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-doc.text(patients.length+' patients — Provider: '+prov.name, M+3, y+4);
+doc.text(patients.length+' patients • Provider: '+prov.name, M+3, y+4);
 y+=12; hline(y); y+=5;
 const cols=[{h:'Acct#',w:18},{h:'Last, First',w:32},{h:'DOB',w:18},{h:'Sex',w:10},{h:'Payer ID',w:18},{h:'Payer Name',w:30},{h:'Subscriber ID',w:25},{h:'Group #',w:18},{h:'Plan',w:22},{h:'Relation',w:16},{h:'Claims',w:14}];
 const TW=cols.reduce((s,c)=>s+c.w,0); const relL={'18':'Self','01':'Spouse','19':'Child','G8':'Other'};
@@ -10458,7 +10458,7 @@ y+=3; doc.setDrawColor(...NAVY); doc.line(M,y,RX,y); y+=5;
 doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
 doc.text('TOTAL: '+patients.length+' patients', M, y);
 addPDFWatermark(doc); doc.save('Patients_Report_'+dateStr()+'.pdf');
-toast('PDF exported — '+patients.length+' patients');
+toast('PDF exported • '+patients.length+' patients');
 }
 
 function applyBulkStatus() {
@@ -10520,7 +10520,7 @@ function loadProviderLogo(event) {
 
       let result;
       if (hasAlpha) {
-        // Preserve transparency — use PNG, scale down more aggressively
+        // Preserve transparency • use PNG, scale down more aggressively
         ctx.clearRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
         result = canvas.toDataURL('image/png');
@@ -10535,7 +10535,7 @@ function loadProviderLogo(event) {
           scale -= 0.1;
         }
       } else {
-        // No transparency — use JPEG with quality reduction
+        // No transparency • use JPEG with quality reduction
         ctx.drawImage(img, 0, 0, w, h);
         result = original;
         for (let q = 0.85; q >= 0.3; q -= 0.1) {
@@ -10546,7 +10546,7 @@ function loadProviderLogo(event) {
 
       const origKB = Math.round(originalSize / 1024);
       const newKB  = Math.round(result.length * 0.75 / 1024);
-      toast('Logo ' + (hasAlpha ? 'PNG (transparente)' : 'JPEG') + ': ' + origKB + 'KB → ' + newKB + 'KB', 'ok');
+      toast('Logo ' + (hasAlpha ? 'PNG (transparent)' : 'JPEG') + ': ' + origKB + 'KB → ' + newKB + 'KB', 'ok');
       applyAndShow(result);
     };
     img.src = original;
@@ -10629,7 +10629,7 @@ return `<div style="padding:8px 10px;border-bottom:1px solid var(--border);${i%2
 <span style="font-size:11px">${ptLinkAcct(p.id,p.acct)}</span>
 <select style="flex:1;padding:3px 6px;border:1.5px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-size:11px"
 onchange="_batchPatSel.get('${patId}').rendId=this.value">
-<option value="">— Group rendering</option>
+<option value="">• Group rendering</option>
 ${rends.map(r=>`<option value="${r.id}" ${r.id===(data.rendId||globalRendId)?'selected':''}>${r.last}, ${r.first}</option>`).join('')}
 </select>
 <button class="btn btn-xs btn-danger" onclick="_batchPatSel.delete('${patId}');renderBatchPatients()" title="Remove"><i data-lucide="x" class="lci"></i></button>
@@ -10776,7 +10776,7 @@ if (!batchSelSvcs.length) {
 el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No services selected</div>';
 return;
 }
-el.innerHTML = '<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px">Selected Services — edit units:</div>' +
+el.innerHTML = '<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px">Selected Services • edit units:</div>' +
 '<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden">' +
 batchSelSvcs.map((s, i) => {
 const _ppu = parseFloat(s.rate||0);
@@ -10843,7 +10843,7 @@ if (m) tr.style.background = _selectedPatients.has(m[1]) ? 'var(--brand-bg)' : '
 
 
 // ???????????????????????????????????????????????????????????????????????
-// MEDICAL NOTES MODULE v2 — AUDIT-READY, CPT-DRIVEN, BILLING-DEFENSIBLE
+// MEDICAL NOTES MODULE v2 • AUDIT-READY, CPT-DRIVEN, BILLING-DEFENSIBLE
 // ???????????????????????????????????????????????????????????????????????
 
 // ?? DB helpers ??????????????????????????????????????????????????????????
@@ -10901,7 +10901,7 @@ history: 'Patient carries a chronic psychiatric diagnosis with documented impact
 subjective: 'Patient arrived reporting an acute interpersonal conflict that occurred in a community setting earlier in the week. The patient described feeling overwhelmed by emotional reactivity during the confrontation, leading to behavioral withdrawal and subsequent social isolation. Patient expressed distress regarding the impact of emotional dysregulation on interpersonal relationships and identified conflict resolution as a priority skill area. Patient denied acute suicidal or homicidal ideation and expressed willingness to engage with today\'s session content.',
 objective: 'Patient was present and engaged throughout the structured rehabilitative session. Initial presentation reflected heightened emotional arousal, which diminished progressively as the session proceeded. Patient participated actively in structured conflict resolution exercises, completing role-play scenarios with the support of the facilitator. Behavioral observations: mood anxious at session onset transitioning to calm, affect reactive to therapeutic content, thought process logical and organized, judgment adequate, insight fair to good. Patient demonstrated effort and receptivity to feedback throughout.',
 interventions: 'The session was structured to address conflict resolution within the rehabilitative framework. Interventions included collaborative analysis of the patient\'s recent interpersonal conflict using a structured de-escalation framework, identification of maladaptive behavioral patterns and alternative responses, behavioral rehearsal of assertive conflict resolution techniques, and application of cognitive reframing to modify dysfunctional interpretations of interpersonal events. Clinician provided in-the-moment corrective feedback and positive reinforcement of adaptive behavioral demonstrations.',
-assessment: 'The patient\'s acute emotional response to interpersonal conflict illustrates the persistence of functional impairments in emotional regulation and interpersonal effectiveness, which remain primary rehabilitative targets. Despite the challenging presentation, the patient demonstrated responsiveness to structured intervention and capacity to engage in structured skill practice during heightened emotional states — a positive clinical indicator. Medical necessity for continued psychosocial rehabilitation is clearly supported.',
+assessment: 'The patient\'s acute emotional response to interpersonal conflict illustrates the persistence of functional impairments in emotional regulation and interpersonal effectiveness, which remain primary rehabilitative targets. Despite the challenging presentation, the patient demonstrated responsiveness to structured intervention and capacity to engage in structured skill practice during heightened emotional states • a positive clinical indicator. Medical necessity for continued psychosocial rehabilitation is clearly supported.',
 mn_statement: 'This patient continues to require H2017 psychosocial rehabilitation services based on clearly documented functional impairment in emotional regulation and interpersonal effectiveness secondary to a chronic psychiatric diagnosis. The patient\'s recent interpersonal decompensation demonstrates ongoing need for structured rehabilitative support to prevent escalation, maintain community placement, and reduce risk of acute psychiatric crisis. Continued services are medically necessary and clinically appropriate.',
 plan: 'H2017 services to continue per authorization. Upcoming sessions will provide structured practice of conflict resolution strategies in progressively complex social scenarios. Patient will be assigned a between-session monitoring task to track emotional regulation responses to real-world triggers. Provider will document clinical response to conflict resolution interventions and update treatment goals as indicated by functional progress.'
 },
@@ -11044,9 +11044,9 @@ plan: 'Continue conjoint family psychotherapy at current frequency. Parental dya
 ]
 },
 
-// ?? 90868: TMS — Transcranial Magnetic Stimulation ?????????????????
+// ?? 90868: TMS • Transcranial Magnetic Stimulation ?????????????????
 '90868': {
-label: 'TMS Therapy — Transcranial Magnetic Stimulation',
+label: 'TMS Therapy • Transcranial Magnetic Stimulation',
 category: 'tms_neuromodulation',
 format: 'full_clinical',
 mn_driver: 'Patient with treatment-resistant depressive disorder who has failed adequate trials of antidepressant medications requires TMS neuromodulation therapy to achieve adequate symptom response and functional recovery.',
@@ -11265,7 +11265,7 @@ btn.style.background = 'linear-gradient(145deg,#dc2626,#b91c1c)';
 btn.style.boxShadow = '0 6px 20px rgba(220,38,38,.5), 0 0 0 8px rgba(220,38,38,.15)';
 btn.style.animation = 'voicePulse 1.5s ease-in-out infinite';
 btn.innerHTML = '<i data-lucide="mic-off" class="lci" style="width:32px;height:32px;color:#fff"></i>';
-if (status) status.textContent = 'Recording — tap to stop';
+if (status) status.textContent = 'Recording • tap to stop';
 if (live) live.textContent = 'Listening...';
 } else {
 btn.style.background = 'linear-gradient(145deg,#D45C37,#B8461F)';
@@ -11273,7 +11273,7 @@ btn.style.boxShadow = '0 6px 20px rgba(212,92,55,.4)';
 btn.style.animation = 'none';
 btn.innerHTML = '<i data-lucide="mic" class="lci" style="width:32px;height:32px;color:#fff"></i>';
 if (status) status.textContent = _vBuf ? 'Tap to continue dictating' : 'Tap the mic and dictate your note';
-if (live) live.textContent = _vBuf ? 'Transcript captured — tap Auto-Structure' : 'Transcript will appear here...';
+if (live) live.textContent = _vBuf ? 'Transcript captured • tap Auto-Structure' : 'Transcript will appear here...';
 }
 setTimeout(_renderLucideIcons, 10);
 }
@@ -11291,7 +11291,7 @@ function _structureVoiceNote() {
 const ta = document.getElementById('voice-note-output');
 if (!ta) return;
 const raw = (ta.value || _vBuf).trim();
-if (!raw) { toast('Nothing to structure yet — dictate first','warn'); return; }
+if (!raw) { toast('Nothing to structure yet • dictate first','warn'); return; }
 
 const db = getDB();
 const claim = _vClaimId ? (db.claims||[]).find(c=>c.id===_vClaimId) : null;
@@ -11304,7 +11304,7 @@ ta.value = structured;
 _vBuf = structured;
 toast('Note structured into SOAP format');
 } else {
-toast('Could not structure — try dictating more content','warn');
+toast('Could not structure • try dictating more content','warn');
 }
 }
 
@@ -11558,7 +11558,7 @@ autoDistribute(sections, rawText) {
 const total = Object.values(sections).flat().length;
 const inS = sections.S.length;
 if (total > 4 && inS === total) {
-// No section keywords — split by quarters
+// No section keywords • split by quarters
 const all = sections.S.splice(0);
 const q = Math.ceil(all.length / 4);
 sections.S = all.slice(0, q);
@@ -11590,7 +11590,7 @@ ${fmt(sections.S) !== '' ? fmt(sections.S) : `${age}-year-old ${sex} presents fo
 OBJECTIVE
 ${tpl.exam}
 ${fmt(sections.O) !== '' ? fmt(sections.O) : 'Vital signs and physical findings documented in chart.'}
-CPT: ${cpts.join(', ') || 'N/A'} — ${tpl.level}
+CPT: ${cpts.join(', ') || 'N/A'} • ${tpl.level}
 
 ASSESSMENT
 ${fmt(sections.A) !== '' ? fmt(sections.A) : `Patient evaluated for ${dxFull}.`}
@@ -11647,7 +11647,7 @@ const existNote = noteId ? (_localDB.notes||[]).find(n=>n.id===noteId) : null;
 const cpts = claim ? (claim.lines||[]).map(l=>l.cpt).filter(Boolean) : [];
 const dx = claim ? (claim.dx||[]).filter(Boolean) : [];
 const dos = claim ? claim.dos : new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
-const hasSpeech = true; // Always show mic — handle unsupported browsers gracefully
+const hasSpeech = true; // Always show mic • handle unsupported browsers gracefully
 
 _vPatId=''; _vClaimId=''; _vNoteId=''; // will set after modal opens
 _vBuf = existNote?.full_note || '';
@@ -11738,7 +11738,7 @@ background:var(--bg3);color:var(--text3);border:1px solid var(--border)">
 <div style="font-size:11px;color:var(--text3);text-align:center;line-height:1.7;max-width:480px">
 Say a keyword like <strong>"Subjective,"</strong> then dictate that section.<br>
 The AI will auto-structure into a clinical SOAP note.
-<strong>Works in Chrome & Edge</strong> — no internet required.
+<strong>Works in Chrome & Edge</strong> • no internet required.
 </div>
 </div>` : `
 <div style="text-align:center;padding:16px;background:var(--amber-bg);border-radius:14px;border:1px solid var(--amber-bdr)">
@@ -11779,7 +11779,7 @@ font-size:13px;line-height:1.85;font-family:var(--font);resize:none;
 transition:border-color .2s,box-shadow .2s;outline:none"
 onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px rgba(74,74,74,.1)'"
 onblur="this.style.borderColor='var(--border2)';this.style.boxShadow='none'"
-placeholder="Dictate above — or type your SOAP note directly here...
+placeholder="Dictate above • or type your SOAP note directly here...
 &#10;&#10;Tip: Say 'Subjective,' then your symptoms. Say 'Plan,' then your treatment steps.">${_vBuf}</textarea>
 
 
@@ -11819,7 +11819,7 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SR) {
 const live = document.getElementById('voice-live');
 const status = document.getElementById('voice-status');
-if (live) live.textContent = 'Voice not supported — use Chrome or Edge';
+if (live) live.textContent = 'Voice not supported • use Chrome or Edge';
 if (status) status.textContent = 'Voice not available in this browser';
 toast('Use Chrome or Edge for voice dictation','warn');
 return;
@@ -11831,7 +11831,7 @@ navigator.mediaDevices.getUserMedia({ audio: true })
 .then(() => _doStartRecognition(SR))
 .catch(err => {
 const live = document.getElementById('voice-live');
-if (live) live.textContent = 'Mic access denied — please allow microphone';
+if (live) live.textContent = 'Mic access denied • please allow microphone';
 toast('Microphone access denied: ' + err.message, 'err');
 });
 } else {
@@ -11890,12 +11890,12 @@ if (e.error === 'no-speech') return;
 if (e.error === 'not-allowed') {
 _stopVoice();
 const live = document.getElementById('voice-live');
-if (live) live.textContent = 'Mic access denied — check browser permissions';
+if (live) live.textContent = 'Mic access denied • check browser permissions';
 toast('Microphone access denied', 'err');
 return;
 }
 if (e.error === 'aborted') return;
-// Other errors — try to restart
+// Other errors • try to restart
 if (_vActive) {
 setTimeout(() => { if (_vActive) try { _vRec?.start(); } catch(ex) {} }, 500);
 }
@@ -11967,7 +11967,7 @@ let sections=CdcNLPEngine.parseTranscript(raw);
 sections=CdcNLPEngine.autoDistribute(sections,raw);
 const note=CdcNLPEngine.buildNote(sections,pat,cpts,dx);
 ta.value=note; _vBuf=note;
-toast('Note structured into SOAP format ?');
+toast('Note structured into SOAP format');
 }
 
 function _vClear() {
@@ -11982,7 +11982,7 @@ _stopVoice();
 function saveAINote() {
 const ta=document.getElementById('voice-note-output');
 const noteText=ta?ta.value.trim():_vBuf.trim();
-if(!noteText||noteText.length<10){ toast('Note is empty — dictate or type first','warn'); return; }
+if(!noteText||noteText.length<10){ toast('Note is empty • dictate or type first','warn'); return; }
 _stopVoice();
 const db=getDB();
 const claim=_vClaimId?(db.claims||[]).find(c=>c.id===_vClaimId):null;
@@ -12003,7 +12003,7 @@ createdAt:Date.now(), updatedAt:Date.now(),
 };
 setDB(db2=>{ if(!db2.notes)db2.notes=[]; const idx=db2.notes.findIndex(n=>n.id===note.id); if(idx>=0)db2.notes[idx]=note; else db2.notes.push(note); });
 document.getElementById('ai-note-modal')?.remove();
-toast('Encounter note saved ?');
+toast('Encounter note saved');
 try{ renderNotes(); }catch(e){}
 try{ if(document.getElementById('ptc-tab-encounters')?.classList.contains('active'))_renderChartTab('encounters'); }catch(e){}
 }
@@ -12266,7 +12266,7 @@ const name = v('mins-name');
 const payerId = v('mins-payerid');
 const insType = document.getElementById('mins-type')?.value||'electronic';
 if (!name) { toast('Payer name is required','warn'); return; }
-// Payer ID only required for electronic (EDI) submission — manual/paper payers can skip it
+// Payer ID only required for electronic (EDI) submission • manual/paper payers can skip it
 if (insType === 'electronic' && !payerId) { toast('Payer ID is required for electronic submission','warn'); return; }
 const iid = (document.getElementById('mins-id')?.value||'').trim();
 const isNew = !iid;
@@ -12298,7 +12298,7 @@ if (idx>=0) db2.insurances[idx]=ins; else db2.insurances.push(ins);
 });
 closeModal('modal-insurance');
 renderInsurances();
-toast(isNew?'Payer added ?':'Payer updated ?');
+toast(isNew?'Payer added':'Payer updated');
 }
 
 function toggleInsuranceStatus(iid) {
@@ -12322,7 +12322,7 @@ const usedInClaim = (db.claims||[]).some(c => {
     (pat.insurances||[]).some(pi=>pi.payerId===ins.payerId||pi.payerId===iid));
 });
 if (usedInClaim) {
-  toast('Cannot delete — payer is used in claims. Mark Inactive instead.','err');
+  toast('Cannot delete • payer is used in claims. Mark Inactive instead.','err');
   return;
 }
 return cdcConfirm(`Delete payer "${ins.name}"?`).then((__ok)=>{if(!__ok)return;
@@ -12447,7 +12447,7 @@ claimmdVerified:true,
 createdAt:Date.now(), updatedAt:Date.now(),
 });
 });
-toast(`${p.name} added ?`);
+toast(`${p.name} added`);
 filterClearinghousePayers(); // refresh list to show Added
 renderInsurances();
 }
@@ -12500,7 +12500,7 @@ function printEOBBatch(batchId) {
   var balance = parseFloat(b.checkAmt||0) - posted;
   var typeLbl = b.source==='era'?'ERA':b.source==='835'?'EDI 835':'Manual EOB';
 
-  // Logo — base64 if available, else text fallback
+  // Logo • base64 if available, else text fallback
   var logoHtml = prov.logo
     ? '<img src="'+prov.logo+'" style="height:52px;max-width:180px;object-fit:contain;display:block">'
     : '<div style="font-size:22px;font-weight:900;color:#D45C37;letter-spacing:-.02em">'+(prov.name||'Billing Provider')+'</div>';
@@ -12511,21 +12511,21 @@ function printEOBBatch(batchId) {
   var lineRows = (b.lines||[]).map(function(l) {
     var claim = db.claims.find(function(c){ return c.id===l.claimId; })||{};
     var pat   = db.patients.find(function(p){ return p.id===claim.patId; })||{};
-    var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'—';
+    var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'•';
     // CPT codes from claim lines
     var cpts = ((claim.lines)||[]).map(function(cl){ return cl.cpt||cl.code||''; }).filter(Boolean).join(', ');
     return '<tr style="border-bottom:1px solid #E4E9F1">'+
-      '<td style="padding:6px 10px;font-size:11px;font-family:monospace">'+(l.pcn||claim.pcn||'—')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px;font-family:monospace">'+(l.pcn||claim.pcn||'•')+'</td>'+
       '<td style="padding:6px 10px;font-size:12px">'+patName+'</td>'+
-      '<td style="padding:6px 10px;font-size:11px">'+(l.dos||claim.dos||'—')+'</td>'+
-      '<td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#475467">'+(cpts||'—')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px">'+(l.dos||claim.dos||'•')+'</td>'+
+      '<td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#475467">'+(cpts||'•')+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.amtPaid||0).toFixed(2))+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.amtAdj||0).toFixed(2))+'</td>'+
       '<td style="padding:6px 10px;font-size:12px;text-align:right;font-family:monospace">$'+(parseFloat(l.patResp||0).toFixed(2))+'</td>'+
     '</tr>';
   }).join('');
 
-  var html = '<!DOCTYPE html><html><head><title>EOB — '+b.checkNum+'</title>'+
+  var html = '<!DOCTYPE html><html><head><title>EOB • '+b.checkNum+'</title>'+
   '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:32px;color:#0B1526}'+
   '.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:18px;border-bottom:3px solid #D45C37}'+
   '.prov-block{display:flex;flex-direction:column;gap:3px;max-width:55%}'+
@@ -12561,9 +12561,9 @@ function printEOBBatch(batchId) {
     '</div>'+
   '</div>'+
   '<div class="info-grid">'+
-    '<div class="info-item"><label>Payer</label><span>'+(b.payerName||'—')+'</span></div>'+
-    '<div class="info-item"><label>Check / EFT #</label><span style="font-family:monospace">'+(b.checkNum||'—')+'</span></div>'+
-    '<div class="info-item"><label>Check Date</label><span>'+(b.checkDate||'—')+'</span></div>'+
+    '<div class="info-item"><label>Payer</label><span>'+(b.payerName||'•')+'</span></div>'+
+    '<div class="info-item"><label>Check / EFT #</label><span style="font-family:monospace">'+(b.checkNum||'•')+'</span></div>'+
+    '<div class="info-item"><label>Check Date</label><span>'+(b.checkDate||'•')+'</span></div>'+
     '<div class="info-item"><label>Check Amount</label><span style="color:#2d7a4f">$'+(parseFloat(b.checkAmt||0).toFixed(2))+'</span></div>'+
   '</div>'+
   '<table><thead><tr>'+
@@ -12818,7 +12818,7 @@ This is optional. A draft claim will be created using the payment data. Review a
 <div class="field">
 <label>Patient *</label>
 <select id="rc-pat" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">
-<option value="">— Select patient —</option>
+<option value="">Select patient</option>
 ${pats.map(p=>`<option value="${p.id}" ${guessedPat?.id===p.id?'selected':''}>${p.last}, ${p.first} · ${p.acct}</option>`).join('')}
 </select>
 ${guessedPat?`<div style="font-size:11px;color:var(--brand);margin-top:3px">? Auto-matched from payment data</div>`:''}
@@ -12860,14 +12860,14 @@ style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);f
 <div class="field">
 <label>Rendering Provider</label>
 <select id="rc-rend" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">
-<option value="">— None —</option>
+<option value="">None</option>
 ${rends.map(r=>`<option value="${r.id}">${r.last}, ${r.first}</option>`).join('')}
 </select>
 </div>
 <div class="field">
 <label>Facility</label>
 <select id="rc-fac" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text)">
-<option value="">— None —</option>
+<option value="">None</option>
 ${facs.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
 </select>
 </div>
@@ -12984,7 +12984,7 @@ if (eu) eu.textContent = Math.max(0,parseInt(eu.textContent||0)-1);
 renderEOBPage();
 renderClaims();
 updateBadges();
-toast(`Claim ${pcn} created and payment posted ?`);
+toast(`Claim ${pcn} created and payment posted`);
 }
 function renderEOBUnmatched() {
 const db = getDB();
@@ -12992,7 +12992,7 @@ const unmatched = (db.eobUnmatched||[]).filter(u=>u.providerId===activeProviderI
 if (!unmatched.length) return `<div class="empty"><h3 style="color:var(--brand)">No unmatched payments</h3></div>`;
 
 return `<div style="margin-bottom:10px;padding:10px 14px;background:var(--amber-bg);border:1px solid var(--amber-bdr);border-radius:var(--r);font-size:12px;color:var(--amber)">
-<strong>${unmatched.length} unmatched payment(s)</strong> — Match to an existing claim, recreate the claim from payment data, or dismiss.
+<strong>${unmatched.length} unmatched payment(s)</strong> • Match to an existing claim, recreate the claim from payment data, or dismiss.
 </div>
 <div class="tbl-wrap"><table>
 <thead><tr>
@@ -13261,7 +13261,7 @@ setEOBBatches(arr => arr.push(batch));
 closeModal('modal-eob-post');
 _eobBatchLines = [];
 renderEOBPage();
-toast(`Payment batch posted — ${batch.lines.length} claim(s)`);
+toast(`Payment batch posted • ${batch.lines.length} claim(s)`);
 }
 
 
@@ -13396,7 +13396,7 @@ if (checkNumNorm) {
     return (e.checkNum||'').trim().toUpperCase() === checkNumNorm;
   });
   if (alreadyPosted) {
-    console.warn('[EOB] Skipping duplicate — checkNum', batch.checkNum, 'PCN:', claim.pcn);
+    console.warn('[EOB] Skipping duplicate • checkNum', batch.checkNum, 'PCN:', claim.pcn);
     return;
   }
 }
@@ -13496,14 +13496,14 @@ claim.secAmt  = totalSecAll;
 claim.adjAmt  = totalAdjAll;
 
 if (isDenial) {
-  // Full denial — mark denied, balance = full charge
+  // Full denial • mark denied, balance = full charge
   claim.status           = 'denied';
   claim.readyForSecondary = false;
   claim.patientBalance   = 0; // billing team reviews first
   claim.denialReason     = adjLines.filter(function(a){return a.group==='CO';})
     .map(function(a){return a.group+'-'+a.code;}).join(', ');
 } else if (isSecondaryPayment) {
-  // Secondary already posted — remaining PR is real patient responsibility
+  // Secondary already posted • remaining PR is real patient responsibility
   var afterSecondary = Math.max(0, totalPRAll - totalPaidAll + parseFloat(l.amtPaid||0));
   if (prIsPatientResponsibility) {
     // Deductible/copay/coinsurance from secondary = patient owes
@@ -13511,7 +13511,7 @@ if (isDenial) {
     claim.status           = totalPaidAll >= billed * 0.95 ? 'paid' : 'partially_paid';
     claim.readyForSecondary = false;
   } else {
-    // Secondary denied for non-PR reasons — flag for review
+    // Secondary denied for non-PR reasons • flag for review
     claim.status           = 'denied';
     claim.patientBalance   = 0;
     claim.readyForSecondary = false;
@@ -13521,13 +13521,13 @@ if (isDenial) {
   // Primary payment
   if (totalPR > 0) {
     if (hasSecondary) {
-      // Has secondary — PR goes to secondary queue, not patient debt
+      // Has secondary • PR goes to secondary queue, not patient debt
       claim.readyForSecondary = true;
       claim.secondaryBalance  = totalPR;
       claim.patientBalance    = 0;
       claim.status            = totalPaidAll > 0 ? 'partially_paid' : claim.status;
     } else {
-      // No secondary — PR is real patient responsibility
+      // No secondary • PR is real patient responsibility
       claim.patientBalance    = totalPR;
       claim.readyForSecondary = false;
       claim.status            = totalPaidAll > 0 ? (totalPaidAll >= billed * 0.95 ? 'paid' : 'partially_paid') : claim.status;
@@ -13639,7 +13639,7 @@ function _parseERADataClaims(eraData, eraInfo, db) {
         var _db2 = getDB();
         var _existingEOBs = (_db2.claimEOB && _db2.claimEOB[claim.id]) || [];
         if (_existingEOBs.some(function(e){ return (e.checkNum||'').trim().toUpperCase()===chkNum; })) {
-          console.warn('[ERA] Skipping duplicate — check#', eraInfo.check_number, 'already posted to claim PCN:', claim.pcn);
+          console.warn('[ERA] Skipping duplicate • check#', eraInfo.check_number, 'already posted to claim PCN:', claim.pcn);
           return;
         }
       }
@@ -13753,7 +13753,7 @@ function _eraProgressClose(summary) {
 }
 
 async function fetchERAFromClearinghouse() {
-  // Strict per-provider check — do NOT fall back to any cached key from another
+  // Strict per-provider check • do NOT fall back to any cached key from another
   // provider. Using the wrong provider's key here previously caused ERAs from a
   // different practice to be imported and stamped as the active provider's payments.
   var chk = _requireCHKey('Import ERA payments');
@@ -13771,11 +13771,11 @@ async function fetchERAFromClearinghouse() {
   setTimeout(_renderLucideIcons, 50);
 
   var db = getDB();
-  // ERA cursor is stored per-provider — that was already correct.
+  // ERA cursor is stored per-provider • that was already correct.
   var cursorKey = 'lastERAID_' + importingProviderId;
   var lastERAID = (db.settings && db.settings[cursorKey]) ? db.settings[cursorKey] : '0';
 
-  console.log('[CDC][ERA] Fetching as provider', importingProviderId, importingProviderName, '— last ERAID:', lastERAID);
+  console.log('[CDC][ERA] Fetching as provider', importingProviderId, importingProviderName, '• last ERAID:', lastERAID);
 
   var eraList;
   try {
@@ -13794,18 +13794,18 @@ async function fetchERAFromClearinghouse() {
     toast('No new ERAs'); return;
   }
 
-  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) — importing&hellip;</div>');
+  setAlert('<div class="alert al-info">Found '+eras.length+' ERA(s) • importing&hellip;</div>');
   var eraDataCount = 0;
 
   // Open progress modal
   _eraProgressOpen(eras.length);
-  _eraProgressUpdate(0, eras.length, 'Found ' + eras.length + ' ERA(s) — fetching details…');
+  _eraProgressUpdate(0, eras.length, 'Found ' + eras.length + ' ERA(s) • fetching details…');
 
   var allPosted=[], allUnmatched=[], allBatches=[], newLastERAID=lastERAID;
 
   // Safety check: a single ClaimMD Account Key can cover multiple billing
   // providers/NPIs. Each ERA entry carries the billing provider's own
-  // prov_npi/prov_taxid — we must verify it matches the ACTIVE provider
+  // prov_npi/prov_taxid • we must verify it matches the ACTIVE provider
   // before any matching/posting happens, or a check belonging to a
   // DIFFERENT provider could get posted onto this provider's claims.
   var activeProv = db.providers.find(function(p){ return p.id === activeProviderId; }) || {};
@@ -13823,19 +13823,19 @@ async function fetchERAFromClearinghouse() {
     var belongsToActiveProvider = true;
     if (eraNpi && activeNpi) belongsToActiveProvider = (eraNpi === activeNpi);
     else if (eraTaxid && activeTaxid) belongsToActiveProvider = (eraTaxid === activeTaxid);
-    // If neither NPI nor TaxID is present on the ERA record, we can't verify —
+    // If neither NPI nor TaxID is present on the ERA record, we can't verify •
     // fall back to the existing PCN + providerId matching done downstream.
 
     // Always advance this provider's cursor so a foreign-provider ERA isn't
-    // re-fetched/re-skipped forever — the OTHER provider has its own
+    // re-fetched/re-skipped forever • the OTHER provider has its own
     // separate cursor (lastERAID_<providerId>) and will pick it up correctly
     // the next time IT runs an import.
     if (parseInt(eraid) > parseInt(newLastERAID)) newLastERAID = eraid;
 
     if (!belongsToActiveProvider) {
       skippedOtherProvider++;
-      _eraProgressUpdate(i+1, eras.length, '⚠ Skipped ERA #' + eraid + ' — belongs to a different billing provider (NPI ' + (eraNpi||'?') + ')');
-      console.warn('[ERA] Skipping ERA', eraid, '— prov_npi', eraNpi, 'does not match active provider NPI', activeNpi);
+      _eraProgressUpdate(i+1, eras.length, '⚠ Skipped ERA #' + eraid + ' • belongs to a different billing provider (NPI ' + (eraNpi||'?') + ')');
+      console.warn('[ERA] Skipping ERA', eraid, '• prov_npi', eraNpi, 'does not match active provider NPI', activeNpi);
       continue;
     }
 
@@ -13885,7 +13885,7 @@ async function fetchERAFromClearinghouse() {
     setDB(function(db2){ if(!db2.settings) db2.settings={}; db2.settings[cursorKey]=newLastERAID; });
   }
 
-  // ── Queue for preview — don't auto-post ──────────────────────────────
+  // ── Queue for preview • don't auto-post ──────────────────────────────
   var today2 = new Date(); today2.setHours(0,0,0,0);
   var previewItems = allBatches.map(function(batch) {
     var paidDate = batch.checkDate ? new Date(batch.checkDate) : null;
@@ -13948,9 +13948,9 @@ async function fetchERAFromClearinghouse() {
   var futureCount = previewItems.filter(function(x){return x.isFuture;}).length;
   var unmatchedCount = allUnmatched.length;
   // Close progress modal
-  var _summary2 = 'Imported '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' unmatched':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' skipped (other provider)':'');
+  var _summary2 = 'Imported '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' • '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' unmatched':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' skipped (other provider)':'');
   _eraProgressClose(_summary2);
-  toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' — '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' from other providers (skipped)':'')+' ');
+  toast('ERA imported: '+eraDataCount+' ERA'+(eraDataCount!==1?'s':'')+' • '+totalItems+' matched'+(unmatchedCount?' · '+unmatchedCount+' no match':'')+(futureCount?' · '+futureCount+' future':'')+(skippedOtherProvider?' · '+skippedOtherProvider+' from other providers (skipped)':'')+' ');
   renderEOBPage(); updateBadges();
   // Auto-navigate to Pending ERA tab
   setEOBTab('era-pending', document.getElementById('eob-tab-era-pending'));
@@ -13980,7 +13980,7 @@ function _openERAPreviewModal(previewItems, allBatches, allUnmatched) {
   }).join('');
 
   var unmNote = allUnmatched.length
-    ? '<div style="padding:8px 12px;background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:10px"><strong>'+allUnmatched.length+'</strong> claim(s) could not be matched — they appear in Unmatched tab.</div>'
+    ? '<div style="padding:8px 12px;background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:10px"><strong>'+allUnmatched.length+'</strong> claim(s) could not be matched • they appear in Unmatched tab.</div>'
     : '';
 
   var html =
@@ -13988,7 +13988,7 @@ function _openERAPreviewModal(previewItems, allBatches, allUnmatched) {
     +'<div class="modal" style="max-width:780px;width:98%;max-height:90vh;display:flex;flex-direction:column">'
       +'<div class="modal-hdr" style="flex-shrink:0">'
         +'<div><div class="modal-t"><i data-lucide="download-cloud" class="lci" style="width:16px;height:16px"></i> ERA Payment Preview</div>'
-        +'<div class="modal-sub">Check the payments you want to post now. Future payments are unchecked — they save to Pending ERA.</div></div>'
+        +'<div class="modal-sub">Check the payments you want to post now. Future payments are unchecked • they save to Pending ERA.</div></div>'
         +'<button class="btn btn-ghost btn-sm" onclick="closeModal(&quot;modal-era-preview&quot;)">×</button>'
       +'</div>'
       +'<div class="modal-body" style="flex:1;overflow-y:auto;padding:16px">'
@@ -14058,10 +14058,10 @@ var _SPEC_MENU_DEFS = [
     {label:'Export / Submit', id:'tnd-export', group:'tnd-export'}
   ];
 
-// The 4 CM group IDs — used when applying the Case Management layout
+// The 4 CM group IDs • used when applying the Case Management layout
 var _CM_GROUP_IDS = ['tng-cm-clients-group','tng-cm-care','tng-cm-workflow','tng-cm-review'];
 
-// The default (Nurse Practitioner / medical billing) primary groups — hidden when CM is active
+// The default (Nurse Practitioner / medical billing) primary groups • hidden when CM is active
 var _NP_GROUP_IDS = ['tnav-appointments','tnav-patients','tng-billing','tng-ehr'];
 
 // True if the active specialty represents Case Management (by name or taxonomy).
@@ -14084,14 +14084,14 @@ function _isCMSpecialtyActive(){
 // Matches the logged-in session to a CM Worker record by email (case-
 // insensitive). Super Admin always sees every CM module regardless of any
 // worker record, so this never narrows access for the account that manages
-// the whole system — it only applies once a specific worker (with an
+// the whole system • it only applies once a specific worker (with an
 // email matching a real login) is the one signed in.
 // If no matching worker record exists, nothing is hidden (unchanged
-// behavior) — this only ever narrows access, never grants it beyond what
+// behavior) • this only ever narrows access, never grants it beyond what
 // the specialty allowlist already showed.
 // True only for Super Admin, or a logged-in CM worker whose roles include
 // Administrator. Users creation/editing and the Users list itself are
-// restricted to this check — no other role may see or manage them.
+// restricted to this check • no other role may see or manage them.
 function _cmCurrentWorkerIsAdmin(){
   var sess = getSession();
   if (!sess) return false;
@@ -14124,7 +14124,7 @@ function _cmApplyWorkerRoleGating(){
   if (!d || !Array.isArray(d.workers)) return;
   var email = String(sess.email).toLowerCase();
   var worker = d.workers.find(function(w){ return w.email && String(w.email).toLowerCase() === email; });
-  if (!worker) return; // no CM worker record tied to this login — leave menus as the specialty allowlist set them
+  if (!worker) return; // no CM worker record tied to this login • leave menus as the specialty allowlist set them
 
   var roles = worker.roles || (worker.isSupervisor ? ['Case Manager','Supervisor'] : ['Case Manager']);
   var canReview = roles.indexOf('Supervisor') >= 0 || roles.indexOf('Billing') >= 0 || roles.indexOf('Quality Assurance') >= 0 || roles.indexOf('Administrator') >= 0;
@@ -14135,7 +14135,7 @@ function _cmApplyWorkerRoleGating(){
 }
 
 // Expand a menus allowlist to include the new CM groups if it contains the
-// legacy 'tng-cm' entry — backward compat for existing provider configs.
+// legacy 'tng-cm' entry • backward compat for existing provider configs.
 function _expandLegacyMenus(menus){
   if (!Array.isArray(menus)) return [];
   if (menus.indexOf('tng-cm') < 0) return menus;
@@ -14207,7 +14207,7 @@ function _mprovAddSpecialty() {
 // ── Active Specialty Runtime ──────────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════════════════
-// USER INFO VIEW — Read-only modal accessible via the eye icon on user rows
+// USER INFO VIEW • Read-only modal accessible via the eye icon on user rows
 // Purpose: any user can view their own info (or an admin can review a user's
 // info). If the viewer cannot edit users, a "Create Ticket" button lets them
 // request changes via the ticket system.
@@ -14233,7 +14233,7 @@ function _usToggleRole(cb){
 /* saveUserSpecialties: moved to cdc-users.js */
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TICKET SYSTEM — Support tickets for all users, managed by Super Admin only
+// TICKET SYSTEM • Support tickets for all users, managed by Super Admin only
 // ═══════════════════════════════════════════════════════════════════════════
 var _TICKET_CATS = [
   { id:'user-info',  label:'User Info Change' },
@@ -14292,7 +14292,7 @@ function openTicketsModal(ev){
 
 function _ensureTicketsModal(){
   if (document.getElementById('modal-tickets')) return;
-  // Build overlay directly — do NOT use _mk() (it's a local closure inside
+  // Build overlay directly • do NOT use _mk() (it's a local closure inside
   // _injectMissingModals and not accessible from here).
   var overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -14334,7 +14334,7 @@ function _renderTicketsModal(){
 
   var content = '';
   if (window._ticketsTab === 'new'){
-    if (sub) sub.textContent = 'Describe your request — Super Admin will review';
+    if (sub) sub.textContent = 'Describe your request • Super Admin will review';
     content = _renderNewTicketForm();
   } else if (window._ticketsTab === 'detail' && window._ticketsDetailId){
     var t = (db.tickets||[]).find(function(x){ return x.id === window._ticketsDetailId; });
@@ -14431,7 +14431,7 @@ function _renderTicketDetail(t, isAdmin){
       '<textarea id="tk-reply" rows="3" placeholder="Write a reply..." style="width:100%;resize:vertical;font-family:var(--font);padding:10px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:12px;background:var(--bg2);color:var(--text)"></textarea>'+
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">'+
         '<button class="btn btn-primary btn-sm" onclick="postTicketReply(\''+t.id+'\','+(isAdmin?'true':'false')+')"><i data-lucide="send" class="lci" style="width:12px;height:12px"></i> Reply</button>'+
-      '</div></div>' : '<div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:8px;text-align:center;font-size:11px;color:var(--text3)">Ticket is closed — replies disabled</div>')+
+      '</div></div>' : '<div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:8px;text-align:center;font-size:11px;color:var(--text3)">Ticket is closed • replies disabled</div>')+
     _ticketCloseActions(t,isAdmin)+'</div>';
 }
 
@@ -14467,13 +14467,13 @@ function finalizeTicket(ticketId, isAdminView) {
         email: sess.email || '',
         name: sess.name || sess.email || 'User',
         ts: Date.now(),
-        message: '— Ticket cerrado —',
+        message: 'Ticket cerrado',
         isStaff: sess.role === 'Super Admin',
         isSystem: true,
       });
     }
   });
-  if (typeof toast === 'function') toast('Ticket cerrado', 'ok');
+  if (typeof toast === 'function') toast('Ticket closed', 'ok');
   updateTicketsBadge();
   if (isAdminView && typeof renderAdminTickets === 'function') {
     renderAdminTickets();
@@ -14492,7 +14492,7 @@ function reopenTicket(ticketId, isAdminView) {
     t.lastActivity = Date.now();
     t.closedAt = null;
   });
-  if (typeof toast === 'function') toast('Ticket reabierto', 'ok');
+  if (typeof toast === 'function') toast('Ticket reopened', 'ok');
   updateTicketsBadge();
   if (isAdminView && typeof renderAdminTickets === 'function') renderAdminTickets();
   else if (typeof _renderTicketsModal === 'function') _renderTicketsModal();
@@ -14514,7 +14514,7 @@ if (t && t.status === 'closed') {
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#525252" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
     '<span style="font-size:12px;font-weight:600;color:#525252">Ticket cerrado' +
-    (t.closedAt ? ' — ' + new Date(t.closedAt).toLocaleString() : '') + '</span>' +
+    (t.closedAt ? ' • ' + new Date(t.closedAt).toLocaleString() : '') + '</span>' +
     '</div>' +
     (sess && sess.role === 'Super Admin'
       ? '<button onclick="reopenTicket(\'' + t.id + '\',' + (isAdmin ? 'true' : 'false') + ')" ' +
@@ -14667,7 +14667,7 @@ function renderAdminTickets(){
       '<td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--text3)">#'+(t.id||'').slice(-6).toUpperCase()+'</td>'+
       '<td style="padding:8px 12px;font-weight:600">'+_escHtml(t.subject||'(untitled)')+'</td>'+
       '<td style="padding:8px 12px;font-size:11px">'+_escHtml(t.createdByName||t.createdByEmail||'?')+'</td>'+
-      '<td style="padding:8px 12px;font-size:11px;color:var(--text3)">'+(prov?_escHtml(prov.name||''):'—')+'</td>'+
+      '<td style="padding:8px 12px;font-size:11px;color:var(--text3)">'+(prov?_escHtml(prov.name||''):'•')+'</td>'+
       '<td style="padding:8px 12px;font-size:11px">'+_ticketCatLabel(t.category)+'</td>'+
       '<td style="padding:8px 12px;text-align:center">'+reply+'</td>'+
       '<td style="padding:8px 12px;font-size:10px;color:var(--text3)">'+when+'</td>'+
@@ -14716,7 +14716,7 @@ function renderAdminTickets(){
 
 
 
-// Called from the chip menu — routes to the correct handler based on role
+// Called from the chip menu • routes to the correct handler based on role
 
 
 // SA-only: preview a specialty by hiding/showing menu groups per its def
@@ -14765,7 +14765,7 @@ function getActiveSpecialty() {
   return user ? (user.activeSpecialty || null) : null;
 }
 
-// Switch specialty — persists to db.users AND session for immediate effect
+// Switch specialty • persists to db.users AND session for immediate effect
 // Who may change the active specialty: the owner / Super Admin, or users with the
 // "Switch Specialty" permission checked in their user form.
 function _cdcCanSwitchSpecialty() {
@@ -14831,7 +14831,7 @@ function applyActiveSpecialty() {
     // CM active: hide NP groups + Home routes to cm-dashboard on click
     _NP_GROUP_IDS.forEach(function(id){ setGroupDisplay(id, false); });
     _CM_GROUP_IDS.forEach(function(id){ setGroupDisplay(id, true); });
-    // Legacy tng-cm stays hidden always (no items — was replaced by 4 groups)
+    // Legacy tng-cm stays hidden always (no items • was replaced by 4 groups)
     setGroupDisplay('tng-cm', false);
     // Home + Settings remain (Admin gated by _enforceRoleGates below)
     setGroupDisplay('tnav-dashboard', true);
@@ -14847,7 +14847,7 @@ function applyActiveSpecialty() {
   setGroupDisplay('tng-cm', false);
 
   if (!sess || sess.role === 'Super Admin') {
-    // SA — by default show all NP groups. If SA has a preview override
+    // SA • by default show all NP groups. If SA has a preview override
     // set from the topnav chip and it's a non-CM specialty, apply its allowlist.
     if (sess && sess.role === 'Super Admin' && window._saActiveSpecialty) {
       try { _applySpecialtyMenuForSA(window._saActiveSpecialty); } catch(e) {}
@@ -14916,16 +14916,16 @@ function _applySpecialtyMenuForSA_CM(){
 
 // Render the Specialty Switcher INSIDE the user chip dropdown menu.
 // - For Super Admin: shows ALL specialties defined on the active provider
-//   (preview mode — uses window._saActiveSpecialty override).
+//   (preview mode • uses window._saActiveSpecialty override).
 // - For other users: shows specialties assigned to their user record.
 // - Shows even with 1 specialty (informational). Interactive only with 2+.
 
 
 // Wrapper called by hook points (switchProvider, applyActiveSpecialty, etc.)
-// Old standalone topnav chip was removed — this now routes to the user-menu switcher.
+// Old standalone topnav chip was removed • this now routes to the user-menu switcher.
 
 
-// Called from the user menu switcher buttons — same routing as before.
+// Called from the user menu switcher buttons • same routing as before.
 
 
 function _recreateClaimFromERA(eraId) {
@@ -14964,7 +14964,7 @@ function _recreateClaimFromERA(eraId) {
     status: 'submitted',
     eraRecreated: true,
     eraId: eraId,
-    notes: 'Recreated from ERA #'+eraId+' — PCN: '+cd.pcn,
+    notes: 'Recreated from ERA #'+eraId+' • PCN: '+cd.pcn,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -14978,7 +14978,7 @@ function _recreateClaimFromERA(eraId) {
     });
   });
 
-  toast('Claim recreated from ERA — open Claims to review','ok');
+  toast('Claim recreated from ERA • open Claims to review','ok');
   updateBadges();
   renderEOBPage();
   setEOBTab('era-pending', null);
@@ -15113,7 +15113,7 @@ function _eraOpenPaymentDetail(eraId) {
   var item = (db.eraPreviewQueue||[]).find(function(x){ return x.eraId===eraId; });
   var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
 
-  if (!item) { toast('ERA not found — please re-import','warn'); return; }
+  if (!item) { toast('ERA not found • please re-import','warn'); return; }
 
   // Build claim rows from batch lines (or from db if already posted)
   var lines = batch ? (batch.lines||[]) : [];
@@ -15122,7 +15122,7 @@ function _eraOpenPaymentDetail(eraId) {
   var claimRows = lines.map(function(l, idx) {
     var claim = db.claims.find(function(c){ return c.id===l.claimId; })||{};
     var pat   = db.patients.find(function(p){ return p.id===claim.patId; })||{};
-    var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'—';
+    var patName = ((pat.last||'')+(pat.first?', '+pat.first:'')).trim()||'•';
     var cpts  = ((claim.lines)||[]).map(function(cl){ return cl.cpt||cl.code||''; }).filter(Boolean).join(', ');
     var billed = claimTotal(claim)||parseFloat(l.amtPaid||0);
     var coAdj = parseFloat(l.amtAdj||0);
@@ -15148,12 +15148,12 @@ function _eraOpenPaymentDetail(eraId) {
       +'<td style="padding:7px 10px">'
         +'<div style="font-size:11px;font-family:monospace;font-weight:700;color:var(--brand);cursor:pointer" '
           +'onclick="go(&quot;claim-editor&quot;);openClaimDetail(&quot;'+claim.id+'&quot;)" '
-          +'title="Open claim">'+( claim.pcn||l.pcn||'—')+'</div>'
+          +'title="Open claim">'+( claim.pcn||l.pcn||'•')+'</div>'
         +'<div style="font-size:10px;color:var(--text3)">'+(claim.billNum||'')+'</div>'
       +'</td>'
       +'<td style="padding:7px 10px;font-size:12px">'+patName+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+(l.dos||claim.dos||'—')+'</td>'
-      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+( cpts||'—')+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+(l.dos||claim.dos||'•')+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;color:var(--text2)">'+( cpts||'•')+'</td>'
       +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right">$'+billed.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;text-align:right;color:#475467">$'+alw.toFixed(2)+'</td>'
       +'<td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;text-align:right;color:#2d7a4f">$'+paid.toFixed(2)+'</td>'
@@ -15183,7 +15183,7 @@ function _eraOpenPaymentDetail(eraId) {
         +'<i data-lucide="check-circle" class="lci" style="width:13px;height:13px"></i> All payments posted</div>'
     : isFuture
       ? '<div style="padding:8px 14px;background:#ede9fe;border-bottom:1px solid #ddd6fe;font-size:12px;font-weight:600;color:#7c3aed">'
-          +'<i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Future payment — expected '+item.checkDate+'</div>'
+          +'<i data-lucide="clock" class="lci" style="width:13px;height:13px"></i> Future payment • expected '+item.checkDate+'</div>'
       : '';
 
   var modalHtml =
@@ -15244,7 +15244,7 @@ function _eraOpenPaymentDetail(eraId) {
           +'<th style="padding:7px 10px;font-size:10px">Remark Codes</th>'
           +'<th style="padding:7px 10px;font-size:10px;text-align:center">Action</th>'
         +'</tr></thead>'
-        +'<tbody>'+( claimRows || '<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No claim details available — batch data may not be loaded. Please re-import.</td></tr>')+'</tbody>'
+        +'<tbody>'+( claimRows || '<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No claim details available • batch data may not be loaded. Please re-import.</td></tr>')+'</tbody>'
         +'</table>'
       +'</div>'
 
@@ -15268,7 +15268,7 @@ function _eraOpenPaymentDetail(eraId) {
 // Post a single claim line from the detail modal
 function _eraPostSingleLine(eraId, lineIdx) {
   var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
-  if (!batch) { toast('Batch data not found — re-import','warn'); return; }
+  if (!batch) { toast('Batch data not found • re-import','warn'); return; }
   var singleLineBatch = Object.assign({}, batch, { lines: [batch.lines[lineIdx]] });
   _postEOBToClaims(singleLineBatch);
   // Check if all lines are now posted, if so mark item as posted
@@ -15289,7 +15289,7 @@ function _eraPostSingleLine(eraId, lineIdx) {
 // Post all claims from the detail modal
 function _eraPostAllFromDetail(eraId) {
   var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
-  if (!batch) { toast('Batch data not found — re-import','warn'); return; }
+  if (!batch) { toast('Batch data not found • re-import','warn'); return; }
   _postEOBToClaims(batch);
   setEOBBatches(function(arr){ arr.push(batch); });
   setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='posted'; }); });
@@ -15300,7 +15300,7 @@ function _eraPostAllFromDetail(eraId) {
 
 function _eraPostSinglePending(eraId) {
   var batch = (window._eraPreviewBatches||[]).find(function(b){ return b.eraId===eraId; });
-  if (!batch) { toast('Batch data not found — re-fetch ERA','warn'); return; }
+  if (!batch) { toast('Batch data not found • re-fetch ERA','warn'); return; }
   _postEOBToClaims(batch);
   setEOBBatches(function(arr){ arr.push(batch); });
   setDB(function(db2){ (db2.eraPreviewQueue||[]).forEach(function(x){ if(x.eraId===eraId) x.status='posted'; }); });
@@ -15394,7 +15394,7 @@ curClaim= db.claims.find(c=>c.pcn?.toUpperCase()===clpPcn && c.providerId===acti
 }
 
 if (id==='CAS' && curClaim) {
-// CAS = adjustment — record first one
+// CAS = adjustment • record first one
 }
 
 if (id==='SVC' && curClaim && clpPaid>0) {
@@ -15458,7 +15458,7 @@ const pat = db.patients.find(p=>p.id===claim.patId)||{};
 const ins2 = (pat.insurances||[]).find(i=>!i.inactive&&(i.insType||i.type||'').toLowerCase().includes('secondary'));
 if (!ins2) { toast('No secondary insurance on file','warn'); return; }
 
-// Build secondary claim — swap payer info
+// Build secondary claim • swap payer info
 const secClaim = {
 ...JSON.parse(JSON.stringify(claim)),
 id: uid(),
@@ -15615,7 +15615,7 @@ if(ro){
   '</div>';
 } else {
   dxHtml='<div style="margin-bottom:12px">'+
-    '<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Diagnoses (ICD-10) — editable; saves to note &amp; linked claim</div>'+
+    '<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Diagnoses (ICD-10) • editable; saves to note &amp; linked claim</div>'+
     '<div style="display:flex;flex-direction:column;gap:4px">'+
     (function(){
       var h='';
@@ -15637,7 +15637,7 @@ document.body.insertAdjacentHTML('beforeend',`
 <div class="modal" style="max-width:820px;width:96%;max-height:92vh;overflow-y:auto">
 <div class="modal-hdr">
 <div>
-<div class="modal-t">Encounter Note — ${cptLabel}</div>
+<div class="modal-t">Encounter Note • ${cptLabel}</div>
 <div class="modal-sub">${ptLinkName(pat.id,pat.last,pat.first)} · DOS: ${n.dos} · CPT: ${(n.cptAll||[n.cpt]).join(', ')}</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center">
@@ -15837,7 +15837,7 @@ else toast('Note saved');
 function finalizeNote(id) {
 setNotes(arr=>{const n=arr.find(x=>x.id===id);if(n){n.status='finalized';n.finalizedAt=Date.now();n.updatedAt=Date.now();}});
 document.getElementById('modal-note-editor')?.remove();
-renderNotes(); toast('Note finalized ?');
+renderNotes(); toast('Note finalized');
 }
 
 function unfinalizeNote(id) {
@@ -15866,7 +15866,7 @@ if(x){x.templateId=newTmpl.id;x.body=newBody;x.updatedAt=Date.now();x.version=(x
 });
 document.getElementById('modal-note-editor')?.remove();
 openNoteModal(noteId);
-toast('Note regenerated ?');
+toast('Note regenerated');
 }
 
 function deleteNote(id) {
@@ -15959,7 +15959,7 @@ function openEncounterEditor(noteId, encType) {
     : '<span class="badge b-amber">Draft</span>';
   const engine = CPT_ENGINE[n.cpt] || CPT_ENGINE['DEFAULT'];
   const tmpls = engine.templates || [];
-  const tmplOpts = tmpls.map((t,i) => `<option value="${t.id}" ${t.id===n.templateId?'selected':''}>${engine.label} — Template ${i+1}</option>`).join('');
+  const tmplOpts = tmpls.map((t,i) => `<option value="${t.id}" ${t.id===n.templateId?'selected':''}>${engine.label} • Template ${i+1}</option>`).join('');
   const isSA = isAdmin();
   document.getElementById('ee-hdr').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px">
@@ -16138,14 +16138,14 @@ function eeFixCasing(key) {
   if (!ta || !ta.value) return;
   const text = ta.value;
   const upperRatio = (text.match(/[A-Z]/g) || []).length / Math.max(1, (text.match(/[A-Za-z]/g) || []).length);
-  if (upperRatio < 0.6) { toast('This text doesn\'t look like ALL CAPS — left as-is'); return; }
+  if (upperRatio < 0.6) { toast('This text doesn\'t look like ALL CAPS • left as-is'); return; }
   const fixed = text.toLowerCase()
     .replace(/(^\s*[a-z]|[.!?]\s+[a-z])/g, m => m.toUpperCase())
     .replace(/\bi\b/g, 'I')
     .replace(/\bi'/g, "I'");
   ta.value = fixed;
   eeMarkDirty();
-  toast('Casing fixed — review before saving');
+  toast('Casing fixed • review before saving');
 }
 
 function eeSave(andFinalize) {
@@ -16179,7 +16179,7 @@ function eeSave(andFinalize) {
   if (andFinalize) {
     eeAuditLog('ENCOUNTER_FINALIZE', `Encounter ${id} finalized by ${(getSession()?.email||'?')}`);
     closeEncounterEditor();
-    toast('Encounter finalized ?');
+    toast('Encounter finalized');
   } else {
     _eeSaving = false;
     if (saveLabel) saveLabel.textContent = 'Save';
@@ -16206,7 +16206,7 @@ function eeUpdatePreview() {
   if (!n) return;
   const pat = db.patients.find(p => p.id === n.patId) || {};
   const el = document.getElementById('ee-preview');
-  el.innerHTML = `<div class="ep-title">Note Preview — ${pat.last||''}, ${pat.first||''}</div>
+  el.innerHTML = `<div class="ep-title">Note Preview • ${pat.last||''}, ${pat.first||''}</div>
     ${_eeSections.map(s => {
       const txt = document.getElementById(`ee-txt-${s.key}`)?.value?.trim();
       return txt ? `<div class="ep-section">
@@ -16270,7 +16270,7 @@ const EE_MACROS = {
   chief_complaint: [
     'Patient presents for scheduled follow-up visit.',
     'Patient here for initial evaluation and treatment planning.',
-    'Routine follow-up — patient reports stable condition.',
+    'Routine follow-up • patient reports stable condition.',
     'Patient returns for reassessment of symptoms.',
   ],
   history: [
@@ -16301,7 +16301,7 @@ const EE_MACROS = {
     'Patient continues to meet diagnostic criteria with moderate functional impairment.',
     'Clinical presentation consistent with previous assessment. Partial response to current treatment.',
     'Gradual improvement noted. Patient engaged and motivated for continued treatment.',
-    'Stable — no significant change from prior assessment. Continue current plan.',
+    'Stable • no significant change from prior assessment. Continue current plan.',
   ],
   mn_statement: [
     'Services are medically necessary to address documented symptoms and functional impairment.',
@@ -16427,7 +16427,7 @@ function eeToggleMacros(sectionKey, btn) {
 function eeOpenSignature() {
   const notes = getNotes();
   const n = notes.find(x => x.id === _eeNoteId);
-  if (!n) { toast('Could not find this encounter — please reopen it and try again', 'err'); return; }
+  if (!n) { toast('Could not find this encounter • please reopen it and try again', 'err'); return; }
   const db = getDB();
   const pat = db.patients.find(p => p.id === n.patId) || {};
   const rend = db.rendering.find(r => r.id === n.renderingId) || {};
@@ -16567,20 +16567,20 @@ function eeSigUploaded(input) {
   reader.readAsDataURL(input.files[0]);
 }
 
-// Every failure path here now shows a toast — previously a stale/missing
+// Every failure path here now shows a toast • previously a stale/missing
 // note reference (or an empty canvas) would fail with `return` and no
 // feedback at all, which looked exactly like "the button doesn't work."
 function eeSigSave() {
   try {
     if (!_eeNoteId) {
-      toast('This encounter is not open anymore — please reopen it and try again', 'err');
+      toast('This encounter is not open anymore • please reopen it and try again', 'err');
       console.error('[CDC] eeSigSave: _eeNoteId is empty');
       return;
     }
     const notes = getNotes();
     const n = notes.find(x => x.id === _eeNoteId);
     if (!n) {
-      toast('Could not find this encounter — please reopen it and try again', 'err');
+      toast('Could not find this encounter • please reopen it and try again', 'err');
       console.error('[CDC] eeSigSave: no note matches _eeNoteId=', _eeNoteId);
       return;
     }
@@ -16591,7 +16591,7 @@ function eeSigSave() {
     if (drawActive) {
       if (!_eeSigHasDrawn) { toast('Please draw your signature in the box first', 'warn'); return; }
       const canvas = document.getElementById('ee-sig-canvas');
-      if (!canvas) { toast('Signature pad not ready — please close and reopen this window', 'err'); return; }
+      if (!canvas) { toast('Signature pad not ready • please close and reopen this window', 'err'); return; }
       sigData = canvas.toDataURL('image/png');
       sigType = 'drawn';
     } else if (uploadActive) {
@@ -16617,7 +16617,7 @@ function eeSigSave() {
     setTimeout(_renderLucideIcons, 10);
   } catch (e) {
     console.error('[CDC] eeSigSave failed:', e);
-    toast('Could not save the signature — check console (F12) for details', 'err');
+    toast('Could not save the signature • check console (F12) for details', 'err');
   }
 }
 
@@ -16656,7 +16656,7 @@ const idx=db.claims.findIndex(c=>c.id===claimId);
 if(idx>=0) openClaim(idx);
 }
 
-// PDF Export — Professional, Audit-Ready ?????????????????????????????
+// PDF Export • Professional, Audit-Ready ?????????????????????????????
 async function exportNotePDF(noteId, withSuperbill) {
 const notes=getNotes();
 const n=notes.find(x=>x.id===noteId);
@@ -16702,13 +16702,13 @@ const hx = prov.logo ? M + _encLogoH + 6 : M;
 t(prov.name||'',hx,M+8,{bold:true,size:10,color:DARK,maxWidth:90});
 t(`NPI: ${rend.npi||prov.npi||''} · EIN: ${prov.taxid||''}`,hx,M+14,{size:7.5,color:MID,maxWidth:100});
 t([prov.addr1,prov.city,prov.state].filter(Boolean).join(', '),hx,M+19,{size:7,color:MID,maxWidth:100});
-// Document label — just "ENCOUNTER NOTE", no encounter-type or CPT-service
+// Document label • just "ENCOUNTER NOTE", no encounter-type or CPT-service
 // subline; the status line (Draft/Finalized) stays since that's the one
 // piece of this header that actually matters operationally.
 const eType = n.encounterType || 'medical';
 const cptLabel=(CPT_ENGINE[n.cpt]||CPT_ENGINE['DEFAULT']).label;
 t('Encounter Note',RX,M+10,{bold:true,size:14,color:DARK,align:'right'});
-t(n.status==='finalized'?'Finalized':'Draft — Not for Billing',RX,M+16,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
+t(n.status==='finalized'?'Finalized':'Draft • Not for Billing',RX,M+16,{size:7.5,color:n.status==='finalized'?[0,140,70]:MID,align:'right'});
 let y=M+_encLogoH+8;
 hln(y,BORDER,0.5); y+=5;
 
@@ -16788,7 +16788,7 @@ const now=new Date();
 const sigName=rend.last?`${rend.last}, ${rend.first||''} ${rend.cred||''}`.trim():prov.name||'';
 t('Provider Authentication',M+6,y+5,{size:6.5,bold:true,color:MID});
 // Draw signature image if available (not electronic-only), with an explicit
-// "signed electronically by" line either way — the name alone wasn't
+// "signed electronically by" line either way • the name alone wasn't
 // enough of a clear attestation statement.
 if (hasSigImg) {
   try {
@@ -16859,13 +16859,13 @@ const ln2=(pat.last||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const fn2=(pat.first||'XX').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
 const ts=now.getFullYear().toString()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()).padStart(2,'0');
 addPDFWatermark(doc); doc.save(`MN${ln2}${fn2}${ts}${withSuperbill?'_SB':''}.pdf`);
-toast('Encounter note PDF exported ?');
+toast('Encounter note PDF exported');
 }
 
 function _drawNoteFooter(doc,prov,fill,t,BGDARK,BLUE,WHITE,MID,W,M,RX,pg,total){
 fill(0,263,W,12,BGDARK); fill(0,263,W,2,BLUE);
 t(prov.name||'',M+2,271.5,{size:7.5,color:[200,205,210]});
-t('Encounter Note — Confidential',W/2,271.5,{size:7.5,color:[160,175,195],align:'center'});
+t('Encounter Note • Confidential',W/2,271.5,{size:7.5,color:[160,175,195],align:'center'});
 if(pg&&total) t(`Page ${pg} of ${total}`,RX,271.5,{size:7.5,color:[200,205,210],align:'right'});
 }
 
@@ -16876,7 +16876,7 @@ try { autoGenerateNoteForClaim(claim); } catch(e) { console.warn('Note auto-gen 
 
 
 // ???????????????????????????????????????????????????????????????????????
-// APPOINTMENTS MODULE — EHR + RCM scheduling, check-in, auto claim+note
+// APPOINTMENTS MODULE • EHR + RCM scheduling, check-in, auto claim+note
 // ???????????????????????????????????????????????????????????????????????
 
 function getAppts() { if(!_localDB.appointments) _localDB.appointments=[]; return _localDB.appointments; }
@@ -16910,7 +16910,7 @@ const appts = getAppts().filter(a => a.providerId === activeProviderId);
 console.log('[CDC] renderAppointments: activeProviderId='+activeProviderId+' | total appts='+getAppts().length+' | matching='+appts.length);
 
 // Populate provider filter once. On initial populate, auto-select the first
-// rendering provider so the agenda lands on a clean single-provider view —
+// rendering provider so the agenda lands on a clean single-provider view •
 // users can still flip the dropdown back to "All Physicians" to get the
 // dynamic per-provider columns view.
 const provSel = document.getElementById('appt-filter-prov');
@@ -16930,10 +16930,10 @@ const rendF = document.getElementById('appt-filter-prov')?.value || '';
 const statusF = document.getElementById('appt-filter-status')?.value || '';
 // Date filter: the keyword <select> (today/week/month/all) OR an exact ISO
 // date picked from the mini-calendar (window._apptDayPick). If the select's
-// value changed since last render, the user touched it manually — that wins
+// value changed since last render, the user touched it manually • that wins
 // and clears any day-pick override. (Previously this tried to write the ISO
-// date directly into the <select>.value, which silently failed — no option
-// has that value, so .value read back as '' — that was the root cause of
+// date directly into the <select>.value, which silently failed • no option
+// has that value, so .value read back as '' • that was the root cause of
 // the day-strip not highlighting and the agenda going blank on click.)
 const _selDateVal = document.getElementById('appt-filter-date')?.value || 'today';
 if (_selDateVal !== window._apptLastSelectVal) { window._apptDayPick = null; }
@@ -16947,7 +16947,7 @@ return ka > kb ? -1 : 1;
 });
 if (rendF) list = list.filter(a => a.renderingId === rendF);
 if (statusF) list = list.filter(a => a.status === statusF);
-// Date range filter — dateF is a range keyword OR an exact ISO date (set by day-strip clicks)
+// Date range filter • dateF is a range keyword OR an exact ISO date (set by day-strip clicks)
 if (dateF && dateF !== 'all') {
   const _today = new Date();
   const _todayStr = _today.toISOString().split('T')[0];
@@ -17049,7 +17049,7 @@ html += '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px">';
 if (s.apps.length) {
 s.apps.forEach(function(a){
 var st = APPT_STATUS[a.status] || APPT_STATUS.scheduled;
-var provName = rendProvs[a.renderingId] || '—';
+var provName = rendProvs[a.renderingId] || '•';
 var patNames = (a.patients||[]).map(function(ap){
 var pat = db.patients.find(function(p){ return p.id === ap.patId; });
 return pat ? (pat.last||'') + ', ' + (pat.first||'') : '?';
@@ -17072,7 +17072,7 @@ return html;
 
 // ── Epic Schedule Header (provider+KPI | filters | mini month calendar) ───
 // Built entirely via runtime DOM injection (never edits the giant template
-// string) — the established safe pattern after the Schedule Setup escaping
+// string) • the established safe pattern after the Schedule Setup escaping
 // bug. Created once, then just updated on every renderAppointments() call.
 window._apptCalMonth = (window._apptCalMonth === undefined) ? new Date().getMonth() : window._apptCalMonth;
 window._apptCalYear  = (window._apptCalYear  === undefined) ? new Date().getFullYear() : window._apptCalYear;
@@ -17084,7 +17084,7 @@ function _initScheduleEpicHeader() {
   var apptList = document.getElementById('appt-list');
   if (!apptList) return;
 
-  // Hide section page-hdr — title + top "+ New" moved into the sidebar
+  // Hide section page-hdr • title + top "+ New" moved into the sidebar
   var sec = document.getElementById('sec-appointments');
   if (sec) {
     var hdr = sec.querySelector('.page-hdr');
@@ -17092,12 +17092,12 @@ function _initScheduleEpicHeader() {
   }
 
   // Hide the original filter row. Controls inside stay queryable (their inline
-  // onchange handlers fire renderAppointments) — just visually collapsed.
+  // onchange handlers fire renderAppointments) • just visually collapsed.
   var oldFilterRow = document.getElementById('appt-filter-prov')
     ? document.getElementById('appt-filter-prov').parentElement : null;
   if (oldFilterRow) oldFilterRow.style.display = 'none';
 
-  // Day strip unused — the mini month calendar handles day picking
+  // Day strip unused • the mini month calendar handles day picking
   dayStrip.style.display = 'none';
 
   // 80/20 shell: agenda left, sidebar right (Calendar → Filters → KPI box)
@@ -17110,7 +17110,7 @@ function _initScheduleEpicHeader() {
 
   dayStrip.parentElement.insertBefore(shell, dayStrip);
 
-  // Move appt-list into the left shell — full-height + internal scroll
+  // Move appt-list into the left shell • full-height + internal scroll
   var leftShell = shell.querySelector('#appt-epic-shell-left');
   leftShell.appendChild(apptList);
   apptList.style.flex = '1';
@@ -17126,7 +17126,7 @@ function _initScheduleEpicHeader() {
     '<div id="appt-epic-mid"></div>' +
     '<div id="appt-epic-left"></div>';
 
-  // Rename "All Providers" → "All Physicians" — empty selection triggers
+  // Rename "All Providers" → "All Physicians" • empty selection triggers
   // the dynamic per-provider columns view
   var provSel = document.getElementById('appt-filter-prov');
   if (provSel && provSel.options.length && provSel.options[0].value === '') {
@@ -17156,7 +17156,7 @@ function _apptCalNav(dir) {
   renderAppointments();
 }
 
-// LEFT — black box: provider picker (eMedical "Physician/Scheduler" style) + KPIs
+// LEFT • black box: provider picker (eMedical "Physician/Scheduler" style) + KPIs
 function _renderEpicLeft(db, list, rendF) {
   var elm = document.getElementById('appt-epic-left');
   if (!elm) return;
@@ -17202,8 +17202,8 @@ function _renderEpicLeft(db, list, rendF) {
 
 // LEFT panel end
 
-// MIDDLE — Filters card: Status select + Date Range pills + active day-pick badge
-// (Slot Interval no longer shown — sourced from Schedule Setup → TimeSpan.)
+// MIDDLE • Filters card: Status select + Date Range pills + active day-pick badge
+// (Slot Interval no longer shown • sourced from Schedule Setup → TimeSpan.)
 function _renderEpicMid(selVal) {
   var elm = document.getElementById('appt-epic-mid');
   if (!elm) return;
@@ -17214,7 +17214,7 @@ function _renderEpicMid(selVal) {
 
     var label = function(t){ return '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">'+t+'</div>'; };
 
-    // Status row — move the live <select id=appt-filter-status> here so its
+    // Status row • move the live <select id=appt-filter-status> here so its
     // onchange="renderAppointments()" keeps firing
     var statusCol = document.createElement('div');
     statusCol.innerHTML = label('Status');
@@ -17269,10 +17269,10 @@ function _renderEpicMid(selVal) {
   }
 }
 
-// DATE ROW — DEPRECATED. Date-range pills now live inside _renderEpicMid.
+// DATE ROW • DEPRECATED. Date-range pills now live inside _renderEpicMid.
 function _renderEpicDateRow(selVal) { /* folded into _renderEpicMid */ }
 
-// RIGHT — mini month calendar; dots show appt counts; click selects the day
+// RIGHT • mini month calendar; dots show appt counts; click selects the day
 function _renderEpicCal(appts, isoDay) {
   var elm = document.getElementById('appt-epic-cal');
   if (!elm) return;
@@ -17318,7 +17318,7 @@ function _renderEpicCal(appts, isoDay) {
   elm.innerHTML = html;
 }
 
-// "All Physicians" mode — split the agenda into one column per rendering
+// "All Physicians" mode • split the agenda into one column per rendering
 // provider. 1-2 providers fill width; 3+ get fixed 340px columns w/ scroll.
 function _renderMultiProviderAgenda(list, db, dateStr) {
   var provs = (db.rendering || []).filter(function(r){ return r.providerId === activeProviderId; });
@@ -17474,8 +17474,8 @@ function _renderApptAgenda(list, db, dateStr, overrideRendId) {
   var _slots = _agDaySlots(db, dateStr, _slotProvId);
 
   if (!rows.length) {
-    // No appointments — show the empty time-slot grid so the user can double-click to add
-    html += '<div style="padding:9px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">No appointments yet — <strong>double-click any time slot</strong> below to schedule one.</div>';
+    // No appointments • show the empty time-slot grid so the user can double-click to add
+    html += '<div style="padding:9px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">No appointments yet • <strong>double-click any time slot</strong> below to schedule one.</div>';
     _slots.forEach(function(t){ html += _agEmptySlotRow(t, dateStr); });
     html += '</div>';
     return html;
@@ -17504,10 +17504,10 @@ function _renderApptAgenda(list, db, dateStr, overrideRendId) {
 
     var t = a.startTime||'';
     var hh = parseInt(t.slice(0,2)||'0'), mm = t.slice(3,5)||'00';
-    var disp = t ? ((hh%12||12)+':'+mm+' '+(hh<12?'AM':'PM')) : '—';
+    var disp = t ? ((hh%12||12)+':'+mm+' '+(hh<12?'AM':'PM')) : '•';
 
     var pName = pat.last ? (pat.last+', '+pat.first) : '<span style="color:var(--text3)">No patient</span>';
-    var payer = pat.payerName || pat.insuranceName || (pat.insurances&&pat.insurances[0]&&pat.insurances[0].payerName) || '—';
+    var payer = pat.payerName || pat.insuranceName || (pat.insurances&&pat.insurances[0]&&pat.insurances[0].payerName) || '•';
     var dob = pat.dob ? pat.dob : '';
     var bal = Number(pat.balance||0), cop = Number(pat.copay||ap.copay||0);
     var apptType = a.apptType || sg.name || (a.pos==='02'?'Telehealth':'Visit');
@@ -17534,10 +17534,10 @@ function _renderApptAgenda(list, db, dateStr, overrideRendId) {
     html += '<div style="padding:5px 8px;min-width:0"><div style="display:inline-block;max-width:100%;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+payer+'</div></div>';
 
     // Chart #
-    html += '<div style="padding:5px 8px"><span class="mono" style="font-size:11px;color:var(--text2)">'+(pat.acct||'—')+'</span></div>';
+    html += '<div style="padding:5px 8px"><span class="mono" style="font-size:11px;color:var(--text2)">'+(pat.acct||'•')+'</span></div>';
 
     // Provider
-    html += '<div style="padding:5px 8px;min-width:0"><div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rend.last?(rend.last+', '+(rend.first||'').charAt(0)+'.'):'—')+'</div></div>';
+    html += '<div style="padding:5px 8px;min-width:0"><div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(rend.last?(rend.last+', '+(rend.first||'').charAt(0)+'.'):'•')+'</div></div>';
 
     // Copay
     html += '<div style="padding:5px 8px;text-align:right"><span class="mono" style="font-size:11px;color:'+(cop>0?'var(--text)':'var(--text3)')+'">$'+cop.toFixed(2)+'</span></div>';
@@ -17575,7 +17575,7 @@ function _renderApptAgenda(list, db, dateStr, overrideRendId) {
   rows.forEach(function(r){ if (r.a.startTime) bookedTimes[r.a.startTime.slice(0,5)] = true; });
   var openSlots = _slots.filter(function(t){ return !bookedTimes[t]; });
   if (openSlots.length) {
-    html += '<div style="padding:8px 14px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Open Slots — double-click to add</div>';
+    html += '<div style="padding:8px 14px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Open Slots • double-click to add</div>';
     openSlots.forEach(function(t){ html += _agEmptySlotRow(t, dateStr); });
   }
 
@@ -17604,7 +17604,7 @@ function _agDur(s, e) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// SCHEDULE SETUP — Working Hours (per Rendering Provider) + Schedule Groups
+// SCHEDULE SETUP • Working Hours (per Rendering Provider) + Schedule Groups
 // eMedicalPractice-style "Scheduler" configuration, adapted to ClaimDataCare.
 // In this app the "Scheduler" === the Rendering Provider; no separate
 // scheduler entity is created. Each rendering provider has:
@@ -17656,12 +17656,12 @@ function renderScheduleSetup() {
   if (provSel) {
     const cur = provSel.value;
     const rends = (db.rendering || []).filter(r => r.providerId === activeProviderId);
-    provSel.innerHTML = rends.map(r => `<option value="${r.id}">${r.last}, ${r.first}</option>`).join('') || '<option value="">— No rendering providers —</option>';
+    provSel.innerHTML = rends.map(r => `<option value="${r.id}">${r.last}, ${r.first}</option>`).join('') || '<option value="">No rendering providers</option>';
     if (cur && rends.find(r => r.id === cur)) provSel.value = cur;
   }
   if (facSel) {
     const facs = (db.facilities || []).filter(f => f.providerId === activeProviderId);
-    facSel.innerHTML = '<option value="">— None —</option>' + facs.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    facSel.innerHTML = '<option value="">None</option>' + facs.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
   }
   setSSTab(_ssTab);
 }
@@ -17706,12 +17706,12 @@ function _renderSSHours() {
   html += `<div class="field"><label>TimeSpan (Each Appointment Time)</label><select id="ss-h-timespan">
     ${[10,15,20,30,45,60].map(m => `<option value="${m}"${h.timeSpan===m?' selected':''}>${m} Minutes</option>`).join('')}
   </select></div>`;
-  html += `<div class="field"><label>Lunch Hour — From</label><input type="time" id="ss-h-lunch-from" value="${h.lunchFrom||''}"></div>`;
-  html += `<div class="field"><label>Lunch Hour — To</label><input type="time" id="ss-h-lunch-to" value="${h.lunchTo||''}"></div>`;
+  html += `<div class="field"><label>Lunch Hour • From</label><input type="time" id="ss-h-lunch-from" value="${h.lunchFrom||''}"></div>`;
+  html += `<div class="field"><label>Lunch Hour • To</label><input type="time" id="ss-h-lunch-to" value="${h.lunchTo||''}"></div>`;
   html += '</div>';
   html += '<div class="fg g2">';
-  html += `<div class="field"><label>Calendar Display — Start</label><input type="time" id="ss-h-cal-start" value="${h.calStart||''}"></div>`;
-  html += `<div class="field"><label>Calendar Display — End</label><input type="time" id="ss-h-cal-end" value="${h.calEnd||''}"></div>`;
+  html += `<div class="field"><label>Calendar Display • Start</label><input type="time" id="ss-h-cal-start" value="${h.calStart||''}"></div>`;
+  html += `<div class="field"><label>Calendar Display • End</label><input type="time" id="ss-h-cal-end" value="${h.calEnd||''}"></div>`;
   html += '</div>';
   html += '</div>';
 
@@ -17844,7 +17844,7 @@ function _renderSSGroups() {
   const rend = (db.rendering || []).find(r => r.id === renderingId) || {};
 
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-    <div style="font-size:13px;color:var(--text3)">Groups of up to 12 patients seen together by <strong style="color:var(--text)">${rend.last ? rend.last+', '+rend.first : 'this provider'}</strong> — e.g. group therapy.</div>
+    <div style="font-size:13px;color:var(--text3)">Groups of up to 12 patients seen together by <strong style="color:var(--text)">${rend.last ? rend.last+', '+rend.first : 'this provider'}</strong> • e.g. group therapy.</div>
     <button class="btn btn-primary btn-sm" onclick="openScheduleGroupModal(null)" ${renderingId?'':'disabled'}><i data-lucide="plus" class="lci"></i> New Group</button>
   </div>`;
 
@@ -18027,7 +18027,7 @@ function openAddGroupToScheduleModal(gid) {
       <div class="slabel" style="margin-bottom:8px">How should this group be scheduled?</div>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;margin-bottom:10px;background:var(--bg3)">
         <input type="radio" name="gs-mode" value="single" id="gs-mode-single" checked style="width:16px;height:16px;accent-color:var(--brand);margin-top:1px;flex-shrink:0">
-        <div><div style="font-size:13px;font-weight:700;color:var(--text)">One Group Appointment</div><div style="font-size:11px;color:var(--text3);margin-top:2px">A single appointment slot containing all ${(g.patients||[]).length} patients — typical for group therapy.</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--text)">One Group Appointment</div><div style="font-size:11px;color:var(--text3);margin-top:2px">A single appointment slot containing all ${(g.patients||[]).length} patients • typical for group therapy.</div></div>
       </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--bg3)">
         <input type="radio" name="gs-mode" value="separate" id="gs-mode-separate" style="width:16px;height:16px;accent-color:var(--brand);margin-top:1px;flex-shrink:0">
@@ -18116,7 +18116,7 @@ function promptGroupCheckIn(apptId) {
   }
 
   const provOpts = db.rendering.filter(r => r.providerId === activeProviderId)
-    .map(r => `<option value="${r.id}"${r.id === appt.renderingId ? ' selected' : ''}>${r.last}, ${r.first}</option>`).join('') || '<option value="">— None —</option>';
+    .map(r => `<option value="${r.id}"${r.id === appt.renderingId ? ' selected' : ''}>${r.last}, ${r.first}</option>`).join('') || '<option value="">None</option>';
 
   const body = document.querySelector('#modal-checkin .modal-body');
   if (body) {
@@ -18280,7 +18280,7 @@ set('appt-comments', appt?.comments || '');
 // Rendering providers
 const rendSel = document.getElementById('appt-rend');
 if (rendSel) {
-rendSel.innerHTML = '<option value="">— Select Rendering Provider —</option>' +
+rendSel.innerHTML = '<option value="">Select Rendering Provider</option>' +
 db.rendering.filter(r => r.providerId === activeProviderId)
 .map(r => `<option value="${r.id}"${r.id === appt?.renderingId ? ' selected' : ''}>${r.last}, ${r.first} · NPI ${r.npi||''}</option>`)
 .join('');
@@ -18289,7 +18289,7 @@ db.rendering.filter(r => r.providerId === activeProviderId)
 // Service Groups
 const sgSel = document.getElementById('appt-sg');
 if (sgSel) {
-sgSel.innerHTML = '<option value="">— Select Service Group —</option>' +
+sgSel.innerHTML = '<option value="">Select Service Group</option>' +
 (db.serviceGroups || []).filter(g => g.providerId === activeProviderId)
 .map(g => `<option value="${g.id}"${g.id === appt?.sgId ? ' selected' : ''}>${g.name} · ${(g.lines||[]).map(l=>l.cpt).join(', ')}</option>`)
 .join('');
@@ -18302,7 +18302,7 @@ if (posSel && appt?.pos) posSel.value = appt.pos;
 // Facilities
 const facSel = document.getElementById('appt-fac');
 if (facSel) {
-facSel.innerHTML = '<option value="">— None —</option>' +
+facSel.innerHTML = '<option value="">None</option>' +
 db.facilities.filter(f => f.providerId === activeProviderId)
 .map(f => `<option value="${f.id}"${f.id === appt?.facilityId ? ' selected' : ''}>${f.name}</option>`)
 .join('');
@@ -18319,7 +18319,7 @@ if (sgField && !document.getElementById('appt-type')) {
   wrap.innerHTML =
     '<div class="field"><label>Appointment Type</label>' +
     '<select id="appt-type" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px">' +
-    '<option value="">— Select Type —</option>' +
+    '<option value="">Select Type</option>' +
     '<option>Psychotherapy Session</option>' +
     '<option>Group Therapy</option>' +
     '<option>Family Psychotherapy</option>' +
@@ -18344,7 +18344,7 @@ const reasonEl = document.getElementById('appt-reason');
 if (reasonEl) reasonEl.value = appt?.reason || '';
 
 // One-time visual polish: section labels + dividers, matching the rest of
-// the app's modal style (.sep / .slabel — same classes used in modal-claim),
+// the app's modal style (.sep / .slabel • same classes used in modal-claim),
 // injected at runtime so the giant template string is never touched.
 const apptModalEl = document.getElementById('modal-appt');
 if (apptModalEl && !apptModalEl.dataset.epicStyled) {
@@ -18371,7 +18371,7 @@ if (apptModalEl && !apptModalEl.dataset.epicStyled) {
       rendField.parentElement.insertBefore(mkSlabel('map-pin','Provider & Location'), rendField);
     }
   }
-  // Service Group is optional — make that explicit in the label
+  // Service Group is optional • make that explicit in the label
   const sgLabel = document.getElementById('appt-sg')?.closest('.field')?.querySelector('label');
   if (sgLabel && !/optional/i.test(sgLabel.textContent)) sgLabel.innerHTML = 'Service Group <span style="font-weight:400;color:var(--text3);font-size:11px">(optional)</span>';
 
@@ -18396,7 +18396,7 @@ const q = qRaw.toLowerCase();
 const el = document.getElementById('appt-pat-list');
 if (!el) return;
 
-// No preloaded list — only search once the user has typed something. This
+// No preloaded list • only search once the user has typed something. This
 // matches DOB (any format the patient was entered with), Account #, or
 // Last/First name (in either order).
 if (q.length < 2) {
@@ -18498,14 +18498,14 @@ if (idx >= 0) arr[idx] = appt; else arr.push(appt);
 });
 closeModal('modal-appt');
 renderAppointments();
-toast(existId ? 'Appointment updated ?' : 'Appointment scheduled ?');
+toast(existId ? 'Appointment updated' : 'Appointment scheduled');
 }
 
 function setApptStatus(apptId, status) {
 if (!status) return;
 setAppts(arr => { const a = arr.find(x => x.id === apptId); if (a) a.status = status; });
 renderAppointments();
-toast('Status ? ' + (APPT_STATUS[status]?.label || status));
+toast('Status' + (APPT_STATUS[status]?.label || status));
 }
 
 function setApptPatStatus(apptId, patId, status) {
@@ -18561,7 +18561,7 @@ if (info) info.innerHTML = `
 const provOpts = db.rendering
   .filter(r => r.providerId === activeProviderId)
   .map(r => `<option value="${r.id}"${r.id === appt.renderingId ? ' selected' : ''}>${r.last}, ${r.first}</option>`)
-  .join('') || '<option value="">— None —</option>';
+  .join('') || '<option value="">None</option>';
 
 // Inject the eMedicalPractice-style "Create An Encounter / Create SuperBill" options
 // into the modal body at runtime (avoids editing the giant template string).
@@ -18658,7 +18658,7 @@ if (!makeEnc && !makeClaim) {
 }
 
 // Build dx from SG patient assignment (empty if this appt has no Service Group,
-// e.g. a Schedule Group appointment — claim/note are created with blanks to fill in)
+// e.g. a Schedule Group appointment • claim/note are created with blanks to fill in)
 const dxList = (sgAsgn.dx || '').split(',').map(d => d.trim().toUpperCase()).filter(Boolean);
 const ptr = dxList.map((_, i) => String.fromCharCode(65 + i)).join('') || 'A';
 
@@ -18717,7 +18717,7 @@ epsdt: 'N', emg: 'N'
 
 
 // ???????????????????????????????????????????????????????????????????????
-// CLAIM DETAIL MODULE — 6-Tab view: Summary, Demographics, Insurance,
+// CLAIM DETAIL MODULE • 6-Tab view: Summary, Demographics, Insurance,
 // Claim, Transmission, EOB + Clearinghouse status/payment import
 // ???????????????????????????????????????????????????????????????????????
 
@@ -18816,7 +18816,7 @@ syncToFirestore();
 // ?? Determine normalized status from financial picture ?????????????????
 function normalizeClaimStatus(claim) {
 const eob = getClaimEOB(claim.id);
-if (!eob.length) return claim.status; // no EOB yet — keep raw status
+if (!eob.length) return claim.status; // no EOB yet • keep raw status
 
 const billed = parseFloat(claim.totalCharge||0) ||
 (claim.lines||[]).reduce((s,l)=>(s+(parseFloat(l.charge)||0)),0);
@@ -18844,7 +18844,7 @@ if (patResp > 0 && insBalance <= 0.01) {
 return patResp <= 0.01 ? 'settled' : 'patient_balance';
 }
 
-// 4. Fully settled — insurance paid everything, no patient balance
+// 4. Fully settled • insurance paid everything, no patient balance
 if (insBalance <= 0.01 && patResp <= 0.01) return 'settled';
 
 // 5. Partial payment from insurance, insurance balance still open
@@ -18877,7 +18877,7 @@ function openClaimDetail(claimId) {
       window._ceFloatMode = false;
     };
 
-    // Header removed — Back to Patient + Close (×) are integrated into the
+    // Header removed • Back to Patient + Close (×) are integrated into the
     // terracotta title bar rendered by _renderClaimEditorInner when
     // window._ceFloatMode is true.
 
@@ -18917,7 +18917,7 @@ if (idx >= 0) openPatient(idx);
 
 // ?? TOP NAVIGATION JS ?????????????????????????????????????????????????
 // ????????????????????????????????????????????????
-// TOP NAVIGATION CONTROLLER — single source
+// TOP NAVIGATION CONTROLLER • single source
 // ????????????????????????????????????????????????
 
 let _openTnGroup = null;
@@ -19022,7 +19022,7 @@ if (m.dd) document.getElementById(m.dd)?.classList.add('active');
 
 
 // ???????????????????????????????????????????????????????????????????????
-// PATIENT CHART v2 — Full EHR tabs: Summary, Demographics, Insurance,
+// PATIENT CHART v2 • Full EHR tabs: Summary, Demographics, Insurance,
 // Schedule, Encounters, Bills
 // ???????????????????????????????????????????????????????????????????????
 
@@ -19031,7 +19031,7 @@ let _chartTabActive = 'summary';
 
 // ── Recent Patients tracker (last 10 opened, per browser) ──────────────
 // Recent Patients is scoped per specialty (in addition to per billing
-// provider) — patients viewed under Case Management must never bleed into
+// provider) • patients viewed under Case Management must never bleed into
 // the recent list shown under Nurse Practitioner, Mental Health, etc.,
 // even though they share the same providerId. Each specialty gets its own
 // localStorage bucket.
@@ -19064,7 +19064,7 @@ function showRecentPatients(ev) {
   var ids = [];
   try { ids = JSON.parse(localStorage.getItem(_recentPatsKey()) || '[]'); } catch(e){}
   var db = getDB();
-  // Filter recent patients to the active billing provider — users must only
+  // Filter recent patients to the active billing provider • users must only
   // see recents from their own BP. This is enforced both here (display) and
   // when tracking (_trackRecentPatient stores the patientId; filtering here
   // scopes it to the active BP so switching providers changes the list).
@@ -19138,7 +19138,7 @@ document.getElementById('pt-photo-dialog')?.remove();
 const db = getDB();
 const pat = db.patients.find(p=>p.id===patId)||{};
 
-// ALL documents in chart — images AND PDFs
+// ALL documents in chart • images AND PDFs
 const allDocs = (pat.documents||[]).filter(d => d.data);
 
 const docListHTML = allDocs.length ? allDocs.map((d,i) => {
@@ -19158,7 +19158,7 @@ onmouseover="this.style.background='rgba(212,92,55,0.05)'" onmouseout="this.styl
 ${preview}
 <div style="flex:1;min-width:0">
 <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name||'Document '+(i+1)}</div>
-<div style="font-size:10px;color:#586579;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF — select page area':'Image'}</div>
+<div style="font-size:10px;color:#586579;margin-top:1px">${d.category||''} ${d.date?'· '+d.date:''} · ${isPDF?'PDF • select page area':'Image'}</div>
 </div>
 <i data-lucide="scissors" class="lci" style="width:15px;height:15px;color:#586579;flex-shrink:0"></i>
 </div>`;
@@ -19221,7 +19221,7 @@ onchange="_handlePhotoUpload(event,'${patId}',false)">
 ${allDocs.length ? `
 <div style="border:1.5px solid #E4E9F1;border-radius:12px;overflow:hidden;max-height:220px;overflow-y:auto">
 <div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:#586579;letter-spacing:.08em;text-transform:uppercase">
-${allDocs.length} document${allDocs.length>1?'s':''} — click to crop
+${allDocs.length} document${allDocs.length>1?'s':''} • click to crop
 </div>
 ${docListHTML}
 </div>` : `
@@ -19475,7 +19475,7 @@ div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:55
 div.innerHTML = `
 <div style="background:#fff;border-radius:10px;padding:16px;max-width:700px;width:100%">
 <div style="font-size:14px;font-weight:700;color:#064e3b;margin-bottom:10px">
-?? Crop Photo — drag to select area, then click Crop
+?? Crop Photo • drag to select area, then click Crop
 </div>
 <div style="position:relative;display:inline-block;width:100%;overflow:auto;max-height:60vh;text-align:center">
 <img id="pt-crop-img" src="${src}" style="max-width:100%;display:block;margin:0 auto;user-select:none" draggable="false">
@@ -19568,7 +19568,7 @@ function _savePatientPhoto(patId, dataUrl) {
 // Refresh photo box immediately with the local preview (instant feedback)
 const box = document.getElementById('pt-photo-box-'+patId);
 if (box) box.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;cursor:zoom-in" onclick="_viewPhotoLarge('${patId}')">`;
-// Prefer Storage (keeps base64 image data out of localStorage/Firestore) —
+// Prefer Storage (keeps base64 image data out of localStorage/Firestore) •
 // falls back to the old inline-base64 behavior if Storage isn't available.
 _loadFirebaseStorage(async function(){
   try {
@@ -19597,21 +19597,21 @@ toast('Photo removed');
 // _patientAvatar moved earlier
 
 
-// The 4 meta items (acct#, name, age, sex) shown in the patient banner —
+// The 4 meta items (acct#, name, age, sex) shown in the patient banner •
 // factored out so they can be recomputed fresh after a save, instead of
 // staying frozen at whatever the patient's data was when the chart first
 // opened (which is why a new patient's age never appeared after entering
-// their DOB and saving — the banner itself was never told to refresh).
+// their DOB and saving • the banner itself was never told to refresh).
 function _buildPatientBannerMeta(pat) {
   const age = _calcAge(pat.dob);
   const gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
-  return `<span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'—'}</span>
+  return `<span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'•'}</span>
   <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age===''?'—':age} yrs</span>
+  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age===''?'•':age} yrs</span>
   <span class="ptc-banner-meta-item">${pat.sex==='F'
     ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>'
     : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="15" r="5"/><path d="M13 11l7-7M14 4h6v6"/></svg>'
-  }${gender||'—'}</span>`;
+  }${gender||'•'}</span>`;
 }
 
 function _refreshChartBanner(patId) {
@@ -19774,7 +19774,7 @@ if (pat.superbills && pat.superbills.length) {
       docs.unshift({
         id: sb.id||('sb_'+(sb.claimId||Date.now())),
         claimId: sb.claimId||'', claimPCN: sb.claimPCN||'',
-        name: sb.name||('Superbill \u2014 DOS: '+(sb.dos||sb.date||'')+' \u2014 $'+(sb.totalCharge||'0.00')),
+        name: sb.name||('Superbill • DOS: '+(sb.dos||sb.date||'')+' • $'+(sb.totalCharge||'0.00')),
         category: 'Superbills', type: 'pdf', date: sb.dos||sb.date||'',
         uploadedBy: 'System (Batch)', providerName: sb.providerName||'',
         providerNPI: sb.providerNPI||'', renderingName: sb.renderingName||'',
@@ -19798,7 +19798,7 @@ var _sess = getSession() || {};
 var _role = (_sess.role||'').toLowerCase();
 var _canAddCat = _role.indexOf('super') >= 0 || _role.indexOf('admin') >= 0 || _role.indexOf('manager') >= 0;
 
-// Category groups — grouped by content, alpha within each group. Superbills always first.
+// Category groups • grouped by content, alpha within each group. Superbills always first.
 var groups = [
   { label: 'Billing',            cats: ['Superbills'] },
   { label: 'Clinical',           cats: ['Clinical Messages','Consultation','EKG Results','Imaging (Xray, MRI, etc.)','Immunization','Lab Reports','Medical Records','Operative Reports','Referrals','Surgery','X-Rays / Radiology'] },
@@ -20136,7 +20136,7 @@ const doc = (pat.documents||[])[idx];
 if (!doc) return;
 
 // Superbill: open the exact same PDF the printer-icon button on the Claims
-// list produces. Always regenerate from the linked claim when possible —
+// list produces. Always regenerate from the linked claim when possible •
 // using a cached copy here risked showing an old/outdated render (e.g. from
 // before a watermark or pagination fix) while Print always shows the
 // current one. Only fall back to the cached copy for legacy entries that
@@ -20154,7 +20154,7 @@ if (doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source=
     _openFloatingDocViewer(doc.storageUrl || doc.data, doc.name || 'Superbill');
     return;
   }
-  // Legacy fallback — only for old entries with no claim link and no cached data
+  // Legacy fallback • only for old entries with no claim link and no cached data
 }
 if ((doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source==='superbill') && doc.lines) {
   var linesHTML = (doc.lines||[]).map(function(l){
@@ -20181,7 +20181,7 @@ if ((doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
         '<div><div style="font-size:10px;font-weight:700;color:#586579;text-transform:uppercase;margin-bottom:4px">Provider</div>'+
         '<div style="font-size:13px;font-weight:600">'+((doc.providerName||'').toUpperCase())+'</div>'+
-        '<div style="font-size:11px;color:#586579">NPI: '+((doc.providerNPI||'—').toUpperCase())+'</div></div>'+
+        '<div style="font-size:11px;color:#586579">NPI: '+((doc.providerNPI||'•').toUpperCase())+'</div></div>'+
         '<div><div style="font-size:10px;font-weight:700;color:#586579;text-transform:uppercase;margin-bottom:4px">Patient</div>'+
         '<div style="font-size:13px;font-weight:600">'+((doc.name||pat.last+', '+pat.first||'').toUpperCase())+'</div>'+
         '<div style="font-size:11px;color:#586579">DOS: '+((doc.date||'').toUpperCase())+'</div></div>'+
@@ -20210,7 +20210,7 @@ if ((doc.category==='Superbills' || doc.originalCat==='Superbills' || doc.source
   return;
 }
 
-if (!doc.data) { toast('Vista previa no disponible','err'); return; }
+if (!doc.data) { toast('Preview not available','err'); return; }
 
 // Use unified in-app viewer
 var isImage = doc.type&&(doc.type.includes('image')||/\.(jpg|jpeg|png|gif|webp)$/i.test(doc.name));
@@ -20511,10 +20511,10 @@ return `<div class="field"><label style="font-size:11px;font-weight:700;color:va
 style="width:100%;padding:6px 10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font)">
 </div>`;
 };
-// Single-select "chip" group — looks like multi-select but enforces exactly
+// Single-select "chip" group • looks like multi-select but enforces exactly
 // one active choice per field (click swaps the selection, never adds to it).
 // Saves the same way a <select> does: a hidden input with the usual pcd-{id}
-// id, kept in sync by _pcdSelectChip — so _saveDemoTab needs no changes.
+// id, kept in sync by _pcdSelectChip • so _saveDemoTab needs no changes.
 const fldChips = (id,lbl,val,req,opts) => {
   const chipsHtml = opts.filter(([v])=>v!=='').map(([v,t])=>{
     const active = v===val;
@@ -20669,7 +20669,7 @@ const dupAcct = db.patients.find(function(p){
     && String(p.acct||'').trim().toLowerCase() === acctVal.toLowerCase();
 });
 if (dupAcct) {
-  toast('Account # "'+acctVal+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' — choose a different Account #','err');
+  toast('Account # "'+acctVal+'" is already used by '+(dupAcct.last||'')+', '+(dupAcct.first||'')+' • choose a different Account #','err');
   g('acct')?.focus();
   return;
 }
@@ -20704,7 +20704,7 @@ _renderChartTab('insurance');
 // ?? Insurance Tab ?????????????????????????????????????????????????????
 // ?? AUTHORIZATIONS ??????????????????????????????????????????????????????
 // Computes a live status for an authorization based on its effective date
-// range and whether its approved units have been exhausted — never stored,
+// range and whether its approved units have been exhausted • never stored,
 // always derived so it can never go stale.
 function _authStatus(auth) {
   var today = new Date(); today.setHours(0,0,0,0);
@@ -20728,7 +20728,7 @@ function _authStatus(auth) {
   return {key:'active', label:'Active', bg:'#f0fdf4', fg:'#16a34a', border:'#bbf7d0'};
 }
 
-// Returns just the currently-active authorizations for a patient — used by
+// Returns just the currently-active authorizations for a patient • used by
 // both the Authorization tab and the Coverage tab summary.
 function _activeAuths(pat) {
   return (pat.authorizations||[]).filter(function(a){ return _authStatus(a).key === 'active'; });
@@ -20749,7 +20749,7 @@ function _buildAuthTab(pat, db) {
       var used = parseFloat(s.unitsUsed||0);
       var pct = approved>0 ? Math.min(100, Math.round(used/approved*100)) : 0;
       return '<div style="display:grid;grid-template-columns:90px 1fr 110px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid '+C.borderCream+'">'+
-        '<span style="font-family:monospace;font-weight:700;color:'+C.terracotta+';font-size:12px">'+(s.cpt||'—')+'</span>'+
+        '<span style="font-family:monospace;font-weight:700;color:'+C.terracotta+';font-size:12px">'+(s.cpt||'•')+'</span>'+
         '<span style="font-size:12px;color:'+C.nearBlack+'">'+(s.description||'')+'</span>'+
         '<div>'+
           '<div style="font-size:11px;color:'+C.stoneGray+';text-align:right;margin-bottom:2px">'+used+' / '+(approved||'∞')+' units</div>'+
@@ -20763,10 +20763,10 @@ function _buildAuthTab(pat, db) {
         '<div style="flex:1">'+
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
             '<span style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:'+st.bg+';color:'+st.fg+';border:1px solid '+st.border+'">'+st.label+'</span>'+
-            '<span style="font-size:12px;color:'+C.stoneGray+'">Auth# <strong style="color:'+C.nearBlack+';font-family:monospace">'+(auth.authNum||'—')+'</strong></span>'+
+            '<span style="font-size:12px;color:'+C.stoneGray+'">Auth# <strong style="color:'+C.nearBlack+';font-family:monospace">'+(auth.authNum||'•')+'</strong></span>'+
           '</div>'+
-          '<div style="font-size:14px;font-weight:700;color:'+C.nearBlack+';margin-top:6px">'+(auth.payerName||'—')+'</div>'+
-          '<div style="font-size:12px;color:'+C.stoneGray+';margin-top:1px">Effective '+(auth.startDate||'—')+' → '+(auth.endDate||'—')+'</div>'+
+          '<div style="font-size:14px;font-weight:700;color:'+C.nearBlack+';margin-top:6px">'+(auth.payerName||'•')+'</div>'+
+          '<div style="font-size:12px;color:'+C.stoneGray+';margin-top:1px">Effective '+(auth.startDate||'•')+' → '+(auth.endDate||'•')+'</div>'+
         '</div>'+
         '<div style="display:flex;gap:4px;flex-shrink:0">'+
           '<button onclick="_openAuthModal(\''+pat.id+'\','+idx+')" title="Edit" style="width:30px;height:30px;border-radius:8px;border:1px solid '+C.borderWarm+';background:'+C.ivory+';color:'+C.oliveGray+';cursor:pointer;display:flex;align-items:center;justify-content:center"><i data-lucide="pencil" class="lci" style="width:13px;height:13px"></i></button>'+
@@ -20781,7 +20781,7 @@ function _buildAuthTab(pat, db) {
   return '<div style="padding:14px 16px;background:'+C.parchment+';min-height:100%">'+
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'+
       '<button onclick="_openAuthModal(\''+pat.id+'\',-1)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;background:'+C.terracotta+';color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer"><i data-lucide="plus" class="lci" style="width:13px;height:13px"></i> Add Authorization</button>'+
-      '<span style="font-size:12px;color:'+C.stoneGray+'">Authorizations show <strong style="color:#16a34a">Active</strong> automatically based on the approved service and effective dates — no manual switch needed.</span>'+
+      '<span style="font-size:12px;color:'+C.stoneGray+'">Authorizations show <strong style="color:#16a34a">Active</strong> automatically based on the approved service and effective dates • no manual switch needed.</span>'+
     '</div>'+
     (auths.length ?
       '<div>'+auths.map(function(a,i){ return authCard(a,i); }).join('')+'</div>' :
@@ -20807,7 +20807,7 @@ function _openAuthModal(patId, idx) {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 
-  var payerOpts = '<option value="">— Select Payer —</option>' + ins.map(function(iv){
+  var payerOpts = '<option value="">Select Payer</option>' + ins.map(function(iv){
     var sel = (auth.payerName===(iv.name||'')) ? ' selected' : '';
     return '<option value="'+(iv.name||'')+'"'+sel+'>'+(iv.name||'Unnamed Payer')+' ('+(iv.insType||iv.type||'Primary')+')</option>';
   }).join('');
@@ -20988,7 +20988,7 @@ function _buildInsuranceTab(pat, db) {
     const tKey  = iv.inactive ? 'inactive' : tRaw.includes('secondary') ? 'secondary' : tRaw.includes('tertiary') ? 'tertiary' : 'primary';
     const tc    = typeColors[tKey] || typeColors.primary;
     const typeLabel = iv.insType || iv.type || 'Primary';
-    const eff   = [iv.effFrom, iv.effTo].filter(Boolean).join(' → ') || '—';
+    const eff   = [iv.effFrom, iv.effTo].filter(Boolean).join(' → ') || '•';
     const name  = iv.subscriberName || ((pat.last||'')+', '+(pat.first||''));
 
     return `
@@ -21002,7 +21002,7 @@ function _buildInsuranceTab(pat, db) {
         <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${C.borderCream};color:${C.oliveGray};border:1px solid ${C.borderWarm}">${iv.planType||'Medical'}</span>
         ${iv.inactive ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#fee2e2;color:#b53333;border:1px solid #fca5a5">Inactive</span>` : ''}
       </div>
-      <div style="font-size:15px;font-weight:700;color:${C.nearBlack};margin-top:6px">${iv.name||'—'}</div>
+      <div style="font-size:15px;font-weight:700;color:${C.nearBlack};margin-top:6px">${iv.name||'•'}</div>
       <div style="font-size:12px;color:${C.stoneGray};margin-top:1px">${name}</div>
     </div>
     <!-- Action buttons -->
@@ -21030,14 +21030,14 @@ function _buildInsuranceTab(pat, db) {
 
   <!-- Data grid -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px">
-    ${_insField('Payer ID',    iv.payerId||'—',    '#3b6ea5')}
-    ${_insField('Policy No',   iv.policy||iv.memberId||'—', C.terracotta)}
-    ${_insField('Group No',    iv.group||'—',      C.oliveGray)}
+    ${_insField('Payer ID',    iv.payerId||'•',    '#3b6ea5')}
+    ${_insField('Policy No',   iv.policy||iv.memberId||'•', C.terracotta)}
+    ${_insField('Group No',    iv.group||'•',      C.oliveGray)}
     ${_insField('Relation',    iv.relation||'Self', C.oliveGray)}
-    ${_insField('Eff. From',   iv.effFrom||'—',    C.oliveGray)}
-    ${_insField('Eff. To',     iv.effTo||'—',      C.oliveGray)}
-    ${_insField('Created By',  iv.createdBy||'—',  C.stoneGray)}
-    ${_insField('Created On',  iv.createdOn||'—',  C.stoneGray)}
+    ${_insField('Eff. From',   iv.effFrom||'•',    C.oliveGray)}
+    ${_insField('Eff. To',     iv.effTo||'•',      C.oliveGray)}
+    ${_insField('Created By',  iv.createdBy||'•',  C.stoneGray)}
+    ${_insField('Created On',  iv.createdOn||'•',  C.stoneGray)}
   </div>
 
 </div>`;
@@ -21087,12 +21087,12 @@ function _buildInsuranceTab(pat, db) {
       const hasActiveIns = ins.some(iv => !iv.inactive);
       const selfPayOn = pat.selfPay === true || (pat.selfPay !== false && !hasActiveIns);
       return `
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}" title="${hasActiveIns?'Manually mark this patient as self-pay':'On by default — no active insurance on file'}">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${C.oliveGray}" title="${hasActiveIns?'Manually mark this patient as self-pay':'On by default • no active insurance on file'}">
       <div onclick="_toggleSelfPay('${pat.id}')"
         style="width:38px;height:22px;border-radius:11px;background:${selfPayOn?C.terracotta:'#d1d5db'};position:relative;flex-shrink:0;cursor:pointer;transition:background .2s">
         <span style="position:absolute;top:2px;left:${selfPayOn?'18px':'2px'};width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s"></span>
       </div>
-      Self Pay${selfPayOn&&!hasActiveIns&&pat.selfPay===undefined?' <span style="color:'+C.stoneGray+';font-weight:400">(default — no insurance)</span>':''}
+      Self Pay${selfPayOn&&!hasActiveIns&&pat.selfPay===undefined?' <span style="color:'+C.stoneGray+';font-weight:400">(default • no insurance)</span>':''}
     </label>`;
     })()}
 
@@ -21119,7 +21119,7 @@ function _buildInsuranceTab(pat, db) {
   <div style="text-align:center;padding:48px 24px;background:${C.ivory};border-radius:12px;border:1.5px dashed ${C.borderWarm}">
     <i data-lucide="wallet" class="lci" style="width:32px;height:32px;color:${C.terracotta};margin-bottom:12px"></i>
     <div style="font-size:14px;font-weight:600;color:${C.oliveGray}">Self Pay</div>
-    <div style="font-size:12px;color:${C.stoneGray};margin-top:4px">No insurance on file — this patient is billed directly. Click Add Insurance if coverage applies.</div>
+    <div style="font-size:12px;color:${C.stoneGray};margin-top:4px">No insurance on file • this patient is billed directly. Click Add Insurance if coverage applies.</div>
   </div>${toggleBtn}`;
     }
     return `
@@ -21140,13 +21140,13 @@ function _buildInsuranceTab(pat, db) {
         return `<div style="font-size:12px;color:${C.stoneGray};font-style:italic">No active authorizations on file.</div>`;
       }
       return active.map(function(a){
-        var svcStr = (a.services||[]).map(function(s){ return (s.cpt||'')+(s.description?' — '+s.description:''); }).join(', ') || 'No services listed';
+        var svcStr = (a.services||[]).map(function(s){ return (s.cpt||'')+(s.description?' • '+s.description:''); }).join(', ') || 'No services listed';
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:6px;font-size:12px">
           <span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:#16a34a;color:#fff;flex-shrink:0">Active</span>
-          <span style="font-weight:700;color:${C.nearBlack}">${a.payerName||'—'}</span>
-          <span style="color:${C.stoneGray}">Auth# <strong style="font-family:monospace">${a.authNum||'—'}</strong></span>
+          <span style="font-weight:700;color:${C.nearBlack}">${a.payerName||'•'}</span>
+          <span style="color:${C.stoneGray}">Auth# <strong style="font-family:monospace">${a.authNum||'•'}</strong></span>
           <span style="color:${C.stoneGray};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${svcStr}</span>
-          <span style="color:${C.stoneGray};flex-shrink:0">thru ${a.endDate||'—'}</span>
+          <span style="color:${C.stoneGray};flex-shrink:0">thru ${a.endDate||'•'}</span>
         </div>`;
       }).join('');
     })()}
@@ -21225,7 +21225,7 @@ function _onInsPayerSelect(sel) {
   var disp = document.getElementById('pif-payerid-disp');
   if (hidC) hidC.value = name;
   if (hidP) hidP.value = payId;
-  if (disp) disp.textContent = payId || '—';
+  if (disp) disp.textContent = payId || '•';
 }
 
 function _showInsuranceForm(patId, idx) {
@@ -21336,15 +21336,15 @@ ${fld('pif-ssn','SSN',iv.ssn||pat.ssn||'')}
 <span style="color:#555;margin-right:6px;font-size:12px;padding-top:4px">:</span>
 <div style="flex:1">
   <select id="pif-payer-sel" onchange="_onInsPayerSelect(this)" style="width:100%;padding:4px 6px;border:1px solid #E4E9F1;border-radius:3px;font-size:12px;background:#fff;color:#3A475C;margin-bottom:4px">
-    <option value="">— Select Insurance / Payer —</option>
+    <option value="">Select Insurance / Payer</option>
     ${(getInsurances()||[]).map(function(ins){
       var sel = (iv.name===ins.name||(iv.payerId&&iv.payerId===ins.payerId)) ? 'selected' : '';
-      return '<option value="'+ins.id+'" data-name="'+escapeHtml(ins.name||'')+'" data-payerid="'+(ins.payerId||'')+'" '+sel+'>'+escapeHtml(ins.name||'')+' &nbsp;·&nbsp; ID: '+(ins.payerId||'—')+'</option>';
+      return '<option value="'+ins.id+'" data-name="'+escapeHtml(ins.name||'')+'" data-payerid="'+(ins.payerId||'')+'" '+sel+'>'+escapeHtml(ins.name||'')+' &nbsp;·&nbsp; ID: '+(ins.payerId||'•')+'</option>';
     }).join('')}
   </select>
   <div style="display:flex;align-items:center;gap:8px">
     <span style="font-size:11px;color:#666">Payer ID:</span>
-    <code id="pif-payerid-disp" style="font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-bg);padding:2px 8px;border-radius:4px">${iv.payerId||'—'}</code>
+    <code id="pif-payerid-disp" style="font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-bg);padding:2px 8px;border-radius:4px">${iv.payerId||'•'}</code>
   </div>
   <input type="hidden" id="pif-ins-company" value="${iv.name||iv.insuranceName||''}">
   <input type="hidden" id="pif-payerid-val" value="${iv.payerId||''}">
@@ -21539,7 +21539,7 @@ if (!iv) return;
 const usedInClaim = (db.claims||[]).some(c => c.patId===patId &&
   (c.payerid===iv.payerId || c.payerid===iv.policy));
 if (usedInClaim) {
-  toast('Cannot delete — insurance is used in claims. Mark Inactive instead.','err');
+  toast('Cannot delete • insurance is used in claims. Mark Inactive instead.','err');
   return;
 }
 return cdcConfirm('Delete this insurance record?').then((__ok)=>{if(!__ok)return;
@@ -21697,7 +21697,7 @@ function _verifyInsurance(patId) {
 setDB(db=>{const p=db.patients.find(x=>x.id===patId);if(p){p.insVerified=true;p.insVerifiedDate=new Date().toLocaleDateString();}});
 const db2=getDB(); const pat=db2.patients.find(p=>p.id===patId);
 if(pat) _renderChartTab('summary');
-toast('Insurance marked as verified ?');
+toast('Insurance marked as verified');
 }
 
 async function _exportPatientChartPDF(patId) {
@@ -21720,13 +21720,13 @@ const ins2 = allIns.find(i=>(i.insType||i.type||'').toLowerCase().includes('seco
 const W=216, M=16, RX=W-M, CW=RX-M;
 const BLACK = [0,0,0];
 const DARK = [30,30,30]; // Primary text
-const GRAY1 = [47,79,79]; // Dark Slate — critical labels
+const GRAY1 = [47,79,79]; // Dark Slate • critical labels
 const GRAY2 = [80,80,80]; // Secondary text
 const GRAY3 = [120,120,120]; // Tertiary / captions
 const GRAY4 = [190,190,190]; // Dividers / borders
 const WHITE = [255,255,255];
-const NEAR_WHITE=[248,248,248]; // Row alternation — subtle, prints white
-const EMERALD = [50,150,80]; // Accent — prints as dark gray
+const NEAR_WHITE=[248,248,248]; // Row alternation • subtle, prints white
+const EMERALD = [50,150,80]; // Accent • prints as dark gray
 
 // ?? Helpers ??????????????????????????????????????????????????????
 const fill = (x,y,w,h,c)=>{ doc.setFillColor(...c); doc.rect(x,y,w,h,'F'); };
@@ -21757,7 +21757,7 @@ doc.roundedRect(cx-cl/2,cy-cb/2-sz*.09,cl,cb,.6,.6,'F');
 let y=0;
 
 // ??????????????????????????????????????????????????????????????
-// HEADER BLOCK — Apple Large Title style
+// HEADER BLOCK • Apple Large Title style
 // ??????????????????????????????????????????????????????????????
 fill(0,0,W,38,DARK);
 // Thin emerald accent stripe
@@ -21784,7 +21784,7 @@ t(`CHART #${pat.acct||''}`, RX, 26, {b:true, sz:9, c:[200,210,200], a:'right'});
 y=44;
 
 // ??????????????????????????????????????????????????????????????
-// PATIENT IDENTITY — iOS widget style (rounded, inset grouped)
+// PATIENT IDENTITY • iOS widget style (rounded, inset grouped)
 // ??????????????????????????????????????????????????????????????
 fill(M,y,CW,30,NEAR_WHITE);
 stroke(M,y,CW,30,GRAY4,0.4);
@@ -21810,7 +21810,7 @@ t(UC(`${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':'UNKNOWN'} · DOB: ${_fmtDob
 nx, y+17, {sz:8.5, c:GRAY1});
 t(UC(pat.phone||''), nx, y+23, {sz:8, c:GRAY2});
 
-// Status pill — inverted (black bg, white text) = guaranteed B&W print
+// Status pill • inverted (black bg, white text) = guaranteed B&W print
 const statW=22, statH=8;
 const statX=RX-statW-2, statY=y+4;
 if(pat.inactive){
@@ -21826,10 +21826,10 @@ t('ACTIVE', statX+statW/2, statY+5.5, {b:true,sz:7,c:EMERALD,a:'center'});
 y+=36;
 
 // ??????????????????????????????????????????????????????????????
-// SECTION HEADER — Apple "Inset Grouped" label style
+// SECTION HEADER • Apple "Inset Grouped" label style
 // ??????????????????????????????????????????????????????????????
 const sectionHdr = (title)=>{
-// Left rule + uppercase label — Apple section header pattern
+// Left rule + uppercase label • Apple section header pattern
 fill(M,y,3,6,EMERALD);
 t(title, M+6, y+4.8, {b:true, sz:9, c:GRAY1});
 hline(M+6+doc.getTextWidth(title)+3, y+2, RX, GRAY4, 0.3);
@@ -21879,7 +21879,7 @@ insetRows([
 ]);
 
 // ??????????????????????????????????????????????????????????????
-// 2. PRIMARY INSURANCE — inset grouped
+// 2. PRIMARY INSURANCE • inset grouped
 // ??????????????????????????????????????????????????????????????
 if(ins1){
 sectionHdr('PRIMARY INSURANCE');
@@ -21915,13 +21915,13 @@ insetRows([
 }
 
 // ??????????????????????????????????????????????????????????????
-// FOOTER — hairline + minimal branding
+// FOOTER • hairline + minimal branding
 // ??????????????????????????????????????????????????????????????
 const fY=264;
 hline(M,fY,RX,GRAY2,0.5);
 fill(M,fY+1.5,2.5,7,EMERALD);
 t(UC(prov.name||'ClaimDataCare'), M+6, fY+6.5, {b:true,sz:7.5,c:GRAY1});
-t('Confidential Medical Record — Authorized Recipients Only', M+6, fY+11, {sz:6.5,c:GRAY3});
+t('Confidential Medical Record • Authorized Recipients Only', M+6, fY+11, {sz:6.5,c:GRAY3});
 t(new Date().toISOString().slice(0,10), RX, fY+6.5, {sz:7,c:GRAY3,a:'right'});
 t('Page 1 of 1', RX, fY+11, {sz:6.5,c:GRAY3,a:'right'});
 
@@ -21936,7 +21936,7 @@ toast('Patient summary PDF exported');
 
 
 // ???????????????????????????????????????????????????????????????????????
-// ICON SYSTEM — Lucide icons via data-lucide attribute
+// ICON SYSTEM • Lucide icons via data-lucide attribute
 // Usage: _icon('house') ? <i data-lucide="house" class="lci"></i>
 // Call lucide.createIcons() after injecting into DOM
 // ???????????????????????????????????????????????????????????????????????
@@ -22005,7 +22005,7 @@ dashboard: 'layout-dashboard',
 
 // ?? Wire all nav icons after shell renders ?????????????????????????????
 function _initNavIcons() {
-// Icons are inline data-lucide in the HTML — just trigger Lucide and update buttons
+// Icons are inline data-lucide in the HTML • just trigger Lucide and update buttons
 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 const btnDark = document.getElementById('btn-dark');
 if (btnDark) btnDark.innerHTML = isDark ? _iconSun() : _iconMoon();
@@ -22190,8 +22190,8 @@ function _saveCMToFirestore(d) {
   // data. Never write it before this session has read it from Firestore, or a
   // half-loaded screen could overwrite the real data with an empty copy.
   if (!window._cmCloudLoaded) {
-    console.warn('[CDC] CM save skipped — data still loading from the cloud');
-    try { toast('Still loading data from the cloud — please try again in a moment', 'warn'); } catch(e) {}
+    console.warn('[CDC] CM save skipped • data still loading from the cloud');
+    try { toast('Still loading data from the cloud • please try again in a moment', 'warn'); } catch(e) {}
     return;
   }
   try {
@@ -22202,7 +22202,7 @@ function _saveCMToFirestore(d) {
 }
 function _cmId() { return 'cm_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
 
-// Generate next CM client File # — random 4-digit seed (1000-9999), sequential thereafter.
+// Generate next CM client File # • random 4-digit seed (1000-9999), sequential thereafter.
 // Uniqueness enforced across d.clients. If seed collides, retry until free.
 function _cmNextFileNo(d) {
   d = d || getCMData();
@@ -22211,14 +22211,14 @@ function _cmNextFileNo(d) {
   (d.clients || []).forEach(function(c){ if (c.fileNo) used[String(c.fileNo)] = 1; });
   var next = d.cmSettings.nextFileNo;
   if (!next || next < 1000 || next > 9999) {
-    // First File # ever — pick a random 4-digit seed not in use
+    // First File # ever • pick a random 4-digit seed not in use
     var attempts = 0;
     do {
       next = 1000 + Math.floor(Math.random() * 9000);
       attempts++;
     } while (used[String(next)] && attempts < 500);
   } else {
-    // Sequential — skip any pre-existing values
+    // Sequential • skip any pre-existing values
     while (used[String(next)] && next <= 9999) next++;
     if (next > 9999) next = 1000; // wrap
     while (used[String(next)] && next <= 9999) next++;
@@ -22256,12 +22256,12 @@ function _cmStatusBadge(s) {
 function _cmWorkerName(wid) {
   var d = getCMData();
   var w = d.workers.find(function(x){return x.id===wid;});
-  return w ? (w.first+' '+w.last) : '—';
+  return w ? (w.first+' '+w.last) : '•';
 }
 function _cmClientName(cid) {
   var d = getCMData();
   var c = d.clients.find(function(x){return x.id===cid;});
-  return c ? (c.last+', '+c.first) : '—';
+  return c ? (c.last+', '+c.first) : '•';
 }
 function _cmClientOpts() {
   var d = getCMData();
@@ -22272,7 +22272,7 @@ function _cmClientOpts() {
 function _cmWorkerOpts() {
   var d = getCMData();
   return d.workers.filter(function(w){return w.status!=='Inactive';}).map(function(w){
-    var sup = w.supervisorId ? ' — Sup: '+_cmWorkerName(w.supervisorId) : '';
+    var sup = w.supervisorId ? ' • Sup: '+_cmWorkerName(w.supervisorId) : '';
     return '<option value="'+w.id+'">'+w.first+' '+w.last+sup+'</option>';
   }).join('');
 }
@@ -22286,10 +22286,10 @@ function _isCMRole() {
   var db = getDB();
   var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; }) || {};
   var specDefs = prov.specialtyDefs || [];
-  if (!specDefs.length) return true; // no specialties configured on this provider — don't lock anyone out
+  if (!specDefs.length) return true; // no specialties configured on this provider • don't lock anyone out
   var activeSpecName = getActiveSpecialty();
   var activeDef = specDefs.find(function(sd){ return sd.name === activeSpecName; });
-  if (!activeDef) return true; // couldn't resolve an active specialty — fail open rather than lock out
+  if (!activeDef) return true; // couldn't resolve an active specialty • fail open rather than lock out
   return (activeDef.menus||[]).indexOf('tng-cm') >= 0;
 }
 
@@ -22335,7 +22335,7 @@ function renderCMClients() {
     el.innerHTML = '<div class="empty"><h3>No clients found</h3><button class="btn btn-primary btn-sm" onclick="openCMClientModal()">+ New Client</button></div>';
     return;
   }
-  // Pagination — matches Patient tab
+  // Pagination • matches Patient tab
   var pgSize  = window._cmCliPgSize  || 20;
   var pgIndex = window._cmCliPgIndex || 0;
   var total   = list.length;
@@ -22357,21 +22357,21 @@ function renderCMClients() {
     var bg = c.sex==='F'?'#D45C37':c.sex==='M'?'#2d6a4f':'#3A475C';
     var ini = ((c.first||'?')[0]+(c.last||'?')[0]).toUpperCase();
     return '<tr>'+
-      '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+(c.fileNo||'—')+'</a></td>'+
+      '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)"><a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--brand);text-decoration:none">'+(c.fileNo||'•')+'</a></td>'+
       '<td><div style="display:flex;align-items:center;gap:8px">'+
       '<div style="width:26px;height:26px;border-radius:50%;background:'+bg+';color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ini+'</div>'+
       '<a href="#" onclick="openCMClientChart(\''+c.id+'\');return false" style="color:var(--text);text-decoration:none;font-weight:600">'+(c.last||'')+', '+(c.first||'')+'</a>'+
       '</div></td>'+
-      '<td style="font-size:12px">'+(c.dob||'—')+'</td>'+
+      '<td style="font-size:12px">'+(c.dob||'•')+'</td>'+
       '<td style="font-size:12px">'+(c.subNum||c.medicaidId||'')+'</td>'+
       '<td style="font-size:12px">'+(c.payerid||'')+'</td>'+
       '<td style="font-size:12px">'+(c.payerName||c.payer||'')+'</td>'+
-      '<td style="font-size:12px">'+(c.plan||'—')+'</td>'+
+      '<td style="font-size:12px">'+(c.plan||'•')+'</td>'+
       '<td style="font-size:12px">'+(c.rel||'')+'</td>'+
       '<td style="text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:'+(cnt>0?'#FFF1EC':'#F8FAFC')+';color:'+(cnt>0?'#D45C37':'#586579')+';font-size:11px;font-weight:700">'+cnt+'</span></td>'+
       '<td style="font-size:12px">'+_cmWorkerName(c.workerId)+'</td>'+
       '<td>'+_cmStatusBadge(c.status||'Active')+'</td>'+
-      '<td style="font-size:12px">'+(c.authEnd||'—')+'</td>'+
+      '<td style="font-size:12px">'+(c.authEnd||'•')+'</td>'+
       '<td><div style="display:flex;gap:3px">'+
       '<button class="btn-icon sm" onclick="openCMClientChart(\''+c.id+'\')" title="Open Chart" style="color:var(--brand)"><i data-lucide="folder-open" class="lci" style="width:12px;height:12px"></i></button>'+
       '<button class="btn-icon sm" onclick="editCMClient(\''+c.id+'\')" title="Edit Info"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
@@ -22430,16 +22430,16 @@ function _cmCliSetPgSize(s){ window._cmCliPgSize=parseInt(s)||20; window._cmCliP
 function openCMClientModal(editId) {
   var d = getCMData();
   var c = editId ? d.clients.find(function(x){return x.id===editId;}) : {};
-  var workerOpts = '<option value="">— None —</option>'+_cmWorkerOpts();
+  var workerOpts = '<option value="">None</option>'+_cmWorkerOpts();
   // Preview the File # that WOULD be assigned (without consuming it)
   var fileNoDisplay;
   if (editId) {
-    fileNoDisplay = c.fileNo || '—';
+    fileNoDisplay = c.fileNo || '•';
   } else {
     var used = {};
     (d.clients||[]).forEach(function(x){ if(x.fileNo) used[String(x.fileNo)]=1; });
     var preview = d.cmSettings && d.cmSettings.nextFileNo;
-    if (!preview || preview<1000 || preview>9999) preview = '(auto — random 4-digit)';
+    if (!preview || preview<1000 || preview>9999) preview = '(auto • random 4-digit)';
     else {
       while (used[String(preview)] && preview<=9999) preview++;
       preview = preview>9999 ? '(auto)' : String(preview);
@@ -22473,9 +22473,9 @@ function openCMClientModal(editId) {
       '<div class="field"><label>Middle Initial</label><input id="cmc-mid" maxlength="1" value="'+esc(c.mid)+'"></div>'+
       '<div class="field"><label>Date of Birth</label><input id="cmc-dob" type="date" value="'+esc(c.dob)+'"></div>'+
       '<div class="field"><label>Sex</label><select id="cmc-sex">'+
-        '<option value=""'+sel(c.sex,'')+'>—</option>'+
-        '<option value="F"'+sel(c.sex,'F')+'>F — Female</option>'+
-        '<option value="M"'+sel(c.sex,'M')+'>M — Male</option>'+
+        '<option value=""'+sel(c.sex,'')+'>•</option>'+
+        '<option value="F"'+sel(c.sex,'F')+'>F • Female</option>'+
+        '<option value="M"'+sel(c.sex,'M')+'>M • Male</option>'+
         '<option value="O"'+sel(c.sex,'O')+'>Other</option>'+
       '</select></div>'+
       '<div class="field"><label>SSN (last 4)</label><input id="cmc-ssn4" maxlength="4" value="'+esc(c.ssn4)+'"></div>'+
@@ -22487,12 +22487,12 @@ function openCMClientModal(editId) {
       '<div class="field"><label>State</label><input id="cmc-state" maxlength="2" placeholder="FL" value="'+esc(c.state)+'"></div>'+
       '<div class="field"><label>ZIP</label><input id="cmc-zip" maxlength="10" value="'+esc(c.zip)+'"></div>'+
       '<div class="field"><label>Relationship to Insured</label><select id="cmc-rel">'+
-        '<option value="18"'+sel(c.rel||'18','18')+'>18 — Self</option>'+
-        '<option value="01"'+sel(c.rel,'01')+'>01 — Spouse</option>'+
-        '<option value="19"'+sel(c.rel,'19')+'>19 — Child</option>'+
-        '<option value="G8"'+sel(c.rel,'G8')+'>G8 — Other</option>'+
-        '<option value="32"'+sel(c.rel,'32')+'>32 — Mother</option>'+
-        '<option value="33"'+sel(c.rel,'33')+'>33 — Father</option>'+
+        '<option value="18"'+sel(c.rel||'18','18')+'>18 • Self</option>'+
+        '<option value="01"'+sel(c.rel,'01')+'>01 • Spouse</option>'+
+        '<option value="19"'+sel(c.rel,'19')+'>19 • Child</option>'+
+        '<option value="G8"'+sel(c.rel,'G8')+'>G8 • Other</option>'+
+        '<option value="32"'+sel(c.rel,'32')+'>32 • Mother</option>'+
+        '<option value="33"'+sel(c.rel,'33')+'>33 • Father</option>'+
       '</select></div>'+
     '</div>'+
 
@@ -22505,7 +22505,7 @@ function openCMClientModal(editId) {
       '<div class="field"><label>Member ID / Subscriber ID</label><input id="cmc-insnum" value="'+esc(c.subNum||c.medicaidId)+'"></div>'+
       '<div class="field"><label>Subscriber DOB</label><input id="cmc-insdob" type="date" value="'+esc(c.subDob)+'"></div>'+
       '<div class="field"><label>Subscriber Sex</label><select id="cmc-inssex">'+
-        '<option value=""'+sel(c.subSex||'','')+'>—</option>'+
+        '<option value=""'+sel(c.subSex||'','')+'>•</option>'+
         '<option value="M"'+sel(c.subSex,'M')+'>M</option>'+
         '<option value="F"'+sel(c.subSex,'F')+'>F</option>'+
       '</select></div>'+
@@ -22530,7 +22530,7 @@ function openCMClientModal(editId) {
       '<div class="field"><label>Guardian Name</label><input id="cmc-gname" value="'+esc(c.guardianName)+'"></div>'+
       '<div class="field"><label>Relationship</label><select id="cmc-grel">'+
         ['','Mother','Father','Legal Guardian','Spouse','Adult Child','Other'].map(function(v){
-          return '<option value="'+v+'"'+sel(c.guardianRel||'',v)+'>'+(v||'—')+'</option>';
+          return '<option value="'+v+'"'+sel(c.guardianRel||'',v)+'>'+(v||'•')+'</option>';
         }).join('')+
       '</select></div>'+
       '<div class="field"><label>Guardian Phone</label><input id="cmc-gphone" value="'+esc(c.guardianPhone)+'"></div>'+
@@ -22545,13 +22545,13 @@ function openCMClientModal(editId) {
       '<div class="field"><label>Primary Dx (ICD-10)</label><input id="cmc-dx" placeholder="F411" value="'+esc(c.primaryDx)+'"></div>'+
       '<div class="field"><label>Level of Care</label><select id="cmc-loc">'+
         ['','Outpatient','Intensive Outpatient (IOP)','Partial Hospitalization (PHP)','Community-Based','Targeted Case Management (TCM)','Behavioral Health Overlay','Other'].map(function(v){
-          return '<option value="'+v+'"'+sel(c.levelOfCare||'',v)+'>'+(v||'—')+'</option>';
+          return '<option value="'+v+'"'+sel(c.levelOfCare||'',v)+'>'+(v||'•')+'</option>';
         }).join('')+
       '</select></div>'+
       '<div class="field"><label>Referral Source</label><input id="cmc-refsrc" placeholder="e.g. Dr. Smith / DCF / Self" value="'+esc(c.referralSource)+'"></div>'+
       '<div class="field"><label>Preferred Language</label><select id="cmc-lang">'+
         ['','English','Spanish','Creole','Portuguese','Other'].map(function(v){
-          return '<option value="'+v+'"'+sel(c.language||'',v)+'>'+(v||'—')+'</option>';
+          return '<option value="'+v+'"'+sel(c.language||'',v)+'>'+(v||'•')+'</option>';
         }).join('')+
       '</select></div>'+
     '</div>'+
@@ -22665,14 +22665,14 @@ function saveCMClient(id) {
   saveCMData(d);
   document.querySelectorAll('[data-cm]').forEach(function(o){o.remove();});
   renderCMClients();
-  toast(id ? 'Client updated' : 'Client saved — File # '+obj.fileNo);
+  toast(id ? 'Client updated' : 'Client saved • File # '+obj.fileNo);
 }
 
 function editCMClient(id) { openCMClientModal(id); }
 function delCMClient(id) {
   var d = getCMData();
   var c = d.clients.find(function(x){return x.id===id;});
-  var label = c ? (c.last+', '+c.first+' (File #'+(c.fileNo||'—')+')') : 'this client';
+  var label = c ? (c.last+', '+c.first+' (File #'+(c.fileNo||'•')+')') : 'this client';
   return cdcConfirm('Delete '+label+'?\n\nThis cannot be undone.').then((__ok)=>{if(!__ok)return;
   d.clients = d.clients.filter(function(x){return x.id!==id;});
   saveCMData(d);
@@ -22783,7 +22783,7 @@ function _renderImportFromPatientsList() {
       '<input type="checkbox" '+checked+' '+disabled+' onchange="_impToggle(\''+p.id+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0">'+
       '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:600;font-size:13px">'+(p.last||'')+', '+(p.first||'')+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-top:1px">Acct #'+(p.acct||'—')+' · DOB '+(p.dob||'—')+(p.subNum?' · Sub '+p.subNum:'')+(p.payerName?' · '+p.payerName:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">Acct #'+(p.acct||'•')+' · DOB '+(p.dob||'•')+(p.subNum?' · Sub '+p.subNum:'')+(p.payerName?' · '+p.payerName:'')+'</div>'+
       '</div>'+
       (dup ? '<span style="font-size:10px;font-weight:700;color:#D45C37;background:#FFF1EC;padding:3px 8px;border-radius:10px;border:1px solid #FFD2C2;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
     '</label>';
@@ -22939,8 +22939,8 @@ function _renderImportFromCMList() {
     return '<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:'+(dup?'not-allowed':'pointer')+';'+rowStyle+'">'+
       '<input type="checkbox" '+checked+' '+disabled+' onchange="_impCMToggle(\''+cli.id+'\',this.checked)" style="width:15px;height:15px;accent-color:var(--brand);flex-shrink:0">'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:600;font-size:13px"><span style="font-family:var(--mono);color:var(--brand);margin-right:6px">#'+(cli.fileNo||'—')+'</span>'+(cli.last||'')+', '+(cli.first||'')+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-top:1px">DOB '+(cli.dob||'—')+(cli.medicaidId?' · Medicaid '+cli.medicaidId:'')+(cli.payer?' · '+cli.payer:'')+'</div>'+
+        '<div style="font-weight:600;font-size:13px"><span style="font-family:var(--mono);color:var(--brand);margin-right:6px">#'+(cli.fileNo||'•')+'</span>'+(cli.last||'')+', '+(cli.first||'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">DOB '+(cli.dob||'•')+(cli.medicaidId?' · Medicaid '+cli.medicaidId:'')+(cli.payer?' · '+cli.payer:'')+'</div>'+
       '</div>'+
       (dup ? '<span style="font-size:10px;font-weight:700;color:#D45C37;background:#FFF1EC;padding:3px 8px;border-radius:10px;border:1px solid #FFD2C2;white-space:nowrap">'+reason+'</span>' : '<span style="font-size:10px;color:var(--text3)">Ready</span>')+
     '</label>';
@@ -23026,7 +23026,7 @@ function runImportFromCMClients() {
       city: cli.city||'',
       state: cli.state||'',
       zip: cli.zip||'',
-      rel: '18', // default Self — user can adjust
+      rel: '18', // default Self • user can adjust
       subLast: cli.last||'',
       subFirst: cli.first||'',
       subNum: cli.medicaidId||'',
@@ -23089,7 +23089,7 @@ function renderCMWorkers() {
       var pct = Math.round(cnt/cap*100);
       return '<tr>'+
         '<td style="font-weight:600">'+w.first+' '+w.last+'</td>'+
-        '<td style="font-size:12px">'+(w.credential||'—')+'</td>'+
+        '<td style="font-size:12px">'+(w.credential||'•')+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(w.supervisorId)+'</td>'+
         '<td style="font-size:12px;font-weight:600">'+cnt+'</td>'+
         '<td style="font-size:12px"><div style="background:var(--bg3);border-radius:10px;height:6px;width:60px;display:inline-block;vertical-align:middle;overflow:hidden"><div style="background:'+(pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)')+';height:6px;width:'+Math.min(pct,100)+'%;border-radius:10px"></div></div> '+cap+'</td>'+
@@ -23115,7 +23115,7 @@ var CM_ROLE_DEFS = [
 function _cmwEsc(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
 
 // One CSS variable per role card (--rc / --rcd) instead of JS re-coloring
-// each element by hand on click — the browser's own :has(:checked) rule
+// each element by hand on click • the browser's own :has(:checked) rule
 // handles the checked/unchecked swap, so there is no per-click DOM walk
 // that can drift out of sync with what's actually checked.
 function _cmRoleCard(def, checked) {
@@ -23163,7 +23163,7 @@ window._cmwRoleToggle = function () {
   var supBlock = document.getElementById('cmw-npi-block');
   if (supBlock) supBlock.style.display = isSup ? 'grid' : 'none';
   // TCM supervisors are capped at a 12-client caseload, well below the
-  // 20-client default for case managers — nudge the field to that ceiling
+  // 20-client default for case managers • nudge the field to that ceiling
   // the moment Supervisor is checked, without overriding a value someone
   // already typed on purpose above 12... unless it's still just the
   // untouched 20 default, in which case snap it down.
@@ -23203,7 +23203,7 @@ window._cmwRefreshReportsTo = function () {
   });
   // The previously-assigned reports-to no longer qualifies for the target
   // role (e.g. it pointed at a Supervisor but this worker just became one
-  // themselves, so the target flipped to Administrator) — drop it rather
+  // themselves, so the target flipped to Administrator) • drop it rather
   // than leave a stale reference selected against the wrong role.
   if (currentId && !matchFound) sel.setAttribute('data-current', '');
   sel.innerHTML = opts;
@@ -23235,7 +23235,7 @@ window._cmwClearPhoto = function () {
 
 window._cmwOpenCamera = function () {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    toast('Camera not available on this device — try Upload instead', 'warn');
+    toast('Camera not available on this device • try Upload instead', 'warn');
     return;
   }
   var cam = document.createElement('div');
@@ -23253,7 +23253,7 @@ window._cmwOpenCamera = function () {
     stream = s;
     document.getElementById('cmw-cam-video').srcObject = s;
   }).catch(function () {
-    toast('Could not access camera — check browser permissions', 'err');
+    toast('Could not access camera • check browser permissions', 'err');
     cam.remove();
   });
   function stop() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); cam.remove(); }
@@ -23317,7 +23317,7 @@ function openCMWorkerModal(editId) {
     '<div class="field"><label><i data-lucide="user" class="lci cmw-fico"></i>Middle Name</label><input id="cmw-mid" class="no-upper" value="'+(w.middle||'')+'"></div>'+
     '<div class="field"><label><i data-lucide="user" class="lci cmw-fico"></i>Last Name</label><input id="cmw-last" class="no-upper" value="'+(w.last||'')+'"></div></div>'+
     '<div class="fg"><div class="field"><label><i data-lucide="cake" class="lci cmw-fico"></i>Date of Birth</label><input id="cmw-dob" type="date" value="'+(w.dob||'')+'"></div>'+
-    '<div class="field"><label><i data-lucide="venus-and-mars" class="lci cmw-fico"></i>Gender</label><select id="cmw-gender"><option value=""'+(!w.gender?' selected':'')+'>—</option><option value="Male"'+(w.gender==='Male'?' selected':'')+'>Male</option><option value="Female"'+(w.gender==='Female'?' selected':'')+'>Female</option><option value="Other"'+(w.gender==='Other'?' selected':'')+'>Other</option><option value="Prefer not to say"'+(w.gender==='Prefer not to say'?' selected':'')+'>Prefer not to say</option></select></div></div>'+
+    '<div class="field"><label><i data-lucide="venus-and-mars" class="lci cmw-fico"></i>Gender</label><select id="cmw-gender"><option value=""'+(!w.gender?' selected':'')+'>•</option><option value="Male"'+(w.gender==='Male'?' selected':'')+'>Male</option><option value="Female"'+(w.gender==='Female'?' selected':'')+'>Female</option><option value="Other"'+(w.gender==='Other'?' selected':'')+'>Other</option><option value="Prefer not to say"'+(w.gender==='Prefer not to say'?' selected':'')+'>Prefer not to say</option></select></div></div>'+
 
     '<div class="cmw-sect">Contact</div>' +
     '<div class="fg"><div class="field"><label><i data-lucide="mail" class="lci cmw-fico"></i>Email</label><input id="cmw-email" type="email" value="'+(w.email||'')+'"></div>'+
@@ -23348,7 +23348,7 @@ function openCMWorkerModal(editId) {
     '<div id="cmw-npi-block" style="display:'+(isSupNow?'grid':'none')+';grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding:13px;background:#FFF1EC;border:1.5px solid #f0d5c4;border-radius:12px">' +
     '<div style="grid-column:1/-1;font-size:11px;color:#a9502f;display:flex;align-items:center;gap:6px">' +
     '<i data-lucide="alert-circle" class="lci" style="width:12px;height:12px"></i>' +
-    'Required for supervisors — used as the rendering provider on CM claims' +
+    'Required for supervisors • used as the rendering provider on CM claims' +
     '</div>' +
     '<div class="field" style="margin:0"><label><i data-lucide="hash" class="lci cmw-fico"></i>NPI *</label><input id="cmw-npi" maxlength="10" value="'+(w.npi||'')+'" placeholder="10 digits"></div>' +
     '<div class="field" style="margin:0"><label><i data-lucide="tag" class="lci cmw-fico"></i>Taxonomy Code *</label><input id="cmw-taxonomy" maxlength="10" value="'+(w.taxonomy||'')+'" placeholder="e.g. 104100000X"></div>' +
@@ -23502,7 +23502,7 @@ function openCMPlanModal(editId) {
     '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:720px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
     '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3);flex-shrink:0">'+
     '<div><div style="font-size:16px;font-weight:700">'+(editId?'Edit Service Plan':'New Service Plan')+'</div>'+
-    '<div style="font-size:11px;color:var(--text3);margin-top:2px">SMART goals — Specific, Measurable, Achievable, Relevant, Time-bound</div></div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-top:2px">SMART goals • Specific, Measurable, Achievable, Relevant, Time-bound</div></div>'+
     '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
     '<div style="padding:18px 22px;overflow-y:auto;flex:1">'+
     '<div class="fg g2"><div class="field"><label>Client *</label><select id="cmp-client">'+_cmClientOpts()+'</select></div>'+
@@ -23641,7 +23641,7 @@ function renderCMNotes() {
         '<td>'+(n.billable?'<span class="badge b-green">Billable</span>':'<span class="badge b-gray">Non-Billable</span>')+'</td>'+
         '<td style="text-align:center;font-weight:600">'+(n.units||0)+'</td>'+
         '<td style="font-size:12px">'+(n.location||'')+'</td>'+
-        '<td style="font-size:11px">'+(n.signature?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">—</span>')+'</td>'+
+        '<td style="font-size:11px">'+(n.signature?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">•</span>')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
         '<button class="btn-icon sm" onclick="editCMNote(\''+n.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
         '<button class="btn-icon sm danger" onclick="delCMNote(\''+n.id+'\')" title="Delete"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>'+
@@ -23787,7 +23787,7 @@ function renderCMBilling() {
   var codeSel = document.getElementById('cm-bill-code');
   if (codeSel && codeSel.options.length <= 1) {
     codeSel.innerHTML = '<option value="">All Codes</option>' +
-      _CM_CPT_CATALOG.map(function(x){return '<option value="'+x.code+'">'+x.code+' — '+x.desc.slice(0,40)+'</option>';}).join('');
+      _CM_CPT_CATALOG.map(function(x){return '<option value="'+x.code+'">'+x.code+' • '+x.desc.slice(0,40)+'</option>';}).join('');
   }
   var wkrSel = document.getElementById('cm-bill-worker');
   if (wkrSel) {
@@ -23817,7 +23817,7 @@ function renderCMBilling() {
   });
   list = list.sort(function(a,b){return (b.serviceDate||'').localeCompare(a.serviceDate||'') || new Date(b.createdAt)-new Date(a.createdAt);});
 
-  // KPIs (across full billing table, unfiltered — gives global picture)
+  // KPIs (across full billing table, unfiltered • gives global picture)
   var kpi = {Draft:{n:0,$:0}, Ready:{n:0,$:0}, Submitted:{n:0,$:0}, Paid:{n:0,$:0}, Rejected:{n:0,$:0}};
   full.forEach(function(b){
     var s = b.status||'Draft';
@@ -23869,7 +23869,7 @@ function renderCMBilling() {
         '<td style="font-weight:600">'+_cmClientName(b.clientId)+'</td>'+
         '<td style="font-size:12px">'+(b.serviceDate||'')+'</td>'+
         '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(b.code||'')+'</td>'+
-        '<td style="font-size:11px;color:var(--text3)">'+(cat.desc||'—').slice(0,50)+'</td>'+
+        '<td style="font-size:11px;color:var(--text3)">'+(cat.desc||'•').slice(0,50)+'</td>'+
         '<td style="text-align:center">'+(b.units||0)+'</td>'+
         '<td style="text-align:right;font-size:12px">'+_cmFmtMoney(b.rate||0)+'</td>'+
         '<td style="font-weight:700;text-align:right">'+_cmFmtMoney(b.total||0)+'</td>'+
@@ -23978,17 +23978,17 @@ function editCMBilling(id) {
   var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
 
-  var clientOpts = '<option value="">— Select Client —</option>' +
+  var clientOpts = '<option value="">Select Client</option>' +
     (d.clients||[]).slice().sort(function(a,b){return (a.last||'').localeCompare(b.last||'');}).map(function(c){
       var label = (c.last||'')+', '+(c.first||'')+(c.fileNo?' (#'+c.fileNo+')':'');
       return '<option value="'+c.id+'"'+sel(b.clientId,c.id)+'>'+label+'</option>';
     }).join('');
-  var workerOpts = '<option value="">— None —</option>' +
+  var workerOpts = '<option value="">None</option>' +
     (d.workers||[]).filter(function(w){return w.status!=='Inactive';}).map(function(w){
       return '<option value="'+w.id+'"'+sel(b.workerId,w.id)+'>'+w.first+' '+w.last+'</option>';
     }).join('');
   var codeOpts = _CM_CPT_CATALOG.map(function(x){
-    return '<option value="'+x.code+'" data-rate="'+_cmRateFor(d, x.code)+'"'+sel(b.code||'T1017',x.code)+'>'+x.code+' — '+x.desc+'</option>';
+    return '<option value="'+x.code+'" data-rate="'+_cmRateFor(d, x.code)+'"'+sel(b.code||'T1017',x.code)+'>'+x.code+' • '+x.desc+'</option>';
   }).join('');
 
   var overlay = document.createElement('div');
@@ -24012,8 +24012,8 @@ function editCMBilling(id) {
     '<div class="fg g2">'+
       '<div class="field"><label>Date of Service *</label><input id="cmb-dos" type="date" value="'+esc(b.serviceDate)+'"></div>'+
       '<div class="field"><label>Place of Service</label><select id="cmb-pos">'+
-        ['11 — Office','12 — Home','02 — Telehealth (patient home)','10 — Telehealth (other)','03 — School','04 — Homeless Shelter','53 — Community Mental Health','99 — Other'].map(function(v){
-          var code = v.split(' — ')[0];
+        ['11 • Office','12 • Home','02 • Telehealth (patient home)','10 • Telehealth (other)','03 • School','04 • Homeless Shelter','53 • Community Mental Health','99 • Other'].map(function(v){
+          var code = v.split(' • ')[0];
           return '<option value="'+code+'"'+sel(b.pos||'11',code)+'>'+v+'</option>';
         }).join('')+
       '</select></div>'+
@@ -24504,12 +24504,12 @@ function _cmRptUtilization(d) {
       var c = row.c;
       var pctColor = row.pct>=100?'var(--red,#dc2626)':row.pct>=85?'#d97706':row.pct>=50?'var(--brand)':'var(--text3)';
       var pctIcon = row.pct>=100?'🔴 ':row.pct>=85?'⚠️ ':'';
-      var remaining = row.authorized > 0 ? Math.max(0, row.authorized - row.used) : '—';
+      var remaining = row.authorized > 0 ? Math.max(0, row.authorized - row.used) : '•';
       return '<tr>'+
-        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'—')+'</td>'+
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(c.fileNo||'•')+'</td>'+
         '<td style="font-weight:600">'+c.last+', '+c.first+'</td>'+
-        '<td style="font-size:11px;color:var(--text3)">'+(c.authStart||'—')+' → '+(c.authEnd||'—')+'</td>'+
-        '<td style="text-align:center">'+(row.authorized>0?row.authorized.toLocaleString():'—')+'</td>'+
+        '<td style="font-size:11px;color:var(--text3)">'+(c.authStart||'•')+' → '+(c.authEnd||'•')+'</td>'+
+        '<td style="text-align:center">'+(row.authorized>0?row.authorized.toLocaleString():'•')+'</td>'+
         '<td style="text-align:center;font-weight:600">'+row.used.toLocaleString()+'</td>'+
         '<td style="text-align:center">'+remaining+'</td>'+
         '<td style="text-align:right;font-weight:700;color:'+pctColor+'">'+pctIcon+(row.authorized>0?row.pct.toFixed(1)+'%':'no auth')+'</td>'+
@@ -24533,7 +24533,7 @@ function _cmRptCodes(d, billing) {
   });
   var rows = Object.keys(byCode).map(function(code){
     var cat = (typeof _cmCatByCode === 'function') ? _cmCatByCode(code) : null;
-    return { code:code, desc:(cat?cat.desc:'—'), ...byCode[code] };
+    return { code:code, desc:(cat?cat.desc:'•'), ...byCode[code] };
   }).sort(function(a,b){return b.billed - a.billed;});
 
   if (!rows.length) return '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No billing data in this period.</div>';
@@ -24628,12 +24628,12 @@ function _cmRptAging(d, billing) {
       var bColor = row.bucket==='0-30'?'var(--green,#059669)':row.bucket==='31-60'?'#d97706':row.bucket==='61-90'?'#ea580c':'var(--red,#dc2626)';
       return '<tr>'+
         '<td style="font-weight:600">'+_cmClientName(b.clientId)+'</td>'+
-        '<td style="font-size:12px">'+(b.serviceDate||'—')+'</td>'+
+        '<td style="font-size:12px">'+(b.serviceDate||'•')+'</td>'+
         '<td style="font-family:var(--mono);font-weight:700;color:var(--brand)">'+(b.code||'')+'</td>'+
         '<td style="text-align:right;font-weight:600">'+_cmFmtMoney(b.total||0)+'</td>'+
         '<td style="text-align:center;font-weight:600;color:'+bColor+'">'+row.age+'</td>'+
         '<td><span style="font-size:10px;font-weight:700;color:'+bColor+';background:'+bColor+'15;padding:2px 8px;border-radius:10px">'+row.bucket+'</span></td>'+
-        '<td style="font-size:11px;color:var(--text3);font-family:var(--mono)">'+(b.pcn||'—')+'</td>'+
+        '<td style="font-size:11px;color:var(--text3);font-family:var(--mono)">'+(b.pcn||'•')+'</td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>'+
@@ -24780,8 +24780,8 @@ function renderCMIntake() {
     list.map(function(r){
       return '<tr>'+
         '<td style="font-weight:600">'+(r.last||'')+', '+(r.first||'')+'</td>'+
-        '<td style="font-size:12px">'+(r.medicaidId||'—')+'</td>'+
-        '<td style="font-size:12px">'+(r.referralSource||'—')+'</td>'+
+        '<td style="font-size:12px">'+(r.medicaidId||'•')+'</td>'+
+        '<td style="font-size:12px">'+(r.referralSource||'•')+'</td>'+
         '<td style="font-size:12px">'+(r.referralDate||'')+'</td>'+
         '<td>'+_cmStatusBadge(r.status||'Pending')+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(r.intakeCoordinatorId)+'</td>'+
@@ -24797,7 +24797,7 @@ function renderCMIntake() {
 function openCMIntakeModal(editId) {
   var d = getCMData();
   var r = editId ? (d.referrals||[]).find(function(x){return x.id===editId;}) : {};
-  var workerOpts = '<option value="">— Select —</option>'+_cmWorkerOpts();
+  var workerOpts = '<option value="">Select</option>'+_cmWorkerOpts();
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
@@ -24921,7 +24921,7 @@ function renderCMAssessments() {
         '<td style="font-size:12px">'+(a.type||'Comprehensive')+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(a.workerId)+'</td>'+
         '<td>'+_cmStatusBadge(a.status||'Draft')+'</td>'+
-        '<td style="font-size:11px">'+(a.signatureStatus==='Signed'?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">—</span>')+'</td>'+
+        '<td style="font-size:11px">'+(a.signatureStatus==='Signed'?'<span style="color:var(--green)">Signed</span>':'<span style="color:var(--text3)">•</span>')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
         '<button class="btn-icon sm" onclick="viewCMAssessment(\''+a.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
         '<button class="btn-icon sm" onclick="editCMAssessment(\''+a.id+'\')" title="Edit"><i data-lucide="pencil" class="lci" style="width:12px;height:12px"></i></button>'+
@@ -24940,7 +24940,7 @@ function openCMAssessmentModal(editId) {
   var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
   var sect = function(id, kl, vl, hint) {
-    return '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:2px">'+kl+(hint?' <span style="font-weight:400;color:var(--text3);font-size:10px">— '+hint+'</span>':'')+'</label><textarea id="'+id+'" style="width:100%;min-height:44px;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical">'+esc(vl)+'</textarea></div>';
+    return '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:2px">'+kl+(hint?' <span style="font-weight:400;color:var(--text3);font-size:10px">• '+hint+'</span>':'')+'</label><textarea id="'+id+'" style="width:100%;min-height:44px;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical">'+esc(vl)+'</textarea></div>';
   };
   var sectionHeader = function(label) {
     return '<div style="margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.04em">'+label+'</div>';
@@ -24980,47 +24980,47 @@ function openCMAssessmentModal(editId) {
     sect('cma-medications','Current Medications', a.medications, 'Prescriber, dosages, adherence')+
     sect('cma-mentalHealth','Mental Health History', a.mentalHealth, 'Prior dx, hospitalizations, therapy')+
     sect('cma-substanceUse','Substance Use', a.substanceUse, 'Type, freq, last use, tx history')+
-    sect('cma-trauma','Trauma History', a.trauma, 'ACEs, PTSD, unresolved trauma — screen sensitively')+
+    sect('cma-trauma','Trauma History', a.trauma, 'ACEs, PTSD, unresolved trauma • screen sensitively')+
 
     // Mental Status Exam
     sectionHeader('Mental Status Examination (MSE)')+
     '<div class="fg g3">'+
       '<div class="field"><label>Appearance</label><select id="cma-mseApp">'+
-        ['','Well-groomed','Neat','Casual','Disheveled','Poor hygiene','Unusual dress','Age-appropriate'].map(function(v){return '<option value="'+v+'"'+sel(a.mseApp,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Well-groomed','Neat','Casual','Disheveled','Poor hygiene','Unusual dress','Age-appropriate'].map(function(v){return '<option value="'+v+'"'+sel(a.mseApp,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Behavior / Attitude</label><select id="cma-mseBeh">'+
-        ['','Cooperative','Guarded','Withdrawn','Agitated','Hostile','Restless','Calm','Anxious'].map(function(v){return '<option value="'+v+'"'+sel(a.mseBeh,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Cooperative','Guarded','Withdrawn','Agitated','Hostile','Restless','Calm','Anxious'].map(function(v){return '<option value="'+v+'"'+sel(a.mseBeh,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Speech</label><select id="cma-mseSpeech">'+
-        ['','Normal rate/volume','Rapid','Pressured','Slow','Soft','Loud','Slurred','Mute','Impoverished'].map(function(v){return '<option value="'+v+'"'+sel(a.mseSpeech,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Normal rate/volume','Rapid','Pressured','Slow','Soft','Loud','Slurred','Mute','Impoverished'].map(function(v){return '<option value="'+v+'"'+sel(a.mseSpeech,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
     '</div>'+
     '<div class="fg g3">'+
       '<div class="field"><label>Mood (client-reported)</label><input id="cma-mseMood" value="'+esc(a.mseMood)+'" placeholder="e.g. sad, anxious"></div>'+
       '<div class="field"><label>Affect (observed)</label><select id="cma-mseAffect">'+
-        ['','Euthymic','Congruent','Incongruent','Flat','Blunted','Constricted','Labile','Full-range','Dysphoric','Anxious','Irritable'].map(function(v){return '<option value="'+v+'"'+sel(a.mseAffect,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Euthymic','Congruent','Incongruent','Flat','Blunted','Constricted','Labile','Full-range','Dysphoric','Anxious','Irritable'].map(function(v){return '<option value="'+v+'"'+sel(a.mseAffect,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Thought Process</label><select id="cma-mseTP">'+
-        ['','Linear/Goal-directed','Circumstantial','Tangential','Flight of ideas','Loose associations','Blocking','Perseveration'].map(function(v){return '<option value="'+v+'"'+sel(a.mseTP,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Linear/Goal-directed','Circumstantial','Tangential','Flight of ideas','Loose associations','Blocking','Perseveration'].map(function(v){return '<option value="'+v+'"'+sel(a.mseTP,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
     '</div>'+
     '<div class="fg g3">'+
       '<div class="field"><label>Thought Content</label><select id="cma-mseTC">'+
-        ['','WNL / no unusual','Ruminations','Obsessions','Delusions - persecutory','Delusions - grandiose','Delusions - somatic','Ideas of reference','Paranoia'].map(function(v){return '<option value="'+v+'"'+sel(a.mseTC,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','WNL / no unusual','Ruminations','Obsessions','Delusions - persecutory','Delusions - grandiose','Delusions - somatic','Ideas of reference','Paranoia'].map(function(v){return '<option value="'+v+'"'+sel(a.mseTC,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Perception</label><select id="cma-msePerc">'+
-        ['','No abnormalities','Auditory hallucinations','Visual hallucinations','Tactile hallucinations','Illusions','Depersonalization','Derealization'].map(function(v){return '<option value="'+v+'"'+sel(a.msePerc,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','No abnormalities','Auditory hallucinations','Visual hallucinations','Tactile hallucinations','Illusions','Depersonalization','Derealization'].map(function(v){return '<option value="'+v+'"'+sel(a.msePerc,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Cognition</label><select id="cma-mseCog">'+
-        ['','Alert & oriented x4','Alert & oriented x3','Confused','Impaired attention','Impaired memory','Impaired concentration'].map(function(v){return '<option value="'+v+'"'+sel(a.mseCog,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Alert & oriented x4','Alert & oriented x3','Confused','Impaired attention','Impaired memory','Impaired concentration'].map(function(v){return '<option value="'+v+'"'+sel(a.mseCog,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
     '</div>'+
     '<div class="fg g2">'+
       '<div class="field"><label>Insight</label><select id="cma-mseInsight">'+
-        ['','Good','Fair','Limited','Poor','Absent'].map(function(v){return '<option value="'+v+'"'+sel(a.mseInsight,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Good','Fair','Limited','Poor','Absent'].map(function(v){return '<option value="'+v+'"'+sel(a.mseInsight,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
       '<div class="field"><label>Judgment</label><select id="cma-mseJudgment">'+
-        ['','Intact','Fair','Impaired','Poor'].map(function(v){return '<option value="'+v+'"'+sel(a.mseJudgment,v)+'>'+(v||'—')+'</option>';}).join('')+
+        ['','Intact','Fair','Impaired','Poor'].map(function(v){return '<option value="'+v+'"'+sel(a.mseJudgment,v)+'>'+(v||'•')+'</option>';}).join('')+
       '</select></div>'+
     '</div>'+
     sect('cma-mseNotes','MSE Additional Notes', a.mseNotes)+
@@ -25031,8 +25031,8 @@ function openCMAssessmentModal(editId) {
       '<div class="field"><label>Suicidal Ideation</label>'+riskLevelSel('cma-si', a.si||'None/Denies')+'</div>'+
       '<div class="field"><label>Homicidal Ideation</label>'+riskLevelSel('cma-hi', a.hi||'None/Denies')+'</div>'+
     '</div>'+
-    sect('cma-siDetails','SI Details — Plan / Intent / Means / History', a.siDetails, 'Only if any SI present')+
-    sect('cma-hiDetails','HI Details — Target / Plan / Intent / Means', a.hiDetails, 'Only if any HI present')+
+    sect('cma-siDetails','SI Details • Plan / Intent / Means / History', a.siDetails, 'Only if any SI present')+
+    sect('cma-hiDetails','HI Details • Target / Plan / Intent / Means', a.hiDetails, 'Only if any HI present')+
     '<div class="fg g2">'+
       '<div class="field"><label>Access to Weapons?</label><select id="cma-weapons">'+
         ['Unknown','No','Yes - firearms','Yes - other'].map(function(v){return '<option value="'+v+'"'+sel(a.weapons,v)+'>'+v+'</option>';}).join('')+
@@ -25159,8 +25159,8 @@ function viewCMAssessment(id) {
     (a.si || a.hi ?
       '<div style="padding:10px 14px;background:'+(riskColor(a.si)==='var(--red)'||riskColor(a.hi)==='var(--red)'?'var(--red)15':'var(--amber)15')+';border-left:4px solid '+(riskColor(a.si)==='var(--red)'||riskColor(a.hi)==='var(--red)'?'var(--red)':'var(--amber)')+';border-radius:6px;margin-bottom:12px;font-size:12px">'+
       '<strong style="color:'+(riskColor(a.si)==='var(--red)'||riskColor(a.hi)==='var(--red)'?'var(--red)':'var(--amber)')+'">⚠ Risk Assessment:</strong> '+
-      'SI: <strong style="color:'+riskColor(a.si)+'">'+(a.si||'—')+'</strong> · '+
-      'HI: <strong style="color:'+riskColor(a.hi)+'">'+(a.hi||'—')+'</strong>'+
+      'SI: <strong style="color:'+riskColor(a.si)+'">'+(a.si||'•')+'</strong> · '+
+      'HI: <strong style="color:'+riskColor(a.hi)+'">'+(a.hi||'•')+'</strong>'+
       (a.weapons && a.weapons!=='No' && a.weapons!=='Unknown' ? ' · <strong>Weapons: '+a.weapons+'</strong>' : '')+
       '</div>' : ''
     )+
@@ -25211,7 +25211,7 @@ function delCMAssessment(id) {
 });}
 
 // ── CM: ENCOUNTERS (enhanced progress notes) ───────────────────
-// Unified launcher — user picks encounter type
+// Unified launcher • user picks encounter type
 function openCMEncounterChooser() {
   var overlay = document.createElement('div');
   overlay.setAttribute('data-cm','1');
@@ -25228,7 +25228,7 @@ function openCMEncounterChooser() {
   overlay.innerHTML =
     '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
     '<div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3)">'+
-      '<div><div style="font-size:16px;font-weight:700">New Encounter — Choose Type</div>'+
+      '<div><div style="font-size:16px;font-weight:700">New Encounter • Choose Type</div>'+
       '<div style="font-size:11px;color:var(--text3);margin-top:2px">Both types will appear in this Encounters list</div></div>'+
       '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
     '<div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px">'+
@@ -25273,7 +25273,7 @@ function renderCMEncounters() {
         '<td style="font-size:12px;white-space:nowrap">'+(n.date||'')+'</td>'+
         '<td style="font-weight:600">'+_cmClientName(n.clientId)+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(n.workerId)+'</td>'+
-        '<td style="font-size:11px">'+(n.contactType||'—')+'</td>'+
+        '<td style="font-size:11px">'+(n.contactType||'•')+'</td>'+
         '<td>'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
         '<td>'+_cmStatusBadge(n.supervisorStatus||'Pending')+'</td>'+
         '<td>'+(hasHold?'<span class="badge b-red" title="'+billingIssues.join('; ')+'">Hold</span>':'<span class="badge b-green">Clear</span>')+'</td>'+
@@ -25326,8 +25326,8 @@ function openCMEncounterModal(editId) {
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
   var contactTypes = ['Face-to-Face','Phone','Telehealth','Home Visit','Community Visit','Collateral Contact','School Visit','Office Visit'];
   var ctOpts = contactTypes.map(function(t){ return '<option value="'+t+'"'+(n.contactType===t?' selected':'')+'>'+t+'</option>'; }).join('');
-  var planOpts = '<option value="">— None —</option>'+(d.plans||[]).filter(function(p){return p.status==='Active';}).map(function(p){
-    return '<option value="'+p.id+'"'+(n.linkedGoalId&&n.linkedGoalId.startsWith(p.id)?' selected':'')+'>'+_cmClientName(p.clientId)+' — '+((p.goals||[])[0]?.text||'').slice(0,40)+'</option>';
+  var planOpts = '<option value="">None</option>'+(d.plans||[]).filter(function(p){return p.status==='Active';}).map(function(p){
+    return '<option value="'+p.id+'"'+(n.linkedGoalId&&n.linkedGoalId.startsWith(p.id)?' selected':'')+'>'+_cmClientName(p.clientId)+' • '+((p.goals||[])[0]?.text||'').slice(0,40)+'</option>';
   }).join('');
   var posOpts = ['Office','Home','Community','School','Telehealth','Facility','Other'].map(function(t){ return '<option value="'+t+'"'+(n.placeOfService===t?' selected':'')+'>'+t+'</option>'; }).join('');
   overlay.innerHTML =
@@ -25433,7 +25433,7 @@ function viewCMEncounter(id) {
     '<div><strong>Time:</strong> '+n.startTime+' - '+n.endTime+' ('+n.duration+' min)</div>'+
     '<div><strong>POS:</strong> '+n.placeOfService+'</div>'+
     '<div><strong>Code:</strong> '+n.code+' · <strong>Units:</strong> '+n.units+'</div>'+
-    '<div><strong>Participants:</strong> '+(n.participants||'—')+'</div>'+
+    '<div><strong>Participants:</strong> '+(n.participants||'•')+'</div>'+
     (n.intervention?'<div style="margin-top:8px"><strong>Intervention:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.intervention+'</p></div>':'')+
     (n.medicalNecessity?'<div style="margin-top:8px"><strong>Medical Necessity:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.medicalNecessity+'</p></div>':'')+
     (n.outcome?'<div style="margin-top:8px"><strong>Outcome / Next Steps:</strong><p style="white-space:pre-wrap;margin:4px 0">'+n.outcome+'</p></div>':'')+
@@ -25507,7 +25507,7 @@ function renderCMTasks() {
         '<td style="font-weight:600">'+(t.title||'')+(t.description?'<div style="font-size:11px;color:var(--text3);font-weight:400;margin-top:2px">'+t.description.slice(0,80)+(t.description.length>80?'…':'')+'</div>':'')+'</td>'+
         '<td style="font-size:12px">'+_cmClientName(t.clientId)+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(t.workerId)+'</td>'+
-        '<td style="font-size:12px;'+(overdue?'color:var(--red);font-weight:600':dueSoon?'color:var(--amber);font-weight:600':'')+'">'+(t.dueDate||'—')+' '+badge+'</td>'+
+        '<td style="font-size:12px;'+(overdue?'color:var(--red);font-weight:600':dueSoon?'color:var(--amber);font-weight:600':'')+'">'+(t.dueDate||'•')+' '+badge+'</td>'+
         '<td>'+_cmStatusBadge(t.priority||'Medium')+'</td>'+
         '<td>'+_cmStatusBadge(t.status||'Open')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
@@ -25639,9 +25639,9 @@ function renderCMAuths() {
       var pctColor = pct>=100?'var(--red)':pct>=85?'var(--amber)':pct>=60?'var(--brand)':'var(--text3)';
       return '<tr>'+
         '<td style="font-weight:600">'+_cmClientName(a.clientId)+'</td>'+
-        '<td style="font-size:12px;font-family:var(--mono)">'+(a.authNumber||'—')+'</td>'+
+        '<td style="font-size:12px;font-family:var(--mono)">'+(a.authNumber||'•')+'</td>'+
         '<td style="font-size:12px">'+(a.startDate||'')+'</td>'+
-        '<td style="font-size:12px;'+(expiring?'color:var(--red);font-weight:600':'')+'">'+(a.endDate||'—')+(expiring?' <span class="badge b-red">Expiring</span>':'')+'</td>'+
+        '<td style="font-size:12px;'+(expiring?'color:var(--red);font-weight:600':'')+'">'+(a.endDate||'•')+(expiring?' <span class="badge b-red">Expiring</span>':'')+'</td>'+
         '<td style="text-align:center">'+(a.approvedUnits||0)+'</td>'+
         '<td style="text-align:center" title="Auto-tracked from billing entries in date range">'+used+(autoUsed>0?' <i data-lucide="zap" class="lci" style="width:10px;height:10px;color:var(--brand)"></i>':'')+'</td>'+
         '<td style="text-align:center;font-weight:600;'+(remaining<=0?'color:var(--red)':remaining<=20?'color:var(--amber)':'')+'">'+remaining+'</td>'+
@@ -25944,7 +25944,7 @@ function renderCMSupervisor() {
         '<td style="font-size:12px">'+(n.date||'')+'</td>'+
         '<td style="font-weight:600">'+_cmClientName(n.clientId)+'</td>'+
         '<td style="font-size:12px">'+_cmWorkerName(n.workerId)+'</td>'+
-        '<td style="font-size:11px">'+(n.contactType||'—')+'</td>'+
+        '<td style="font-size:11px">'+(n.contactType||'•')+'</td>'+
         '<td>'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
         '<td>'+_cmStatusBadge(n.supervisorStatus||'Pending')+(n.returnReason?' <i data-lucide="message-square" class="lci" style="width:11px;height:11px;color:var(--red)" title="'+n.returnReason+'"></i>':'')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
@@ -26045,7 +26045,7 @@ function renderCMDischarges() {
         '<td style="font-weight:600">'+_cmClientName(dc.clientId)+'</td>'+
         '<td style="font-size:12px">'+(dc.dischargeDate||'')+'</td>'+
         '<td style="font-size:12px">'+(dc.reason||'')+'</td>'+
-        '<td>'+(dc.goalsAchieved?'<span class="badge b-green">'+dc.goalsAchieved+'</span>':'—')+'</td>'+
+        '<td>'+(dc.goalsAchieved?'<span class="badge b-green">'+dc.goalsAchieved+'</span>':'•')+'</td>'+
         '<td>'+(dc.supervisorApproved?'<span class="badge b-green">Approved</span>':'<span class="badge b-amber">Pending</span>')+'</td>'+
         '<td><div class="btn-group" style="gap:3px">'+
         '<button class="btn-icon sm" onclick="viewCMDischarge(\''+dc.id+'\')" title="View"><i data-lucide="eye" class="lci" style="width:12px;height:12px"></i></button>'+
@@ -26132,10 +26132,10 @@ function viewCMDischarge(id) {
     '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(dc.dischargeDate||'')+' · '+(dc.reason||'')+'</div></div>'+
     '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'[data-cm]\').remove()">&times;</button></div>'+
     '<div style="padding:16px 22px;font-size:12px;overflow-y:auto;flex:1">'+
-    '<div><strong>Date:</strong> '+(dc.dischargeDate||'—')+'</div>'+
-    '<div style="margin-top:4px"><strong>Reason:</strong> '+(dc.reason||'—')+'</div>'+
-    '<div style="margin-top:4px"><strong>Goals Achieved:</strong> '+(dc.goalsAchieved||'—')+'</div>'+
-    '<div style="margin-top:4px"><strong>Goals Not Achieved:</strong> '+(dc.goalsNotAchieved||'—')+'</div>'+
+    '<div><strong>Date:</strong> '+(dc.dischargeDate||'•')+'</div>'+
+    '<div style="margin-top:4px"><strong>Reason:</strong> '+(dc.reason||'•')+'</div>'+
+    '<div style="margin-top:4px"><strong>Goals Achieved:</strong> '+(dc.goalsAchieved||'•')+'</div>'+
+    '<div style="margin-top:4px"><strong>Goals Not Achieved:</strong> '+(dc.goalsNotAchieved||'•')+'</div>'+
     (dc.referralsProvided?'<div style="margin-top:10px"><strong>Referrals:</strong><p style="margin:2px 0 0;white-space:pre-wrap">'+dc.referralsProvided+'</p></div>':'')+
     (dc.continuityPlan?'<div style="margin-top:10px"><strong>Continuity Plan:</strong><p style="margin:2px 0 0;white-space:pre-wrap">'+dc.continuityPlan+'</p></div>':'')+
     (dc.finalSummary?'<div style="margin-top:10px"><strong>Final Summary:</strong><p style="margin:2px 0 0;white-space:pre-wrap">'+dc.finalSummary+'</p></div>':'')+
@@ -26164,7 +26164,7 @@ function printCMDischarge(id) {
   } catch(e) { providerName = 'Case Manager'; }
 
   var html =
-    '<!doctype html><html><head><meta charset="utf-8"><title>Discharge Summary — '+esc((cli.last||'')+', '+(cli.first||''))+'</title>'+
+    '<!doctype html><html><head><meta charset="utf-8"><title>Discharge Summary • '+esc((cli.last||'')+', '+(cli.first||''))+'</title>'+
     '<style>'+
       '@page { size: letter; margin: 0.75in; }'+
       'body{font-family:Georgia,serif;color:#000;line-height:1.5;font-size:11pt;margin:0}'+
@@ -26188,21 +26188,21 @@ function printCMDischarge(id) {
     '</style></head><body>'+
     '<div class="hdr">'+
       '<div><h1>Case Management Discharge Summary</h1>'+
-        '<div class="subline">Confidential — Behavioral Health Record</div></div>'+
+        '<div class="subline">Confidential • Behavioral Health Record</div></div>'+
       '<div style="text-align:right;font-size:9pt;color:#666">Generated '+new Date().toLocaleString()+'</div>'+
     '</div>'+
     '<div class="meta"><table>'+
       '<tr><td class="lbl">Client Name:</td><td><strong>'+esc((cli.last||'')+', '+(cli.first||''))+'</strong></td>'+
-        '<td class="lbl">File #:</td><td>'+esc(cli.fileNo||'—')+'</td></tr>'+
-      '<tr><td class="lbl">Date of Birth:</td><td>'+esc(cli.dob||'—')+'</td>'+
-        '<td class="lbl">Medicaid ID:</td><td>'+esc(cli.medicaidId||'—')+'</td></tr>'+
-      '<tr><td class="lbl">Admission Date:</td><td>'+esc(cli.admissionDate||'—')+'</td>'+
-        '<td class="lbl">Discharge Date:</td><td><strong>'+esc(dc.dischargeDate||'—')+'</strong></td></tr>'+
-      '<tr><td class="lbl">Discharge Reason:</td><td colspan="3"><strong>'+esc(dc.reason||'—')+'</strong></td></tr>'+
+        '<td class="lbl">File #:</td><td>'+esc(cli.fileNo||'•')+'</td></tr>'+
+      '<tr><td class="lbl">Date of Birth:</td><td>'+esc(cli.dob||'•')+'</td>'+
+        '<td class="lbl">Medicaid ID:</td><td>'+esc(cli.medicaidId||'•')+'</td></tr>'+
+      '<tr><td class="lbl">Admission Date:</td><td>'+esc(cli.admissionDate||'•')+'</td>'+
+        '<td class="lbl">Discharge Date:</td><td><strong>'+esc(dc.dischargeDate||'•')+'</strong></td></tr>'+
+      '<tr><td class="lbl">Discharge Reason:</td><td colspan="3"><strong>'+esc(dc.reason||'•')+'</strong></td></tr>'+
     '</table></div>'+
     sec('Presenting Concern at Admission', cli.notes)+
-    '<div class="sec"><h3>Goals Achieved</h3><p>'+esc(dc.goalsAchieved||'—')+'</p></div>'+
-    '<div class="sec"><h3>Goals Not Achieved / Ongoing</h3><p>'+esc(dc.goalsNotAchieved||'—')+'</p></div>'+
+    '<div class="sec"><h3>Goals Achieved</h3><p>'+esc(dc.goalsAchieved||'•')+'</p></div>'+
+    '<div class="sec"><h3>Goals Not Achieved / Ongoing</h3><p>'+esc(dc.goalsNotAchieved||'•')+'</p></div>'+
     sec('Referrals Provided at Discharge', dc.referralsProvided)+
     sec('Continuity of Care Plan', dc.continuityPlan)+
     sec('Final Discharge Summary', dc.finalSummary)+
@@ -26211,7 +26211,7 @@ function printCMDischarge(id) {
     '</div>'+
     '<div class="sig">'+
       '<div class="sig-block"><div class="sig-line"></div>'+
-        '<div class="sig-label">Case Manager Signature — '+esc(providerName)+'</div></div>'+
+        '<div class="sig-label">Case Manager Signature • '+esc(providerName)+'</div></div>'+
       '<div class="sig-block"><div class="sig-line"></div>'+
         '<div class="sig-label">Supervisor Signature &amp; Date</div></div>'+
       '<div class="sig-block"><div class="sig-line"></div>'+
@@ -26221,7 +26221,7 @@ function printCMDischarge(id) {
     '</body></html>';
 
   var w = window.open('', '_blank', 'width=850,height=1100');
-  if (!w) { toast('Popup blocked — allow popups to print','warn'); return; }
+  if (!w) { toast('Popup blocked • allow popups to print','warn'); return; }
   w.document.open();
   w.document.write(html);
   w.document.close();
@@ -26255,8 +26255,8 @@ function renderCMPatientSummary() {
   var referrals = (d.communityReferrals||[]).filter(function(r){return r.clientId===clientId;});
   var assessments = (d.assessments||[]).filter(function(a){return a.clientId===clientId;});
   var elig = (d.eligibility||[]).filter(function(e){return e.clientId===clientId;});
-  var lastContact = enc.length ? enc[0].date : '—';
-  var nextFup = tasks.length ? tasks[0].dueDate||'—' : '—';
+  var lastContact = enc.length ? enc[0].date : '•';
+  var nextFup = tasks.length ? tasks[0].dueDate||'•' : '•';
   var activePlan = plans.find(function(p){return p.status==='Active';});
   var activeAuth = auths.find(function(a){return a.status==='Active';});
   var billingIssues = [];
@@ -26268,11 +26268,11 @@ function renderCMPatientSummary() {
     '<span>'+c.last+', '+c.first+'</span><span class="badge b-green">'+c.status+'</span></div>'+
     '<div style="padding:12px 16px;font-size:12px">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
-    '<div><strong>Medicaid ID:</strong> '+(c.medicaidId||'—')+'</div>'+
-    '<div><strong>DOB:</strong> '+(c.dob||'—')+'</div>'+
-    '<div><strong>Phone:</strong> '+(c.phone||'—')+'</div>'+
+    '<div><strong>Medicaid ID:</strong> '+(c.medicaidId||'•')+'</div>'+
+    '<div><strong>DOB:</strong> '+(c.dob||'•')+'</div>'+
+    '<div><strong>Phone:</strong> '+(c.phone||'•')+'</div>'+
     '<div><strong>Worker:</strong> '+_cmWorkerName(c.workerId)+'</div>'+
-    '<div><strong>Auth:</strong> '+(c.authStart||'—')+' → '+(c.authEnd||'—')+'</div>'+
+    '<div><strong>Auth:</strong> '+(c.authStart||'•')+' → '+(c.authEnd||'•')+'</div>'+
     '<div><strong>Auth Units:</strong> '+(c.authUnits||0)+'</div>'+
     '</div></div></div>'+
     '<div class="card"><div style="font-weight:700;font-size:14px;padding:12px 16px;border-bottom:1px solid var(--border)">Case Overview</div>'+
@@ -26295,7 +26295,7 @@ function renderCMPatientSummary() {
     }).join(''):'<div style="color:var(--text3);font-size:12px">No encounters recorded.</div>')+
     '</div></div>'+
     '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Open Tasks</div><div style="padding:12px 16px;max-height:160px;overflow-y:auto">'+
-    (tasks.length?tasks.map(function(t){return '<div style="font-size:12px;padding:4px 0">• '+(t.title||'')+' — due '+(t.dueDate||'—')+'</div>';}).join(''):'<div style="color:var(--text3);font-size:12px">No open tasks.</div>')+
+    (tasks.length?tasks.map(function(t){return '<div style="font-size:12px;padding:4px 0">• '+(t.title||'')+' • due '+(t.dueDate||'•')+'</div>';}).join(''):'<div style="color:var(--text3);font-size:12px">No open tasks.</div>')+
     '</div></div>'+
     '<div class="card"><div style="font-weight:700;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--border)">Active Referrals</div><div style="padding:12px 16px;max-height:160px;overflow-y:auto">'+
     (referrals.length?referrals.map(function(r){return '<div style="font-size:12px;padding:4px 0">• '+r.referralType+' → '+(r.provider||'')+' ('+r.status+')</div>';}).join(''):'<div style="color:var(--text3);font-size:12px">No active referrals.</div>')+
@@ -26315,7 +26315,7 @@ function openCMPatientSummary(clientId) {
 function _cmSupervisorOpts(currentId) {
   // Supervisors are Rendering Providers flagged isSupervisor:true AND tagged
   // with the Case Management specialty. Rendering Providers are shared
-  // across every specialty under the same billing provider/org — without
+  // across every specialty under the same billing provider/org • without
   // the specialty filter, a Nurse Practitioner or Mental Health rendering
   // provider (same org, different specialty) would leak into this CM-only
   // list, which is exactly the bug this filter closes.
@@ -26327,9 +26327,9 @@ function _cmSupervisorOpts(currentId) {
     return r.isSupervisor && String(r.specialty||'').toLowerCase().indexOf('case management') >= 0;
   });
   if (supsRend.length) {
-    var opts = '<option value="">— None —</option>';
+    var opts = '<option value="">None</option>';
     supsRend.forEach(function(r){
-      var lbl = (r.last||'')+', '+(r.first||'')+(r.taxonomy?' — '+r.taxonomy:'')+(r.npi?' (NPI '+r.npi+')':'');
+      var lbl = (r.last||'')+', '+(r.first||'')+(r.taxonomy?' • '+r.taxonomy:'')+(r.npi?' (NPI '+r.npi+')':'');
       opts += '<option value="'+r.id+'"'+(r.id===currentId?' selected':'')+'>'+lbl+'</option>';
     });
     return opts;
@@ -26343,9 +26343,9 @@ function _cmSupervisorOpts(currentId) {
     sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive' && isSup(w); });
   }
   if (!sups.length) sups = (d.workers||[]).filter(function(w){ return w.status!=='Inactive'; });
-  var opts = '<option value="">— None —</option>';
+  var opts = '<option value="">None</option>';
   sups.forEach(function(w){
-    opts += '<option value="'+w.id+'"'+(w.id===currentId?' selected':'')+'>'+w.first+' '+w.last+(w.credential?' — '+w.credential:'')+'</option>';
+    opts += '<option value="'+w.id+'"'+(w.id===currentId?' selected':'')+'>'+w.first+' '+w.last+(w.credential?' • '+w.credential:'')+'</option>';
   });
   return opts;
 }
@@ -26413,7 +26413,7 @@ function _cmAutoFillSupervisor(workerId) {
   if (!w || !w.supervisorId) return;
   var supSel = document.getElementById('cmc-sup');
   if (!supSel) return;
-  // Only overwrite if empty — respect explicit user choice
+  // Only overwrite if empty • respect explicit user choice
   if (!supSel.value) supSel.value = w.supervisorId;
 }
 
@@ -26422,7 +26422,7 @@ function _cmAutoFillSupervisor(workerId) {
 
 
 // ── CM: Generic "Submit for Approval" workflow ────────────────
-// Works for encounters, plans, assessments — anything with supervisorStatus
+// Works for encounters, plans, assessments • anything with supervisorStatus
 function submitCMEntityForApproval(kind, id) {
   var d = getCMData();
   var arr = d[kind];
@@ -26448,7 +26448,7 @@ function submitCMEntityForApproval(kind, id) {
 });}
 
 // ═════════════════════════════════════════════════════════════
-// CM CLIENT CHART — visual mirror of Patient Chart, simpler content
+// CM CLIENT CHART • visual mirror of Patient Chart, simpler content
 // ═════════════════════════════════════════════════════════════
 var _cmChartClientId = null;
 var _cmChartTabActive = 'summary';
@@ -26489,8 +26489,8 @@ function _buildCMChartShell(cli, d) {
     return '<div class="ptc-tab" id="cmc-tab-'+t.id+'" onclick="_renderCMChartTab(\''+t.id+'\')"><i data-lucide="'+t.icon+'" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>'+t.label+'</div>';
   }).join('');
   var meta = '<span style="font-weight:700;font-size:12px">'+(cli.last||'').toUpperCase()+', '+(cli.first||'').toUpperCase()+'</span>'+
-             '<span style="opacity:.75;font-size:11px">File #'+(cli.fileNo||'—')+'</span>'+
-             '<span style="opacity:.75;font-size:11px">DOB '+(cli.dob||'—')+'</span>'+
+             '<span style="opacity:.75;font-size:11px">File #'+(cli.fileNo||'•')+'</span>'+
+             '<span style="opacity:.75;font-size:11px">DOB '+(cli.dob||'•')+'</span>'+
              '<span style="opacity:.75;font-size:11px">'+(cli.status||'Active')+'</span>';
   return '<div class="ptc-banner" id="cmc-banner">'+
     '<span class="ptc-banner-title">CLIENT FILE</span>'+
@@ -26544,7 +26544,7 @@ function _cmChartCard(title, body, actions) {
   '</div>';
 }
 function _cmChartField(label, value) {
-  return '<div style="display:flex;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="width:170px;color:var(--text3);font-weight:600">'+label+'</span><span style="flex:1;color:var(--text)">'+(value||'—')+'</span></div>';
+  return '<div style="display:flex;padding:5px 0;border-bottom:1px dashed var(--border);font-size:12px"><span style="width:170px;color:var(--text3);font-weight:600">'+label+'</span><span style="flex:1;color:var(--text)">'+(value||'•')+'</span></div>';
 }
 function _cmApprovalBadge(status) {
   if (!status || status === 'Draft') return '<span class="badge b-gray">Draft</span>';
@@ -26632,7 +26632,7 @@ function _cmChartSummary(cli, d) {
               R('SSN',cli.ssn4?'***-**-'+cli.ssn4:'')+
             '</div>'+
             '<div>'+
-              R('User',worker.first?worker.first+' '+worker.last:'—')+
+              R('User',worker.first?worker.first+' '+worker.last:'•')+
               R('Supervisor',sup.first?sup.first+' '+sup.last:'<span style="color:#dc2626">Not assigned</span>')+
               R('Level of Care',cli.levelOfCare||'')+
               R('Primary Dx',cli.primaryDx||'')+
@@ -26717,7 +26717,7 @@ function _cmChartSummary(cli, d) {
 
   // ── Panel: Schedule / Visits ──
   var visitRow=function(v){
-    return '<tr style="border-bottom:1px solid #EEF1F6"><td style="padding:6px 10px;font-size:12px">'+(v.date||'')+'</td><td style="padding:6px 10px;font-size:12px">'+(v.contactType||'—')+'</td><td style="padding:6px 10px;font-size:12px">'+_cmWorkerName(v.workerId)+'</td><td style="padding:6px 10px">'+(v.billable?'<span class="badge b-green">Bill</span>':'<span class="badge b-gray">—</span>')+'</td><td style="padding:6px 10px">'+_cmApprovalBadge(v.supervisorStatus)+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #EEF1F6"><td style="padding:6px 10px;font-size:12px">'+(v.date||'')+'</td><td style="padding:6px 10px;font-size:12px">'+(v.contactType||'•')+'</td><td style="padding:6px 10px;font-size:12px">'+_cmWorkerName(v.workerId)+'</td><td style="padding:6px 10px">'+(v.billable?'<span class="badge b-green">Bill</span>':'<span class="badge b-gray">•</span>')+'</td><td style="padding:6px 10px">'+_cmApprovalBadge(v.supervisorStatus)+'</td></tr>';
   };
   var visitsPanel =
     '<div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">'+
@@ -26762,19 +26762,19 @@ function _cmChartCoverage(cli, d) {
 function _cmChartAuth(cli, d) {
   var worker = (d.workers||[]).find(function(w){return w.id===cli.workerId;})||{};
   var sup = _cmResolveSupervisor(cli.supervisorId) || {};
-  var cmAssign = _cmChartField('Case Manager', worker.first?worker.first+' '+worker.last+(worker.credential?' — '+worker.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
-                 _cmChartField('Supervisor',  sup.first?sup.first+' '+sup.last+(sup.credential?' — '+sup.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
+  var cmAssign = _cmChartField('Case Manager', worker.first?worker.first+' '+worker.last+(worker.credential?' • '+worker.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
+                 _cmChartField('Supervisor',  sup.first?sup.first+' '+sup.last+(sup.credential?' • '+sup.credential:''):'<span style="color:#dc2626">Not assigned</span>') +
                  _cmChartField('User Email', worker.email||'') +
                  _cmChartField('Supervisor Email', sup.email||'');
   var basic = _cmChartField('Auth Start', cli.authStart) +
               _cmChartField('Auth End', cli.authEnd) +
-              _cmChartField('Auth Units', cli.authUnits||'—') +
+              _cmChartField('Auth Units', cli.authUnits||'•') +
               _cmChartField('Payer / MCO', cli.payer||'') +
               _cmChartField('Medicaid ID', cli.medicaidId||'');
   var authList = (d.authorizations||[]).filter(function(a){ return a.clientId === cli.id; });
   var authBody = authList.length ?
     '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Auth #</th><th style="text-align:left;padding:6px">Start</th><th style="text-align:left;padding:6px">End</th><th style="text-align:left;padding:6px">Units</th><th style="text-align:left;padding:6px">Status</th></tr></thead><tbody>'+
-    authList.map(function(a){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px;font-family:var(--mono)">'+(a.authNumber||'—')+'</td><td style="padding:6px">'+(a.startDate||'')+'</td><td style="padding:6px">'+(a.endDate||'')+'</td><td style="padding:6px">'+(a.units||'')+'</td><td style="padding:6px">'+_cmStatusBadge(a.status||'Active')+'</td></tr>'; }).join('')+
+    authList.map(function(a){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px;font-family:var(--mono)">'+(a.authNumber||'•')+'</td><td style="padding:6px">'+(a.startDate||'')+'</td><td style="padding:6px">'+(a.endDate||'')+'</td><td style="padding:6px">'+(a.units||'')+'</td><td style="padding:6px">'+_cmStatusBadge(a.status||'Active')+'</td></tr>'; }).join('')+
     '</tbody></table>' :
     '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No authorizations on file.</div>';
   return _cmChartCard('Case Management Assignment', cmAssign, '<button class="btn btn-sm" onclick="editCMClient(\''+cli.id+'\')"><i data-lucide="pencil" class="lci"></i> Change</button>') +
@@ -26796,7 +26796,7 @@ function _cmChartSchedule(cli, d) {
   var upcoming = (d.encounters||[]).filter(function(n){ return n.clientId===cli.id && n.date && new Date(n.date) >= new Date(); }).sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
   var body = upcoming.length ?
     '<table style="width:100%;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Date</th><th style="text-align:left;padding:6px">Type</th><th style="text-align:left;padding:6px">User</th></tr></thead><tbody>'+
-    upcoming.slice(0,20).map(function(n){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">'+(n.date||'')+'</td><td style="padding:6px">'+(n.contactType||'—')+'</td><td style="padding:6px">'+_cmWorkerName(n.workerId)+'</td></tr>'; }).join('')+
+    upcoming.slice(0,20).map(function(n){ return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">'+(n.date||'')+'</td><td style="padding:6px">'+(n.contactType||'•')+'</td><td style="padding:6px">'+_cmWorkerName(n.workerId)+'</td></tr>'; }).join('')+
     '</tbody></table>' :
     '<div style="text-align:center;color:var(--text3);font-size:12px;padding:14px">No upcoming appointments scheduled.</div>';
   return _cmChartCard('Upcoming Appointments', body);
@@ -26861,7 +26861,7 @@ function _cmChartEncounters(cli, d) {
       var canSubmit = (!n.supervisorStatus || n.supervisorStatus==='Draft' || n.supervisorStatus==='Returned');
       return '<tr style="border-bottom:1px solid var(--border)">'+
         '<td style="padding:6px">'+(n.date||'')+'</td>'+
-        '<td style="padding:6px">'+(n.contactType||'—')+'</td>'+
+        '<td style="padding:6px">'+(n.contactType||'•')+'</td>'+
         '<td style="padding:6px">'+_cmWorkerName(n.workerId)+'</td>'+
         '<td style="padding:6px">'+(n.billable?'<span class="badge b-green">Yes</span>':'<span class="badge b-gray">No</span>')+'</td>'+
         '<td style="padding:6px">'+_cmApprovalBadge(n.supervisorStatus)+'</td>'+
@@ -26916,7 +26916,7 @@ function _cmChartTasks(cli, d) {
       var overdue = t.status==='Open' && t.dueDate && new Date(t.dueDate) < new Date();
       return '<tr style="border-bottom:1px solid var(--border)">'+
         '<td style="padding:6px;font-weight:600">'+(t.title||'')+'</td>'+
-        '<td style="padding:6px;color:'+(overdue?'var(--red)':'inherit')+'">'+(t.dueDate||'—')+'</td>'+
+        '<td style="padding:6px;color:'+(overdue?'var(--red)':'inherit')+'">'+(t.dueDate||'•')+'</td>'+
         '<td style="padding:6px">'+_cmStatusBadge(t.priority||'Medium')+'</td>'+
         '<td style="padding:6px">'+_cmWorkerName(t.workerId)+'</td>'+
         '<td style="padding:6px">'+_cmStatusBadge(t.status||'Open')+'</td>'+
@@ -26941,7 +26941,7 @@ function _cmChartBilling(cli, d) {
 
 
 document.addEventListener("DOMContentLoaded", async function() {
-  // Hydrate the cache from IndexedDB FIRST — before applyTheme/getDB/render —
+  // Hydrate the cache from IndexedDB FIRST before applyTheme/getDB/render
   // so the synchronous _loadCache() mirror is ready. One-time-migrates the old
   // localStorage cache and frees that space. Must complete before first paint.
   // F5: show the loading screen right away (instead of a blank page) when this
@@ -27021,7 +27021,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (_renderFns) { _renderFns(); updateBadges(); }
       }
     } catch(e) { go('dashboard'); }
-    // Sync complete — hide the loading overlay. Delayed slightly so the
+    // Sync complete • hide the loading overlay. Delayed slightly so the
     // fresh render can paint under it before it fades out.
     setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 200);
   }
@@ -27144,7 +27144,7 @@ ${initials}</text></svg>`;
 function getApiConfig() {
   // Default worker URL if not set per provider
   const DEFAULT_PROXY = CLEARINGHOUSE_PROXY;
-  // Also reads OPENAI_KEY from localStorage if stored — this is a user-level pref, safe to share
+  // Also reads OPENAI_KEY from localStorage if stored • this is a user-level pref, safe to share
   const stored = (() => { try { return JSON.parse(localStorage.getItem('cdc_openai_cfg')||'{}'); } catch(e){ return {}; } })();
 
   // ── Clearinghouse Account Key: STRICTLY per-active-provider ────────────────
@@ -27152,7 +27152,7 @@ function getApiConfig() {
   // when the active provider had no acctKey. In a multi-provider install this
   // caused claims from provider A (no key) to be transmitted using provider B's
   // key, and ERAs meant for provider B to be imported under provider A. This
-  // was a critical isolation bug. There is NO fallback anymore — either the
+  // was a critical isolation bug. There is NO fallback anymore • either the
   // active provider has its own acctKey or the calling operation must fail.
   let acctKey = '';
   let acctKeyProviderId = null;
@@ -27185,17 +27185,17 @@ function getApiConfig() {
 function _requireCHKey(opName){
   var label = opName || 'this operation';
   if (!activeProviderId){
-    toast('No active provider selected — cannot perform '+label,'err');
+    toast('No active provider selected • cannot perform '+label,'err');
     return null;
   }
   var db = getDB();
   var prov = (db.providers||[]).find(function(p){ return p.id === activeProviderId; });
   if (!prov){
-    toast('Active provider not found — cannot perform '+label,'err');
+    toast('Active provider not found • cannot perform '+label,'err');
     return null;
   }
   if (!prov.acctKey){
-    // Explicit block — do NOT fall back to any cached key from another provider.
+    // Explicit block • do NOT fall back to any cached key from another provider.
     var msg = 'Provider "'+(prov.name||'(unnamed)')+'" has no Clearinghouse Account Key configured. '+
               label+' aborted. Configure a key for THIS provider in Settings → Billing Providers.';
     toast(msg,'err');
@@ -27206,7 +27206,7 @@ function _requireCHKey(opName){
 }
 
 // ???????????????????????????????????????????????????????
-// FIREBASE — Cloud Database
+// FIREBASE • Cloud Database
 // ???????????????????????????????????????????????????????
 const FB_CONFIG = {
   apiKey:            "AIzaSyAaLo-EPS5qq5GcroP7zbn9HuNrG_o0pPc",
@@ -27241,7 +27241,7 @@ _fbReady = true;
 console.log('Firebase connected ?');
 setFbStatus('','green');
 _auth.onAuthStateChanged(user => {
-// Firebase auth state — only used for Firestore access, not UI roles
+// Firebase auth state • only used for Firestore access, not UI roles
 // Admin UI is controlled exclusively by the internal session role
 _adminUser = user;
 });
@@ -27252,7 +27252,7 @@ setFbStatus('Offline','amber');
 }
 
 function setFbStatus(label, color) {
-// Only show amber/red errors — hide all success/cloud states
+// Only show amber/red errors • hide all success/cloud states
 const el = document.getElementById('fb-status');
 if (!el) return;
 if (!label || color === 'green' || color === 'ok') { el.style.display = 'none'; return; }
@@ -27262,7 +27262,7 @@ el.style.color = color === 'red' ? 'var(--red)' : 'var(--amber)';
 }
 
 // Synchronous local cache (for all sync callers)
-// Merge two arrays of records by id — keeps the record with the higher updatedAt.
+// Merge two arrays of records by id • keeps the record with the higher updatedAt.
 // Records present in remote but not local are added (multi-device additions).
 // Records deleted locally via _fsDeleteDoc are already gone from Firestore.
 function _mergeByUpdatedAt(local, remote) {
@@ -27309,23 +27309,23 @@ return _localDB;
 // Architecture: individual documents in typed collections (not one monolithic doc)
 //
 // Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — encounter notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
+// providers/{id} • billing providers
+// patients/{id} • patients (each own doc)
+// claims/{id} • claims (each own doc)
+// facilities/{id} • facilities
+// rendering/{id} • rendering providers
+// referring/{id} • referring providers
+// services/{id} • CPT services
+// serviceGroups/{id} • service groups
+// appointments/{id} • appointments
+// notes/{id} • encounter notes
+// claimLogs/{claimId} • claim log entries
+// claimEOB/{claimId} • EOB records
+// invoicingIssuers/{id} • billing entities
+// invoicingClients/{id} • clients
+// invoices/{id} • invoices
+// meta/config • app config (apiKey, etc.)
+// meta/users • users list
 //
 // All writes go to Firestore first. localStorage is a read-time cache only.
 // ????????????????????????????????????????????????????????????????????????????
@@ -27390,7 +27390,7 @@ try {
 async function _fsSyncCollection(collName, items) {
 if (!_fbReady || !_db) return;
 try {
-  // SAFE MERGE: only write items that changed — never delete based on local state alone.
+  // SAFE MERGE: only write items that changed • never delete based on local state alone.
   // Deletes are handled explicitly by _fsDeleteDoc (called when user deletes a record).
   // This prevents data loss when claims are created on another device.
   await _fsWriteCollection(collName, items);
@@ -27421,7 +27421,7 @@ try {
 // ?? Cache ????????????????????????????????????????????????????????????????????
 // Collections excluded from the localStorage snapshot: they're audit/history
 // data (one entry can be added per claim action, per ERA import, etc.) that
-// isn't needed for instant page load — always live and available from
+// isn't needed for instant page load • always live and available from
 // Firestore the moment you actually open a claim's Log or EOB tab. Keeping
 // them out of the local cache is the single biggest lever for staying under
 // localStorage's fixed ~5-10MB-per-origin ceiling, which doesn't grow no
@@ -27430,7 +27430,7 @@ var _CACHE_EXCLUDED_KEYS = ['claimLogs','claimEOB','eraPreviewQueue','eobUnmatch
 
 // ?? IndexedDB cache layer ????????????????????????????????????????????????????
 // Replaces localStorage as the primary first-paint cache. localStorage has a
-// FIXED ~5-10MB per-origin ceiling that doesn't grow with free disk — that's
+// FIXED ~5-10MB per-origin ceiling that doesn't grow with free disk • that's
 // what caused the "Storage Full" data loss. IndexedDB has no such practical
 // limit (hundreds of MB to GB), so the full lean snapshot lives here instead.
 // Firestore is still the source of truth; this is only a read-time cache.
@@ -27502,7 +27502,7 @@ function _idbScheduleWrite() {
     console.error('[CDC] IndexedDB cache write failed:', e && e.message);
   }).finally(function(){
     _idbWriteInFlight = false;
-    if (_idbWriteDirty) _idbScheduleWrite();   // a save arrived mid-write — flush latest
+    if (_idbWriteDirty) _idbScheduleWrite();   // a save arrived mid-write • flush latest
   });
 }
 
@@ -27551,9 +27551,9 @@ function _saveCache(db) {
   _idbCacheSnapshot = db;
 }
 
-// Diagnostic — run _inspectCacheSize() from the console to see exactly which
+// Diagnostic • run _inspectCacheSize() from the console to see exactly which
 // collection is responsible for the bulk of the local cache, in KB, instead
-// of guessing. (Numbers are approximate — JS string length, not exact UTF-8
+// of guessing. (Numbers are approximate • JS string length, not exact UTF-8
 // byte size, but close enough to identify the real offender.)
 function _inspectCacheSize() {
   var db = getDB();
@@ -27571,12 +27571,12 @@ function _inspectCacheSize() {
   rows.sort(function(a,b){ return parseFloat(b.kb)-parseFloat(a.kb); });
   console.log('--- ClaimDataCare cache size breakdown ---');
   rows.forEach(function(r){
-    console.log(r.key.padEnd(20), (r.kb+' KB').padStart(12), r.excluded ? '  (NOT cached — excluded)' : '');
+    console.log(r.key.padEnd(20), (r.kb+' KB').padStart(12), r.excluded ? '  (NOT cached • excluded)' : '');
   });
   console.log('');
   console.log('IN MEMORY total :', (memTotal/1024/1024).toFixed(2), 'MB');
   console.log('CACHED snapshot :', (cacheTotal/1024/1024).toFixed(2), 'MB');
-  var backend = (window._idbReady && _idbDB) ? 'IndexedDB (no ~5MB limit — hundreds of MB available)' : 'localStorage FALLBACK (~5-10MB limit — IndexedDB unavailable)';
+  var backend = (window._idbReady && _idbDB) ? 'IndexedDB (no ~5MB limit • hundreds of MB available)' : 'localStorage FALLBACK (~5-10MB limit • IndexedDB unavailable)';
   console.log('Cache backend   :', backend);
   // Measured payload actually stored:
   if (window._idbReady && _idbDB) {
@@ -27589,14 +27589,14 @@ function _inspectCacheSize() {
   return rows;
 }
 
-// Loud, persistent, impossible-to-miss banner — shown the moment a local
+// Loud, persistent, impossible-to-miss banner • shown the moment a local
 // save fails, telling the user not to navigate away until it clears.
 function _showStorageFullWarning() {
   if (document.getElementById('cdc-storage-warning')) return;
   var bar = document.createElement('div');
   bar.id = 'cdc-storage-warning';
   bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;gap:10px';
-  bar.innerHTML = '<span>⚠ STORAGE FULL — your browser ran out of space to save data locally. '+
+  bar.innerHTML = '<span>⚠ STORAGE FULL • your browser ran out of space to save data locally. '+
     '<u style="cursor:pointer" onclick="alert(\'Your device storage for this app is full. To fix:\\n\\n1. Do NOT close or refresh this tab yet.\\n2. Ask support to help clear old superbill/document attachments from old patients.\\n3. Once cleared, refresh to confirm your recent work is saved.\\n\\nClosing this tab now may lose anything not yet confirmed saved.\')">What do I do?</u></span>'+
     '<button onclick="document.getElementById(\'cdc-storage-warning\').remove()" title="Dismiss (will reappear if saving fails again)" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0">&times;</button>';
   document.body.appendChild(bar);
@@ -27609,7 +27609,7 @@ function _loadCache() {
   // Primary: the IndexedDB snapshot hydrated at boot (no quota limit).
   if (_idbCacheSnapshot) return _idbCacheSnapshot;
   // Fallback: legacy localStorage cache (if IndexedDB is unavailable, or in the
-  // brief case getDB runs before _idbBootLoad resolves — boot awaits it first).
+  // brief case getDB runs before _idbBootLoad resolves • boot awaits it first).
   try {
     const raw = localStorage.getItem(CACHE_KEY) || '';
     return raw ? JSON.parse(raw) : null;
@@ -27648,7 +27648,7 @@ async function loadFromFirestore() {
     const configDoc = await _db.collection('meta').doc('config').get();
     if (configDoc.exists) {
       const cfg = configDoc.data();
-      // Cache config but STRIP acctKey — clearinghouse keys are strictly
+      // Cache config but STRIP acctKey • clearinghouse keys are strictly
       // per-provider, held on each provider record. Caching one here would
       // let it leak into getApiConfig for the wrong provider.
       if (cfg && 'acctKey' in cfg) { try { delete cfg.acctKey; } catch(e) {} }
@@ -27670,7 +27670,7 @@ async function loadFromFirestore() {
       _db.collection('meta').doc('cmData').get(),
     ]);
 
-    // Merge collections — Firestore wins per-document by updatedAt
+    // Merge collections • Firestore wins per-document by updatedAt
     if (!_localDB) _localDB = _mergeEmpty({});
     _localDB.providers = _mergeByUpdatedAt(_localDB.providers||[], providers);
     _localDB.patients  = _mergeByUpdatedAt(_localDB.patients||[], patients);
@@ -27737,7 +27737,7 @@ async function loadFromFirestore() {
     console.warn('Firestore core load failed:', err.message, err.code);
     if (err.code === 'permission-denied') {
       setFbStatus('Auth error', 'red');
-      console.error('PERMISSION DENIED — Check Firestore rules');
+      console.error('PERMISSION DENIED • Check Firestore rules');
     } else {
       setFbStatus('Offline', 'amber');
     }
@@ -27844,23 +27844,23 @@ return merged;
 // Architecture: individual documents in typed collections (not one monolithic doc)
 //
 // Collections:
-// providers/{id} — billing providers
-// patients/{id} — patients (each own doc)
-// claims/{id} — claims (each own doc)
-// facilities/{id} — facilities
-// rendering/{id} — rendering providers
-// referring/{id} — referring providers
-// services/{id} — CPT services
-// serviceGroups/{id} — service groups
-// appointments/{id} — appointments
-// notes/{id} — encounter notes
-// claimLogs/{claimId} — claim log entries
-// claimEOB/{claimId} — EOB records
-// invoicingIssuers/{id} — billing entities
-// invoicingClients/{id} — clients
-// invoices/{id} — invoices
-// meta/config — app config (apiKey, etc.)
-// meta/users — users list
+// providers/{id} • billing providers
+// patients/{id} • patients (each own doc)
+// claims/{id} • claims (each own doc)
+// facilities/{id} • facilities
+// rendering/{id} • rendering providers
+// referring/{id} • referring providers
+// services/{id} • CPT services
+// serviceGroups/{id} • service groups
+// appointments/{id} • appointments
+// notes/{id} • encounter notes
+// claimLogs/{claimId} • claim log entries
+// claimEOB/{claimId} • EOB records
+// invoicingIssuers/{id} • billing entities
+// invoicingClients/{id} • clients
+// invoices/{id} • invoices
+// meta/config • app config (apiKey, etc.)
+// meta/users • users list
 //
 // All writes go to Firestore first. localStorage is a read-time cache only.
 // ????????????????????????????????????????????????????????????????????????????
@@ -28057,7 +28057,7 @@ return written;
 
 
 // ???????????????????????????????????????????????????????????????
-// RECOVERED APP LAYER — utilities, routing, render functions
+// RECOVERED APP LAYER • utilities, routing, render functions
 // ???????????????????????????????????????????????????????????????
 
 const fmtMoney = n => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -28134,7 +28134,7 @@ const POS_CODES = [
 
 function buildPOSSelect(elId, selected){
 const el=document.getElementById(elId); if(!el) return;
-el.innerHTML=POS_CODES.map(([c,d])=>`<option value="${c}" ${c===(selected||'11')?'selected':''}>${c} \u2014 ${d}</option>`).join('');
+el.innerHTML=POS_CODES.map(([c,d])=>`<option value="${c}" ${c===(selected||'11')?'selected':''}>${c} • ${d}</option>`).join('');
 }
 
 // \u2500\u2500 Auto Dx Pointer \u2500\u2500
@@ -28157,7 +28157,7 @@ const prev=document.getElementById('dx-ptr-preview');
 if(prev){
 const letters='ABCDEFGH'; const used=[];
 for(let i=0;i<8;i++){const el=document.getElementById('mc-dx'+(i+1));if(el&&el.value.trim()) used.push(`${letters[i]}=${el.value.trim()}`);}
-prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in diagnoses above \u2014 pointers auto-assign';
+prev.textContent=used.length?`Dx pointers: ${used.join(' \u00b7 ')}`:'Fill in diagnoses above • pointers auto-assign';
 }
 }
 
@@ -28338,7 +28338,7 @@ function _getSelectedIdx(patId) {
 
 // Downloads a remote file (e.g. a Firebase Storage URL) as a real file
 // download rather than just navigating to it. Falls back to opening it in
-// a new tab if the fetch is blocked for any reason — still better than
+// a new tab if the fetch is blocked for any reason • still better than
 // nothing.
 async function _downloadFromUrl(url, filename) {
   try {
@@ -28381,7 +28381,7 @@ function _downloadOne(patId, idx) {
         : [db.claims.find(function(c){return c.id===linkedClaimId1;})].filter(Boolean);
       if (claimsToPrint1.length) { exportBulkClaimsPDF(claimsToPrint1, {skipSave:true}); return; }
     }
-    // Legacy: no saved data and no linked claim — fall back to the old builder
+    // Legacy: no saved data and no linked claim • fall back to the old builder
     var pdf = _sbBuildPDF(doc, pat);
     var fname = 'Superbill_'+(doc.claimPCN||doc.id||'')+'_'+(doc.date||'').replace(/\//g,'-')+'.pdf';
     pdf.save(fname);
@@ -28451,7 +28451,7 @@ function _deleteSelected(patId) {
   var _blocked = !isAdmin() && indices.some(function(idx){ return _docs0[idx] && _docs0[idx].category==='Superbills'; });
   if (_blocked) {
     indices = indices.filter(function(idx){ return !(_docs0[idx] && _docs0[idx].category==='Superbills'); });
-    toast('Superbills were skipped — only a Super Admin can delete them', 'warn');
+    toast('Superbills were skipped • only a Super Admin can delete them', 'warn');
     if (!indices.length) return;
   }
   return cdcConfirm('Move '+indices.length+' selected document'+(indices.length>1?'s':'')+' to Recycle Bin?').then((__ok)=>{if(!__ok)return;
@@ -28639,7 +28639,7 @@ function getAuditLogs() {
 
 
 /* =============================================================================
- * CDC Case Management — Enhanced UI (v4)
+ * CDC Case Management • Enhanced UI (v4)
  * -----------------------------------------------------------------------------
  * Reemplaza las vistas existentes con versiones mejoradas:
  *   • openCMNoteModal()         → Progress Note completa con firma + auto-billing
@@ -28648,7 +28648,7 @@ function getAuditLogs() {
  *   • openCMPatientSummary()    → Ficha con tabs (Demographics/Elig/Dx/Ref/etc.)
  *
  * Todo hereda tu design system (var(--brand), var(--bg), etc.). Sin botones
- * nuevos — reemplaza las funciones globales, así los botones existentes que ya
+ * nuevos • reemplaza las funciones globales, así los botones existentes que ya
  * llaman esas funciones abren directamente las vistas mejoradas.
  * =========================================================================== */
 
@@ -28676,7 +28676,7 @@ function getAuditLogs() {
   }
 
   function _clientOpts(d, sel) {
-    return '<option value="">— Select Client —</option>' + (d.clients || []).slice()
+    return '<option value="">Select Client</option>' + (d.clients || []).slice()
       .sort(function (a, b) { return (a.last || '').localeCompare(b.last || ''); })
       .map(function (c) {
         var l = (c.last || '') + ', ' + (c.first || '') + (c.fileNo ? ' (#' + c.fileNo + ')' : '');
@@ -28684,7 +28684,7 @@ function getAuditLogs() {
       }).join('');
   }
   function _workerOpts(d, sel) {
-    return '<option value="">— None —</option>' + (d.workers || [])
+    return '<option value="">None</option>' + (d.workers || [])
       .filter(function (w) { return w.status !== 'Inactive'; })
       .map(function (w) {
         return '<option value="' + w.id + '"' + (sel === w.id ? ' selected' : '') +
@@ -28722,13 +28722,13 @@ function getAuditLogs() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   var POS_LIST = [
-    { code: '11', label: '11 — Office' },
-    { code: '12', label: '12 — Home' },
-    { code: '02', label: '02 — Telehealth (patient home)' },
-    { code: '10', label: '10 — Telehealth (in home)' },
-    { code: '03', label: '03 — School' },
-    { code: '53', label: '53 — Community Mental Health' },
-    { code: '99', label: '99 — Other' },
+    { code: '11', label: '11 • Office' },
+    { code: '12', label: '12 • Home' },
+    { code: '02', label: '02 • Telehealth (patient home)' },
+    { code: '10', label: '10 • Telehealth (in home)' },
+    { code: '03', label: '03 • School' },
+    { code: '53', label: '53 • Community Mental Health' },
+    { code: '99', label: '99 • Other' },
   ];
   var INTERVENTIONS = [
     'Assessment of needs',
@@ -28755,11 +28755,11 @@ function getAuditLogs() {
   function _codeOpts(sel) {
     if (typeof _CM_CPT_CATALOG === 'undefined') {
       return '<option value="T1017"' + (sel === 'T1017' ? ' selected' : '') +
-        '>T1017 — Targeted Case Management</option>';
+        '>T1017 • Targeted Case Management</option>';
     }
     return _CM_CPT_CATALOG.map(function (x) {
       return '<option value="' + x.code + '"' + (sel === x.code ? ' selected' : '') +
-        '>' + x.code + ' — ' + esc(x.desc) + '</option>';
+        '>' + x.code + ' • ' + esc(x.desc) + '</option>';
     }).join('');
   }
   function _posOpts(sel) {
@@ -28913,7 +28913,7 @@ function getAuditLogs() {
 
   window.__pnLoadTemplate = function () {
     var code = document.getElementById('pn-code').value;
-    if (typeof CPT_ENGINE === 'undefined' || !CPT_ENGINE[code]) { _toast('No hay plantilla para ' + code, 'info'); return; }
+    if (typeof CPT_ENGINE === 'undefined' || !CPT_ENGINE[code]) { _toast('No template for ' + code, 'info'); return; }
     var tpl = (CPT_ENGINE[code].templates && CPT_ENGINE[code].templates[0]) || {};
     var pres = document.getElementById('pn-presenting');
     var resp = document.getElementById('pn-response');
@@ -28930,7 +28930,7 @@ function getAuditLogs() {
           if (cb && !cb.checked) cb.checked = true;
         });
     }
-    _toast('Plantilla ' + code + ' cargada', 'ok');
+    _toast('Template ' + code + ' loaded', 'ok');
   };
 
   window.__pnSave = function (sign) {
@@ -28971,7 +28971,7 @@ function getAuditLogs() {
       if (!n.attested) errs.push('Debes marcar "I attest"');
       if (!n.signatureText) errs.push('Falta firma');
     }
-    if (errs.length) { _toast('No se puede: ' + errs[0], 'error'); return; }
+    if (errs.length) { _toast('Cannot continue: ' + errs[0], 'error'); return; }
 
     var now = _nowISO();
     if (!n.id) { n.id = _uid(); n.createdAt = now; }
@@ -29002,8 +29002,8 @@ function getAuditLogs() {
     if (typeof renderCMNotes === 'function') try { renderCMNotes(); } catch (e) {}
     if (typeof renderCMBilling === 'function') try { renderCMBilling(); } catch (e) {}
 
-    if (sign) _toast('Nota firmada y billing $' + (n.units * _rate(d, n.code)).toFixed(2) + ' creado', 'ok');
-    else _toast('Draft guardado', 'ok');
+    if (sign) _toast('Note signed and billing entry of $' + (n.units * _rate(d, n.code)).toFixed(2) + ' created', 'ok');
+    else _toast('Draft saved', 'ok');
 
     var chip = document.getElementById('pn-status-chip');
     if (chip) chip.textContent = n.status;
@@ -29030,10 +29030,10 @@ function getAuditLogs() {
     { key: 'community', label: 'Community Living Skills' },
   ];
   var SEVERITY = [
-    { v: 0, label: '0 — No Problem' },
-    { v: 1, label: '1 — Mild Problem' },
-    { v: 2, label: '2 — Moderate Problem' },
-    { v: 3, label: '3 — Severe Problem' },
+    { v: 0, label: '0 • No Problem' },
+    { v: 1, label: '1 • Mild Problem' },
+    { v: 2, label: '2 • Moderate Problem' },
+    { v: 3, label: '3 • Severe Problem' },
   ];
 
   var AS = { _current: null };
@@ -29100,7 +29100,7 @@ function getAuditLogs() {
       '<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Total Score</div>' +
       '<div id="as-total" style="font-size:22px;font-weight:700;color:var(--brand)">' + a.totalScore + '</div></div>' +
       '<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Severity Level</div>' +
-      '<div id="as-severity" style="font-size:14px;font-weight:600;color:var(--text)">' + esc(a.severityLevel || '—') + '</div></div>' +
+      '<div id="as-severity" style="font-size:14px;font-weight:600;color:var(--text)">' + esc(a.severityLevel || '•') + '</div></div>' +
       '</div>' + _endSec() +
 
       _sec('Clinical Narrative') +
@@ -29149,7 +29149,7 @@ function getAuditLogs() {
       if (sel && sel.value !== '') { total += parseInt(sel.value, 10); rated++; }
     });
     var avg = rated ? (total / rated) : 0;
-    var level = '—';
+    var level = '•';
     if (rated > 0) {
       if (avg < 0.5) level = 'Minimal impairment';
       else if (avg < 1.5) level = 'Mild impairment';
@@ -29195,7 +29195,7 @@ function getAuditLogs() {
       if (!a.attested) errs.push('Debes marcar "I attest"');
       if (!a.signatureText) errs.push('Falta firma');
     }
-    if (errs.length) { _toast('No se puede: ' + errs[0], 'error'); return; }
+    if (errs.length) { _toast('Cannot continue: ' + errs[0], 'error'); return; }
 
     var now = _nowISO();
     if (!a.id) { a.id = _uid(); a.createdAt = now; }
@@ -29208,7 +29208,7 @@ function getAuditLogs() {
     _saveCM(d);
 
     if (typeof renderCMAssessments === 'function') try { renderCMAssessments(); } catch (e) {}
-    _toast(sign ? 'Assessment firmado ✓' : 'Draft guardado', 'ok');
+    _toast(sign ? 'Assessment signed ' : 'Draft saved', 'ok');
     var chip = document.getElementById('as-status-chip');
     if (chip) chip.textContent = a.status;
 
@@ -29432,7 +29432,7 @@ function getAuditLogs() {
       }
 
       doc.setFont(undefined, 'normal'); doc.setFontSize(7.5); tc(C.ink3);
-      doc.text('ClaimDataCare — Case Management Dashboard', M, 780);
+      doc.text('ClaimDataCare • Case Management Dashboard', M, 780);
 
       doc.save('CM-Dashboard-Summary-' + new Date().toISOString().slice(0, 10) + '.pdf');
     }
@@ -29609,7 +29609,7 @@ function getAuditLogs() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Patient Summary (ficha con tabs) — reemplaza openCMPatientSummary
+  // Patient Summary (ficha con tabs) • reemplaza openCMPatientSummary
   // ═══════════════════════════════════════════════════════════════════════════
 
   var PC = { _client: null, _tab: 'demographics' };
@@ -29632,7 +29632,7 @@ function getAuditLogs() {
   function _pcOpen(clientId) {
     var d = _CM(); if (!d) return;
     var c = (d.clients || []).find(function (x) { return x.id === clientId; });
-    if (!c) { _toast('Cliente no encontrado', 'error'); return; }
+    if (!c) { _toast('Client not found', 'error'); return; }
     PC._client = c;
     PC._tab = 'demographics';
 
@@ -29647,10 +29647,10 @@ function getAuditLogs() {
       'display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--brand)">' +
       esc((c.first || '?').charAt(0).toUpperCase() + (c.last || '').charAt(0).toUpperCase()) + '</div>' +
       '<div>' +
-      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">File #' + esc(c.fileNo || '—') + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">File #' + esc(c.fileNo || '•') + '</div>' +
       '<div style="font-size:18px;font-weight:700;color:var(--text)">' + esc(name) + '</div>' +
       '<div style="font-size:11px;color:var(--text2);margin-top:2px">' +
-      (age !== null ? age + ' y/o • ' : '') + esc(c.sex || '—') + ' • DOB ' + esc(c.dob || '—') + '</div>' +
+      (age !== null ? age + ' y/o • ' : '') + esc(c.sex || '•') + ' • DOB ' + esc(c.dob || '•') + '</div>' +
       '</div></div>' +
       '<div style="display:flex;gap:10px;align-items:center">' +
       '<span style="font-size:10px;padding:4px 10px;border-radius:999px;background:var(--brand);color:#fff;text-transform:uppercase;letter-spacing:.06em;font-weight:700">' + esc(c.status || 'Active') + '</span>' +
@@ -29720,7 +29720,7 @@ function getAuditLogs() {
     if (opts.readonly) {
       return '<div class="field"><label>' + esc(label) + '</label>' +
         '<div style="padding:8px 10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);font-size:13px;color:var(--text2);min-height:20px">' +
-        esc(value || '—') + '</div></div>';
+        esc(value || '•') + '</div></div>';
     }
     if (opts.textarea) {
       return '<div class="field"><label>' + esc(label) + '</label>' +
@@ -29787,7 +29787,7 @@ function getAuditLogs() {
   function _renderElig(r) {
     return '<div style="display:flex;gap:20px;margin-bottom:10px">' +
       '<div><strong>Status:</strong> ' + esc(r.status || 'Active') + '</div>' +
-      '<div><strong>Checked:</strong> ' + esc(r.checkedAt || '—') + '</div></div>' +
+      '<div><strong>Checked:</strong> ' + esc(r.checkedAt || '•') + '</div></div>' +
       (r.plans && r.plans.length
         ? '<div style="margin-top:8px"><strong>Plans:</strong><ul style="margin:6px 0 0 20px">' +
           r.plans.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>'
@@ -29808,7 +29808,7 @@ function getAuditLogs() {
     _persistClient(c);
     var el = document.getElementById('pc-elig-result');
     if (el) el.innerHTML = _renderElig(mock);
-    _toast('Eligibility verificada ✓', 'ok');
+    _toast('Eligibility verified ', 'ok');
   };
 
   function _dxTab(c) {
@@ -29816,9 +29816,9 @@ function getAuditLogs() {
     var rows = dxs.length
       ? dxs.map(function (dx, i) {
           return '<tr><td style="padding:8px;font-family:var(--mono);font-weight:600">' + esc(dx.code) + '</td>' +
-            '<td style="padding:8px">' + esc(dx.description || '—') + '</td>' +
+            '<td style="padding:8px">' + esc(dx.description || '•') + '</td>' +
             '<td style="padding:8px">' + esc(dx.type || 'Primary') + '</td>' +
-            '<td style="padding:8px">' + esc(dx.date || '—') + '</td>' +
+            '<td style="padding:8px">' + esc(dx.date || '•') + '</td>' +
             '<td style="padding:8px;text-align:right">' +
             '<button class="btn btn-xs" onclick="__pcDxRemove(' + i + ')">Remove</button></td></tr>';
         }).join('')
@@ -29846,7 +29846,7 @@ function getAuditLogs() {
   window.__pcDxAdd = function () {
     var c = PC._client;
     var code = document.getElementById('pc-dx-code').value.trim();
-    if (!code) return _toast('Falta código ICD', 'error');
+    if (!code) return _toast('ICD code missing', 'error');
     c.diagnoses = c.diagnoses || [];
     c.diagnoses.push({
       code: code,
@@ -29927,7 +29927,7 @@ function getAuditLogs() {
 
       '<div class="fg g2">' +
       _fld('Portal Username', 'pc-pt-user', p.username, { placeholder: c.email || 'auto' }) +
-      _fld('Last Login', 'pc-pt-last', p.lastLogin ? new Date(p.lastLogin).toLocaleString() : '—', { readonly: true }) +
+      _fld('Last Login', 'pc-pt-last', p.lastLogin ? new Date(p.lastLogin).toLocaleString() : '•', { readonly: true }) +
       _fld('Password Reset Sent', 'pc-pt-reset', p.resetSent ? new Date(p.resetSent).toLocaleString() : 'Never', { readonly: true }) +
       _fld('Access Level', 'pc-pt-level', p.accessLevel || 'View only', { readonly: true }) +
       '</div>' +
@@ -29945,20 +29945,20 @@ function getAuditLogs() {
     if (c.portal.enabled && !c.portal.username) c.portal.username = c.email || (c.first + c.last).toLowerCase();
     _persistClient(c);
     _pcRender();
-    _toast('Portal ' + (c.portal.enabled ? 'habilitado' : 'deshabilitado'), 'ok');
+    _toast('Portal ' + (c.portal.enabled ? 'enabled' : 'disabled'), 'ok');
   };
   window.__pcPortalReset = function () {
     var c = PC._client;
     c.portal = c.portal || {};
     c.portal.resetSent = _nowISO();
     _persistClient(c);
-    _toast('Reset link enviado (simulado)', 'ok');
+    _toast('Reset link sent (simulated)', 'ok');
     _pcRender();
   };
   window.__pcPortalCopy = function () {
     var link = window.location.origin + '/portal?client=' + PC._client.id;
     if (navigator.clipboard) navigator.clipboard.writeText(link);
-    _toast('Link copiado', 'ok');
+    _toast('Link copied', 'ok');
   };
 
   function _persistClient(c) {
@@ -29977,12 +29977,12 @@ function getAuditLogs() {
     var notesRows = notes.length
       ? notes.slice(0, 25).map(function (n) {
           return '<tr>' +
-            '<td style="padding:6px 8px">' + esc(n.date || '—') + '</td>' +
-            '<td style="padding:6px 8px;font-family:var(--mono)">' + esc(n.code || '—') + '</td>' +
+            '<td style="padding:6px 8px">' + esc(n.date || '•') + '</td>' +
+            '<td style="padding:6px 8px;font-family:var(--mono)">' + esc(n.code || '•') + '</td>' +
             '<td style="padding:6px 8px">' + (n.units || 0) + '</td>' +
             '<td style="padding:6px 8px"><span style="font-size:10px;padding:2px 8px;border-radius:999px;background:var(--bg3);color:var(--text2)">' + esc(n.status || 'Draft') + '</span></td>' +
             '<td style="padding:6px 8px;text-align:right">' +
-            (n.id ? '<button class="btn btn-xs" onclick="openCMNoteModal(\'' + n.id + '\')">Open</button>' : '—') +
+            (n.id ? '<button class="btn btn-xs" onclick="openCMNoteModal(\'' + n.id + '\')">Open</button>' : '•') +
             '</td></tr>';
         }).join('')
       : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">No notes yet</td></tr>';
@@ -30000,8 +30000,8 @@ function getAuditLogs() {
       assessments.length
         ? assessments.map(function (a) {
             return '<div style="padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">' +
-              '<div><div style="font-weight:600">' + esc(a.date || '—') + ' — Limited Functional Assessment</div>' +
-              '<div style="font-size:11px;color:var(--text3)">Total: ' + (a.totalScore || 0) + ' • ' + esc(a.severityLevel || '—') + '</div></div>' +
+              '<div><div style="font-weight:600">' + esc(a.date || '•') + ' • Limited Functional Assessment</div>' +
+              '<div style="font-size:11px;color:var(--text3)">Total: ' + (a.totalScore || 0) + ' • ' + esc(a.severityLevel || '•') + '</div></div>' +
               (a.id ? '<button class="btn btn-xs" onclick="openCMAssessmentModal(\'' + a.id + '\')">Open</button>' : '') +
               '</div>';
           }).join('')
@@ -30075,7 +30075,7 @@ function getAuditLogs() {
       no_duplicate_services: 'Attestation that the client is not simultaneously receiving the same targeted case management services from another Medicaid-enrolled provider or agency.',
       consumer_rights: 'Documentation acknowledging that the consumer has been informed of their rights including: right to dignified treatment, confidentiality, informed consent, grievance procedures, and freedom from discrimination.',
       advance_directive: 'Client has been informed of the right to execute an advance directive for healthcare decisions. Client indicates whether an advance directive is in place and whether a copy has been provided.',
-      hipaa: 'Notice of Privacy Practices — client acknowledges receipt of the HIPAA Notice describing how their protected health information may be used and disclosed.',
+      hipaa: 'Notice of Privacy Practices • client acknowledges receipt of the HIPAA Notice describing how their protected health information may be used and disclosed.',
       foreign_language: 'Language interpretation services have been offered to the client. Client\'s preferred language and interpretation preferences documented.',
       coordination_of_care: 'Authorization to coordinate care with other treating providers, community agencies, family/caregivers as identified by the client in support of the service plan.',
       assessor_list: 'List of qualified professionals authorized to conduct assessments and evaluations for this client under the individualized service plan.',
@@ -30143,8 +30143,8 @@ function getAuditLogs() {
     form.workerSignedAtDate = document.getElementById('frm-sig-worker-date').value;
 
     if (sign) {
-      if (!form.attested) { _toast('Debes marcar el acknowledgment', 'error'); return; }
-      if (!form.signatureClient) { _toast('Falta firma del cliente/guardian', 'error'); return; }
+      if (!form.attested) { _toast('Check the acknowledgment first', 'error'); return; }
+      if (!form.signatureClient) { _toast('Client or guardian signature missing', 'error'); return; }
       form.status = 'Signed';
       form.signedAt = _nowISO();
       form.signedBy = _sess().uid || null;
@@ -30154,7 +30154,7 @@ function getAuditLogs() {
 
     c.forms[key] = form;
     _persistClient(c);
-    _toast(sign ? 'Formulario firmado ✓' : 'Draft guardado', 'ok');
+    _toast(sign ? 'Form signed ' : 'Draft saved', 'ok');
 
     var overlays = document.querySelectorAll('[data-cm-ov]');
     if (overlays.length) overlays[overlays.length - 1].remove();
@@ -30194,7 +30194,7 @@ function getAuditLogs() {
     }
     _persistClient(c);
     if (typeof renderCMClients === 'function') try { renderCMClients(); } catch (e) {}
-    _toast('Cambios guardados ✓', 'ok');
+    _toast('Changes saved ', 'ok');
   };
 
   function _age(dob) {
@@ -30211,7 +30211,7 @@ function getAuditLogs() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Overrides — reemplazan las funciones globales existentes
+  // Overrides • reemplazan las funciones globales existentes
   // ═══════════════════════════════════════════════════════════════════════════
 
   function _installOverrides() {
@@ -30242,7 +30242,7 @@ function getAuditLogs() {
 
 
 /* =============================================================================
- * Rendering / Supervisor Provider — Enhanced modal
+ * Rendering / Supervisor Provider • Enhanced modal
  * -----------------------------------------------------------------------------
  * Reemplaza openRenderingModal y saveRendering:
  *   • Elimina el bug de "undefined" en todos los inputs (usa strings vacíos)
@@ -30299,7 +30299,7 @@ function getAuditLogs() {
       '<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:10px;' +
       'display:flex;align-items:center;gap:6px">' +
       '<i data-lucide="search" class="lci" style="width:13px;height:13px"></i> ' +
-      'NPI Lookup — Auto-fill from NPPES Registry' +
+      'NPI Lookup • Auto-fill from NPPES Registry' +
       '</div>' +
       '<div style="display:flex;gap:8px;align-items:flex-end">' +
       '<div style="flex:1">' +
@@ -30527,7 +30527,7 @@ function getAuditLogs() {
           mName = (basic.middle_name || '').charAt(0);
           credentials = basic.credential || '';
         } else {
-          // Organization — pon el nombre en Last, deja First vacío
+          // Organization • pon el nombre en Last, deja First vacío
           orgName = basic.organization_name || basic.name || '';
           lName = orgName;
           fName = '';
@@ -30565,7 +30565,7 @@ function getAuditLogs() {
           '</div></div>';
         res.innerHTML = summary;
         _icons();
-        _toast('NPI encontrado ✓', 'ok');
+        _toast('NPI found ', 'ok');
       })
       .catch(function (err) {
         console.error('[NPPES] fetch error', err);
@@ -30594,9 +30594,9 @@ function getAuditLogs() {
     var last = val('mrend-last');
     var first = val('mrend-first');
 
-    if (!npi) { _toast('NPI requerido', 'error'); return; }
-    if (npi.length !== 10) { _toast('NPI debe tener 10 dígitos', 'error'); return; }
-    if (!last) { _toast('Last Name (o nombre de organización) requerido', 'error'); return; }
+    if (!npi) { _toast('NPI required', 'error'); return; }
+    if (npi.length !== 10) { _toast('NPI must have 10 digits', 'error'); return; }
+    if (!last) { _toast('Last name (or organization name) required', 'error'); return; }
 
     var idxRaw = val('mrend-id');
     var idx = parseInt(idxRaw, 10);
@@ -30638,7 +30638,7 @@ function getAuditLogs() {
 
     if (typeof closeModal === 'function') closeModal('modal-rendering');
     if (typeof renderRendering === 'function') try { renderRendering(); } catch (e) {}
-    _toast('Provider guardado ✓', 'ok');
+    _toast('Provider saved ', 'ok');
   };
 
   // The improved rendering modal (the old one was removed from this file)
