@@ -689,6 +689,13 @@
             try { fbUser = (await _auth.signInWithEmailAndPassword(_lc(_linked), pass)).user; viaLinked = true; } catch (e) {}
           }
         }
+        // New computer: the user list is not in this browser yet, so the link between the email
+        // shown in the app and the owner's sign-in account is unknown. Try the owner's sign-in
+        // account with the same password; it is accepted only if the owner's record in the app
+        // has exactly the email that was typed (checked right below), otherwise it signs out.
+        if (!fbUser && !_resolvedUser && isEmailFormat && _lc(_fbEmail) !== _lc(SUPER_ADMIN_EMAIL)) {
+          try { fbUser = (await _auth.signInWithEmailAndPassword(_lc(SUPER_ADMIN_EMAIL), pass)).user; } catch (e) {}
+        }
         if (fbUser) {
           var rec = viaLinked ? _resolvedUser : await _userForFirebase(fbUser);
           // Only the email saved in the user's record in the app is accepted. An old
