@@ -1244,6 +1244,32 @@ function _invEnsureModals() {
     '</div></div>');
 }
 
+// Invoices saved before 2026-10-01 could carry the minimum-base fee even when the revenue was
+// above the minimum (wrong comparison). Recalculate those only: no exception base, revenue at or
+// above the minimum, and a stored fee equal to minimum x fee%. Saved to the cloud once.
+var _invFeeFixDone = false;
+function _invFixMinBaseFees() {
+  if (_invFeeFixDone || !Array.isArray(_localDB.invoices) || !_localDB.invoices.length) return;
+  _invFeeFixDone = true;
+  var round = function (n) { return Math.round(n * 100) / 100; };
+  var bad = _localDB.invoices.filter(function (i) {
+    var pct = parseFloat(i.fee) || 0, minB = parseFloat(i.minBase) || 0, rev = parseFloat(i.revenue) || 0, exc = parseFloat(i.excBase) || 0;
+    if (!pct || !minB || exc > 0 || rev < minB) return false;
+    var stored = round(parseFloat(i.billingFee) || 0), wrong = round(minB * pct / 100), right = round(rev * pct / 100);
+    return stored === wrong && right !== wrong;
+  });
+  if (!bad.length) return;
+  try {
+    setDB(function (d) {
+      (d.invoices || []).forEach(function (i) {
+        if (!bad.some(function (b) { return b.id === i.id; })) return;
+        i.billingFee = Math.round((parseFloat(i.revenue) || 0) * (parseFloat(i.fee) || 0)) / 100;
+        i.updatedAt = Date.now();
+      });
+    });
+  } catch (e) {}
+}
+
 function getInvDB() {
 if (!_localDB.invoicingIssuers) _localDB.invoicingIssuers = [];
 // The old IMBS website (imbsinc.us) is retired: billing entities point to integratedmbs.com
@@ -1251,6 +1277,7 @@ if (_localDB.invoicingIssuers.some(function (x) { return /imbsinc\.us/i.test((x.
   try { setDB(function (d) { (d.invoicingIssuers || []).forEach(function (x) { if (/imbsinc\.us/i.test(x.web || '')) x.web = 'integratedmbs.com'; if (/imbsinc\.us/i.test(x.email || '')) x.email = 'contact@integratedmbs.com'; }); }); } catch (e) {}
 }
 if (!_localDB.invoicingClients) _localDB.invoicingClients = [];
+_invFixMinBaseFees();
 if (!_localDB.invoices) _localDB.invoices = [];
 return getDB();
 }
@@ -1908,8 +1935,9 @@ const calcFromRev = revenue * feePct / 100;
 let finalFee;
 if (excActive) {
 finalFee = excBase * feePct / 100;
-} else if (minRev > 0 && calcFromRev < minRev) {
-  // Revenue below minimum → fee = minimum revenue × fee%
+} else if (minRev > 0 && revenue < minRev) {
+  // Revenue below the minimum base: fee = minimum base × fee%
+  // (it used to compare the FEE with the minimum base, so almost every invoice got the minimum)
   finalFee = minRev * feePct / 100;
 } else {
   finalFee = calcFromRev;
