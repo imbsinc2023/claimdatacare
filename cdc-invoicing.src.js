@@ -103,6 +103,17 @@ function _invTrimLogo(src) {
 }
 function _invPrepLogos() { _invLoadFonts(); try { (getInvDB().invoicingIssuers || []).forEach(function (x) { if (x.logo) _invTrimLogo(x.logo); }); } catch (e) {} }
 
+// "September-2026", "Sep 2026", "2026-09" or "09/2026" -> "September"
+function _invMonthOnly(v) {
+  var t = String(v || '').trim(); if (!t) return '';
+  var NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var m = t.match(/^([A-Za-z]+)[\s\-\/,.]*\d{2,4}$/); if (m) t = m[1];
+  else if ((m = t.match(/^(\d{4})[\-\/](\d{1,2})$/))) t = NAMES[+m[2] - 1] || t;
+  else if ((m = t.match(/^(\d{1,2})[\-\/](\d{4})$/))) t = NAMES[+m[1] - 1] || t;
+  var full = NAMES.find(function (x) { return x.toLowerCase().indexOf(t.toLowerCase().slice(0, 3)) === 0 && t.length >= 3; });
+  return full || t;
+}
+
 function _buildInvoicePDF(invId) {
 const db = getInvDB();
 const inv = db.invoices.find(x => x.id === invId);
@@ -368,7 +379,11 @@ if (inv.lines && inv.lines.length) {
     if (py > 270) { doc.addPage(); topBar(); py = M + 4; head(); }
     cols.forEach(c => {
       if (c.right) txt(money(parseFloat(l.amount) || 0), c.x - 3, py, { size: 8.3, color: INK, align: 'right' });
-      else txt(String(l[c.key] || '').toUpperCase().slice(0, Math.max(4, Math.floor(c.w / 2.0))), c.x + 3, py, { size: 8.3, color: INK2 });
+      else {
+        let cell = String(l[c.key] || '');
+        if (c.key === 'month') cell = _invMonthOnly(cell);   // month name only, no year
+        txt(cell.toUpperCase().slice(0, Math.max(4, Math.floor(c.w / 2.0))), c.x + 3, py, { size: 8.3, color: INK2 });
+      }
     });
     line(M, py + 2.3, RX, py + 2.3); total += parseFloat(l.amount) || 0; py += 7;
   });
