@@ -19,6 +19,7 @@
   function ico(n, s) { return '<i data-lucide="' + n + '" class="lci" style="width:' + (s || 15) + 'px;height:' + (s || 15) + 'px"></i>'; }
   function icons() { try { if (typeof _renderLucideIcons === 'function') setTimeout(_renderLucideIcons, 20); } catch (e) {} }
   function money(n) { try { return '$' + fmtMoney(n); } catch (e) { return '$' + Number(n || 0).toFixed(2); } }
+  function avClass(p) { var x = String((p && p.sex) || '').toUpperCase(); return x === 'F' ? 'f' : x === 'M' ? 'm' : ''; }
   function lineTotal(l) { var u = parseInt(l.units, 10) || 1, p = parseFloat(l.pricePerUnit); if (!(p > 0)) p = (parseFloat(l.charge) || 0) / u; return (p || 0) * u; }
   function groupTotal(lines) { return (lines || []).reduce(function (a, l) { return a + lineTotal(l); }, 0); }
 
@@ -49,8 +50,6 @@
     '.sgx-sp{flex:1}',
     /* editor */
     '#modal-sg .modal{max-width:980px;width:96vw;display:flex;flex-direction:column;max-height:94vh;border-radius:18px;overflow:hidden}',
-    '.sgx-mh{flex:none;display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid #EEF1F6}',
-    '.sgx-mh .t{font-size:16px;font-weight:700;color:#0B1526}',
     '.sgx-mb{flex:1;min-height:0;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:18px}',
     '.sgx-mf{flex:none;display:flex;align-items:center;gap:10px;padding:12px 22px;border-top:1px solid #EEF1F6;background:#F8FAFC}',
     '.sgx-sum{font-size:12.5px;color:#3A475C;font-variant-numeric:tabular-nums}',
@@ -83,7 +82,10 @@
     '.sgx-pr .dx{font-family:var(--mono,monospace);text-transform:uppercase}',
     '.sgx-drag{cursor:grab;color:#A9B3C2;display:flex;align-items:center}',
     '.sgx-who{display:flex;align-items:center;gap:8px;min-width:0}',
-    '.sgx-av{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#FF6A3D,#7B2FF7)}',
+    /* patient initials (solid colours): magenta for women, blue for men, violet when not set */
+    '.sgx-av{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;background:#7B2FF7}',
+    '.sgx-av.f{background:#E8367A}',
+    '.sgx-av.m{background:#00A3D1}',
     '.sgx-who .nm{font-size:12.5px;font-weight:700;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.sgx-who .mt{font-size:10.5px;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.sgx-bill{font-weight:600}',
@@ -116,7 +118,31 @@
     '.sgb-det .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
     '.sgb-det label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;margin-bottom:4px}',
     '.sgb-det select,.sgb-det input{width:100%;box-sizing:border-box;height:32px;padding:0 8px;border:1px solid #E4E9F1;border-radius:8px;font-family:inherit;font-size:12px;background:#fff}',
-    /* generate claims window (service group panel) */
+    /* Generate claims window */
+    '#modal-batch .mb-modal{border-radius:18px}',
+    '.mb-tabs{flex:none;display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid #E4E9F1;background:#fff}',
+    '.mb-tab{display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;margin-bottom:-1px;border:1px solid transparent;border-bottom:1px solid #E4E9F1;border-radius:10px 10px 0 0;background:#F4F6FA;font-family:inherit;font-size:12.5px;font-weight:600;color:#586579;cursor:pointer;transition:background-color .15s,color .15s}',
+    '.mb-tab .lci{width:14px;height:14px}',
+    '.mb-tab:hover{background:#EEF1F6;color:#0B1526}',
+    '.mb-tab.on{background:#fff;border-color:#E4E9F1;border-bottom-color:#fff;color:#D45C37;box-shadow:inset 0 2px 0 #FF6A3D;cursor:default}',
+    '.mb-ftr{flex:none!important;display:flex!important;align-items:center;gap:12px;height:72px;box-sizing:border-box;padding:0 18px!important;border-top:1px solid #E4E9F1;background:#F8FAFC}',
+    '.mb-sum{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;overflow:hidden}',
+    '.mb-sum .r1{display:flex;align-items:baseline;gap:16px;white-space:nowrap;overflow:hidden}',
+    '.mb-sum .k{font-size:11.5px;color:#586579}',
+    '.mb-sum .k b{font-size:17px;font-weight:700;color:#0B1526;margin-right:4px;font-variant-numeric:tabular-nums}',
+    '.mb-sum .k.total b{color:#D45C37}',
+    '.mb-sum .r2{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:11px;color:#586579}',
+    '.mb-sum .r2 .pay{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid #E4E9F1;color:#3A475C;font-weight:600}',
+    '.mb-sum .r2 .pay b{color:#0B1526}',
+    '.mb-sum .r2 .warn{color:#B8461F;font-weight:700}',
+    '.mb-sum .empty{font-size:12.5px;color:#586579}',
+    '.mb-group{position:relative;display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #E4E9F1;border-radius:10px;background:#fff;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;white-space:nowrap}',
+    '.mb-group input{width:15px;height:15px;margin:0;accent-color:#FF6A3D}',
+    '.mb-go{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 18px;border:0;border-radius:11px;background:#FF6A3D;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s}',
+    '.mb-go:hover{background:#D45C37}',
+    '.mb-go[disabled]{background:#F4B8A5;cursor:not-allowed}',
+    '.mb-go .lci{width:15px;height:15px}',
+    /* service group panel */
     '.sgb{display:flex;flex-direction:column;gap:12px}',
     '.sgb-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}',
     '.sgb-dates{display:grid;grid-template-columns:160px 160px 1fr;gap:12px;align-items:end}',
@@ -128,7 +154,6 @@
     '.sgb-cpt #mb-sg-lines{display:flex;flex-wrap:wrap;gap:5px}',
     '.sgb-cpt .badge{font-family:var(--mono,monospace);font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;background:#fff;color:#3A475C;border:1px solid #E4E9F1}',
     '.sgb-list{border:1px solid #EEF1F6;border-radius:12px;overflow:hidden;max-height:46vh;overflow-y:auto}',
-    '.sgb-prev{padding:10px 14px;border-radius:12px;background:rgba(255,106,61,.07);border:1px solid rgba(255,106,61,.25);font-size:13px;font-weight:600;color:#B8461F;min-height:20px}',
     '@media (max-width:900px){.sgb-top,.sgb-dates{grid-template-columns:1fr 1fr}.sgx-set{grid-template-columns:1fr 1fr}.sgx-pr,.sgx-ph{grid-template-columns:18px 1fr 1fr 30px}.sgx-ph{display:none}.sgb-main{grid-template-columns:20px 1fr 1fr 30px}.sgb-main .sgb-dx,.sgb-main .sgb-n,.sgb-main .sgb-amt{display:none}.sgb-det .grid{grid-template-columns:1fr 1fr}}'
   ].join('\n');
   function css() { if (document.getElementById('sgx-style')) return; var s = document.createElement('style'); s.id = 'sgx-style'; s.textContent = CSS; document.head.appendChild(s); }
@@ -214,8 +239,8 @@
     if (document.getElementById('modal-sg')) return;
     var w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-sg';
     w.innerHTML = '<div class="modal">' +
-      '<div class="sgx-mh"><span class="t" id="sg-title">Service Group</span><span class="sgx-sp"></span>' +
-        '<button class="sgx-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-sg\')">' + ico('x', 18) + '</button></div>' +
+      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('layers', 17) + '<span id="sg-title">Service group</span></span>' +
+        '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-sg\')">' + ico('x', 17) + '</button></div>' +
       '<div class="sgx-mb">' +
         '<div class="sgx-set">' +
           '<div class="sgx-f"><label>Group name *</label><input id="sg-name" placeholder="e.g. MEDICAID PT MON TO THU"></div>' +
@@ -339,7 +364,7 @@
           '<option value="selfpay"' + (cur === 'selfpay' || (!opts.length && !cur) ? ' selected' : '') + '>Self Pay</option></select>';
         return '<div class="sgx-pr sg-pat-card" draggable="true" data-sg-idx="' + i + '">' +
           '<span class="sgx-drag sg-drag-handle" data-tip="Drag to reorder">' + ico('grip-vertical', 15) + '</span>' +
-          '<div class="sgx-who"><span class="sgx-av">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((pat.last || '?').toUpperCase() + ', ' + (pat.first || '?')) + '</div><div class="mt">File #' + esc(pat.acct || '') + ' • ' + esc(pat.dob || '') + '</div></div></div>' +
+          '<div class="sgx-who"><span class="sgx-av ' + avClass(pat) + '">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((pat.last || '?').toUpperCase() + ', ' + (pat.first || '?')) + '</div><div class="mt">File #' + esc(pat.acct || '') + ' • ' + esc(pat.dob || '') + '</div></div></div>' +
           bill +
           '<input class="dx" value="' + esc(a.dx || '') + '" placeholder="F33.2, Z91.19" oninput="_sgForm.patients[' + i + '].dx=this.value.toUpperCase()">' +
           '<input value="' + esc(a.auth || '') + '" placeholder="Optional" oninput="_sgForm.patients[' + i + '].auth=this.value">' +
@@ -377,6 +402,46 @@
   };
   window._sgbMore = function (pid) { _open[pid] = !_open[pid]; if (window._sgBatchCur) renderSGBatchPatients(window._sgBatchCur); };
 
+  /* ---------------- generate claims: summary in the fixed footer ---------------- */
+  window._mbSummary = function () {
+    var el = document.getElementById('mb-summary'); if (!el) return;
+    var go = document.querySelector('#modal-batch .mb-go');
+    var sgPanel = document.getElementById('mb-panel-sg'), sgMode = !!(sgPanel && sgPanel.style.display !== 'none');
+    var grouped = !!(document.getElementById('mb-group-dates') || {}).checked;
+    var claims = 0, pats = 0, days = 0, lines = 0, total = 0, pay = {}, noDx = 0;
+    if (sgMode) {
+      var sg = window._sgBatchCur, sel = (document.getElementById('mb-sg-sel') || {}).value;
+      if (!sg || !sel || sg.id !== sel) { el.innerHTML = '<span class="empty">Choose a service group and the dates to bill.</span>'; if (go) go.disabled = true; return; }
+      var db = getDB(), perVisit = groupTotal(sg.lines), nl = (sg.lines || []).length, dset = {};
+      (sg.patients || []).forEach(function (a) {
+        var st = _sgBatchState[a.patientId]; if (!st || !st.included) return;
+        var pat = (db.patients || []).find(function (p) { return p.id === a.patientId; }); if (!pat) return;
+        var on = (st.dates || []).filter(function (d) { return d.on !== false; }); if (!on.length) return;
+        on.forEach(function (d) { dset[d.iso || d.date] = 1; });
+        var c = grouped ? 1 : on.length;
+        pats++; claims += c; lines += nl * on.length; total += perVisit * on.length;
+        if (!String(a.dx || '').trim()) noDx++;
+        var b = billTo(pat, a); pay[b.label] = (pay[b.label] || 0) + c;
+      });
+      days = Object.keys(dset).length;
+    } else {
+      try {
+        var nP = _batchPatSel.size, nS = batchSelSvcs.length, nD = (batchDates || []).filter(function (d) { return d.selected !== false; }).length;
+        if (nP && nS && nD) {
+          pats = nP; days = nD; claims = nP * nD; lines = nP * nD * nS;
+          total = batchSelSvcs.reduce(function (s2, v) { return s2 + (parseFloat(v.rate || 0) * parseInt(v.units || 1, 10)); }, 0) * nP * nD;
+        }
+      } catch (e) {}
+    }
+    if (!claims) { el.innerHTML = '<span class="empty">' + (sgMode ? 'No patient has dates selected.' : 'Choose patients, services and dates to bill.') + '</span>'; if (go) go.disabled = true; return; }
+    var k = function (n, t, cls) { return '<span class="k' + (cls ? ' ' + cls : '') + '"><b>' + n + '</b>' + t + '</span>'; };
+    var payers = Object.keys(pay).sort(function (x, y) { return pay[y] - pay[x]; });
+    el.innerHTML = '<div class="r1">' + k(claims, claims === 1 ? 'claim' : 'claims') + k(pats, pats === 1 ? 'patient' : 'patients') + k(days, days === 1 ? 'date' : 'dates') + k(lines, 'service lines') + k(money(total), 'total', 'total') + '</div>' +
+      '<div class="r2">' + (payers.length ? 'Bill to ' + payers.map(function (p) { return '<span class="pay">' + esc(p) + ' <b>' + pay[p] + '</b></span>'; }).join('') : '') +
+      (noDx ? '<span class="warn">• ' + noDx + ' without diagnosis</span>' : '') + '</div>';
+    if (go) go.disabled = false;
+  };
+
   window.renderSGBatchPatients = function (sg) {
     css();
     if (window._lastSGId !== sg.id) { window._lastSGId = sg.id; _sgBatchState = {}; _open = {}; }
@@ -400,8 +465,8 @@
       var sel = function (list, cur, first, fmt) { return '<option value="">' + first + '</option>' + list.map(function (x) { return '<option value="' + x.id + '"' + (x.id === cur ? ' selected' : '') + '>' + esc(fmt(x)) + '</option>'; }).join(''); };
       var det = _open[pid] ? '<div class="sgb-det">' +
           '<div><label>Dates for this patient</label><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div class="date-chips" id="sg-dates-' + esc(pid) + '" style="display:flex;flex-wrap:wrap;gap:4px">' +
-            (st.dates || []).map(function (d, di) { return '<span class="dchip ' + (d.on ? 'on' : '') + '" onclick="_toggleSGDate(\'' + esc(pid) + '\',' + di + ',this)">' + esc(d.label) + '</span>'; }).join('') + '</div>' +
-            '<button class="btn btn-xs" onclick="toggleAllSGPatDates(\'' + esc(pid) + '\',true)">All</button><button class="btn btn-xs" onclick="toggleAllSGPatDates(\'' + esc(pid) + '\',false)">None</button></div></div>' +
+            (st.dates || []).map(function (d, di) { return '<span class="dchip ' + (d.on ? 'on' : '') + '" onclick="_toggleSGDate(\'' + esc(pid) + '\',' + di + ',this);_mbSummary()">' + esc(d.label) + '</span>'; }).join('') + '</div>' +
+            '<button class="btn btn-xs" onclick="toggleAllSGPatDates(\'' + esc(pid) + '\',true);_mbSummary()">All</button><button class="btn btn-xs" onclick="toggleAllSGPatDates(\'' + esc(pid) + '\',false);_mbSummary()">None</button></div></div>' +
           '<div class="grid">' +
             '<div><label>Rendering</label><select onchange="_sgBatchState[\'' + esc(pid) + '\'].rendId=this.value">' + sel(rends, st.rendId, 'Group default', function (r) { return r.last + ', ' + r.first; }) + '</select></div>' +
             '<div><label>Referring</label><select onchange="_sgBatchState[\'' + esc(pid) + '\'].refId=this.value">' + sel(refs, st.refId || a.referringId, 'None', function (r) { return r.last + ', ' + r.first; }) + '</select></div>' +
@@ -410,7 +475,7 @@
           '</div></div>' : '';
       return '<div class="sgb-row' + (st.included ? '' : ' skip') + '"><div class="sgb-main">' +
         '<input type="checkbox"' + (st.included ? ' checked' : '') + ' aria-label="Include patient" onchange="_sgbToggle(\'' + esc(pid) + '\',this.checked)">' +
-        '<div class="sgx-who"><span class="sgx-av">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((pat.last || '').toUpperCase() + ', ' + (pat.first || '')) + '</div><div class="mt">File #' + esc(pat.acct || '') + '</div></div></div>' +
+        '<div class="sgx-who"><span class="sgx-av ' + avClass(pat) + '">' + esc(ini) + '</span><div style="min-width:0"><div class="nm">' + esc((pat.last || '').toUpperCase() + ', ' + (pat.first || '')) + '</div><div class="mt">File #' + esc(pat.acct || '') + '</div></div></div>' +
         '<span class="sgb-chip k-' + b.kind + '" data-tip="Billed to (set in Edit service group)">' + ico('credit-card', 12) + esc(b.label) + (b.memberId ? ' • ' + esc(b.memberId) : '') + '</span>' +
         (dx.length ? '<span class="sgb-dx" title="' + esc(dx.join(', ')) + '">' + esc(dx.join(', ')) + '</span>' : '<span class="sgb-dx miss">No diagnosis</span>') +
         '<span class="sgb-n">' + days + ' day' + (days === 1 ? '' : 's') + '</span>' +
@@ -420,6 +485,7 @@
     }).join('');
     el.innerHTML = '<div class="sgb-tools" style="padding:8px 12px 0"><span class="n">' + inc + ' of ' + sg.patients.length + ' patients included' + (grouped ? ' • 1 claim per patient' : ' • 1 claim per patient per day') + '</span><span class="sgx-sp"></span>' +
       '<button class="btn btn-xs" onclick="_sgbAll(true)">Select all</button><button class="btn btn-xs" onclick="_sgbAll(false)">None</button></div>' + rows;
+    _mbSummary();
     icons();
   };
   css();

@@ -2,10 +2,10 @@
    Very light blue bar; menu items are raised cards (no tray) so the menu stands out without weight.
    Colour order: orange (primary) • violet • blue • magenta, all neon.            */
 
-:root{--neo-orange:#FF6A3D;--neo-orange-d:#D45C37;--neo-violet:#7B2FF7;--neo-violet-d:#6A1BDB;--neo-blue:#00A3D1;--neo-blue-d:#0B7FA8;--neo-magenta:#E8367A;--ink:#0B1526;--ink2:#3A475C;--ink3:#586579;--line:#E4E9F1;--tray:#F4F6FA}
+:root{--bar:#EEF6FC;--neo-orange:#FF6A3D;--neo-orange-d:#D45C37;--neo-violet:#7B2FF7;--neo-violet-d:#6A1BDB;--neo-blue:#00A3D1;--neo-blue-d:#0B7FA8;--neo-magenta:#E8367A;--ink:#0B1526;--ink2:#3A475C;--ink3:#586579;--line:#E4E9F1;--tray:#F4F6FA}
 
 /* Bar */
-.topnav{position:relative;height:42px;min-height:42px;max-height:42px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#EEF6FC;color:var(--ink);z-index:100;overflow:visible;box-shadow:0 1px 0 #DCEAF5,0 8px 20px -18px rgba(11,21,38,.45)}
+.topnav{position:relative;height:42px;min-height:42px;max-height:42px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:var(--bar);color:var(--ink);z-index:100;overflow:visible;box-shadow:0 1px 0 #DCEAF5,0 8px 20px -18px rgba(11,21,38,.45)}
 .topnav::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--neo-orange) 0%,var(--neo-violet) 38%,var(--neo-blue) 72%,var(--neo-magenta) 100%);pointer-events:none}
 .tn-hamburger{display:none;width:30px;height:30px;align-items:center;justify-content:center;border:0;background:none;color:var(--ink3);border-radius:9px;flex-shrink:0;cursor:pointer}
 .tn-hamburger:hover{background:var(--tray);color:var(--ink)}
@@ -75,3 +75,16 @@
 .btn-icon:hover .lci,.inv-ib:hover .lci,.clm-ib:hover .lci,.tn-icon-btn:hover .lci,.btn-icon:hover svg,.inv-ib:hover svg,.clm-ib:hover svg,.tn-icon-btn:hover svg{color:#D45C37!important;stroke:currentColor}
 .inv-ib.pay:hover{background-color:#D45C37!important;color:#fff!important;border-color:transparent!important}
 .inv-ib.pay:hover .lci,.inv-ib.pay:hover svg{color:#fff!important}
+
+/* Window title bar: same look as the main menu bar (light blue, neon line underneath).
+   Every window rebuilt for ClaimDataCare uses it: <div class="modal-hdr cdc-wh"> */
+.modal:has(> .cdc-wh){overflow:hidden}
+.cdc-wh{position:relative;flex:none;display:flex;align-items:center;gap:10px;height:50px;min-height:50px;box-sizing:border-box;padding:0 12px 0 20px!important;margin:0!important;background:var(--bar)!important;border-bottom:1px solid #DCEAF5!important}
+.cdc-wh::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--neo-orange) 0%,var(--neo-violet) 38%,var(--neo-blue) 72%,var(--neo-magenta) 100%);pointer-events:none}
+.cdc-wh-t,.cdc-wh .modal-t{display:flex;align-items:center;gap:8px;margin:0;font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.cdc-wh-t .lci,.cdc-wh .modal-t .lci{width:17px;height:17px;color:var(--neo-orange)}
+.cdc-wh .modal-sub{display:none}
+.cdc-wh > :first-child{flex:1;min-width:0}
+.cdc-wh-x,.cdc-wh .btn-ghost{width:32px!important;height:32px!important;padding:0!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--ink3)!important;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background-color .15s,color .15s}
+.cdc-wh-x:hover,.cdc-wh .btn-ghost:hover{background:rgba(255,106,61,.09)!important;color:#D45C37!important}
+.cdc-wh-x .lci{width:17px;height:17px}

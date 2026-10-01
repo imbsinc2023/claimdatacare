@@ -805,7 +805,7 @@ function _invEnsureModals() {
   }
   mk('modal-invoice',
     '<div class="modal modal-lg" style="max-width:820px;display:flex;flex-direction:column;max-height:94vh">' +
-    '<div class="modal-hdr" style="flex-shrink:0">' +
+    '<div class="modal-hdr cdc-wh" style="flex-shrink:0">' +
     '<div><div class="modal-t" id="inv-modal-title">Invoice</div></div>' +
     '<button class="btn btn-ghost btn-sm" title="Close" onclick="closeModal(\'modal-invoice\')"><i data-lucide="x" class="lci"></i></button>' +
     '</div>' +
@@ -892,7 +892,7 @@ function _invEnsureModals() {
     '</div></div>');
   mk('modal-issuer',
     '<div class="modal" style="max-width:600px;background:#fff">' +
-    '<div class="modal-hdr"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
+    '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
     '<div class="modal-body">' +
     '<input type="hidden" id="iss-id">' +
@@ -933,7 +933,7 @@ function _invEnsureModals() {
     '</div></div>');
   mk('modal-client',
     '<div class="modal" style="max-width:540px;background:#fff">' +
-    '<div class="modal-hdr"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
+    '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-client\')"><i data-lucide="x" class="lci"></i></button></div>' +
     '<div class="modal-body">' +
     '<input type="hidden" id="cli-id">' +
@@ -1324,7 +1324,7 @@ const d = document.createElement('div');
 d.id = 'modal-partial-pay';
 d.className = 'overlay';
 d.innerHTML = `<div class="modal modal-sm">
-<div class="modal-hdr">
+<div class="modal-hdr cdc-wh">
 <div><div class="modal-t">Record Payment</div><div class="modal-sub" id="ppm-sub"></div></div>
 <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-partial-pay')">×</button>
 </div>
