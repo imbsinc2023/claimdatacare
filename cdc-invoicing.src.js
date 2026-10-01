@@ -230,12 +230,18 @@ if (noteParas.length) {
     });
   });
   const boxH = BAND + 3.4 + lines.length * LH + 1.6;
-  if (y + boxH > 268) { doc.addPage(); topBar(); y = M + 4; }
-  doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, BAND + 2, 2, 2, 'F'); doc.rect(M, y + 2, CW, BAND - 2, 'F');
+  if (y + boxH + 4 > 268) { doc.addPage(); topBar(); y = M + 4; }
+  txt('NOTE', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
+  // header band exactly the height of the title row (rounded top corners only)
+  doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, BAND, 2, 2, 'F'); doc.rect(M, y + 2, CW, BAND - 2, 'F');
   doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
   line(M, y + BAND, RX, y + BAND, LINE, 0.3);
-  if (inv.noteTone && inv.noteTone !== 'none') { doc.setFillColor(...T.fg); doc.circle(M + PAD + 0.9, y + BAND / 2, 0.9, 'F'); }
-  txt(T.label.charAt(0).toUpperCase() + T.label.slice(1), M + PAD + (inv.noteTone && inv.noteTone !== 'none' ? 3.4 : 0), y + 4.7, { size: 8, bold: true, color: INK });
+  const title = String(inv.noteTitle || '').trim() || T.label;
+  const hasDot = inv.noteTone && inv.noteTone !== 'none';
+  doc.setFont(BODY, 'bold'); doc.setFontSize(8);
+  const tw = doc.getTextWidth(title) + (hasDot ? 3.4 : 0), tx0 = M + CW / 2 - tw / 2;
+  if (hasDot) { doc.setFillColor(...T.fg); doc.circle(tx0 + 0.9, y + BAND / 2, 0.9, 'F'); }
+  txt(title, tx0 + (hasDot ? 3.4 : 0), y + 4.7, { size: 8, bold: true, color: INK });
   let ny = y + BAND + 3.4 + 2.6;
   lines.forEach(l => {
     let nx = M + BAR + PAD + l.indent;
@@ -248,7 +254,7 @@ if (noteParas.length) {
     });
     ny += LH;
   });
-  y += boxH + 7;
+  y += boxH + 10;   // clear space before PAYMENT OPTIONS
 }
 
 // ---------- other text notes (exception note, billing entity notes): above payment options ----------
@@ -288,7 +294,7 @@ if (y + boxH + 18 > 272) { doc.addPage(); topBar(); y = M + 4; }
 txt('PAYMENT OPTIONS', M, y, { size: 6.8, bold: true, color: MUTED }); y += 3;
 const half = CW / 2;
 // header band in the same grey as the DESCRIPTION header
-doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, bandH + 2, 2, 2, 'F'); doc.rect(M, y + 2, CW, bandH - 2, 'F');
+doc.setFillColor(...HEAD); doc.roundedRect(M, y, CW, bandH, 2, 2, 'F'); doc.rect(M, y + 2, CW, bandH - 2, 'F');
 doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
 line(M, y + bandH, RX, y + bandH, LINE, 0.3);
 line(M + half, y, M + half, y + boxH, LINE, 0.3);
@@ -768,8 +774,8 @@ function recalcInvoice() {
 
 /* ---------------- Invoice note: rich text (bold, italic, underline, bullets) + tone ---------------- */
 var _INV_NOTE_TONES = {
-  none: { label: 'Note', fg: [140,152,171] },
-  good: { label: 'Note', fg: [14,122,85] },
+  none: { label: 'Additional information', fg: [140,152,171] },
+  good: { label: 'Additional information', fg: [14,122,85] },
   warn: { label: 'Please note', fg: [196,140,30] },
   bad:  { label: 'Important', fg: [200,56,30] }
 };
@@ -1071,6 +1077,7 @@ function _invEnsureModals() {
             '<button type="button" class="invm-tone" data-tone="good" onclick="_invNoteTone(\'good\')"><i></i>Positive</button>' +
             '<button type="button" class="invm-tone" data-tone="warn" onclick="_invNoteTone(\'warn\')"><i></i>Caution</button>' +
             '<button type="button" class="invm-tone" data-tone="bad" onclick="_invNoteTone(\'bad\')"><i></i>Important</button></div>' +
+          '<div class="invm-f" style="margin-bottom:8px"><label>Title</label><input id="inv-note-title" class="no-upper" placeholder="e.g. Clarification"></div>' +
           '<div class="invm-tb">' +
             '<button type="button" class="invm-tbb" data-tip="Bold" aria-label="Bold" onmousedown="event.preventDefault();_invNoteCmd(\'bold\')"><i data-lucide="bold" class="lci"></i></button>' +
             '<button type="button" class="invm-tbb" data-tip="Italic" aria-label="Italic" onmousedown="event.preventDefault();_invNoteCmd(\'italic\')"><i data-lucide="italic" class="lci"></i></button>' +
@@ -1789,6 +1796,7 @@ set('inv-notes', inv?.notes);
   if (inv && inv.noteHtml) ed.innerHTML = _invSanitizeNote(inv.noteHtml);
   else ed.textContent = (inv && inv.notes) || '';
   _invNoteTone((inv && inv.noteTone) || 'none');
+  var nt = document.getElementById('inv-note-title'); if (nt) nt.value = (inv && inv.noteTitle) || '';
 })();
 const stEl = document.getElementById('inv-status');
 if (stEl) stEl.value = inv?.status || 'Draft';
@@ -1893,7 +1901,7 @@ revenue, svcLines: JSON.parse(JSON.stringify(_invSvcLines)),
 total: svcTotal, billingFee: finalFee,
 excNoteText,
 lines: JSON.parse(JSON.stringify(_invLines)),
-notes: (g('inv-notes')||''), noteHtml: _invSanitizeNote((document.getElementById('inv-note-editor')||{}).innerHTML || ''), noteTone: (g('inv-note-tone')||'none'), updatedAt: Date.now()
+notes: (g('inv-notes')||''), noteHtml: _invSanitizeNote((document.getElementById('inv-note-editor')||{}).innerHTML || ''), noteTone: (g('inv-note-tone')||'none'), noteTitle: (g('inv-note-title')||''), updatedAt: Date.now()
 };
 setDB(db => {
 if (!db.invoices) db.invoices = [];
