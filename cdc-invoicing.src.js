@@ -58,7 +58,29 @@ function _invTrimLogo(src) {
       try {
         var w = img.naturalWidth, h = img.naturalHeight, c = document.createElement('canvas');
         c.width = w; c.height = h; var x = c.getContext('2d'); x.drawImage(img, 0, 0);
-        var d = x.getImageData(0, 0, w, h).data, minX = w, minY = h, maxX = -1, maxY = -1;
+        var img_ = x.getImageData(0, 0, w, h), d = img_.data, minX = w, minY = h, maxX = -1, maxY = -1;
+        // Logos whose transparency was lost (saved with a solid black background): if all four
+        // corners are the same dark colour, flood-fill that background from the edges to white
+        (function () {
+          var at = function (px, py) { var i = (py * w + px) * 4; return [d[i], d[i + 1], d[i + 2], d[i + 3]]; };
+          var cs = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)], c0 = cs[0];
+          var near = function (a, b, t) { return Math.abs(a[0] - b[0]) <= t && Math.abs(a[1] - b[1]) <= t && Math.abs(a[2] - b[2]) <= t; };
+          var dark = c0[3] > 200 && (c0[0] + c0[1] + c0[2]) / 3 < 45;
+          if (!dark || !cs.every(function (c) { return c[3] > 200 && near(c, c0, 18); })) return;
+          var seen = new Uint8Array(w * h), stack = [];
+          for (var ex = 0; ex < w; ex++) { stack.push(ex, 0, ex, h - 1); }
+          for (var ey = 0; ey < h; ey++) { stack.push(0, ey, w - 1, ey); }
+          while (stack.length) {
+            var py = stack.pop(), px = stack.pop(), k = py * w + px;
+            if (px < 0 || py < 0 || px >= w || py >= h || seen[k]) continue;
+            seen[k] = 1;
+            var i = k * 4;
+            if (!(d[i + 3] > 200 && Math.abs(d[i] - c0[0]) <= 40 && Math.abs(d[i + 1] - c0[1]) <= 40 && Math.abs(d[i + 2] - c0[2]) <= 40)) continue;
+            d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = 0;
+            stack.push(px + 1, py, px - 1, py, px, py + 1, px, py - 1);
+          }
+          x.putImageData(img_, 0, 0);
+        })();
         for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) {
           var i = (yy * w + xx) * 4, a = d[i + 3];
           var empty = a < 16 || (d[i] > 246 && d[i + 1] > 246 && d[i + 2] > 246);
@@ -282,8 +304,10 @@ const ic = (kind, x, yy) => {          // simple line icons, centred on the text
 };
 const zelleRow = (v, x, yy) => {
   const c = yy - 1.15;
+  // same mark as in the app: purple rounded square, white ring, purple centre
   doc.setFillColor(...ZELLE); doc.roundedRect(x + 0.6, c - 1.7, 3.4, 3.4, 0.8, 0.8, 'F');
-  doc.setFillColor(255,255,255); doc.roundedRect(x + 1.5, c - 0.8, 1.6, 1.6, 0.3, 0.3, 'F');
+  doc.setFillColor(255,255,255); doc.roundedRect(x + 1.33, c - 0.97, 1.94, 1.94, 0.35, 0.35, 'F');
+  doc.setFillColor(...ZELLE); doc.roundedRect(x + 1.82, c - 0.48, 0.96, 0.96, 0.18, 0.18, 'F');
   txt('Zelle', x + 7, yy, { size: 8.5, bold: true, color: ZELLE });
   txt(v, x + 19, yy, { size: 8.5, bold: true, color: ZELLE });
 };
@@ -967,6 +991,16 @@ var _INV_CSS = [
   '.invm-ned:empty:before{content:attr(data-ph);color:#8C98AB}',
   '.invm-ned ul{margin:2px 0;padding-left:18px}',
   '.invm-ned.t-good{border-left-color:#0E8A5F;background:#F2FAF6}.invm-ned.t-warn{border-left-color:#D69E2E;background:#FFFBEF}.invm-ned.t-bad{border-left-color:#C8381E;background:#FEF4F2}',
+  '.issm{max-width:1180px!important;height:auto}',
+  '.issm .invm-body{grid-template-columns:minmax(0,1fr) 300px}',
+  '.issm-logo{height:150px;border:1px dashed #D5DCE7;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;overflow:hidden}',
+  '.issm-logo img{max-width:100%;max-height:100%;object-fit:contain}',
+  '.izl-lbl{display:flex!important;align-items:center;gap:6px;color:#6D1ED4!important}',
+  '.izl{display:grid;grid-template-columns:repeat(3,1fr);height:34px;border:1px solid rgba(109,30,212,.25);border-radius:9px;overflow:hidden;background:rgba(109,30,212,.04)}',
+  '.izl button{border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:#6D1ED4;cursor:pointer;transition:background-color .15s,color .15s}',
+  '.izl button+button{border-left:1px solid rgba(109,30,212,.18)}',
+  '.izl button:hover{background:rgba(109,30,212,.08)}',
+  '.izl button.on{background:#6D1ED4;color:#fff}',
   '@media (max-width:1100px){.invm-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}.invm-main,.invm-side{overflow:visible}.invm-grid.g6{grid-template-columns:repeat(3,minmax(0,1fr))}}',
   '@media (max-width:1100px){.inv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inv-g2{grid-template-columns:minmax(0,1fr)}}',
   '@media (max-width:620px){.inv-kpis{grid-template-columns:minmax(0,1fr)}}'
@@ -1105,47 +1139,54 @@ function _invEnsureModals() {
       '<button type="button" class="invm-save" data-tip="Save invoice" aria-label="Save invoice" onclick="saveInvoice()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
 
+  // Billing entity window: wide, sections side by side, logo and notes on the right
   mk('modal-issuer',
-    '<div class="modal" style="max-width:600px;background:#fff">' +
-    '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="iss-title">New Billing Entity</div></div>' +
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
-    '<div class="modal-body">' +
-    '<input type="hidden" id="iss-id">' +
-    '<div class="fg g2">' +
-    '<div class="field" style="grid-column:1/-1"><label>Entity Name *</label><input id="iss-name"></div>' +
-    '<div class="field"><label>Tax ID (EIN)</label><input id="iss-taxid" maxlength="10"></div>' +
-    '<div class="field"><label>NPI</label><input id="iss-npi" maxlength="10"></div>' +
-    '<div class="field"><label>Phone</label><input id="iss-phone"></div>' +
-    '<div class="field"><label>Email</label><input id="iss-email" type="email"></div>' +
-    '<div class="field" style="grid-column:1/-1"><label>Address</label><input id="iss-addr1"></div>' +
-    '<div class="field"><label>City</label><input id="iss-city"></div>' +
-    '<div class="field"><label>State</label><input id="iss-state" maxlength="2"></div>' +
-    '<div class="field"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
-    '<div class="field"><label>Website</label><input id="iss-web" class="no-upper"></div>' +
-    '<div class="field"><label>Fee %</label><input id="iss-fee" type="number" step="0.01"></div>' +
-    '<div class="field"><label>Payment Terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
+    '<div class="modal invm issm">' +
+    '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t"><i data-lucide="briefcase" class="lci"></i><span id="iss-title">Billing entity</span></span>' +
+    '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button></div>' +
+    '<div class="invm-body"><input type="hidden" id="iss-id">' +
+      '<div class="invm-main">' +
+        '<section class="invm-sec"><h4>Entity</h4><div class="invm-grid g6">' +
+          '<div class="invm-f" style="grid-column:span 4"><label>Entity name *</label><input id="iss-name"></div>' +
+          '<div class="invm-f"><label>Tax ID (EIN)</label><input id="iss-taxid" maxlength="10"></div>' +
+          '<div class="invm-f"><label>NPI</label><input id="iss-npi" maxlength="10"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Contact</h4><div class="invm-grid g6">' +
+          '<div class="invm-f s2"><label>Phone</label><input id="iss-phone"></div>' +
+          '<div class="invm-f s2"><label>Email</label><input id="iss-email" type="email"></div>' +
+          '<div class="invm-f s2"><label>Website</label><input id="iss-web" class="no-upper" placeholder="integratedmbs.com"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Address</h4><div class="invm-grid g6">' +
+          '<div class="invm-f" style="grid-column:span 3"><label>Street</label><input id="iss-addr1"></div>' +
+          '<div class="invm-f"><label>City</label><input id="iss-city"></div>' +
+          '<div class="invm-f"><label>State</label><input id="iss-state" maxlength="2"></div>' +
+          '<div class="invm-f"><label>ZIP</label><input id="iss-zip" maxlength="10"></div>' +
+        '</div></section>' +
+        '<section class="invm-sec"><h4>Billing and payment</h4><div class="invm-grid g6">' +
+          '<div class="invm-f"><label>Fee %</label><input id="iss-fee" type="number" step="0.01"></div>' +
+          '<div class="invm-f s2"><label>Payment terms</label><select id="iss-terms"><option>Net 30</option><option>Net 15</option><option>Due on receipt</option><option>Net 60</option></select></div>' +
+          '<div class="invm-f" style="grid-column:span 3"><label class="izl-lbl"><span class="zelle-mark" aria-hidden="true"></span>Zelle shows</label>' +
+            '<input type="hidden" id="iss-zelle-mode" value="phone"><div class="izl">' +
+            '<button type="button" id="zelle-btn-phone" class="on" onclick="setZelleMode(\'phone\')">Phone</button>' +
+            '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')">Email</button>' +
+            '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')">Both</button></div></div>' +
+        '</div></section>' +
+      '</div>' +
+      '<aside class="invm-side">' +
+        '<div class="invm-card"><div class="invm-sh"><h4>Logo</h4><span class="invm-sp"></span>' +
+          '<input type="file" id="iss-logo-file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none">' +
+          '<button type="button" class="invm-ib" data-tip="Upload logo" aria-label="Upload logo" onclick="document.getElementById(\'iss-logo-file\').click()"><i data-lucide="upload" class="lci"></i></button>' +
+          '<button type="button" class="invm-ib" data-tip="Remove logo" aria-label="Remove logo" onclick="clearIssuerLogo()"><i data-lucide="trash-2" class="lci"></i></button></div>' +
+          '<div id="iss-logo-preview" class="issm-logo"><span style="font-size:11px;color:var(--text3)">No logo</span></div>' +
+          '<div class="invm-hint" style="margin-top:6px">PNG with a transparent background works best.</div></div>' +
+        '<div class="invm-card"><h4>Notes</h4><textarea id="iss-notes" rows="6" placeholder="Printed on every invoice of this entity"></textarea></div>' +
+      '</aside>' +
     '</div>' +
-    '<div style="margin-top:10px">' +
-    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#6D1ED4"><span class="zelle-mark" aria-hidden="true"></span>Zelle</label>' +
-    '<input type="hidden" id="iss-zelle-mode" value="phone">' +
-    '<div style="display:flex;gap:6px">' +
-    '<button type="button" id="zelle-btn-phone" onclick="setZelleMode(\'phone\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:#6D1ED4;color:#fff">Phone</button>' +
-    '<button type="button" id="zelle-btn-email" onclick="setZelleMode(\'email\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Email</button>' +
-    '<button type="button" id="zelle-btn-both" onclick="setZelleMode(\'both\')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(109,30,212,.08);color:#6D1ED4">Both</button>' +
-    '</div></div>' +
-    '<div style="margin-top:10px">' +
-    '<label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Logo</label>' +
-    '<div style="display:flex;align-items:center;gap:12px">' +
-    '<div id="iss-logo-preview" style="width:64px;height:64px;border:1.5px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:transparent;flex-shrink:0"><span style="font-size:10px;color:var(--text3)">No logo</span></div>' +
-    '<div><input type="file" id="iss-logo-file" accept="image/*" onchange="loadIssuerLogo(event)" style="display:none">' +
-    '<button class="btn btn-sm" type="button" onclick="document.getElementById(\'iss-logo-file\').click()"><i data-lucide="upload" class="lci"></i> Upload</button>' +
-    '<button class="btn btn-sm btn-ghost" type="button" onclick="clearIssuerLogo()" style="margin-left:6px">Clear</button></div></div></div>' +
-    '<div style="margin-top:10px"><label>Notes</label><textarea id="iss-notes" rows="2" style="width:100%;padding:8px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;resize:vertical"></textarea></div>' +
-    '</div>' +
-    '<div class="modal-ftr">' +
-    '<button class="btn btn-ghost" onclick="closeModal(\'modal-issuer\')">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i> Save Entity</button>' +
+    '<div class="modal-ftr invm-ftr"><span class="invm-sp"></span>' +
+      '<button type="button" class="invm-ib" data-tip="Cancel" aria-label="Cancel" onclick="closeModal(\'modal-issuer\')"><i data-lucide="x" class="lci"></i></button>' +
+      '<button type="button" class="invm-save" onclick="saveIssuer()"><i data-lucide="save" class="lci"></i>Save</button>' +
     '</div></div>');
+
   mk('modal-client',
     '<div class="modal" style="max-width:540px;background:#fff">' +
     '<div class="modal-hdr cdc-wh"><div><div class="modal-t" id="cli-title">New Client</div></div>' +
@@ -1238,25 +1279,15 @@ function fmtInvDate(d) {
 }
 
 function setZelleMode(mode) {
-  document.getElementById('iss-zelle-mode').value = mode;
-  ['phone','email','both'].forEach(function(m) {
-    const btn = document.getElementById('zelle-btn-'+m);
-    if (!btn) return;
-    if (m === mode) {
-      btn.style.background = '#6f3eff';
-      btn.style.color = '#fff';
-    } else {
-      btn.style.background = 'var(--bg3)';
-      btn.style.color = 'var(--text2)';
-    }
-  });
+  var h = document.getElementById('iss-zelle-mode'); if (h) h.value = mode;
+  ['phone','email','both'].forEach(function (m) { var b = document.getElementById('zelle-btn-' + m); if (b) b.classList.toggle('on', m === mode); });
 }
 
 function openIssuerModal(id) {
 _invEnsureModals();
 const db = getInvDB();
 const iss = id ? db.invoicingIssuers.find(x => x.id === id) : null;
-document.getElementById('iss-title').textContent = iss ? 'Edit Billing Entity' : 'New Billing Entity';
+document.getElementById('iss-title').textContent = iss ? 'Edit billing entity' : 'New billing entity';
 const set = (eid, val) => { const e = document.getElementById(eid); if(e) e.value = val||''; };
 set('iss-id', iss?.id);
 set('iss-name', iss?.name);
