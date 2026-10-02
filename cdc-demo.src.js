@@ -80,6 +80,7 @@
     '@media (max-width:1200px){.pcd-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:none;grid-template-areas:"pt pt" "id id" "ad ct" "ec pv" "fl fl"}}',
     '@media (max-width:640px){.usps-b{grid-template-columns:1fr}}'
   ].join('\n');
+  window.cdcDemoCss = function () { css(); };
   function css() { if (document.getElementById('pcd-style')) return; var s = document.createElement('style'); s.id = 'pcd-style'; s.textContent = CSS; document.head.appendChild(s); }
 
   function f(id, lbl, val, o) {
