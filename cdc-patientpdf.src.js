@@ -48,6 +48,12 @@
       else if (k === 'phone') { var sz = 2.6, ox = x + 0.05, oy = c - sz / 2, seg = []; for (var i = 1; i < PHONE.length; i++) seg.push([(PHONE[i][0] - PHONE[i - 1][0]) * sz, (PHONE[i][1] - PHONE[i - 1][1]) * sz]); doc.lines(seg, ox + PHONE[0][0] * sz, oy + PHONE[0][1] * sz, [1, 1], 'F', true); }
       else if (k === 'id') { doc.rect(x + 0.1, c - 0.8, 2.4, 1.6); doc.circle(x + 0.75, c - 0.1, 0.32, 'F'); doc.line(x + 1.3, c - 0.3, x + 2.15, c - 0.3); doc.line(x + 1.3, c + 0.3, x + 2.15, c + 0.3); }
       else if (k === 'user') { doc.circle(x + 1.3, c - 0.55, 0.55, 'F'); doc.roundedRect(x + 0.4, c + 0.2, 1.8, 0.95, 0.45, 0.45, 'F'); }
+      else if (k === 'cal') { doc.roundedRect(x + 0.1, c - 1.0, 2.4, 2.1, 0.3, 0.3); doc.line(x + 0.1, c - 0.35, x + 2.5, c - 0.35); doc.line(x + 0.7, c - 1.35, x + 0.7, c - 0.8); doc.line(x + 1.9, c - 1.35, x + 1.9, c - 0.8); }
+      else if (k === 'dot') { doc.circle(x + 1.3, c, 0.75, 'F'); }
+      else if (k === 'globe') { doc.circle(x + 1.3, c, 1.1); doc.line(x + 0.2, c, x + 2.4, c); doc.ellipse(x + 1.3, c, 0.45, 1.1); }
+      else if (k === 'ring') { doc.circle(x + 0.9, c, 0.72); doc.circle(x + 1.7, c, 0.72); }
+      else if (k === 'shield') { doc.lines([[1.1, -0.45], [1.1, 0.45], [0, 0.9], [-1.1, 1.1], [-1.1, -1.1], [0, -0.9]], x + 0.2, c - 0.6, [1, 1], 'S', true); }
+      else if (k === 'hash') { doc.line(x + 0.9, c - 1.1, x + 0.7, c + 1.1); doc.line(x + 1.9, c - 1.1, x + 1.7, c + 1.1); doc.line(x + 0.2, c - 0.4, x + 2.4, c - 0.4); doc.line(x + 0.1, c + 0.4, x + 2.3, c + 0.4); }
     };
     return { db: db, prov: prov, photo: photo, logo: logo, doc: doc, W: W, H: H, M: M, RX: RX, CW: CW, BODY: BODY, HEAD: HEAD, INK: INK, INK2: INK2, MUTED: MUTED, LINE: LINE, SOFT: SOFT, txt: txt, line: line, fit: fit, pic: pic,
       T: typeof cdcPersonTerm === 'function' ? cdcPersonTerm() : 'Patient' };
@@ -66,52 +72,58 @@
     [['pin', [prov.addr1, prov.addr2].filter(Boolean).join(', ')], ['', [prov.city, prov.state, prov.zip].filter(Boolean).join(', ')],
      ['phone', prov.phone ? (typeof fmtPhone === 'function' ? fmtPhone(prov.phone) : prov.phone) : ''], ['id', [prov.npi ? 'NPI ' + prov.npi : '', prov.taxid ? 'EIN ' + prov.taxid : ''].filter(Boolean).join('  •  ')]]
       .filter(function (r) { return r[1]; }).forEach(function (r) { if (r[0]) pic(r[0], px, py); txt(r[1], px + 4.4, py, { size: 8, color: INK2 }); py += 4; });
-    // title block (left aligned inside the right column)
-    var tx = 140;
-    txt(title, tx, y + 6.5, { head: true, size: title.length > 16 ? 13.5 : 16.5 });
-    txt(idLabel + ' ' + idValue, tx, y + 11.5, { size: 8.5, color: INK2, bold: true });
-    // barcode of the file number
-    var bars = code128(idValue || ''), mods = bars.split('').reduce(function (s2, d) { return s2 + (+d); }, 0), mw = Math.min(0.3, 58 / mods), bx = tx, bh = 9;
+    // title block, right aligned; the title uses the same size as the provider name
+    txt(title, RX, y + 5, { head: true, size: pfs, align: 'right' });
+    txt(idLabel + ' ' + idValue, RX, y + 10.5, { size: 8.5, color: INK2, bold: true, align: 'right' });
+    var bars = code128(idValue || ''), mods = bars.split('').reduce(function (s2, d) { return s2 + (+d); }, 0), mw = Math.min(0.3, 52 / mods), bw = mods * mw, bx = RX - bw, bh = 10;
     doc.setFillColor.apply(doc, INK);
-    bars.split('').forEach(function (d, i) { var wdt = +d * mw; if (i % 2 === 0) doc.rect(bx, y + 13.2, wdt, bh, 'F'); bx += wdt; });
-    txt(sub, tx, y + HH, { size: 7, color: MUTED });
+    bars.split('').forEach(function (d, i) { var wdt = +d * mw; if (i % 2 === 0) doc.rect(bx, y + 13, wdt, bh, 'F'); bx += wdt; });
+    if (sub) txt(sub, RX, y + HH, { size: 6.8, color: MUTED, align: 'right' });
     y += HH + 4; line(M, y, RX, y, INK, 0.5); y += 7;
 
     return y;
   }
+  // a labelled value with its icon (label small and grey, value below)
+  function field(c, icon, label, value, x, y, w) {
+    var doc = c.doc; c.pic(icon, x, y + 4.4);
+    c.txt(label, x + 4.6, y + 1.2, { size: 6.2, bold: true, color: c.MUTED });
+    var v = String(value == null || value === '' ? '•' : value); doc.setFont(c.BODY, 'normal'); var fs = 9; doc.setFontSize(fs);
+    while (doc.getTextWidth(v) > w - 5 && fs > 6.6) { fs -= 0.3; doc.setFontSize(fs); }
+    if (doc.getTextWidth(v) > w - 5) { while (v.length > 3 && doc.getTextWidth(v + '...') > w - 5) v = v.slice(0, -1); v += '...'; }
+    c.txt(v, x + 4.6, y + 5.4, { size: fs });
+  }
+  function cardBox(c, x, y, w, h, title) {
+    var doc = c.doc; doc.setDrawColor.apply(doc, c.LINE); doc.setLineWidth(0.3); doc.roundedRect(x, y, w, h, 2.5, 2.5);
+    if (title) { doc.setFillColor.apply(doc, c.SOFT); doc.roundedRect(x, y, w, 7, 2.5, 2.5, 'F'); doc.rect(x, y + 2.5, w, 4.5, 'F'); c.line(x, y + 7, x + w, y + 7); c.txt(title, x + 4, y + 4.8, { size: 6.6, bold: true, color: c.INK2 }); }
+  }
   function personCard(c, pat, y) {
-    var db=c.db,photo=c.photo,doc=c.doc,M=c.M,RX=c.RX,CW=c.CW,BODY=c.BODY,INK2=c.INK2,MUTED=c.MUTED,LINE=c.LINE,SOFT=c.SOFT,txt=c.txt,fit=c.fit,pic=c.pic,T=c.T;
-    // ---------------- patient: photo or initials frame + details ----------------
+    var db = c.db, photo = c.photo, doc = c.doc, M = c.M, RX = c.RX, CW = c.CW, INK2 = c.INK2, MUTED = c.MUTED, LINE = c.LINE, SOFT = c.SOFT, txt = c.txt, fit = c.fit, T = c.T;
     txt(T.toUpperCase(), M, y, { size: 7, bold: true, color: MUTED }); y += 3;
-    var PH = 34, cardTop = y;
-    doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, PH + 8, 2.5, 2.5);
+    var PH = 38, H0 = PH + 8;
+    cardBox(c, M, y, CW, H0);
     var fx = M + 4, fy = y + 4;
-    if (photo) { try { var ip = doc.getImageProperties(photo), s2 = Math.max(PH / ip.width, PH / ip.height); doc.addImage(photo, ip.fileType || 'JPEG', fx, fy, PH, PH, undefined, 'FAST'); } catch (e) { photo = null; } }
+    if (photo) { try { var ip = doc.getImageProperties(photo); doc.addImage(photo, ip.fileType || 'JPEG', fx, fy, PH, PH, undefined, 'FAST'); doc.setDrawColor.apply(doc, LINE); doc.rect(fx, fy, PH, PH); } catch (e) { photo = null; } }
     if (!photo) {
       doc.setFillColor.apply(doc, SOFT); doc.roundedRect(fx, fy, PH, PH, 3, 3, 'F'); doc.setDrawColor.apply(doc, LINE); doc.roundedRect(fx, fy, PH, PH, 3, 3);
       var ini = ((pat.first || ' ')[0] + (pat.last || ' ')[0]).trim().toUpperCase() || '?';
-      txt(ini, fx + PH / 2, fy + PH / 2 + 4.5, { head: true, size: 24, color: INK2, align: 'center' });
-    } else { doc.setDrawColor.apply(doc, LINE); doc.rect(fx, fy, PH, PH); }
+      txt(ini, fx + PH / 2, fy + PH / 2 + 4.8, { head: true, size: 26, color: INK2, align: 'center' });
+    }
     var dx = fx + PH + 7, dw = RX - 4 - dx;
-    var name = ((pat.last || '').toUpperCase() + ', ' + (pat.first || '').toUpperCase() + (pat.mid ? ' ' + pat.mid.toUpperCase() : ''));
+    var name = ((pat.last || '').toUpperCase() + ', ' + (pat.first || '').toUpperCase() + (pat.mid ? ' ' + pat.mid.toUpperCase() : '')) + (pat.suffix ? ' ' + pat.suffix : '');
     txt(name, dx, fy + 5, { head: true, size: fit(name, dw, 14, true) });
     var age = ''; try { age = _calcAge(pat.dob); } catch (e) {}
     var sx = pat.sex === 'F' ? 'Female' : pat.sex === 'M' ? 'Male' : pat.sex || '';
     var rend = (db.rendering || []).find(function (r) { return r.id === pat.renderingId; });
-    var grid = [['DATE OF BIRTH', us(pat.dob)], ['AGE', age !== '' && age != null ? age + ' years' : ''], ['SEX', sx], ['STATUS', pat.inactive ? 'Inactive' : 'Active'],
-      ['LANGUAGE', pat.language], ['ETHNICITY', pat.ethnicity], ['RACE', pat.race], ['MARITAL STATUS', pat.marital]];
-    var gw = dw / 4;
-    grid.forEach(function (g2, i) { var gx = dx + (i % 4) * gw, gy = fy + 11 + Math.floor(i / 4) * 9; txt(g2[0], gx, gy, { size: 6.4, bold: true, color: MUTED }); txt(g2[1] || '•', gx, gy + 4.2, { size: 9 }); });
-    var ry = fy + 30;
     var addr = [[pat.addr1, pat.addr2].filter(Boolean).join(' '), [pat.city, pat.state].filter(Boolean).join(', ') + ' ' + (pat.zip || '')].filter(function (x) { return x.trim(); }).join(', ');
-    var cx = dx;
-    [['pin', addr], ['phone', [pat.phone, pat.phone2].filter(Boolean).join('  •  ')], ['mail', String(pat.email || '').toLowerCase()]].filter(function (r) { return r[1]; }).forEach(function (r) {
-      pic(r[0], cx, ry); txt(r[1], cx + 4.4, ry, { size: 8.2, color: INK2 }); doc.setFont(BODY, 'normal'); doc.setFontSize(8.2); cx += 4.4 + doc.getTextWidth(r[1]) + 7;
-    });
-    if (rend) { txt('Assigned provider: ' + ((rend.last || '') + ', ' + (rend.first || '')).toUpperCase(), dx, ry + 5, { size: 7.8, color: MUTED }); }
-    y = cardTop + PH + 8 + 8;
-
-    return y;
+    // three columns, three rows of labelled values with icons, then the address on its own line
+    var cw = dw / 3, rows = [
+      [['cal', 'DATE OF BIRTH', us(pat.dob) + (age !== '' && age != null ? '  (' + age + ' yrs)' : '')], ['user', 'SEX', sx], ['dot', 'STATUS', pat.inactive ? 'Inactive' : 'Active']],
+      [['phone', 'PHONE', [pat.phone, pat.phone2].filter(Boolean).join(' • ')], ['mail', 'EMAIL', String(pat.email || '').toLowerCase()], ['globe', 'LANGUAGE', pat.language]],
+      [['id', 'ETHNICITY / RACE', [pat.ethnicity, pat.race].filter(Boolean).join(' / ')], ['ring', 'MARITAL STATUS', pat.marital], ['user', 'ASSIGNED PROVIDER', rend ? ((rend.last || '') + ', ' + (rend.first || '')).toUpperCase() : '']]
+    ];
+    rows.forEach(function (r, ri) { r.forEach(function (f, ci) { field(c, f[0], f[1], f[2], dx + ci * cw, fy + 9 + ri * 8.6, cw); }); });
+    field(c, 'pin', 'ADDRESS', addr, dx, fy + 9 + 3 * 8.6, dw);
+    return y + H0 + 8;
   }
   function footer(c, pat) {
     var doc=c.doc,W=c.W,H=c.H,M=c.M,RX=c.RX,MUTED=c.MUTED,txt=c.txt,line=c.line;
@@ -219,68 +231,65 @@
     if (!pat) { try { toast('Not found', 'err'); } catch (e) {} return; }
     var c = await makeCtx(pat);
     var db=c.db,prov=c.prov,doc=c.doc,W=c.W,H=c.H,M=c.M,RX=c.RX,CW=c.CW,BODY=c.BODY,HEAD=c.HEAD,INK=c.INK,INK2=c.INK2,MUTED=c.MUTED,LINE=c.LINE,SOFT=c.SOFT,txt=c.txt,line=c.line,fit=c.fit,pic=c.pic,T=c.T;
-    var y = header(c, T.toUpperCase() + ' FILE', 'File #', pat.acct || '', 'Printed ' + us(new Date().toISOString()));
+    var y = header(c, T.toUpperCase() + ' FILE', 'File #', pat.acct || '', '');
     y = personCard(c, pat, y);
-    // ---------------- contacts ----------------
+    // ---------------- contacts: one card each, two per row ----------------
     var contacts = (pat.contacts || []).slice();
-    if (pat.ecName && !contacts.some(function (c) { return String(c.name || '').toUpperCase() === String(pat.ecName).toUpperCase(); })) contacts.unshift({ name: pat.ecName, relation: pat.ecRel, phone: pat.ecPhone, email: pat.ecEmail, roles: { emergency: true } });
-    var table = function (title, cols, rows, empty) {
-      txt(title, M, y, { size: 7, bold: true, color: MUTED }); y += 2.5;
-      doc.setFillColor.apply(doc, SOFT); doc.rect(M, y, CW, 7, 'F');
-      var x = M; cols.forEach(function (c) { txt(c[0], c[2] ? x + c[1] - 2.5 : x + 2.5, y + 4.7, { size: 6.6, bold: true, color: INK2, align: c[2] ? 'right' : 'left' }); x += c[1]; });
-      y += 7; line(M, y, RX, y, INK, 0.4); y += 5;
-      if (!rows.length) { txt(empty, M + 2.5, y, { size: 8.2, color: MUTED }); y += 4; line(M, y, RX, y); y += 8; return; }
-      rows.forEach(function (r) {
-        var x2 = M;
-        r.forEach(function (v, i) {
-          var c = cols[i], val = String(v == null ? '' : v);
-          doc.setFont(BODY, i === 0 ? 'bold' : 'normal'); var fs = 8.2; doc.setFontSize(fs);
-          while (doc.getTextWidth(val) > c[1] - 5 && fs > 6.4) { fs -= 0.3; doc.setFontSize(fs); }   // one line: shrink instead of wrapping
-          txt(val, c[2] ? x2 + c[1] - 2.5 : x2 + 2.5, y, { size: fs, bold: i === 0, color: i === 0 ? INK : INK2, align: c[2] ? 'right' : 'left' });
-          x2 += c[1];
-        });
-        y += 3.2; line(M, y, RX, y); y += 4.6;
+    if (pat.ecName && !contacts.some(function (k2) { return String(k2.name || '').toUpperCase() === String(pat.ecName).toUpperCase(); })) contacts.unshift({ name: pat.ecName, relation: pat.ecRel, phone: pat.ecPhone, email: pat.ecEmail, roles: { emergency: true } });
+    var half = (CW - 6) / 2, gridCards = function (title, list, draw, empty, ch) {
+      txt(title, M, y, { size: 7, bold: true, color: MUTED }); y += 3;
+      if (!list.length) { cardBox(c, M, y, CW, 10); txt(empty, M + 4, y + 6.3, { size: 8.4, color: MUTED }); y += 18; return; }
+      list.forEach(function (it, i) {
+        if (i % 2 === 0 && i > 0) y += ch + 5;
+        if (i % 2 === 0 && y + ch > H - 26) { doc.addPage(); y = M; }
+        draw(it, M + (i % 2) * (half + 6), y, half);
       });
-      y += 4;
+      y += ch + 10;
     };
-    table('CONTACTS', [['NAME', 38], ['RELATIONSHIP', 22], ['ROLE', 24], ['PHONE', 25], ['EMAIL', 32], ['MEDICAL RECORDS (HIPAA)', CW - 141]],
-      contacts.map(function (c) {
-        var R = c.roles || {}, roles = [R.emergency ? 'Emergency' : '', R.guardian ? 'Guardian' : '', R.responsible ? 'Responsible party' : ''].filter(Boolean).join(', ');
-        return [String(c.name || '').toUpperCase(), c.relation || '', roles || '•', c.phone || '', String(c.email || '').toLowerCase() || '•', c.hipaa ? 'Authorized • ' + (c.hipaaScope || 'All records') + (c.hipaaDate ? ' • ' + us(c.hipaaDate) : '') : 'Not authorized'];
-      }), 'No contacts on file.');
+    gridCards('CONTACTS', contacts, function (k2, x, yy, w) {
+      var R = k2.roles || {}, roles = [R.emergency ? 'Emergency' : '', R.guardian ? 'Legal guardian' : '', R.responsible ? 'Responsible party' : '', R.pickup ? 'May pick up' : ''].filter(Boolean).join(', ');
+      cardBox(c, x, yy, w, 30, String(k2.name || '').toUpperCase());
+      var fw = (w - 8) / 2;
+      field(c, 'user', 'RELATIONSHIP', k2.relation, x + 4, yy + 10, fw); field(c, 'shield', 'ROLE', roles, x + 4 + fw, yy + 10, fw);
+      field(c, 'phone', 'PHONE', k2.phone, x + 4, yy + 19, fw);
+      field(c, 'id', 'MEDICAL RECORDS (HIPAA)', k2.hipaa ? 'Authorized • ' + (k2.hipaaScope || 'All records') : 'Not authorized', x + 4 + fw, yy + 19, fw);
+    }, 'No contacts on file.', 30);
 
-    // ---------------- coverage: one line per plan ----------------
+    // ---------------- coverage: one card per plan ----------------
     var ins = (pat.insurances || []).slice();
-    table('COVERAGE', [['TYPE', 20], ['PAYER', 50], ['PAYER ID', 20], ['MEMBER ID', 34], ['GROUP', 22], ['RELATION', 18], ['ELIGIBILITY', CW - 164]],
-      ins.map(function (iv) {
-        var e = iv.elig || {}, st = e.status === 'active' ? 'Active' : e.status === 'inactive' ? 'Inactive' : e.status === 'error' ? 'Check failed' : 'Not verified';
-        return [iv.insType || 'Primary', iv.name || iv.insuranceName || '', iv.payerId || '', iv.policy || iv.memberId || '', iv.group || '', iv.relation || 'Self', st + (e.checkedAt ? ' • ' + us(new Date(e.checkedAt).toISOString()) : '')];
-      }), pat.selfPay ? 'Self pay (no insurance).' : 'No coverage on file.');
+    gridCards('COVERAGE', ins, function (iv, x, yy, w) {
+      var e = iv.elig || {}, st = e.status === 'active' ? 'Active' : e.status === 'inactive' ? 'Inactive' : e.status === 'error' ? 'Check failed' : 'Not verified';
+      cardBox(c, x, yy, w, 30, String(iv.insType || 'Primary').toUpperCase() + '  •  ' + String(iv.name || iv.insuranceName || '').toUpperCase());
+      var fw = (w - 8) / 3;
+      field(c, 'hash', 'PAYER ID', iv.payerId, x + 4, yy + 10, fw); field(c, 'id', 'MEMBER ID', iv.policy || iv.memberId, x + 4 + fw, yy + 10, fw); field(c, 'hash', 'GROUP', iv.group, x + 4 + 2 * fw, yy + 10, fw);
+      field(c, 'user', 'RELATION', iv.relation || 'Self', x + 4, yy + 19, fw); field(c, 'shield', 'ELIGIBILITY', st, x + 4 + fw, yy + 19, fw); field(c, 'cal', 'LAST CHECK', e.checkedAt ? us(new Date(e.checkedAt).toISOString()) : '', x + 4 + 2 * fw, yy + 19, fw);
+    }, pat.selfPay ? 'Self pay (no insurance).' : 'No coverage on file.', 30);
 
-    // ---------------- open balance: the closing highlight ----------------
+    // ---------------- open balance: light card, the amount in large type ----------------
     var EOB = db.claimEOB || {}, billed = 0, paid = 0, open = 0, openN = 0, oldest = '';
-    (db.claims || []).filter(function (c) { return c.patId === pat.id && !/void|deleted/i.test(c.status || ''); }).forEach(function (c) {
-      var b = (c.lines || []).reduce(function (s3, l) { return s3 + (parseFloat(l.charge) || 0); }, 0), p = (EOB[c.id] || []).reduce(function (s3, e) { return s3 + (parseFloat(e.paid) || 0); }, 0);
-      billed += b; paid += p;
-      var o = Math.max(0, b - p - (EOB[c.id] || []).reduce(function (s3, e) { return s3 + (e.adjLines || []).filter(function (a) { return a.group === 'CO'; }).reduce(function (s4, a) { return s4 + (parseFloat(a.amount) || 0); }, 0); }, 0));
-      if (o > 0.005) { open += o; openN++; var d = String(c.dos || ''); if (!oldest || d < oldest) oldest = d; }
+    (db.claims || []).filter(function (cl) { return cl.patId === pat.id && !/void|deleted/i.test(cl.status || ''); }).forEach(function (cl) {
+      var b2 = (cl.lines || []).reduce(function (s3, l) { return s3 + (parseFloat(l.charge) || 0); }, 0), p2 = (EOB[cl.id] || []).reduce(function (s3, e) { return s3 + (parseFloat(e.paid) || 0); }, 0);
+      billed += b2; paid += p2;
+      var o = Math.max(0, b2 - p2 - (EOB[cl.id] || []).reduce(function (s3, e) { return s3 + (e.adjLines || []).filter(function (a2) { return a2.group === 'CO'; }).reduce(function (s4, a2) { return s4 + (parseFloat(a2.amount) || 0); }, 0); }, 0));
+      if (o > 0.005) { open += o; openN++; var d = String(cl.dos || ''); if (!oldest || d < oldest) oldest = d; }
     });
-    if (y > H - 60) { doc.addPage(); y = M; }
-    y += 2;
-    var BH = 34;
-    doc.setFillColor.apply(doc, INK); doc.roundedRect(M, y, CW, BH, 3, 3, 'F');
-    txt('OPEN BALANCE', M + 8, y + 9, { size: 8, bold: true, color: [175, 185, 200] });
-    txt(money(open), M + 8, y + 24, { head: true, size: 26, color: [255, 255, 255] });
-    // three facts on the right side of the block
+    if (y > H - 56) { doc.addPage(); y = M; }
+    txt('BALANCE', M, y, { size: 7, bold: true, color: MUTED }); y += 3;
+    var BH = 30;
+    doc.setFillColor.apply(doc, SOFT); doc.roundedRect(M, y, CW, BH, 3, 3, 'F');
+    doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.3); doc.roundedRect(M, y, CW, BH, 3, 3);
+    doc.setFillColor(160, 170, 185); doc.roundedRect(M, y, 2.2, BH, 1, 1, 'F');
+    txt('OPEN BALANCE', M + 9, y + 9, { size: 7.4, bold: true, color: MUTED });
+    txt(money(open), M + 9, y + 22.5, { head: true, size: 24 });
     var facts = [['OPEN CLAIMS', String(openN)], ['OLDEST OPEN DOS', oldest ? us(oldest) : '•'], ['BILLED / PAID', money(billed) + ' / ' + money(paid)]];
-    var fx0 = M + CW * 0.44, fw = (RX - 8 - fx0) / 3;
+    var fx0 = M + CW * 0.44, fw2 = (RX - 6 - fx0) / 3;
     facts.forEach(function (f2, i) {
-      var x = fx0 + i * fw + 6;
-      doc.setDrawColor(60, 72, 92); doc.setLineWidth(0.3); if (i) doc.line(x - 4, y + 8, x - 4, y + BH - 8);
-      txt(f2[0], x, y + 13, { size: 6.6, bold: true, color: [175, 185, 200] });
-      txt(f2[1], x, y + 20.5, { size: i === 2 ? 9 : 12, bold: true, color: [255, 255, 255] });
+      var x = fx0 + i * fw2 + 6;
+      line(x - 4, y + 7, x - 4, y + BH - 7);
+      txt(f2[0], x, y + 12, { size: 6.6, bold: true, color: MUTED });
+      txt(f2[1], x, y + 19.5, { size: i === 2 ? 9 : 12, bold: true });
     });
-    y += BH + 6;
+    y += BH + 5;
     txt('Open balance = billed charges minus insurance payments and contractual adjustments, for claims not fully resolved.', M, y, { size: 7, color: MUTED });
 
     footer(c, pat);
