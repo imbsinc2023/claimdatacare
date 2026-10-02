@@ -569,6 +569,173 @@
     }).join('') + '</div>';
   };
 
+
+  /* =====================================================================
+     Patient photo: one window (source on the left, crop on the right)
+     ===================================================================== */
+  var PH = { pat: null, img: null, box: null, stream: null };
+  var CSS3 = [
+    '.phw{width:94vw!important;max-width:1000px!important;height:min(640px,90vh)!important;display:flex!important;flex-direction:column;border-radius:18px!important;padding:0!important;overflow:hidden}',
+    '.phw-b{flex:1;min-height:0;display:grid;grid-template-columns:290px minmax(0,1fr)}',
+    '.phw-side{min-height:0;overflow-y:auto;padding:14px;border-right:1px solid #E4E9F1;background:#F8FAFC;display:flex;flex-direction:column;gap:8px}',
+    '.phw-opt{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:1px solid #E4E9F1;border-radius:12px;background:#fff;font-family:inherit;font-size:13px;font-weight:600;color:#0B1526;cursor:pointer;text-align:left;transition:border-color .15s,background-color .15s}',
+    '.phw-opt:hover{border-color:rgba(255,106,61,.45);background:rgba(255,106,61,.04)}',
+    '.phw-opt .lci{color:#FF6A3D}',
+    '.phw-opt.del{color:#C21F62}.phw-opt.del .lci{color:#C21F62}',
+    '.phw-h{margin:8px 2px 2px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8C98AB}',
+    '.phw-doc{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:1px solid transparent;border-radius:10px;background:transparent;font-family:inherit;text-align:left;cursor:pointer}',
+    '.phw-doc:hover,.phw-doc.on{background:#fff;border-color:#E4E9F1}',
+    '.phw-doc img,.phw-doc .pdf{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none;border:1px solid #E4E9F1;background:#FDF2F6;display:flex;align-items:center;justify-content:center;color:#C21F62}',
+    '.phw-doc b{display:block;font-size:12px;color:#0B1526;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.phw-doc small{font-size:10.5px;color:#8C98AB}',
+    '.phw-stage{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;background:repeating-conic-gradient(#F1F4F8 0% 25%,#fff 0% 50%) 50%/22px 22px}',
+    '.phw-wrap{position:relative;line-height:0;box-shadow:0 18px 40px -24px rgba(11,21,38,.5)}',
+    '.phw-wrap img,.phw-wrap video{max-width:100%;max-height:100%;display:block;user-select:none;-webkit-user-drag:none}',
+    '.phw-shade{position:absolute;inset:0;pointer-events:none}',
+    '.phw-box{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(11,21,38,.55);cursor:move;border-radius:4px;touch-action:none}',
+    '.phw-box:before{content:"";position:absolute;inset:0;border:1px dashed rgba(255,255,255,.6);border-radius:50%}',
+    '.phw-hdl{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:50%;background:#FF6A3D;border:2px solid #fff;cursor:nwse-resize;touch-action:none}',
+    '.phw-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:#586579;font-size:13px;text-align:center;max-width:320px;background:#fff;padding:24px;border-radius:16px;border:1px solid #E4E9F1}',
+    '.phw-empty b{font-size:15px;color:#0B1526}',
+    '.phw-prev{position:absolute;right:16px;bottom:16px;width:84px;height:84px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 10px 24px -12px rgba(11,21,38,.6);background:#EEF1F6}',
+    '.phw-prev canvas{width:100%;height:100%;display:block}'
+  ].join('\n');
+  function css3() { if (document.getElementById('pcf-style3')) return; var s = document.createElement('style'); s.id = 'pcf-style3'; s.textContent = CSS3; document.head.appendChild(s); }
+  function stopCam() { if (PH.stream) { PH.stream.getTracks().forEach(function (t) { t.stop(); }); PH.stream = null; } }
+  window._openPhotoOptions = function (patId) {
+    css3();
+    var pat = (getDB().patients || []).find(function (p) { return p.id === patId; }); if (!pat) return;
+    PH = { pat: patId, img: null, box: null, stream: null };
+    var docs = (pat.documents || []).filter(function (d) { return d.data && !d.deleted && !d.trashed && (/^image\//.test(d.type || '') || /pdf/.test(d.type || '') || /\.(png|jpe?g|gif|webp|pdf)$/i.test(d.name || '')); });
+    var w = document.getElementById('modal-photo'); if (w) w.remove();
+    w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-photo';
+    w.innerHTML = '<div class="modal phw">' +
+      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('camera', 17) + 'Photo • ' + esc(((pat.last || '') + ', ' + (pat.first || '')).toUpperCase()) + '</span><button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="cdcPhotoClose()">' + ico('x', 17) + '</button></div>' +
+      '<div class="phw-b"><aside class="phw-side">' +
+        '<label class="phw-opt">' + ico('upload', 17) + 'Upload from device<input type="file" accept="image/*" style="display:none" onchange="cdcPhotoFile(event)"></label>' +
+        '<button type="button" class="phw-opt" onclick="cdcPhotoCamera()">' + ico('camera', 17) + 'Take photo with camera</button>' +
+        (pat.photo ? '<button type="button" class="phw-opt del" onclick="cdcPhotoRemove()">' + ico('trash-2', 17) + 'Remove current photo</button>' : '') +
+        '<div class="phw-h">From chart documents (' + docs.length + ')</div>' +
+        (docs.length ? docs.map(function (d) {
+          var pdf = /pdf/.test(d.type || '') || /\.pdf$/i.test(d.name || '');
+          return '<button type="button" class="phw-doc" data-id="' + esc(d.id) + '" onclick="cdcPhotoDoc(\'' + esc(d.id) + '\',this)">' + (pdf ? '<span class="pdf">' + ico('file-text', 18) + '</span>' : '<img src="' + esc(d.data) + '" alt="">') +
+            '<span style="min-width:0"><b>' + esc(d.name || 'Document') + '</b><small>' + esc(d.category || '') + (pdf ? ' • PDF page 1' : ' • Image') + '</small></span></button>';
+        }).join('') : '<div style="font-size:12px;color:#8C98AB;padding:2px">No images or PDFs in Records.</div>') +
+      '</aside><div class="phw-stage" id="phw-stage"><div class="phw-empty">' + ico('image', 34) + '<b>Choose a picture</b>Upload one, take it with the camera or pick a document from the chart (for example the driver license). Then move and resize the square to frame the face.</div></div></div>' +
+      '<div class="cdc-ftr"><span class="sum" id="phw-msg">Drag the square to move it; drag the orange dot to resize it.</span>' +
+        '<button type="button" class="cdc-no" onclick="cdcPhotoClose()">' + ico('x', 15) + 'Cancel</button>' +
+        '<button type="button" class="cdc-ok" id="phw-save" disabled onclick="cdcPhotoSave()">' + ico('save', 15) + 'Save photo</button></div>' +
+    '</div>';
+    document.body.appendChild(w); openModal('modal-photo');
+  };
+  window.cdcPhotoClose = function () { stopCam(); var w = document.getElementById('modal-photo'); if (w) { closeModal('modal-photo'); w.remove(); } };
+  function phMsg(t) { var m = document.getElementById('phw-msg'); if (m) m.textContent = t; }
+  // show an image in the stage with a square crop frame
+  function stageImage(src) {
+    stopCam();
+    var st = document.getElementById('phw-stage'); if (!st) return;
+    st.innerHTML = '<div class="phw-wrap" id="phw-wrap"><img id="phw-img" alt=""><div class="phw-box" id="phw-box"><span class="phw-hdl" id="phw-hdl"></span></div></div><div class="phw-prev"><canvas id="phw-prev" width="168" height="168"></canvas></div>';
+    var img = document.getElementById('phw-img');
+    img.onload = function () {
+      // fit the picture inside the stage
+      var maxW = st.clientWidth - 36, maxH = st.clientHeight - 36, k = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+      img.style.width = Math.round(img.naturalWidth * k) + 'px'; img.style.height = Math.round(img.naturalHeight * k) + 'px';
+      var w = img.offsetWidth || Math.round(img.naturalWidth * k), h = img.offsetHeight || Math.round(img.naturalHeight * k), s = Math.round(Math.min(w, h) * 0.6);
+      PH.img = img; PH.box = { x: Math.round((w - s) / 2), y: Math.round((h - s) / 2), s: s, w: w, h: h };
+      place(); bindDrag();
+      var sv = document.getElementById('phw-save'); if (sv) sv.disabled = false;
+      phMsg('Drag the square to move it; drag the orange dot to resize it.');
+    };
+    img.src = src;
+  }
+  function place() {
+    var b = PH.box, el = document.getElementById('phw-box'); if (!b || !el) return;
+    el.style.left = b.x + 'px'; el.style.top = b.y + 'px'; el.style.width = b.s + 'px'; el.style.height = b.s + 'px';
+    var c = document.getElementById('phw-prev'); if (!c || !PH.img) return;
+    var k = PH.img.naturalWidth / b.w, x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    try { x.drawImage(PH.img, b.x * k, b.y * k, b.s * k, b.s * k, 0, 0, c.width, c.height); } catch (e) {}
+  }
+  function bindDrag() {
+    var box = document.getElementById('phw-box'), hdl = document.getElementById('phw-hdl'); if (!box) return;
+    var start = function (e, mode) {
+      e.preventDefault(); e.stopPropagation();
+      var p0 = e.touches ? e.touches[0] : e, b0 = Object.assign({}, PH.box);
+      var move = function (ev) {
+        var p = ev.touches ? ev.touches[0] : ev, dx = p.clientX - p0.clientX, dy = p.clientY - p0.clientY, b = PH.box;
+        if (mode === 'move') { b.x = Math.min(Math.max(0, b0.x + dx), b.w - b.s); b.y = Math.min(Math.max(0, b0.y + dy), b.h - b.s); }
+        else { var ns = Math.max(40, b0.s + Math.max(dx, dy)); ns = Math.min(ns, b.w - b.x, b.h - b.y); b.s = ns; }
+        place(); if (ev.cancelable) ev.preventDefault();
+      };
+      var end = function () { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', end); window.removeEventListener('touchmove', move); window.removeEventListener('touchend', end); };
+      window.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+      window.addEventListener('touchmove', move, { passive: false }); window.addEventListener('touchend', end);
+    };
+    box.addEventListener('mousedown', function (e) { if (e.target === hdl) return; start(e, 'move'); });
+    box.addEventListener('touchstart', function (e) { if (e.target === hdl) return; start(e, 'move'); }, { passive: false });
+    hdl.addEventListener('mousedown', function (e) { start(e, 'size'); });
+    hdl.addEventListener('touchstart', function (e) { start(e, 'size'); }, { passive: false });
+  }
+  window.cdcPhotoFile = function (ev) {
+    var f = ev.target.files && ev.target.files[0]; if (!f) return;
+    var r = new FileReader(); r.onload = function (e) { stageImage(e.target.result); }; r.readAsDataURL(f); ev.target.value = '';
+  };
+  window.cdcPhotoDoc = async function (docId, btn) {
+    document.querySelectorAll('.phw-doc').forEach(function (b) { b.classList.toggle('on', b === btn); });
+    var pat = (getDB().patients || []).find(function (p) { return p.id === PH.pat; }) || {}, d = (pat.documents || []).find(function (x) { return x.id === docId; });
+    if (!d || !d.data) { phMsg('This document has no file data'); return; }
+    var pdf = /pdf/.test(d.type || '') || /\.pdf$/i.test(d.name || '');
+    if (!pdf) { stageImage(d.data); return; }
+    try {
+      phMsg('Opening page 1 of the PDF...');
+      var lib = await loadPdfJs(), bytes = Uint8Array.from(atob(d.data.split(',')[1]), function (c) { return c.charCodeAt(0); });
+      var page = await (await lib.getDocument({ data: bytes }).promise).getPage(1), vp = page.getViewport({ scale: 2 }), c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height; await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      stageImage(c.toDataURL('image/jpeg', 0.92));
+    } catch (e) { phMsg('Could not open the PDF: ' + (e && e.message || e)); }
+  };
+  window.cdcPhotoCamera = async function () {
+    var st = document.getElementById('phw-stage'); if (!st) return;
+    stopCam();
+    try {
+      PH.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      st.innerHTML = '<div class="phw-wrap"><video id="phw-video" autoplay playsinline></video></div>' +
+        '<button type="button" class="cdc-ok" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%)" onclick="cdcPhotoShoot()">' + ico('camera', 15) + 'Capture</button>';
+      var v = document.getElementById('phw-video'); v.srcObject = PH.stream;
+      v.style.maxHeight = (st.clientHeight - 90) + 'px';
+      phMsg('Center the face and press Capture.');
+    } catch (e) { phMsg('The camera is not available: ' + (e && e.message || 'permission denied')); }
+  };
+  window.cdcPhotoShoot = function () {
+    var v = document.getElementById('phw-video'); if (!v) return;
+    var c = document.createElement('canvas'); c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    stageImage(c.toDataURL('image/jpeg', 0.92));
+  };
+  function refreshAfterPhoto() {
+    try { _refreshChartBanner(PH.pat); } catch (e) {}
+    try { if (_chartTabActive) _renderChartTab(_chartTabActive); } catch (e) {}
+    try { if (typeof renderPatients === 'function') renderPatients(); } catch (e) {}
+  }
+  window.cdcPhotoSave = function () {
+    var b = PH.box; if (!b || !PH.img) return;
+    var k = PH.img.naturalWidth / b.w, c = document.createElement('canvas'); c.width = 400; c.height = 400;
+    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 400, 400);
+    x.drawImage(PH.img, b.x * k, b.y * k, b.s * k, b.s * k, 0, 0, 400, 400);
+    var data = c.toDataURL('image/jpeg', 0.85), pid = PH.pat;
+    setDB(function (d) { var p = (d.patients || []).find(function (q) { return q.id === pid; }); if (p) { p.photo = data; p.updatedAt = Date.now(); } });
+    cdcPhotoClose(); try { toast('Photo saved', 'ok'); } catch (e) {}
+    PH.pat = pid; refreshAfterPhoto();
+  };
+  window.cdcPhotoRemove = function () {
+    var pid = PH.pat;
+    cdcConfirm('Remove the current photo?', { title: 'Confirm delete' }).then(function (ok) {
+      if (!ok) return;
+      setDB(function (d) { var p = (d.patients || []).find(function (q) { return q.id === pid; }); if (p) { delete p.photo; p.updatedAt = Date.now(); } });
+      cdcPhotoClose(); PH.pat = pid; refreshAfterPhoto();
+    });
+  };
+
   /* ---------------- Schedule: every appointment, paged ---------------- */
   var AP = { page: 0, size: 12 };
   window._apptPage = function (n) { AP.page = n; _renderChartTab('appointments'); };

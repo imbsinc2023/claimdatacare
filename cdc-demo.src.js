@@ -47,7 +47,7 @@
     '.pcd-sec h4{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
     '.pcd-sec h4 .lci{color:#FF6A3D}',
     '.pcd-pr{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;align-items:start}',
-    '.pcd-photo{position:relative;width:112px;height:118px;margin-top:1px;border-radius:16px;overflow:hidden;cursor:pointer;background:#F4F6FA;border:1px solid #E4E9F1;display:flex;align-items:center;justify-content:center}',
+    '.pcd-photo{position:relative;width:112px;height:178px;margin-top:1px;border-radius:16px;overflow:hidden;cursor:pointer;background:#F4F6FA;border:1px solid #E4E9F1;display:flex;align-items:center;justify-content:center}',
     '.pcd-photo img{width:100%;height:100%;object-fit:cover}',
     '.pcd-photo .ini{font-size:28px;font-weight:700;color:#8C98AB;display:flex;align-items:center;justify-content:center}',
     '.pcd-photo .cam{position:absolute;right:0;bottom:0;width:26px;height:26px;border-radius:10px 0 0 0;background:rgba(11,21,38,.7);color:#fff;display:flex;align-items:center;justify-content:center}',
@@ -147,6 +147,10 @@
           seg('sex', 'Sex', pat.sex, [['M', 'Male'], ['F', 'Female'], ['O', 'Other']], { req: 1, span: 's2' }) +
           f('acct', 'Account #', pat.acct, { req: 1 }) +
           seg('inactive', 'Status', pat.inactive ? 'inactive' : 'active', [['active', 'Active'], ['inactive', 'Inactive']]) +
+          sel('suffix', 'Suffix', pat.suffix, [['Jr', 'Jr'], ['Sr', 'Sr'], ['II', 'II'], ['III', 'III'], ['IV', 'IV']]) +
+          f('prevName', 'Previous / maiden name', pat.prevName) +
+          f('occupation', 'Occupation', pat.occupation) +
+          sel('employment', 'Employment', pat.employment, [['Employed', 'Employed'], ['Self-employed', 'Self-employed'], ['Unemployed', 'Unemployed'], ['Retired', 'Retired'], ['Student', 'Student'], ['Disabled', 'Disabled']]) +
         '</div></div></section>' +
         '<section class="pcd-sec" style="grid-area:id"><h4>' + ico('contact', 14) + 'Identity &amp; clinical</h4><div class="pcd-g">' +
           sel('ethnicity', 'Ethnicity', pat.ethnicity, [['Hispanic', 'Hispanic/Latino'], ['Non-Hispanic', 'Not Hispanic'], ['Unknown', 'Unknown']], { req: 1, span: 's2' }) +
@@ -179,7 +183,12 @@
             return '<div class="pcd-f s6"><label for="pcd-renderingId">Provider of this practice <span class="opt">optional</span></label><select id="pcd-renderingId"><option value="">Not assigned</option>' +
               rs.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === pat.renderingId ? ' selected' : '') + '>' + esc(((r.last || '') + ', ' + (r.first || '')).toUpperCase() + (r.npi ? '  •  NPI ' + r.npi : '')) + '</option>'; }).join('') + '</select></div>';
           })() +
-          '<p class="pcd-note">Identifies the ' + T.toLowerCase() + ' as part of this provider\'s caseload.</p>' +
+          (function () {
+            var fs2 = (getDB().facilities || []).filter(function (x) { return !x.providerId || x.providerId === (pat.providerId || activeProviderId); });
+            return '<div class="pcd-f s6"><label for="pcd-facilityId">Main location <span class="opt">optional</span></label><select id="pcd-facilityId"><option value="">Not set</option>' +
+              fs2.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === pat.facilityId ? ' selected' : '') + '>' + esc(String(x.name || '').toUpperCase()) + '</option>'; }).join('') + '</select></div>';
+          })() +
+          '<p class="pcd-note">Identifies the ' + T.toLowerCase() + ' as part of this provider\'s caseload and main location.</p>' +
         '</div></section>' +
         '<section class="pcd-sec" style="grid-area:fl"><h4>' + ico('flag', 14) + 'Flags</h4><div class="pcd-flags">' +
           chk('selfInsSync', 'Self insured demographic sync', pat.selfInsSync) + chk('addrSync', 'Address sync with insurance', pat.addrSync) +
@@ -407,7 +416,7 @@
         ethnicity: v('ethnicity'), race: v('race'), language: v('language'), genderid: v('genderid'), orientation: v('orientation'), marital: v('marital'),
         codeStatus: v('codeStatus'), ssn: v('ssn'), oldChart: v('oldChart'), dateOfDeath: v('dateOfDeath'),
         phone: v('phone'), phone2: v('phone2'), email: v('email').toLowerCase(), prefContact: v('prefContact'), apptReminder: v('apptReminder'),
-        renderingId: v('renderingId'), ecName: v('ecName'), ecRel: v('ecRel'), ecPhone: v('ecPhone'), ecEmail: v('ecEmail').toLowerCase(), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
+        renderingId: v('renderingId'), facilityId: v('facilityId'), suffix: v('suffix'), prevName: v('prevName').toUpperCase(), occupation: v('occupation').toUpperCase(), employment: v('employment'), ecName: v('ecName'), ecRel: v('ecRel'), ecPhone: v('ecPhone'), ecEmail: v('ecEmail').toLowerCase(), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
         selfInsSync: !!($('selfInsSync') || {}).checked, addrSync: !!($('addrSync') || {}).checked, specialNeeds: !!($('specialNeeds') || {}).checked,
         consentShare: !!($('consentShare') || {}).checked, transportation: !!($('transportation') || {}).checked, wheelchair: !!($('wheelchair') || {}).checked,
         updatedAt: Date.now()
