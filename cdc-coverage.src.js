@@ -403,7 +403,7 @@
   function resultHTML(e) {
     var r = e.result || {}, st = r.status || 'none';
     var head = '<div class="elx-hero ' + st + '"><span class="ic">' + ico(st === 'active' ? 'shield-check' : st === 'error' ? 'alert-triangle' : st === 'inactive' ? 'shield-off' : 'shield-question', 26) + '</span>' +
-      '<div><small>Coverage on ' + esc(us(e.dos)) + '</small><b>' + esc(STL[st] || 'Not confirmed') + '</b><span>Checked ' + esc(new Date(e.checkedAt).toLocaleString('en-US')) + (e.by ? ' by ' + esc(e.by) : '') + (r.trace ? ' • Trace ' + esc(r.trace) : '') + '</span></div></div>';
+      '<div><small>Coverage on ' + esc(us(e.dos)) + '</small><b>' + esc(STL[st] || 'Not confirmed') + '</b><span>Checked ' + esc(new Date(e.checkedAt).toLocaleString('en-US')) + (e.by ? ' by ' + esc(e.by) : '') + (r.trace ? ' • Trace ' + esc(r.trace) : '') + ' • ID ' + esc(e.vid || ('EV' + new Date(e.checkedAt).toISOString().slice(0, 10).replace(/-/g, '') + '-' + Number(e.checkedAt || 0).toString(36).toUpperCase().slice(-6))) + '</span></div></div>';
     if (st === 'error') return head + '<div class="elx-err">' + esc(r.message || 'The payer did not answer.') + '</div>';
     var card = function (l, v) { return '<div><small>' + l + '</small><b>' + esc(v || '•') + '</b></div>'; };
     return head +
@@ -415,52 +415,11 @@
   }
   // printable proof of the eligibility answer (same document style as the invoice, black and greys)
   window.cdcEligPDF = async function (i) {
-    var c = curPlan(), h = history(c.iv), e = h[i]; if (!e) return;
-    var db = getDB(), pat = c.pat, prov = (db.providers || []).find(function (p) { return p.id === pat.providerId; }) || {}, r = e.result || {};
-    try { if (!window.__cdcInvFonts && typeof _cdcLoadModule === 'function') await _cdcLoadModule('cdc-fonts.js'); } catch (x) {}
-    var jsPDF = window.jspdf.jsPDF, doc = new jsPDF({ unit: 'mm', format: 'letter' }), W = 215.9, M = 16, RX = W - M, CW = RX - M, y = 18;
-    var BODY = 'helvetica', HEAD = 'helvetica', F = window.__cdcInvFonts;
-    if (F) { try { doc.addFileToVFS('p.ttf', F.plex); doc.addFont('p.ttf', 'Plex', 'normal'); doc.addFileToVFS('pb.ttf', F.plexB); doc.addFont('pb.ttf', 'Plex', 'bold'); doc.addFileToVFS('s.ttf', F.sora); doc.addFont('s.ttf', 'Sora', 'bold'); BODY = 'Plex'; HEAD = 'Sora'; } catch (x) {} }
-    var INK = [11, 21, 38], INK2 = [58, 71, 92], MUT = [120, 130, 145], LINE = [222, 226, 232], HEADF = [244, 246, 249];
-    var t = function (s2, x, yy, o) { o = o || {}; doc.setFont(o.head ? HEAD : BODY, o.bold || o.head ? 'bold' : 'normal'); doc.setFontSize(o.size || 9); doc.setTextColor.apply(doc, o.color || INK); doc.text(String(s2 == null ? '' : s2), x, yy, { align: o.align || 'left', maxWidth: o.max }); };
-    if (prov.logo && /^data:/.test(prov.logo)) { try { var pr = doc.getImageProperties(prov.logo), k = Math.min(40 / pr.width, 16 / pr.height); doc.addImage(prov.logo, pr.fileType || 'PNG', M, y - 4, pr.width * k, pr.height * k); } catch (x) {} }
-    else t(prov.name || '', M, y + 4, { head: true, size: 12 });
-    t('ELIGIBILITY VERIFICATION', RX, y + 2, { head: true, size: 17, align: 'right' });
-    t('Checked ' + new Date(e.checkedAt).toLocaleString('en-US') + (e.by ? ' by ' + e.by : ''), RX, y + 8, { size: 8, color: MUT, align: 'right' });
-    y += 18; doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.3); doc.line(M, y, RX, y); y += 7;
-    var st = STL[r.status || 'none'] || 'Not confirmed';
-    doc.setFillColor.apply(doc, HEADF); doc.roundedRect(M, y, CW, 18, 2, 2, 'F');
-    t('COVERAGE ON ' + us(e.dos), M + 5, y + 6.5, { size: 7.5, bold: true, color: MUT });
-    t(st.toUpperCase(), M + 5, y + 14, { head: true, size: 15 });
-    t('Service type ' + (e.stc || '') + (r.trace ? '   •   Trace # ' + r.trace : ''), RX - 5, y + 11, { size: 8.5, color: INK2, align: 'right' });
-    y += 26;
-    var col = function (x, title, rows) { t(title, x, y, { size: 7.5, bold: true, color: MUT }); var yy = y + 6; rows.forEach(function (rw) { t(rw[0], x, yy, { size: 7.5, color: MUT }); t(rw[1] || '•', x + 30, yy, { size: 9 }); yy += 5.2; }); return yy; };
-    var y1 = col(M, 'PATIENT / SUBSCRIBER', [['Patient', (pat.last || '') + ', ' + (pat.first || '')], ['DOB', us(pat.dob)], ['File #', pat.acct], ['Subscriber', e.subscriber || ''], ['Member ID', e.member || c.iv.policy || '']]);
-    var y2 = col(M + CW / 2, 'PAYER / PROVIDER', [['Payer', e.payer || c.iv.name || ''], ['Payer ID', e.payerId || c.iv.payerId || ''], ['Provider', e.provider || prov.name || ''], ['NPI', e.npi || prov.npi || ''], ['Tax ID', prov.taxid || '']]);
-    y = Math.max(y1, y2) + 4;
-    if (r.status === 'error') { t('The payer could not be reached: ' + (r.message || ''), M, y, { size: 9.5, color: INK2, max: CW }); y += 10; }
-    else {
-      var cells = [['PLAN', r.plan], ['GROUP', r.group], ['PLAN DATES', [us(r.from), us(r.to)].filter(Boolean).join(' to ')], ['COPAY', r.copay], ['DEDUCTIBLE', r.deductible], ['COINSURANCE', r.coins]];
-      var cw = CW / 3;
-      cells.forEach(function (c2, j) { var x = M + (j % 3) * cw, yy = y + Math.floor(j / 3) * 13; doc.setDrawColor.apply(doc, LINE); doc.roundedRect(x + (j % 3 ? 1.5 : 0), yy, cw - 1.5, 11, 1.5, 1.5); t(c2[0], x + 4, yy + 4.2, { size: 6.8, bold: true, color: MUT }); t(c2[1] || '•', x + 4, yy + 8.8, { size: 9, bold: true, max: cw - 8 }); });
-      y += 30;
-      var cols = [['SERVICE', 40], ['BENEFIT', 34], ['LEVEL', 22], ['AMOUNT', 18], ['PERIOD', 22], ['NETWORK', 16], ['NOTES', CW - 152]];
-      var head = function () { doc.setFillColor.apply(doc, HEADF); doc.rect(M, y, CW, 7, 'F'); var x = M; cols.forEach(function (c3) { t(c3[0], x + 2, y + 4.8, { size: 6.8, bold: true, color: INK2 }); x += c3[1]; }); y += 7; doc.setDrawColor.apply(doc, INK); doc.setLineWidth(0.35); doc.line(M, y, RX, y); y += 4.5; };
-      head();
-      (r.benefits || []).forEach(function (b) {
-        var vals = [b.svc, b.type, b.level, b.amount, b.period, b.net, b.note], lines = vals.map(function (v2, j) { doc.setFont(BODY, 'normal'); doc.setFontSize(7.6); return doc.splitTextToSize(String(v2 || ''), cols[j][1] - 3); });
-        var rh = Math.max.apply(null, lines.map(function (l) { return l.length; })) * 3.4 + 2;
-        if (y + rh > 262) { doc.addPage(); y = 18; head(); }
-        var x = M; lines.forEach(function (l, j) { t(l, x + 2, y, { size: 7.6, color: j === 6 ? MUT : INK }); x += cols[j][1]; });
-        y += rh; doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.2); doc.line(M, y - 2.6, RX, y - 2.6);
-      });
-      if (!(r.benefits || []).length) { t('The payer did not return benefit details.', M + 2, y, { size: 8.5, color: MUT }); y += 6; }
-    }
-    if (y > 250) { doc.addPage(); y = 18; }
-    y += 6; t('This document reproduces the electronic eligibility response (ANSI 270/271) received in real time through ClaimMD on the date and time shown. It is kept in the patient file as proof of coverage verification.', M, y, { size: 7.8, color: MUT, max: CW });
-    var n = doc.getNumberOfPages();
-    for (var pg = 1; pg <= n; pg++) { doc.setPage(pg); doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.2); doc.line(M, 268, RX, 268); t((pat.last || '') + ', ' + (pat.first || '') + ' • File # ' + (pat.acct || '') + ' • Confidential', M, 273, { size: 7, color: MUT }); t('Powered by ClaimDataCare • claimdatacare.com', W / 2, 273, { size: 7, color: MUT, align: 'center' }); t('Page ' + pg + ' / ' + n, RX, 273, { size: 7, color: MUT, align: 'right' }); }
-    doc.save('Eligibility_' + String(pat.last || 'Patient').replace(/[^A-Za-z0-9]+/g, '_') + '_' + String(e.dos || '').replace(/-/g, '') + '_' + new Date(e.checkedAt).toISOString().slice(0, 10) + '.pdf');
+    var cp = curPlan(), h = history(cp.iv), e = h[i]; if (!e) return;
+    try {
+      if (typeof cdcEligPDFDoc !== 'function' && typeof cdcLoadPatientPdf === 'function') await cdcLoadPatientPdf();
+      await cdcEligPDFDoc(EL.pat, EL.idx, e);
+    } catch (x) { var m = document.getElementById('elg-msg'); if (m) m.textContent = 'The PDF could not be created: ' + (x && x.message || x); }
   };
   window.cdcEligRun = async function (patId, idx) {
     var chk = null; try { chk = _requireCHKey('Check eligibility'); } catch (e) {}
@@ -487,7 +446,8 @@
     } catch (e) { resp = { error: 'The eligibility service is not reachable (claimmd-elig worker)' }; }
     var result = digest(resp), sess = null; try { sess = getSession(); } catch (e) {}
     result.benefits = (result.benefits || []).slice(0, 80);
-    var rec = { checkedAt: Date.now(), status: result.status, dos: g('elg-dos'), stc: params.service_code, by: sess ? (sess.name || sess.email || '') : '',
+    var now = Date.now();
+    var rec = { checkedAt: now, vid: 'EV' + new Date(now).toISOString().slice(0, 10).replace(/-/g, '') + '-' + now.toString(36).toUpperCase().slice(-6), status: result.status, dos: g('elg-dos'), stc: params.service_code, by: sess ? (sess.name || sess.email || '') : '',
       subscriber: params.ins_name_l + ', ' + params.ins_name_f, member: params.ins_number, payer: iv.name || '', payerId: iv.payerId || '', provider: prov.name || '', npi: prov.npi || '',
       result: result, raw: raw.slice(0, 6000) };
     setDB(function (d) {

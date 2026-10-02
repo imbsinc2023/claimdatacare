@@ -155,7 +155,7 @@
       '<span class="pcf-mi st' + (p.inactive ? ' off' : '') + '"><b></b>' + (p.inactive ? 'Inactive' : 'Active') + '</span>';
     return '<span class="pcf-tab"><span class="lb">' + ico('folder-open', 16) + (p._draft ? 'New ' + T.toLowerCase() : T + ' file') + '</span>' +
       (meta ? '<span class="pcf-meta">' + meta + '</span>' : '') + '</span><span class="pcf-sp"></span>' +
-      '<div class="pcf-act">' + (!p._draft ? '<button type="button" class="pcf-x" data-tip="Export file to PDF" aria-label="Export file to PDF" onclick="_exportPatientPDF(\'' + esc(p.id) + '\')">' + ico('file-down', 17) + '</button>' : '') +
+      '<div class="pcf-act">' + (!p._draft ? '<button type="button" class="pcf-x" data-tip="Export file to PDF" aria-label="Export file to PDF" onclick="cdcExportPatientFile(\'' + esc(p.id) + '\')">' + ico('file-down', 17) + '</button>' : '') +
       '<button type="button" class="pcf-x" data-tip="Close" aria-label="Close" onclick="cdcCloseChart()">' + ico('x', 18) + '</button></div>';
   }
   function footHTML(tab) {
@@ -195,6 +195,24 @@
     if (current && current._draft) { cdcCloseChart(); return; }
     _renderChartTab('demographics');
     var m = document.getElementById('pcd-msg'); if (m) m.textContent = 'Changes discarded';
+  };
+
+  // Export: always loads the current PDF module (cdc-patientpdf.js, stamped with this build),
+  // so an older export function cached in the browser or left in another file is never used.
+  function loadPdfModule() {
+    if (window.cdcPatientPDFv2) return Promise.resolve();
+    return new Promise(function (ok, ko) {
+      var s = document.createElement('script');
+      s.src = (window._cdcBase || '') + 'cdc-patientpdf.js?v=__CDC_BUILD__';
+      s.onload = function () { window.cdcPatientPDFv2 ? ok() : ko(new Error('cdc-patientpdf.js is an old version')); };
+      s.onerror = function () { ko(new Error('cdc-patientpdf.js not found on the server')); };
+      document.head.appendChild(s);
+    });
+  }
+  window.cdcLoadPatientPdf = loadPdfModule;
+  window.cdcExportPatientFile = async function (patId) {
+    try { await loadPdfModule(); await cdcPatientPDFv2(patId); }
+    catch (e) { try { toast('PDF could not be created: ' + (e && e.message || e), 'err'); } catch (x) {} }
   };
   window._refreshChartBanner = function (patId) {
     var p = (getDB().patients || []).find(function (x) { return x.id === patId; }); if (!p) return;
