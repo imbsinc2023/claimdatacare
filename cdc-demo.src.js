@@ -39,7 +39,10 @@
     '.pcd-who span{font-size:12px;color:#586579}',
     '.pcd-msg{flex:1;min-width:0;height:20px;font-size:12.5px;font-weight:600;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.pcd-msg.err{color:#C8286A}.pcd-msg.ok{color:#007FA3}',
-    '.pcd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}',
+    /* one grid over the whole area: rows of equal-height cards, last row stretches to the bottom */
+    '#pcd-root{height:100%}',
+    '.pcd-grid{display:grid;height:100%;min-height:100%;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto 1fr;grid-template-areas:"pt pt id" "ad ct ec" "pv fl fl";gap:12px;align-items:stretch}',
+    '.pcd-grid .pcd-sec{display:flex;flex-direction:column;min-width:0}',
     '.pcd-sec{border:1px solid #E4E9F1;border-radius:14px;background:#fff;padding:12px 14px}',
     '.pcd-sec h4{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
     '.pcd-sec h4 .lci{color:#FF6A3D}',
@@ -61,7 +64,7 @@
     '.pcd-seg button+button{border-left:1px solid #E4E9F1}',
     '.pcd-seg button:hover{background:#F4F6FA}',
     '.pcd-seg button.on{background:#FF6A3D;color:#fff}',
-    '.pcd-flags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}',
+    '.pcd-flags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 14px}',
     '.pcd-flags label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#0B1526;cursor:pointer;padding:4px 0}',
     '.pcd-flags input{width:16px;height:16px;margin:0;accent-color:#FF6A3D}',
     /* USPS suggestion window */
@@ -74,7 +77,7 @@
     '.usps-col p{margin:0;font-size:13px;line-height:1.55;color:#0B1526}',
     '.usps-col .pcd-g{grid-template-columns:repeat(4,minmax(0,1fr))}',
     '.usps-note{padding:0 20px 4px;font-size:12px;color:#586579}',
-    '@media (max-width:1100px){.pcd-cols{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:1200px){.pcd-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:none;grid-template-areas:"pt pt" "id id" "ad ct" "ec pv" "fl fl"}}',
     '@media (max-width:640px){.usps-b{grid-template-columns:1fr}}'
   ].join('\n');
   function css() { if (document.getElementById('pcd-style')) return; var s = document.createElement('style'); s.id = 'pcd-style'; s.textContent = CSS; document.head.appendChild(s); }
@@ -101,14 +104,23 @@
     var wrap = btn.closest('.pcd-f'); if (!wrap) return;
     wrap.querySelectorAll('.pcd-seg button').forEach(function (b) { b.classList.toggle('on', b === btn); });
     var h = wrap.querySelector('input[type=hidden]'); if (h) h.value = btn.getAttribute('data-v');
+    emailMark();
   };
+  // the email field shows the required mark while Email is the preferred contact or reminder
+  function emailMark() {
+    var need = v('prefContact') === 'email' || v('apptReminder') === 'email', lab = document.querySelector('label[for="pcd-email"]');
+    if (!lab) return;
+    var rq = lab.querySelector('.rq');
+    if (need && !rq) lab.insertAdjacentHTML('beforeend', ' <span class="rq">*</span>');
+    if (!need && rq) rq.remove();
+  }
 
   function formHTML(pat) {
     var T = term();
-    return '<div class="pcd-cols"><div style="display:flex;flex-direction:column;gap:12px">' +
-        '<section class="pcd-sec"><h4>' + ico('user', 14) + T + '</h4><div class="pcd-pr">' +
+    return '<div class="pcd-grid">' +
+        '<section class="pcd-sec" style="grid-area:pt"><h4>' + ico('user', 14) + T + '</h4><div class="pcd-pr">' +
           '<div class="pcd-photo" data-tip="Photo" onclick="' + (pat._draft ? 'cdcToastPhotoLater()' : '_openPhotoOptions(\'' + esc(pat.id) + '\')') + '">' +
-            (pat.photo ? '<img src="' + esc(pat.photo) + '" alt="">' : '<span class="ini">' + esc(((pat.first || ' ')[0] + (pat.last || ' ')[0]).trim().toUpperCase() || ico('user', 22)) + '</span>') +
+            (pat.photo ? '<img src="' + esc(pat.photo) + '" alt="">' : '<span class="ini">' + (function () { var ini = ((pat.first || ' ')[0] + (pat.last || ' ')[0]).trim().toUpperCase(); return ini ? esc(ini) : ico('user', 30); })() + '</span>') +
             '<span class="cam">' + ico('camera', 12) + '</span></div><div class="pcd-g">' +
           f('last', 'Last name', pat.last, { req: 1, span: 's2' }) + f('first', 'First name', pat.first, { req: 1, span: 's2' }) + f('mid', 'Middle', pat.mid) + f('nickname', 'Nickname', pat.nickname) +
           f('dob', 'Date of birth', pat.dob, { req: 1, type: 'date', span: 's2' }) +
@@ -116,21 +128,7 @@
           f('acct', 'Account #', pat.acct, { req: 1 }) +
           seg('inactive', 'Status', pat.inactive ? 'inactive' : 'active', [['active', 'Active'], ['inactive', 'Inactive']]) +
         '</div></div></section>' +
-        '<section class="pcd-sec"><h4>' + ico('map-pin', 14) + 'Address</h4><div class="pcd-g">' +
-          f('addr1', 'Address 1', pat.addr1, { req: 1, span: 's4' }) + f('addr2', 'Apt / suite', pat.addr2, { span: 's2' }) +
-          f('zip', 'ZIP', pat.zip, { req: 1, max: 10, mode: 'numeric', on: 'oninput="_pcdZip(this)"' }) +
-          f('city', 'City', pat.city, { req: 1, span: 's2' }) + f('state', 'State', pat.state, { req: 1, max: 2 }) +
-          f('country', 'Country', pat.country || 'USA', { req: 1, span: 's2' }) +
-        '</div></section>' +
-        '<section class="pcd-sec"><h4>' + ico('phone', 14) + 'Contact</h4><div class="pcd-g">' +
-          f('phone', 'Primary phone', pat.phone, { req: 1, type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
-          f('phone2', 'Secondary phone', pat.phone2, { type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
-          f('email', 'Email', pat.email, { type: 'email', span: 's2' }) +
-          seg('prefContact', 'Preferred contact', pat.prefContact, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email'], ['mail', 'Mail']], { span: 's3' }) +
-          seg('apptReminder', 'Appointment reminder', pat.apptReminder, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email']], { span: 's3' }) +
-        '</div></section>' +
-      '</div><div style="display:flex;flex-direction:column;gap:12px">' +
-        '<section class="pcd-sec"><h4>' + ico('id-card', 14) + 'Identity &amp; clinical</h4><div class="pcd-g">' +
+        '<section class="pcd-sec" style="grid-area:id"><h4>' + ico('contact', 14) + 'Identity &amp; clinical</h4><div class="pcd-g">' +
           sel('ethnicity', 'Ethnicity', pat.ethnicity, [['Hispanic', 'Hispanic/Latino'], ['Non-Hispanic', 'Not Hispanic'], ['Unknown', 'Unknown']], { req: 1, span: 's2' }) +
           sel('race', 'Race', pat.race, [['White', 'White'], ['Black', 'Black/African Am.'], ['Asian', 'Asian'], ['AI', 'AI/Alaska Native'], ['PI', 'Native HI/Pacific Isl.'], ['Multi', 'Two or more'], ['Other', 'Other'], ['Unknown', 'Unknown']], { req: 1, span: 's2' }) +
           sel('marital', 'Marital status', pat.marital, [['Single', 'Single'], ['Married', 'Married'], ['Divorced', 'Divorced'], ['Widowed', 'Widowed'], ['Partner', 'Dom. partner']], { span: 's2' }) +
@@ -138,21 +136,39 @@
           f('codeStatus', 'Code status', pat.codeStatus, { span: 's2' }) + f('ssn', 'SSN (last 4)', pat.ssn, { max: 4, mode: 'numeric', on: 'oninput="this.value=this.value.replace(/\\D/g,\'\')"' }) +
           f('oldChart', 'Old chart #', pat.oldChart) + f('dateOfDeath', 'Date of death', pat.dateOfDeath, { type: 'date', span: 's2' }) +
         '</div></section>' +
-        '<section class="pcd-sec"><h4>' + ico('stethoscope', 14) + 'Providers</h4><div class="pcd-g">' +
+        '<section class="pcd-sec" style="grid-area:ad"><h4>' + ico('map-pin', 14) + 'Address</h4><div class="pcd-g">' +
+          f('addr1', 'Address 1', pat.addr1, { req: 1, span: 's4' }) + f('addr2', 'Apt / suite', pat.addr2, { span: 's2' }) +
+          f('zip', 'ZIP', pat.zip, { req: 1, max: 10, mode: 'numeric', on: 'oninput="_pcdZip(this)"' }) +
+          f('city', 'City', pat.city, { req: 1, span: 's2' }) + f('state', 'State', pat.state, { req: 1, max: 2 }) +
+          f('country', 'Country', pat.country || 'USA', { req: 1, span: 's2' }) +
+        '</div></section>' +
+        '<section class="pcd-sec" style="grid-area:ct"><h4>' + ico('phone', 14) + 'Contact</h4><div class="pcd-g">' +
+          f('phone', 'Primary phone', pat.phone, { req: 1, type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
+          f('phone2', 'Secondary phone', pat.phone2, { type: 'tel', span: 's2', on: 'oninput="_pcdPhone(this)"' }) +
+          f('email', 'Email', pat.email, { type: 'email', span: 's2' }) +
+          seg('prefContact', 'Preferred contact', pat.prefContact, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email'], ['mail', 'Mail']], { span: 's3' }) +
+          seg('apptReminder', 'Appointment reminder', pat.apptReminder, [['phone', 'Phone'], ['text', 'Text'], ['email', 'Email']], { span: 's3' }) +
+        '</div></section>' +
+        '<section class="pcd-sec" style="grid-area:ec"><h4>' + ico('siren', 14) + 'Emergency contact</h4><div class="pcd-g">' +
+          f('ecName', 'Full name', pat.ecName, { span: 's4' }) + f('ecRel', 'Relationship', pat.ecRel, { span: 's2', ph: 'Daughter, spouse...' }) +
+          f('ecPhone', 'Phone', pat.ecPhone, { type: 'tel', span: 's3', on: 'oninput="_pcdPhone(this)"' }) + f('ecEmail', 'Email', pat.ecEmail, { type: 'email', span: 's3' }) +
+        '</div></section>' +
+        '<section class="pcd-sec" style="grid-area:pv"><h4>' + ico('stethoscope', 14) + 'Providers</h4><div class="pcd-g">' +
           f('pcp', 'PCP provider', pat.pcp, { span: 's3' }) + f('refPhys', 'Referring physician', pat.refPhys, { span: 's3' }) +
         '</div></section>' +
-        '<section class="pcd-sec"><h4>' + ico('flag', 14) + 'Flags</h4><div class="pcd-flags">' +
+        '<section class="pcd-sec" style="grid-area:fl"><h4>' + ico('flag', 14) + 'Flags</h4><div class="pcd-flags">' +
           chk('selfInsSync', 'Self insured demographic sync', pat.selfInsSync) + chk('addrSync', 'Address sync with insurance', pat.addrSync) +
           chk('specialNeeds', 'Special needs patient', pat.specialNeeds) + chk('consentShare', 'Consent to share records', pat.consentShare) +
           chk('transportation', 'Transportation needed', pat.transportation) + chk('wheelchair', 'Wheelchair required', pat.wheelchair) +
         '</div></section>' +
-      '</div></div>';
+      '</div>';
   }
   function wire(pat) {
     setTimeout(function () {
       var root = document.getElementById('pcd-root'); if (!root) return;
       root.addEventListener('keydown', function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); _saveDemoTab(pat.id); } });
       var st = $('state'); if (st) st.addEventListener('input', function () { st.value = st.value.replace(/[^a-z]/gi, '').toUpperCase(); });
+      emailMark();
       if (!pat.last) { var l = $('last'); if (l) l.focus(); }
     }, 30);
   }
@@ -281,6 +297,25 @@
     for (var i = 0; i < required.length; i++) {
       if (!v(required[i][0])) { msg(required[i][1] + ' is required', 'err'); var el = $(required[i][0]); if (el) { if (el.type !== 'hidden') { el.classList.add('bad'); el.focus(); } } return; }
     }
+    // rules that depend on other answers, and formats
+    var bad = function (id, text) { msg(text, 'err'); var el = $(id); if (el) { el.classList.add('bad'); el.focus(); } return true; };
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, digits = function (x) { return String(x || '').replace(/\D/g, ''); };
+    var pc = v('prefContact'), ar = v('apptReminder');
+    if ((pc === 'email' || ar === 'email') && !v('email')) return void bad('email', 'Email is required when ' + (pc === 'email' ? 'the preferred contact' : 'the appointment reminder') + ' is Email');
+    if (v('email') && !emailRe.test(v('email'))) return void bad('email', 'Email is not valid');
+    if (digits(v('phone')).length !== 10) return void bad('phone', 'Primary phone must have 10 digits');
+    if (v('phone2') && digits(v('phone2')).length !== 10) return void bad('phone2', 'Secondary phone must have 10 digits');
+    if (!/^\d{5}(-?\d{4})?$/.test(v('zip'))) return void bad('zip', 'ZIP must be 5 digits (or ZIP+4)');
+    if (!/^[A-Za-z]{2}$/.test(v('state'))) return void bad('state', 'State must be the 2-letter code');
+    var today = new Date().toISOString().slice(0, 10);
+    if (v('dob') > today) return void bad('dob', 'Date of birth cannot be in the future');
+    if (v('dateOfDeath') && v('dateOfDeath') < v('dob')) return void bad('dateOfDeath', 'Date of death cannot be before the date of birth');
+    if (v('ssn') && !/^\d{4}$/.test(v('ssn'))) return void bad('ssn', 'SSN last 4 must be 4 digits');
+    if ((v('ecName') || v('ecPhone')) && !(v('ecName') && v('ecPhone'))) return void bad(v('ecName') ? 'ecPhone' : 'ecName', 'Emergency contact needs a name and a phone');
+    if (v('ecPhone') && digits(v('ecPhone')).length !== 10) return void bad('ecPhone', 'Emergency contact phone must have 10 digits');
+    if (v('ecEmail') && !emailRe.test(v('ecEmail'))) return void bad('ecEmail', 'Emergency contact email is not valid');
+    msg('');
+
     var db = getDB(), idx = (db.patients || []).findIndex(function (p) { return p.id === patId; });
     var isNew = idx < 0 && !!draft && draft.id === patId;
     if (idx < 0 && !isNew) { msg(term() + ' not found', 'err'); return; }
@@ -315,7 +350,7 @@
         ethnicity: v('ethnicity'), race: v('race'), language: v('language'), genderid: v('genderid'), orientation: v('orientation'), marital: v('marital'),
         codeStatus: v('codeStatus'), ssn: v('ssn'), oldChart: v('oldChart'), dateOfDeath: v('dateOfDeath'),
         phone: v('phone'), phone2: v('phone2'), email: v('email').toLowerCase(), prefContact: v('prefContact'), apptReminder: v('apptReminder'),
-        pcp: v('pcp'), refPhys: v('refPhys'), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
+        pcp: v('pcp'), refPhys: v('refPhys'), ecName: v('ecName'), ecRel: v('ecRel'), ecPhone: v('ecPhone'), ecEmail: v('ecEmail').toLowerCase(), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
         selfInsSync: !!($('selfInsSync') || {}).checked, addrSync: !!($('addrSync') || {}).checked, specialNeeds: !!($('specialNeeds') || {}).checked,
         consentShare: !!($('consentShare') || {}).checked, transportation: !!($('transportation') || {}).checked, wheelchair: !!($('wheelchair') || {}).checked,
         updatedAt: Date.now()

@@ -40,28 +40,36 @@
   var CSS = [
     '.pcf{position:absolute;inset:0;z-index:500;display:flex;align-items:stretch;justify-content:center;padding:14px;background:rgba(11,21,38,.06)}',
     '.pcf-win{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E9F1;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -36px rgba(11,21,38,.45)}',
-    '.pcf-hd{position:relative;flex:none;display:flex;align-items:center;gap:10px;height:52px;padding:0 12px 0 20px;background:var(--bar,#EEF6FC);border-bottom:1px solid #DCEAF5}',
-    '.pcf-hd:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7 38%,#00A3D1 72%,#E8367A)}',
-    '.pcf-hd .t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#0B1526;white-space:nowrap}',
-    '.pcf-hd .t .lci{color:#FF6A3D}',
-    '.pcf-chips{display:flex;gap:6px;min-width:0;overflow:hidden}',
-    '.pcf-chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;background:#fff;border:1px solid #DCEAF5;font-size:11.5px;font-weight:600;color:#3A475C;white-space:nowrap}',
-    '.pcf-chip .lci{width:12px!important;height:12px!important;color:#586579}',
-    '.pcf-chip.new{background:rgba(255,106,61,.1);border-color:rgba(255,106,61,.3);color:#D45C37}',
+    /* title bar of the patient file: a dark folder with a tab, like a physical chart */
+    '.pcf-hd{position:relative;flex:none;display:flex;align-items:flex-end;gap:0;height:56px;padding:0 10px 0 14px;background:linear-gradient(180deg,#14213A,#0B1526);color:#fff}',
+    '.pcf-hd:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7 38%,#00A3D1 72%,#E8367A)}',
+    '.pcf-tab{position:relative;z-index:1;display:flex;align-items:center;gap:8px;height:42px;padding:0 18px 0 14px;margin-right:14px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,#FF8A5B,#FF6A3D);color:#fff;font-size:14px;font-weight:700;letter-spacing:.01em;box-shadow:0 -6px 16px -10px rgba(255,106,61,.8)}',
+    '.pcf-tab:after{content:"";position:absolute;right:-14px;bottom:0;width:14px;height:14px;background:radial-gradient(circle at 100% 0,transparent 13px,#FF6A3D 14px)}',
+    '.pcf-tab .lci{width:17px!important;height:17px!important}',
+    '.pcf-meta{display:flex;align-items:center;gap:0;height:56px;min-width:0;overflow:hidden}',
+    '.pcf-mi{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:22px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.92);white-space:nowrap}',
+    '.pcf-mi+.pcf-mi{border-left:1px solid rgba(255,255,255,.18)}',
+    '.pcf-mi .lci{width:13px!important;height:13px!important;color:#FFB199}',
+    '.pcf-mi.st b{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3DDC97;box-shadow:0 0 0 3px rgba(61,220,151,.2)}',
+    '.pcf-mi.st.off b{background:#8C98AB;box-shadow:none}',
+    '.pcf-act{display:flex;align-items:center;gap:4px;height:56px}',
+    '.pcf-x{width:34px;height:34px;border:0;border-radius:10px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s}',
+    '.pcf-x:hover{background:rgba(255,106,61,.85)}',
     '.pcf-sp{flex:1}',
-    '.pcf-x{width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:#586579;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s}',
-    '.pcf-x:hover{background:rgba(255,106,61,.09);color:#D45C37}',
     '.pcf-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 264px}',
-    '.pcf-main{min-width:0;min-height:0;overflow-y:auto;padding:16px 18px;background:#F8FAFC}',
+    '.pcf-main{min-width:0;min-height:0;overflow-y:auto;padding:14px 16px;background:#F8FAFC;display:flex;flex-direction:column}',
+    '.pcf-main > *{flex:none}',
+    '.pcf-main > #pcd-root{flex:1 1 auto}',
     /* the progress menu */
     '.pcf-nav{min-height:0;overflow-y:auto;border-left:1px solid #E4E9F1;background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);padding:16px 14px;display:flex;flex-direction:column;gap:12px}',
-    '.pcf-prog{padding:12px 14px;border-radius:14px;background:#0B1526;color:#fff;position:relative;overflow:hidden}',
-    '.pcf-prog:before{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(123,47,247,.55),transparent 70%)}',
-    '.pcf-prog small{position:relative;display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.65)}',
-    '.pcf-prog b{position:relative;display:block;font-size:17px;margin:3px 0 8px}',
-    '.pcf-bar{position:relative;height:6px;border-radius:999px;background:rgba(255,255,255,.15);overflow:hidden}',
-    '.pcf-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#FF6A3D,#7B2FF7,#00A3D1);transition:width .4s}',
-    '.pcf-steps{position:relative;display:flex;flex-direction:column;gap:2px}',
+    '.pcf-req{display:flex;align-items:center;gap:8px;padding:2px 6px 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579}',
+    '.pcf-req i{flex:1;height:6px;border-radius:999px;background:#E4E9F1;font-style:normal}',
+    '.pcf-req i.ok{background:linear-gradient(90deg,#00A3D1,#7B2FF7)}',
+    '.pcf-req span{font-variant-numeric:tabular-nums;color:#0B1526}',
+    '.pcf-steps{position:relative;display:flex;flex-direction:column;gap:4px}',
+    /* connector line of the timeline: grey, coloured up to the steps already done */
+    '.pcf-step:not(:last-child):before{content:"";position:absolute;left:24px;top:38px;bottom:-12px;width:2px;background:#E4E9F1;z-index:0}',
+    '.pcf-step.done:not(:last-child):before{background:linear-gradient(180deg,#00A3D1,#7B2FF7)}',
     '.pcf-step{position:relative;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:12px;cursor:pointer;transition:background-color .15s}',
     '.pcf-step:hover{background:#F1F4F8}',
     '.pcf-step .dot{position:relative;z-index:1;width:30px;height:30px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #D5DCE7;color:#586579;transition:background-color .15s,border-color .15s,color .15s}',
@@ -77,7 +85,6 @@
     '.pcf-step.on .dot{background:#FF6A3D;border-color:#FF6A3D;color:#fff;box-shadow:0 0 0 4px rgba(255,106,61,.15)}',
     '.pcf-step.lock{cursor:not-allowed;opacity:.45}',
     '.pcf-step.lock:hover{background:transparent}',
-    '.pcf-sep{height:1px;background:#E4E9F1;margin:6px 4px}',
     '.pcf-empty{padding:40px 20px;text-align:center;color:#586579;font-size:13px;background:#fff;border:1px solid #E4E9F1;border-radius:14px}',
     '.pcf-empty b{display:block;font-size:15px;color:#0B1526;margin:8px 0 4px}',
     '.pcf-empty .lci{color:#8C98AB}',
@@ -122,29 +129,30 @@
   function navHTML(p) {
     var c = p._draft ? {} : counts(p);
     var req = STEPS.filter(function (s) { return s.kind === 'req'; }), done = req.filter(function (s) { return stepState(s, p, c).cls === 'done'; }).length;
-    return '<div class="pcf-prog"><small>' + esc(term()) + ' file progress</small><b>' + done + ' of ' + req.length + ' required complete</b><div class="pcf-bar"><i style="width:' + Math.round(done / req.length * 100) + '%"></i></div></div>' +
+    return '<div class="pcf-req">Required' + req.map(function (r) { return '<i class="' + (stepState(r, p, c).cls === 'done' ? 'ok' : '') + '"></i>'; }).join('') + '<span>' + done + '/' + req.length + '</span></div>' +
       '<div class="pcf-steps">' + STEPS.map(function (s, i) {
         var stt = stepState(s, p, c), on = s.id === _chartTabActive;
         var dotIcon = stt.cls === 'done' && !on ? 'check' : stt.cls === 'lock' ? 'lock' : s.icon;
-        return (i === 1 || i === 3 || i === 5 ? '<div class="pcf-sep"></div>' : '') +
-          '<div class="pcf-step ' + stt.cls + (on ? ' on' : '') + '" role="button" tabindex="0"' + (stt.cls === 'lock' ? '' : ' onclick="_renderChartTab(\'' + s.id + '\')"') + '>' +
+        return '<div class="pcf-step ' + stt.cls + (on ? ' on' : '') + '" role="button" tabindex="0"' + (stt.cls === 'lock' ? '' : ' onclick="_renderChartTab(\'' + s.id + '\')"') + '>' +
           '<span class="dot">' + ico(dotIcon, 14) + '</span><span class="tx"><b>' + s.label + '</b><span>' + esc(stt.txt) + '</span></span>' +
           (stt.ct ? '<span class="ct">' + stt.ct + '</span>' : '') + '</div>';
       }).join('') + '</div>';
   }
   function headHTML(p) {
     var T = term(), a = age(p.dob), sx = p.sex === 'F' ? 'Female' : p.sex === 'M' ? 'Male' : p.sex === 'O' ? 'Other' : '';
-    var name = p._draft ? 'New ' + T.toLowerCase() : ((p.last || '').toUpperCase() + ', ' + (p.first || '').toUpperCase());
-    return '<span class="t">' + ico('folder-heart', 17) + T + ' file</span>' +
-      '<div class="pcf-chips">' + (p._draft ? '<span class="pcf-chip new">' + ico('sparkles', 12) + 'Not saved yet</span>' : '') +
-        '<span class="pcf-chip">' + ico('user', 12) + esc(name) + '</span>' +
-        '<span class="pcf-chip">' + ico('hash', 12) + esc(p.acct || '') + '</span>' +
-        (a !== '' && a != null ? '<span class="pcf-chip">' + ico('cake', 12) + a + ' yrs</span>' : '') +
-        (sx ? '<span class="pcf-chip">' + esc(sx) + '</span>' : '') +
-        (!p._draft ? '<span class="pcf-chip">' + (p.inactive ? 'Inactive' : 'Active') + '</span>' : '') + '</div>' +
-      '<span class="pcf-sp"></span>' +
-      (!p._draft ? '<button type="button" class="pcf-x" data-tip="Export file to PDF" aria-label="Export file to PDF" onclick="_exportPatientPDF(\'' + esc(p.id) + '\')">' + ico('file-down', 17) + '</button>' : '') +
-      '<button type="button" class="pcf-x" data-tip="Close" aria-label="Close" onclick="cdcCloseChart()">' + ico('x', 18) + '</button>';
+    // gender symbols drawn inline (not in this icon set)
+    var sxSvg = p.sex === 'M' ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFB199" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="14" r="5"/><path d="M14 10l6-6M15 4h5v5"/></svg>'
+      : p.sex === 'F' ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFB199" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg>' : ico('circle-user', 13);
+    var meta = p._draft ? '' :
+      '<span class="pcf-mi">' + ico('hash', 13) + esc(p.acct || '') + '</span>' +
+      '<span class="pcf-mi">' + ico('user', 13) + esc((p.last || '').toUpperCase() + ', ' + (p.first || '').toUpperCase()) + '</span>' +
+      (a !== '' && a != null ? '<span class="pcf-mi">' + ico('cake', 13) + a + ' yrs</span>' : '') +
+      (sx ? '<span class="pcf-mi">' + sxSvg + sx + '</span>' : '') +
+      '<span class="pcf-mi st' + (p.inactive ? ' off' : '') + '"><b></b>' + (p.inactive ? 'Inactive' : 'Active') + '</span>';
+    return '<span class="pcf-tab">' + ico('folder-open', 17) + (p._draft ? 'New ' + T.toLowerCase() : T + ' file') + '</span>' +
+      '<div class="pcf-meta">' + meta + '</div><span class="pcf-sp"></span>' +
+      '<div class="pcf-act">' + (!p._draft ? '<button type="button" class="pcf-x" data-tip="Export file to PDF" aria-label="Export file to PDF" onclick="_exportPatientPDF(\'' + esc(p.id) + '\')">' + ico('file-down', 17) + '</button>' : '') +
+      '<button type="button" class="pcf-x" data-tip="Close" aria-label="Close" onclick="cdcCloseChart()">' + ico('x', 18) + '</button></div>';
   }
   function footHTML(tab) {
     if (tab !== 'demographics') return '<span class="sum" id="pcf-hint">' + (current && current._draft ? '' : 'Choose a section on the right. Required: Info and Coverage.') + '</span>';
@@ -214,7 +222,7 @@
         case 'pharmacies': html = empty('pill', 'Pharmacies', 'Pharmacies are added automatically from prescriptions. This module is coming next.'); break;
         default: html = empty('construction', tabId, 'Not available yet.');
       }
-    } catch (e) { html = empty('triangle-alert', 'This section could not be shown', String(e && e.message || e)); }
+    } catch (e) { html = empty('alert-triangle', 'This section could not be shown', String(e && e.message || e)); }
     main.innerHTML = html;
     main.scrollTop = 0;
     var nav = document.getElementById('pcf-nav'); if (nav) nav.innerHTML = navHTML(p);
