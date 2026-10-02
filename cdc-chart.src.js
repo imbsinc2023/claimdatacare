@@ -42,22 +42,25 @@
     '.pcf-win{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E9F1;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -36px rgba(11,21,38,.45)}',
     /* title bar of the patient file: a dark folder with a tab, like a physical chart */
     /* title bar of the patient file: slim and light, a folder tab on the left (no colour line) */
-    '.pcf-hd{position:relative;flex:none;display:flex;align-items:flex-end;height:44px;padding:0 10px 0 14px;background:#FBF6F2;border-bottom:1px solid #EFE2D8}',
-    '.pcf-tab{position:relative;z-index:1;display:flex;align-items:center;gap:7px;height:34px;padding:0 16px 0 12px;margin-right:12px;margin-bottom:-1px;border-radius:10px 10px 0 0;background:#fff;border:1px solid #EFE2D8;border-bottom-color:#fff;color:#D45C37;font-size:13px;font-weight:700}',
-    '.pcf-tab .lci{width:16px!important;height:16px!important}',
-    '.pcf-meta{display:flex;align-items:center;height:44px;min-width:0;overflow:hidden}',
-    '.pcf-mi{display:inline-flex;align-items:center;gap:6px;padding:0 12px;height:20px;font-size:12.5px;font-weight:600;color:#3A475C;white-space:nowrap}',
-    '.pcf-mi+.pcf-mi{border-left:1px solid #E6D9CF}',
+    /* title bar: soft paper background; the folder tab holds the file summary */
+    '.pcf-hd{position:relative;flex:none;display:flex;align-items:flex-end;height:50px;padding:0 10px 0 14px;background:linear-gradient(180deg,#FBF4EE 0%,#F7EEE6 100%);border-bottom:1px solid #EADBCF}',
+    '.pcf-tab{position:relative;z-index:1;display:flex;align-items:center;height:40px;margin-bottom:-1px;padding:0 6px 0 14px;border-radius:12px 12px 0 0;background:#fff;border:1px solid #EADBCF;border-bottom-color:#fff;box-shadow:0 -8px 18px -14px rgba(212,92,55,.55)}',
+    '.pcf-tab:before{content:"";position:absolute;left:14px;right:14px;top:-1px;height:3px;border-radius:0 0 3px 3px;background:#FF6A3D}',
+    '.pcf-tab .lb{display:flex;align-items:center;gap:7px;padding-right:12px;font-size:13px;font-weight:700;color:#D45C37;white-space:nowrap}',
+    '.pcf-tab .lb .lci{width:16px!important;height:16px!important}',
+    '.pcf-meta{display:flex;align-items:center;min-width:0;overflow:hidden;border-left:1px solid #F0E4DA}',
+    '.pcf-mi{display:inline-flex;align-items:center;gap:6px;padding:0 11px;height:20px;font-size:12.5px;font-weight:600;color:#3A475C;white-space:nowrap}',
+    '.pcf-mi+.pcf-mi{border-left:1px solid #F0E4DA}',
     '.pcf-mi .lci{width:13px!important;height:13px!important;color:#D45C37}',
     '.pcf-mi svg[stroke="#FFB199"]{stroke:#D45C37}',
     '.pcf-mi.st b{display:inline-block;width:8px;height:8px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 3px rgba(22,163,74,.15)}',
     '.pcf-mi.st.off b{background:#8C98AB;box-shadow:none}',
-    '.pcf-act{display:flex;align-items:center;gap:4px;height:44px}',
+    '.pcf-act{display:flex;align-items:center;gap:4px;height:50px}',
     '.pcf-x{width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:#586579;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s}',
     '.pcf-x:hover{background:rgba(255,106,61,.1);color:#D45C37}',
     '.pcf-sp{flex:1}',
     '.pcf-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 264px}',
-    '.pcf-main{min-width:0;min-height:0;overflow-y:auto;padding:14px 16px;background:#F8FAFC;display:flex;flex-direction:column}',
+    '.pcf-main{min-width:0;min-height:0;overflow-y:auto;padding:16px 18px;background:radial-gradient(1200px 400px at 0% 0%,#FFF7F2 0%,rgba(255,247,242,0) 60%),#F6F8FB;display:flex;flex-direction:column}',
     '.pcf-main > *{flex:none}',
     '.pcf-main > #pcd-root{flex:1 1 auto}',
     '.pcf-main.fit > .ov{flex:1 1 auto}',
@@ -150,14 +153,15 @@
       (a !== '' && a != null ? '<span class="pcf-mi">' + ico('cake', 13) + a + ' yrs</span>' : '') +
       (sx ? '<span class="pcf-mi">' + sxSvg + sx + '</span>' : '') +
       '<span class="pcf-mi st' + (p.inactive ? ' off' : '') + '"><b></b>' + (p.inactive ? 'Inactive' : 'Active') + '</span>';
-    return '<span class="pcf-tab">' + ico('folder-open', 17) + (p._draft ? 'New ' + T.toLowerCase() : T + ' file') + '</span>' +
-      '<div class="pcf-meta">' + meta + '</div><span class="pcf-sp"></span>' +
+    return '<span class="pcf-tab"><span class="lb">' + ico('folder-open', 16) + (p._draft ? 'New ' + T.toLowerCase() : T + ' file') + '</span>' +
+      (meta ? '<span class="pcf-meta">' + meta + '</span>' : '') + '</span><span class="pcf-sp"></span>' +
       '<div class="pcf-act">' + (!p._draft ? '<button type="button" class="pcf-x" data-tip="Export file to PDF" aria-label="Export file to PDF" onclick="_exportPatientPDF(\'' + esc(p.id) + '\')">' + ico('file-down', 17) + '</button>' : '') +
       '<button type="button" class="pcf-x" data-tip="Close" aria-label="Close" onclick="cdcCloseChart()">' + ico('x', 18) + '</button></div>';
   }
   function footHTML(tab) {
     if (tab !== 'demographics') return '<span class="sum" id="pcf-hint">' + (current && current._draft ? '' : 'Choose a section on the right. Required: Info and Coverage.') + '</span>';
     return '<span class="sum pcd-msg" id="pcd-msg" role="status">' + (current && current._draft ? 'Nothing is saved until you press Save with the required fields complete.' : '') + '</span>' +
+      '<button type="button" class="cdc-alt" onclick="_pcdValidateAddr()">' + ico('map-pin-check', 15) + 'Validate address</button>' +
       '<button type="button" class="cdc-no" onclick="cdcChartCancel()">' + ico('x', 15) + 'Cancel</button>' +
       '<button type="button" class="cdc-ok" id="pcd-save" onclick="_saveDemoTab(\'' + esc(current.id) + '\')">' + ico('save', 15) + 'Save</button>';
   }

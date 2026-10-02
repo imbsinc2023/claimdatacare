@@ -26,7 +26,7 @@
   // some specialties (case management / TCM) call the person a "client"
   function term() { try { return typeof _isCMSpecialtyActive === 'function' && _isCMSpecialtyActive() ? 'Client' : 'Patient'; } catch (e) { return 'Patient'; } }
   window.cdcPersonTerm = term;
-  function msg(t, kind) { var m = document.getElementById('pcd-msg'); if (!m) return; m.textContent = t || ''; m.className = 'pcd-msg' + (kind ? ' ' + kind : ''); }
+  function msg(t, kind) { var m = document.getElementById('pcd-msg'); if (!m) return; m.textContent = t || ''; m.className = (m.classList.contains('sum') ? 'sum ' : '') + 'pcd-msg' + (kind ? ' ' + kind : ''); }
 
   var CSS = [
     '.pcd{display:flex;flex-direction:column;gap:12px}',
@@ -40,26 +40,31 @@
     '.pcd-msg{flex:1;min-width:0;height:20px;font-size:12.5px;font-weight:600;color:#586579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.pcd-msg.err{color:#C8286A}.pcd-msg.ok{color:#007FA3}',
     /* one grid over the whole area: rows of equal-height cards, last row stretches to the bottom */
-    '#pcd-root{height:100%}',
-    '.pcd-grid{display:grid;height:100%;min-height:100%;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto 1fr;grid-template-areas:"pt pt id" "ad ct ec" "pv fl fl";gap:12px;align-items:stretch}',
+    '#pcd-root{min-height:0}',
+    '.pcd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"pt pt id" "ad ct ec" "pv fl fl";gap:14px;align-items:stretch;align-content:start}',
     '.pcd-grid .pcd-sec{display:flex;flex-direction:column;min-width:0}',
-    '.pcd-sec{border:1px solid #E4E9F1;border-radius:14px;background:#fff;padding:12px 14px}',
+    '.pcd-sec{border:1px solid #E6EAF1;border-radius:16px;background:#fff;padding:14px 16px;box-shadow:0 1px 2px rgba(11,21,38,.04),0 10px 24px -20px rgba(11,21,38,.25)}',
     '.pcd-sec h4{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
     '.pcd-sec h4 .lci{color:#FF6A3D}',
-    '.pcd-pr{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:start}',
-    '.pcd-photo{position:relative;width:96px;height:96px;border-radius:16px;overflow:hidden;cursor:pointer;background:#F4F6FA;border:1px solid #E4E9F1;display:flex;align-items:center;justify-content:center}',
+    '.pcd-pr{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;align-items:start}',
+    '.pcd-photo{position:relative;width:112px;height:118px;margin-top:1px;border-radius:16px;overflow:hidden;cursor:pointer;background:#F4F6FA;border:1px solid #E4E9F1;display:flex;align-items:center;justify-content:center}',
     '.pcd-photo img{width:100%;height:100%;object-fit:cover}',
     '.pcd-photo .ini{font-size:28px;font-weight:700;color:#8C98AB;display:flex;align-items:center;justify-content:center}',
     '.pcd-photo .cam{position:absolute;right:0;bottom:0;width:26px;height:26px;border-radius:10px 0 0 0;background:rgba(11,21,38,.7);color:#fff;display:flex;align-items:center;justify-content:center}',
     '.pcd-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px 10px}',
     '.pcd-f{min-width:0}.pcd-f.s2{grid-column:span 2}.pcd-f.s3{grid-column:span 3}.pcd-f.s4{grid-column:span 4}.pcd-f.s6{grid-column:span 6}',
-    '.pcd-f label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#586579;margin-bottom:4px;white-space:nowrap}',
+    '.pcd-f label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6B7689;margin-bottom:5px;white-space:nowrap}',
+    '.pcd-f label .opt{margin-left:4px;font-weight:600;letter-spacing:0;text-transform:none;color:#A3ADBD}',
+    '.pcd-note{grid-column:span 6;margin:2px 0 0;font-size:11.5px;color:#8C98AB}',
     '.pcd-f label .rq{color:#C8286A}',
     '.pcd-f label .hint{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:#007FA3;font-size:10.5px;overflow:hidden;text-overflow:ellipsis}',
-    '.pcd-f input,.pcd-f select{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;color:#0B1526}',
-    '.pcd-f input:focus,.pcd-f select:focus{outline:none;border-color:#FF6A3D;box-shadow:0 0 0 3px rgba(255,106,61,.14)}',
+    '.pcd-f input,.pcd-f select{width:100%;box-sizing:border-box;height:36px;padding:0 11px;border:1px solid #E2E7EF;border-radius:10px;font-family:inherit;font-size:13px;background:#FAFBFD;color:#0B1526;transition:border-color .15s,background-color .15s,box-shadow .15s}',
+    '.pcd-f input:hover,.pcd-f select:hover{border-color:#CDD5E1}',
+    '.pcd-f input::placeholder{color:#A3ADBD}',
+    '.pcd-f input:focus,.pcd-f select:focus{outline:none;border-color:#FF6A3D;background:#fff;box-shadow:0 0 0 4px rgba(255,106,61,.12)}',
+    '.pcd-f input.ok{border-color:rgba(0,163,209,.55);background:rgba(0,163,209,.04)}',
     '.pcd-f input.bad{border-color:#E8367A;box-shadow:0 0 0 3px rgba(232,54,122,.12)}',
-    '.pcd-seg{display:flex;height:34px;border:1px solid #E4E9F1;border-radius:9px;overflow:hidden;background:#fff}',
+    '.pcd-seg{display:flex;height:36px;border:1px solid #E4E9F1;border-radius:9px;overflow:hidden;background:#fff}',
     '.pcd-seg button{flex:1;min-width:0;border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:#3A475C;cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}',
     '.pcd-seg button+button{border-left:1px solid #E4E9F1}',
     '.pcd-seg button:hover{background:#F4F6FA}',
@@ -78,6 +83,20 @@
     '.usps-col .pcd-g{grid-template-columns:repeat(4,minmax(0,1fr))}',
     '.usps-note{padding:0 20px 4px;font-size:12px;color:#586579}',
     '@media (max-width:1200px){.pcd-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:none;grid-template-areas:"pt pt" "id id" "ad ct" "ec pv" "fl fl"}}',
+    '.adr{width:94vw!important;max-width:820px!important;display:flex!important;flex-direction:column;border-radius:18px!important;padding:0!important;overflow:hidden}',
+    '.adr-b{padding:16px 20px;display:flex;flex-direction:column;gap:6px;background:#F8FAFC}',
+    '.adr-intro{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:12px;background:rgba(0,163,209,.08);color:#00607A;font-size:12.5px;font-weight:600}',
+    '.adr-intro.bad{background:rgba(232,54,122,.08);color:#A81D57}',
+    '.adr-head,.adr-row{display:grid;grid-template-columns:130px minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}',
+    '.adr-head span{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8C98AB;padding:0 10px}',
+    '.adr-row{padding:6px 0;border-bottom:1px solid #EEF1F6}',
+    '.adr-row .l{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#586579;display:flex;flex-direction:column;gap:2px}',
+    '.adr-row .l em{font-style:normal;font-size:10px;letter-spacing:0;text-transform:none;color:#C8286A}',
+    '.adr-row .m{height:36px;display:flex;align-items:center;padding:0 11px;border-radius:10px;background:#fff;border:1px solid #E2E7EF;font-size:13px;color:#0B1526;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
+    '.adr-row .s input{width:100%;box-sizing:border-box;height:36px;padding:0 11px;border:1px solid #E2E7EF;border-radius:10px;font-family:inherit;font-size:13px;background:#fff;color:#0B1526}',
+    '.adr-row .s.none{height:36px;display:flex;align-items:center;padding:0 11px;color:#8C98AB;font-size:12.5px}',
+    '.adr-row.d .m{background:rgba(232,54,122,.06);border-color:rgba(232,54,122,.45);color:#A81D57;text-decoration:line-through;text-decoration-color:rgba(232,54,122,.5)}',
+    '.adr-row.d .s input{background:rgba(0,163,209,.07);border-color:rgba(0,163,209,.55);font-weight:700;color:#00607A}',
     '@media (max-width:640px){.usps-b{grid-template-columns:1fr}}'
   ].join('\n');
   window.cdcDemoCss = function () { css(); };
@@ -154,8 +173,13 @@
           f('ecName', 'Full name', pat.ecName, { span: 's4' }) + f('ecRel', 'Relationship', pat.ecRel, { span: 's2', ph: 'Daughter, spouse...' }) +
           f('ecPhone', 'Phone', pat.ecPhone, { type: 'tel', span: 's3', on: 'oninput="_pcdPhone(this)"' }) + f('ecEmail', 'Email', pat.ecEmail, { type: 'email', span: 's3' }) +
         '</div></section>' +
-        '<section class="pcd-sec" style="grid-area:pv"><h4>' + ico('stethoscope', 14) + 'Providers</h4><div class="pcd-g">' +
-          f('pcp', 'PCP provider', pat.pcp, { span: 's3' }) + f('refPhys', 'Referring physician', pat.refPhys, { span: 's3' }) +
+        '<section class="pcd-sec" style="grid-area:pv"><h4>' + ico('stethoscope', 14) + 'Assigned provider</h4><div class="pcd-g">' +
+          (function () {
+            var rs = (getDB().rendering || []).filter(function (r) { return r.providerId === (pat.providerId || activeProviderId); });
+            return '<div class="pcd-f s6"><label for="pcd-renderingId">Provider of this practice <span class="opt">optional</span></label><select id="pcd-renderingId"><option value="">Not assigned</option>' +
+              rs.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === pat.renderingId ? ' selected' : '') + '>' + esc(((r.last || '') + ', ' + (r.first || '')).toUpperCase() + (r.npi ? '  •  NPI ' + r.npi : '')) + '</option>'; }).join('') + '</select></div>';
+          })() +
+          '<p class="pcd-note">Identifies the ' + T.toLowerCase() + ' as part of this provider\'s caseload.</p>' +
         '</div></section>' +
         '<section class="pcd-sec" style="grid-area:fl"><h4>' + ico('flag', 14) + 'Flags</h4><div class="pcd-flags">' +
           chk('selfInsSync', 'Self insured demographic sync', pat.selfInsSync) + chk('addrSync', 'Address sync with insurance', pat.addrSync) +
@@ -251,46 +275,86 @@
     }, function () { msg('ZIP ' + zip + ' was not found', 'err'); });
   };
 
-  /* ---------------- USPS address check on save ---------------- */
-  function verify(a) {
-    if (uspsOK === false) return Promise.resolve(null);
-    return fetch(USPS_URL + '/address', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a) })
-      .then(function (r) { if (!r.ok) throw 0; uspsOK = true; return r.json(); })
-      .catch(function () { uspsOK = false; return null; });
+  /* ---------------- Address check: USPS (worker) first, U.S. Census geocoder as fallback ---------------- */
+  function census(a) {
+    var u = 'https://geocoding.geo.census.gov/geocoder/locations/address?benchmark=Public_AR_Current&format=json' +
+      '&street=' + encodeURIComponent(a.addr1) + '&city=' + encodeURIComponent(a.city) + '&state=' + encodeURIComponent(a.state) + '&zip=' + encodeURIComponent(String(a.zip).slice(0, 5));
+    return fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
+      var m = j && j.result && (j.result.addressMatches || [])[0];
+      if (!m) return { found: false, source: 'U.S. Census' };
+      var parts = String(m.matchedAddress || '').split(',').map(function (x) { return x.trim(); });
+      return { found: true, source: 'U.S. Census', address: { addr1: parts[0] || '', addr2: a.addr2 || '', city: parts[1] || '', state: parts[2] || '', zip: parts[3] || '' } };
+    });
   }
-  function same(a, b) { var n = function (x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }; return n(a.addr1) === n(b.addr1) && n(a.addr2) === n(b.addr2) && n(a.city) === n(b.city) && n(a.state) === n(b.state) && n(a.zip).slice(0, 5) === n(b.zip).slice(0, 5); }
-  function chooseAddress(mine, sug, notFound) {
+  function verify(a) {
+    var viaUsps = uspsOK === false ? Promise.reject() : fetch(USPS_URL + '/address', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a) })
+      .then(function (r) { if (!r.ok) throw 0; uspsOK = true; return r.json(); }).then(function (j) { j.source = j.source || 'USPS'; return j; });
+    return viaUsps.catch(function () { uspsOK = false; return census(a); }).catch(function () { return null; });
+  }
+  var NORM = function (x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  function same(a, b) { return NORM(a.addr1) === NORM(b.addr1) && NORM(a.addr2) === NORM(b.addr2) && NORM(a.city) === NORM(b.city) && NORM(a.state) === NORM(b.state) && NORM(a.zip).slice(0, 5) === NORM(b.zip).slice(0, 5); }
+  // both addresses side by side, field by field; the fields that differ are highlighted
+  function chooseAddress(mine, sug, notFound, source) {
     return new Promise(function (resolve) {
       var w = document.getElementById('modal-usps'); if (w) w.remove();
       w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-usps';
-      var line = function (a) { return esc(a.addr1) + (a.addr2 ? ' ' + esc(a.addr2) : '') + '<br>' + esc(a.city) + ', ' + esc(a.state) + ' ' + esc(a.zip); };
-      w.innerHTML = '<div class="modal usps">' +
-        '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('map-pin', 17) + (notFound ? 'USPS could not confirm this address' : 'USPS suggests a different address') + '</span>' +
+      var F = [['addr1', 'Address 1'], ['addr2', 'Apt / suite'], ['city', 'City'], ['state', 'State'], ['zip', 'ZIP']];
+      var diff = function (k) { return !notFound && (k === 'zip' ? NORM(mine.zip).slice(0, 5) !== NORM(sug.zip).slice(0, 5) : NORM(mine[k]) !== NORM(sug[k])); };
+      var nd = notFound ? 0 : F.filter(function (f) { return diff(f[0]); }).length;
+      var rows = F.map(function (f) {
+        var d = diff(f[0]);
+        return '<div class="adr-row' + (d ? ' d' : '') + '"><span class="l">' + f[1] + (d ? '<em>differs</em>' : '') + '</span>' +
+          '<span class="m">' + esc(mine[f[0]] || '•') + '</span>' +
+          (notFound ? '<span class="s none">No match</span>' : '<span class="s"><input id="usps-' + f[0] + '" value="' + esc(sug[f[0]] || '') + '"' + (f[0] === 'state' ? ' maxlength="2"' : '') + '></span>') + '</div>';
+      }).join('');
+      w.innerHTML = '<div class="modal adr">' +
+        '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('map-pin', 17) + 'Address check • ' + esc(source || 'USPS') + '</span>' +
           '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" data-a="mine">' + ico('x', 17) + '</button></div>' +
-        '<div class="usps-b"><div class="usps-col"><h5>You entered</h5><p>' + line(mine) + '</p></div>' +
-        (notFound ? '<div class="usps-col"><h5>What to do</h5><p>Check the street, number and ZIP. You can keep the address as entered or go back and edit it.</p></div>' :
-          '<div class="usps-col sug"><h5>USPS suggestion (you can edit it)</h5><div class="pcd-g">' +
-            '<div class="pcd-f s4"><label>Address 1</label><input id="usps-addr1" value="' + esc(sug.addr1) + '"></div>' +
-            '<div class="pcd-f s2"><label>Apt / suite</label><input id="usps-addr2" value="' + esc(sug.addr2) + '"></div>' +
-            '<div class="pcd-f s2"><label>City</label><input id="usps-city" value="' + esc(sug.city) + '"></div>' +
-            '<div class="pcd-f"><label>State</label><input id="usps-state" maxlength="2" value="' + esc(sug.state) + '"></div>' +
-            '<div class="pcd-f"><label>ZIP</label><input id="usps-zip" value="' + esc(sug.zip) + '"></div></div></div>') +
-        '</div>' +
-        '<div class="cdc-ftr"><span class="sum">The decision is yours: the address is saved exactly as you choose.</span>' +
+        '<div class="adr-b"><div class="adr-intro ' + (notFound ? 'bad' : '') + '">' + ico(notFound ? 'alert-triangle' : 'sparkles', 18) +
+          (notFound ? 'This address could not be found. Check the street number, the street name and the ZIP.' : nd + (nd === 1 ? ' field differs' : ' fields differ') + ' from the standard address. You can edit the suggestion before using it.') + '</div>' +
+          '<div class="adr-head"><span></span><span>You entered</span><span>' + (notFound ? 'Suggestion' : 'Suggested (editable)') + '</span></div>' + rows + '</div>' +
+        '<div class="cdc-ftr"><span class="sum">Choosing the suggestion is optional. The address is saved exactly as you decide.</span>' +
           (notFound ? '<button type="button" class="cdc-neutral" data-a="edit">' + ico('pencil', 15) + 'Edit address</button><button type="button" class="cdc-ok" data-a="mine">' + ico('check', 15) + 'Keep as entered</button>'
             : '<button type="button" class="cdc-neutral" data-a="mine">' + ico('undo-2', 15) + 'Keep mine</button><button type="button" class="cdc-ok" data-a="sug">' + ico('check', 15) + 'Use suggestion</button>') +
         '</div></div>';
       document.body.appendChild(w);
       w.addEventListener('click', function (e) {
         var b = e.target.closest && e.target.closest('[data-a]'); if (!b) return;
-        var a = b.getAttribute('data-a'), out = null;
-        if (a === 'sug') out = { addr1: document.getElementById('usps-addr1').value.trim(), addr2: document.getElementById('usps-addr2').value.trim(), city: document.getElementById('usps-city').value.trim(), state: document.getElementById('usps-state').value.trim().toUpperCase(), zip: document.getElementById('usps-zip').value.trim() };
+        var a = b.getAttribute('data-a'), out = null, gv = function (k) { var el = document.getElementById('usps-' + k); return el ? el.value.trim() : ''; };
+        if (a === 'sug') out = { addr1: gv('addr1').toUpperCase(), addr2: gv('addr2').toUpperCase(), city: gv('city').toUpperCase(), state: gv('state').toUpperCase(), zip: gv('zip'), chosen: 'suggestion' };
         closeModal('modal-usps'); w.remove();
-        resolve(a === 'edit' ? 'edit' : out || mine);
+        resolve(a === 'edit' ? 'edit' : out || Object.assign({}, mine, { chosen: 'mine' }));
       });
       openModal('modal-usps');
     });
   }
+  function formAddr() { return { addr1: v('addr1').toUpperCase(), addr2: v('addr2').toUpperCase(), city: v('city').toUpperCase(), state: v('state').toUpperCase(), zip: v('zip') }; }
+  function putAddr(a) { ['addr1', 'addr2', 'city', 'state', 'zip'].forEach(function (k) { var el = $(k); if (el) { el.value = a[k] || ''; el.classList.add('ok'); el.classList.remove('bad'); } }); }
+  var decided = '';   // address already checked and decided (no second prompt on Save)
+  // runs the check; returns the address to keep, 'edit', or null when no service answered
+  async function checkAddress(force) {
+    var a = formAddr();
+    if (!a.addr1 || !a.city || !a.state || !/^\d{5}/.test(a.zip)) { msg('Fill address, city, state and ZIP first', 'err'); return 'edit'; }
+    var key = JSON.stringify(a);
+    if (!force && decided === key) return a;
+    msg('Checking the address...');
+    var r = await verify(a);
+    if (!r) { msg('Address could not be checked: no validation service answered', 'err'); return null; }
+    var out = a;
+    if (r.found === false) out = await chooseAddress(a, null, true, r.source);
+    else if (r.address) {
+      var sug = { addr1: r.address.addr1 || '', addr2: r.address.addr2 || '', city: r.address.city || '', state: r.address.state || '', zip: r.address.zip || '' };
+      if (!same(a, sug)) out = await chooseAddress(a, sug, false, r.source);
+      else { putAddr(a); msg('Address confirmed by ' + r.source, 'ok'); }
+    }
+    if (out === 'edit') { msg('Edit the address and check it again', 'err'); var el = $('addr1'); if (el) { el.classList.add('bad'); el.focus(); } return 'edit'; }
+    if (out.chosen === 'suggestion') { putAddr(out); msg('Suggested address applied • remember to Save', 'ok'); }
+    else if (out.chosen === 'mine') msg('Address kept as entered');
+    delete out.chosen;
+    decided = JSON.stringify(formAddr());
+    return out;
+  }
+  window._pcdValidateAddr = function () { checkAddress(true); };
 
   window._saveDemoTab = async function (patId) {
     document.querySelectorAll('#pcd-root input.bad').forEach(function (e) { e.classList.remove('bad'); });
@@ -326,20 +390,12 @@
 
     // address check with USPS (only when the address changed)
     var addr = { addr1: v('addr1'), addr2: v('addr2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
-    if (true) {   // every save checks the address with USPS
-      var btn = document.getElementById('pcd-save'); if (btn) btn.disabled = true;
-      msg('Checking the address with USPS...');
-      var r = await verify(addr);
-      if (btn) btn.disabled = false;
-      if (r && r.found === false) {
-        var c1 = await chooseAddress(addr, null, true);
-        if (c1 === 'edit') { msg('Edit the address and save again', 'err'); $('addr1').classList.add('bad'); $('addr1').focus(); return; }
-      } else if (r && r.address) {
-        var sug = { addr1: r.address.addr1 || '', addr2: r.address.addr2 || '', city: r.address.city || '', state: r.address.state || '', zip: r.address.zip || '' };
-        if (!same(addr, sug)) addr = await chooseAddress(addr, sug, false);
-      }
-      if (!r) msg('Address not verified: the USPS service is not set up yet');
-    }
+    // every save checks the address (USPS, or the Census geocoder when USPS is not set up)
+    var btn = document.getElementById('pcd-save'); if (btn) btn.disabled = true;
+    var chk = await checkAddress(false);
+    if (btn) btn.disabled = false;
+    if (chk === 'edit') return;
+    if (chk) addr = chk; else msg('Saved without address check (no validation service answered)');
 
     setDB(function (d) {
       var p;
@@ -351,7 +407,7 @@
         ethnicity: v('ethnicity'), race: v('race'), language: v('language'), genderid: v('genderid'), orientation: v('orientation'), marital: v('marital'),
         codeStatus: v('codeStatus'), ssn: v('ssn'), oldChart: v('oldChart'), dateOfDeath: v('dateOfDeath'),
         phone: v('phone'), phone2: v('phone2'), email: v('email').toLowerCase(), prefContact: v('prefContact'), apptReminder: v('apptReminder'),
-        pcp: v('pcp'), refPhys: v('refPhys'), ecName: v('ecName'), ecRel: v('ecRel'), ecPhone: v('ecPhone'), ecEmail: v('ecEmail').toLowerCase(), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
+        renderingId: v('renderingId'), ecName: v('ecName'), ecRel: v('ecRel'), ecPhone: v('ecPhone'), ecEmail: v('ecEmail').toLowerCase(), nickname: v('nickname'), inactive: v('inactive') === 'inactive',
         selfInsSync: !!($('selfInsSync') || {}).checked, addrSync: !!($('addrSync') || {}).checked, specialNeeds: !!($('specialNeeds') || {}).checked,
         consentShare: !!($('consentShare') || {}).checked, transportation: !!($('transportation') || {}).checked, wheelchair: !!($('wheelchair') || {}).checked,
         updatedAt: Date.now()

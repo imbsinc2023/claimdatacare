@@ -2,6 +2,7 @@
  * ClaimDataCare  •  USPS address worker (Cloudflare Workers)
  * Name it "usps" so it answers at https://usps.imbsinc2023.workers.dev
  *
+ * Without the USPS secrets the worker still validates addresses with the free U.S. Census geocoder.
  * Secrets (Workers > usps > Settings > Variables and Secrets, type "Secret"):
  *   USPS_CLIENT_ID      consumer key of your app at developer.usps.com
  *   USPS_CLIENT_SECRET  consumer secret of that app
@@ -15,6 +16,17 @@
 const ALLOWED = ['https://claimdatacare.com', 'https://www.claimdatacare.com'];
 const API = 'https://apis.usps.com';
 let token = null, tokenExp = 0;
+
+// free fallback when the USPS credentials are not set: U.S. Census Bureau geocoder
+async function census(a) {
+  const u = 'https://geocoding.geo.census.gov/geocoder/locations/address?benchmark=Public_AR_Current&format=json' +
+    '&street=' + encodeURIComponent(a.addr1 || '') + '&city=' + encodeURIComponent(a.city || '') + '&state=' + encodeURIComponent(a.state || '') + '&zip=' + encodeURIComponent(String(a.zip || '').slice(0, 5));
+  const r = await fetch(u); if (!r.ok) return { error: 'census ' + r.status };
+  const j = await r.json(), m = j && j.result && (j.result.addressMatches || [])[0];
+  if (!m) return { found: false, source: 'U.S. Census' };
+  const p = String(m.matchedAddress || '').split(',').map(x => x.trim());
+  return { found: true, source: 'U.S. Census', address: { addr1: p[0] || '', addr2: a.addr2 || '', city: p[1] || '', state: p[2] || '', zip: p[3] || '' } };
+}
 
 function cors(origin) {
   return {
@@ -61,12 +73,13 @@ export default {
       }
       if (url.pathname === '/address' && req.method === 'POST') {
         const a = await req.json();
+        if (!env.USPS_CLIENT_ID || !env.USPS_CLIENT_SECRET) return json(await census(a), 200, origin);
         const zip = String(a.zip || '').replace(/[^\d]/g, '').slice(0, 5);
         const r = await usps(env, '/addresses/v3/address', { streetAddress: a.addr1, secondaryAddress: a.addr2, city: a.city, state: a.state, ZIPCode: zip });
-        if (r.status === 400 || r.status === 404) return json({ found: false }, 200, origin);
-        if (!r.ok) return json({ error: 'usps ' + r.status }, 502, origin);
+        if (r.status === 400 || r.status === 404) return json({ found: false, source: 'USPS' }, 200, origin);
+        if (!r.ok) return json(await census(a), 200, origin);
         const j = await r.json(), ad = j.address || {};
-        return json({ found: true, address: {
+        return json({ found: true, source: 'USPS', address: {
           addr1: ad.streetAddress || '', addr2: ad.secondaryAddress || '', city: ad.city || '', state: ad.state || '',
           zip: (ad.ZIPCode || '') + (ad.ZIPPlus4 ? '-' + ad.ZIPPlus4 : '')
         } }, 200, origin);
