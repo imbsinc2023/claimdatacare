@@ -62,20 +62,54 @@
     '.cov-muted{font-size:12.5px;color:#8C98AB}',
     '.cov-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}',
     /* eligibility window */
-    '.elg-body{flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr);gap:0}',
-    '.elg-req{overflow-y:auto;padding:16px 18px;border-right:1px solid #E4E9F1;background:#F8FAFC;display:flex;flex-direction:column;gap:12px}',
-    '.elg-res{overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}',
-    '.elg-kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}',
-    '.elg-kv div{padding:10px 12px;border:1px solid #E4E9F1;border-radius:12px;background:#fff}',
-    '.elg-kv small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8C98AB}',
-    '.elg-kv b{display:block;font-size:14px;color:#0B1526;margin-top:3px}',
-    '.elg-tbl{width:100%;border-collapse:collapse;font-size:12px}',
-    '.elg-tbl th{position:sticky;top:0;background:#F8FAFC;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;border-bottom:1px solid #E4E9F1}',
-    '.elg-tbl td{padding:7px 10px;border-bottom:1px solid #F1F4F8;vertical-align:top}',
-    '.elg-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8C98AB;text-align:center;font-size:13px}',
-    '.elg-empty b{font-size:15px;color:#0B1526}',
-    '.elg-raw{font-size:11px;color:#586579}.elg-raw pre{max-height:240px;overflow:auto;background:#0B1526;color:#D5DCE7;padding:10px;border-radius:10px;font-size:10.5px}',
-    '@media (max-width:1100px){.cov-slots{grid-template-columns:minmax(0,1fr)}.cov-2{grid-template-columns:minmax(0,1fr)}.elg-body{grid-template-columns:minmax(0,1fr)}}'
+    /* eligibility window */
+    '.elx{flex:1;min-height:0;display:grid;grid-template-columns:330px minmax(0,1fr)}',
+    '.elx-side{min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px;border-right:1px solid #E4E9F1;background:#F8FAFC;overflow:hidden}',
+    '.elx-card{background:#fff;border:1px solid #E4E9F1;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}',
+    '.elx-card.grow{flex:1;min-height:0}',
+    '.elx-card h5{margin:0;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
+    '.elx-card h5 .lci{color:#FF6A3D}',
+    '.elx-card h5 .n{margin-left:auto;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:#EEF1F6;color:#3A475C;font-size:10.5px;display:flex;align-items:center;justify-content:center;letter-spacing:0}',
+    '.elx-dl{display:grid;grid-template-columns:88px minmax(0,1fr);gap:5px 10px;margin:0;font-size:12.5px}',
+    '.elx-dl dt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8C98AB;padding-top:2px}',
+    '.elx-dl dd{margin:0;color:#0B1526;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.elx-in label{display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#586579;margin-bottom:4px}',
+    '.elx-in input,.elx-in select{width:100%;box-sizing:border-box;height:34px;padding:0 10px;border:1px solid #E4E9F1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff}',
+    '.elx-hist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin:0 -6px}',
+    '.elx-hi{display:flex;align-items:center;gap:10px;width:100%;padding:8px 8px;border:0;border-radius:10px;background:transparent;font-family:inherit;text-align:left;cursor:pointer;transition:background-color .12s}',
+    '.elx-hi:hover{background:#F4F6FA}',
+    '.elx-hi.on{background:rgba(255,106,61,.08);box-shadow:inset 3px 0 0 #FF6A3D}',
+    '.elx-hi .tx{flex:1;min-width:0;display:flex;flex-direction:column}',
+    '.elx-hi b{font-size:12.5px;color:#0B1526}',
+    '.elx-hi small{font-size:11px;color:#8C98AB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.elx-hi .pdf{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#586579}',
+    '.elx-hi .pdf:hover{background:rgba(106,27,219,.1);color:#5B17C2}',
+    '.elx-dot{width:10px;height:10px;border-radius:50%;flex:none;background:#8C98AB}',
+    '.elx-dot.active{background:#0E8A5F;box-shadow:0 0 0 3px rgba(14,138,95,.15)}.elx-dot.inactive,.elx-dot.error{background:#C8286A}',
+    '.elx-none{font-size:12px;color:#8C98AB;padding:6px}',
+    '.elx-main{min-height:0;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}',
+    '.elx-hero{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;border:1px solid #E4E9F1;background:#fff}',
+    '.elx-hero .ic{width:52px;height:52px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;background:#EEF1F6;color:#586579}',
+    '.elx-hero small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8C98AB}',
+    '.elx-hero b{display:block;font-size:22px;color:#0B1526;letter-spacing:-.01em}',
+    '.elx-hero span{font-size:12px;color:#586579}',
+    '.elx-hero.active{border-color:rgba(14,138,95,.35);background:linear-gradient(90deg,rgba(14,138,95,.07),#fff 60%)}.elx-hero.active .ic{background:#0E8A5F;color:#fff}',
+    '.elx-hero.inactive,.elx-hero.error{border-color:rgba(200,40,106,.3);background:linear-gradient(90deg,rgba(200,40,106,.06),#fff 60%)}.elx-hero.inactive .ic,.elx-hero.error .ic{background:#C8286A;color:#fff}',
+    '.elx-err{padding:12px 14px;border-radius:12px;background:#FDF2F6;color:#A81D57;font-size:12.5px}',
+    '.elx-kv{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}',
+    '.elx-kv div{padding:9px 11px;border:1px solid #E4E9F1;border-radius:12px;background:#fff;min-width:0}',
+    '.elx-kv small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8C98AB}',
+    '.elx-kv b{display:block;font-size:13px;color:#0B1526;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.elx-tw{border:1px solid #E4E9F1;border-radius:12px;overflow:hidden;background:#fff}',
+    '.elx-tbl{width:100%;border-collapse:collapse;font-size:12px}',
+    '.elx-tbl th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#586579;border-bottom:1px solid #EEF1F6}',
+    '.elx-tbl td{padding:7px 10px;border-bottom:1px solid #F1F4F8;vertical-align:top;color:#0B1526}',
+    '.elx-tbl td.nt{color:#8C98AB}',
+    '.elx-raw{font-size:11px;color:#586579}.elx-raw pre{max-height:220px;overflow:auto;background:#0B1526;color:#D5DCE7;padding:10px;border-radius:10px;font-size:10.5px;white-space:pre-wrap}',
+    '.elx-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8C98AB;text-align:center;font-size:13px;max-width:460px;margin:0 auto}',
+    '.elx-empty b{font-size:15px;color:#0B1526}',
+    '@media (max-width:1100px){.elx{grid-template-columns:minmax(0,1fr)}.elx-kv{grid-template-columns:repeat(3,minmax(0,1fr))}}',
+    '@media (max-width:1100px){.cov-slots{grid-template-columns:minmax(0,1fr)}.cov-2{grid-template-columns:minmax(0,1fr)}}'
   ].join('\n');
   function css() { if (document.getElementById('cov-style')) return; var s = document.createElement('style'); s.id = 'cov-style'; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -284,29 +318,65 @@
 
   /* ---------------- Eligibility (ClaimMD 270/271) ---------------- */
   var STC = [['30', 'Health benefit plan coverage'], ['98', 'Professional (physician) office visit'], ['MH', 'Mental health'], ['A6', 'Psychotherapy'], ['AI', 'Substance abuse'], ['33', 'Chiropractic'], ['PT', 'Physical therapy'], ['1', 'Medical care']];
+  // every check is kept on the plan (newest first) as proof of coverage on the date of service
+  function history(iv) {
+    var h = (iv.eligHistory || []).slice();
+    if (!h.length && iv.elig && iv.elig.checkedAt) h.push(iv.elig);
+    return h.sort(function (x, y) { return (y.checkedAt || 0) - (x.checkedAt || 0); });
+  }
+  var EL = { pat: null, idx: 0, sel: 0 };
+  var STL = { active: 'Active', inactive: 'Inactive', error: 'Check failed', none: 'Not confirmed' };
+  function histHTML(h) {
+    if (!h.length) return '<div class="elx-none">No checks yet. Each check is saved here with the payer\'s answer.</div>';
+    return h.map(function (r, i) {
+      var st = (r.result && r.result.status) || r.status || 'none';
+      return '<button type="button" class="elx-hi' + (i === EL.sel ? ' on' : '') + '" onclick="cdcEligShow(' + i + ')">' +
+        '<span class="elx-dot ' + st + '"></span><span class="tx"><b>' + esc(STL[st] || 'Not confirmed') + ' • DOS ' + esc(us(r.dos)) + '</b>' +
+        '<small>' + esc(new Date(r.checkedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })) + (r.by ? ' • ' + esc(r.by) : '') + '</small></span>' +
+        '<span class="pdf" data-tip="Download PDF" role="button" onclick="event.stopPropagation();cdcEligPDF(' + i + ')">' + ico('file-down', 15) + '</span></button>';
+    }).join('');
+  }
   window.cdcEligOpen = function (patId, idx) {
     css();
     var db = getDB(), pat = (db.patients || []).find(function (p) { return p.id === patId; }) || {}, iv = (pat.insurances || [])[idx] || {};
     var prov = (db.providers || []).find(function (p) { return p.id === pat.providerId; }) || {};
+    EL = { pat: patId, idx: idx, sel: 0 };
     var old = document.getElementById('modal-elig'); if (old) old.remove();
     var w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-elig';
-    var row = function (l, v) { return '<div class="pcd-f s6"><label>' + l + '</label><div style="font-size:13px;font-weight:600;color:#0B1526">' + esc(v || '•') + '</div></div>'; };
+    var kv = function (l, v) { return '<dt>' + l + '</dt><dd>' + esc(v || '•') + '</dd>'; };
+    var h = history(iv);
     w.innerHTML = '<div class="modal cdc-win">' +
-      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('shield-question', 17) + 'Eligibility check • ' + esc(iv.name || '') + '</span>' +
+      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('shield-question', 17) + 'Eligibility • ' + esc(iv.name || '') + '</span>' +
         '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="cdcEligClose()">' + ico('x', 17) + '</button></div>' +
-      '<div class="elg-body"><div class="elg-req"><div class="pcd-g">' +
-          row('Subscriber', (iv.lname || pat.last || '') + ', ' + (iv.fname || pat.first || '')) + row('Member ID', iv.policy || iv.memberId) +
-          row('Payer', (iv.name || '') + (iv.payerId ? '  •  ' + iv.payerId : '')) + row('Relation', iv.relation || 'Self') +
-          row('Billing provider', prov.name) + row('NPI / Tax ID', (prov.npi || '•') + '  •  ' + (prov.taxid || '•')) +
-          '<div class="pcd-f s6"><label for="elg-dos">Date of service</label><input type="date" id="elg-dos" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
-          '<div class="pcd-f s6"><label for="elg-stc">Service type</label><select id="elg-stc">' + STC.map(function (x) { return '<option value="' + x[0] + '">' + x[0] + '  •  ' + x[1] + '</option>'; }).join('') + '</select></div>' +
-        '</div></div><div class="elg-res" id="elg-res">' + (iv.elig && iv.elig.result ? resultHTML(iv.elig) : '<div class="elg-empty">' + ico('shield-question', 34) + '<b>No eligibility check yet</b>Run the check to ask the payer, in real time, if this plan is active and what it covers.</div>') + '</div></div>' +
-      '<div class="cdc-ftr"><span class="sum" id="elg-msg">' + (iv.elig && iv.elig.checkedAt ? 'Last checked ' + esc(new Date(iv.elig.checkedAt).toLocaleString('en-US')) : 'Real-time check through ClaimMD with this provider\'s Account Key.') + '</span>' +
+      '<div class="elx">' +
+        '<aside class="elx-side">' +
+          '<section class="elx-card"><h5>' + ico('user', 13) + 'Request</h5><dl class="elx-dl">' +
+            kv('Subscriber', (iv.lname || pat.last || '') + ', ' + (iv.fname || pat.first || '')) + kv('Member ID', iv.policy || iv.memberId) +
+            kv('Payer', (iv.name || '') + (iv.payerId ? ' • ' + iv.payerId : '')) + kv('Relation', iv.relation || 'Self') +
+            kv('Provider', prov.name) + kv('NPI', prov.npi) + '</dl>' +
+            '<div class="elx-in"><label for="elg-dos">Date of service</label><input type="date" id="elg-dos" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+            '<div class="elx-in"><label for="elg-stc">Service type</label><select id="elg-stc">' + STC.map(function (x) { return '<option value="' + x[0] + '">' + x[0] + ' • ' + x[1] + '</option>'; }).join('') + '</select></div>' +
+          '</section>' +
+          '<section class="elx-card grow"><h5>' + ico('history', 13) + 'History <span class="n" id="elg-hn">' + h.length + '</span></h5><div class="elx-hist" id="elg-hist">' + histHTML(h) + '</div></section>' +
+        '</aside>' +
+        '<div class="elx-main" id="elg-res">' + (h.length ? resultHTML(h[0]) : '<div class="elx-empty">' + ico('shield-question', 36) + '<b>No eligibility check yet</b>Run the check to ask the payer, in real time, if this plan is active on the date of service and what it covers. Every answer is saved in the history and can be downloaded as PDF.</div>') + '</div>' +
+      '</div>' +
+      '<div class="cdc-ftr"><span class="sum" id="elg-msg">Real-time check through ClaimMD with this provider\'s Account Key.</span>' +
         '<button type="button" class="cdc-no" onclick="cdcEligClose()">' + ico('x', 15) + 'Close</button>' +
+        '<button type="button" class="cdc-alt" id="elg-pdf" onclick="cdcEligPDF(EL_SEL())"' + (h.length ? '' : ' disabled') + '>' + ico('file-down', 15) + 'PDF</button>' +
         '<button type="button" class="cdc-ok" id="elg-run" onclick="cdcEligRun(\'' + esc(patId) + '\',' + idx + ')">' + ico('refresh-cw', 15) + 'Run eligibility</button></div>' +
     '</div>';
     document.body.appendChild(w);
     openModal('modal-elig'); icons();
+  };
+  window.EL_SEL = function () { return EL.sel; };
+  function curPlan() { var p = (getDB().patients || []).find(function (x) { return x.id === EL.pat; }) || {}; return { pat: p, iv: (p.insurances || [])[EL.idx] || {} }; }
+  window.cdcEligShow = function (i) {
+    var c = curPlan(), h = history(c.iv); if (!h[i]) return;
+    EL.sel = i;
+    var res = document.getElementById('elg-res'); if (res) res.innerHTML = resultHTML(h[i]);
+    var hl = document.getElementById('elg-hist'); if (hl) hl.innerHTML = histHTML(h);
+    icons();
   };
   window.cdcEligClose = function () { var w = document.getElementById('modal-elig'); if (w) { closeModal('modal-elig'); w.remove(); } };
   function ymd(d) { return String(d || '').replace(/-/g, ''); }
@@ -327,19 +397,71 @@
       plan: plan, group: root.group_number || root.ins_group || '', from: root.plan_begin_date || root.elig_begin || '', to: root.plan_end_date || root.elig_end || '',
       copay: amt(/co-?payment|copay/i), deductible: amt(/deductible/i), coins: amt(/co-?insurance/i),
       benefits: ben.slice(0, 200).map(function (b) { return { svc: b.benefit_coverage_description || b.service_type_description || b.benefit_code_description || '', type: b.benefit_description || b.benefit_code || '', level: b.benefit_level_description || b.coverage_level || '', amount: b.benefit_amount ? '$' + b.benefit_amount : b.benefit_percent ? Math.round(parseFloat(b.benefit_percent) * 100) + '%' : '', period: b.benefit_period_description || b.time_period || '', net: b.inplan_network || b.network || '', note: [b.benefit_notes, b.message].filter(Boolean).join(' ').slice(0, 160) }; }),
-      message: root.message || ''
+      message: root.message || '', trace: root.trace_number || root.trn || root.eligid || ''
     };
   }
   function resultHTML(e) {
-    var r = e.result || {}, st = { active: 'Active', inactive: 'Inactive', error: 'Check failed', none: 'Not confirmed' }[r.status] || 'Not confirmed';
-    if (r.status === 'error') return '<div class="elg-empty">' + ico('alert-triangle', 34) + '<b>The check could not be completed</b>' + esc(r.message || '') + '</div>';
-    return '<div class="elg-kv"><div><small>Coverage</small><b><span class="cov-st ' + r.status + '"><b></b>' + st + '</span></b></div><div><small>Plan</small><b>' + esc(r.plan || '•') + '</b></div>' +
-      '<div><small>Copay / deductible</small><b>' + esc([r.copay, r.deductible].filter(Boolean).join(' / ') || '•') + '</b></div><div><small>Coinsurance</small><b>' + esc(r.coins || '•') + '</b></div></div>' +
-      '<div style="border:1px solid #E4E9F1;border-radius:12px;overflow:hidden;background:#fff"><table class="elg-tbl"><thead><tr><th>Service</th><th>Benefit</th><th>Level</th><th>Amount</th><th>Period</th><th>In network</th><th>Notes</th></tr></thead><tbody>' +
-      ((r.benefits || []).length ? r.benefits.map(function (b) { return '<tr><td>' + esc(b.svc) + '</td><td>' + esc(b.type) + '</td><td>' + esc(b.level) + '</td><td>' + esc(b.amount) + '</td><td>' + esc(b.period) + '</td><td>' + esc(b.net) + '</td><td style="color:#586579">' + esc(b.note) + '</td></tr>'; }).join('') : '<tr><td colspan="7" style="color:#8C98AB">The payer did not return benefit details.</td></tr>') +
+    var r = e.result || {}, st = r.status || 'none';
+    var head = '<div class="elx-hero ' + st + '"><span class="ic">' + ico(st === 'active' ? 'shield-check' : st === 'error' ? 'alert-triangle' : st === 'inactive' ? 'shield-off' : 'shield-question', 26) + '</span>' +
+      '<div><small>Coverage on ' + esc(us(e.dos)) + '</small><b>' + esc(STL[st] || 'Not confirmed') + '</b><span>Checked ' + esc(new Date(e.checkedAt).toLocaleString('en-US')) + (e.by ? ' by ' + esc(e.by) : '') + (r.trace ? ' • Trace ' + esc(r.trace) : '') + '</span></div></div>';
+    if (st === 'error') return head + '<div class="elx-err">' + esc(r.message || 'The payer did not answer.') + '</div>';
+    var card = function (l, v) { return '<div><small>' + l + '</small><b>' + esc(v || '•') + '</b></div>'; };
+    return head +
+      '<div class="elx-kv">' + card('Plan', r.plan) + card('Group', r.group) + card('Plan dates', [us(r.from), us(r.to)].filter(Boolean).join(' to ')) + card('Copay', r.copay) + card('Deductible', r.deductible) + card('Coinsurance', r.coins) + '</div>' +
+      '<div class="elx-tw"><table class="elx-tbl"><thead><tr><th>Service</th><th>Benefit</th><th>Level</th><th>Amount</th><th>Period</th><th>Network</th><th>Notes</th></tr></thead><tbody>' +
+      ((r.benefits || []).length ? r.benefits.map(function (b) { return '<tr><td>' + esc(b.svc) + '</td><td>' + esc(b.type) + '</td><td>' + esc(b.level) + '</td><td>' + esc(b.amount) + '</td><td>' + esc(b.period) + '</td><td>' + esc(b.net) + '</td><td class="nt">' + esc(b.note) + '</td></tr>'; }).join('') : '<tr><td colspan="7" class="nt">The payer did not return benefit details.</td></tr>') +
       '</tbody></table></div>' +
-      (e.raw ? '<details class="elg-raw"><summary>Payer response (technical)</summary><pre>' + esc(e.raw) + '</pre></details>' : '');
+      (e.raw ? '<details class="elx-raw"><summary>Payer response (technical)</summary><pre>' + esc(e.raw) + '</pre></details>' : '');
   }
+  // printable proof of the eligibility answer (same document style as the invoice, black and greys)
+  window.cdcEligPDF = async function (i) {
+    var c = curPlan(), h = history(c.iv), e = h[i]; if (!e) return;
+    var db = getDB(), pat = c.pat, prov = (db.providers || []).find(function (p) { return p.id === pat.providerId; }) || {}, r = e.result || {};
+    try { if (!window.__cdcInvFonts && typeof _cdcLoadModule === 'function') await _cdcLoadModule('cdc-fonts.js'); } catch (x) {}
+    var jsPDF = window.jspdf.jsPDF, doc = new jsPDF({ unit: 'mm', format: 'letter' }), W = 215.9, M = 16, RX = W - M, CW = RX - M, y = 18;
+    var BODY = 'helvetica', HEAD = 'helvetica', F = window.__cdcInvFonts;
+    if (F) { try { doc.addFileToVFS('p.ttf', F.plex); doc.addFont('p.ttf', 'Plex', 'normal'); doc.addFileToVFS('pb.ttf', F.plexB); doc.addFont('pb.ttf', 'Plex', 'bold'); doc.addFileToVFS('s.ttf', F.sora); doc.addFont('s.ttf', 'Sora', 'bold'); BODY = 'Plex'; HEAD = 'Sora'; } catch (x) {} }
+    var INK = [11, 21, 38], INK2 = [58, 71, 92], MUT = [120, 130, 145], LINE = [222, 226, 232], HEADF = [244, 246, 249];
+    var t = function (s2, x, yy, o) { o = o || {}; doc.setFont(o.head ? HEAD : BODY, o.bold || o.head ? 'bold' : 'normal'); doc.setFontSize(o.size || 9); doc.setTextColor.apply(doc, o.color || INK); doc.text(String(s2 == null ? '' : s2), x, yy, { align: o.align || 'left', maxWidth: o.max }); };
+    if (prov.logo && /^data:/.test(prov.logo)) { try { var pr = doc.getImageProperties(prov.logo), k = Math.min(40 / pr.width, 16 / pr.height); doc.addImage(prov.logo, pr.fileType || 'PNG', M, y - 4, pr.width * k, pr.height * k); } catch (x) {} }
+    else t(prov.name || '', M, y + 4, { head: true, size: 12 });
+    t('ELIGIBILITY VERIFICATION', RX, y + 2, { head: true, size: 17, align: 'right' });
+    t('Checked ' + new Date(e.checkedAt).toLocaleString('en-US') + (e.by ? ' by ' + e.by : ''), RX, y + 8, { size: 8, color: MUT, align: 'right' });
+    y += 18; doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.3); doc.line(M, y, RX, y); y += 7;
+    var st = STL[r.status || 'none'] || 'Not confirmed';
+    doc.setFillColor.apply(doc, HEADF); doc.roundedRect(M, y, CW, 18, 2, 2, 'F');
+    t('COVERAGE ON ' + us(e.dos), M + 5, y + 6.5, { size: 7.5, bold: true, color: MUT });
+    t(st.toUpperCase(), M + 5, y + 14, { head: true, size: 15 });
+    t('Service type ' + (e.stc || '') + (r.trace ? '   •   Trace # ' + r.trace : ''), RX - 5, y + 11, { size: 8.5, color: INK2, align: 'right' });
+    y += 26;
+    var col = function (x, title, rows) { t(title, x, y, { size: 7.5, bold: true, color: MUT }); var yy = y + 6; rows.forEach(function (rw) { t(rw[0], x, yy, { size: 7.5, color: MUT }); t(rw[1] || '•', x + 30, yy, { size: 9 }); yy += 5.2; }); return yy; };
+    var y1 = col(M, 'PATIENT / SUBSCRIBER', [['Patient', (pat.last || '') + ', ' + (pat.first || '')], ['DOB', us(pat.dob)], ['File #', pat.acct], ['Subscriber', e.subscriber || ''], ['Member ID', e.member || c.iv.policy || '']]);
+    var y2 = col(M + CW / 2, 'PAYER / PROVIDER', [['Payer', e.payer || c.iv.name || ''], ['Payer ID', e.payerId || c.iv.payerId || ''], ['Provider', e.provider || prov.name || ''], ['NPI', e.npi || prov.npi || ''], ['Tax ID', prov.taxid || '']]);
+    y = Math.max(y1, y2) + 4;
+    if (r.status === 'error') { t('The payer could not be reached: ' + (r.message || ''), M, y, { size: 9.5, color: INK2, max: CW }); y += 10; }
+    else {
+      var cells = [['PLAN', r.plan], ['GROUP', r.group], ['PLAN DATES', [us(r.from), us(r.to)].filter(Boolean).join(' to ')], ['COPAY', r.copay], ['DEDUCTIBLE', r.deductible], ['COINSURANCE', r.coins]];
+      var cw = CW / 3;
+      cells.forEach(function (c2, j) { var x = M + (j % 3) * cw, yy = y + Math.floor(j / 3) * 13; doc.setDrawColor.apply(doc, LINE); doc.roundedRect(x + (j % 3 ? 1.5 : 0), yy, cw - 1.5, 11, 1.5, 1.5); t(c2[0], x + 4, yy + 4.2, { size: 6.8, bold: true, color: MUT }); t(c2[1] || '•', x + 4, yy + 8.8, { size: 9, bold: true, max: cw - 8 }); });
+      y += 30;
+      var cols = [['SERVICE', 40], ['BENEFIT', 34], ['LEVEL', 22], ['AMOUNT', 18], ['PERIOD', 22], ['NETWORK', 16], ['NOTES', CW - 152]];
+      var head = function () { doc.setFillColor.apply(doc, HEADF); doc.rect(M, y, CW, 7, 'F'); var x = M; cols.forEach(function (c3) { t(c3[0], x + 2, y + 4.8, { size: 6.8, bold: true, color: INK2 }); x += c3[1]; }); y += 7; doc.setDrawColor.apply(doc, INK); doc.setLineWidth(0.35); doc.line(M, y, RX, y); y += 4.5; };
+      head();
+      (r.benefits || []).forEach(function (b) {
+        var vals = [b.svc, b.type, b.level, b.amount, b.period, b.net, b.note], lines = vals.map(function (v2, j) { doc.setFont(BODY, 'normal'); doc.setFontSize(7.6); return doc.splitTextToSize(String(v2 || ''), cols[j][1] - 3); });
+        var rh = Math.max.apply(null, lines.map(function (l) { return l.length; })) * 3.4 + 2;
+        if (y + rh > 262) { doc.addPage(); y = 18; head(); }
+        var x = M; lines.forEach(function (l, j) { t(l, x + 2, y, { size: 7.6, color: j === 6 ? MUT : INK }); x += cols[j][1]; });
+        y += rh; doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.2); doc.line(M, y - 2.6, RX, y - 2.6);
+      });
+      if (!(r.benefits || []).length) { t('The payer did not return benefit details.', M + 2, y, { size: 8.5, color: MUT }); y += 6; }
+    }
+    if (y > 250) { doc.addPage(); y = 18; }
+    y += 6; t('This document reproduces the electronic eligibility response (ANSI 270/271) received in real time through ClaimMD on the date and time shown. It is kept in the patient file as proof of coverage verification.', M, y, { size: 7.8, color: MUT, max: CW });
+    var n = doc.getNumberOfPages();
+    for (var pg = 1; pg <= n; pg++) { doc.setPage(pg); doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(0.2); doc.line(M, 268, RX, 268); t((pat.last || '') + ', ' + (pat.first || '') + ' • File # ' + (pat.acct || '') + ' • Confidential', M, 273, { size: 7, color: MUT }); t('Powered by ClaimDataCare • claimdatacare.com', W / 2, 273, { size: 7, color: MUT, align: 'center' }); t('Page ' + pg + ' / ' + n, RX, 273, { size: 7, color: MUT, align: 'right' }); }
+    doc.save('Eligibility_' + String(pat.last || 'Patient').replace(/[^A-Za-z0-9]+/g, '_') + '_' + String(e.dos || '').replace(/-/g, '') + '_' + new Date(e.checkedAt).toISOString().slice(0, 10) + '.pdf');
+  };
   window.cdcEligRun = async function (patId, idx) {
     var chk = null; try { chk = _requireCHKey('Check eligibility'); } catch (e) {}
     if (!chk) return;
@@ -363,14 +485,25 @@
       raw = await r.text();
       try { resp = JSON.parse(raw); } catch (e) { resp = { error: 'Unexpected answer from the eligibility service' }; }
     } catch (e) { resp = { error: 'The eligibility service is not reachable (claimmd-elig worker)' }; }
-    var result = digest(resp), rec = { checkedAt: Date.now(), status: result.status, dos: g('elg-dos'), stc: params.service_code, result: result, raw: raw.slice(0, 20000) };
+    var result = digest(resp), sess = null; try { sess = getSession(); } catch (e) {}
+    result.benefits = (result.benefits || []).slice(0, 80);
+    var rec = { checkedAt: Date.now(), status: result.status, dos: g('elg-dos'), stc: params.service_code, by: sess ? (sess.name || sess.email || '') : '',
+      subscriber: params.ins_name_l + ', ' + params.ins_name_f, member: params.ins_number, payer: iv.name || '', payerId: iv.payerId || '', provider: prov.name || '', npi: prov.npi || '',
+      result: result, raw: raw.slice(0, 6000) };
     setDB(function (d) {
       var p = (d.patients || []).find(function (x) { return x.id === patId; }); if (!p || !p.insurances || !p.insurances[idx]) return;
-      p.insurances[idx].elig = rec;
+      var ins = p.insurances[idx];
+      var h = (ins.eligHistory || []).slice(); if (!h.length && ins.elig && ins.elig.checkedAt) h.push(ins.elig);
+      h.unshift(rec); ins.eligHistory = h.slice(0, 40);   // the last 40 checks of this plan
+      ins.elig = rec;
       if (kindOf(p.insurances[idx]) === 'primary') p.insStatus = result.status === 'active' ? 'Verified' : result.status === 'inactive' ? 'Inactive' : 'Not Verified';
     });
+    EL.sel = 0;
     var res = document.getElementById('elg-res'); if (res) res.innerHTML = resultHTML(rec);
-    if (msg) msg.textContent = 'Checked ' + new Date(rec.checkedAt).toLocaleString('en-US');
+    var c2 = curPlan(), h2 = history(c2.iv), hl = document.getElementById('elg-hist'); if (hl) hl.innerHTML = histHTML(h2);
+    var hn = document.getElementById('elg-hn'); if (hn) hn.textContent = h2.length;
+    var pb = document.getElementById('elg-pdf'); if (pb) pb.disabled = false;
+    if (msg) msg.textContent = 'Saved in the history • ' + new Date(rec.checkedAt).toLocaleString('en-US');
     if (btn) btn.disabled = false;
     icons();
     try { if (_chartTabActive === 'insurance') _renderChartTab('insurance'); } catch (e) {}
