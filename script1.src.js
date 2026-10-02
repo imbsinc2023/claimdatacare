@@ -18796,25 +18796,7 @@ function showRecentPatients(ev) {
   }, 10);
 }
 
-function openPatientChart(patId) {
-_chartPatId = patId;
-_chartTabActive = 'summary';
-_trackRecentPatient(patId);
-const existing = document.getElementById('pt-chart-overlay');
-if (existing) existing.remove();
-const db = getDB();
-const pat = db.patients.find(p => p.id === patId);
-if (!pat) { toast('Patient not found', 'err'); return; }
-const overlay = document.createElement('div');
-overlay.className = 'pt-chart-overlay';
-overlay.id = 'pt-chart-overlay';
-overlay.style.cssText = 'position:absolute;inset:0;z-index:500;overflow:hidden;background:var(--bg,#F6F8FB)';
 
-overlay.innerHTML = '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden">' + _buildChartShell(pat, db) + '</div>';
-(document.querySelector('.main') || document.querySelector('.app-shell') || document.body).appendChild(overlay);
-_renderChartTab('summary');
-setTimeout(_renderLucideIcons, 30);
-}
 
 
 // ?? Shell ?????????????????????????????????????????????????????????????
@@ -19298,158 +19280,18 @@ toast('Photo removed');
 // staying frozen at whatever the patient's data was when the chart first
 // opened (which is why a new patient's age never appeared after entering
 // their DOB and saving • the banner itself was never told to refresh).
-function _buildPatientBannerMeta(pat) {
-  const age = _calcAge(pat.dob);
-  const gender = pat.sex==='M'?'Male':pat.sex==='F'?'Female':pat.sex||'';
-  return `<span class="ptc-banner-meta-item"><i data-lucide="hash" class="lci" style="width:11px;height:11px"></i>${pat.acct||'•'}</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="user" class="lci" style="width:11px;height:11px"></i>${(pat.last||'').toUpperCase()}, ${(pat.first||'').toUpperCase()}</span>
-  <span class="ptc-banner-meta-item"><i data-lucide="cake" class="lci" style="width:11px;height:11px"></i>${age===''?'•':age} yrs</span>
-  <span class="ptc-banner-meta-item">${pat.sex==='F'
-    ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="15" r="5"/><path d="M13 11l7-7M14 4h6v6"/></svg>'
-  }${gender||'•'}</span>`;
-}
-
-function _refreshChartBanner(patId) {
-  const el = document.getElementById('ptc-banner-meta');
-  if (!el) return;
-  const db = getDB();
-  const pat = db.patients.find(p => p.id === patId);
-  if (!pat) return;
-  el.innerHTML = _buildPatientBannerMeta(pat);
-  setTimeout(_renderLucideIcons, 20);
-}
-
-function _buildChartShell(pat, db) {
-const initials = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
-const claims = (db.claims||[]).filter(c=>c.patId===pat.id);
-const alertCnt = claims.filter(c=>['rejected','denied','on_hold'].includes(c.status)).length;
-const activeStr = pat.inactive ? 'Inactive' : 'Active';
-const TABS = [
-{id:'summary',       label:'Summary',        icon:'layout-dashboard'},
-{id:'demographics',  label:'Info',           icon:'user'},
-{id:'insurance',     label:'Coverage',       icon:'shield-check'},
-{id:'auth',          label:'Authorization',  icon:'share-2'},
-{id:'contacts',      label:'Contacts',       icon:'contact'},
-{id:'appointments',  label:'Schedule',       icon:'calendar-days'},
-{id:'documents',     label:'Records',        icon:'folder-open'},
-{id:'encounters',    label:'Encounters',     icon:'stethoscope'},
-{id:'bills',         label:'Claims',         icon:'receipt'},
-{id:'communication', label:'Messaging',      icon:'message-circle'},
-{id:'pharmacies',    label:'Pharmacies',     icon:'pill'},
-];
-const tabsHTML = TABS.map(t =>
-`<div class="ptc-tab" id="ptc-tab-${t.id}" onclick="_renderChartTab('${t.id}')"><i data-lucide="${t.icon}" class="lci" style="width:12px;height:12px;pointer-events:none;flex-shrink:0"></i>${t.label}</div>`
-).join('');
-
-return `
-<!-- BANNER: terracotta bar with patient info + tabs inline -->
-<div class="ptc-banner" id="ptc-banner">
-  <span class="ptc-banner-title">PATIENT FILE</span>
-  <span class="ptc-banner-sep">|</span>
-  <span id="ptc-banner-meta" style="display:contents">${_buildPatientBannerMeta(pat)}</span>
-  <span class="ptc-banner-sep">|</span>
-  <div class="ptc-tabs-inline">${tabsHTML}</div>
-  <button onclick="_exportPatientPDF('${pat.id}')" title="Export Patient PDF" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="file-down" class="lci" style="width:14px;height:14px;pointer-events:none"></i></button>
-  <button class="ptc-banner-close" onclick="document.getElementById('pt-chart-overlay').remove()" title="Close">&times;</button>
-</div>
-<!-- BODY -->
-<div style="flex:1;overflow-y:auto;padding:14px 16px" id="pt-main"></div>`;
-}
 
 
-function _buildSidebar(pat, db) {
-const rend = db.rendering.find(r=>r.id===pat.renderingId)||{};
-const ref = db.referring.find(r=>r.id===pat.referringId)||{};
-const prov = db.providers.find(p=>p.id===pat.providerId)||{};
-const fac = db.facilities.find(f=>f.id===pat.facilityId)||{};
-const initials = ((pat.first||'?')[0]+(pat.last||'?')[0]).toUpperCase();
-const addr = [pat.addr1,pat.addr2].filter(Boolean).join(', ');
-const city = [pat.city, pat.state+'- '+pat.zip].filter(Boolean).join(', USA, ');
 
-const R = (label, value) => value ? `
-<div class="ptc-row">
-<span class="ptc-label">${label}</span>
-<span class="ptc-value">: ${value}</span>
-</div>` : '';
 
-return `
-<div class="ptc-panel">
-<div class="ptc-panel-hdr">
-Patient Details
-<div style="display:flex;gap:8px">
-<a href="#" class="ptc-link" onclick="_renderChartTab('demographics');return false">View History</a>
-<a href="#" class="ptc-link" onclick="_renderChartTab('demographics');return false">Edit</a>
-</div>
-</div>
-<div class="ptc-panel-body">
-<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
-<div>
-<div class="ptc-photo-box" id="pt-photo-box-${pat.id}" style="cursor:${pat.photo?'zoom-in':'default'};overflow:hidden;border:none;background:transparent" onclick="${pat.photo?'_viewPhotoLarge(\''+ pat.id +'\')':''}">${pat.photo ? `<img src="${pat.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">` : _patientAvatar(pat,60)}</div>
-<div style="text-align:center;margin-top:3px">
-<a href="#" class="ptc-link" style="font-size:11px" onclick="_openPhotoOptions('${pat.id}');return false">Add/Edit Photo</a>
-</div>
-</div>
-<div style="flex:1">
-<div style="font-weight:700;font-size:13px;color:#064e3b">${(pat.last||'').toUpperCase()} ${(pat.first||'').toUpperCase()}${pat.mid?' '+pat.mid:''}</div>
-<div style="font-size:11px;color:#586579;margin:2px 0">File # ${pat.acct||''}</div>
-<div style="font-size:11px;margin:2px 0;color:${pat.inactive?'#b53333':'#3A475C'};font-weight:700">${pat.inactive?'INACTIVE':'ACTIVE'}</div>
-<div style="font-size:11px;color:#3A475C">${_fmtDob(pat.dob)}, ${_calcAge(pat.dob)} Yrs ${''}</div>
-<div style="font-size:11px;color:#3A475C">${pat.sex==='M'?'MALE':pat.sex==='F'?'FEMALE':pat.sex||''}</div>
-</div>
-</div>
-${R('SSN #', pat.ssn ? '***-**-'+String(pat.ssn).slice(-4) : '')}
-${R('Address 1', addr)}
-${addr ? `<div class="ptc-row"><span class="ptc-label"></span><span class="ptc-value">: ${city}</span></div>` : ''}
-${R('Primary Contact', pat.phone ? `(${pat.phone.slice(0,3)}) ${pat.phone.slice(3,6)}-${pat.phone.slice(6)} (Mobile)` : '')}
-${R('Secondary Contact', pat.phone2||'')}
-${R('Email ID', pat.email||'')}
-${R('Service Provider', prov.name||'')}
-${R('Ref. Phys', ref.last ? ref.last+', '+ref.first : '')}
-${R('PCP Provider', pat.pcpName||'')}
-${R('Facility/facilities', fac.name||'')}
-${R('Payer ID', pat.payerid||'')}
-${R('Payer Name', pat.payerName||'')}
-${R('Subscriber ID', pat.subNum||'')}
-${R('Code Status', pat.codeStatus||'')}
-${R('Special Group', pat.specialGroup||'')}
-<div style="margin-top:6px">
-<button class="btn-icon sm" onclick="" title="Add Special Group"><i data-lucide="plus-circle" class="lci" style="width:13px;height:13px"></i></button>
-</div>
-</div>
-</div>`;
-}
+
+
+
+
 
 
 // ?? Tab Router ????????????????????????????????????????????????????????
-function _renderChartTab(tabId) {
-_chartTabActive = tabId;
-document.querySelectorAll('.ptc-tab').forEach(t => t.classList.remove('active'));
-const tabEl = document.getElementById('ptc-tab-'+tabId);
-if (tabEl) tabEl.classList.add('active');
-const mainEl = document.getElementById('pt-main');
-if (!mainEl) return;
-const db = getDB();
-const pat = db.patients.find(p => p.id === _chartPatId);
-if (!pat) return;
-switch (tabId) {
-case 'summary': mainEl.innerHTML = _buildSummaryTab(pat, db); break;
-case 'demographics': mainEl.innerHTML = _buildDemoTab(pat, db); break;
-case 'insurance': mainEl.innerHTML = _buildInsuranceTab(pat, db); break;
-case 'auth': mainEl.innerHTML = _buildAuthTab(pat, db); break;
-case 'appointments': mainEl.innerHTML = _buildApptTab(pat, db); break;
-case 'bills': mainEl.innerHTML = _buildBillsTab(pat, db); break;
-case 'documents': mainEl.innerHTML = _buildDocumentsTab(pat, db); break;
-case 'encounters': mainEl.innerHTML = _buildEncountersTab(pat, db); break;
-default:
-mainEl.innerHTML = `<div class="ptc-panel" style="padding:30px;text-align:center;color:var(--text3)">
-<i data-lucide="construction" class="lci" style="width:30px;height:30px;margin-bottom:8px;display:block;margin-inline:auto"></i>
-<div style="font-weight:700;font-size:14px">${tabId.charAt(0).toUpperCase()+tabId.slice(1)}</div>
-<div style="font-size:12px;margin-top:4px">This section is available in a future update.</div>
-</div>`;
-}
-setTimeout(_renderLucideIcons, 20);
-}
+
 
 
 // ?? Summary Tab ???????????????????????????????????????????????????????
@@ -19748,43 +19590,7 @@ function _handleDocFiles(event, patId) {
 _processDocFiles(patId, event.target.files);
 }
 
-function _processDocFiles(patId, files) {
-if (!files||!files.length) return;
-const cat = window._docUploadCat || window._docActiveCat || 'External Documents';
-const today = new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
-const session = getSession();
-const by = session ? (session.name||session.email) : 'Staff';
-let processed = 0;
 
-Array.from(files).forEach(file => {
-const reader = new FileReader();
-reader.onload = e => {
-const doc = {
-id: uid(),
-name: file.name,
-category: cat,
-type: file.type||file.name.split('.').pop(),
-size: file.size,
-data: e.target.result,
-date: today,
-uploadedBy: by,
-createdAt: Date.now(),
-};
-setDB(db2 => {
-const p = db2.patients.find(x=>x.id===patId);
-if (!p) return;
-if (!p.documents) p.documents=[];
-p.documents.push(doc);
-});
-processed++;
-if (processed===files.length) {
-toast(processed+' file'+( processed>1?'s':'')+' uploaded');
-_setDocCategory(patId, cat);
-}
-};
-reader.readAsDataURL(file);
-});
-}
 
 // Floating native-style window for previewing a PDF data URI in-app,
 // without leaving the page or opening a new browser tab.
@@ -21102,28 +20908,7 @@ if(mainEl2&&pat2){mainEl2.innerHTML=_buildInsuranceTab(pat2,getDB());setTimeout(
 }
 
 // ?? Appointments Tab ??????????????????????????????????????????????????
-function _buildApptTab(pat, db) {
-const appts = (getAppts()||[]).filter(a=>a.patients?.some(ap=>ap.patId===pat.id))
-.sort((a,b)=>a.date<b.date?1:-1);
-if (!appts.length) return `<div class="pt-card" style="padding:40px;text-align:center">
-<div style="font-size:30px;margin-bottom:10px"></div>
-<div style="font-weight:700;font-size:15px">No appointments</div>
-<button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="go('appointments');document.getElementById('pt-chart-overlay').remove()">Schedule</button>
-</div>`;
-return `<div class="pt-card"><div class="pt-card-header"><span class="pt-card-title">Schedule (${appts.length})</span>
-<button class="btn btn-xs" onclick="go('appointments');document.getElementById('pt-chart-overlay').remove()">+ New</button></div>
-<div style="overflow-x:auto"><table class="pt-contacts-table">
-<thead><tr><th>Date</th><th>Time</th><th>Provider</th><th>Group</th><th>Status</th></tr></thead>
-<tbody>${appts.map(a=>{
-const rend=db.rendering.find(r=>r.id===a.renderingId)||{};
-const sg=(db.serviceGroups||[]).find(g=>g.id===a.sgId)||{};
-const ap=a.patients?.find(p=>p.patId===pat.id)||{};
-const st=(typeof APPT_STATUS!=='undefined'?APPT_STATUS:{})[ap.status||a.status]||{label:a.status,color:'var(--text3)',bg:'var(--bg3)'};
-return `<tr><td style="font-weight:600">${a.date}</td><td style="color:var(--text3)">${a.startTime||''}</td>
-<td>${rend.last?rend.last+', '+rend.first:''}</td><td>${sg.name||''}</td>
-<td><span style="font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;background:${st.bg||'var(--bg3)'};color:${st.color||'var(--text3)'}">${st.label||a.status}</span></td></tr>`;
-}).join('')}</tbody></table></div></div>`;
-}
+
 
 // ?? Bills Tab ?????????????????????????????????????????????????????????
 function _buildBillsTab(pat, db) {

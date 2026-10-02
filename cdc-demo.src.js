@@ -3,7 +3,7 @@
  * File: cdc-demo.js  •  v1.0
  *
  * Replaces _buildDemoTab, _saveDemoTab, _pcdSelectChip and openPatientModal from script1.js.
- *   • New patient / client opens in a window; the record is created only when Save passes
+ *   • New patient / client opens the same patient file at Info; created only when Save passes
  *   • Compact two-column layout (horizontal space first), short choices as segmented buttons,
  *     long lists as drop-downs, a fixed message line under the title (nothing moves)
  *   • Faster entry: ZIP fills city and state, phone numbers format as you type,
@@ -43,6 +43,11 @@
     '.pcd-sec{border:1px solid #E4E9F1;border-radius:14px;background:#fff;padding:12px 14px}',
     '.pcd-sec h4{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#586579}',
     '.pcd-sec h4 .lci{color:#FF6A3D}',
+    '.pcd-pr{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:start}',
+    '.pcd-photo{position:relative;width:96px;height:96px;border-radius:16px;overflow:hidden;cursor:pointer;background:#F4F6FA;border:1px solid #E4E9F1;display:flex;align-items:center;justify-content:center}',
+    '.pcd-photo img{width:100%;height:100%;object-fit:cover}',
+    '.pcd-photo .ini{font-size:28px;font-weight:700;color:#8C98AB;display:flex;align-items:center;justify-content:center}',
+    '.pcd-photo .cam{position:absolute;right:0;bottom:0;width:26px;height:26px;border-radius:10px 0 0 0;background:rgba(11,21,38,.7);color:#fff;display:flex;align-items:center;justify-content:center}',
     '.pcd-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px 10px}',
     '.pcd-f{min-width:0}.pcd-f.s2{grid-column:span 2}.pcd-f.s3{grid-column:span 3}.pcd-f.s4{grid-column:span 4}.pcd-f.s6{grid-column:span 6}',
     '.pcd-f label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#586579;margin-bottom:4px;white-space:nowrap}',
@@ -101,16 +106,19 @@
   function formHTML(pat) {
     var T = term();
     return '<div class="pcd-cols"><div style="display:flex;flex-direction:column;gap:12px">' +
-        '<section class="pcd-sec"><h4>' + ico('user', 14) + T + '</h4><div class="pcd-g">' +
+        '<section class="pcd-sec"><h4>' + ico('user', 14) + T + '</h4><div class="pcd-pr">' +
+          '<div class="pcd-photo" data-tip="Photo" onclick="' + (pat._draft ? 'cdcToastPhotoLater()' : '_openPhotoOptions(\'' + esc(pat.id) + '\')') + '">' +
+            (pat.photo ? '<img src="' + esc(pat.photo) + '" alt="">' : '<span class="ini">' + esc(((pat.first || ' ')[0] + (pat.last || ' ')[0]).trim().toUpperCase() || ico('user', 22)) + '</span>') +
+            '<span class="cam">' + ico('camera', 12) + '</span></div><div class="pcd-g">' +
           f('last', 'Last name', pat.last, { req: 1, span: 's2' }) + f('first', 'First name', pat.first, { req: 1, span: 's2' }) + f('mid', 'Middle', pat.mid) + f('nickname', 'Nickname', pat.nickname) +
           f('dob', 'Date of birth', pat.dob, { req: 1, type: 'date', span: 's2' }) +
           seg('sex', 'Sex', pat.sex, [['M', 'Male'], ['F', 'Female'], ['O', 'Other']], { req: 1, span: 's2' }) +
           f('acct', 'Account #', pat.acct, { req: 1 }) +
           seg('inactive', 'Status', pat.inactive ? 'inactive' : 'active', [['active', 'Active'], ['inactive', 'Inactive']]) +
-        '</div></section>' +
+        '</div></div></section>' +
         '<section class="pcd-sec"><h4>' + ico('map-pin', 14) + 'Address</h4><div class="pcd-g">' +
           f('addr1', 'Address 1', pat.addr1, { req: 1, span: 's4' }) + f('addr2', 'Apt / suite', pat.addr2, { span: 's2' }) +
-          f('zip', 'ZIP', pat.zip, { req: 1, max: 10, mode: 'numeric', hint: 1, on: 'oninput="_pcdZip(this)"' }) +
+          f('zip', 'ZIP', pat.zip, { req: 1, max: 10, mode: 'numeric', on: 'oninput="_pcdZip(this)"' }) +
           f('city', 'City', pat.city, { req: 1, span: 's2' }) + f('state', 'State', pat.state, { req: 1, max: 2 }) +
           f('country', 'Country', pat.country || 'USA', { req: 1, span: 's2' }) +
         '</div></section>' +
@@ -149,23 +157,15 @@
     }, 30);
   }
 
-  // Info tab of the chart (existing patient or client)
+  // Info tab of the patient file (existing record or a new one that is not saved yet).
+  // Save / Cancel and the message line live in the window footer (cdc-chart.js).
   window._buildDemoTab = function (pat, db) {
     css();
-    var pid = esc(pat.id), T = term();
-    var photo = pat.photo ? '<img src="' + esc(pat.photo) + '" alt="">' : (typeof _patientAvatar === 'function' ? _patientAvatar(pat, 48) : '');
-    var html =
-      '<div class="pcd" id="pcd-root" data-pid="' + pid + '">' +
-      '<div class="pcd-top">' +
-        '<div class="pcd-ph" data-tip="Photo" onclick="_openPhotoOptions(\'' + pid + '\')">' + photo + '<span class="cam">' + ico('camera', 12) + '</span></div>' +
-        '<div class="pcd-who"><b>' + esc(((pat.last || '').toUpperCase() + ', ' + (pat.first || '')).replace(/^, $/, 'New ' + T.toLowerCase())) + '</b><span>File #' + esc(pat.acct || '') + ' • ' + (pat.inactive ? 'Inactive' : 'Active') + '</span></div>' +
-        '<div class="pcd-msg" id="pcd-msg" role="status"></div>' +
-        '<button type="button" class="cdc-no" onclick="_renderChartTab(\'summary\')">' + ico('x', 15) + 'Cancel</button>' +
-        '<button type="button" class="cdc-ok" id="pcd-save" onclick="_saveDemoTab(\'' + pid + '\')">' + ico('save', 15) + 'Save</button>' +
-      '</div>' + formHTML(pat) + '</div>';
+    var html = '<div class="pcd" id="pcd-root" data-pid="' + esc(pat.id) + '">' + formHTML(pat) + '</div>';
     wire(pat);
     return html;
   };
+  window.cdcToastPhotoLater = function () { msg('Save first, then add the photo', 'err'); };
 
   /* ---------------- New patient / client: nothing is created until Save passes ---------------- */
   var draft = null;
@@ -189,6 +189,8 @@
     if (!blank.length) return;
     setDB(function (d) { d.patients = (d.patients || []).filter(function (p) { return blank.indexOf(p.id) < 0; }); });
   }
+  window.cdcDemoDraft = function () { return draft; };
+  window.cdcDemoClearDraft = function () { draft = null; };
   window.openPatientModal = function (idx) {
     var db = getDB();
     try { cleanBlanks(); } catch (e) {}
@@ -196,27 +198,12 @@
     if (idx >= 0) {
       var pat = db.patients[idx];
       if (!pat) { try { toast('Not found', 'err'); } catch (e) {} return; }
-      openPatientChart(pat.id); setTimeout(function () { _renderChartTab('summary'); }, 100); return;
+      openPatientChart(pat.id); return;
     }
     if (!activeProviderId) { try { toast('Select a billing provider first', 'warn'); } catch (e) {} return; }
-    css();
-    var T = term();
-    draft = { id: uid(), providerId: activeProviderId, acct: nextAcct(db), sex: '', country: 'USA', insurances: [], inactive: false };
-    var w = document.getElementById('modal-new-patient'); if (w) w.remove();
-    w = document.createElement('div'); w.className = 'overlay'; w.id = 'modal-new-patient';
-    w.innerHTML = '<div class="modal cdc-win">' +
-      '<div class="modal-hdr cdc-wh"><span class="cdc-wh-t">' + ico('user-plus', 17) + 'New ' + T.toLowerCase() + '</span>' +
-        '<button type="button" class="cdc-wh-x" data-tip="Close" aria-label="Close" onclick="_pcdCloseNew()">' + ico('x', 17) + '</button></div>' +
-      '<div class="pcd" id="pcd-root" data-pid="' + esc(draft.id) + '" style="flex:1;min-height:0;overflow-y:auto;padding:14px 20px">' + formHTML(draft) + '</div>' +
-      '<div class="cdc-ftr"><span class="sum pcd-msg" id="pcd-msg" role="status">Nothing is saved until you press Save with the required fields complete.</span>' +
-        '<button type="button" class="cdc-no" onclick="_pcdCloseNew()">' + ico('x', 15) + 'Cancel</button>' +
-        '<button type="button" class="cdc-ok" id="pcd-save" onclick="_saveDemoTab(\'' + esc(draft.id) + '\')">' + ico('save', 15) + 'Save ' + T.toLowerCase() + '</button></div>' +
-    '</div>';
-    document.body.appendChild(w);
-    openModal('modal-new-patient');
-    wire(draft);
+    draft = { id: uid(), _draft: true, providerId: activeProviderId, acct: nextAcct(db), sex: '', country: 'USA', insurances: [], inactive: false };
+    if (typeof cdcOpenChartDraft === 'function') cdcOpenChartDraft(draft);
   };
-  window._pcdCloseNew = function () { draft = null; var w = document.getElementById('modal-new-patient'); if (w) { closeModal('modal-new-patient'); w.remove(); } };
 
   /* ---------------- faster entry ---------------- */
   window._pcdPhone = function (el) {
@@ -236,15 +223,15 @@
   }
   window._pcdZip = function (el) {
     el.value = el.value.replace(/[^\d-]/g, '');
-    var zip = el.value.slice(0, 5), hint = document.getElementById('pcd-zip-hint');
-    if (!/^\d{5}$/.test(zip)) { if (hint) hint.textContent = ''; return; }
-    if (hint) hint.textContent = 'Looking up...';
+    var zip = el.value.slice(0, 5);
+    if (!/^\d{5}$/.test(zip) || el.dataset.last === zip) return;
+    el.dataset.last = zip;
     lookupZip(zip).then(function (r) {
+      // city and state are filled (or replaced) from the ZIP
       var c = $('city'), s = $('state');
-      if (c && (!c.value || c.dataset.auto === '1')) { c.value = r.city; c.dataset.auto = '1'; }
-      if (s && (!s.value || s.dataset.auto === '1')) { s.value = r.state; s.dataset.auto = '1'; }
-      if (hint) hint.textContent = r.city + ', ' + r.state;
-    }, function () { if (hint) hint.textContent = 'ZIP not found'; });
+      if (c) { c.value = r.city; c.classList.remove('bad'); }
+      if (s) { s.value = r.state; s.classList.remove('bad'); }
+    }, function () { msg('ZIP ' + zip + ' was not found', 'err'); });
   };
 
   /* ---------------- USPS address check on save ---------------- */
@@ -295,7 +282,7 @@
       if (!v(required[i][0])) { msg(required[i][1] + ' is required', 'err'); var el = $(required[i][0]); if (el) { if (el.type !== 'hidden') { el.classList.add('bad'); el.focus(); } } return; }
     }
     var db = getDB(), idx = (db.patients || []).findIndex(function (p) { return p.id === patId; });
-    var isNew = idx < 0 && draft && draft.id === patId;
+    var isNew = idx < 0 && !!draft && draft.id === patId;
     if (idx < 0 && !isNew) { msg(term() + ' not found', 'err'); return; }
     var prev = isNew ? draft : db.patients[idx], acct = v('acct');
     var dup = db.patients.find(function (p) { return p.id !== patId && p.providerId === prev.providerId && String(p.acct || '').trim().toLowerCase() === acct.toLowerCase(); });
@@ -303,8 +290,7 @@
 
     // address check with USPS (only when the address changed)
     var addr = { addr1: v('addr1'), addr2: v('addr2'), city: v('city'), state: v('state').toUpperCase(), zip: v('zip') };
-    var changed = !same(addr, { addr1: prev.addr1, addr2: prev.addr2, city: prev.city, state: prev.state, zip: prev.zip });
-    if (changed) {
+    if (true) {   // every save checks the address with USPS
       var btn = document.getElementById('pcd-save'); if (btn) btn.disabled = true;
       msg('Checking the address with USPS...');
       var r = await verify(addr);
@@ -316,12 +302,12 @@
         var sug = { addr1: r.address.addr1 || '', addr2: r.address.addr2 || '', city: r.address.city || '', state: r.address.state || '', zip: r.address.zip || '' };
         if (!same(addr, sug)) addr = await chooseAddress(addr, sug, false);
       }
-      msg(r ? '' : 'Address saved as entered (USPS check not available)');
+      if (!r) msg('Address not verified: the USPS service is not set up yet');
     }
 
     setDB(function (d) {
       var p;
-      if (isNew) { p = Object.assign({}, draft, { createdAt: Date.now() }); d.patients = d.patients || []; d.patients.push(p); }
+      if (isNew) { p = Object.assign({}, draft, { createdAt: Date.now() }); delete p._draft; d.patients = d.patients || []; d.patients.push(p); }
       else p = d.patients[idx];
       Object.assign(p, {
         last: v('last'), first: v('first'), mid: v('mid'), dob: v('dob'), sex: v('sex'), acct: acct,
@@ -336,16 +322,14 @@
       });
     });
     if (isNew) {
-      _pcdCloseNew();
+      draft = null;
       try { toast(term() + ' created', 'ok'); } catch (e) {}
       try { if (typeof renderPatients === 'function') renderPatients(); } catch (e) {}
-      openPatientChart(patId); setTimeout(function () { _renderChartTab('insurance'); }, 100);
+      openPatientChart(patId, 'insurance');
       return;
     }
-    var db2 = getDB(), pat = db2.patients.find(function (p) { return p.id === patId; });
-    try { var sb = document.getElementById('pt-sidebar'); if (sb && pat) sb.innerHTML = _buildSidebar(pat, db2); } catch (e) {}
     try { _refreshChartBanner(patId); } catch (e) {}
-    try { toast('Demographics saved', 'ok'); } catch (e) {}
+    try { toast('Saved', 'ok'); } catch (e) {}
     _renderChartTab('insurance');
   };
 })();
