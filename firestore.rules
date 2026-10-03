@@ -1,0 +1,97 @@
+rules_version = '2';
+// =====================================================================
+// ClaimDataCare • Firestore Security Rules (HIPAA) • 2026-09-29
+// These rules are the ONLY real barrier between patient data and the
+// internet: the Firebase settings inside the app are public by design.
+//
+// BEFORE PUBLISHING (see SECURITY-HIPAA.md, "Deploy order"):
+//  1. (done) Owner User UID set below
+//     (Firebase console > Authentication > Users > your account > User UID).
+//  2. Deploy the new app code and sign in once as Super Admin, so the app
+//     fills the userRoles collection. Then publish these rules.
+// A Manager can grant/revoke access for everyone except Super Admins.
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- identity ----------
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function em() { return request.auth.token.email.lower(); }
+    function isOwner() {
+      return signedIn() && (
+        request.auth.uid == 'A2d1QHZlpWVXGy2OCji97M7kmfU2' ||
+        (em() == 'imbsinc2023@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+    function rolePath() { return /databases/$(database)/documents/userRoles/$(em()); }
+    function roleDoc() { return get(rolePath()).data; }
+    // Active staff member: has an access record (written only by a Super Admin or a
+    // Manager), the record is active, and it belongs to THIS sign-in account: either the
+    // record is bound to this account's UID, or the account proved it owns the email.
+    function isActive() {
+      return isOwner() || (
+        signedIn() && exists(rolePath()) &&
+        roleDoc().active == true &&
+        (roleDoc().uid == request.auth.uid || request.auth.token.email_verified == true)
+      );
+    }
+    function isSA()  { return isOwner() || (isActive() && roleDoc().role == 'Super Admin'); }
+    function isMgr() {
+      return isSA() || (isActive() && (roleDoc().role.lower().matches('.*manager.*') || roleDoc().get('isManager', false) == true));
+    }
+    function notSA(d) { return d.role != 'Super Admin'; }
+
+    // ---------- access records ----------
+    match /userRoles/{email} {
+      allow read: if isMgr() || (signedIn() && email == em());
+      allow create: if isSA() || (isMgr() && notSA(request.resource.data));
+      allow update: if isSA() || (isMgr() && notSA(resource.data) && notSA(request.resource.data));
+      allow delete: if isSA() || (isMgr() && notSA(resource.data));
+    }
+
+    // ---------- user list & configuration ----------
+    match /meta/users {
+      allow read: if isActive();
+      allow write: if isMgr();          // users cannot change their own role
+    }
+    match /meta/config {
+      allow read: if isActive();
+      allow write: if isSA();
+    }
+    match /meta/{doc} {                 // cmData and other shared documents
+      allow read: if isActive();
+      allow write: if isActive() && !(doc in ['users', 'config']);
+    }
+    match /appdata/{doc} {
+      allow read, write: if isActive();
+    }
+
+    // ---------- HIPAA audit trail: append-only ----------
+    match /auditLog/{id} {
+      allow create: if isActive()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.action is string
+        && request.resource.data.action.size() <= 60
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 500;
+      allow read: if isMgr();
+      allow update, delete: if false;   // nobody can alter or erase the trail
+    }
+
+    // ---------- business / clinical data ----------
+    // Every record requires an active staff account. Records keep their
+    // providerId; per-provider isolation is Phase 2 (SECURITY-HIPAA.md).
+    match /{coll}/{id} {
+      allow read, write: if isActive() && coll in [
+        'providers','patients','claims','facilities','rendering','referring',
+        'services','serviceGroups','appointments','notes','claimLogs','claimEOB',
+        'invoicingIssuers','invoicingClients','invoices','insurances',
+        'intakeClients','intakeForms','intakeSubmissions','intakeSigned','evaluations',
+        'eobBatches','eobUnmatched','eraPreviewQueue','scheduleGroups','scheduleHours',
+        'signTokens','tickets','cmClients'
+      ];
+    }
+
+    // Anything not listed above is denied by default.
+  }
+}

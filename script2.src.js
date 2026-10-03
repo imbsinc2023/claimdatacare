@@ -9,17 +9,7 @@ function _icRequireSA() {
   return true;
 }
 
-function _icAuditLog(action, details) {
-  try {
-    var _s = getSession();
-    var entry = { ts: Date.now(), action: action, details: details || '', by: (_s?._email||_s?.email||'unknown'), ip: '' };
-    var db = getDB();
-    if (!db._auditLog) db._auditLog = [];
-    db._auditLog.push(entry);
-    setDB(function(d){ d._auditLog = db._auditLog; });
-    if (db._auditLog.length > 5000) db._auditLog = db._auditLog.slice(-5000);
-  } catch(e) {}
-}
+function _icAuditLog(action, details) { auditLog('INTAKE_' + String(action||'').toUpperCase(), details); }
 
 // ── Intake Center Dashboard ──
 function renderIntakeCenter() {
@@ -96,17 +86,16 @@ function renderIntakeClients() {
       list.map(function(c){
         var realIdx = fullClients.indexOf(c);
         return '<tr>' +
-          '<td style="font-weight:600">' + (c.lastName||'') + ', ' + (c.firstName||'') + '</td>' +
-          '<td style="font-size:12px">' + (c.dob||'') + '</td>' +
-          '<td>' + (c.guardianName||'') + '</td>' +
-          '<td style="font-size:12px">' + (c.guardianPhone||'') + '</td>' +
-          '<td style="font-size:12px">' + (c.guardianEmail||'') + '</td>' +
-          '<td style="font-size:12px">' + (c.referralSource||'•') + '</td>' +
+          '<td style="font-weight:600">' + escapeHtml(c.lastName||'') + ', ' + escapeHtml(c.firstName||'') + '</td>' +
+          '<td style="font-size:12px">' + escapeHtml(c.dob||'') + '</td>' +
+          '<td>' + escapeHtml(c.guardianName||'') + '</td>' +
+          '<td style="font-size:12px">' + escapeHtml(c.guardianPhone||'') + '</td>' +
+          '<td style="font-size:12px">' + escapeHtml(c.guardianEmail||'') + '</td>' +
+          '<td style="font-size:12px">' + escapeHtml(c.referralSource||'•') + '</td>' +
           '<td>' + _icStatusBadge(c.status||'Pending Forms') + '</td>' +
           '<td style="white-space:nowrap"><div class="btn-group">' +
             '<button class="btn btn-xs" onclick="openIntakeClientFile(' + realIdx + ')" title="Open Client File"><i data-lucide="folder-open" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icSendIntakeLink(' + realIdx + ')" title="Send Intake Forms"><i data-lucide="mail" class="lci" style="width:12px;height:12px"></i></button>' +
-            '<button class="btn btn-xs btn-ghost" onclick="icSendDemoLink(' + realIdx + ')" title="Send Demographic Intake"><i data-lucide="user-round-pen" class="lci" style="width:12px;height:12px"></i></button>' +
             '<button class="btn btn-xs btn-ghost" onclick="icViewSignedForms(' + realIdx + ')" title="View Signed Forms"><i data-lucide="file-check" class="lci" style="width:12px;height:12px"></i></button>' +
             (c.status !== 'Archived' ? '<button class="btn btn-xs btn-ghost" onclick="icOpenEvalForClient(' + realIdx + ')" title="Create Evaluation"><i data-lucide="clipboard-list" class="lci" style="width:12px;height:12px"></i></button>' : '') +
             '<button class="btn btn-xs btn-ghost danger" onclick="icDeleteClient(' + realIdx + ')" title="Delete" style="color:var(--red)"><i data-lucide="trash-2" class="lci" style="width:12px;height:12px"></i></button>' +
@@ -343,14 +332,14 @@ function _buildICSummaryTab(c, db) {
     '<div style="padding:12px 14px">' +
     R('ABA Provider', c.abaProvider||'') + R('PCP', c.pcp||'') + R('Referral Source', c.referralSource||'') + R('Custody', c.custody||'') +
     '</div></div>' +
-    (c.notes ? '<div class="ptc-panel"><div class="ptc-panel-hdr">Notes</div><div style="padding:12px 14px;font-size:13px;color:#3A475C;line-height:1.6">'+c.notes+'</div></div>' : '') +
+    (c.notes ? '<div class="ptc-panel"><div class="ptc-panel-hdr">Notes</div><div style="padding:12px 14px;font-size:13px;color:#3A475C;line-height:1.6">'+escapeHtml(c.notes)+'</div></div>' : '') +
     '</div></div>';
 }
 
 // ── Demographics Tab ─────────────────────────────────────────────────────────
 function _buildICDemoTab(c, db) {
   var idx = _icChartClientIdx;
-  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>'; };
+  var F = function(id,lbl,val,type){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><input id="icd-'+id+'" value="'+escapeHtml(val||'')+'" '+(type?'type="'+type+'"':'')+' style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>'; };
   var S = function(id,lbl,val,opts){ return '<div class="field"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">'+lbl+'</label><select id="icd-'+id+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526">'+opts.map(function(o){ return '<option'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>'; };
   return '<div class="ptc-panel">' +
     '<div class="ptc-panel-hdr" style="display:flex;align-items:center;justify-content:space-between">Demographics' +
@@ -375,9 +364,9 @@ function _buildICDemoTab(c, db) {
     F('ins-group','Group',c.insuranceGroup) + F('ref-source','Referral Source',c.referralSource) +
     F('pcp','PCP',c.pcp) + F('school','School',c.school) +
     F('grade','Grade',c.grade) + F('aba-provider','ABA Provider',c.abaProvider) +
-    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
+    '<div class="field" style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Diagnoses</label><input id="icd-dx" value="'+escapeHtml(c.diagnoses||'')+'" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526"></div>' +
     F('custody','Custody',c.custody) +
-    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526;resize:vertical">'+(c.notes||'')+'</textarea></div>' +
+    '</div><div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#586579;text-transform:uppercase;letter-spacing:.05em">Notes</label><textarea id="icd-notes" rows="3" style="width:100%;padding:7px 10px;border:1.5px solid #E4E9F1;border-radius:7px;font-size:13px;background:#fff;color:#0B1526;resize:vertical">'+escapeHtml(c.notes||'')+'</textarea></div>' +
     '</div></div>';
 }
 
@@ -571,7 +560,7 @@ async function _loadICRecords() {
       });
     });
   } catch(e) {
-    el.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + e.message + '</p>';
+    el.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + escapeHtml(e.message) + '</p>';
   }
 }
 
@@ -612,11 +601,11 @@ async function icLoadClientRecords() {
       html += '<div style="width:36px;height:36px;border-radius:8px;background:#FFF1EC;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
       html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D45C37" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>';
       html += '<div style="flex:1;min-width:0">';
-      html += '<div style="font-size:13px;font-weight:700;color:#0B1526">' + (d.formName || 'Signed Document') + '</div>';
+      html += '<div style="font-size:13px;font-weight:700;color:#0B1526">' + escapeHtml(d.formName || 'Signed Document') + '</div>';
       html += '<div style="font-size:10px;color:#586579;margin-top:2px">Signed: ' + ts + '</div>';
       html += '</div>';
-      if (d.pdfData) {
-        html += '<a href="' + d.pdfData + '" download="' + (d.formName||'document').replace(/[^a-z0-9]/gi,'_') + '.pdf" ';
+      if (cdcSafeUrl(d.pdfData)) {
+        html += '<a href="' + escapeHtml(cdcSafeUrl(d.pdfData)) + '" download="' + (d.formName||'document').replace(/[^a-z0-9]/gi,'_') + '.pdf" ';
         html += 'style="flex-shrink:0;padding:5px 12px;background:#D45C37;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">';
         html += '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>';
       }
@@ -624,7 +613,7 @@ async function icLoadClientRecords() {
     });
     listEl.innerHTML = html;
   } catch(e) {
-    listEl.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + e.message + '</p>';
+    listEl.innerHTML = '<p style="color:#dc2626;font-size:12px;padding:16px">Error: ' + escapeHtml(e.message) + '</p>';
   }
 }
 
@@ -711,9 +700,8 @@ function icSendIntakeForms() {
   // Compress payload for URL embedding • strip HTML tags from form content
   // keeping only plain text (reduces payload 60-80%)
   function _stripHtml(html) {
-    var tmp = document.createElement('div');
-    tmp.innerHTML = html || '';
-    return (tmp.innerText || tmp.textContent || '').replace(/\s+/g,' ').trim();
+    var tmp = new DOMParser().parseFromString(html || '', 'text/html').body;
+    return (tmp.textContent || '').replace(/\s+/g,' ').trim();
   }
   var urlPayload = {
     token: token,
@@ -740,7 +728,7 @@ function icSendIntakeForms() {
     })
   };
   var jsonStr = JSON.stringify(urlPayload);
-  var intakeLink = window.location.origin + '/sign.html?d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+  var intakeLink = window.location.origin + '/sign.html#d=' + encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
   console.log('[CDC] sign link chars:', intakeLink.length, '| payload chars:', jsonStr.length);
 
   // Build email HTML
@@ -755,14 +743,14 @@ function icSendIntakeForms() {
       '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:1px">Secure Intake Portal</div></div>',
     '</div>',
     '<div style="background:#F6F8FB;padding:24px 28px;border:1px solid #E4E9F1;border-top:none">',
-      '<p style="color:#0B1526;font-size:15px;font-weight:600;margin:0 0 6px">Secure Intake Forms for ' + childName + '</p>',
-      '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
+      '<p style="color:#0B1526;font-size:15px;font-weight:600;margin:0 0 6px">Secure Intake Forms for ' + escapeHtml(childName) + '</p>',
+      '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + escapeHtml(c.guardianName||'Guardian') + ',</p>',
       '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5">The following intake forms are ready for your review and electronic signature:</p>',
       '<div style="background:#fff;border:1px solid #E4E9F1;border-radius:8px;padding:14px 18px;margin-bottom:18px">',
         '<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0B1526">Forms to complete:</p>',
-        '<p style="margin:0;font-size:13px;color:#3A475C">' + formNames + '</p>',
+        '<p style="margin:0;font-size:13px;color:#3A475C">' + escapeHtml(formNames) + '</p>',
       '</div>',
-      (message ? '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + message + '</em></p>' : ''),
+      (message ? '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5"><em>' + escapeHtml(message) + '</em></p>' : ''),
       '<div style="text-align:center;margin-bottom:18px">',
         '<a href="' + intakeLink + '" style="display:inline-block;background:#D45C37;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Forms Now</a>',
         '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours. Do not share.</p>',
@@ -801,7 +789,7 @@ function icSendIntakeForms() {
           }
         });
       });
-      _icAuditLog('intake-forms-sent', 'Forms: ' + formNames + ' to ' + email + ' for ' + childName);
+      _icAuditLog('intake-forms-sent', 'Client ' + (c.id||'') + ': ' + selectedIndices.length + ' form(s) sent');
       closeModal('modal-send-intake');
       renderIntakeClients();
       toast('Intake forms sent to ' + email + ' <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
@@ -811,143 +799,6 @@ function icSendIntakeForms() {
   });
 }
 
-// ── Send Demographic Intake Link ──
-function icSendDemoLink(idx) {
-  if (!_icRequireSA()) return;
-  var db = getDB();
-  var c = (db.intakeClients || [])[idx];
-  if (!c) { toast('Client not found','err'); return; }
-  if (!c.guardianEmail) { toast('Guardian email required • edit client first','warn'); return; }
-
-  var childName = (c.firstName||'') + ' ' + (c.lastName||'');
-  var token = btoa(c.id + '|' + c.guardianEmail + '|' + Date.now() + '|' + Math.random().toString(36).slice(2)).replace(/[+/=]/g, function(ch){
-    return ch === '+' ? '-' : ch === '/' ? '_' : '';
-  });
-  var baseUrl = window.location.origin + window.location.pathname;
-  var idata = encodeURIComponent(btoa(JSON.stringify({
-    firstName: c.firstName||'', lastName: c.lastName||'', dob: c.dob||'', gender: c.gender||'',
-    guardianName: c.guardianName||'', guardianRel: c.guardianRel||'', guardianPhone: c.guardianPhone||'',
-    guardianPhone2: c.guardianPhone2||'', guardianEmail: c.guardianEmail||'', address: c.address||'', city: c.city||'',
-    emergName: c.emergName||'', emergPhone: c.emergPhone||'', emergRel: c.emergRel||'',
-    insuranceProvider: c.insuranceProvider||'', insuranceId: c.insuranceId||'', insuranceGroup: c.insuranceGroup||'',
-    referralSource: c.referralSource||'', pcp: c.pcp||'', school: c.school||'', grade: c.grade||'',
-    abaProvider: c.abaProvider||'', diagnoses: c.diagnoses||'', custody: c.custody||'', language: c.language||''
-  })));
-  var demoLink = baseUrl + '?demographics=' + token + '&idata=' + idata;
-
-  // Save token to submissions
-  setDB(function(db){
-    if (!db.intakeSubmissions) db.intakeSubmissions = [];
-    db.intakeSubmissions.push({
-      id: uid(), clientIdx: idx, clientId: c.id,
-      guardianEmail: c.guardianEmail, token: token,
-      sentAt: Date.now(), type: 'demographic', status: 'Sent',
-      childName: childName, guardianName: c.guardianName,
-    });
-    var client = (db.intakeClients || [])[idx];
-    if (client) { client.status = 'Forms Sent'; client.updatedAt = Date.now(); }
-  });
-
-  // Offer copy link or send email
-  return cdcConfirm('Send demographic intake link to ' + c.guardianEmail + '?\n\nClick OK to send via email.\nClick Cancel to copy link to clipboard.').then((__ok)=>{if(__ok){
-    var logoHtml = '<svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-    var emailHtml = [
-      '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">',
-      '<div style="background:#0B1526;padding:20px 28px;display:flex;align-items:center;gap:14px">',
-        logoHtml,
-        '<div><div style="color:white;font-weight:700;font-size:20px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:1px">Secure Demographic Intake</div></div>',
-      '</div>',
-      '<div style="background:#F6F8FB;padding:24px 28px;border:1px solid #E4E9F1;border-top:none">',
-        '<p style="color:#0B1526;font-size:15px;font-weight:600;margin:0 0 6px">Demographic Intake for ' + childName + '</p>',
-        '<p style="color:#3A475C;font-size:13px;margin:0 0 18px;line-height:1.5">Dear ' + (c.guardianName||'Guardian') + ',</p>',
-        '<p style="color:#3A475C;font-size:13px;margin:0 0 14px;line-height:1.5">Please complete the demographic intake form for your child. This collects demographic, contact, and insurance information needed to set up your child\'s record.</p>',
-        '<div style="text-align:center;margin-bottom:18px">',
-          '<a href="' + demoLink + '" style="display:inline-block;background:#D45C37;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600">Complete Demographic Intake</a>',
-          '<p style="color:#586579;font-size:10px;margin-top:8px">This link is unique and expires in 72 hours.</p>',
-        '</div>',
-        '<p style="color:#586579;font-size:10px;border-top:1px solid #E4E9F1;padding-top:12px;margin:0">ClaimDataCare &copy; 2026</p>',
-      '</div></div>',
-    ].join('');
-    sendEmail(c.guardianEmail, 'ClaimDataCare • Demographic Intake for ' + childName, emailHtml, 'demographic').then(function(sent){
-      if (sent) { toast('Demographic link sent to ' + c.guardianEmail + ' <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>'); }
-      else { toast('Failed to send email. Link copied to clipboard instead.','warn'); copyToClipboard(demoLink); }
-    });
-  } else {
-    copyToClipboard(demoLink);
-    toast('Demographic intake link copied! <i data-lucide="clipboard" class="lci" style="width:13px;height:13px"></i>');
-  }
-  _icAuditLog('intake-demo-sent', 'Demographic link to ' + c.guardianEmail + ' for ' + childName);
-  renderIntakeClients();
-
-});}
-
-// ── Intake Forms (Consent Forms) ──
-function _icSeedDefaultForms() {
-  var db = getDB();
-  if (db.intakeForms && db.intakeForms.length > 0) return;
-  var defaults = [
-    {
-      name: 'HIPAA Acknowledgment & Authorization',
-      type: 'HIPAA',
-      category: 'Legal',
-      required: true,
-      electronicSig: true,
-      active: true,
-      description: 'Authorization to use and disclose protected health information (PHI) for treatment, payment, and healthcare operations.',
-      content: '<h3>ACKNOWLEDGMENT OF NOTICE OF PRIVACY PRACTICES</h3><p>I acknowledge that I have received a copy of the Notice of Privacy Practices for {{childName}}. I understand that my protected health information may be used and disclosed for treatment, payment, and healthcare operations as described in the Notice.</p><p>I have the right to request restrictions on the use and disclosure of my protected health information. The practice is not required to agree to these restrictions.</p><p>I have the right to revoke this authorization in writing at any time, except to the extent that action has already been taken in reliance on this authorization.</p><p><strong>Child:</strong> {{childName}}<br><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
-    },
-    {
-      name: 'Consent for Evaluation & Treatment',
-      type: 'Consent',
-      category: 'Clinical',
-      required: true,
-      electronicSig: true,
-      active: true,
-      description: 'Consent for comprehensive diagnostic evaluation and behavioral health treatment services.',
-      content: '<h3>CONSENT FOR COMPREHENSIVE EVALUATION AND TREATMENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, hereby consent to a comprehensive diagnostic evaluation and/or behavioral health treatment services at ClaimDataCare Behavioral Health.</p><p>I understand that the evaluation may include clinical interviews, behavioral observations, standardized assessments, and review of records. I consent to the administration of these procedures as deemed clinically appropriate.</p><p>I understand that treatment may include behavioral health interventions, parent training, and coordination of care with other providers. I have been informed of the nature and purpose of the proposed services.</p><p>I understand that my consent is voluntary and may be withdrawn at any time.</p><p><strong>Child:</strong> {{childName}}<br><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
-    },
-    {
-      name: 'Financial Responsibility Agreement',
-      type: 'Financial',
-      category: 'Administrative',
-      required: true,
-      electronicSig: true,
-      active: true,
-      description: 'Agreement regarding financial responsibility for services not covered by insurance.',
-      content: '<h3>FINANCIAL RESPONSIBILITY AGREEMENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, agree to be financially responsible for all services provided to {{childName}} by ClaimDataCare Behavioral Health.</p><p>I understand that:</p><ul><li>I am responsible for any co-payments, co-insurance, deductibles, or non-covered services as determined by my insurance plan.</li><li>Payment is due at the time of service unless other arrangements have been made.</li><li>A valid credit/debit card may be kept on file for automatic payment of balances.</li><li>I will provide accurate and updated insurance information as changes occur.</li></ul><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
-    },
-    {
-      name: 'Release of Information',
-      type: 'Release',
-      category: 'Legal',
-      required: false,
-      electronicSig: true,
-      active: true,
-      description: 'Authorization to exchange protected health information with specified providers, schools, or agencies.',
-      content: '<h3>AUTHORIZATION FOR RELEASE OF INFORMATION</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, authorize ClaimDataCare Behavioral Health to exchange protected health information with:</p><p><strong>Organization:</strong> _________________________________<br><strong>Contact:</strong> _________________________________<br><strong>Phone:</strong> _________________________________<br><strong>Fax:</strong> _________________________________</p><p>This authorization permits the use and disclosure of the following information (check all that apply):<br>[ ] Diagnostic evaluations and reports<br>[ ] Treatment plans and progress notes<br>[ ] Psychological or developmental testing results<br>[ ] Medication records<br>[ ] Educational records and IEP/504 plans<br>[ ] Billing and insurance information</p><p>This authorization expires one year from the date of signature unless revoked earlier.</p><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
-    },
-    {
-      name: 'Telehealth Consent',
-      type: 'Telehealth',
-      category: 'Clinical',
-      required: false,
-      electronicSig: true,
-      active: true,
-      description: 'Consent for the delivery of behavioral health services via telehealth/telemedicine.',
-      content: '<h3>TELEHEALTH INFORMED CONSENT</h3><p>I, {{guardianName}}, as the parent/legal guardian of {{childName}}, hereby consent to the use of telehealth for the delivery of behavioral health services.</p><p>I understand that:</p><ul><li>Telehealth involves the use of secure video conferencing technology to provide services remotely.</li><li>I have the right to decline telehealth services and request in-person services at any time.</li><li>There are potential risks including possible technical failures and limitations in the assessment process.</li><li>Emergency procedures have been explained to me.</li><li>My privacy will be protected through encrypted, HIPAA-compliant technology.</li></ul><p><strong>Parent/Guardian:</strong> {{guardianName}}<br><strong>Date:</strong> {{date}}</p><p>Signature: {{signature}}</p>',
-    },
-  ];
-  setDB(function(db){
-    if (!db.intakeForms) db.intakeForms = [];
-    if (db.intakeForms.length > 0) return;
-    defaults.forEach(function(tpl){
-      tpl.id = uid();
-      tpl.createdAt = Date.now();
-      tpl.updatedAt = Date.now();
-      db.intakeForms.push(tpl);
-    });
-  });
-}
 
 function renderIntakeConsentForms() {
   if (!_icRequireSA()) return;
@@ -1064,7 +915,7 @@ function icViewSignedForms(idx) {
   submissions.forEach(function(s){
     var sent = s.sentAt ? new Date(s.sentAt).toLocaleDateString() : '•';
     var signed = s.signedAt ? new Date(s.signedAt).toLocaleString() : '•';
-    html += '<tr><td>' + (s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status || 'Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
+    html += '<tr><td>' + escapeHtml(s.formName||'') + '</td><td style="font-size:12px">' + sent + '</td><td>' + _icStatusBadge(s.status || 'Sent') + '</td><td style="font-size:12px">' + signed + '</td>' +
       '<td>' + (s.signedAt ? '<button class="btn btn-xs" onclick="icDownloadSignedPDF(\'' + s.id + '\')"><i data-lucide="download" class="lci"></i> PDF</button>' : '') + '</td></tr>';
   });
   html += '</tbody></table></div></div>';
@@ -1494,11 +1345,10 @@ var _sigMode = 'draw';
 var _sigCallback = null;
 
 function icOpenSignaturePad(signerName, signerEmail, callback) {
-  document.getElementById('sig-signer-info').innerHTML = 'Signing as: <strong>' + (signerName||'') + '</strong> &middot; ' + (signerEmail||'');
+  document.getElementById('sig-signer-info').innerHTML = 'Signing as: <strong>' + escapeHtml(signerName||'') + '</strong> &middot; ' + escapeHtml(signerEmail||'');
   document.getElementById('sig-result-data').value = '';
   document.getElementById('sig-result-type').value = '';
-  _sigCallback = callback ? callback.toString() : '';
-  document.getElementById('sig-callback').value = _sigCallback;
+  _sigCallback = (typeof callback === 'function') ? callback : null;
 
   // Reset mode
   icSetSigMode('draw');
@@ -1618,14 +1468,8 @@ function icConfirmSignature() {
   _icAuditLog('signature-captured', 'Mode: ' + sigType);
 
   // Execute callback if set
-  var cbStr = document.getElementById('sig-callback').value || _sigCallback;
-  if (cbStr && cbStr !== '') {
-    try {
-      var cb = new Function('sig', cbStr);
-      cb(sigObj);
-    } catch(e) {
-      console.warn('Signature callback error:', e);
-    }
+  if (typeof _sigCallback === 'function') {
+    try { _sigCallback(sigObj); } catch(e) { console.warn('Signature callback error:', e); }
   }
 
   toast('Signature captured <i data-lucide="check" class="lci" style="width:13px;height:13px;color:var(--green)"></i>');
@@ -1643,548 +1487,22 @@ function icSetTab(tab, btn) {
   else if (tab === 'eval') renderIntakeEvaluation();
 }
 
-// ── Intake Link Firestore Helper (anonymous/public sessions) ──
-function _icExtractIData() {
-  try {
-    var m = window.location.search.match(/[?&]idata=([^&]+)/);
-    if (!m) return null;
-    var json = atob(decodeURIComponent(m[1]));
-    var data = JSON.parse(json);
-    if (data.firstName || data.lastName) return data;
-  } catch(e) {}
-  return null;
-}
-
-function _icTryFirestoreLoad(clientId, callback) {
-  if (!_db || !firebase || !firebase.firestore) { callback(false); return; }
-  document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
-  var db = getDB();
-  // Try direct Firestore query for this intake client
-  _db.collection('intakeClients').where('id', '==', clientId).get().then(function(snap) {
-    if (!snap.empty) {
-      var data = snap.docs[0].data();
-      if (!db.intakeClients) db.intakeClients = [];
-      // Avoid duplicates
-      var existing = db.intakeClients.find(function(c){ return c.id === data.id; });
-      if (!existing) db.intakeClients.push(data);
-      // Also try to load intake forms and submissions for full portal functionality
-      Promise.all([
-        _db.collection('intakeForms').get().then(function(sf) {
-          if (!sf.empty) {
-            if (!db.intakeForms) db.intakeForms = [];
-            sf.docs.forEach(function(d){
-              var f = d.data();
-              if (!db.intakeForms.find(function(x){ return x.id === f.id; })) db.intakeForms.push(f);
-            });
-          }
-        }).catch(function(){}),
-        _db.collection('intakeSubmissions').get().then(function(ss) {
-          if (!ss.empty) {
-            if (!db.intakeSubmissions) db.intakeSubmissions = [];
-            ss.docs.forEach(function(d){
-              var s = d.data();
-              if (!db.intakeSubmissions.find(function(x){ return x.id === s.id; })) db.intakeSubmissions.push(s);
-            });
-          }
-        }).catch(function(){})
-      ]).then(function() { callback(true); }).catch(function() { callback(true); });
-    } else {
-      // Try older format where documents use auto-ID with id field
-      _db.collection('intakeClients').get().then(function(allSnap) {
-        if (!allSnap.empty) {
-          var found = false;
-          allSnap.docs.forEach(function(d){
-            var data = d.data();
-            if (data.id === clientId) {
-              if (!db.intakeClients) db.intakeClients = [];
-              var existing = db.intakeClients.find(function(c){ return c.id === data.id; });
-              if (!existing) db.intakeClients.push(data);
-              found = true;
-            }
-          });
-          callback(found);
-        } else {
-          callback(false);
-        }
-      }).catch(function() { callback(false); });
-    }
-  }).catch(function(e) {
-    // Firestore query failed (permissions/offline) • try loading from localStorage backup
-    try {
-      var backup = localStorage.getItem('cdc_firestore_backup_intakeClients');
-      if (backup) {
-        var parsed = JSON.parse(backup);
-        var match = parsed.find(function(c){ return c.id === clientId; });
-        if (match) {
-          if (!db.intakeClients) db.intakeClients = [];
-          var existing = db.intakeClients.find(function(c){ return c.id === match.id; });
-          if (!existing) db.intakeClients.push(match);
-          callback(true);
-          return;
-        }
-      }
-    } catch(_) {}
-    callback(false);
-  });
-}
-
-// ── Intake Link Verification Handler ──
+// ── Public intake / demographic portal links (removed 2026-09-29) ──
+// SECURITY/HIPAA: these portals ran on the app's own address without sign-in, read
+// patient records from the cloud without authentication, trusted forgeable tokens and
+// carried PHI in the URL. They were removed at the source. Old links now show a
+// neutral message; forms are sent for signature with "Send Intake Forms" (sign.html).
 function checkIntakeToken() {
-  var search = window.location.search;
-  if (!search.startsWith('?intake=')) { checkDemographicToken(); return; }
-  var token = search.slice(8);
-  var raw = '';
-  try { raw = atob(token.replace(/-/g, '+').replace(/_/g, '/')); } catch(e) { return; }
-  var parts = raw.split('|');
-  if (parts.length < 3) return;
-  var intakeClientId = parts[0];
-  var intakeEmail = parts[1];
-  var ts = parseInt(parts[2]);
-
-  if (Date.now() - ts > 72 * 60 * 60 * 1000) {
-    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Link Expired</h3><p style="color:#586579;font-size:14px;line-height:1.5">This intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
-    return;
+  var qs = window.location.search || '';
+  if (!/^\?(intake|demographics)=/.test(qs)) return;
+  var root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px">' +
+      '<div style="max-width:420px;text-align:center;background:#fff;border:1px solid #E4E9F1;border-radius:12px;padding:32px 28px">' +
+      '<div style="font-size:18px;font-weight:700;color:#0B1526;margin-bottom:8px">This link is no longer valid</div>' +
+      '<div style="font-size:13px;color:#586579;line-height:1.6">For your privacy, this link was deactivated. Please contact your provider to receive a new secure link.</div>' +
+      '</div></div>';
   }
-
-  function _tryLoad(tries) {
-    var db = getDB();
-    var c = (db.intakeClients || []).find(function(cl){ return cl.id === intakeClientId; });
-    if (!c) {
-      var _idx = parseInt(intakeClientId);
-      if (!isNaN(_idx)) c = (db.intakeClients || [])[_idx];
-    }
-    if (!c) {
-      if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your secure intake forms...</div></div>';
-        setTimeout(function(){ _tryLoad(tries - 1); }, 800);
-      } else {
-        // Retries exhausted • try embedded client data from URL (standalone portal)
-        var _idata = _icExtractIData();
-        if (_idata) {
-          var db2 = getDB();
-          if (!db2.intakeClients) db2.intakeClients = [];
-          _idata.id = intakeClientId;
-          db2.intakeClients.push(_idata);
-          _tryLoad(15);
-        } else {
-          _icTryFirestoreLoad(intakeClientId, function(found) {
-            if (found) { _tryLoad(15); }
-            else {
-              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Unable to Load</h3><p style="color:#586579;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
-            }
-          });
-        }
-      }
-      return;
-    }
-
-    var pendingSubs = (db.intakeSubmissions || []).filter(function(s){ return s.token === token && s.status !== 'Signed'; });
-    // If no submissions found in DB (unauthenticated visitor), 
-    // synthesize from all active forms so the portal still loads
-    if (!pendingSubs.length) {
-      var allForms = db.intakeForms || [];
-      var activeForms = allForms.filter(function(f){ return f.active !== false; });
-      if (activeForms.length) {
-        pendingSubs = activeForms.map(function(f, fi) {
-          return {
-            id: 'syn_' + fi,
-            clientId: c.id,
-            formId: f.id,
-            formIdx: fi,
-            formName: f.name,
-            guardianEmail: intakeEmail,
-            token: token,
-            status: 'Sent',
-            childName: (c.firstName||'') + ' ' + (c.lastName||''),
-            guardianName: c.guardianName,
-          };
-        });
-      }
-    }
-    if (!pendingSubs.length) {
-      document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">All Completed!</h3><p style="color:#586579;font-size:14px;line-height:1.5">All forms have already been completed. Thank you! You may close this page.</p></div></div>';
-      return;
-    }
-
-    renderIntakePortal(c, pendingSubs, token);
-  }
-
-  _tryLoad(15);
-}
-
-function renderIntakePortal(client, pendingSubs, token) {
-  document.getElementById('root').innerHTML = _icPortalLayout(client, pendingSubs, token);
-  document.getElementById('intake-portal-forms').innerHTML = pendingSubs.map(function(sub, si){
-    return _icPortalFormCard(client, sub, si, token);
-  }).join('');
-  pendingSubs.forEach(function(_, si){
-    setTimeout(function(){ _icPortalInitCanvas(si); }, 100);
-  });
-  // Mark as Viewed
-  setDB(function(db){
-    pendingSubs.forEach(function(s){
-      var sub = (db.intakeSubmissions || []).find(function(x){ return x.id === s.id; });
-      if (sub && sub.status === 'Sent') sub.status = 'Viewed';
-    });
-    var cl = (db.intakeClients || []).find(function(c){ return c.id === client.id; });
-    if (cl && (cl.status === 'Pending Forms' || cl.status === 'Forms Sent')) cl.status = 'Viewed';
-  });
-}
-
-function _icPortalLayout(client, pendingSubs, token) {
-  var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-  var css = '#intake-portal-forms .pf-toggle{cursor:pointer;user-select:none}#intake-portal-forms .pf-toggle:hover{opacity:.8}#intake-portal-forms .pf-content{display:none;font-size:13px;color:#3A475C;line-height:1.7;padding:0}#intake-portal-forms .pf-content.open{display:block}#intake-portal-forms .pf-canvas-wrap{display:none}#intake-portal-forms .pf-canvas-wrap.open{display:block}#intake-portal-forms .pf-upload-wrap{display:none}#intake-portal-forms .pf-upload-wrap.open{display:block}#intake-portal-forms .sig-tab{background:#F1F4F8;border:1px solid #E4E9F1;color:#3A475C;padding:8px 14px;font-size:12px;cursor:pointer;border-radius:6px 6px 0 0;margin-right:2px;font-weight:600;transition:all .15s}#intake-portal-forms .sig-tab.active{background:#fff;border-bottom-color:#fff;color:#0B1526}#intake-portal-forms .sig-panel{display:none}#intake-portal-forms .sig-panel.active{display:block}#intake-portal-forms .portal-canvas{border:1.5px solid #E4E9F1;border-radius:8px;width:100%;height:120px;touch-action:none;cursor:crosshair}@keyframes spinner{to{transform:rotate(360deg)}}';
-  return [
-    '<style>' + css + '</style>',
-    '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
-    '<div style="max-width:640px;margin:0 auto">',
-    '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);overflow:hidden;margin-bottom:16px">',
-    '<div style="background:#0B1526;padding:24px 28px;display:flex;align-items:center;gap:12px">',
-    logoHtml,
-    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:2px">Secure Intake Portal</div></div>',
-    '</div>',
-    '<div style="padding:28px">',
-    '<h2 style="margin:0 0 6px;font-size:20px;color:#0B1526">Welcome, ' + (client.guardianName||'Guardian') + '</h2>',
-    '<p style="margin:0 0 4px;color:#586579;font-size:14px">Please complete the intake forms for <strong>' + childName + '</strong></p>',
-    '<p style="margin:0 0 20px;color:#586579;font-size:12px">' + pendingSubs.length + ' form(s) need your review and signature</p>',
-    '<div id="intake-portal-forms"></div>',
-    '<div id="portal-thanks" style="display:none;text-align:center;padding:30px 20px">',
-    '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    '<h3 style="margin:16px 0 6px;color:#0B1526;font-size:20px">Thank You!</h3>',
-    '<p style="color:#586579;font-size:14px;line-height:1.5">All forms have been submitted successfully. Your responses have been securely saved. You may close this page.</p>',
-    '</div>',
-    '</div></div></div></div>'
-  ].join('');
-}
-
-function _icPortalFormContent(form, client) {
-  if (!form || !form.content) return '';
-  var html = form.content
-    .replace(/\{\{childName\}\}/g, (client.firstName||'') + ' ' + (client.lastName||''))
-    .replace(/\{\{guardianName\}\}/g, client.guardianName||'')
-    .replace(/\{\{date\}\}/g, new Date().toLocaleDateString())
-    .replace(/\{\{signature\}\}/g, '_________________________');
-  return html;
-}
-
-function _icPortalFormCard(client, sub, si, token) {
-  var db = getDB();
-  var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx] || {};
-  var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var formContent = _icPortalFormContent(form, client);
-
-  var formHtml = '<div style="margin-bottom:12px;border:1.5px solid #E4E9F1;border-radius:12px;overflow:hidden;background:#fff">';
-  formHtml += '<div style="padding:14px 18px;background:#FFFFFF;border-bottom:1px solid #E4E9F1;display:flex;justify-content:space-between;align-items:center">';
-  formHtml += '<span style="font-weight:700;font-size:14px;color:#0B1526">' + (form.name||'Form') + ' <span style="font-size:11px;color:#586579;font-weight:400;background:#E4E9F1;padding:2px 10px;border-radius:20px;margin-left:6px">' + (form.type||'') + '</span></span>';
-  formHtml += '<span id="pf-badge-' + si + '" style="font-size:11px;background:#E4E9F1;padding:2px 10px;border-radius:20px;color:#586579">Pending</span>';
-  formHtml += '</div>';
-  formHtml += '<div style="padding:14px 18px">';
-
-  // Form content • collapsible
-  if (formContent) {
-    formHtml += '<div class="pf-toggle" onclick="var e=document.getElementById(\'pf-content-' + si + '\');e.classList.toggle(\'open\');this.textContent=e.classList.contains(\'open\')?\'\u25B2 Click to hide form\':\'\u25BC Click to read form\';" style="font-size:12px;font-weight:600;color:#D45C37;margin-bottom:8px;cursor:pointer">&#x25BC; Click to read form</div>';
-    formHtml += '<div id="pf-content-' + si + '" class="pf-content" style="font-size:13px;color:#3A475C;line-height:1.7;padding:12px;background:#FFFFFF;border-radius:8px;margin-bottom:14px;display:none;border:1px solid #E4E9F1">' + formContent + '</div>';
-  }
-
-  // Info box
-  formHtml += '<div style="background:#F6F8FB;border-radius:8px;padding:12px;font-size:12px;color:#3A475C;line-height:1.6;margin-bottom:14px">' +
-    '<strong>Child:</strong> ' + childName + '<br>' +
-    '<strong>Guardian:</strong> ' + (client.guardianName||'') + '<br>' +
-    '<strong>Date:</strong> ' + new Date().toLocaleDateString() +
-    '</div>';
-
-  // Signature section
-  formHtml += '<div style="border-top:1px solid #E4E9F1;padding-top:14px">';
-  formHtml += '<p style="font-size:12px;color:#586579;margin:0 0 12px;font-weight:600">Your Signature</p>';
-
-  // Signature tabs
-  formHtml += '<div style="display:flex;flex-wrap:wrap;margin-bottom:0">';
-  formHtml += '<button class="sig-tab active" id="pf-stab-draw-' + si + '" onclick="_icPortalSigTab(' + si + ',\'draw\')">Draw</button>';
-  formHtml += '<button class="sig-tab" id="pf-stab-type-' + si + '" onclick="_icPortalSigTab(' + si + ',\'type\')">Type</button>';
-  formHtml += '<button class="sig-tab" id="pf-stab-upload-' + si + '" onclick="_icPortalSigTab(' + si + ',\'upload\')">Upload</button>';
-  formHtml += '</div>';
-
-  // Draw panel
-  formHtml += '<div id="pf-sig-panel-draw-' + si + '" class="sig-panel active" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<canvas id="portal-canvas-' + si + '" class="portal-canvas" width="540" height="140" style="border:1px solid #E4E9F1;border-radius:6px;width:100%;height:120px;touch-action:none;cursor:crosshair;background:#fff"></canvas>';
-  formHtml += '<button style="margin-top:6px;font-size:11px;color:#586579;background:none;border:none;cursor:pointer;text-decoration:underline" onclick="_icPortalClearDraw(' + si + ')">Clear drawing</button>';
-  formHtml += '</div>';
-
-  // Type panel
-  formHtml += '<div id="pf-sig-panel-type-' + si + '" class="sig-panel" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<input id="portal-sig-type-' + si + '" type="text" placeholder="Type your full legal name" style="width:100%;padding:10px 12px;border:1.5px solid #E4E9F1;border-radius:6px;font-size:18px;font-family:\'Brush Script MT\',cursive;box-sizing:border-box;text-transform:none" oninput="document.getElementById(\'portal-sig-preview-' + si + '\').textContent=this.value">';
-  formHtml += '<div id="portal-sig-preview-' + si + '" style="margin-top:8px;font-size:22px;font-family:\'Brush Script MT\',cursive;color:#3A475C;min-height:30px;padding:4px 8px;border-bottom:1px solid #E4E9F1"></div>';
-  formHtml += '</div>';
-
-  // Upload panel
-  formHtml += '<div id="pf-sig-panel-upload-' + si + '" class="sig-panel" style="border:1px solid #E4E9F1;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fff">';
-  formHtml += '<p style="font-size:12px;color:#586579;margin:0 0 8px">Upload an image of your signature (PNG or JPEG)</p>';
-  formHtml += '<input id="portal-sig-upload-' + si + '" type="file" accept="image/*" style="font-size:12px" onchange="_icPortalLoadUpload(' + si + ',this)">';
-  formHtml += '<div id="portal-sig-upload-preview-' + si + '" style="margin-top:8px;display:none"><img style="max-height:60px;border:1px solid #E4E9F1;border-radius:4px"></div>';
-  formHtml += '</div>';
-
-  // Hidden result
-  formHtml += '<input type="hidden" id="portal-sig-result-' + si + '" value="">';
-  formHtml += '<input type="hidden" id="portal-sig-type-result-' + si + '" value="">';
-
-  // Sign button
-  formHtml += '<div style="display:flex;gap:8px;margin-top:12px">';
-  formHtml += '<button class="btn btn-primary" style="flex:1;padding:10px;font-size:14px" onclick="icPortalSign(' + si + ',\'' + sub.id + '\',\'' + token + '\',\'' + (client.guardianName||'').replace(/'/g,"\\'") + '\')">Sign & Complete</button>';
-  formHtml += '</div>';
-  formHtml += '<div id="portal-sig-status-' + si + '" style="margin-top:8px;font-size:12px"></div>';
-  formHtml += '</div></div></div>';
-
-  return formHtml;
-}
-
-function _icPortalSigTab(si, mode) {
-  ['draw','type','upload'].forEach(function(m){
-    var tab = document.getElementById('pf-stab-' + m + '-' + si);
-    var panel = document.getElementById('pf-sig-panel-' + m + '-' + si);
-    if (tab) tab.className = 'sig-tab' + (m === mode ? ' active' : '');
-    if (panel) panel.className = 'sig-panel' + (m === mode ? ' active' : '');
-  });
-}
-
-function _icPortalClearDraw(si) {
-  var canvas = document.getElementById('portal-canvas-' + si);
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function _icPortalLoadUpload(si, input) {
-  if (!input.files || !input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var preview = document.getElementById('portal-sig-upload-preview-' + si);
-    if (preview) {
-      preview.style.display = '';
-      preview.innerHTML = '<img src="' + e.target.result + '" style="max-height:60px;border:1px solid #E4E9F1;border-radius:4px">';
-    }
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function _icPortalInitCanvas(si) {
-  var canvas = document.getElementById('portal-canvas-' + si);
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#0B1526';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  var drawing = false;
-  function getPos(e) {
-    var rect = canvas.getBoundingClientRect();
-    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
-  }
-
-  canvas.onmousedown = function(e) { drawing = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-  canvas.onmousemove = function(e) { if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-  canvas.onmouseup = function() { drawing = false; ctx.closePath(); };
-  canvas.onmouseleave = function() { drawing = false; };
-
-  canvas.ontouchstart = function(e) { e.preventDefault(); drawing = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-  canvas.ontouchmove = function(e) { e.preventDefault(); if (!drawing || !e.touches.length) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-  canvas.ontouchend = function(e) { e.preventDefault(); drawing = false; };
-}
-
-function _icPortalGetSigData(si) {
-  // Draw mode
-  var drawPanel = document.getElementById('pf-sig-panel-draw-' + si);
-  if (drawPanel && drawPanel.className.indexOf('active') >= 0) {
-    var canvas = document.getElementById('portal-canvas-' + si);
-    if (!canvas) return null;
-    // Check if anything was drawn
-    var ctx = canvas.getContext('2d');
-    var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    var hasContent = false;
-    for (var i = 3; i < imgData.length; i += 4) { if (imgData[i] > 0) { hasContent = true; break; } }
-    if (!hasContent) return null;
-    return { data: canvas.toDataURL('image/png'), type: 'draw' };
-  }
-
-  // Type mode
-  var typeInput = document.getElementById('portal-sig-type-' + si);
-  if (typeInput && typeInput.value && typeInput.value.trim()) {
-    return { data: typeInput.value.trim(), type: 'typed' };
-  }
-
-  // Upload mode
-  var uploadInput = document.getElementById('portal-sig-upload-' + si);
-  var uploadPreview = document.getElementById('portal-sig-upload-preview-' + si);
-  if (uploadInput && uploadInput.files && uploadInput.files[0]) {
-    return null; // Will be handled in sign function
-  }
-
-  return null;
-}
-
-function icPortalSign(si, submissionId, token, signerName) {
-  var db = getDB();
-  var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
-  if (!sub) { alert('Submission not found.'); return; }
-
-  var sigData = null;
-  var sigType = '';
-
-  // Draw mode
-  var drawPanel = document.getElementById('pf-sig-panel-draw-' + si);
-  if (drawPanel && drawPanel.className.indexOf('active') >= 0) {
-    var canvas = document.getElementById('portal-canvas-' + si);
-    if (canvas) {
-      var ctx = canvas.getContext('2d');
-      var px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      for (var i = 3; i < px.length; i += 4) { if (px[i] > 0) { sigData = canvas.toDataURL('image/png'); sigType = 'draw'; break; } }
-    }
-    if (!sigData) { toast('Please draw your signature on the canvas','warn'); return; }
-  }
-
-  // Type mode
-  if (!sigData) {
-    var typePanel = document.getElementById('pf-sig-panel-type-' + si);
-    if (typePanel && typePanel.className.indexOf('active') >= 0) {
-      var typeInput = document.getElementById('portal-sig-type-' + si);
-      if (typeInput && typeInput.value && typeInput.value.trim()) {
-        sigData = typeInput.value.trim();
-        sigType = 'typed';
-      } else {
-        toast('Please type your full name to sign','warn'); return;
-      }
-    }
-  }
-
-  // Upload mode
-  if (!sigData) {
-    var uploadPanel = document.getElementById('pf-sig-panel-upload-' + si);
-    if (uploadPanel && uploadPanel.className.indexOf('active') >= 0) {
-      var uploadInput = document.getElementById('portal-sig-upload-' + si);
-      if (uploadInput && uploadInput.files && uploadInput.files[0]) {
-        sigData = URL.createObjectURL(uploadInput.files[0]);
-        sigType = 'upload';
-      } else {
-        toast('Please upload a signature image','warn'); return;
-      }
-    }
-  }
-
-  // Build audit metadata
-  var audit = {
-    signedAt: Date.now(),
-    signerName: signerName || sigData,
-    signerIp: '',
-    userAgent: navigator.userAgent || '',
-    platform: navigator.platform || '',
-    language: navigator.language || '',
-  };
-  try {
-    var rtc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    rtc.createDataChannel('');
-    rtc.createOffer().then(function(offer){ rtc.setLocalDescription(offer); });
-    rtc.onicecandidate = function(e) { if (e.candidate) { audit.signerIp = e.candidate.address || e.candidate.ip || ''; } };
-  } catch(e) {}
-
-  // Update submission in DB
-  setDB(function(db){
-    var s = (db.intakeSubmissions || []).find(function(x){ return x.id === submissionId; });
-    if (s) {
-      s.status = 'Signed';
-      s.signedAt = audit.signedAt;
-      s.signedByName = signerName || sigData;
-      s.signerIp = audit.signerIp;
-      s.userAgent = audit.userAgent;
-      s.platform = audit.platform;
-      s.language = audit.language;
-      s.signatureData = sigData;
-      s.signatureType = sigType;
-    }
-  });
-
-  // Update UI
-  var badge = document.getElementById('pf-badge-' + si);
-  if (badge) { badge.textContent = 'Signed'; badge.style.background = '#c8e6c9'; badge.style.color = '#2e7d32'; }
-  document.getElementById('portal-sig-status-' + si).innerHTML = '<span style="color:#2e7d32;font-weight:600">&#10003; Signed on ' + new Date().toLocaleString() + '</span>';
-
-  // Disable all signature inputs for this form
-  var drawTab = document.getElementById('pf-stab-draw-' + si);
-  var typeTab = document.getElementById('pf-stab-type-' + si);
-  var uploadTab = document.getElementById('pf-stab-upload-' + si);
-  [drawTab, typeTab, uploadTab].forEach(function(el){ if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '.5'; }});
-  var signBtn = document.querySelector('#pf-sig-panel-draw-' + si + ' button, #pf-sig-panel-type-' + si + ' button, #pf-sig-panel-upload-' + si + ' button');
-  if (signBtn) signBtn.style.display = 'none';
-
-  toast('Form signed successfully','ok');
-
-  // Generate signed PDF and save to records
-  _icFinalizeSignedForm(submissionId);
-
-  // Check if all forms done
-  var allDone = true;
-  document.querySelectorAll('[id^="pf-badge-"]').forEach(function(el){
-    if (el.textContent !== 'Signed') allDone = false;
-  });
-  if (allDone) {
-    setTimeout(function(){
-      document.getElementById('intake-portal-forms').style.display = 'none';
-      document.getElementById('portal-thanks').style.display = '';
-      // Update client status to Completed
-      setDB(function(db){
-        var cl = (db.intakeClients || []).find(function(c){ return c.id === sub.clientId; });
-        if (cl) { cl.status = 'Completed'; cl.updatedAt = Date.now(); }
-      });
-    }, 1200);
-  }
-}
-
-function _icFinalizeSignedForm(submissionId) {
-  try {
-    var db = getDB();
-    var sub = (db.intakeSubmissions || []).find(function(s){ return s.id === submissionId; });
-    if (!sub || !sub.signatureData) return;
-
-    var client = (db.intakeClients || []).find(function(c){ return c.id === sub.clientId; });
-    var form = (db.intakeForms || []).find(function(f){ return f.id === sub.formId; }) || (db.intakeForms || [])[sub.formIdx];
-    var prov = (db.providers || []).find(function(p){ return p.id === activeProviderId; }) || {};
-
-    // Generate signed PDF
-    var pdfData = _icBuildSignedPDF(sub, client, form, prov);
-
-    // Save to patient records if we can find a matching patient
-    if (client && pdfData) {
-      var patient = (db.patients || []).find(function(p){
-        return (p.lastName||'').toLowerCase() === (client.lastName||'').toLowerCase() &&
-               (p.firstName||'').toLowerCase() === (client.firstName||'').toLowerCase();
-      });
-      if (patient) {
-        if (!patient.documents) patient.documents = [];
-        patient.documents.unshift({
-          id: sub.id,
-          name: (form ? form.name : 'Signed Form') + ' • ' + (client.firstName||'') + ' ' + (client.lastName||''),
-          category: 'Intake Forms',
-          type: 'pdf',
-          data: pdfData,
-          date: new Date().toISOString().slice(0,10),
-          uploadedBy: 'Intake Portal',
-          signedAt: sub.signedAt,
-          signedByName: sub.signedByName,
-          formName: form ? form.name : '',
-          createdAt: Date.now(),
-        });
-        setDB(function(db2){
-          var p = db2.patients.find(function(x){ return x.id === patient.id; });
-          if (p) p.documents = patient.documents;
-        });
-      }
-    }
-  } catch(e) { console.warn('Finalize signed form error:', e); }
 }
 
 function _icBuildSignedPDF(sub, client, form, prov) {
@@ -2295,279 +1613,5 @@ function _icBuildSignedPDF(sub, client, form, prov) {
   return doc.output('datauristring');
 }
 
-// ── Demographic Intake Portal ──
-function checkDemographicToken() {
-  var search = window.location.search;
-  if (!search.startsWith('?demographics=')) return;
-  var token = search.slice(14);
-  var raw = '';
-  try { raw = atob(token.replace(/-/g, '+').replace(/_/g, '/')); } catch(e) { return; }
-  var parts = raw.split('|');
-  if (parts.length < 3) return;
-  var intakeClientId = parts[0];
-  var intakeEmail = parts[1];
-  var ts = parseInt(parts[2]);
-  if (Date.now() - ts > 72 * 60 * 60 * 1000) {
-    document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Link Expired</h3><p style="color:#586579;font-size:14px;line-height:1.5">This demographic intake link has expired (72 hours). Please contact the provider for a new link.</p></div></div>';
-    return;
-  }
-  function _tryLoad(tries) {
-    var db = getDB();
-    var c = (db.intakeClients || []).find(function(cl){ return cl.id === intakeClientId; });
-    if (!c) {
-      var _idx = parseInt(intakeClientId);
-      if (!isNaN(_idx)) c = (db.intakeClients || [])[_idx];
-    }
-    if (!c) {
-      if (tries > 0) {
-        document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div>Loading your demographic intake form...</div></div>';
-        setTimeout(function(){ _tryLoad(tries - 1); }, 800);
-      } else {
-        // Retries exhausted • try embedded client data from URL (standalone portal)
-        var _idata = _icExtractIData();
-        if (_idata) {
-          var db2 = getDB();
-          if (!db2.intakeClients) db2.intakeClients = [];
-          _idata.id = intakeClientId;
-          db2.intakeClients.push(_idata);
-          _tryLoad(15);
-        } else {
-          _icTryFirestoreLoad(intakeClientId, function(found) {
-            if (found) { _tryLoad(15); }
-            else {
-              document.getElementById('root').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif;padding:20px"><div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px;text-align:center;max-width:400px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><h3 style="margin:16px 0 8px;color:#0B1526">Unable to Load</h3><p style="color:#586579;font-size:14px;line-height:1.5">We could not find your intake record. Please contact the provider and request a new link.</p></div></div>';
-            }
-          });
-        }
-      }
-      return;
-    }
-    // Mark as Viewed
-    setDB(function(db){
-      var cl = (db.intakeClients || []).find(function(x){ return x.id === c.id; });
-      if (cl && (cl.status === 'Pending Forms' || cl.status === 'Forms Sent')) cl.status = 'Viewed';
-    });
-    renderDemographicPortal(c, token);
-  }
-  _tryLoad(15);
-}
 
-function renderDemographicPortal(client, token) {
-  var childName = (client.firstName||'') + ' ' + (client.lastName||'');
-  var logoHtml = '<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="18" fill="#D45C37"/><path d="M50 15 L80 28 L80 55 C80 72 65 84 50 90 C35 84 20 72 20 55 L20 28 Z" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round"/><line x1="50" y1="38" x2="50" y2="68" stroke="white" stroke-width="6" stroke-linecap="round"/><line x1="35" y1="53" x2="65" y2="53" stroke="white" stroke-width="6" stroke-linecap="round"/></svg>';
-
-  var html = [
-    '<div style="min-height:100vh;background:#F6F8FB;padding:20px;font-family:Arial,sans-serif">',
-    '<div style="max-width:640px;margin:0 auto">',
-    '<div style="background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);overflow:hidden;margin-bottom:16px">',
-    '<div style="background:#0B1526;padding:24px 28px;display:flex;align-items:center;gap:12px">',
-    logoHtml,
-    '<div><div style="color:white;font-weight:700;font-size:18px">ClaimDataCare</div><div style="color:#586579;font-size:11px;margin-top:2px">Demographic Intake Form</div></div>',
-    '</div>',
-    '<div style="padding:28px">',
-    '<h2 style="margin:0 0 6px;font-size:20px;color:#0B1526">Demographic Information</h2>',
-    '<p style="margin:0 0 20px;color:#586579;font-size:13px">Please complete the demographic information for <strong>' + childName + '</strong>. Fields marked with * are required.</p>',
-    '<form onsubmit="icSubmitDemographic(\'' + client.id + '\',\'' + token.replace(/'/g,"\\'") + '\');return false">',
-
-    // Child information
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Child Information</div>',
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">First Name *</label><input id="demo-first" value="' + (client.firstName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Last Name *</label><input id="demo-last" value="' + (client.lastName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Date of Birth *</label><input id="demo-dob" type="date" value="' + (client.dob||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Gender</label><select id="demo-gender" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.gender==='Male'?' selected':'') + '>Male</option><option' + (client.gender==='Female'?' selected':'') + '>Female</option><option' + (client.gender==='Other'?' selected':'') + '>Other</option></select></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Preferred Language</label><input id="demo-language" value="' + (client.language||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div></div>',
-
-    // Guardian information
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Parent / Guardian Information</div>',
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Full Name *</label><input id="demo-gname" value="' + (client.guardianName||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Relationship *</label><select id="demo-grel" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff"><option value="">Select</option><option' + (client.guardianRel==='Mother'?' selected':'') + '>Mother</option><option' + (client.guardianRel==='Father'?' selected':'') + '>Father</option><option' + (client.guardianRel==='Legal Guardian'?' selected':'') + '>Legal Guardian</option><option' + (client.guardianRel==='Grandparent'?' selected':'') + '>Grandparent</option><option' + (client.guardianRel==='Other'?' selected':'') + '>Other</option></select></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Phone *</label><input id="demo-gphone" value="' + (client.guardianPhone||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Alternate Phone</label><input id="demo-gphone2" value="' + (client.guardianPhone2||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Email *</label><input id="demo-gemail" type="email" value="' + (client.guardianEmail||'') + '" required style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Address</label><input id="demo-addr" value="' + (client.address||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">City, State ZIP</label><input id="demo-city" value="' + (client.city||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div></div>',
-
-    // Emergency contact
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Emergency Contact</div>',
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Name</label><input id="demo-emerg-name" value="' + (client.emergName||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Phone</label><input id="demo-emerg-phone" value="' + (client.emergPhone||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Relationship</label><input id="demo-emerg-rel" value="' + (client.emergRel||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div></div>',
-
-    // Insurance & Referral
-    '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#0B1526;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #E4E9F1;text-transform:uppercase;letter-spacing:.04em">Insurance &amp; Referral</div>',
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Insurance Provider</label><input id="demo-ins-provider" value="' + (client.insuranceProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Member ID</label><input id="demo-ins-id" value="' + (client.insuranceId||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Group Number</label><input id="demo-ins-group" value="' + (client.insuranceGroup||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Referral Source</label><input id="demo-ref-source" value="' + (client.referralSource||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">PCP Name &amp; Phone</label><input id="demo-pcp" value="' + (client.pcp||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">School / District</label><input id="demo-school" value="' + (client.school||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Grade</label><input id="demo-grade" value="' + (client.grade||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Existing ABA Provider</label><input id="demo-aba" value="' + (client.abaProvider||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Existing Diagnoses</label><input id="demo-dx" value="' + (client.diagnoses||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '<div><label style="font-size:11px;font-weight:600;color:#3A475C;display:block;margin-bottom:3px">Custody/Legal Notes</label><input id="demo-custody" value="' + (client.custody||'') + '" style="width:100%;padding:8px 10px;border:1.5px solid #E4E9F1;border-radius:8px;font-size:13px;box-sizing:border-box"></div>',
-    '</div></div>',
-
-    // Submit
-    '<div style="display:flex;gap:10px;margin-top:20px">',
-    '<button type="submit" id="demo-submit-btn" style="flex:1;padding:12px 20px;background:var(--brand,#D45C37);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Submit Demographic Information</button>',
-    '</div>',
-    '<div id="demo-status" style="margin-top:10px;font-size:12px;color:#586579;text-align:center"></div>',
-    '</form>',
-    '<div id="demo-thanks" style="display:none;text-align:center;padding:30px 20px">',
-    '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    '<h3 style="margin:16px 0 6px;color:#0B1526;font-size:20px">Thank You!</h3>',
-    '<p style="color:#586579;font-size:14px;line-height:1.5">Your demographic information has been submitted successfully. You may close this page.</p>',
-    '</div>',
-    '</div></div></div></div>'
-  ].join('');
-  document.getElementById('root').innerHTML = html;
-}
-
-function icSubmitDemographic(clientId, token) {
-  var btn = document.getElementById('demo-submit-btn');
-  var statusEl = document.getElementById('demo-status');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.textContent = 'Submitting...';
-  statusEl.innerHTML = '<span style="color:#586579">Please wait while we process your submission...</span>';
-
-  var data = {
-    firstName: document.getElementById('demo-first')?.value?.trim() || '',
-    lastName: document.getElementById('demo-last')?.value?.trim() || '',
-    dob: document.getElementById('demo-dob')?.value || '',
-    gender: document.getElementById('demo-gender')?.value || '',
-    language: document.getElementById('demo-language')?.value?.trim() || '',
-    guardianName: document.getElementById('demo-gname')?.value?.trim() || '',
-    guardianRel: document.getElementById('demo-grel')?.value || '',
-    guardianPhone: document.getElementById('demo-gphone')?.value?.trim() || '',
-    guardianPhone2: document.getElementById('demo-gphone2')?.value?.trim() || '',
-    guardianEmail: document.getElementById('demo-gemail')?.value?.trim() || '',
-    address: document.getElementById('demo-addr')?.value?.trim() || '',
-    city: document.getElementById('demo-city')?.value?.trim() || '',
-    emergName: document.getElementById('demo-emerg-name')?.value?.trim() || '',
-    emergPhone: document.getElementById('demo-emerg-phone')?.value?.trim() || '',
-    emergRel: document.getElementById('demo-emerg-rel')?.value?.trim() || '',
-    insuranceProvider: document.getElementById('demo-ins-provider')?.value?.trim() || '',
-    insuranceId: document.getElementById('demo-ins-id')?.value?.trim() || '',
-    insuranceGroup: document.getElementById('demo-ins-group')?.value?.trim() || '',
-    referralSource: document.getElementById('demo-ref-source')?.value?.trim() || '',
-    pcp: document.getElementById('demo-pcp')?.value?.trim() || '',
-    school: document.getElementById('demo-school')?.value?.trim() || '',
-    grade: document.getElementById('demo-grade')?.value?.trim() || '',
-    abaProvider: document.getElementById('demo-aba')?.value?.trim() || '',
-    diagnoses: document.getElementById('demo-dx')?.value?.trim() || '',
-    custody: document.getElementById('demo-custody')?.value?.trim() || '',
-  };
-
-  setDB(function(db){
-    // Update intake client record
-    var client = (db.intakeClients || []).find(function(c){ return c.id === clientId; });
-    if (client) {
-      Object.assign(client, data);
-      client.status = 'Completed';
-      client.updatedAt = Date.now();
-    }
-
-    // Auto-populate patient record
-    var patient = (db.patients || []).find(function(p){
-      return (p.lastName||'').toLowerCase() === data.lastName.toLowerCase() &&
-             (p.firstName||'').toLowerCase() === data.firstName.toLowerCase();
-    });
-    if (!patient) {
-      // Create new patient record
-      var newPat = {
-        id: uid(),
-        firstName: data.firstName,
-        lastName: data.lastName,
-        dob: data.dob,
-        gender: data.gender,
-        guardianName: data.guardianName,
-        guardianRel: data.guardianRel,
-        guardianPhone: data.guardianPhone,
-        guardianPhone2: data.guardianPhone2,
-        guardianEmail: data.guardianEmail,
-        address: data.address,
-        city: data.city,
-        emergName: data.emergName,
-        emergPhone: data.emergPhone,
-        emergRel: data.emergRel,
-        insuranceProvider: data.insuranceProvider,
-        insuranceId: data.insuranceId,
-        insuranceGroup: data.insuranceGroup,
-        referralSource: data.referralSource,
-        pcp: data.pcp,
-        school: data.school,
-        grade: data.grade,
-        abaProvider: data.abaProvider,
-        diagnoses: data.diagnoses,
-        language: data.language,
-        custody: data.custody,
-        createdBy: 'Demographic Intake Portal',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      if (!db.patients) db.patients = [];
-      db.patients.push(newPat);
-      patient = newPat;
-    } else {
-      // Update existing patient
-      Object.assign(patient, data);
-      patient.updatedAt = Date.now();
-    }
-
-    // Save submission record
-    if (!db.intakeSubmissions) db.intakeSubmissions = [];
-    db.intakeSubmissions.push({
-      id: uid(), clientId: clientId, token: token,
-      submittedAt: Date.now(), type: 'demographic',
-      status: 'Completed', childName: data.firstName + ' ' + data.lastName,
-      guardianName: data.guardianName, data: data,
-    });
-  });
-
-  // Show thank you
-  document.getElementById('demo-thanks').style.display = '';
-  document.querySelector('form').style.display = 'none';
-  statusEl.innerHTML = '<span style="color:#2e7d32;font-weight:600">&#10003; Submitted successfully!</span>';
-  _icAuditLog('intake-demo-completed', 'Demographic completed for ' + data.firstName + ' ' + data.lastName);
-}
-
-// ── Init on load ──
-// Only run intake token check when there is actually a token in the URL.
-// This prevents any risk of wiping #root on a normal admin login.
-(function() {
-  var _qs = window.location.search;
-  if (!_qs.startsWith('?intake=') && !_qs.startsWith('?demographics=')) return;
-
-  // Show loading spinner immediately so page is never blank
-  var rootEl = document.getElementById('root');
-  if (rootEl) {
-    rootEl.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F8FB;font-family:Arial,sans-serif"><div style="text-align:center;color:#586579;font-size:14px"><div style="width:40px;height:40px;border:3px solid #E4E9F1;border-top-color:#D45C37;border-radius:50%;animation:spinner .8s linear infinite;margin:0 auto 16px"></div><p>Loading your secure intake forms…</p></div></div><style>@keyframes spinner{to{transform:rotate(360deg)}}</style>';
-  }
-
-  // Wait for Firebase + DB to be ready, then run token check
-  var _attempts = 0;
-  function _waitAndCheck() {
-    _attempts++;
-    var ready = (typeof getDB === 'function' && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0);
-    if (ready || _attempts > 40) {
-      try { checkIntakeToken(); } catch(e) { console.error('checkIntakeToken error:', e); }
-    } else {
-      setTimeout(_waitAndCheck, 250);
-    }
-  }
-  setTimeout(_waitAndCheck, 400);
-})();
 

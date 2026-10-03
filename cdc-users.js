@@ -205,11 +205,11 @@ function renderUserManagement() {
     } catch(e) { provName = '—'; }
 
     return '<tr>' +
-      '<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||u.name||'') + '</td>' +
-      '<td style="font-size:12px">' + first + '</td>' +
-      '<td style="font-size:12px">' + last + '</td>' +
-      '<td style="font-size:12px">' + phone + '</td>' +
-      '<td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + provName + '</td>' +
+      '<td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(u.email||u.name||'') + '</td>' +
+      '<td style="font-size:12px">' + escapeHtml(first) + '</td>' +
+      '<td style="font-size:12px">' + escapeHtml(last) + '</td>' +
+      '<td style="font-size:12px">' + escapeHtml(phone) + '</td>' +
+      '<td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(provName) + '</td>' +
       '<td>' + roleTag + '</td>' +
       '<td>' + status + ' ' + verified + '</td>' +
       '<td style="text-align:center">' + twoFA + '</td>' +
@@ -529,6 +529,7 @@ function saveNewUser() {
   var pass      = document.getElementById('nu-pass')?.value||'';
   var phone     = (document.getElementById('nu-phone')?.value||'').trim();
   var phone2    = (document.getElementById('nu-phone2')?.value||'').trim();
+  var dob       = (document.getElementById('nu-dob')?.value||'').trim();
   var inactive  = document.getElementById('nu-inactive')?.value === '1';
   var trackTime    = !!document.getElementById('nu-track-time')?.checked;
   var passExpire   = !!document.getElementById('nu-pass-expire')?.checked;
@@ -559,7 +560,16 @@ function saveNewUser() {
   }
 
   if (!phone) { var pe = document.getElementById('nu-phone-err'); if(pe) pe.style.display=''; hasErr = true; }
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { var ee = document.getElementById('nu-email-err'); if(ee) ee.style.display=''; hasErr = true; }
+  if (typeof cdcCleanEmail === 'function') email = cdcCleanEmail(email);
+  var _emailOk = typeof cdcValidEmail === 'function' ? cdcValidEmail(email) : /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  if (!email || !_emailOk) { var ee = document.getElementById('nu-email-err'); if(ee) ee.style.display=''; hasErr = true; }
+  // Users must be adults: date of birth required, 18 years or older (2026-10-03)
+  var _dobErr = document.getElementById('nu-dob-err');
+  var _age = typeof cdcAgeYears === 'function' ? cdcAgeYears(dob) : NaN;
+  var _minAge = window.CDC_MIN_AGE || 18;
+  if (_dobErr) _dobErr.textContent = '';
+  if (!dob || isNaN(_age)) { if (_dobErr) _dobErr.textContent = 'Enter a valid date of birth'; hasErr = true; }
+  else if (_age < _minAge) { if (_dobErr) _dobErr.textContent = 'Users must be ' + _minAge + ' years of age or older'; hasErr = true; }
   // Passwords are never set by an administrator: the user sets it from the invitation email
   if (hasErr) return;
 
@@ -606,7 +616,7 @@ function saveNewUser() {
 
   if (!id) {
     users.push({
-      id: uid(), name, first, last, email, phone, phone2,
+      id: uid(), name, first, last, email, phone, phone2, dob,
       role: primaryRole, roles, permissions: perms, specialties,
       inactive, trackTime, passExpire, autoInactive, twoFA,
       providerId: activeProviderId, createdAt: Date.now()
@@ -621,7 +631,7 @@ function saveNewUser() {
     sendUserVerifyEmail(users[users.length-1].id);
   } else {
     var u2 = users.find(function(x){ return x.id === id; });
-    if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
+    if (u2) Object.assign(u2, { name, first, last, email, phone, phone2, dob, role: primaryRole, roles, permissions: perms, specialties, inactive, trackTime, passExpire, autoInactive });
     if (saveUsers) saveUsers(users);
     var m = document.getElementById('modal-add-user');
     if (m) m.remove();
@@ -713,9 +723,9 @@ function openAddUserModal(existingUser) {
         var dis = _lockRolePerm ? 'disabled' : '';
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);opacity:'+(_lockRolePerm?'.6':'1')+';transition:all .15s">'+
           '<label style="display:flex;align-items:center;gap:10px;cursor:'+(_lockRolePerm?'not-allowed':'pointer')+';flex:1;min-width:0">'+
-          '<input type="checkbox" class="nu-spec-cb" value="'+sd.name+'" '+chk+' '+dis+' onchange="_nuToggleSpecRole(this)" style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
-          '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">'+sd.name+'</div>'+
-          (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px">'+sd.taxonomy+'</div>':'')+
+          '<input type="checkbox" class="nu-spec-cb" value="'+escapeHtml(sd.name)+'" '+chk+' '+dis+' onchange="_nuToggleSpecRole(this)" style="accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">'+
+          '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">'+escapeHtml(sd.name)+'</div>'+
+          (sd.taxonomy?'<div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px">'+escapeHtml(sd.taxonomy)+'</div>':'')+
           '</div></label>'+
           '<input type="text" class="nu-spec-role" data-spec="'+sd.name.replace(/"/g,'&quot;')+'" placeholder="Role (e.g. Therapist)" value="'+roleVal.replace(/"/g,'&quot;')+'" '+dis+' style="width:150px;flex-shrink:0;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);display:'+(chk?'block':'none')+'">'+
           '</div>';
@@ -765,6 +775,7 @@ function openAddUserModal(existingUser) {
         + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Email <span style="color:var(--red)">*</span></label><input id="nu-email" type="email" value="'+(u.email||'')+'" style="'+inp+'"><div id="nu-email-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
         + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Phone <span style="color:var(--red)">*</span></label><input id="nu-phone" class="no-upper" value="'+(u.phone||'')+'" style="'+inp+'"><div id="nu-phone-err" style="display:none;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
         + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Phone 2</label><input id="nu-phone2" class="no-upper" value="'+(u.phone2||'')+'" style="'+inp+'"></div>'
+        + '<div class="field" style="margin:0"><label style="font-size:11px;font-weight:600;margin-bottom:4px;display:block">Date of Birth <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--text3);font-size:10px">18+ only</span></label><input id="nu-dob" type="date" min="1900-01-01" max="'+(typeof cdcMaxAdultDob==='function'?cdcMaxAdultDob():'')+'" value="'+String(u.dob||'').replace(/[^0-9-]/g,'')+'" style="'+inp+'"><div id="nu-dob-err" style="min-height:15px;color:var(--red);font-size:11px;margin-top:3px"></div></div>'
       + '</div>'
 
       // Password: always set by the user from the invitation email, never by an administrator

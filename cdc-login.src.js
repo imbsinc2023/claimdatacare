@@ -23,6 +23,57 @@
   function setGuard(g) { try { localStorage.setItem(GUARD_KEY, JSON.stringify(g)); } catch (e) {} }
   function $(id) { return document.getElementById(id); }
 
+  /* ---------------- Strong validation (2026-10-03) ---------------- */
+  // Email: one address only, no spaces or hidden characters, standard format, max 254.
+  var EMAIL_RE = /^(?=.{6,254}$)(?=[^@]{1,64}@)[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}$/;
+  function cleanEmail(v) { return String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F\u200B-\u200D\u2060\uFEFF]/g, '').trim().toLowerCase(); }
+  function validEmail(v) { return EMAIL_RE.test(String(v || '')); }
+  // Password policy (applied wherever a password is chosen: invitation and reset)
+  var COMMON = ['password', 'passw0rd', 'contrasena', '123456', '654321', 'qwerty', 'asdfgh', 'zxcvbn', 'letmein', 'welcome',
+    'admin', 'iloveyou', 'monkey', 'dragon', 'football', 'baseball', 'abc123', '111111', '000000', 'sunshine', 'princess',
+    'claimdatacare', 'imbs', 'vortex', 'medical', 'billing', 'miami', 'florida', 'summer', 'winter', 'spring', 'autumn'];
+  function passwordIssues(pw, ctx) {
+    pw = String(pw == null ? '' : pw); ctx = ctx || {};
+    var out = [];
+    if (pw.length < 12) out.push('At least 12 characters');
+    if (pw.length > 128) out.push('No more than 128 characters');
+    if (!/[a-z]/.test(pw)) out.push('A lowercase letter');
+    if (!/[A-Z]/.test(pw)) out.push('An uppercase letter');
+    if (!/[0-9]/.test(pw)) out.push('A number');
+    if (!/[^A-Za-z0-9]/.test(pw)) out.push('A symbol (! @ # $ % ...)');
+    if (/^\s|\s$/.test(pw)) out.push('No spaces at the start or end');
+    if (/(.)\1\1/.test(pw)) out.push('No character 3 times in a row');
+    var low = pw.toLowerCase();
+    var mine = [String(ctx.email || '').split('@')[0], ctx.first, ctx.last]
+      .map(function (x) { return String(x || '').toLowerCase(); }).filter(function (x) { return x.length >= 3; });
+    if (mine.some(function (p) { return low.indexOf(p) !== -1; })) out.push('Not your name or email');
+    if (COMMON.some(function (c) { return low.indexOf(c) !== -1; })) out.push('No common words (password, 123456, qwerty...)');
+    return out;
+  }
+  // Age in whole years from YYYY-MM-DD or MM/DD/YYYY; NaN when the date is not real.
+  var MIN_AGE = 18;
+  function ageYears(dob) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || '')) || null, y, mo, d;
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else { m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(dob || '')); if (!m) return NaN; y = +m[3]; mo = +m[1]; d = +m[2]; }
+    var dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return NaN;
+    var now = new Date();
+    if (dt > now || y < now.getFullYear() - 120) return NaN;
+    var a = now.getFullYear() - y;
+    if (now.getMonth() < mo - 1 || (now.getMonth() === mo - 1 && now.getDate() < d)) a--;
+    return a;
+  }
+  function isAdultDob(dob) { var a = ageYears(dob); return a >= MIN_AGE && a <= 120; }
+  function maxAdultDob() { var n = new Date(); var d = new Date(n.getFullYear() - MIN_AGE, n.getMonth(), n.getDate()); return d.toISOString().slice(0, 10); }
+  window.cdcCleanEmail = cleanEmail;
+  window.cdcValidEmail = validEmail;
+  window.cdcPasswordIssues = passwordIssues;
+  window.cdcAgeYears = ageYears;
+  window.cdcIsAdultDob = isAdultDob;
+  window.cdcMaxAdultDob = maxAdultDob;
+  window.CDC_MIN_AGE = MIN_AGE;
+
   var ICON_EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   var ICON_EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   var ICON_SHIELD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
@@ -233,8 +284,11 @@
     if (getGuard().until > Date.now()) { lockCountdown(); return; }
     var em = $('li-username'), pw = $('li-pass');
     if (!em || !pw) return;
-    em.value = em.value.trim();
+    em.value = cleanEmail(em.value);
     if (!em.value || !pw.value) { showMsg('Enter your email and password.'); (em.value ? pw : em).focus(); return; }
+    if (!validEmail(em.value)) { showMsg('Enter a valid email address.'); em.setAttribute('aria-invalid', 'true'); em.focus(); return; }
+    em.removeAttribute('aria-invalid');
+    if (pw.value.length > 128) { showMsg('Incorrect email or password.'); pw.value = ''; pw.focus(); return; }
     if (typeof doLogin !== 'function') { showMsg('Sign-in is not ready yet. Reload the page and try again.'); return; }
     busy = true;
     try { await doLogin(); } catch (e) { console.warn('[CDC] sign-in:', e && e.message); }
@@ -540,10 +594,97 @@
     if (typeof renderLoginScreen === 'function') renderLoginScreen();
   }
 
+  // Saves fields on the user's own record in the cloud user list.
+  async function _saveOwnFields(rec, fields) {
+    var list = await _cloudUsers();
+    if (!list) return false;
+    var u = list.find(function (x) { return (rec.id && x.id === rec.id) || (_lc(x.email) === _lc(rec.email)); });
+    if (!u) return false;
+    Object.assign(u, fields);
+    try { _usersCache = list; } catch (e) {}
+    try { await saveUsers(list); } catch (e) { return false; }
+    Object.assign(rec, fields);
+    return true;
+  }
+
+  // One-time date of birth confirmation (users without a date of birth on file).
+  function showDobScreen(user, onOk, onCancel) {
+    injectCSS();
+    var old = document.getElementById('modal-dob'); if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'modal-dob';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'dob-title');
+    ov.innerHTML =
+      '<div class="cdcx-tfa">' +
+        '<div class="cdcx-bar"></div>' +
+        '<div class="cdcx-tfa-ico">' + ICON_SHIELD.replace('width="14" height="14"', 'width="26" height="26"') + '</div>' +
+        '<h2 id="dob-title">Confirm your date of birth</h2>' +
+        '<p class="cdcx-lead">ClaimDataCare accounts are only for adults 18 years of age or older. We ask this once.</p>' +
+        '<div id="dob-alert" class="cdcx-msgslot" role="alert" aria-live="assertive"></div>' +
+        '<label class="cdcx-label" for="dob-input">Date of birth</label>' +
+        '<input id="dob-input" class="cdcx-input no-upper" type="date" min="1900-01-01" max="' + maxAdultDob() + '" autocomplete="bday">' +
+        '<button type="button" class="cdcx-btn" id="dob-ok">Continue</button>' +
+        '<div class="cdcx-tfa-row"><span></span><button type="button" class="cdcx-link cdcx-muted" id="dob-cancel">Cancel</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var inp = document.getElementById('dob-input'), ok = document.getElementById('dob-ok');
+    function msg(t) { var a = document.getElementById('dob-alert'); if (!a) return; a.innerHTML = t ? '<div class="alert al-error"></div>' : ''; if (t) a.firstChild.textContent = t; }
+    function close() { var o = document.getElementById('modal-dob'); if (o) o.remove(); }
+    ok.addEventListener('click', async function () {
+      var v = inp.value;
+      var age = ageYears(v);
+      if (isNaN(age)) { msg('Enter a valid date of birth.'); inp.focus(); return; }
+      ok.disabled = true; msg('');
+      if (age < MIN_AGE) {
+        // Minors cannot hold an account: the account is deactivated and signed out
+        await _saveOwnFields(user, { dob: v, inactive: true, status: 'inactive', inactiveReason: 'Under 18' });
+        try { auditLog('LOGIN_DENIED_MINOR', 'Account deactivated: user under 18'); } catch (e) {}
+        close(); if (onCancel) onCancel();
+        if (typeof renderLoginScreen === 'function') renderLoginScreen();
+        setTimeout(function () { showMsg('Access denied. ClaimDataCare users must be 18 years of age or older.'); }, 150);
+        return;
+      }
+      var saved = await _saveOwnFields(user, { dob: v });
+      if (!saved) { ok.disabled = false; msg('Could not save. Check your connection and try again.'); return; }
+      close(); onOk();
+    });
+    document.getElementById('dob-cancel').addEventListener('click', function () {
+      close(); if (onCancel) onCancel();
+      if (typeof renderLoginScreen === 'function') renderLoginScreen();
+    });
+    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 80);
+  }
+
+  // F5 / reopened tab: a saved session is accepted only when Firebase confirms who is
+  // signed in, and role, practice and specialties are re-read from the cloud record.
+  // Returns the rebuilt session, or null when the person must sign in again.
+  window._cdcSessionFromFirebase = async function (fbUser, prev) {
+    try {
+      if (!fbUser || !fbUser.email) return null;
+      prev = prev || {};
+      var list = await _cloudUsers();
+      if (!list) {
+        // Cloud not reachable: keep the session only if it belongs to this sign-in
+        return (_lc(prev.email) === _lc(fbUser.email) || prev.id === fbUser.uid) ? prev : null;
+      }
+      var rec = await _userForFirebase(fbUser);
+      if (!rec || _isInactive(rec)) return null;
+      if (rec.dob && !isAdultDob(rec.dob)) return null;
+      var fullName = ((rec.first || '') + ' ' + (rec.last || '')).trim() || rec.name || 'User';
+      var s = { id: fbUser.uid, email: rec.email, name: fullName,
+        role: rec.role || (_isOwnerEmail(rec.email) ? 'Super Admin' : 'User'),
+        activeBillingProviderId: prev.activeBillingProviderId || null, providerId: rec.providerId || null,
+        specialties: rec.specialties || [], activeSpecialty: prev.activeSpecialty || null };
+      setSession(s);
+      return s;
+    } catch (e) { return null; }
+  };
+
   async function doLogin() {
-    const loginRaw = (document.getElementById('li-username') && document.getElementById('li-username').value || '').trim();
-    const loginId = loginRaw.toLowerCase();
-    const isEmailFormat = loginId.includes('@') && loginId.includes('.');
+    const loginRaw = cleanEmail(document.getElementById('li-username') && document.getElementById('li-username').value);
+    const loginId = loginRaw;
+    // Sign-in is by the email saved in the user record only (no usernames or first names)
+    const isEmailFormat = validEmail(loginId);
     const pass = document.getElementById('li-pass') && document.getElementById('li-pass').value || '';
     const alertEl = document.getElementById('login-alert');
     const btn = document.getElementById('login-btn');
@@ -553,6 +694,8 @@
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
     }
     if (!loginRaw || !pass) { fail('Enter your email and password.'); return; }
+    if (!isEmailFormat) { fail('Enter a valid email address.'); return; }
+    if (pass.length > 128) { fail(); return; }
     btn.textContent = 'Signing in...'; btn.disabled = true; alertEl.innerHTML = '';
 
     // Helper: after data loads, set up the UI correctly (unchanged from script1.js)
@@ -652,15 +795,29 @@
         setTimeout(function () { if (!_fired) console.warn('[CDC] cloud load is slow; continuing'); _once(); }, 25000);
         loadFromFirestore().then(_once, function (e) { console.error('[CDC] loading data:', e); _once(); });
       }
-      if (user.twoFA && !isDeviceRemembered(user.email)) {
-        btn.textContent = 'Sending code...';
-        send2FACode(user).then(function (sent) {
-          btn.textContent = 'Sign In'; btn.disabled = false;
-          if (!sent) { try { if (_auth) _auth.signOut(); } catch (e) {} fail('Could not send the verification code. Try again in a moment.'); return; }
-          show2FAScreen(user, enter);
-        });
+      function proceed() {
+        if (user.twoFA && !isDeviceRemembered(user.email)) {
+          btn.textContent = 'Sending code...';
+          send2FACode(user).then(function (sent) {
+            btn.textContent = 'Sign In'; btn.disabled = false;
+            if (!sent) { try { if (_auth) _auth.signOut(); } catch (e) {} fail('Could not send the verification code. Try again in a moment.'); return; }
+            show2FAScreen(user, enter);
+          });
+        } else {
+          enter();
+        }
+      }
+      // ClaimDataCare users must be adults (18+). The date of birth is asked once.
+      if (user.dob) {
+        if (!isAdultDob(user.dob)) {
+          try { if (_auth) _auth.signOut(); } catch (e) {}
+          fail('Access denied. ClaimDataCare users must be 18 years of age or older.');
+          return;
+        }
+        proceed();
       } else {
-        enter();
+        btn.textContent = 'Sign In'; btn.disabled = false;
+        showDobScreen(user, proceed, function () { try { if (_auth) _auth.signOut(); } catch (e) {} });
       }
     }
 
@@ -670,9 +827,7 @@
       var _storedOwner = _localUsers.find(function (u) { return u.id === DEFAULT_ADMIN.id; });
       var _ownerRec = _storedOwner ? Object.assign({}, DEFAULT_ADMIN, _storedOwner) : DEFAULT_ADMIN;
       var _allUsers = [_ownerRec].concat(_localUsers.filter(function (u) { return u.id !== DEFAULT_ADMIN.id; }));
-      var _matchFn = function (u) {
-        return (u.email || '').toLowerCase() === loginId || (u.name || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId || (u.first || '').toLowerCase() === loginId;
-      };
+      var _matchFn = function (u) { return !!u && (u.email || '').toLowerCase() === loginId; };
       var _resolvedUser = _allUsers.find(_matchFn);
       var _fbEmail = isEmailFormat ? loginId : (_resolvedUser && _resolvedUser.email ? _resolvedUser.email.toLowerCase() : null);
 
@@ -729,46 +884,158 @@
       if (_isInactive(_localUser)) { fail('This account is not active. Contact your administrator.'); return; }
       // One-time move to a Firebase sign-in account, using the password just verified.
       // After this the user signs in through Firebase and no password data stays in the app.
-      var _sid = _localUser.id;
-      if (_auth && _fbReady && _localUser.email && _localUser.id !== DEFAULT_ADMIN.id) {
-        var _mig = null, _em = _lc(_localUser.email);
+      // SECURITY (2026-10-03): a session is never opened without a verified Firebase sign-in.
+      var _mig = null;
+      if (_auth && _fbReady && _localUser.email) {
+        var _em = _lc(_localUser.email);
         try { _mig = (await _auth.createUserWithEmailAndPassword(_em, pass)).user; }
         catch (e) { if (e && e.code === 'auth/email-already-in-use') { try { _mig = (await _auth.signInWithEmailAndPassword(_em, pass)).user; } catch (e2) {} } }
-        if (_mig) { await _linkAccount(_localUser, _mig); _sid = _mig.uid; }
       }
-      finish(_localUser, _sid);
+      if (!_mig) { fail(); return; }
+      await _linkAccount(_localUser, _mig);
+      finish(_localUser, _mig.uid);
     } catch (e) {
       console.warn('[CDC] sign-in error:', e && e.message);
       fail('Sign-in failed. Please try again.');
     }
   }
 
+  // Forgot password (2026-10-03): sends a single-use, expiring reset LINK (secure token).
+  // The link opens ClaimDataCare's own reset screen (see handleAuthAction below), where the
+  // new password must meet the strong password policy. No codes are typed by the user.
+  var _fpLastSent = 0;
   async function doForgotPassword() {
-  const email = (document.getElementById('fp-email')?.value||'').trim().toLowerCase();
-  const alertEl = document.getElementById('fp-alert');
-  const btn = document.getElementById('fp-btn');
-  alertEl.innerHTML = '';
-  if (!email) { alertEl.innerHTML='<div class="alert al-error">Email is required.</div>'; return; }
-  btn.textContent='Sending...'; btn.disabled=true;
-  try {
-  if (!_auth) throw new Error('Auth not ready');
-  await _auth.sendPasswordResetEmail(email);
-  alertEl.innerHTML='<div class="alert al-success">If an account exists for that email, a reset link is on its way.</div>';
-  btn.textContent='Resend Email'; btn.disabled=false;
-  } catch(e) {
-  // Same answer whether or not the account exists (no account discovery)
-  if (e && e.code === 'auth/user-not-found') {
-    alertEl.innerHTML='<div class="alert al-success">If an account exists for that email, a reset link is on its way.</div>';
-    btn.textContent='Resend Email'; btn.disabled=false; return;
+    var inp = document.getElementById('fp-email');
+    var email = cleanEmail(inp && inp.value);
+    var alertEl = document.getElementById('fp-alert');
+    var btn = document.getElementById('fp-btn');
+    function say(t, ok) { if (!alertEl) return; alertEl.innerHTML = '<div class="alert ' + (ok ? 'al-success' : 'al-error') + '"></div>'; alertEl.firstChild.textContent = t; }
+    if (alertEl) alertEl.innerHTML = '';
+    if (!email || !validEmail(email)) { say('Enter a valid email address.'); if (inp) { inp.setAttribute('aria-invalid', 'true'); inp.focus(); } return; }
+    if (inp) inp.removeAttribute('aria-invalid');
+    var wait = 60000 - (Date.now() - _fpLastSent);
+    if (wait > 0) { say('Please wait ' + Math.ceil(wait / 1000) + ' seconds before requesting another link.'); return; }
+    var GENERIC = 'If an account exists for that email, a secure reset link is on its way. It works once and expires in 1 hour.';
+    btn.textContent = 'Sending...'; btn.disabled = true;
+    try {
+      if (!_auth) throw new Error('Auth not ready');
+      try { await _auth.sendPasswordResetEmail(email, { url: location.origin + '/app.html' }); }
+      catch (e1) { if (e1 && /continue-uri|unauthorized/i.test(e1.code || '')) await _auth.sendPasswordResetEmail(email); else throw e1; }
+      _fpLastSent = Date.now();
+      say(GENERIC, true);
+    } catch (e) {
+      // Same answer whether or not the account exists (no account discovery)
+      if (e && (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-email')) { _fpLastSent = Date.now(); say(GENERIC, true); }
+      else if (e && e.code === 'auth/too-many-requests') say('Too many requests. Try again later.');
+      else say('Could not send the reset link. Try again.');
+    }
+    btn.textContent = 'Send reset link'; btn.disabled = false;
   }
-  const msgs = {
-  'auth/invalid-email': 'Enter a valid email address.',
-  'auth/too-many-requests': 'Too many requests. Try again later.'
+
+  /* ---------------- Secure email links (reset password, verify email) ---------------- */
+  // Firebase email links carry a single-use, expiring token (oobCode). With the action URL
+  // set to https://claimdatacare.com/app.html (Firebase console > Authentication >
+  // Templates), every link opens here instead of a generic page.
+  function _authInstance() {
+    try { if (typeof _auth !== 'undefined' && _auth) return _auth; } catch (e) {}
+    try { if (window.firebase && firebase.apps && firebase.apps.length) return firebase.auth(); } catch (e) {}
+    return null;
+  }
+  function _maskEmail(e) { e = String(e || ''); var i = e.indexOf('@'); return i > 1 ? e[0] + '•••' + e.slice(i - 1) : e; }
+  function _actionDone(title, text, ok) {
+    injectCSS();
+    setRoot(shell(
+      '<div><h1 class="cdcx-h1"></h1><p class="cdcx-lead"></p></div>' +
+      '<div class="cdcx-form"><div class="cdcx-msgslot"></div>' +
+      '<button type="button" class="cdcx-btn" id="act-signin">Go to sign in</button></div>'));
+    var h = document.querySelector('.cdcx-h1'), p = document.querySelector('.cdcx-lead');
+    if (h) h.textContent = title; if (p) p.textContent = text;
+    var b = $('act-signin'); if (b) b.addEventListener('click', function () { if (typeof renderLoginScreen === 'function') renderLoginScreen(); });
+    try { _hideLoginLoader(); } catch (e) {}
+  }
+  function _renderReset(auth, code, email) {
+    injectCSS();
+    setRoot(shell(
+      '<div><h1 class="cdcx-h1">Create a new password</h1><p class="cdcx-lead" id="rp-lead"></p></div>' +
+      '<form class="cdcx-form" id="rp-form" novalidate autocomplete="off">' +
+        '<div id="rp-alert" class="cdcx-msgslot" role="alert" aria-live="assertive"></div>' +
+        '<input type="email" name="username" autocomplete="username" hidden>' +
+        '<div class="cdcx-field"><label class="cdcx-label" for="rp-pass">New password</label>' +
+          '<div class="cdcx-pwwrap"><input class="cdcx-input no-upper" id="rp-pass" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off">' +
+          '<button type="button" class="cdcx-eye" id="rp-eye" aria-label="Show password" title="Show password">' + ICON_EYE + '</button></div></div>' +
+        '<ul id="rp-rules" style="margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12.5px;min-height:96px"></ul>' +
+        '<div class="cdcx-field"><label class="cdcx-label" for="rp-pass2">Confirm new password</label>' +
+          '<input class="cdcx-input no-upper" id="rp-pass2" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off"></div>' +
+        '<button type="submit" class="cdcx-btn" id="rp-btn">Save new password</button>' +
+      '</form>'));
+    $('rp-lead').textContent = 'For ' + _maskEmail(email) + '. Choose a strong password you do not use anywhere else.';
+    var hidden = document.querySelector('#rp-form input[name=username]'); if (hidden) hidden.value = email;
+    var pw = $('rp-pass'), pw2 = $('rp-pass2'), rules = $('rp-rules');
+    var ALL = ['At least 12 characters', 'A lowercase letter', 'An uppercase letter', 'A number', 'A symbol (! @ # $ % ...)', 'Not your name or email'];
+    function paint() {
+      var issues = passwordIssues(pw.value, { email: email });
+      var extra = issues.filter(function (x) { return ALL.indexOf(x) === -1; });
+      rules.innerHTML = '';
+      ALL.concat(extra).forEach(function (r) {
+        var li = document.createElement('li');
+        var ok = issues.indexOf(r) === -1 && pw.value.length > 0;
+        li.textContent = (ok ? '\u2713 ' : '\u2022 ') + r;
+        li.style.color = ok ? '#1F7A4D' : (extra.indexOf(r) !== -1 ? '#B8461F' : '#586579');
+        rules.appendChild(li);
+      });
+    }
+    pw.addEventListener('input', paint); paint();
+    $('rp-eye').addEventListener('click', function () { var s = pw.type === 'password'; pw.type = pw2.type = s ? 'text' : 'password'; this.innerHTML = s ? ICON_EYE_OFF : ICON_EYE; });
+    function say(t) { var a = $('rp-alert'); if (!a) return; a.innerHTML = t ? '<div class="alert al-error"></div>' : ''; if (t) a.firstChild.textContent = t; }
+    $('rp-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var issues = passwordIssues(pw.value, { email: email });
+      if (issues.length) { say('Your password still needs: ' + issues.join(', ') + '.'); pw.focus(); return; }
+      if (pw.value !== pw2.value) { say('The two passwords do not match.'); pw2.focus(); return; }
+      var btn = $('rp-btn'); btn.disabled = true; btn.textContent = 'Saving...'; say('');
+      try {
+        await auth.confirmPasswordReset(code, pw.value);
+        try { await auth.signOut(); } catch (x) {}
+        try { clearSession(); } catch (x) {}
+        _actionDone('Password updated', 'Your password was changed. Sign in with your new password.', true);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = 'Save new password';
+        var c = err && err.code;
+        if (c === 'auth/weak-password' || c === 'auth/password-does-not-meet-requirements') say('This password does not meet the security requirements.');
+        else if (c === 'auth/expired-action-code' || c === 'auth/invalid-action-code') _actionDone('Link expired', 'This reset link was already used or has expired. Request a new one from Forgot password.');
+        else say('Could not save the password. Try again.');
+      }
+    });
+    try { _hideLoginLoader(); } catch (e) {}
+    setTimeout(function () { try { pw.focus(); } catch (e) {} }, 60);
+  }
+  // Called by the app at start-up. Returns true when it handled an email link.
+  window._cdcHandleAuthAction = function () {
+    var q = new URLSearchParams(location.search || '');
+    var mode = q.get('mode'), code = q.get('oobCode');
+    if (!mode || !code) return false;
+    // The token is removed from the address bar and history right away
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    if (!/^[A-Za-z0-9_-]{20,400}$/.test(code)) { _actionDone('Invalid link', 'This link is not valid. Request a new one.'); return true; }
+    var auth = _authInstance();
+    if (!auth) { _actionDone('Try again', 'The page is still loading. Open the link from your email again.'); return true; }
+    try { _hideLoginLoader(); } catch (e) {}
+    if (mode === 'resetPassword') {
+      auth.verifyPasswordResetCode(code).then(function (email) { _renderReset(auth, code, email); })
+        .catch(function () { _actionDone('Link expired', 'This reset link was already used or has expired. Request a new one from Forgot password.'); });
+    } else if (mode === 'verifyEmail' || mode === 'verifyAndChangeEmail') {
+      auth.applyActionCode(code).then(function () {
+        _actionDone(mode === 'verifyEmail' ? 'Email verified' : 'Email updated', 'Thank you. You can now sign in to ClaimDataCare.', true);
+      }).catch(function () { _actionDone('Link expired', 'This link was already used or has expired.'); });
+    } else if (mode === 'recoverEmail') {
+      auth.checkActionCode(code).then(function () { return auth.applyActionCode(code); }).then(function () {
+        _actionDone('Email restored', 'Your sign-in email was restored. For your security, reset your password now from Forgot password.', true);
+      }).catch(function () { _actionDone('Link expired', 'This link was already used or has expired.'); });
+    } else {
+      _actionDone('Invalid link', 'This link is not valid.');
+    }
+    return true;
   };
-  alertEl.innerHTML='<div class="alert al-error">'+(msgs[e && e.code]||'Could not send the reset email. Try again.')+'</div>';
-  btn.textContent='Send Reset Email'; btn.disabled=false;
-  }
-  }
 
   // Make the engine available to the app (the names script1.js and the screens call)
   window.doLogin = doLogin;

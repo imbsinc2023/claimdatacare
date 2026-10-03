@@ -187,13 +187,10 @@ document.addEventListener('input', function(e) {
 });
 
 // Patient chart links
-function ptLinkName(patId, last, first) {
-return `<a href="#" onclick="openPatientChart('${patId}');return false;" style="color:var(--brand);font-weight:600">${last||'?'}, ${first||''}</a>`;
-}
 function ptLinkAcct(patId, acct) {
   var el = document.createElement('span');
   el.textContent = acct || '';
-  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.setAttribute('onclick', "openPatientChart('" + jsq(patId) + "')");
   el.style.cssText = 'cursor:pointer;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:500;border-radius:4px;padding:1px 4px;transition:background .15s';
   el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
   el.setAttribute('onmouseout', "this.style.background=''");
@@ -202,7 +199,7 @@ function ptLinkAcct(patId, acct) {
 function ptLinkName(patId, last, first) {
   var el = document.createElement('span');
   el.textContent = (last || '?') + ', ' + (first || '');
-  el.setAttribute('onclick', "openPatientChart('" + patId + "')");
+  el.setAttribute('onclick', "openPatientChart('" + jsq(patId) + "')");
   el.style.cssText = 'cursor:pointer;color:var(--text);font-weight:600;font-size:13px;border-radius:4px;padding:1px 4px;transition:background .15s';
   el.setAttribute('onmouseover', "this.style.background='var(--brand-bg)'");
   el.setAttribute('onmouseout', "this.style.background=''");
@@ -1713,10 +1710,10 @@ function _ceBuildPaymentsTab(claim, claimId, db){
         return '<tr>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+(r.date||'•')+'</td>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:'+r.sourceColor+'1a;color:'+r.sourceColor+'">'+r.source+'</span></td>'+
-          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+r.payer+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border)">'+escapeHtml(r.payer)+'</td>'+
           '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:monospace;font-weight:700">$'+r.amount.toFixed(2)+'</td>'+
-          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px">'+r.method+(r.ref?' · '+r.ref:'')+'</td>'+
-          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+r.notes+(r.by?' ('+r.by+')':'')+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px">'+escapeHtml(r.method)+(r.ref?' · '+escapeHtml(r.ref):'')+'</td>'+
+          '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+escapeHtml(r.notes)+(r.by?' ('+escapeHtml(r.by)+')':'')+'</td>'+
         '</tr>';
       }).join('')+
     '</tbody></table>' :
@@ -1805,8 +1802,8 @@ function _ceBuildLogTab(claim, claimId, db){
         '<i data-lucide="'+ic+'" class="lci" style="width:13px;height:13px;color:'+col+'"></i>'+
       '</div>'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:12px;color:var(--text)">'+(l.message||l.type)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(new Date(l.ts).toLocaleString())+' · <strong>'+(l.user||'System')+'</strong>'+(l.detail?' · '+l.detail:'')+'</div>'+
+        '<div style="font-size:12px;color:var(--text)">'+escapeHtml(l.message||l.type)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+(new Date(l.ts).toLocaleString())+' · <strong>'+escapeHtml(l.user||'System')+'</strong>'+(l.detail?' · '+escapeHtml(l.detail):'')+'</div>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -1892,7 +1889,7 @@ function _ceBuildEOBsTab(claim, db){
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg2)">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
         '<div style="display:flex;align-items:center;gap:6px">'+
-          '<span style="font-size:12px;font-weight:700;color:var(--text)">'+(e.payerName||'Payer')+'</span>'+
+          '<span style="font-size:12px;font-weight:700;color:var(--text)">'+escapeHtml(e.payerName||'Payer')+'</span>'+
           tag+denBadge+
         '</div>'+
         '<span style="font-size:10px;color:var(--text3)">'+(e.checkDate||new Date(e.postedAt).toLocaleDateString())+'</span>'+
@@ -1942,8 +1939,8 @@ function _ceBuildCommentsTab(claim, claimId){
         '<div style="display:flex;flex-direction:column;gap:8px">'+
           comments.map(function(c){
             return '<div style="padding:8px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">'+
-              '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">'+(c.author||'User')+' • '+(c.date||'')+'</div>'+
-              '<div style="font-size:12px;color:var(--text)">'+(c.text||'')+'</div>'+
+              '<div style="font-size:10px;color:var(--text3);margin-bottom:3px">'+escapeHtml(c.author||'User')+' • '+escapeHtml(c.date||'')+'</div>'+
+              '<div style="font-size:12px;color:var(--text)">'+escapeHtml(c.text||'')+'</div>'+
             '</div>';
           }).join('')+
         '</div>':
@@ -3638,7 +3635,7 @@ function _ceGenerateCMS1500(claimId) {
     _fillCMS1500(claim, pat, prov, rend, fac, ref, ins1, ins2, db).then(function(bytes){
       var blob = new Blob([bytes], {type:'application/pdf'});
       var url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener');
       setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
     }).catch(function(err){
       console.error('[CMS1500] generation error', err);
@@ -4676,6 +4673,10 @@ function exportClaimsReportXLSX() {
 }
 
 function renderAuditLogReport(el) {
+  if (!el.__cdcAuditReq && typeof _cdcLoadAuditTrail === 'function') {
+    el.__cdcAuditReq = true;
+    _cdcLoadAuditTrail(1000).then(function(){ try { renderAuditLogReport(el); } catch(e) {} });
+  }
   var logs = getAuditLogs();
   el.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
@@ -4717,10 +4718,10 @@ function filterAuditLog() {
       var actionColor = l.action.includes('LOGIN')?'var(--brand)':l.action.includes('DELETE')||l.action.includes('REJECT')?'var(--red)':'var(--text)';
       return '<tr>' +
         '<td style="font-size:11px;color:var(--text3);white-space:nowrap">' + ts + '</td>' +
-        '<td style="font-size:12px;font-weight:600">' + (l.user||'') + '</td>' +
-        '<td style="font-size:11px;color:var(--text3)">' + (l.role||'') + '</td>' +
-        '<td><span style="font-size:11px;font-weight:700;color:' + actionColor + '">' + (l.action||'') + '</span></td>' +
-        '<td style="font-size:11px;color:var(--text3)">' + (l.details||'') + '</td>' +
+        '<td style="font-size:12px;font-weight:600">' + escapeHtml(l.user||'') + '</td>' +
+        '<td style="font-size:11px;color:var(--text3)">' + escapeHtml(l.role||'') + '</td>' +
+        '<td><span style="font-size:11px;font-weight:700;color:' + actionColor + '">' + escapeHtml(l.action||'') + '</span></td>' +
+        '<td style="font-size:11px;color:var(--text3)">' + escapeHtml(l.details||'') + '</td>' +
       '</tr>';
     }).join('') +
   '</tbody></table></div>';
@@ -5451,13 +5452,8 @@ if (msgEl) msgEl.textContent = '';
 }
 
 
-function saveApiConfig() {
-const cfg = {
-acctKey: document.getElementById('cfg-acctkey')?.value?.trim() || '',
-proxy: document.getElementById('cfg-proxy')?.value?.trim() || ''
-};
-localStorage.setItem(API_CFG_KEY, JSON.stringify(cfg));
-}
+// saveApiConfig() removed 2026-09-29: it copied the clearinghouse key into the
+// browser's storage. Keys live only on each provider record in the cloud.
 
 
 function loadApiConfig() {
@@ -6595,8 +6591,12 @@ _usersCache = users;
 // CLOUD ONLY (2026-09-28): the user list (with password data) is no longer copied
 // into the browser. Firestore meta/users is the only place it is stored.
 if (_fbReady && _db) {
-return _db.collection('meta').doc('users').set({ list: users })
-.catch(e => console.warn('Firestore users write failed:', e));
+return _db.collection('meta').doc('users').set({ list: cdcNeutralize(users) })
+.then(function(){ try { _cdcSyncUserRoles(users); } catch(e) {} })
+.catch(function(e){
+  console.warn('Firestore users write failed:', e);
+  if (e && e.code === 'permission-denied') toast('Only a Manager or Super Admin can change user records.', 'err');
+});
 }
 }
 
@@ -6792,7 +6792,7 @@ function _openPDFPreview(dataUri, options) {
   var viewerContent;
 
   if (isImage) {
-    viewerContent = '<img src="' + src + '" alt="' + (options.title||'Preview') + '">';
+    viewerContent = '<img src="' + escapeHtml(cdcSafeUrl(src)) + '" alt="' + escapeHtml(options.title||'Preview') + '">';
   } else {
     // Convert data URI to blob URL for iframe CSP bypass
     try {
@@ -6806,7 +6806,7 @@ function _openPDFPreview(dataUri, options) {
     } catch (e) {
       // fallback to direct data URI
     }
-    viewerContent = '<iframe src="' + src + '" title="' + (options.title||'PDF Viewer') + '"></iframe>';
+    viewerContent = '<iframe src="' + escapeHtml(cdcSafeUrl(src)) + '" title="' + escapeHtml(options.title||'PDF Viewer') + '"></iframe>';
   }
 
   var downloadHref = options.downloadUrl || dataUri;
@@ -6980,6 +6980,7 @@ if (!data?.results?.length) {
 resultEl.innerHTML = '<div style="font-size:12px;color:var(--amber);margin-top:4px"><i data-lucide="alert-triangle" class="lci" style="color:var(--amber)"></i> NPI not found • enter manually.</div>';
 return;
 }
+cdcNeutralize(data); // third-party relays: never let returned text become markup
 const r = data.results[0], basic = r.basic||{}, addrs = r.addresses||[], taxos = r.taxonomies||[];
 const addr = addrs.find(a=>a.address_purpose==='LOCATION')||addrs[0]||{};
 const taxo = taxos.find(t=>t.primary)||taxos[0]||{};
@@ -7298,6 +7299,7 @@ window.addEventListener('beforeunload', function(e) {
 // Performs the actual sign-out (no confirmation) • shared by the manual
 // "Sign Out" button (after confirmation) and the automatic HIPAA idle logout.
 function _performLogout() {
+  try { auditLog('LOGOUT', 'User signed out'); } catch(e) {}
   // Close every open modal/overlay before tearing down the session so no
   // stale panel remains visible over the login screen.
   try { _closeAllOpenPanels(); } catch(e) {}
@@ -7847,29 +7849,21 @@ async function icSendForms(clientId, formIds) {
 async function sendEmail(to, subject, html, type) {
   try {
     // POST to support large HTML payloads (intake forms with base64 links)
+    // The signed-in user's Firebase ID token lets the email service verify the sender.
+    var idToken = '';
+    try { if (_auth && _auth.currentUser) idToken = await _auth.currentUser.getIdToken(); } catch(e) {}
     var res = await fetch(EMAIL_WORKER_URL + '/', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({to: to, subject: subject, html: html, type: type||'noreply'})
+      body: JSON.stringify({to: to, subject: subject, html: html, type: type||'noreply', idToken: idToken})
     });
     var data = await res.json();
-    console.log('[Email] sent from:', data.from, 'to:', data.to);
     return !!(data.success || data.id);
   } catch(e) {
-    // Fallback: GET with URL params (works for small emails)
-    try {
-      var url = EMAIL_WORKER_URL + '/?'
-        + 'to=' + encodeURIComponent(to)
-        + '&subject=' + encodeURIComponent(subject)
-        + '&html=' + encodeURIComponent(html.substring(0,6000))
-        + '&type=' + encodeURIComponent(type||'noreply');
-      var res2 = await fetch(url);
-      var data2 = await res2.json();
-      return !!(data2.success || data2.id);
-    } catch(e2) {
-      console.error('[Email]', e2.message);
-      return false;
-    }
+    // SECURITY (2026-09-29): the old GET fallback put the whole email (PHI included)
+    // in a URL, where it is kept by proxies and server logs. Removed at the source.
+    console.error('[Email] send failed:', e && e.message);
+    return false;
   }
 }
 
@@ -7987,7 +7981,7 @@ function _mcRenderAttachments(){
     var kb = a.size ? (a.size/1024).toFixed(1)+' KB' : '';
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;font-size:12px">'+
       '<i data-lucide="paperclip" class="lci" style="width:12px;height:12px;color:var(--brand);flex-shrink:0"></i>'+
-      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.name+'</span>'+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.name)+'</span>'+
       '<span style="color:var(--text3);font-size:10px">'+kb+'</span>'+
       '<button onclick="_mcRemoveAttach('+i+')" style="border:none;background:none;cursor:pointer;color:var(--red);padding:2px 4px;font-size:14px">×</button>'+
       '</div>';
@@ -10994,7 +10988,7 @@ style="padding:11px 14px;border-radius:12px;cursor:pointer;border:1px solid var(
 onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
 onmouseout="this.style.background='';this.style.borderColor='var(--border)'">
 <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--brand-bg)">
-${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
+${cdcSafeUrl(p.photo)?`<img src="${escapeHtml(cdcSafeUrl(p.photo))}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
 </div>
 <div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">File #${p.acct||''}</div></div>
 <i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3);margin-left:auto"></i>
@@ -11944,6 +11938,7 @@ function printEOBBatch(batchId) {
   '</body></html>';
 
   var w = window.open('','_blank','width=900,height=700');
+  try { w.opener = null; } catch(e) {}
   w.document.write(html);
   w.document.close();
   w.focus();
@@ -13333,9 +13328,9 @@ function _openERAPreviewModal(previewItems, allBatches, allUnmatched) {
       ? '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#ede9fe;color:#7c3aed">FUTURE</span>'
       : '<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:#f0faf5;color:#2d7a4f">READY</span>';
     return '<tr style="border-bottom:1px solid var(--border)">'
-      +'<td style="padding:7px 8px;width:32px"><input type="checkbox" class="era-preview-cb"'+(!item.isFuture?' checked':'')+' data-eraid="'+item.eraId+'" style="width:14px;height:14px;accent-color:var(--brand)"></td>'
-      +'<td style="padding:7px 8px;font-size:12px;font-weight:600">'+item.payerName+'</td>'
-      +'<td style="padding:7px 8px;font-size:11px;font-family:monospace">'+item.checkNum+'</td>'
+      +'<td style="padding:7px 8px;width:32px"><input type="checkbox" class="era-preview-cb"'+(!item.isFuture?' checked':'')+' data-eraid="'+escapeHtml(item.eraId)+'" style="width:14px;height:14px;accent-color:var(--brand)"></td>'
+      +'<td style="padding:7px 8px;font-size:12px;font-weight:600">'+escapeHtml(item.payerName)+'</td>'
+      +'<td style="padding:7px 8px;font-size:11px;font-family:monospace">'+escapeHtml(item.checkNum)+'</td>'
       +'<td style="padding:7px 8px;font-size:11px">'+item.checkDate+'</td>'
       +'<td style="padding:7px 8px;font-size:12px;font-family:monospace;font-weight:700;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
       +'<td style="padding:7px 8px;text-align:center;font-size:11px">'+item.claimCount+'</td>'
@@ -13623,7 +13618,7 @@ var _TICKET_STATUSES = [
 function _ticketCatLabel(id){ var x=_TICKET_CATS.find(function(c){return c.id===id;}); return x?x.label:id; }
 function _ticketPrio(id){ var x=_TICKET_PRIOS.find(function(c){return c.id===id;}); return x||_TICKET_PRIOS[1]; }
 function _ticketStatus(id){ var x=_TICKET_STATUSES.find(function(c){return c.id===id;}); return x||_TICKET_STATUSES[0]; }
-function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _escHtml(s){ return escapeHtml(s); }
 
 function _countOpenTickets(){
   var db = getDB();
@@ -14410,10 +14405,10 @@ function renderERAPendingTab() {
             +'</div>';
 
     return '<tr style="border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'" '
-      +'onclick="_eraOpenPaymentDetail(&quot;'+item.eraId+'&quot;)" '
+      +'onclick="_eraOpenPaymentDetail(&quot;'+escapeHtml(jsq(item.eraId))+'&quot;)" '
       +'style="cursor:pointer;border-bottom:1px solid var(--border)'+(isPosted?';opacity:.7':'')+'">'
-      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text)">'+item.payerName+(isNoMatch&&item.pcn?'<div style="font-size:10px;font-family:monospace;color:var(--text3);margin-top:2px">PCN: '+item.pcn+'</div>':'')+'</td>'
-      +'<td style="padding:8px 10px;font-size:11px;font-family:monospace;color:var(--text2)">'+item.checkNum+'</td>'
+      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text)">'+escapeHtml(item.payerName)+(isNoMatch&&item.pcn?'<div style="font-size:10px;font-family:monospace;color:var(--text3);margin-top:2px">PCN: '+escapeHtml(item.pcn)+'</div>':'')+'</td>'
+      +'<td style="padding:8px 10px;font-size:11px;font-family:monospace;color:var(--text2)">'+escapeHtml(item.checkNum)+'</td>'
       +'<td style="padding:8px 10px;font-size:11px;color:var(--text2)">'+item.checkDate||item.dos||''+'</td>'
       +'<td style="padding:8px 10px">'+badge+'</td>'
       +'<td style="padding:8px 10px;font-size:13px;font-family:monospace;font-weight:800;color:#2d7a4f">$'+fmtMoney(item.checkAmt)+'</td>'
@@ -15026,7 +15021,7 @@ ${sections.map(sec=>`
 <div class="field" style="margin-bottom:14px">
 <label style="font-weight:700;font-size:12px;color:var(--brand)">${sec.label}</label>
 <textarea id="ne-${sec.key}" style="width:100%;min-height:${sec.key==='mn_statement'||sec.key==='plan'?'100px':'88px'};padding:10px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12.5px;line-height:1.75;resize:vertical;font-family:var(--font)"
-${ro?'readonly':''} oninput="_noteUnsaved=true">${n.body?.[sec.key]||''}</textarea>
+${ro?'readonly':''} oninput="_noteUnsaved=true">${escapeHtml(n.body?.[sec.key]||'')}</textarea>
 </div>`).join('')}
 <div style="font-size:11px;color:var(--text3);padding-top:4px;border-top:1px solid var(--border)">
 Version ${n.version||1} · Created: ${new Date(n.createdAt).toLocaleString()}
@@ -15403,7 +15398,7 @@ function openEncounterEditor(noteId, encType) {
       <div style="font-size:12px;color:var(--text2);line-height:1.8">
         ${sections.map(s => {
           const txt = (n.body?.[s.key]||'').trim();
-          return txt ? `<div style="margin-bottom:8px"><span style="font-weight:600;color:var(--brand);font-size:10.5px;text-transform:uppercase">${s.label}</span><br>${txt.slice(0,200)}${txt.length>200?'...':''}</div>` : '';
+          return txt ? `<div style="margin-bottom:8px"><span style="font-weight:600;color:var(--brand);font-size:10.5px;text-transform:uppercase">${s.label}</span><br>${escapeHtml(txt.slice(0,200))}${txt.length>200?'...':''}</div>` : '';
         }).filter(Boolean).join('')||'<div style="color:var(--text3);font-style:italic">No content yet. Use the sidebar to add notes.</div>'}
       </div>
     </div>
@@ -15412,7 +15407,7 @@ function openEncounterEditor(noteId, encType) {
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.01em">${s.label}</div>
         <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0">
           <textarea id="ee-txt-${s.key}" ${ro?'readonly':''}
-            oninput="eeMarkDirty()" placeholder="Enter ${s.label.toLowerCase()}...">${n.body?.[s.key]||''}</textarea>
+            oninput="eeMarkDirty()" placeholder="Enter ${s.label.toLowerCase()}...">${escapeHtml(n.body?.[s.key]||'')}</textarea>
           ${ro?'':`<button class="ee-macro-btn" onclick="eeToggleMacros('${s.key}',this)" title="Quick phrases">+</button>`}
           ${ro?'':`<button class="ee-macro-btn" onclick="eeFixCasing('${s.key}')" title="Fix ALL CAPS text" style="right:38px">Aa</button>`}
         </div>
@@ -15575,7 +15570,7 @@ function eeUpdatePreview() {
       const txt = document.getElementById(`ee-txt-${s.key}`)?.value?.trim();
       return txt ? `<div class="ep-section">
         <div class="ep-section-label">${s.label}</div>
-        <div class="ep-section-text">${txt.slice(0,300)}</div>
+        <div class="ep-section-text">${escapeHtml(txt.slice(0,300))}</div>
       </div>` : '';
     }).filter(Boolean).join('')||'<div style="color:var(--text3);font-style:italic">No content yet</div>'}
     <div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3)">
@@ -15602,7 +15597,7 @@ function openTCMEncounter(patId) {
         onmouseover="this.style.background='var(--brand-bg)';this.style.borderColor='var(--brand)'"
         onmouseout="this.style.background='';this.style.borderColor='var(--border)'">
         <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--brand-bg)">
-        ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
+        ${cdcSafeUrl(p.photo)?`<img src="${escapeHtml(cdcSafeUrl(p.photo))}" style="width:100%;height:100%;object-fit:cover">`:_patientAvatar(p,40)}
         </div>
         <div><div style="font-weight:600;font-size:13px;color:var(--text)">${p.last||'?'}, ${p.first||''}</div><div style="font-size:11px;color:var(--text3)">File #${p.acct||''}</div></div>
         <i data-lucide="chevron-right" class="lci" style="width:14px;height:14px;color:var(--text3);margin-left:auto"></i>
@@ -15986,15 +15981,7 @@ function eeSigSave() {
 }
 
 // ?? Unlock Workflow ????????????????????????????????????????????????????
-function eeAuditLog(action, details) {
-  try {
-    const key = 'cdc_audit_' + (activeProviderId || 'g');
-    const logs = JSON.parse(localStorage.getItem(key) || '[]');
-    const s = getSession();
-    logs.push({ ts: Date.now(), user: s?.email || s?.name || 'unknown', role: s?.role || '', action, details });
-    localStorage.setItem(key, JSON.stringify(logs.slice(-500)));
-  } catch(e) {}
-}
+function eeAuditLog(action, details) { auditLog(action, details); }
 
 function eeUnlock(reason) {
   if (!reason || !reason.trim()) { reason = prompt('Reason for unlocking this encounter:'); if (!reason) return; }
@@ -17606,7 +17593,7 @@ ${rend.last ? rend.last+', '+rend.first : ''}
 &nbsp;·&nbsp; ${(sg.lines||[]).map(l=>l.cpt).join(', ')||''}
 ${fac.name ? ' &nbsp;·&nbsp; '+fac.name : ''}
 </div>
-${a.comments ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic">${a.comments}</div>` : ''}
+${a.comments ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic">${escapeHtml(a.comments)}</div>` : ''}
 </div>
 <div class="btn-group" style="flex-shrink:0">
 <button class="btn btn-xs" onclick="openApptModal('${a.id}')">Edit</button>
@@ -18865,7 +18852,7 @@ function _openFloatingDocViewer(dataUri, title) {
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
-  hdr.querySelector('#dv-open-tab').onclick = function(){ window.open(dataUri,'_blank'); };
+  hdr.querySelector('#dv-open-tab').onclick = function(){ window.open(dataUri, '_blank', 'noopener'); };
   hdr.querySelector('#dv-close').onclick = function(){ overlay.remove(); };
 
   setTimeout(_renderLucideIcons, 30);
@@ -20133,7 +20120,7 @@ function openCMClientModal(editId) {
     }
     fileNoDisplay = preview;
   }
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
 
   var overlay = document.createElement('div');
@@ -21152,7 +21139,7 @@ function renderCMPlans() {
 function openCMPlanModal(editId) {
   var d = getCMData();
   var p = editId ? d.plans.find(function(x){return x.id===editId;}) : {goals:[]};
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
 
   var goalCard = function(g, i) {
@@ -21662,7 +21649,7 @@ function editCMBilling(id) {
   var d = getCMData();
   var b = id ? (d.billing||[]).find(function(x){return x.id===id;}) : {};
   b = b || {};
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
 
   var clientOpts = '<option value="">Select Client</option>' +
@@ -21836,7 +21823,7 @@ function delCMBilling(id) {
 function openCMBillingSettings() {
   var d = getCMData();
   var rates = (d.cmSettings && d.cmSettings.rates) || {};
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var overlay = document.createElement('div');
   overlay.setAttribute('data-cm','1');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -22624,7 +22611,7 @@ function openCMAssessmentModal(editId) {
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   overlay.onclick = function(e){if(e.target===overlay)overlay.remove();};
-  var esc = function(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var sel = function(cur, val){ return cur===val ? ' selected' : ''; };
   var sect = function(id, kl, vl, hint) {
     return '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:2px">'+kl+(hint?' <span style="font-weight:400;color:var(--text3);font-size:10px">• '+hint+'</span>':'')+'</label><textarea id="'+id+'" style="width:100%;min-height:44px;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical">'+esc(vl)+'</textarea></div>';
@@ -23842,7 +23829,7 @@ function printCMDischarge(id) {
   var dc = (d.discharges||[]).find(function(x){return x.id===id;});
   if (!dc) { toast('Discharge not found','warn'); return; }
   var cli = (d.clients||[]).find(function(c){return c.id===dc.clientId;}) || {};
-  var esc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var esc = function(s){ return escapeHtml(s); };
   var sec = function(k, v) { return v ? '<div class="sec"><h3>'+k+'</h3><p>'+esc(v).replace(/\n/g,'<br>')+'</p></div>' : ''; };
   var providerName = '';
   try {
@@ -23909,6 +23896,7 @@ function printCMDischarge(id) {
 
   var w = window.open('', '_blank', 'width=850,height=1100');
   if (!w) { toast('Popup blocked • allow popups to print','warn'); return; }
+  try { w.opener = null; } catch(e) {}
   w.document.open();
   w.document.write(html);
   w.document.close();
@@ -24279,7 +24267,7 @@ function _cmChartSummary(cli, d) {
     if (!v && v!==0) return '';
     return '<div style="display:grid;grid-template-columns:130px 1fr;padding:4px 0;border-bottom:1px solid #EEF1F6;align-items:baseline">'+
       '<span style="color:#586579;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">'+l+'</span>'+
-      '<span style="color:'+(bold?'#0B1526':'#3d3c38')+';font-weight:'+(bold?'700':'400')+';font-size:12px">'+v+'</span>'+
+      '<span style="color:'+(bold?'#0B1526':'#3d3c38')+';font-weight:'+(bold?'700':'400')+';font-size:12px">'+((v&&v.__html)?v.__html:escapeHtml(v))+'</span>'+
     '</div>';
   };
 
@@ -24320,7 +24308,7 @@ function _cmChartSummary(cli, d) {
             '</div>'+
             '<div>'+
               R('User',worker.first?worker.first+' '+worker.last:'•')+
-              R('Supervisor',sup.first?sup.first+' '+sup.last:'<span style="color:#dc2626">Not assigned</span>')+
+              R('Supervisor',sup.first?sup.first+' '+sup.last:{__html:'<span style="color:#dc2626">Not assigned</span>'})+
               R('Level of Care',cli.levelOfCare||'')+
               R('Primary Dx',cli.primaryDx||'')+
               R('Referral',cli.referralSource||'')+
@@ -24646,6 +24634,9 @@ document.addEventListener("DOMContentLoaded", async function() {
   await waitForFirebase();
   initFirebase();
 
+  // Secure email links (password reset / email verification) open their own screen
+  try { if (typeof window._cdcHandleAuthAction === 'function' && window._cdcHandleAuthAction()) return; } catch(e) {}
+
   // ── Tab-close auto-logout ─────────────────────────────────────
   // sessionStorage survives F5 but is cleared when the tab is closed.
   // If _cdc_tab_alive is absent this is a fresh open after a tab close
@@ -24713,38 +24704,30 @@ document.addEventListener("DOMContentLoaded", async function() {
     setTimeout(function(){ try { _hideLoginLoader(); } catch(_){} }, 200);
   }
 
-  // ── Check landing page pending login ──────────────────────────
-  var pendingLogin = localStorage.getItem('cdc_pending_login');
-  if (pendingLogin === '1') {
-    localStorage.removeItem('cdc_pending_login');
-
-    var fbUser = await new Promise(function(resolve) {
-      var unsub = _auth.onAuthStateChanged(function(user) { unsub(); resolve(user); });
-      setTimeout(function() { resolve(null); }, 3000);
-    });
-
-    if (fbUser) {
-      if (!getSession()) {
-        setSession({
-          id: fbUser.uid,
-          email: fbUser.email,
-          name: fbUser.displayName || fbUser.email.split('@')[0] || 'Admin',
-          role: 'Super Admin',
-          activeBillingProviderId: null
-        });
-      }
-      var sess = getSession();
-      window._sessionVerified = true;
-      sessionStorage.setItem('cdc_verified', 'yes');
-      showApp(sess.name || sess.email);
-      Promise.resolve(loadFromFirestoreWhenReady()).then(_afterLoad).catch(function(){ try { _hideLoginLoader(); } catch(_){} go('dashboard'); });
-      return;
-    }
-  }
+  // (2026-10-03) The old "landing page pending login" path was removed at the source: it
+  // opened a Super Admin session for ANY signed-in Firebase account.
 
   // F5 safe: restore session from localStorage if available
   var existSess = getSession();
   if (existSess) {
+    // SECURITY (2026-10-03): a saved session is accepted only when Firebase confirms who is
+    // signed in; role, practice and specialties are re-read from the cloud user record
+    // (cdc-login.js). A session typed or edited in the browser is discarded.
+    var _fbNow = await new Promise(function(resolve) {
+      if (!_auth) { resolve(null); return; }
+      var _settled = false, _un = null;
+      _un = _auth.onAuthStateChanged(function(u) { if (_settled) return; _settled = true; try { _un && _un(); } catch(e) {} resolve(u); });
+      setTimeout(function() { if (!_settled) { _settled = true; resolve(null); } }, 6000);
+    });
+    var _okSess = (_fbNow && typeof window._cdcSessionFromFirebase === 'function') ? await window._cdcSessionFromFirebase(_fbNow, existSess) : null;
+    if (!_okSess) {
+      clearSession();
+      try { if (_auth) await _auth.signOut(); } catch(e) {}
+      try { _hideLoginLoader(); } catch(e) {}
+      renderLoginScreen();
+      return;
+    }
+    existSess = _okSess;
     // Re-stamp verified token in case sessionStorage lost it
     sessionStorage.setItem('cdc_verified', 'yes');
     showApp(existSess.name || existSess.email);
@@ -25052,6 +25035,7 @@ async function _fsWriteCollection(collName, items) {
             safe[k] = v;
           }
         }
+        cdcNeutralize(safe);
         batch.set(_db.collection(collName).doc(String(item.id)), safe);
       });
       await batch.commit();
@@ -25066,9 +25050,15 @@ async function _fsReadCollection(collName) {
 if (!_fbReady || !_db) return [];
 try {
   const snap = await _db.collection(collName).get();
-  return snap.docs.map(d => d.data());
+  return snap.docs.map(d => cdcNeutralize(d.data()));
 } catch(e) {
   console.warn(`Firestore read failed for ${collName}:`, e.message);
+  // Access refused by the database: tell the user once (instead of an empty screen)
+  if (e && e.code === 'permission-denied' && !window._cdcDeniedShown) {
+    window._cdcDeniedShown = true;
+    try { setFbStatus('Auth error', 'red'); } catch(x) {}
+    try { _cdcOnPermissionDenied(); } catch(x) {}
+  }
   return [];
 }
 }
@@ -25090,7 +25080,7 @@ try {
 async function _fsSetDoc(collName, id, data) {
 if (!_fbReady || !_db) return;
 try {
-  await _db.collection(collName).doc(String(id)).set(data);
+  await _db.collection(collName).doc(String(id)).set(cdcNeutralize(data));
 } catch(e) {
   console.warn(`Firestore setDoc failed for ${collName}/${id}:`, e.message);
 }
@@ -25364,14 +25354,17 @@ async function loadFromFirestore() {
     _localDB.claims    = _mergeByUpdatedAt(_localDB.claims||[], claims);
 
     if (usersDoc.exists) {
-      _usersCache = usersDoc.data().list || [];
+      _usersCache = cdcNeutralize(usersDoc.data().list || []);
+      // SECURITY (2026-09-29): role, provider and active status come from the cloud
+      // record, never from what the browser remembered (see cdc-security.js).
+      try { _cdcRevalidateSession(_usersCache); } catch(e) {}
       // cloud only: the user list is not copied into the browser
     }
 
     // Load CM data from Firestore (merged with empty template to ensure all keys exist)
     if (cmDoc.exists) {
       window._cmCloudLoaded = true;   // CM document read from Firestore → saves allowed
-      _localDB.cm = Object.assign(_cmEmpty(), cmDoc.data());
+      _localDB.cm = Object.assign(_cmEmpty(), cdcNeutralize(cmDoc.data()));
       console.log('[CDC] CM data loaded from Firestore: ' + (_localDB.cm.clients||[]).length + ' clients');
     } else {
       window._cmCloudLoaded = true;   // cloud has no CM document yet → first save allowed
@@ -25424,7 +25417,8 @@ async function loadFromFirestore() {
     console.warn('Firestore core load failed:', err.message, err.code);
     if (err.code === 'permission-denied') {
       setFbStatus('Auth error', 'red');
-      console.error('PERMISSION DENIED • Check Firestore rules');
+      console.error('PERMISSION DENIED: this account has no access record (userRoles)');
+      try { _cdcOnPermissionDenied(); } catch(e) {}
     } else {
       setFbStatus('Offline', 'amber');
     }
@@ -25770,7 +25764,9 @@ function toast(msg, type='ok'){
 const c=document.getElementById('toasts');
 const el=document.createElement('div');
 el.className=`toast t-${type}`;
-el.innerHTML=msg;
+// SECURITY (2026-09-29): messages often carry names/data; they are escaped, and only the
+// app's own <i data-lucide="..." class="lci"> icons are allowed back in.
+el.innerHTML=escapeHtml(msg==null?'':msg).replace(/&lt;i data-lucide=&quot;([a-z0-9-]+)&quot; class=&quot;lci&quot;(?: style=&quot;([^&]*)&quot;)?&gt;&lt;\/i&gt;/g,function(m,ic,st){return '<i data-lucide="'+ic+'" class="lci"'+(st?' style="'+st.replace(/[^a-z0-9:;%()#.,\- ]/gi,'')+'"':'')+'></i>';});
 c.appendChild(el);
 requestAnimationFrame(()=>{el.classList.add('show');try{_renderLucideIcons();}catch(e){}});
 setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
@@ -26042,7 +26038,7 @@ async function _downloadFromUrl(url, filename) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 30000);
   } catch(e) {
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener');
   }
 }
 
@@ -26322,12 +26318,9 @@ function _purgeOldTrash() {
   });
 }
 
-function getAuditLogs() {
-  try {
-    var key = 'cdc_audit_' + (activeProviderId||'g');
-    return JSON.parse(localStorage.getItem(key)||'[]');
-  } catch(e) { return []; }
-}
+// HIPAA audit trail: read from the cloud auditLog collection (loaded for Super Admin
+// and Managers by cdc-security.js). The old per-browser copy was removed.
+function getAuditLogs() { return (window._cdcAuditMem || []).slice(); }
 
 
 /* =============================================================================

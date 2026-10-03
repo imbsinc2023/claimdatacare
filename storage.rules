@@ -1,0 +1,38 @@
+rules_version = '2';
+// =====================================================================
+// ClaimDataCare • Cloud Storage Security Rules (HIPAA) • 2026-09-29
+// Documents, superbills and photos are readable/writable only by active
+// staff (same access records as firestore.rules). Owner UID already set.
+// =====================================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function em() { return request.auth.token.email.lower(); }
+    function isOwner() {
+      return signedIn() && (
+        request.auth.uid == 'A2d1QHZlpWVXGy2OCji97M7kmfU2' ||
+        (em() == 'imbsinc2023@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+    function roleOk() {
+      return signedIn() &&
+        firestore.exists(/databases/(default)/documents/userRoles/$(em())) &&
+        firestore.get(/databases/(default)/documents/userRoles/$(em())).data.active == true &&
+        (firestore.get(/databases/(default)/documents/userRoles/$(em())).data.uid == request.auth.uid ||
+         request.auth.token.email_verified == true);
+    }
+    function isActive() { return isOwner() || roleOk(); }
+
+    // Uploads: documents and images up to 25 MB; never web pages or scripts
+    function okUpload() {
+      return request.resource.size < 25 * 1024 * 1024 &&
+        !request.resource.contentType.matches('(?i).*(html|javascript|ecmascript|xhtml).*');
+    }
+
+    match /{allPaths=**} {
+      allow read: if isActive();
+      allow create, update: if isActive() && okUpload();
+      allow delete: if isActive();
+    }
+  }
+}
