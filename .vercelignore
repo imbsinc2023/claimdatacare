@@ -1,0 +1,11 @@
+# Files kept in the repo but never published on claimdatacare.com
+*.src.js
+tests/
+*.md
+*.rules
+_headers
+claimmd-elig-worker.js
+usps-worker.js
+worker-limits-snippet.js
+vercelignore
+test
