@@ -1,0 +1,12 @@
+{
+  "name": "claimdatacare-tests",
+  "private": true,
+  "description": "Component, integration and end-to-end tests for ClaimDataCare (never published).",
+  "scripts": {
+    "test": "node run.js",
+    "test:unit": "node run.js unit",
+    "test:integration": "node run.js integration",
+    "test:e2e": "node run.js e2e"
+  },
+  "devDependencies": { "playwright": "^1.49.0" }
+}
